@@ -6,7 +6,7 @@ import streamlit as st
 
 st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon="🎛️", layout="wide")
 
-from pidtools.i18n import DEFAULT_LANG, T  # noqa: E402
+from pidtools.i18n import DEFAULT_LANG, TEXTS, T  # noqa: E402
 from pidtools.ui import charts  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (cascade, data, diagnostics, header, live, model, project,  # noqa: E402
@@ -25,7 +25,14 @@ def main():
     ctx = Ctx()
 
     header.render(ctx)                       # nadpis, projekt, nápověda, nastavení, zdroj dat
-    ctx.tabs = dict(zip([k for k, _ in TABS], st.tabs([T(lbl) for _, lbl in TABS])))
+    # výběr záložky je uložený jako popisek → po přepnutí jazyka ho převést na popisek v novém jazyce
+    cur = st.session_state.get("main_tab")
+    for _, lbl in TABS:
+        if cur in (TEXTS[lg][lbl] for lg in TEXTS):
+            st.session_state["main_tab"] = T(lbl)
+    # on_change="rerun": prohlížeč posílá výběr záložky → grafy se posílají jen pro aktivní záložku
+    tabs = st.tabs([T(lbl) for _, lbl in TABS], key="main_tab", on_change="rerun")
+    ctx.tabs = {k: charts.Page(tab) for (k, _), tab in zip(TABS, tabs)}
 
     data.render_setup(ctx)                   # sloupce, převzorkování, normování (potřebují všechny záložky)
     tuning.render_block(ctx)                 # konfigurace bloku PIDConL (potřebuje i záložka Data)

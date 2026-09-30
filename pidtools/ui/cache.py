@@ -16,7 +16,7 @@ cascade_sim = _cache(core.cascade_sim)
 loop_kpis = _cache(core.loop_kpis)
 local_gains = _cache(core.local_gains)
 fit_model = _cache(core.fit_model)
-fit_with_stiction = _cache(core.fit_with_stiction)
+identify = _cache(core.identify)
 
 
 @st.cache_data(show_spinner=False, max_entries=64)

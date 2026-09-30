@@ -195,72 +195,74 @@ def render(ctx):
                 st.warning(T("warn_neg_gain"), icon=":material/swap_vert:")
             if "fit" in ss and mcode in ss.fit["res"] and ss.fit["res"][mcode]["fit"] < 70:
                 st.warning(T("warn_low_fit"), icon=":material/warning:")
-            with st.expander(T("cmp_title"), expanded=False, icon=":material/leaderboard:"):
-                T_c = p_eff[-1] + (p[1] if mcode in ("P1D", "P2D", "I1D") else 0) + samp
-                T_cmp = max(25 * T_c, 100 * samp)
-                h_c = max(samp, T_cmp / 6000)
-                n_c = int(T_cmp / h_c) + 1
-                rows, keys = [], []
-                variants = []
-                for m_ in methods:
-                    if m_ == "OPT":
-                        variants += [("OPT", c_) for c_ in ("MIGO", "IAE", "ISE", "ITAE", "OVS")]
-                    else:
-                        variants.append((m_, None))
-                with st.spinner(T("optimizing")):
-                    for m_, cr_ in variants:
-                        if m_ == "AVG" and "avg_dpv" not in ss:
-                            continue
-                        avg_ = (ss.get("avg_dpv", 1) / PR * 100, ss.get("avg_dmv", 1) / MR * 100) if m_ == "AVG" else None
-                        for ct_ in ("PI", "PID"):
-                            try:
-                                tg_ = ss.get("opt_target") or "both"
-                                if tg_ == "scen":
-                                    tg_ = "both"  # optimalizace na scénáři jen pro vybranou metodu (je pomalejší)
-                                if cr_ == "OVS" and tg_ == "dist":
-                                    tg_ = "sp"  # překmit má smysl hlavně u změny SP
-                                s_ = get_sug(m_, ct_, None, avg_, ss.get("opt_ms") or 1.6, hf_max, cr_ or "MIGO", tg_,
-                                             (ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100
-                                             if cr_ == "OVS" else 0.02)
-                            except Exception:
+            with st.expander(T("cmp_title"), expanded=False, icon=":material/leaderboard:", key="cmp_open",
+                             on_change="rerun") as cmp_exp:
+                if cmp_exp.open:  # porovnání (vč. optimalizací) se počítá až po rozbalení
+                    T_c = p_eff[-1] + (p[1] if mcode in ("P1D", "P2D", "I1D") else 0) + samp
+                    T_cmp = max(25 * T_c, 100 * samp)
+                    h_c = max(samp, T_cmp / 6000)
+                    n_c = int(T_cmp / h_c) + 1
+                    rows, keys = [], []
+                    variants = []
+                    for m_ in methods:
+                        if m_ == "OPT":
+                            variants += [("OPT", c_) for c_ in ("MIGO", "IAE", "ISE", "ITAE", "OVS")]
+                        else:
+                            variants.append((m_, None))
+                    with st.spinner(T("optimizing")):
+                        for m_, cr_ in variants:
+                            if m_ == "AVG" and "avg_dpv" not in ss:
                                 continue
-                            if ct_ == "PID" and s_["Td"] <= 0:
-                                continue  # PID by byl shodný s PI
-                            ctrl_ = dict(base_ctrl, Gain=s_["Kc"], TI=s_["Ti"], TD=s_["Td"], FF=[], DeadBand=0.0,
-                                         MV_Lo=-1e12, MV_Hi=1e12)
-                            rb_ = robustness(mcode, p, ctrl_)
-                            label = T("m_" + m_) + (f" · {T('crit_' + cr_)}" if cr_ else "")
-                            row = {T("col_method"): label, T("ctrl_type"): ct_, "Gain": float(f"{s_['Kc']:.4g}"),
-                                   "TI [s]": float(f"{s_['Ti']:.4g}"), "TD [s]": float(f"{s_['Td']:.4g}"),
-                                   "Ms": round(rb_["Ms"], 2) if rb_["stable"] else None}
-                            e_sp, e_d = closed_loop_steps(mcode, p, ctrl_, h_c, n_c)
-                            ok_ = rb_["stable"] and np.all(np.isfinite(e_sp)) and np.abs(e_sp).max() < 1e3
-                            row[T("iae_load")] = float(f"{np.sum(np.abs(e_d)) * h_c:.4g}") if ok_ else None
-                            row[T("iae_sp")] = float(f"{np.sum(np.abs(e_sp)) * h_c:.4g}") if ok_ else None
-                            row[T("ovs_col")] = round(100 * overshoot_ratio(e_sp), 1) if ok_ else None
-                            row[T("noise_col", u=u_mv or "MV")] = (float(f"{mv_noise(ctrl_, sigma_pv) * MR / 100:.3g}")
-                                                                   if sigma_pv > 0 else None)
-                            row[T("use_col")] = T("use_" + (cr_ or m_))
-                            rows.append(row)
-                            keys.append((m_, ct_, cr_))
-                cdf = pd.DataFrame(rows)
-                ev_c = st.dataframe(cdf, hide_index=True, width="stretch", on_select="rerun", selection_mode="single-row", key=f"cmp|{mcode}",
-                                    column_config={"Ms": st.column_config.NumberColumn(format="%.2f"),
-                                                   T("use_col"): st.column_config.TextColumn(width="large")})
-                try:
-                    sel_rows = ev_c.selection.rows
-                    if sel_rows:
-                        selected_row = rows[sel_rows[0]]
-                        st.markdown(f"**{T('sel_method')}:** {selected_row[T('col_method')]}")
-                        b1, b2, _ = st.columns([1.3, 1.3, 3])
-                        if b1.button(T("write_sel_s1"), key="cmp_s1", icon=":material/arrow_downward:"):
-                            ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = selected_row["Gain"], selected_row["TI [s]"], selected_row["TD [s]"]
-                            st.rerun()
-                        if b2.button(T("write_sel_s2"), key="cmp_s2", icon=":material/arrow_downward:"):
-                            ss["set2_gain"], ss["set2_ti"], ss["set2_td"] = selected_row["Gain"], selected_row["TI [s]"], selected_row["TD [s]"]
-                            st.rerun()
-                except AttributeError:
-                    pass
+                            avg_ = (ss.get("avg_dpv", 1) / PR * 100, ss.get("avg_dmv", 1) / MR * 100) if m_ == "AVG" else None
+                            for ct_ in ("PI", "PID"):
+                                try:
+                                    tg_ = ss.get("opt_target") or "both"
+                                    if tg_ == "scen":
+                                        tg_ = "both"  # optimalizace na scénáři jen pro vybranou metodu (je pomalejší)
+                                    if cr_ == "OVS" and tg_ == "dist":
+                                        tg_ = "sp"  # překmit má smysl hlavně u změny SP
+                                    s_ = get_sug(m_, ct_, None, avg_, ss.get("opt_ms") or 1.6, hf_max, cr_ or "MIGO", tg_,
+                                                 (ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100
+                                                 if cr_ == "OVS" else 0.02)
+                                except Exception:
+                                    continue
+                                if ct_ == "PID" and s_["Td"] <= 0:
+                                    continue  # PID by byl shodný s PI
+                                ctrl_ = dict(base_ctrl, Gain=s_["Kc"], TI=s_["Ti"], TD=s_["Td"], FF=[], DeadBand=0.0,
+                                             MV_Lo=-1e12, MV_Hi=1e12)
+                                rb_ = robustness(mcode, p, ctrl_)
+                                label = T("m_" + m_) + (f" · {T('crit_' + cr_)}" if cr_ else "")
+                                row = {T("col_method"): label, T("ctrl_type"): ct_, "Gain": float(f"{s_['Kc']:.4g}"),
+                                       "TI [s]": float(f"{s_['Ti']:.4g}"), "TD [s]": float(f"{s_['Td']:.4g}"),
+                                       "Ms": round(rb_["Ms"], 2) if rb_["stable"] else None}
+                                e_sp, e_d = closed_loop_steps(mcode, p, ctrl_, h_c, n_c)
+                                ok_ = rb_["stable"] and np.all(np.isfinite(e_sp)) and np.abs(e_sp).max() < 1e3
+                                row[T("iae_load")] = float(f"{np.sum(np.abs(e_d)) * h_c:.4g}") if ok_ else None
+                                row[T("iae_sp")] = float(f"{np.sum(np.abs(e_sp)) * h_c:.4g}") if ok_ else None
+                                row[T("ovs_col")] = round(100 * overshoot_ratio(e_sp), 1) if ok_ else None
+                                row[T("noise_col", u=u_mv or "MV")] = (float(f"{mv_noise(ctrl_, sigma_pv) * MR / 100:.3g}")
+                                                                       if sigma_pv > 0 else None)
+                                row[T("use_col")] = T("use_" + (cr_ or m_))
+                                rows.append(row)
+                                keys.append((m_, ct_, cr_))
+                    cdf = pd.DataFrame(rows)
+                    ev_c = st.dataframe(cdf, hide_index=True, width="stretch", on_select="rerun", selection_mode="single-row", key=f"cmp|{mcode}",
+                                        column_config={"Ms": st.column_config.NumberColumn(format="%.2f"),
+                                                       T("use_col"): st.column_config.TextColumn(width="large")})
+                    try:
+                        sel_rows = ev_c.selection.rows
+                        if sel_rows:
+                            selected_row = rows[sel_rows[0]]
+                            st.markdown(f"**{T('sel_method')}:** {selected_row[T('col_method')]}")
+                            b1, b2, _ = st.columns([1.3, 1.3, 3])
+                            if b1.button(T("write_sel_s1"), key="cmp_s1", icon=":material/arrow_downward:"):
+                                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = selected_row["Gain"], selected_row["TI [s]"], selected_row["TD [s]"]
+                                st.rerun()
+                            if b2.button(T("write_sel_s2"), key="cmp_s2", icon=":material/arrow_downward:"):
+                                ss["set2_gain"], ss["set2_ti"], ss["set2_td"] = selected_row["Gain"], selected_row["TI [s]"], selected_row["TD [s]"]
+                                st.rerun()
+                    except AttributeError:
+                        pass
                 st.caption(T("cmp_help"))
 
             st.markdown(f"#### {T('sets_title')}")

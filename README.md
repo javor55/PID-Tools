@@ -29,7 +29,7 @@ streamlit run app.py
 ## 🧪 Tests
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest            # core (fast) + whole application via Streamlit AppTest (~4 min)
+python -m pytest            # core (fast) + whole application via Streamlit AppTest (~2–3 min)
 python -m pytest tests/test_core.py tests/test_basic.py   # core only
 ```
 

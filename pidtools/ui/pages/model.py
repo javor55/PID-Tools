@@ -5,10 +5,11 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, predict, predict_full, step_response, stiction_valve)
+from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, predict, predict_full,
+                     step_response)
 from ...i18n import T
 from .. import cache
-from ..cache import fit_model, pidconl_sim
+from ..cache import pidconl_sim
 from ..charts import REPORT, mkfig, show, style, tr
 from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..widgets import model_name, num, seg, sld
@@ -58,22 +59,12 @@ def render(ctx):
                    dist_level, dist_strength, gain_sign, id_stic)
         k_dec = int(np.ceil(len(ts_id) / 2500))
 
+        fit_args = (ts_id, pv_id, mv_id, Ts, d_id, th_max)
+        fit_kw = dict(level=dist_level, strength=float(dist_strength), sign=sign_v, id_stic=id_stic, k=k_dec)
+
         def do_fit(c, fixed=None, stic_fixed=None):
             """Fit jednoho modelu podle nastavení (neměřené poruchy, znaménko, stikce, zafixované parametry)."""
-            Th_ = None
-            if stic_fixed is not None or not id_stic:
-                S_ = stic_fixed or 0.0
-                v_ = stiction_valve(mv_id, S_) if S_ else mv_id
-                r_ = fit_model(c, ts_id[::k_dec], pv_id[::k_dec], v_[::k_dec], Ts * k_dec, [d[::k_dec] for d in d_id],
-                               th_max, 20, fixed, dist_level, Th_, float(dist_strength), 0.0, sign_v)
-                r_["stic"] = float(S_)
-            else:
-                r_ = cache.fit_with_stiction(c, ts_id, pv_id, mv_id, Ts, d_id, th_max, fixed, dist_level, Th_, float(dist_strength),
-                                None, 13, sign_v, k_dec)
-            pf_ = predict_full(c, r_["p"], r_["pdl"], ts_id, pv_id, mv_id, d_id, Ts, r_["stic"], dist_level, r_["Th"])
-            r_["fit"] = pf_["fit"]
-            r_["fit_raw"] = predict(c, r_["p"], r_["pdl"], ts_id, pv_id, mv_id, d_id, Ts, r_["stic"])[1]
-            return r_
+            return cache.identify(c, *fit_args, fixed=fixed, stic_fixed=stic_fixed, **fit_kw)
 
         if run_fit:
             if len(ts_id) < 20:
@@ -82,7 +73,7 @@ def render(ctx):
                 res = {}
                 prog = st.progress(0.0, text=T("fitting"))
                 for i, c in enumerate(chosen):
-                    prog.progress(i / max(len(chosen), 1), text=f"{T('fitting')} {model_name(c)}")
+                    prog.progress(i / max(len(chosen), 1), text=f"{T('fitting')} {model_name(c)} ({i + 1}/{len(chosen)})")
                     try:
                         res[c] = do_fit(c)
                     except Exception as ex:

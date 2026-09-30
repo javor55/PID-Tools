@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.optimize import least_squares
 
-from .models import (MODELS, n_free, model_dev, predict, stiction_valve,
+from .models import (MODELS, n_free, model_dev, predict, predict_full, stiction_valve,
                      high_pass, spline_projector)
 from .util import acf as _acf
 
@@ -15,7 +15,8 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     Th ........ časové měřítko neměřených poruch [s]; None = automaticky z dynamiky (dynamika × 12/strength)
     stic ...... známá stikce ventilu [% MV] – MV se před fitem převede na polohu ventilu
     sign ...... znaménko zesílení procesu: 0 = automaticky, +1 / −1 = vynucené (jako „Positive/Negative gain“)
-    Postup: mřížka přes θ (je-li volné) + least squares ostatních volných parametrů, pak společné doladění.
+    Postup: mřížka přes θ (je-li volné) + least squares ostatních volných parametrů na zředěných datech,
+    pak společné doladění nejlepších kandidátů na plných datech.
     """
     fixed = dict(fixed or {})
     dists = [np.asarray(d, float) for d in dists]
@@ -80,16 +81,27 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     free_nt = np.where(~fixed_mask & (np.arange(len(names)) != th_idx))[0]
     th_free = not fixed_mask[th_idx]
 
-    def resid(z):
-        p = [float(v) for v in z[:nf + 1]]
-        pdl = [[float(v) for v in z[nf + 1 + nb + 3 * j: nf + 4 + nb + 3 * j]] for j in range(nd)]
-        r = y - model_dev(code, p, pdl, t, du, dD, h)
-        if nb:
-            r = r - z[nf + 1] - (z[nf + 2] * tr_ if nb == 2 else 0.0)
-        if proj is not None:
-            B, S = proj
-            r = r - B @ (S @ r)
-        return r
+    def make_resid(k):
+        """Rezidua na každém k-tém vzorku (k > 1: rychlé hledání θ na mřížce, k = 1: plná data)."""
+        t_, y_, du_, dD_, tr_k = t[::k], y[::k], du[::k], [d[::k] for d in dD], tr_[::k]
+        proj_ = proj if k == 1 or proj is None else spline_projector(t_, Th)
+
+        def resid(z):
+            p = [float(v) for v in z[:nf + 1]]
+            pdl = [[float(v) for v in z[nf + 1 + nb + 3 * j: nf + 4 + nb + 3 * j]] for j in range(nd)]
+            r = y_ - model_dev(code, p, pdl, t_, du_, dD_, h * k)
+            if nb:
+                r = r - z[nf + 1] - (z[nf + 2] * tr_k if nb == 2 else 0.0)
+            if proj_ is not None:
+                B, S = proj_
+                r = r - B @ (S @ r)
+            return r
+        return resid
+
+    resid = make_resid(1)
+    # mřížka přes θ stačí na zředěných datech (~500 vzorků); nejlepší kandidáti se pak společně doladí na plných datech
+    k_grid = max(1, int(np.ceil(len(t) / 500)))
+    resid_g = make_resid(k_grid) if k_grid > 1 else resid
 
     def make_z(x, theta):
         z = zfix.copy()
@@ -98,38 +110,55 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
             z[th_idx] = theta
         return z
 
-    best = None
-    thetas = np.linspace(0, theta_max, n_grid) if th_free else [zfix[th_idx]]
+    cands = []  # (cena, x, θ) z mřížky
+    # u modelů se setrvačností je cena v θ hladká a stačí řidší mřížka (nejlepší θ se pak doladí);
+    # u P0D (čisté zpoždění) je cena v θ zubatá → plná mřížka (P0D je levný)
+    n_th = n_grid if code == "P0D" else max(3, round(n_grid * 0.6))
+    thetas = np.linspace(0, theta_max, n_th) if th_free else [zfix[th_idx]]
     for theta in thetas:
         for sp_ in starts_proc:
             z0 = np.r_[sp_, 0.0, base0, dist0]
             z0 = np.where(fixed_mask, zfix, z0)
             x0 = np.clip(z0[free_nt], lb[free_nt], ub[free_nt])
             if len(x0) == 0:
-                cost = 0.5 * np.sum(resid(make_z(x0, theta)) ** 2)
-                if best is None or cost < best[0]:
-                    best = (cost, x0, theta)
+                cands.append((0.5 * np.sum(resid_g(make_z(x0, theta)) ** 2), x0, theta))
                 continue
             try:
-                r = least_squares(lambda x: resid(make_z(x, theta)), x0, bounds=(lb[free_nt], ub[free_nt]),
+                r = least_squares(lambda x: resid_g(make_z(x, theta)), x0, bounds=(lb[free_nt], ub[free_nt]),
                                   max_nfev=150)
             except Exception:
                 continue
-            if best is None or r.cost < best[0]:
-                best = (r.cost, r.x, theta)
-    if best is None:
+            cands.append((r.cost, r.x, theta))
+    if not cands:
         raise ValueError("err_fit_failed")
 
-    xb, thb = best[1], best[2]
-    if th_free and len(xb):
-        lb2, ub2 = np.r_[lb[free_nt], 0.0], np.r_[ub[free_nt], theta_max]
-        w0 = np.clip(np.r_[xb, thb], lb2, ub2)
+    def refine(x, th):
+        """Doladění na plných datech (s volným θ společně s ostatními parametry) → (cena, x, θ)."""
+        best_ = (0.5 * np.sum(resid(make_z(x, th)) ** 2), x, th)
+        if not len(x) or (not th_free and k_grid == 1):
+            return best_
         try:
-            r = least_squares(lambda w: resid(make_z(w[:-1], w[-1])), w0, bounds=(lb2, ub2), max_nfev=400)
-            if r.cost <= best[0]:
-                xb, thb = r.x[:-1], r.x[-1]
+            if th_free:
+                lb2, ub2 = np.r_[lb[free_nt], 0.0], np.r_[ub[free_nt], theta_max]
+                r = least_squares(lambda w: resid(make_z(w[:-1], w[-1])), np.clip(np.r_[x, th], lb2, ub2),
+                                  bounds=(lb2, ub2), max_nfev=400)
+                cand = (r.cost, r.x[:-1], r.x[-1])
+            else:
+                r = least_squares(lambda x_: resid(make_z(x_, th)), x, bounds=(lb[free_nt], ub[free_nt]), max_nfev=150)
+                cand = (r.cost, r.x, th)
+            return cand if cand[0] <= best_[0] else best_
         except Exception:
-            pass
+            return best_
+
+    # na zředěných datech se pořadí kandidátů může mírně lišit → doladit 3 nejlepší různá θ
+    top, seen = [], set()
+    for c_ in sorted(cands, key=lambda c_: c_[0]):
+        if c_[2] not in seen:
+            seen.add(c_[2])
+            top.append(c_)
+        if len(top) == (3 if k_grid > 1 else 1):
+            break
+    _, xb, thb = min((refine(x_, th_) for _, x_, th_ in top), key=lambda c_: c_[0])
     z = make_z(xb, thb)
     p = [float(v) for v in z[:nf + 1]]
     pdl = [[float(v) for v in z[nf + 1 + nb + 3 * j: nf + 4 + nb + 3 * j]] for j in range(nd)]
@@ -189,6 +218,25 @@ def fit_with_stiction(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, 
         except Exception:
             pass
     return fit_S(best["stic"], 20)
+
+
+def identify(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, level="none", strength=4.0, sign=0,
+             id_stic=False, stic_fixed=None, k=1):
+    """
+    Identifikace jednoho modelu podle nastavení na záložce Model: fit na každém k-tém vzorku (se současným
+    odhadem stikce, je-li id_stic a stikce není zadaná), pak shoda na plných datech („fit“ efektivní, „fit_raw“ surová).
+    """
+    if stic_fixed is not None or not id_stic:
+        S = stic_fixed or 0.0
+        v = stiction_valve(mv, S) if S else mv
+        r = fit_model(code, t[::k], pv[::k], v[::k], h * k, [d[::k] for d in dists], theta_max, 20, fixed, level,
+                      None, strength, 0.0, sign)
+        r["stic"] = float(S)
+    else:
+        r = fit_with_stiction(code, t, pv, mv, h, dists, theta_max, fixed, level, None, strength, None, 13, sign, k)
+    r["fit"] = predict_full(code, r["p"], r["pdl"], t, pv, mv, dists, h, r["stic"], level, r["Th"])["fit"]
+    r["fit_raw"] = predict(code, r["p"], r["pdl"], t, pv, mv, dists, h, r["stic"])[1]
+    return r
 
 
 def model_metrics(y, yhat, u, h, dyn=None):
