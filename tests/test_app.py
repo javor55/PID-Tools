@@ -126,6 +126,28 @@ def test_model_tools(app):
     assert not _errors(app)
 
 
+def test_lazy_tabs_and_comparison(app):
+    """Grafy se posílají jen pro aktivní záložku; porovnání metod se počítá až po rozbalení."""
+    labels = [t.label for t in app.tabs]
+    n_charts = {}
+    for lbl in labels:
+        app.session_state["main_tab"] = lbl
+        app.run()
+        assert not _errors(app)
+        n_charts[lbl] = len(app.get("plotly_chart"))
+    assert n_charts[labels[0]] > 0 and n_charts[labels[5]] == 0   # Data má grafy, Projekt žádné
+    app.session_state["main_tab"] = labels[2]
+    app.run()
+    n_df = len(app.dataframe)
+    app.session_state["cmp_open"] = True
+    app.run()
+    assert not _errors(app)
+    assert len(app.dataframe) == n_df + 1
+    app.session_state["cmp_open"] = False
+    app.session_state["main_tab"] = labels[0]
+    app.run()
+
+
 def test_other_tabs(app):
     for k, v in (("perf_compare", True), ("cas_om", "OPT")):
         app.session_state[k] = v

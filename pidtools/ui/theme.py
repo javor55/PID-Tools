@@ -291,13 +291,15 @@ def _plotly_tpl():
 
 # ── Hlavní funkce ────────────────────────────────────────────────────
 
-def apply_theme():
-    """CSS do stránky a výchozí šablona grafů.  Šablona se přegeneruje při změně tématu."""
-    st.markdown(_css(), unsafe_allow_html=True)
-
-    # Klíč se mění s tématem → šablona se přeregistruje
+def plotly_template():
+    """Šablona grafů pro téma aktuální relace (přiřazuje se každému grafu zvlášť v `charts.show`;
+    globální `pio.templates.default` by se přepínal všem současně připojeným uživatelům)."""
     tpl_key = "pidtuner_dark" if is_dark() else "pidtuner_light"
     if tpl_key not in pio.templates:
         pio.templates[tpl_key] = _plotly_tpl()
-    if pio.templates.default != tpl_key:
-        pio.templates.default = tpl_key
+    return pio.templates[tpl_key]
+
+
+def apply_theme():
+    """CSS do stránky."""
+    st.markdown(_css(), unsafe_allow_html=True)

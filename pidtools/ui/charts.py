@@ -1,16 +1,70 @@
 """Grafy: tvorba obrázků, zředění dlouhých průběhů, zobrazení a sběr grafů/tabulek pro report."""
+import threading
+
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-# obsah reportu sbíraný během jednoho běhu aplikace (nuluje se v app.py)
-REPORT = {"figs": [], "tables": [], "notes": []}
+from .theme import plotly_template
+
+# Stav jednoho běhu skriptu. Každá relace Streamlitu běží ve vlastním vlákně, proto thread-local
+# (globální slovník by se mezi současně připojenými uživateli míchal).
+_run = threading.local()
+
+
+class _Report:
+    """Obsah reportu sbíraný během jednoho běhu aplikace (nuluje se v app.py); chová se jako slovník."""
+
+    def _d(self):
+        if not hasattr(_run, "report"):
+            _run.report = {"figs": [], "tables": [], "notes": []}
+        return _run.report
+
+    def __getitem__(self, k):
+        return self._d()[k]
+
+    def __setitem__(self, k, v):
+        self._d()[k] = v
+
+    def __contains__(self, k):
+        return k in self._d()
+
+    def get(self, k, default=None):
+        return self._d().get(k, default)
+
+
+REPORT = _Report()
 
 
 def reset_report():
-    REPORT.clear()
-    REPORT.update({"figs": [], "tables": [], "notes": []})
+    _run.report = {"figs": [], "tables": [], "notes": []}
+    _run.visible = [True]
+
+
+class Page:
+    """Obal záložky: grafy uvnitř neaktivní záložky se neodesílají do prohlížeče (výpočty běží dál)."""
+
+    def __init__(self, tab):
+        self.tab = tab
+
+    def __enter__(self):
+        _visible().append(self.tab.open is not False)
+        return self.tab.__enter__()
+
+    def __exit__(self, *exc):
+        _visible().pop()
+        return self.tab.__exit__(*exc)
+
+    @property
+    def open(self):
+        return self.tab.open is not False
+
+
+def _visible():
+    if not hasattr(_run, "visible"):
+        _run.visible = [True]
+    return _run.visible
 
 
 def mkfig(n_rows, heights=None):
@@ -18,7 +72,18 @@ def mkfig(n_rows, heights=None):
                          row_heights=heights or [1 / n_rows] * n_rows)
 
 
-def decimate(x, y, n=4000):
+def _short(a):
+    """Zaokrouhlení na ~6 platných číslic (vůči maximu) – kratší JSON pro prohlížeč, na grafu nepoznatelné."""
+    a = np.asarray(a)
+    if a.dtype.kind != "f" or not len(a):
+        return a
+    m = np.nanmax(np.abs(a)) if np.any(np.isfinite(a)) else 0.0
+    if not np.isfinite(m) or m == 0:
+        return a
+    return np.round(a, int(np.clip(5 - np.floor(np.log10(m)), 0, 15)))
+
+
+def decimate(x, y, n=2000):
     """Min-max zředění pro vykreslení: max. ~n bodů, špičky zůstanou zachované."""
     x, y = np.asarray(x), np.asarray(y, float)
     if len(x) <= n or not np.all(np.isfinite(y)):
@@ -38,7 +103,7 @@ def tr(x, y, name, color, width=1.6, dash=None, shape=None, show=True, group=Non
     """Čárová stopa (u dlouhých průběhů zředěná a ve WebGL)."""
     x, y = decimate(x, y)
     cls = go.Scattergl if len(x) > 4000 else go.Scatter
-    return cls(x=x, y=y, name=name, mode="lines", opacity=opacity, showlegend=show,
+    return cls(x=_short(x), y=_short(y), name=name, mode="lines", opacity=opacity, showlegend=show,
                legendgroup=group or name,
                line=dict(color=color, width=width, dash=dash, shape=shape or "linear"))
 
@@ -57,8 +122,11 @@ def style(fig, height, ytitles=(), xtitle=None, rev="keep"):
 
 def show(fig, key=None, fname="chart", select=False, report=None):
     """Zobrazí graf; s `report` ho zároveň zařadí do reportu."""
+    fig.layout.template = plotly_template()
     if report:
         REPORT["figs"].append((report, fig))
+    if not _visible()[-1]:
+        return None
     cfg = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "autoScale2d"],
            "toImageButtonOptions": {"format": "png", "scale": 2, "filename": fname}}
     if select:
