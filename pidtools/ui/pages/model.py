@@ -10,7 +10,7 @@ from ...i18n import T
 from .. import cache
 from ..cache import fit_model, pidconl_sim
 from ..charts import REPORT, mkfig, show, style, tr
-from ..theme import C_EDIT, C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP
+from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..widgets import model_name, num, seg, sld
 
 ss = st.session_state
@@ -235,7 +235,7 @@ def render(ctx):
                 f = go.Figure()
                 f.add_trace(tr(ts_a, ya * PR / 100, T("fit"), C_MODEL[mcode], 2.2))
                 if edited:
-                    f.add_trace(tr(ts_b, yb * PR / 100, T("edited"), C_EDIT, 2.0, "dash"))
+                    f.add_trace(tr(ts_b, yb * PR / 100, T("edited"), _c_edit(), 2.0, "dash"))
                 f.add_vline(x=model[1][-1], line=dict(color="#94a3b8", dash="dot", width=1),
                             annotation_text="θ", annotation_position="top")
                 style(f, 250, xtitle=lab_t, rev=f"step|{mcode}")
@@ -246,7 +246,7 @@ def render(ctx):
             show_res = st.toggle(T("show_resid"), key="show_resid", help=T("h_resid"))
             extra = [(f"{mcode} {T('fit')}", y_fit, C_MODEL[mcode], None)]
             if edited:
-                extra.append((f"{mcode} {T('edited')}", y_ed, C_EDIT, "dash"))
+                extra.append((f"{mcode} {T('edited')}", y_ed, _c_edit(), "dash"))
             if model_level == "high" and pf_ed.get("raw") is not None:
                 extra.append((T("model_wo_dist"), pf_ed["raw"], "#94a3b8", "dot"))
             show(ctx.data_fig(ts_id, sel_mask, extra, resid=True if show_res else None), key="chart_model", fname="model",

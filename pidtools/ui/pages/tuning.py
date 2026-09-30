@@ -12,7 +12,7 @@ from ...i18n import T, TEXTS
 from .. import cache
 from ..cache import pidconl_sim_full, robustness
 from ..charts import REPORT, mkfig, show, style, tr
-from ..theme import C_DIST, C_MV, C_SET1, C_SET2, C_SP
+from ..theme import C_MV, C_SET1, C_SET2, C_SP, _c_dist
 from ..widgets import fmt, model_name, notes_text, num, seg, sel, sld
 
 ss = st.session_state
@@ -575,7 +575,7 @@ def render(ctx):
             if nr == 3:
                 for i, (nm, d) in enumerate(zip(c_d, dmeas)):
                     if np.any(d != 0):
-                        fig.add_trace(tr(ts_sim, d, str(nm), C_DIST[i % 4], 1.4), 3, 1)
+                        fig.add_trace(tr(ts_sim, d, str(nm), _c_dist()[i % 4], 1.4), 3, 1)
                 if np.any(dmv_arr != 0):
                     fig.add_trace(tr(ts_sim, EM(dmv_arr) - mv_lo, T("tg_IN"), "#a16207", 1.4), 3, 1)
                 if np.any(dpv_arr != 0):

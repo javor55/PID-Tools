@@ -33,6 +33,12 @@ def render(ctx):
         with b3.popover(T("tb_settings"), icon=":material/settings:", width="stretch"):
             st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,
                      format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
+            # Přepínání tmavého / světlého režimu
+            if "theme" not in ss:
+                ss["theme"] = "light"
+            _dark = st.toggle(T("theme_dark"), value=(ss["theme"] == "dark"),
+                              help=T("h_theme_dark"))
+            ss["theme"] = "dark" if _dark else "light"
             ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
 
     with st.container(border=True):

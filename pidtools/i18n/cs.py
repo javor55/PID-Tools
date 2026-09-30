@@ -280,6 +280,8 @@ TEXTS = {
     'h_ti': 'Integrační časová konstanta v sekundách. Menší = silnější integrace.',
     'h_td': 'Derivační časová konstanta v sekundách. 0 = bez D složky.',
     'h_plot_h': 'Výška hlavních grafů v pixelech.',
+    'theme_dark': '🌙 Tmavý režim',
+    'h_theme_dark': 'Přepne mezi světlým a tmavým barevným schématem.',
     'h_seg_id': 'Časový úsek, ze kterého se model identifikuje. Lze ho vybrat i tažením myší v grafu.',
     'h_mouse': 'Přiblížit = tažením zvětšíš část grafu. Vybrat úsek = tažením nastavíš úsek pro identifikaci.',
     'h_models': 'Struktury modelů, které se nafitují a porovnají. Integrační volit u hladin s vnuceným odtokem.',

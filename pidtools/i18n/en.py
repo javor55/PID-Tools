@@ -280,6 +280,8 @@ TEXTS = {
     'h_ti': 'Integral time in seconds. Smaller = stronger integral action.',
     'h_td': 'Derivative time in seconds. 0 = no D action.',
     'h_plot_h': 'Height of the main charts in pixels.',
+    'theme_dark': '🌙 Dark mode',
+    'h_theme_dark': 'Switch between light and dark colour scheme.',
     'h_seg_id': 'Time segment used for identification. Can also be selected by dragging in the chart.',
     'h_mouse': 'Zoom = drag to enlarge a part of the chart. Select segment = drag to set the identification segment.',
     'h_models': 'Model structures to fit and compare. Choose integrating for levels with forced outflow.',

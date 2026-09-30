@@ -12,7 +12,7 @@ import numpy as np
 
 from ..i18n import T
 from .charts import mkfig, style, tr
-from .theme import C_DIST, C_MV, C_PV, C_SP
+from .theme import C_MV, C_PV, C_SP, _c_dist
 
 
 @dataclass
@@ -154,7 +154,7 @@ class Ctx:
         ytit.append(self.lab_mv)
         row += 1
         for i, (nm, d) in enumerate(zip(self.c_d, self.dists)):
-            f.add_trace(tr(ts, g(d), str(nm), C_DIST[i % 4], 1.4), row, 1)
+            f.add_trace(tr(ts, g(d), str(nm), _c_dist()[i % 4], 1.4), row, 1)
         if self.dists:
             ytit.append(T("dists"))
         return style(f, height or (self.H + (90 if self.dists else 0) + (80 if resid is not None else 0)), ytit,
