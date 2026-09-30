@@ -13,8 +13,8 @@ from pidtools.ui.pages import (cascade, data, diagnostics, header, live, model, 
                                test_plan, tuning)
 from pidtools.ui.theme import apply_theme  # noqa: E402
 
-TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_live"), ("diag", "tab5"),
-        ("plan", "tab6"), ("cascade", "tab7"), ("project", "tab8")]
+TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_live"),
+        ("plan", "tab5"), ("cascade", "tab6"), ("project", "tab7")]
 
 
 def main():

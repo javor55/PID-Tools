@@ -17,7 +17,7 @@ def render(ctx):
     """Záložka Diagnostika."""
     Ts, d_id, fname, has_sp, model, mv, mv_e, mv_id, mvl_hi, mvl_lo, pos_e, pv, pv_id, samp, sp, t, ts_id, u_mv, u_pv = ctx.Ts, ctx.d_id, ctx.fname, ctx.has_sp, ctx.model, ctx.mv, ctx.mv_e, ctx.mv_id, ctx.mvl_hi, ctx.mvl_lo, ctx.pos_e, ctx.pv, ctx.pv_id, ctx.samp, ctx.sp, ctx.t, ctx.ts_id, ctx.u_mv, ctx.u_pv
     EM, M, MR, PR, lab_mv, lab_pv = ctx.EM, ctx.M, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv
-    with ctx.tabs["diag"]:
+    with ctx.tabs["data"]:
         st.caption(ctx.block_summary)
         integ_known = MODELS[model[0]]["integ"] if model is not None else None
         with st.container(border=True):
