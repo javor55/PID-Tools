@@ -14,6 +14,7 @@ import streamlit as st
 
 from ..i18n import T
 from .charts import REPORT
+from .theme import report_template
 
 ss = st.session_state
 
@@ -162,6 +163,7 @@ def build_report(c, author, comment):
     first = True
     for title, fg in REPORT["figs"]:
         f2 = go.Figure(fg)
+        f2.layout.template = report_template()
         for tr_ in f2.data:  # zředění dlouhých průběhů kvůli velikosti souboru
             if tr_.x is not None and len(tr_.x) > 2500:
                 k_ = int(np.ceil(len(tr_.x) / 2500))
