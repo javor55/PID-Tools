@@ -9,7 +9,7 @@ st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon="🎛️"
 from pidtools.i18n import DEFAULT_LANG, T  # noqa: E402
 from pidtools.ui import charts  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
-from pidtools.ui.pages import (cascade, data, diagnostics, header, live, model, progress, project,  # noqa: E402
+from pidtools.ui.pages import (cascade, data, diagnostics, header, live, model, project,  # noqa: E402
                                test_plan, tuning)
 from pidtools.ui.theme import apply_theme  # noqa: E402
 
@@ -25,7 +25,6 @@ def main():
     ctx = Ctx()
 
     header.render(ctx)                       # nadpis, projekt, nápověda, nastavení, zdroj dat
-    prog_ph = st.empty()                     # ukazatel postupu (vyplní se na konci)
     ctx.tabs = dict(zip([k for k, _ in TABS], st.tabs([T(lbl) for _, lbl in TABS])))
 
     data.render_setup(ctx)                   # sloupce, převzorkování, normování (potřebují všechny záložky)
@@ -40,7 +39,6 @@ def main():
     test_plan.render(ctx)
     cascade.render(ctx)
     project.render(ctx)
-    progress.render(ctx, prog_ph)
 
 
 main()
