@@ -2,62 +2,56 @@
 
 🌟 **[Live Application Here!](https://pid-tools.streamlit.app/)** 🌟
 
-**PID Tools** is an interactive web application built with Python (using the Streamlit framework). It is designed for process model identification from real measured data and advanced tuning of PID controllers. The application is primarily tailored for analyzing and tuning the **PIDConL** block structure in the **SIMATIC PCS 7 APL** control system, but its underlying principles and calculations can be successfully applied to other industrial controllers.
+**PID Tools** is an interactive web application built with Python and Streamlit for process model identification from
+measured data and for tuning PID controllers. It is tailored to the **PIDConL** block of **SIMATIC PCS 7 APL**, but the
+methods apply to other industrial controllers as well.
 
-## 🚀 What is this application for?
-- **System Identification:** Automatically calculates a mathematical process model from operational data (e.g., following a step change in the manipulated variable). It supports both self-regulating and integrating processes with dead time.
-- **Controller Tuning:** Based on the identified model, the application suggests ideal PID controller parameters (Gain, TI, TD) using selected tuning methodologies (SIMC, Lambda, AMIGO, etc.).
-- **Simulation and Robustness:** Allows you to simulate the control loop behavior before actual deployment in PCS 7, check robustness (maximum sensitivity Ms, phase and gain margins), and tune the behavior under disturbances or valve stiction.
+## ✨ Main features
+- **Data:** CSV/Excel (also long historian format), automatic resampling, compression check, data quality rating,
+  automatic search for step-test segments.
+- **Identification:** models P0D, P1D, P2D, I0D, I1D with dead time and measured disturbances; suppression of unmeasured
+  disturbances, forced gain sign, simultaneous valve stiction identification, fixing of known parameters, bootstrap
+  uncertainty; detailed model evaluation (FIT, NRMSE, IAE, R², residual tests) and validation on another segment.
+- **Tuning:** SIMC, iSIMC, Lambda, AMIGO, averaging level control, numerical optimization (MIGO, IAE, ISE, ITAE,
+  overshoot limit, whole simulation scenario) – always with a robustness constraint (Ms). Two parameter sets (Set 1 /
+  Set 2), comparison of all methods, feedforward (static and lead-lag).
+- **Simulation:** PIDConL (ideal form, D filter, P/D on PV, deadband, MV limits and rate, SP ramp, PV filter,
+  anti-windup, bumpless transfer), valve stiction and characteristic, PV noise, event scenarios, live real-time simulation.
+- **Diagnostics, test plan, cascade tuning, project files (JSON) and HTML report**, Czech and English UI.
 
-## ✨ Main Features
-- **Flexible Data Processing:** Upload measured data from CSV or Excel (e.g., exported from WinCC / PCS 7 trends). Users can interactively select data segments, apply smoothing (high-pass filter to remove drift), and normalize the ranges of process (PV) and manipulated (MV) variables.
-- **Models with Dead Time:**
-  - `P0D`: 0th order (gain + dead time)
-  - `P1D`: 1st order + dead time (FOPDT)
-  - `P2D`: 2nd order + dead time (SOPDT)
-  - `I0D`: Integrating + dead time
-  - `I1D`: Integrating + 1st order + dead time
-- **Model Quality Assessment:** Calculates model fit (FIT %), IAE (Integral Absolute Error), residual analysis, and autocorrelation to verify that the model captures all essential dynamics.
-- **Tuning:** Calculates recommended parameters using algorithms like Skogestad's method (SIMC), Lambda tuning, or AMIGO, while accounting for the impact of the controller's discrete sampling time.
-- **Closed-Loop Simulator (PIDConL):** A full feedback simulation implementing the specific features of the industrial PIDConL block:
-  - PV filtering.
-  - Deadband.
-  - Rate limits and clamping for MV and Setpoint (Ramping).
-  - Anti-windup integrator protection and bumpless transfers.
-  - Simulation of valve hysteresis and stiction.
-- **Bilingual Interface:** The application is fully localized in English and Czech.
-- **Project Saving:** Save and load your settings (tuning state) in a single JSON file, allowing for easy later review or sharing of tuning reports.
+## 🛠 Running
+Windows: run **`start.bat`**. Otherwise:
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-## 🛠 How it works and how to run it
-You can try the application instantly without any installation by visiting the **[Live Demo](https://pid-tools.streamlit.app/)**.
+## 🧪 Tests
+```bash
+pip install -r requirements-dev.txt
+python -m pytest            # core (fast) + whole application via Streamlit AppTest (~4 min)
+python -m pytest tests/test_core.py tests/test_basic.py   # core only
+```
 
-Alternatively, you can run the application entirely locally in your browser. It is powered by Python and does not require installing any complex web server.
-
-### Prerequisites
-- Python 3.9 or higher installed.
-- Basic familiarity with the command line is recommended, although a startup script is provided.
-
-### Installation and Execution (Windows)
-1. **Quick Start (Recommended):**
-   Simply run the **`start.bat`** batch file in the root folder. 
-   This script will automatically install any missing libraries from the `requirements.txt` file and launch the application immediately.
-2. **Manual Start (via Command Line):**
-   Open a terminal in the application folder and run:
-   ```bash
-   pip install -r requirements.txt
-   streamlit run pid_app.py
-   ```
-3. The application will then open in your default web browser (typically at `http://localhost:8501`).
-
-## 📖 Workflow
-1. **Data Loading (Data):** Open the application and upload a data file using the top menu. Assign the correct columns for timestamp, PV, MV, and optionally SP. Then, select a suitable data segment in the chart capturing the response to an MV step change.
-2. **Identification (Model):** In the model tab, select the expected process structure (e.g., P1D for common overdamped processes) and let the algorithm find the coefficients. You can also enable valve stiction estimation.
-3. **Configuration and Tuning (Tuning):** Enter the existing control block parameters (sampling time, limits, or current PI parameters for comparison). Then specify the desired tuning aggressiveness (tau_c). The application will propose the ideal parameters.
-4. **Verification (Simulation):** Test the proposed parameters and compare the behavior of the newly designed controller with the current (original) solution. Check loop robustness to ensure stability.
-5. **Saving (Project):** Save the result and export your report / recommended parameters to PCS 7.
-
-## ⚙️ Technologies Used
-- **[Streamlit](https://streamlit.io/):** For building the visual, interactive user interface directly in Python.
-- **[Plotly](https://plotly.com/python/):** For advanced charting with zoom and pan support.
-- **[SciPy] & [NumPy]:** The numerical and optimization core (least-squares fit, discrete filters, etc.).
-- **[Pandas]:** For manipulating tabular and time-series data.
+## 📁 Structure
+```
+app.py                     entry point – builds the page from the modules below
+pidtools/
+  core/                    computation, no Streamlit dependency
+    models.py              model structures, response simulation, prediction
+    identification.py      fitting, stiction, unmeasured disturbances, evaluation, uncertainty
+    tuning.py              tuning rules and optimizations
+    robustness.py          frequency analysis (stability, Ms, GM, PM), MV noise
+    simulation.py          PIDConL / valve / process step engine (batch, cascade, live)
+    diagnostics.py         loop performance, oscillation, stiction, data quality, segments, test plan
+    demo.py, util.py
+  i18n/                    texts: cs.py, en.py, T()
+  ui/                      Streamlit UI
+    context.py             Ctx – data shared between tabs in one run
+    widgets.py charts.py theme.py dataio.py cache.py project.py
+    pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
+                           test_plan, cascade, project, progress
+tests/                     pytest: core, whole app (AppTest), legacy project file
+```
+All process quantities inside the core are in % of the scaling ranges (NormPV, NormMV), so process gain and controller
+Gain are dimensionless as in PIDConL.
