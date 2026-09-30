@@ -2,7 +2,7 @@
 Kontext jednoho běhu aplikace – data a výsledky, které si záložky předávají.
 
 Pořadí plnění odpovídá pořadí vykreslení: horní panel → sloupce a normování (Data) → konfigurace bloku
-(Ladění) → záložky Data, Model, Ladění, Živá simulace, Diagnostika, Plán testu, Kaskáda, Projekt → ukazatel postupu.
+(Ladění) → záložky Data, Model, Ladění, Živá simulace, Diagnostika, Kaskáda, Projekt → ukazatel postupu.
 Veličiny PV, SP, MV jsou v % normovacích rozsahů (NormPV, NormMV), poruchy v inženýrských jednotkách.
 """
 from dataclasses import dataclass, field

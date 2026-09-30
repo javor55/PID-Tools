@@ -10,11 +10,11 @@ from pidtools.i18n import DEFAULT_LANG, T  # noqa: E402
 from pidtools.ui import charts  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (cascade, data, diagnostics, header, live, model, project,  # noqa: E402
-                               test_plan, tuning)
+                               tuning)
 from pidtools.ui.theme import apply_theme  # noqa: E402
 
 TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_live"),
-        ("plan", "tab5"), ("cascade", "tab6"), ("project", "tab7")]
+        ("cascade", "tab5"), ("project", "tab6")]
 
 
 def main():
@@ -36,7 +36,6 @@ def main():
     tuning.render(ctx)
     live.render(ctx)
     diagnostics.render(ctx)
-    test_plan.render(ctx)
     cascade.render(ctx)
     project.render(ctx)
 
