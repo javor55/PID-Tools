@@ -32,7 +32,7 @@ fit_model = _cache(fit_model)
 st.set_page_config(page_title="PIDConL Tuner", page_icon="🎛️", layout="wide")
 ss = st.session_state
 if "lang" not in ss:
-    ss.lang = "cs"
+    ss.lang = "en"
 
 
 def T(key, **kw):
