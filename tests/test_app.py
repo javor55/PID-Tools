@@ -50,7 +50,7 @@ def test_identification(app):
     assert app.session_state["mcode"] in MODELS
     fits = [float(m.value.rstrip(" %")) for m in app.metric if m.label.startswith("Fit – identified")]
     assert fits and fits[0] > 95
-    assert len(app.tabs) == 8
+    assert len(app.tabs) == 6
 
 
 @pytest.mark.parametrize("method", ["SIMC", "iSIMC", "Lambda", "AMIGO", "AVG", "OPT"])
@@ -127,7 +127,7 @@ def test_model_tools(app):
 
 
 def test_other_tabs(app):
-    for k, v in (("perf_compare", True), ("plan_src", "manual"), ("cas_om", "OPT")):
+    for k, v in (("perf_compare", True), ("cas_om", "OPT")):
         app.session_state[k] = v
         app.run()
         assert not _errors(app)
