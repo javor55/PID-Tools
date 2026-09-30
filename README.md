@@ -1,6 +1,6 @@
 # PID Tools (PIDConL Tuner)
 
-🌟 **[Live Application Here!](https://pid-tools.streamlit.app/)** 🌟
+🌟 **[Live Application Here!](https://pidtools.streamlit.app/)** 🌟
 
 **PID Tools** is an interactive web application built with Python and Streamlit for process model identification from
 measured data and for tuning PID controllers. It is tailored to the **PIDConL** block of **SIMATIC PCS 7 APL**, but the
