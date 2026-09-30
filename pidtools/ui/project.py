@@ -127,11 +127,11 @@ def build_project(c, include_data):
 
 
 _REPORT_CSS = (
-    "body{font-family:Inter,'Segoe UI',Roboto,Arial,sans-serif;max-width:1100px;margin:32px auto;color:#1f2933;"
-    "padding:0 20px}h1{font-weight:650}h2{margin-top:32px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;"
-    "font-size:1.15rem}.meta{color:#52606d}.note{background:#f4f7fb;border-left:4px solid #1f5fa8;padding:10px 14px}"
-    "table.tbl{border-collapse:collapse;font-size:.9rem}table.tbl td,table.tbl th{border:1px solid #e2e8f0;"
-    "padding:4px 10px;text-align:right}table.tbl th{background:#f4f7fb}@media print{h2{break-before:auto}}")
+    "body{font-family:Inter,'Segoe UI',Roboto,Arial,sans-serif;max-width:1100px;margin:32px auto;color:#1f2937;"
+    "padding:0 20px}h1{font-weight:650}h2{margin-top:32px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;"
+    "font-size:1.15rem}.meta{color:#6b7280}.note{background:#f9fafb;border-left:4px solid #1f5fa8;padding:10px 14px}"
+    "table.tbl{border-collapse:collapse;font-size:.9rem}table.tbl td,table.tbl th{border:1px solid #e5e7eb;"
+    "padding:4px 10px;text-align:right}table.tbl th{background:#f9fafb}@media print{h2{break-before:auto}}")
 
 
 def build_report(c, author, comment):

@@ -215,12 +215,12 @@ div.stContainer > div[style*="border"] {
 def _css():
     """Generuje CSS s barvami odpovídajícími aktuálnímu tématu."""
     # Metriky
-    met_bg    = _t("#f4f7fb", "#1e293b")
-    met_bord  = _t("#e2e8f0", "#334155")
-    met_label = _t("#52606d", "#94a3b8")
+    met_bg    = _t("#f9fafb", "#1e293b")
+    met_bord  = _t("#e5e7eb", "#334155")
+    met_label = _t("#6b7280", "#94a3b8")
     # Texty
-    txt_muted = _t("#52606d", "#94a3b8")
-    txt_base  = _t("#334155", "#cbd5e1")
+    txt_muted = _t("#6b7280", "#94a3b8")
+    txt_base  = _t("#374151", "#cbd5e1")
     # Chipy – zelený (hotovo)
     ch0_bg, ch0_c, ch0_b = _t("#ecfdf3", "#052e16"), _t("#166534", "#4ade80"), _t("#bbf7d0", "#166534")
     # Chipy – žlutý (částečně)
@@ -228,9 +228,9 @@ def _css():
     # Chipy – červený (chybí)
     ch2_bg, ch2_c, ch2_b = _t("#fef2f2", "#450a0a"), _t("#991b1b", "#f87171"), _t("#fecaca", "#991b1b")
     # Chipy – neutrální (neaktivní)
-    chn_bg, chn_c, chn_b = _t("#f8fafc", "#1e293b"), _t("#64748b", "#94a3b8"), _t("#e2e8f0", "#334155")
+    chn_bg, chn_c, chn_b = _t("#f9fafb", "#1e293b"), _t("#6b7280", "#94a3b8"), _t("#e5e7eb", "#334155")
     # Šipka / arrow
-    arrow = _t("#cbd5e1", "#475569")
+    arrow = _t("#d1d5db", "#475569")
 
     dark_block = _DARK_OVERRIDES if is_dark() else ""
 
@@ -265,7 +265,7 @@ def _plotly_tpl():
     tpl = go.layout.Template(pio.templates[base_tpl])
 
     font_color  = "#e2e8f0" if dark else "#1f2933"
-    grid_color  = "#334155" if dark else "#eef2f6"
+    grid_color  = "#334155" if dark else "#f0f0f0"
     spike_color = "#64748b" if dark else "#94a3b8"
     paper_bg    = "rgba(0,0,0,0)"
     plot_bg     = "#0f172a" if dark else "#ffffff"
