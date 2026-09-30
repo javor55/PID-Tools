@@ -242,8 +242,9 @@ h4 {{margin-top: 0.4rem; font-weight: 600;}}
 [data-testid="stMetric"] {{background: {met_bg}; border: 1px solid {met_bord}; border-radius: 10px; padding: 0.55rem 0.9rem;}}
 [data-testid="stMetricLabel"] p {{font-size: 0.82rem; color: {met_label};}}
 [data-testid="stMetricValue"] {{font-size: 1.45rem; font-variant-numeric: tabular-nums;}}
-.stTabs [data-baseweb="tab-list"] {{gap: 0.4rem;}}
-.stTabs [data-baseweb="tab"] {{padding: 0.45rem 0.9rem; border-radius: 8px 8px 0 0;}}
+.stTabs [data-baseweb="tab-list"] {{gap: 0.35rem; border-bottom: 2px solid {met_bord};}}
+.stTabs [data-baseweb="tab"] {{padding: 0.6rem 1.2rem; border-radius: 8px 8px 0 0; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.01em;}}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {{font-weight: 650; background: {met_bg};}}
 .pid-status {{color: {txt_muted}; font-size: 0.9rem; margin-bottom: 0.6rem;}}
 .pid-big {{font-size: 0.8rem; color: {txt_muted};}}
 .pid-prog {{display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0.2rem 0 0.3rem 0;}}
