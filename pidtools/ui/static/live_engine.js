@@ -161,10 +161,35 @@
     this.pid.init(pv0, pv0, mv0);
     this.t = 0;
   }
-  LiveLoop.prototype.setTuning = function (c) { this.pid.setTuning(c.Gain, c.TI, c.TD); };
-  /* Jeden krok h; vrací [t, SP, PV, MV, V]. */
-  LiveLoop.prototype.tick = function (sp, auto, uMan, dIn) {
-    var y = this.pv0 + this.proc.output();
+  LiveLoop.prototype.setTuning = function (c) { this.pid.setTuning(c.Gain, c.TI === null ? Infinity : c.TI, c.TD); };
+
+  /* Změny za běhu (živá simulace v prohlížeči; Python je nepotřebuje). */
+  LiveLoop.prototype.setPlant = function (p) {
+    // nový proces se stejným výstupem (bez skoku PV): stav členů se přepočte, fronta zpoždění převzorkuje
+    var old = this.proc, out = old.output(), np_ = new ProcStep(old.code, p, this.h), c = old.code;
+    var n0 = old.q.length, n1 = np_.q.length;
+    for (var k = 0; k < n1; k++) {
+      var src = Math.min(n0 - 1, Math.floor(k * n0 / n1));
+      np_.q[k] = old.q[(old.qi + src) % n0];
+    }
+    np_.qi = 0;
+    if (c === "P1D") np_.x1 = p[0] !== 0 ? out / p[0] : 0;
+    else if (c === "P2D") { np_.x2 = p[0] !== 0 ? out / p[0] : 0; np_.x1 = np_.x2 + (old.x1 - old.x2); }
+    else if (c === "I0D" || c === "I1D") { np_.z = old.z; np_.x1 = old.x1; }
+    this.proc = np_;
+  };
+  LiveLoop.prototype.setStiction = function (S, J) {
+    this.valve.S = S || 0;
+    this.valve.J = (J === undefined || J === null) ? this.valve.S : Math.min(Math.max(J, 0), this.valve.S);
+  };
+  LiveLoop.prototype.setNoise = function (sigma) { this.sigma = sigma || 0; };
+  LiveLoop.prototype.setPVFilter = function (T) {
+    this.pid.Tpv = T || 0; this.pid.apv = this.pid.Tpv > 0 ? Math.exp(-this.h / this.pid.Tpv) : 0;
+  };
+
+  /* Jeden krok h; vrací [t, SP, PV, MV, V]. dOut = porucha přičtená k PV (volitelně). */
+  LiveLoop.prototype.tick = function (sp, auto, uMan, dIn, dOut) {
+    var y = this.pv0 + this.proc.output() + (dOut || 0);
     var ym = this.sigma > 0 ? y + this.sigma * gauss(this.rng) : y;
     var u = auto ? this.pid.step(sp, ym) : this.pid.track(sp, ym, uMan === undefined || uMan === null ? this.mv0 : uMan);
     var uin = this.valve.step(u);
@@ -176,4 +201,4 @@
   var api = { ProcStep: ProcStep, PIDConL: PIDConL, Valve: Valve, LiveLoop: LiveLoop };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PIDLive = api;
-})(this);
+})(typeof window !== "undefined" ? window : globalThis);

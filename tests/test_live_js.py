@@ -78,3 +78,31 @@ def test_js_engine_matches_python(case, variant):
     py, js = _python(code, p, ctrl, plant, h, steps), _js(code, p, ctrl, plant, h, steps)
     assert py.shape == js.shape
     assert np.max(np.abs(py - js)) < 1e-6
+
+
+@pytest.mark.skipif(NODE is None, reason="Node.js není k dispozici")
+@pytest.mark.parametrize("case", list(CASES))
+def test_js_plant_change_is_bumpless(case):
+    """Změna procesu za běhu (násobky zesílení, konstant, zpoždění) nesmí skokově pohnout PV.
+    Výjimkou je P0D (čisté zesílení bez setrvačnosti) – tam se změna zesílení projeví hned, jak to fyzikálně odpovídá."""
+    code, p = CASES[case]
+    ctrl = dict(Gain=0.5 if code[0] == "P" else 3.0, TI=60.0, TD=0.0, SampleTime=1.0, MV_Lo=0.0, MV_Hi=100.0)
+    script = f"""
+const E = require({json.dumps(os.path.abspath(ENGINE))});
+const p = {json.dumps(p)}, code = {json.dumps(code)};
+const L = new E.LiveLoop(code, p, {json.dumps(ctrl)}, 0.25, 50, 50, {{}});
+for (let k = 0; k < 800; k++) L.tick(k < 20 ? 50 : 56, true, 50, 0);
+const before = L.tick(56, true, 50, 0)[2];
+const q = p.slice(); q[0] *= 1.4; if (q.length > 2) q[1] *= 1.6; q[q.length - 1] *= 1.5;
+L.setPlant(q);
+const after = L.tick(56, true, 50, 0)[2];
+const out = L.tick(56, true, 50, 0, 3.0)[2];       // porucha +3 % přímo na PV
+console.log(JSON.stringify([before, after, out]));
+"""
+    before, after, out = json.loads(subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=60,
+                                                   check=True).stdout)
+    if code == "P0D":
+        assert after - 50 == pytest.approx((before - 50) * 1.4, rel=0.05)
+    else:
+        assert abs(after - before) < 0.3
+    assert out - after == pytest.approx(3.0, abs=0.3)
