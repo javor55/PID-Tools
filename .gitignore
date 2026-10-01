@@ -9,3 +9,6 @@ __pycache__/
 cache/
 .streamlit/*
 !.streamlit/config.toml
+
+# offline package build
+dist/

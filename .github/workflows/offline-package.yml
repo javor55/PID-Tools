@@ -1,0 +1,67 @@
+# Builds the portable offline package for Windows (x64), tests it with its own embedded Python and
+# uploads it as an artifact; on a version tag (v*) it is also attached to a GitHub release.
+name: Offline package (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+    paths:
+      - "tools/build_offline.py"
+      - "tools/smoke_test.py"
+      - ".github/workflows/offline-package.yml"
+      - "requirements.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build package
+        run: python tools/build_offline.py
+
+      - name: Test with the embedded Python
+        working-directory: dist/PID-Tools/app
+        run: ..\python\python.exe ..\..\..\tools\smoke_test.py
+
+      - name: Start the server and check health
+        shell: pwsh
+        run: |
+          $pkg = Resolve-Path "dist\PID-Tools"
+          $p = Start-Process -FilePath "$pkg\python\python.exe" -WorkingDirectory "$pkg\app" -PassThru `
+               -ArgumentList "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", "8599"
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            try { if ((Invoke-WebRequest -UseBasicParsing http://localhost:8599/_stcore/health).Content -eq "ok") { $ok = $true; break } } catch {}
+          }
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { throw "The app did not start" }
+          Write-Host "Server health: ok"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PID-Tools-win64-offline
+          path: dist/PID-Tools-*-win64-offline.zip
+          compression-level: 0
+          retention-days: 30
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "PID Tools $GITHUB_REF_NAME" \
+              --notes "Offline package for Windows (x64): unzip and run PID-Tools.bat. See docs/deployment.md."
+          gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-win64-offline.zip --clobber

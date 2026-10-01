@@ -59,6 +59,10 @@ Open <https://pidtools.streamlit.app/>, choose **Demo** and go through tabs 1–
 2. Download the repository (*Code › Download ZIP*) and unzip it.
 3. Run **`start.bat`** – it installs the libraries and opens the app in the browser (<http://localhost:8501>).
 
+### Offline PC (USB)
+Download the portable package `PID-Tools-<version>-win64-offline.zip` (Releases / Actions artifacts), copy it to the
+PC, unzip and run **`PID-Tools.bat`** – no installation, no internet. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
+
 ### Locally (Linux / macOS)
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -165,6 +169,7 @@ pidtools/
     pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
                            apc (+ apc_guide, cascade), project, guides
 tests/                     pytest: core, whole app (AppTest), data loading, loops, APC
+tools/                     offline package for Windows (build_offline.py, smoke_test.py)
 docs/                      user documentation (English; Czech in docs/cs)
 ```
 
