@@ -34,10 +34,9 @@ def render(kind, checks, impl):
     checks: [(stav, text, akce)] – stav True (splněno) / False (chybí) / None (připomínka);
             akce = (popisek, callback, args) nebo None.
     impl:   markdown s implementací v PCS 7 (už s vypočtenými parametry), nebo None.
-    Průvodce je rozbalený, dokud něco chybí.
+    Průvodce je ve výchozím stavu sbalený.
     """
-    missing = any(ok is False for ok, _, _ in checks)
-    with st.expander(T("g_title", m=T("apc_" + kind)), expanded=missing, icon=":material/menu_book:"):
+    with st.expander(T("g_title", m=T("apc_" + kind)), expanded=False, icon=":material/menu_book:"):
         c1, c2 = st.columns(2, gap="large")
         c1.markdown(T(f"g_{kind}_when"))
         c2.markdown(T(f"g_{kind}_examples"))
