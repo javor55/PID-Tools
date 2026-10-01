@@ -33,6 +33,7 @@ def render_setup(ctx):
     """Sloupce (signály, čas, dlouhý formát), převzorkování na společnou mřížku a normovací rozsahy."""
     df = ctx.df
     with ctx.tabs["data"]:
+        ctx.gph["data"] = st.container()
         cols_exp = st.expander(T("cols_title"), expanded="fit" not in ss, icon=":material/table_chart:")
         mc1, mc2 = cols_exp.columns([2.2, 1], gap="large")
     cols = list(df.columns)
@@ -98,7 +99,8 @@ def render_setup(ctx):
                        help=T("h_sp"))
         r4 = st.columns([2, 1])
         d_opts = [s_ for s_ in sigs if s_ not in (ctx.c_pv, ctx.c_mv, ctx.c_sp)]
-        ctx.c_d = r4[0].multiselect(T("col_dist"), d_opts, help=T("col_dist_help"), key=f"c_d|{fname}")
+        ctx.c_d = r4[0].multiselect(T("col_dist"), d_opts, help=T("col_dist_help"), key=f"c_d|{fname}",
+                                    placeholder=T("ms_placeholder"))
         pos_opts = ["—"] + [s_ for s_ in d_opts if s_ not in ctx.c_d]
         ctx.c_pos = sel(r4[1], T("col_pos"), pos_opts, pos_opts.index(g["pos"]) if g["pos"] in pos_opts else 0,
                         key=f"c_pos|{fname}", help=T("h_pos"))
@@ -300,6 +302,7 @@ def render(ctx):
 
         # ---- kontrola kvality vybraného úseku
         dq = quality(rng[0], rng[1])
+        ctx.dq = dq
         ctx.PROG["data"] = dq["level"]
         icons = ["✓", "⚠", "✗"]
         lv_ = dq["level"]

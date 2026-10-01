@@ -28,6 +28,7 @@ _smith = st.cache_data(show_spinner=False, max_entries=32)(smith_sim)
 
 def render(ctx):
     with ctx.tabs["cascade"]:
+        ctx.gph["apc"] = st.container()
         st.caption(ctx.block_summary)
         kind = seg(st, T("apc_kind"), KINDS, "cascade", "apc_kind", format_func=lambda x: T("apc_" + x),
                    help=T("h_apc_kind")) or "cascade"

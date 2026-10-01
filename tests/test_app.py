@@ -149,6 +149,21 @@ def test_lazy_tabs_and_comparison(app):
     app.run()
 
 
+def test_guides(app):
+    """Každá záložka má průvodce; tlačítko v kontrolním seznamu přepne na správnou záložku."""
+    app.run()
+    heads = [m.value for m in app.markdown if m.value == "##### Purpose and steps"]
+    assert len(heads) == 6
+    assert any("**Which model when**" in m.value for m in app.markdown)
+    assert any("**Which method when**" in m.value for m in app.markdown)
+    btn = next(b for b in app.button if b.label == "Go to Live simulation")
+    btn.click().run()
+    assert not _errors(app)
+    assert app.session_state["main_tab"] == [t.label for t in app.tabs][3]
+    app.session_state["main_tab"] = [t.label for t in app.tabs][0]
+    app.run()
+
+
 def test_other_tabs(app):
     for k, v in (("perf_compare", True), ("cas_om", "OPT")):
         app.session_state[k] = v

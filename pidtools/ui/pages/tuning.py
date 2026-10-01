@@ -22,6 +22,7 @@ ss = st.session_state
 def render_block(ctx):
     """Konfigurace bloku PIDConL (horní rozbalovací sekce záložky Ladění) → ctx.base_ctrl a souhrn bloku."""
     with ctx.tabs["tuning"]:
+        ctx.gph["tuning"] = st.container()
         with st.expander(T("blk_title"), expanded=True, icon=":material/tune:"):
             st.markdown(f"**{T('sb_block')}**")
             q = st.columns(4)

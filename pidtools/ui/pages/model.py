@@ -37,11 +37,13 @@ def render(ctx):
     sigma_pv = 0.0
     model_stic, model_level, model_Th = 0.0, "none", None
     with ctx.tabs["model"]:
+        ctx.gph["model"] = st.container()
         with st.container(border=True):
             c1, c2, c3 = st.columns([3, 1, 1], vertical_alignment="bottom")
             if "chosen" not in ss:
                 ss["chosen"] = list(MODELS)
             chosen = c1.multiselect(T("models"), list(MODELS), format_func=model_name, key="chosen",
+                                    placeholder=T("ms_placeholder"),
                                     help=T("h_models"))
             th_max = num(T("thmax"), "thmax", round(0.4 * ts_id[-1], 1), c2, min_value=0.0, help=T("thmax_help"))
             run_fit = c3.button(T("run_fit"), type="primary", icon=":material/play_arrow:", width="stretch")

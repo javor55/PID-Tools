@@ -24,7 +24,7 @@ GLOBAL_KEYS = {
 GLOBAL_PREFIX = ("layout|", "cas_", "apc_", "autosave", "_autosave", "rep_", "live_sim", "_proj")
 # widgety, jejichž hodnotu Streamlit nedovolí zapsat (tlačítka, výběr v grafu/tabulce, editory – ty se obnoví
 # z uložených „…|last“ hodnot); do snímku smyčky se neukládají
-SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|", "g_")
+SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|", "g_", "tg_")
 
 
 def _is_loop_key(k):
