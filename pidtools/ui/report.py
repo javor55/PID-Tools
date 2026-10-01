@@ -212,7 +212,7 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
     Celý report jako HTML text. meta: plant, author, status, comment; sections: podmnožina SECTIONS;
     chart_mode: "inline" (Plotly v souboru, funguje offline) nebo "cdn" (malý soubor, grafy z internetu).
     """
-    from .pages.apc import recommend, smith_values   # až zde – stránka APC importuje moduly UI
+    from .pages.apc import gs_values, recommend, smith_values   # až zde – stránka APC importuje moduly UI
     recs = loop_records(ctx)
     now = _dt.datetime.now()
     status = meta.get("status") or "draft"
@@ -317,6 +317,18 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
                                  f"<p class='muted'>{E(T('sm_apl_note'))}</p>")
                 except Exception:
                     pass
+            try:
+                gv = gs_values(ctx) if not MODELS[code]["integ"] else None
+            except Exception:
+                gv = None
+            if gv:
+                _, gtab, _ = gv
+                parts.append(f"<h3>{E(T('rp_gs'))}</h3><table><tr><th>{E(T('gs_in'))}</th>"
+                             + "".join(f"<th>{E(T('gs_point', i=i))}</th>" for i in (1, 2, 3))
+                             + f"<th>{E(T('sm_apl_unit'))}</th></tr>"
+                             + "".join(f"<tr><td>{E(nm)}</td>" + "".join(f"<td>{_f(v)}</td>" for v in vals)
+                                       + f"<td>{E(u)}</td></tr>" for nm, vals, u in gtab) + "</table>"
+                             f"<p class='muted'>{E(T('rp_gs_note'))}</p>")
         parts.append("</section>")
 
     if "signoff" in sections:
