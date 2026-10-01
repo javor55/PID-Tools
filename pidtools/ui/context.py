@@ -50,6 +50,7 @@ class Ctx:
     has_sp: bool = False
     # ---- normování
     norm_ok: bool = True
+    sim_sp0: float = 0.0
     pv_lo: float = 0.0
     pv_hi: float = 100.0
     mv_lo: float = 0.0

@@ -388,3 +388,41 @@ def test_range_change_rescales_model():
     assert r["p"][-1] == pytest.approx(t0)
     assert at.session_state[f"ed|{code}|0"] == pytest.approx(k0 / 3)
     assert not any("changed since the last fit" in w.value for w in at.warning)
+
+
+def _ff_example_app():
+    """Uživatelská data (CV / MV / SP / DV, MV 125–135 %) načtená jako projekt s daty."""
+    import pandas as pd
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), "data", "ff_example.csv"))
+    proj = dict(version=2, fname="ff.csv", tag="", state={},
+                map={"c_pv": "CV", "c_mv": "MV", "c_sp": "SP", "c_d": ["DV"], "c_pos": "—"},
+                ranges={"id": None, "val": None},
+                data={"cols": {"t_s": (df["Sample#"] - 1).tolist(), "CV": df.CV.tolist(), "MV": df.MV.tolist(),
+                               "SP": df.SP.tolist(), "DV": df.DV.tolist()}})
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["test_inject"] = json.dumps(proj)
+    at.run()
+    _button(at, "Identify").click().run()
+    at.session_state["main_tab"] = [t.label for t in at.tabs][2]
+    at.run()
+    return at
+
+
+def test_scenario_sp_from_to():
+    """Scénář: SP z → na v jednotkách PV; po změně rozsahu výchozí skok neuvízne na 5 % starého rozsahu."""
+    at = _ff_example_app()
+    at.session_state["pv_hi"] = 400.0
+    at.run()
+    k0 = next(k for k in at.session_state if str(k).startswith("sim_sp0|"))
+    k1 = next(k for k in at.session_state if str(k).startswith("sim_sp1|"))
+    assert at.session_state[k0] == pytest.approx(370.0)
+    at.session_state[k0], at.session_state[k1] = 360.0, 380.0
+    at.run()
+    assert not _errors(at)
+    rows = at.session_state[next(k for k in at.session_state if str(k).startswith("scen_df|") and str(k).count("|") == 2)]
+    assert rows[0][1] == "SP" and rows[0][3] == pytest.approx(20.0)
+    sb = at.session_state["scen_built"]
+    assert sb["sp"][0] * 4 == pytest.approx(360.0) and sb["sp"][-1] * 4 == pytest.approx(380.0)
+    # pracovní bod MV 130 % mimo limity 0–100 → varování
+    assert any("lies outside the controller limits" in w.value for w in at.warning)

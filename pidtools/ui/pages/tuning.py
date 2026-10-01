@@ -363,21 +363,45 @@ def render(ctx):
                     def_tend = round(max(20 * T_char, 50 * samp) / mult, 2)
                     T_end_raw = num(T("sim_len"), f"tend_r|{mcode}", def_tend, sim_l1, min_value=samp * 10 / mult, help=T("h_sim_len"))
                     T_end = T_end_raw * mult
-                    st.markdown(f"**{T('quick_scen')}**")
-                    ps1, ps2, ps3 = st.columns(3)
                     sdf_key = f"scen_df|{mcode}|{len(c_d)}"
                     edkey = f"scen_ed|{sdf_key}|{ss.lang}"
+                    # žádaná hodnota simulace „z → na“ v jednotkách PV (výchozí: SP úseku identifikace, +5 % rozsahu)
+                    sp_data = float(EP(np.nanmedian(sp[sel_mask]) if has_sp else pv_id[0]))
+                    f1_, f2_ = st.columns(2)
+                    sp_from = num(T("sim_sp_from", u=u_pv or "PV"), f"sim_sp0|{ctx.fname}", float(f"{sp_data:.5g}"), f1_,
+                                  format="%.5g", help=T("h_sim_sp_from"))
+                    sp_to = num(T("sim_sp_to", u=u_pv or "PV"), f"sim_sp1|{ctx.fname}",
+                                float(f"{sp_data + 0.05 * PR:.5g}"), f2_, format="%.5g", help=T("h_sim_sp_to"))
+                    sp_amp_e = float(sp_to - sp_from)
+                    ctx.sim_sp0 = sp_from
+                    ft_key = f"{sdf_key}|spft"
+                    if sdf_key in ss and ss.get(ft_key) not in (None, (sp_from, sp_to)):
+                        # změna „z → na“: přepsat skoky SP v tabulce scénáře (amplituda = na − z)
+                        rows_ = [list(r_) for r_ in ss.get(f"{sdf_key}|last", ss[sdf_key])]
+                        hit = False
+                        for r_ in rows_:
+                            if r_[1] == "SP" and r_[2] == "step" and not hit:
+                                r_[3], hit = round(sp_amp_e, 6), True
+                        if hit:
+                            ss[ft_key] = (sp_from, sp_to)
+                            ss[sdf_key] = rows_
+                            for k_ in (edkey, f"{edkey}|init", f"{sdf_key}|last"):
+                                ss.pop(k_, None)
+                            st.rerun()
+                    ss[ft_key] = (sp_from, sp_to)
+                    st.markdown(f"**{T('quick_scen')}**")
+                    ps1, ps2, ps3 = st.columns(3)
                     if ps1.button(T("sp_step_base"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None]]
+                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None]]
                         ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
                         st.rerun()
                     if ps2.button(T("sp_step_dist"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None],
+                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
                                        [True, "IN", "step", round(0.05 * MR, 4), round(0.4 * T_end), None, None, None]]
                         ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
                         st.rerun()
                     if ps3.button(T("pv_noise_real"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None],
+                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
                                        [True, "PV", "noise", round(sigma_pv * PR / 100, 4), 0.0, None, None, None]]
                         ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
                         st.rerun()
@@ -406,7 +430,7 @@ def render(ctx):
                 with st.expander(T("scen_title"), expanded=True, icon=":material/timeline:"):
                     sdf_key = f"scen_df|{mcode}|{len(c_d)}"
                     if sdf_key not in ss:
-                        rows_ = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None],
+                        rows_ = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
                                  [True, "IN", "step", round(0.05 * MR, 4), round(0.4 * T_end), None, None, None]]
                         rows_ += [[True, f"M{j}", "step", 1.0, round((0.7 + 0.05 * j) * T_end), None, None, None]
                                   for j in range(len(c_d))]
@@ -484,7 +508,12 @@ def render(ctx):
             n = int(T_end / h) + 1
             ts_sim = np.arange(n) * h
             pv0 = float(np.nanmedian(sp[sel_mask])) if has_sp else float(pv_id[0])
+            if scen == "custom":
+                pv0 = float(ctx.P(ctx.sim_sp0))     # počáteční SP (a PV) simulace = „SP z“
             mv0 = float(mv_id[0])
+            if not (base_ctrl["MV_Lo"] - 1e-9 <= mv0 <= base_ctrl["MV_Hi"] + 1e-9):
+                st.warning(T("sim_mv0_out", m=f"{EM(mv0):.4g}", lo=f"{ctx.mvl_lo:g}", hi=f"{ctx.mvl_hi:g}",
+                             u=u_mv or "MV"), icon=":material/warning:")
             spv = np.full(n, pv0)
             dmv_arr, dpv_arr = np.zeros(n), np.zeros(n)
             dmeas = [np.zeros(n) for _ in c_d]
