@@ -125,23 +125,25 @@ def render_setup(ctx):
         st.stop()
     ctx.pos_e = ctx.on_grid(ctx.c_pos) if ctx.c_pos != "—" else None
 
-    # ---- normování (NormPV, NormMV)
+    # ---- jednotky; rozsah regulátoru (NormPV, NormMV) se zadává v Ladění › Blok PIDConL – tady se jen použije
+    for k_, d_ in (("pv_lo", 0.0), ("pv_hi", 100.0), ("mv_lo", 0.0), ("mv_hi", 100.0)):
+        if k_ not in ss:
+            ss[k_] = d_
+    rng_ = [float(ss[k_]) for k_ in ("pv_lo", "pv_hi", "mv_lo", "mv_hi")]
+    ctx.norm_ok = rng_[1] > rng_[0] and rng_[3] > rng_[2]
+    # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
+    ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi = rng_ if ctx.norm_ok else (0.0, 100.0, 0.0, 100.0)
     with mc2:
-        st.markdown(f"**{T('sb_norm')}**")
+        st.markdown(f"**{T('sb_units')}**")
         n1, n2 = st.columns(2)
-        ctx.pv_lo = num("NormPV Low", "pv_lo", 0.0, n1, help=T("h_normpv"))
-        ctx.pv_hi = num("NormPV High", "pv_hi", 100.0, n2, help=T("h_normpv"))
-        ctx.mv_lo = num("NormMV Low", "mv_lo", 0.0, n1, help=T("h_normmv"))
-        ctx.mv_hi = num("NormMV High", "mv_hi", 100.0, n2, help=T("h_normmv"))
         if "u_mv" not in ss:
             ss["u_mv"] = "%"
         ctx.u_pv = n1.text_input(T("unit_pv"), key="u_pv", placeholder="m, °C, bar…", help=T("h_unit"))
         ctx.u_mv = n2.text_input(T("unit_mv"), key="u_mv", help=T("h_unit"))
-        st.caption(T("norm_help"))
-    if ctx.pv_hi <= ctx.pv_lo or ctx.mv_hi <= ctx.mv_lo:
+        st.caption(T("norm_where", pv=f"{rng_[0]:g}–{rng_[1]:g}", mv=f"{rng_[2]:g}–{rng_[3]:g}"))
+    if not ctx.norm_ok:
         with ctx.tabs["data"]:
-            st.error(T("err_range"))
-        st.stop()
+            st.error(T("err_range_blk"), icon=":material/error:")
     ctx.pv, ctx.mv, ctx.sp = ctx.P(ctx.pv_e), ctx.M(ctx.mv_e), ctx.P(ctx.sp_e)
     with ctx.tabs["data"]:
         _preview(ctx, df, tcols)

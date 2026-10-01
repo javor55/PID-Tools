@@ -25,6 +25,7 @@ def render_block(ctx):
     with ctx.tabs["tuning"]:
         ctx.gph["tuning"] = st.container()
         with st.expander(T("blk_title"), expanded=True, icon=":material/tune:"):
+            _norm_section(ctx)
             st.markdown(f"**{T('sb_block')}**")
             q = st.columns(4)
             ctx.samp = num(T("sampletime"), "samp", 1.0, q[0], min_value=0.001, help=T("sampletime_help"))
@@ -53,6 +54,31 @@ def render_block(ctx):
     ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p="✓" if ctx.pfb else "✗",
                           d="✓" if ctx.dfb else "✗", g=f"{ss.get('set1_gain', 1.0):.4g}",
                           ti=f"{ss.get('set1_ti', 100.0):.4g}", td=f"{ss.get('set1_td', 0.0):.4g}")
+
+
+def _norm_section(ctx):
+    """
+    Rozsah regulátoru NormPV / NormMV – nastavení bloku PIDConL (Gain je bezrozměrný: odchylka v % NormPV, MV v % NormMV).
+    Data zůstávají v reálných jednotkách; rozsah se zadává podle bloku, ne podle dat. Hodnoty už použila záložka Data
+    (přečetla je ze session state), tady jsou pole a kontroly.
+    """
+    st.markdown(f"**{T('sb_norm')}**", help=T("h_norm"))
+    n = st.columns(4)
+    num("NormPV Low", "pv_lo", 0.0, n[0], help=T("h_normpv"))
+    num("NormPV High", "pv_hi", 100.0, n[1], help=T("h_normpv"))
+    num("NormMV Low", "mv_lo", 0.0, n[2], help=T("h_normmv"))
+    num("NormMV High", "mv_hi", 100.0, n[3], help=T("h_normmv"))
+    if not ctx.norm_ok:
+        st.error(T("err_range"), icon=":material/error:")
+        return
+    pmin, pmax = float(np.nanmin(ctx.pv_e)), float(np.nanmax(ctx.pv_e))
+    mmin, mmax = float(np.nanmin(ctx.mv_e)), float(np.nanmax(ctx.mv_e))
+    if pmin < ctx.pv_lo or pmax > ctx.pv_hi or mmin < ctx.mv_lo or mmax > ctx.mv_hi:
+        st.warning(T("norm_out", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"), icon=":material/warning:")
+    elif (ctx.pv_lo, ctx.pv_hi) == (0.0, 100.0):
+        st.info(T("norm_pv_default", pv=f"{pmin:.4g}–{pmax:.4g}"), icon=":material/straighten:")
+    else:
+        st.caption(T("norm_help"))
 
 
 def render(ctx):
@@ -354,10 +380,13 @@ def render(ctx):
                 else:
                     T_end = float(ts_id[-1])
                     st.caption(T("replay_help"))
-                s1_, s2_ = st.columns(2)
+                s1_, s2_, s3_ = st.columns(3)
                 robust_on = s1_.toggle(T("robust_on"), key="robust_on", help=T("h_robust_on"))
                 spread_on = s2_.toggle(T("spread_on"), key="spread_on", help=T("h_spread_on"),
                                        disabled=not unc_models) and bool(unc_models)
+                if "ff_cmp" not in ss:
+                    ss["ff_cmp"] = True
+                ff_cmp = s3_.toggle(T("ff_cmp"), key="ff_cmp", help=T("h_ff_cmp"), disabled=not any(ff)) and any(ff)
 
             # ---- definice scénáře (tabulka událostí)
             tg_codes = ["SP", "IN", "PV"] + [f"M{j}" for j in range(len(c_d))]
@@ -517,6 +546,12 @@ def render(ctx):
                 pp[0] *= 1.3
                 pp[-1] *= 1.5
                 sims[T("new_err")] = (run(set2_ctrl, pp), C_SET2, "dash")
+            ff_moves = any(g and np.any(d != 0) for g, d in zip(ff, dmeas))
+            if ff_cmp and ff_moves:      # stejná sada 2 bez dopředné vazby – rozdíl = přínos FF
+                sims[T("set2_noff")] = (run(dict(set2_ctrl, FF=[0.0] * len(ff), FF_LL=[(0.0, 0.0, 0.0)] * len(ff))),
+                                        "#9aa5b1", "dashdot")
+            elif ff_cmp and not ff_moves:
+                st.caption(T("ff_cmp_nodist"))
 
             has_d = any(np.any(d != 0) for d in dmeas) or np.any(dmv_arr != 0) or np.any(dpv_arr != 0)
             nr = 3 if has_d else 2
