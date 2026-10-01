@@ -60,7 +60,7 @@ def _checks_data(ctx):
     out = [(True, T("tgc_data_loaded", n=len(ctx.t), ts=f"{ctx.Ts:.3g}"), None)]
     out.append((ctx.c_pv != ctx.c_mv, T("tgc_data_cols", pv=ctx.c_pv, mv=ctx.c_mv), None))
     default_rng = (ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi) == (0.0, 100.0, 0.0, 100.0)
-    out.append((None if default_rng else True, T("tgc_data_ranges"), None))
+    out.append((None if default_rng else True, T("tgc_data_ranges"), (T("tgb_tuning"), goto, dict(tab="tuning"))))
     dq = ctx.dq or {}
     if dq:
         n = int(dq.get("n_steps") or 0)

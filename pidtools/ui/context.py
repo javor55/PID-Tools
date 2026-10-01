@@ -49,6 +49,7 @@ class Ctx:
     pos_e: Any = None
     has_sp: bool = False
     # ---- normování
+    norm_ok: bool = True
     pv_lo: float = 0.0
     pv_hi: float = 100.0
     mv_lo: float = 0.0

@@ -37,8 +37,10 @@ def main():
     tabs = st.tabs([T(lbl) for _, lbl in TABS], key="main_tab", on_change="rerun")
     ctx.tabs = {k: charts.Page(tab) for (k, _), tab in zip(TABS, tabs)}
 
-    data.render_setup(ctx)                   # sloupce, převzorkování, normování (potřebují všechny záložky)
-    tuning.render_block(ctx)                 # konfigurace bloku PIDConL (potřebuje i záložka Data)
+    data.render_setup(ctx)                   # sloupce, převzorkování, jednotky (potřebují všechny záložky)
+    tuning.render_block(ctx)                 # konfigurace bloku PIDConL vč. NormPV/NormMV (potřebuje i záložka Data)
+    if not ctx.norm_ok:                      # neplatný rozsah regulátoru – opraví se v bloku PIDConL (už vykreslen)
+        st.stop()
     header.render_status(ctx)
 
     data.render(ctx)
