@@ -27,7 +27,7 @@ EMBED_URL = f"https://www.python.org/ftp/python/{PY_VERSION}/python-{PY_VERSION}
 APP_FILES = ["app.py", "pidtools", ".streamlit", "LICENSE", "README.md", "CHANGELOG.md", "docs"]
 
 LAUNCHER = r"""@echo off
-rem PID Tools – offline package. Starts the app and opens it in the default browser.
+rem PID Tools - offline package. Starts the app and opens it in the default browser.
 rem Close this window to stop the app.
 setlocal
 cd /d "%~dp0app"
