@@ -389,8 +389,10 @@ def render(ctx):
                     if "sim_len_auto" not in ss:
                         ss["sim_len_auto"] = True
                     auto_len = sim_l3.toggle(T("sim_len_auto"), key="sim_len_auto", help=T("h_sim_len_auto"))
-                    prop_ctrl = (dict(base_ctrl, Gain=sug["Kc"], TI=sug["Ti"] if sug["Ti"] > 0 else np.inf, TD=sug["Td"])
-                                 if sug else None)      # i návrh metody – sady mohou mít ještě výchozí hodnoty
+                    # i návrh (sady mohou mít ještě výchozí hodnoty) – SIMC, ne zvolená metoda: optimalizace na scénáři
+                    # závisí na délce simulace a délka na jejím výsledku by se navzájem posouvaly (optimalizace stále znovu)
+                    r_ = tune(mcode, p, "SIMC", default_tc(mcode, p, samp, "SIMC", ctype, diffgain), ctype, samp)
+                    prop_ctrl = dict(base_ctrl, Gain=r_["Kc"], TI=r_["Ti"] if r_["Ti"] > 0 else np.inf, TD=r_["Td"])
                     t_auto, auto_src = auto_sim_length(mcode, p, (set1_ctrl, set2_ctrl, prop_ctrl), T_char, samp, ts_id)
                     tend_key = f"tend_r|{mcode}"
                     if auto_len or tend_key not in ss:
