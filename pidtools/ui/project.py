@@ -32,7 +32,7 @@ STATE_KEYS = [
     # hlavička reportu
     "rep_plant", "rep_author", "rep_status", "rep_comment",
 ]
-STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|")
+STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|", "gs_")
 
 
 def _jsonable(v):

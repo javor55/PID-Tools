@@ -4,7 +4,7 @@ podle skutečného stavu projektu (s tlačítky, která rovnou přepnou záložk
 
 Každá záložka si na začátku vyhradí místo (ctx.gph[klíč]); obsah se vyplní na konci běhu (`render_all`), kdy jsou
 známé výsledky – kvalita dat, model, robustnost sad. Texty: tg_<klíč>_what / _choose / _tips (markdown).
-Průvodce je rozbalený, dokud v kontrolním seznamu něco chybí.
+Průvodce je ve výchozím stavu sbalený.
 """
 import numpy as np
 import streamlit as st
@@ -19,8 +19,7 @@ goto = apc_guide.goto
 
 
 def _render(key, checks):
-    missing = any(ok is False for ok, _, _ in checks)
-    with st.expander(T("tg_title", m=T("tg_name_" + key)), expanded=missing, icon=":material/menu_book:"):
+    with st.expander(T("tg_title", m=T("tg_name_" + key)), expanded=False, icon=":material/menu_book:"):
         text = {k: T(f"tg_{key}_{k}") for k in ("what", "choose", "tips")}
         text = {k: v for k, v in text.items() if v != f"tg_{key}_{k}"}       # chybějící část se vynechá
         wide = "|---" in text.get("choose", "")                               # tabulka potřebuje celou šířku

@@ -1,15 +1,18 @@
 """
-Záložka APC: výběr regulační struktury – kaskáda, rozvazbení 2×2 (RGA, decouplery), override (výběr MIN/MAX)
-a Smithův prediktor. Hlavní (vnější) smyčka je vždy aktivní smyčka projektu; druhá smyčka se vybírá z ostatních.
+Záložka APC: výběr regulační struktury – kaskáda, dopředná vazba z měřených poruch, rozvazbení 2×2 (RGA,
+decouplery), override (výběr MIN/MAX),
+Smithův prediktor a gain scheduling (parametry PID podle pracovního bodu). Hlavní (vnější) smyčka je vždy aktivní smyčka projektu; druhá smyčka se vybírá z ostatních.
 """
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ...core import MODELS, iae, pidconl_sim, tune
+from ...core import (MODELS, best_conzone, default_tc, detect_steps, find_segments, gs_er_table, gs_issues, gs_sim,
+                     gs_table, iae, pidconl_sim, predict, settled, tune)
 from ...core.apc import ff_design, mimo2_sim, no_delay, override_sim, rga2, rga_advice, smith_apl, smith_sim
 from ...i18n import T
-from .. import loops
+from .. import cache, loops
+from .. import ff as ffmod
 from ..charts import mkfig, show, style, tr
 from ..theme import C_MV, C_PV, C_SET1, C_SET2, C_SP
 from ..widgets import model_name, num, seg, sld
@@ -17,13 +20,16 @@ from . import apc_guide as guide
 from . import cascade
 
 ss = st.session_state
-KINDS = ["cascade", "decouple", "override", "smith"]
+KINDS = ["cascade", "ff", "decouple", "override", "smith", "gainsched"]
 C_B = "#7c3aed"          # druhá smyčka
 C_REF = "#9aa5b1"        # srovnání (bez struktury)
 
 _mimo = st.cache_data(show_spinner=False, max_entries=32)(mimo2_sim)
 _override = st.cache_data(show_spinner=False, max_entries=32)(override_sim)
 _smith = st.cache_data(show_spinner=False, max_entries=32)(smith_sim)
+_gs = st.cache_data(show_spinner=False, max_entries=16)(gs_sim)
+_best_cz = st.cache_data(show_spinner=False, max_entries=16)(best_conzone)
+C_PTS = ["#0e7490", "#b45309", "#7c3aed"]   # pracovní body 1–3
 
 
 def render(ctx):
@@ -46,6 +52,12 @@ def render(ctx):
             return
         if kind == "smith":
             _smith_page(ctx)
+            return
+        if kind == "gainsched":
+            _gainsched_page(ctx)
+            return
+        if kind == "ff":
+            _ff_page(ctx)
             return
         other = [i for i in loops.ids() if i != loops.active()]
         if not other:
@@ -86,6 +98,9 @@ def recommend(ctx):
     ratio = p[-1] / max(p[-1] + lags, 1e-9)
     if ratio >= 0.5 and not MODELS[code]["integ"]:
         items.append(("smith", T("g_reco_smith", r=f"{ratio:.2f}"), None))
+    spread = nl_spread(ctx)
+    if spread is not None and spread > 1.5:
+        items.append(("gainsched", T("g_reco_gs", s=f"{spread:.1f}"), None))
     a = _active(ctx)
     for i in loops.ids():
         if i == loops.active():
@@ -101,12 +116,30 @@ def recommend(ctx):
             if not np.isfinite(lam) or abs(lam - 1) > 0.2:
                 items.append(("decouple", T("g_reco_decouple", a=a["name"], b=b["name"],
                                             l="∞" if not np.isfinite(lam) else f"{lam:.2f}"), i))
+    pdl = ctx.model[2]
+    if pdl and not any(d["use"] for d in ffmod.design(code, p, pdl)):   # volitelné – až za strukturami smyček
+        items.append(("ff", T("g_reco_ff", d=", ".join(map(str, ctx.c_d))), None))
     seen, out = set(), []
     for it in items:
         if it[:2] not in seen:
             seen.add(it[:2])
             out.append(it)
     return out
+
+
+def nl_spread(ctx):
+    """Poměr největšího a nejmenšího lokálního zesílení na úseku identifikace (None = nelze určit)."""
+    code, p, pdl = ctx.model[0], ctx.model[1], ctx.model[2]
+    if MODELS[code]["integ"] or ctx.ts_id is None:
+        return None
+    try:
+        lg = cache.local_gains(code, p, pdl, ctx.ts_id, ctx.pv_id, ctx.mv_id, ctx.d_id, ctx.Ts)
+    except Exception:
+        return None
+    if len(lg) < 2:
+        return None
+    g = np.abs([q["gain"] for q in lg])
+    return float(np.max(g) / max(np.min(g), 1e-12))
 
 
 def _chk_model_a(ctx):
@@ -451,3 +484,516 @@ def _smith_page(ctx):
         st.warning(T("sm_apl_th3", r=f"{v['th_lag']:.1f}"), icon=":material/warning:")
     if v["k"] < 0:
         st.info(T("sm_apl_neg"), icon=":material/info:")
+
+
+# ---------------------------------------------------------------- gain scheduling
+def _gs_blocks(ctx, settle):
+    """Bloky dat mezi velkými přechody MV (změna pracovního bodu); začátek bloku bez přechodového děje."""
+    t = ctx.t
+    try:
+        st_ = detect_steps(ctx.mv, ctx.Ts)
+    except Exception:
+        return []
+    if len(st_) < 3:
+        return []
+    sizes = np.abs([q["size"] for q in st_])
+    big = sorted(q["i"] for q in st_ if abs(q["size"]) > 2.5 * np.median(sizes))
+    edges = [0] + big + [len(t) - 1]
+    out = []
+    for a, b in zip(edges[:-1], edges[1:]):
+        t0 = t[a] + (settle if a > 0 else 0.0)
+        t1 = t[b] - ctx.Ts
+        if t1 - t0 > 2 * settle:
+            out.append((float(t0), float(t1)))
+    return out
+
+
+def _gs_auto(ctx, n=3):
+    """
+    Návrh úseků pro pracovní body: bloky mezi velkými přechody MV, jinak shluky skoků (find_segments);
+    z kandidátů se vyberou ty na nejnižší, prostřední a nejvyšší úrovni PV. Nouzově třetiny dat.
+    """
+    t = ctx.t
+    settle = 4 * _tchar(ctx.model)
+    cands = _gs_blocks(ctx, settle)
+    if len(cands) < n:
+        try:
+            cands = [(float(g["start"]), float(g["end"]))
+                     for g in find_segments(t, ctx.mv, ctx.sp, ctx.Ts, ctx.has_sp, settle=settle)]
+        except Exception:
+            cands = []
+    lv = []
+    for a, b in cands:
+        m = (t >= a) & (t <= b)
+        if m.sum() > 10 and np.nanmax(ctx.mv[m]) - np.nanmin(ctx.mv[m]) > 0.2:
+            lv.append((float(np.nanmean(ctx.pv[m])), (a, b)))
+    lv.sort()
+    if len(lv) >= n:
+        pick = [lv[0], lv[len(lv) // 2], lv[-1]] if n == 3 else [lv[0], lv[-1]]
+        return [r for _, r in pick]
+    edges = np.linspace(t[0], t[-1], n + 1)
+    return [(float(a), float(b)) for a, b in zip(edges[:-1], edges[1:])]
+
+
+def _gs_ranges(ctx, n):
+    """Úseky bodů ze session state (kontrola, že leží v datech), chybějící z automatického návrhu."""
+    t0, t1 = float(ctx.t[0]), float(ctx.t[-1])
+    auto = None
+    out = []
+    for i in range(n):
+        v = ss.get(f"gs_r{i + 1}")
+        ok = isinstance(v, (list, tuple)) and len(v) == 2 and t0 <= v[0] < v[1] <= t1
+        if not ok:
+            auto = auto or _gs_auto(ctx, n)
+            v = auto[i]
+        ss[f"gs_r{i + 1}"] = (float(v[0]), float(v[1]))
+        out.append(ss[f"gs_r{i + 1}"])
+    return out
+
+
+def _gs_key(ctx, code, ranges):
+    return [code] + [round(x, 1) for r in ranges for x in r] + [ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi]
+
+
+def _gs_fit(ctx, code, ranges):
+    """Identifikace modelu (typ aktivní smyčky) v každém úseku → body {x, u, fit, p} nebo chybová hláška."""
+    pts = []
+    for i, (a, b) in enumerate(ranges):
+        m = (ctx.t >= a) & (ctx.t <= b)
+        tt, pv, mv = ctx.t[m] - ctx.t[m][0], ctx.pv[m], ctx.mv[m]
+        if m.sum() < 20 or np.nanmax(mv) - np.nanmin(mv) < 0.2:
+            return None, T("gs_err_steps", i=i + 1)
+        k = int(np.ceil(len(tt) / 2500))
+        try:
+            r = cache.fit_model(code, tt[::k], pv[::k], mv[::k], ctx.Ts * k)
+            fit = float(predict(code, r["p"], [], tt, pv, mv, [], ctx.Ts)[1])
+        except Exception as ex:
+            return None, f"{T('gs_point', i=i + 1)}: {T(str(ex))}"
+        pts.append([float(np.nanmean(pv)), float(np.nanmean(mv)), fit] + [float(x) for x in r["p"]])
+    return pts, None
+
+
+def _gs_points():
+    return [dict(x=q[0], u=q[1], fit=q[2], p=list(q[3:])) for q in ss.get("gs_pts") or []]
+
+
+def _gs_tune(ctx, code, p):
+    """Ladění jednoho bodu zvolenou metodou (stejná agresivita ve všech bodech)."""
+    ct = ss.get("gs_ct") or "PI"
+    m = ss.get("gs_m") or "SIMC"
+    samp = ctx.samp
+    if m == "AMIGO":
+        return tune(code, p, "AMIGO", None, ct, samp)
+    r0 = tune(code, p, "SIMC", float(ss.get("gs_tcf") or 1.0) * default_tc(code, p, samp), ct, samp)
+    if m == "SIMC":
+        return r0
+    return cache.opt_migo(code, tuple(p), ct, samp, ctx.diffgain, float(ss.get("gs_ms") or 1.6), None,
+                          ((r0["Kc"], r0["Ti"], r0["Td"]),))
+
+
+def gs_values(ctx):
+    """
+    Body s laděním a tabulka pro blok GainSched: (body, řádky tabulky [(vstup, hodnoty 1–3, jednotka)], doplněno)
+    nebo None, pokud body ještě nejsou identifikované.
+    """
+    if ss.get("gs_x") == "er":
+        return None, _gs_er_tab(ctx), False
+    pts = _gs_points()
+    if len(pts) < 2:
+        return None
+    code = ctx.model[0]
+    for q in pts:
+        r = _gs_tune(ctx, code, q["p"])
+        q.update(gain=float(r["Kc"]), ti=float(r["Ti"]) if r["Ti"] > 0 else np.inf, td=float(r["Td"]))
+    rows, filled = gs_table(pts)
+    u_pv = ctx.u_pv or "PV"
+    tab = [("X1 … X3", [float(ctx.EP(q["x"])) for q in rows], u_pv),
+           ("Gain1 … Gain3", [q["gain"] for q in rows], "–"),
+           ("TI1 … TI3", [q["ti"] for q in rows], "s"),
+           ("TD1 … TD3", [q["td"] for q in rows], "s")]
+    return pts, tab, filled
+
+
+def gs_frame(tab):
+    return pd.DataFrame([{T("gs_in"): name, **{T("gs_point", i=i + 1): float(f"{v:.4g}") if np.isfinite(v) else v
+                                              for i, v in enumerate(vals)}, T("sm_apl_unit"): u}
+                         for name, vals, u in tab])
+
+
+def _gainsched_page(ctx):
+    code = ctx.model[0]
+    E, M_ = ctx.EP, ctx.EM
+    if MODELS[code]["integ"]:
+        guide.render("gainsched", [_chk_model_a(ctx), (False, T("g_chk_gs_integ"), None)], None)
+        st.info(T("gs_integ"), icon=":material/info:")
+        return
+    if (seg(st, T("gs_x"), ["pv", "er"], "pv", "gs_x", format_func=lambda x: T("gs_x_" + x), help=T("h_gs_x"))
+            or "pv") == "er":
+        _gs_er_page(ctx)
+        return
+    spread = nl_spread(ctx)
+    pts_now = _gs_points()
+
+    # ---- 1. pracovní body: úseky dat
+    with st.container(border=True):
+        st.markdown(f"**{T('gs_s1')}**")
+        st.caption(T("gs_s1_help"))
+        a1, a2 = st.columns([1, 3], vertical_alignment="bottom")
+        n = int(seg(a1, T("gs_n"), [2, 3], 3, "gs_n", help=T("h_gs_n")) or 3)
+        if a2.button(T("gs_auto"), icon=":material/auto_fix_high:", help=T("h_gs_auto")):
+            for i, r in enumerate(_gs_auto(ctx, n)):
+                ss[f"gs_r{i + 1}"] = r
+        ranges = _gs_ranges(ctx, n)
+        step = float(ctx.Ts)
+        cols = st.columns(n)
+        for i in range(n):
+            cols[i].slider(T("gs_point", i=i + 1), float(ctx.t[0]), float(ctx.t[-1]), key=f"gs_r{i + 1}", step=step,
+                           format="%.0f s")
+        ranges = [ss[f"gs_r{i + 1}"] for i in range(n)]
+        f = mkfig(2, [0.62, 0.38])
+        f.add_trace(tr(ctx.t, E(ctx.pv), "PV", C_PV, 1.2), 1, 1)
+        f.add_trace(tr(ctx.t, M_(ctx.mv), "MV", C_MV, 1.1, show=False), 2, 1)
+        for i, (a, b) in enumerate(ranges):
+            for r in (1, 2):
+                f.add_vrect(x0=a, x1=b, fillcolor=C_PTS[i], opacity=0.12, line_width=0, row=r, col=1)
+            f.add_annotation(x=(a + b) / 2, y=1.0, yref="paper", text=str(i + 1), showarrow=False,
+                             font=dict(color=C_PTS[i], size=14))
+        show(style(f, max(ctx.H - 60, 320), [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_gs_seg"),
+             key="chart_apc_gs_seg", fname="gs_segments")
+        key = _gs_key(ctx, code, ranges)
+        b1, b2 = st.columns([1, 3], vertical_alignment="center")
+        if b1.button(T("gs_fit"), type="primary", icon=":material/play_arrow:", width="stretch"):
+            with st.spinner(T("gs_fitting")):
+                pts, err = _gs_fit(ctx, code, ranges)
+            if err:
+                st.error(err, icon=":material/error:")
+            else:
+                ss["gs_pts"], ss["gs_key"] = pts, key
+                pts_now = _gs_points()
+        stale = bool(pts_now) and ss.get("gs_key") != key
+        if stale:
+            b2.warning(T("gs_stale"), icon=":material/update:")
+        elif not pts_now:
+            b2.caption(T("gs_need_fit"))
+
+    pts = pts_now
+    issues = gs_issues(pts) if len(pts) >= 2 else []
+    fits_ok = all(q["fit"] >= 70 for q in pts) if pts else None
+    checks = [_chk_model_a(ctx),
+              (True if spread and spread > 1.5 else None,
+               T("g_chk_gs_nl", s=f"{spread:.1f}") if spread else T("g_chk_gs_nl_unknown"), None),
+              (bool(pts) and not stale, T("g_chk_gs_pts"), None),
+              (fits_ok if pts else None, T("g_chk_gs_fit"), None),
+              (not issues if pts else None, T("g_chk_gs_mono"), None),
+              (None, T("g_chk_gs_x"), None)]
+    vals = gs_values(ctx) if len(pts) >= 2 else None
+    impl = None
+    if vals:
+        _, tab, _ = vals
+        impl = T("g_impl_gainsched", u=ctx.u_pv or "PV")
+    guide.render("gainsched", checks, impl)
+    if spread is not None:
+        (st.warning if spread > 1.5 else st.caption)(T("gs_spread", s=f"{spread:.1f}"))
+    if len(pts) < 2:
+        return
+    for it in issues:
+        st.warning(T("gs_issue_" + it), icon=":material/warning:")
+
+    # ---- 2. modely a ladění v bodech
+    with st.container(border=True):
+        st.markdown(f"**{T('gs_s2')}**")
+        c1, c2, c3 = st.columns([1.3, 0.8, 2], vertical_alignment="bottom")
+        m = seg(c1, T("method"), ["SIMC", "AMIGO", "OPT"], "SIMC", "gs_m", format_func=lambda x: T("m_" + x)) or "SIMC"
+        seg(c2, T("ctrl_type"), ["PI", "PID"], "PI", "gs_ct")
+        if m == "SIMC":
+            sld(c3, T("gs_tcf"), 0.3, 5.0, 1.0, "gs_tcf", step=0.1, help=T("h_gs_tcf"))
+        elif m == "OPT":
+            seg(c3, T("gs_ms"), [1.4, 1.6, 1.8], 1.6, "gs_ms", help=T("h_gs_ms"))
+        st.caption(T("mdesc_" + m) + (f" {T('cdesc_MIGO')}" if m == "OPT" else ""))
+        pts, tab, filled = gs_values(ctx)
+        names = MODELS[code]["params"]
+        set2 = _clean(ctx.set2_ctrl)
+        rows, ms_at = [], {}
+        for i, q in enumerate(pts):
+            ctrl_i = dict(_clean(ctx.base_ctrl), Gain=q["gain"], TI=q["ti"], TD=q["td"])
+            rb_s, rb_2 = cache.robustness(code, q["p"], ctrl_i), cache.robustness(code, q["p"], set2)
+            ms = lambda rb: f"{rb['Ms']:.2f}" if rb["stable"] and np.isfinite(rb["Ms"]) else "∞"  # noqa: E731
+            ms_at[q["x"]] = (ms(rb_2), ms(rb_s))
+            rows.append({T("gs_pt"): i + 1, f"X [{ctx.u_pv or 'PV'}]": float(f"{E(q['x']):.4g}"),
+                         f"MV [{ctx.u_mv or '%'}]": float(f"{M_(q['u']):.4g}"),
+                         **{nm: float(f"{v:.4g}") for nm, v in zip(names, q["p"])},
+                         "Fit %": round(q["fit"], 1), "Gain": float(f"{q['gain']:.4g}"),
+                         "TI": float(f"{q['ti']:.4g}"), "TD": float(f"{q['td']:.3g}"),
+                         T("gs_ms_s"): ms(rb_s), T("gs_ms_2"): ms(rb_2)})
+        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        st.caption(T("gs_pts_help"))
+
+    # ---- 3. hodnoty do bloku GainSched
+    st.markdown(f"#### {T('gs_tab_title')}", help=T("h_gs_tab"))
+    st.dataframe(gs_frame(tab), hide_index=True)
+    if filled:
+        st.caption(T("gs_filled"))
+
+    # ---- 4. simulace: jedna sada vs. gain scheduling na nelineárním procesu
+    st.markdown(f"#### {T('gs_sim_title')}", help=T("h_gs_sim"))
+    xs = sorted(q["x"] for q in pts)
+    seq = xs + [xs[0]]
+    tp = max(12 * _tchar((code, q["p"])) for q in pts) + 50 * ctx.samp
+    h, nn, t = _grid(tp * len(seq), ctx.samp)
+    k_seg = np.minimum((t // tp).astype(int), len(seq) - 1)
+    sp = np.array(seq)[k_seg]
+    d = np.where((t % tp) >= 0.55 * tp, 5.0, 0.0)
+    rows3 = gs_table(pts)[0]
+    sched = {k: [q[kq] for q in rows3] for k, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
+    plant = [dict(x=q["x"], u=q["u"], p=q["p"]) for q in pts]
+    tf, of = _gs(code, plant, set2, None, h, sp, d)
+    ts_, os_ = _gs(code, plant, dict(_clean(ctx.base_ctrl), Gain=sched["gain"][0], TI=sched["ti"][0],
+                                     TD=sched["td"][0]), sched, h, sp, d)
+    f = mkfig(3, [0.5, 0.27, 0.23])
+    f.add_trace(tr(t, E(sp), "SP", C_SP, 1.3, "dash", "hv"), 1, 1)
+    f.add_trace(tr(tf, E(of["PV"]), T("gs_fixed"), C_SET1, 1.6, "dot"), 1, 1)
+    f.add_trace(tr(ts_, E(os_["PV"]), T("gs_sched"), C_SET2, 2.0), 1, 1)
+    f.add_trace(tr(tf, M_(of["MV"]), T("gs_fixed"), C_SET1, 1.4, "dot", show=False), 2, 1)
+    f.add_trace(tr(ts_, M_(os_["MV"]), T("gs_sched"), C_SET2, 1.6, show=False), 2, 1)
+    f.add_trace(tr(tf, of["Gain"], T("gs_fixed"), C_SET1, 1.4, "dot", show=False), 3, 1)
+    f.add_trace(tr(ts_, os_["Gain"], T("gs_sched"), C_SET2, 1.6, show=False), 3, 1)
+    show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gs"), key="chart_apc_gs",
+         fname="gainsched", report=T("apc_gainsched"))
+    PR = ctx.PR / 100
+    kp = []
+    for i, x in enumerate(seq[1:], start=1):
+        m_ = k_seg == i
+        kp.append({T("gs_step"): f"{E(seq[i - 1]):.4g} → {E(x):.4g}",
+                   T("gs_iae_fixed"): round(iae(t[m_], sp[m_], of["PV"][m_]) * PR, 4),
+                   T("gs_iae_sched"): round(iae(t[m_], sp[m_], os_["PV"][m_]) * PR, 4),
+                   T("gs_ms_fixed"): ms_at.get(x, ("—",))[0], T("gs_ms_sched"): ms_at.get(x, ("—", "—"))[1]})
+    st.dataframe(pd.DataFrame(kp), hide_index=True)
+    st.caption(T("gs_sim_help"))
+
+
+# ---------------------------------------------------------------- gain scheduling podle regulační odchylky
+def _gs_er_E(ctx):
+    """Práh E [jednotky PV] – od této odchylky platí plné zesílení k·Gain."""
+    return float(ss.get("gs_er_E") or round(0.05 * ctx.PR, 6))
+
+
+def _gs_er_tab(ctx):
+    c2 = ctx.set2_ctrl
+    rows = gs_er_table(_gs_er_E(ctx), float(ss.get("gs_er_k") or 2.0), c2["Gain"], c2["TI"], c2.get("TD", 0.0))
+    u_pv = ctx.u_pv or "PV"
+    return [("X1 … X3 (ER)", [q["x"] for q in rows], u_pv), ("Gain1 … Gain3", [q["gain"] for q in rows], "–"),
+            ("TI1 … TI3", [q["ti"] for q in rows], "s"), ("TD1 … TD3", [q["td"] for q in rows], "s")]
+
+
+def _k_max(code, p, ctrl, ms_lim=2.0):
+    """Největší násobek zesílení k (krok 0,25), při kterém je smyčka stabilní a Ms ≤ ms_lim."""
+    best = 1.0
+    for k in np.arange(1.0, 6.01, 0.25):
+        rb = cache.robustness(code, p, dict(ctrl, Gain=k * ctrl["Gain"]))
+        if not (rb["stable"] and np.isfinite(rb["Ms"]) and rb["Ms"] <= ms_lim):
+            break
+        best = float(k)
+    return best
+
+
+def _gs_er_page(ctx):
+    code, p = ctx.model[0], list(ctx.model[1])
+    E, M_ = ctx.EP, ctx.EM
+    set2 = _clean(ctx.set2_ctrl)
+    PR = ctx.PR
+    kmax = _k_max(code, p, set2)
+    st.markdown(T("gs_er_intro"))
+
+    with st.container(border=True):
+        st.markdown(f"**{T('gs_er_s1')}**")
+        c1, c2, c3 = st.columns(3)
+        e_u = num(T("gs_er_E", u=ctx.u_pv or "PV"), "gs_er_E", round(0.05 * PR, 6), c1, min_value=1e-9,
+                  format="%.4g", help=T("h_gs_er_E"))
+        k = sld(c2, T("gs_er_k"), 1.0, 6.0, float(min(2.0, kmax)), "gs_er_k", step=0.25, help=T("h_gs_er_k"))
+        rb_k = cache.robustness(code, p, dict(set2, Gain=k * set2["Gain"]))
+        ms_k = rb_k["Ms"] if rb_k["stable"] and np.isfinite(rb_k["Ms"]) else np.inf
+        c3.metric(T("gs_er_ms"), "∞" if not np.isfinite(ms_k) else f"{ms_k:.2f}",
+                  help=T("h_gs_er_ms", k=f"{kmax:.2f}"))
+        st.caption(T("gs_er_kmax", k=f"{kmax:.2f}", g=f"{set2['Gain']:.4g}", ti=f"{set2['TI']:.4g}"))
+        if not np.isfinite(ms_k) or ms_k > 2.0:
+            st.error(T("gs_er_unstable", k=f"{k:.2f}", m=f"{kmax:.2f}"), icon=":material/warning:")
+
+    checks = [_chk_model_a(ctx),
+              (bool(np.isfinite(ms_k) and ms_k <= 2.0), T("g_chk_gser_ms", m="∞" if not np.isfinite(ms_k) else f"{ms_k:.2f}"),
+               None),
+              (None, T("g_chk_gser_noise"), None),
+              (None, T("g_chk_gser_sat"), None),
+              (None, T("g_chk_gser_bumpless"), None)]
+    guide.render("gs_er", checks, T("g_impl_gs_er", u=ctx.u_pv or "PV"))
+
+    st.markdown(f"#### {T('gs_tab_title')}", help=T("h_gs_er_tab"))
+    st.dataframe(gs_frame(_gs_er_tab(ctx)), hide_index=True)
+
+    # ---- simulace: jedna sada / scheduling podle ER / řídicí pásmo
+    st.markdown(f"#### {T('gs_er_sim')}", help=T("h_gs_er_sim"))
+    s1, s2 = st.columns(2)
+    sp_step = num(T("gs_er_spstep", u=ctx.u_pv or "PV"), "gs_er_spstep", round(0.2 * PR, 6), s1, format="%.4g",
+                  help=T("h_gs_er_spstep"))
+    d_mv = num(T("gs_er_d"), "gs_er_d", 10.0, s2, format="%.3g", help=T("h_gs_er_d"))
+    step_pct = float(np.clip(sp_step / PR * 100, -45, 45))
+    tp = 15 * _tchar((code, p)) + 50 * ctx.samp
+    h, nn, t = _grid(2 * tp, ctx.samp)
+    sp = np.where(t >= 0.05 * tp, 50.0 + step_pct, 50.0)
+    d = np.where(t >= tp, float(d_mv), 0.0)
+    plant = [dict(x=50.0, u=50.0, p=p)]
+    e_pct = float(e_u) / PR * 100
+    rows = gs_er_table(e_pct, k, set2["Gain"], set2["TI"], set2.get("TD", 0.0))
+    sched = {kk: [q[kq] for q in rows] for kk, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
+    tf, of = _gs(code, plant, set2, None, h, sp, d)
+    te, oe = _gs(code, plant, set2, sched, h, sp, d, "er")
+    widths = tuple(float(f) * abs(step_pct) for f in (0.15, 0.3, 0.45, 0.6, 0.75, 0.9))
+    cz, scan = _best_cz(code, plant, set2, h, sp, d, widths)
+    oz = _gs(code, plant, dict(set2, ConZone=cz), None, h, sp, d)[1] if cz else None
+    f = mkfig(3, [0.5, 0.27, 0.23])
+    f.add_trace(tr(t, E(sp), "SP", C_SP, 1.3, "dash", "hv"), 1, 1)
+    f.add_trace(tr(tf, E(of["PV"]), T("gs_fixed"), C_SET1, 1.6, "dot"), 1, 1)
+    f.add_trace(tr(te, E(oe["PV"]), T("gs_er_sched"), C_SET2, 2.0), 1, 1)
+    if oz is not None:
+        f.add_trace(tr(t, E(oz["PV"]), T("gs_er_cz"), C_B, 1.6, "dashdot"), 1, 1)
+    f.add_trace(tr(tf, M_(of["MV"]), T("gs_fixed"), C_SET1, 1.4, "dot", show=False), 2, 1)
+    f.add_trace(tr(te, M_(oe["MV"]), T("gs_er_sched"), C_SET2, 1.6, show=False), 2, 1)
+    if oz is not None:
+        f.add_trace(tr(t, M_(oz["MV"]), T("gs_er_cz"), C_B, 1.4, "dashdot", show=False), 2, 1)
+    f.add_trace(tr(tf, of["Gain"], T("gs_fixed"), C_SET1, 1.4, "dot", show=False), 3, 1)
+    f.add_trace(tr(te, oe["Gain"], T("gs_er_sched"), C_SET2, 1.6, show=False), 3, 1)
+    show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gser"), key="chart_apc_gser",
+         fname="gainsched_er", report=T("gs_x_er"))
+    a, b = t < tp, t >= tp
+    PRf = PR / 100
+
+    def kpi(name, o):
+        return {T("setting"): name, T("iae_sp"): round(iae(t[a], sp[a], o["PV"][a]) * PRf, 4),
+                T("iae_load"): round(iae(t[b], sp[b], o["PV"][b]) * PRf, 4),
+                T("gs_er_maxdev"): float(f"{np.max(np.abs(sp[b] - o['PV'][b])) * PRf:.4g}"),
+                T("gs_er_sat"): f"{100 * np.mean((o['MV'] <= set2.get('MV_Lo', 0) + 1e-6) | (o['MV'] >= set2.get('MV_Hi', 100) - 1e-6)):.0f} %",
+                T("gs_er_settled"): "✓" if settled(t, sp, o["PV"]) else "✗"}
+    kp = [kpi(T("gs_fixed"), of), kpi(T("gs_er_sched"), oe)] + ([kpi(T("gs_er_cz"), oz)] if oz is not None else [])
+    st.dataframe(pd.DataFrame(kp), hide_index=True)
+    if cz:
+        st.caption(T("gs_er_cz_best", w=f"{cz * PRf:.4g}", u=ctx.u_pv or "PV"))
+    else:
+        st.info(T("gs_er_cz_none"), icon=":material/info:")
+    with st.expander(T("gs_er_cz_scan"), icon=":material/table_rows:"):
+        st.dataframe(pd.DataFrame([{f"ConZone [{ctx.u_pv or 'PV'}]": float(f"{w * PRf:.4g}"),
+                                    T("iae_sp") + " + " + T("iae_load"): round(v * PRf, 4),
+                                    T("gs_er_settled"): "✓" if ok else "✗"} for w, v, ok in scan]), hide_index=True)
+        st.caption(T("gs_er_cz_help"))
+    st.caption(T("gs_er_sim_help"))
+
+
+# ---------------------------------------------------------------- dopředná vazba z měřených poruch
+def ff_rows(ctx, des):
+    """Hodnoty do PCS 7 pro zapnuté poruchy: [(porucha, [(parametr, hodnota, jednotka)])] v jednotkách MV."""
+    out = []
+    u_mv = ctx.u_mv or "MV"
+    for j, (dn, d) in enumerate(zip(ctx.c_d, des)):
+        if not d["use"]:
+            continue
+        g = ffmod.eng_gain(d["gain"], ctx.MR)
+        dd = ctx.dists[j]
+        span = float(np.nanmax(dd) - np.nanmin(dd)) if len(dd) else 0.0
+        lim = float(min(ctx.MR, 1.5 * abs(g) * span)) if span > 0 else float(ctx.MR)
+        rows = [(T("ff_p_gain"), g, f"{u_mv} / 1 {dn}")]
+        if d["dyn"]:
+            lead, lag, delay = ffmod.lead_lag(d)
+            if lag > 0:
+                rows += [(T("ff_p_lead"), lead, "s"), (T("ff_p_lag"), lag, "s")]
+            if delay > 0:
+                rows.append((T("ff_p_delay"), delay, "s"))
+        rows += [("PIDConL.FFwdHiLim", lim, u_mv), ("PIDConL.FFwdLoLim", -lim, u_mv)]
+        out.append((str(dn), rows))
+    return out
+
+
+def _ff_page(ctx):
+    code, p, pdl = ctx.model[0], list(ctx.model[1]), ctx.model[2]
+    if not pdl:
+        guide.render("ff", [_chk_model_a(ctx), (False, T("g_chk_ff_dist"), (T("tgb_data"), guide.goto, (None, "data")))],
+                     None)
+        st.info(T("ff_need_dist"), icon=":material/info:")
+        return
+    des = ffmod.design(code, p, pdl)
+    names = [str(x) for x in ctx.c_d]
+    slow = [n for n, pdm, d in zip(names, pdl, des) if d["use"] and pdm[2] < p[-1]]
+    checks = [_chk_model_a(ctx),
+              (True, T("g_chk_ff_dist_ok", d=", ".join(names)), None),
+              (any(d["use"] for d in des), T("g_chk_ff_on"), None),
+              ((None if slow else True), T("g_chk_ff_fast", d=", ".join(slow)) if slow else T("g_chk_ff_fast_ok"), None),
+              (None, T("g_chk_ff_indep"), None),
+              (None, T("g_chk_ff_commission"), None)]
+    guide.render("ff", checks, T("g_impl_ff"))
+
+    # ---- 1. návrh pro každou měřenou poruchu
+    set2 = _clean(ctx.set2_ctrl)
+    for j, (dn, pdm) in enumerate(zip(names, pdl)):
+        k_ = ffmod.keys(j, code, p, pdm)
+        g0, tl0, tg0, dl0 = ffmod.defaults(code, p, pdm)
+        with st.container(border=True):
+            st.markdown(f"**{T('ff_dist_title', d=dn)}**")
+            st.caption(T("ff_model", k=f"{pdm[0]:.4g}", t=f"{pdm[1]:.4g}", th=f"{pdm[2]:.4g}", tp=f"{p[-1]:.4g}"))
+            f1, f2, f3 = st.columns([1, 1.4, 1.4], vertical_alignment="bottom")
+            use = f1.toggle(T("ff_use", d=dn), key=k_["use"], help=T("h_ff_use"))
+            g = num(T("ff_gain", d=dn), k_["gain"], g0, f2, format="%.5g", help=T("h_ff_gain"))
+            f3.metric(T("ff_gain_eng", u=ctx.u_mv or "MV", d=dn), f"{ffmod.eng_gain(g, ctx.MR):.4g}",
+                      help=T("h_ff_gain_eng"))
+            dyn = st.toggle(T("ff_dyn"), key=k_["dyn"], help=T("h_ff_dyn"))
+            if dyn:
+                l1, l2, l3 = st.columns(3)
+                num(T("ff_lead"), k_["lead"], tl0, l1, min_value=0.0, format="%.4g", help=T("h_ff_lead"))
+                num(T("ff_lag"), k_["lag"], tg0, l2, min_value=0.0, format="%.4g", help=T("h_ff_lag"))
+                num(T("ff_delay"), k_["delay"], dl0, l3, min_value=0.0, format="%.4g", help=T("h_ff_delay"))
+            if use and pdm[2] < p[-1]:
+                st.caption(T("ff_faster", d=dn, td=f"{pdm[2]:.3g}", t=f"{p[-1]:.3g}"))
+    des = ffmod.design(code, p, pdl)
+    ffmod.save_state(des)
+
+    # ---- 2. ověření: skok poruchy bez FF / statická / dynamická
+    st.markdown(f"#### {T('ff_sim_title')}", help=T("h_ff_sim"))
+    s1, s2 = st.columns(2)
+    jsel = s1.selectbox(T("ff_sim_dist"), list(range(len(names))), format_func=lambda i: names[i], key="ff_sim_j")
+    dd = ctx.dists[jsel]
+    span = float(np.nanmax(dd) - np.nanmin(dd)) if len(dd) else 1.0
+    step = num(T("ff_step", d=names[jsel]), f"ff_step|{jsel}", float(f"{(span / 2 or 1.0):.3g}"), s2, format="%.4g",
+               help=T("h_ff_step"))
+    pdm = pdl[jsel]
+    t_end = 12 * (max(p[-1], pdm[2]) + sum(p[1:-1]) + pdm[1]) + 50 * ctx.samp
+    h, n, t = _grid(t_end, ctx.samp)
+    dm = [np.where((t >= 0.1 * t_end) & (i == jsel), float(step), 0.0) for i in range(len(pdl))]
+    sp = np.full(n, 50.0)
+    dsel = dict(des[jsel], use=True)
+    variants = [("none", [0.0] * len(pdl), [(0.0, 0.0, 0.0)] * len(pdl), C_REF, "dot"),
+                ("static", *ffmod.to_ctrl([dsel if i == jsel else des[i] for i in range(len(des))], only=jsel,
+                                          dyn=False), C_SET1, "dash"),
+                ("dynamic", *ffmod.to_ctrl([dict(dsel, dyn=True) if i == jsel else des[i] for i in range(len(des))],
+                                           only=jsel, dyn=True), C_SET2, "solid")]
+    f = mkfig(2, [0.62, 0.38])
+    rows = []
+    PRf = ctx.PR / 100
+    for key, ffv, ffl, col, dash in variants:
+        o = cache.pidconl_sim_full(code, p, [list(x) for x in pdl], h, sp, 50.0, 50.0,
+                                   dict(set2, FF=ffv, FF_LL=ffl), dm)
+        f.add_trace(tr(t, ctx.EP(o["PV"]), T("ff_" + key), col, 1.8, dash), 1, 1)
+        f.add_trace(tr(t, ctx.EM(o["MV"]), T("ff_" + key), col, 1.5, dash, show=False), 2, 1)
+        rows.append({T("setting"): T("ff_" + key), T("iae_load"): round(iae(t, sp, o["PV"]) * PRf, 4),
+                     T("ff_maxdev"): float(f"{np.max(np.abs(o['PV'] - 50.0)) * PRf:.4g}")})
+    show(style(f, ctx.H, [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_ff"), key="chart_apc_ff", fname="feedforward",
+         report=T("apc_ff"))
+    st.dataframe(pd.DataFrame(rows), hide_index=True)
+    st.caption(T("ff_sim_help"))
+
+    # ---- 3. hodnoty do PCS 7
+    tab = ff_rows(ctx, des)
+    st.markdown(f"#### {T('ff_tab_title')}", help=T("h_ff_tab"))
+    if not tab:
+        st.info(T("ff_none_on"), icon=":material/info:")
+    for dn, rws in tab:
+        st.markdown(f"**{dn}**")
+        st.dataframe(pd.DataFrame([{T("sm_apl_block"): a, T("sm_apl_value"): float(f"{v:.4g}"), T("sm_apl_unit"): u}
+                               for a, v, u in rws]), hide_index=True)
+    st.caption(T("ff_help"))
+

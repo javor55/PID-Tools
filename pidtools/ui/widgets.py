@@ -101,6 +101,7 @@ def keep_widget_state():
     Streamlit zahodí stav widgetu, který se v některém běhu nevykreslí – např. při přepnutí zdroje na Soubor před
     nahráním souboru (`st.stop`) nebo na zavřené záložce. Klíč pak ještě chvíli „existuje“, takže `num()` nezapíše
     výchozí hodnotu, a widget začne od nuly (rozsahy 0–0, SampleTime 0 …). Zápis `ss[k] = ss[k]` ho udrží.
+    Tlačítka s klíčem musí mít prefix ze SKIP_PREFIX (např. „g_“) – jejich hodnotu Streamlit zapsat nedovolí.
     """
     from .loops import _restorable
     for k in list(ss.keys()):

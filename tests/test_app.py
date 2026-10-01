@@ -5,6 +5,7 @@ přepnutí jazyka. Běží na ukázkových datech (hladina s měřeným přítok
 import json
 import os
 
+import numpy as np
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -255,3 +256,99 @@ def test_smith_template_values():
     assert vals["SmithModelGain (Mul04).In2"] == pytest.approx(k * 2.0, rel=1e-3)
     assert {"SmithModelTimLag (Lag).LagTime", "SmithModelDeadti (DeadTime).DeadTime", "PV0 (Add04).In2",
             "PIDConL.Gain", "PIDConL.TI"} <= set(vals)
+
+
+def _nonlinear_data():
+    """Nelineární proces (zesílení 0,7 → 1,9 podle MV, časová konstanta podle PV) se skoky na třech úrovních."""
+    blocks = []
+    for lv in (20.0, 50.0, 80.0):
+        blocks += [(lv, 900), (lv + 5, 400), (lv - 5, 400), (lv, 400)]
+    mv = np.concatenate([np.full(n, v) for v, n in blocks])
+    n, h, th = len(mv), 1.0, 6
+    K = lambda u: 0.3 + 0.02 * u                                                   # noqa: E731
+    F = lambda u: 0.3 * u + 0.01 * u * u                                           # noqa: E731  ∫K
+    y = np.zeros(n)
+    y[0] = F(mv[0])
+    for k in range(1, n):
+        w = F(mv[max(k - 1 - th, 0)])
+        a = np.exp(-h / (20 + 0.3 * y[k - 1]))
+        y[k] = a * y[k - 1] + (1 - a) * w
+    assert K(80) / K(20) > 2.5
+    pv = y + np.random.default_rng(3).normal(0, 0.02, n)
+    return np.arange(n) * h, pv, mv
+
+
+def test_gain_scheduling_page():
+    """APC › Gain scheduling: identifikace tří bodů, tabulka pro GainSched a simulace s menší IAE než jedna sada."""
+    t, pv, mv = _nonlinear_data()
+    proj = dict(version=2, fname="gs.csv", tag="TIC1", state={"mcode": "P1D"},
+                map={"c_pv": "PV", "c_mv": "MV", "c_sp": "—", "c_d": [], "c_pos": "—"},
+                ranges={"id": None, "val": None}, data={"cols": {"t_s": t.tolist(), "PV": pv.tolist(),
+                                                                 "MV": mv.tolist()}})
+    app = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    app.run()
+    app.session_state["test_inject"] = json.dumps(proj)
+    app.run()
+    _button(app, "Identify").click().run()
+    app.session_state["mcode"] = "P1D"
+    app.session_state["main_tab"] = [t_.label for t_ in app.tabs][4]
+    app.session_state["apc_kind"] = "gainsched"
+    for i, (a, b) in enumerate(((0, 2090), (2100, 4190), (4200, 6290)), start=1):
+        app.session_state[f"gs_r{i}"] = (float(a), float(b))
+    app.run()
+    assert not _errors(app)
+    _button(app, "Identify points").click().run()
+    assert not _errors(app)
+    pts = app.session_state["gs_pts"]
+    assert len(pts) == 3
+    gains = [q[3] for q in pts]                     # K v bodech roste s pracovním bodem
+    assert gains[0] < gains[1] < gains[2] and gains[2] / gains[0] > 2
+    tab = next(d.value for d in app.dataframe if len(d.value) and "X1 … X3" in d.value.iloc[:, 0].values)
+    xs = tab.iloc[0, 1:4].astype(float).values
+    assert np.all(np.diff(xs) > 0)
+    g = tab.iloc[1, 1:4].astype(float).values
+    assert g[0] > g[2]                               # vyšší zesílení procesu → menší Gain regulátoru
+    kp = next(d.value for d in app.dataframe if len(d.value) and "SP step" in d.value.columns)
+    assert kp["IAE – scheduler"].sum() < kp["IAE – one set"].sum()
+    # režim X = ER: symetrická tabulka −E, 0, +E a srovnání se sadou 2 a řídicím pásmem
+    app.session_state["gs_x"] = "er"
+    app.session_state["gs_er_E"] = 4.0
+    app.session_state["gs_er_k"] = 3.0
+    app.run()
+    assert any("Reduce k" in e for e in _errors(app))   # sada 2 (SIMC, τc = θ) je už ostrá → k = 3 nestabilní
+    app.session_state["gs_er_k"] = 1.25
+    app.run()
+    assert not _errors(app)
+    tab = next(d.value for d in app.dataframe if len(d.value) and "X1 … X3 (ER)" in d.value.iloc[:, 0].values)
+    assert list(tab.iloc[0, 1:4].astype(float)) == [-4.0, 0.0, 4.0]
+    g = tab.iloc[1, 1:4].astype(float).values
+    assert g[0] == pytest.approx(1.25 * g[1], rel=1e-3) and g[2] == pytest.approx(g[0])
+    kp = next(d.value for d in app.dataframe if len(d.value) and "Settled" in d.value.columns)
+    assert len(kp) >= 2 and kp["Settled"].iloc[1] == "✓"
+
+
+def test_feedforward_in_apc(app):
+    """Dopředná vazba: stav v Ladění, návrh a simulace v APC, promítnutí do sad a obnova z projektu."""
+    assert any("Feedforward from measured disturbances is off" in c.value for c in app.caption)
+    app.session_state["main_tab"] = [t.label for t in app.tabs][4]
+    app.session_state["apc_kind"] = "ff"
+    app.run()
+    assert not _errors(app)
+    kp = next(d.value for d in app.dataframe if len(d.value) and "Max. PV deviation" in d.value.columns)
+    iae_ = dict(zip(kp.iloc[:, 0], kp["IAE disturbance"]))
+    assert iae_["Static FF"] < iae_["No FF"] and iae_["Dynamic FF"] < iae_["No FF"]
+    app.session_state["ffuse|0"] = True
+    app.run()
+    assert not _errors(app)
+    assert app.session_state["ff_state"][0]["use"]
+    assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
+    assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
+    # obnova z projektu (ff v projektu → klíče widgetů)
+    app.session_state["override_ff"] = [dict(use=True, gain=-0.5, dyn=True, lead=12.0, lag=4.0, delay=0.0)]
+    app.run()
+    st_ = app.session_state["ff_state"][0]
+    assert st_["gain"] == pytest.approx(-0.5) and st_["dyn"] and st_["lead"] == pytest.approx(12.0)
+    assert app.session_state["set2_ctrl"]["FF_LL"][0][0] == pytest.approx(12.0)
+    app.session_state["ffuse|0"] = False
+    app.session_state["apc_kind"] = "cascade"
+    app.run()

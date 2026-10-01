@@ -7,6 +7,7 @@ Moduly:
   tuning          – pravidla ladění a optimalizace
   robustness      – kmitočtová analýza smyčky (Ms, GM, PM), šum MV
   simulation      – simulace PIDConL (dávková, kaskáda, živá)
+  gainsched       – plánování parametrů PID podle pracovního bodu (blok GainSched)
   diagnostics     – diagnostika provozu, kvalita dat, úseky, nelinearita, plán testu
   demo            – ukázková data
 """
@@ -23,4 +24,5 @@ from .tuning import (integ_gain, default_tc, tune, ff_gain, d_advice, optimize_m
                      overshoot_ratio, optimize_time, optimize_scenario, outer_with_inner)
 from .diagnostics import (oscillation, stiction_ccf, valve_hysteresis, harris_index, loop_kpis, detect_steps,
                           data_quality, find_segments, local_gains, step_plan)
+from .gainsched import gs_table, gs_er_table, gs_interp, gs_issues, SchedPlant, gs_sim, settled, best_conzone
 from .demo import demo_data

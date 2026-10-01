@@ -10,6 +10,7 @@ from ..cache import local_gains, loop_kpis
 from ..charts import REPORT, show, style, tr
 from ..theme import C_MV, C_PV
 from ..widgets import num, tog
+from . import apc_guide
 
 ss = st.session_state
 
@@ -154,6 +155,9 @@ def render(ctx):
                     if spread > 1.5:
                         ctx.PROG["diag"] = max(ctx.PROG.get("diag", 0), 1)
                         st.warning(T("nl_warn", s=f"{spread:.1f}"), icon=":material/show_chart:")
+                        if not MODELS[model[0]]["integ"]:
+                            st.button(T("nl_to_gs"), icon=":material/tune:", key="g_nl_gs", on_click=apc_guide.goto,
+                                      kwargs=dict(tab="apc", kind="gainsched"))
                     else:
                         st.success(T("nl_ok", s=f"{spread:.2f}"), icon=":material/check_circle:")
                     if ups and dns and abs(np.mean(ups) / np.mean(dns) - 1) > 0.3:

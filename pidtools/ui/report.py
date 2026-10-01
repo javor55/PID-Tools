@@ -120,11 +120,17 @@ def _param_rows(r):
            (T("pvfilt"), c2.get("PVFilt"), "s"),
            (T("rp_mvrate"), c2.get("MVRate", 0.0) * MR / 100 if c2.get("MVRate") is not None else None, f"{r['u_mv'] or 'MV'}/s"),
            (T("rp_sprate"), c2.get("SPRate", 0.0) * PR / 100 if c2.get("SPRate") is not None else None, f"{r['u_pv'] or 'PV'}/s")]
-    ff = [g for g in (c2.get("FF") or []) if g]   # noqa: F841 – jen pro přehlednost
+    ff = [g for g in (c2.get("FF") or []) if g]
+    ffll = list(c2.get("FF_LL") or [])
     for j, g in enumerate(c2.get("FF") or []):
         if g:
             nm = r["c_d"][j] if j < len(r["c_d"]) else f"#{j + 1}"
-            blk.append((T("rp_ff", d=nm), g, f"%/{T('rp_unit')}"))
+            blk.append((T("rp_ff", d=nm), g * MR / 100, f"{r['u_mv'] or 'MV'} / 1 {nm}"))   # vstup FFwd: jednotky MV
+            lead, lag_, delay = ffll[j] if j < len(ffll) else (0.0, 0.0, 0.0)
+            if lag_ > 0:
+                blk += [(T("rp_ff_lead", d=nm), lead, "s"), (T("rp_ff_lag", d=nm), lag_, "s")]
+            if delay > 0:
+                blk.append((T("rp_ff_delay", d=nm), delay, "s"))
     return rows, [b for b in blk if b[1] is not None], bool(ff)
 
 
@@ -212,7 +218,7 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
     Celý report jako HTML text. meta: plant, author, status, comment; sections: podmnožina SECTIONS;
     chart_mode: "inline" (Plotly v souboru, funguje offline) nebo "cdn" (malý soubor, grafy z internetu).
     """
-    from .pages.apc import recommend, smith_values   # až zde – stránka APC importuje moduly UI
+    from .pages.apc import gs_values, recommend, smith_values   # až zde – stránka APC importuje moduly UI
     recs = loop_records(ctx)
     now = _dt.datetime.now()
     status = meta.get("status") or "draft"
@@ -317,6 +323,18 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
                                  f"<p class='muted'>{E(T('sm_apl_note'))}</p>")
                 except Exception:
                     pass
+            try:
+                gv = gs_values(ctx) if not MODELS[code]["integ"] else None
+            except Exception:
+                gv = None
+            if gv:
+                _, gtab, _ = gv
+                parts.append(f"<h3>{E(T('rp_gs'))}</h3><table><tr><th>{E(T('gs_in'))}</th>"
+                             + "".join(f"<th>{E(T('gs_point', i=i))}</th>" for i in (1, 2, 3))
+                             + f"<th>{E(T('sm_apl_unit'))}</th></tr>"
+                             + "".join(f"<tr><td>{E(nm)}</td>" + "".join(f"<td>{_f(v)}</td>" for v in vals)
+                                       + f"<td>{E(u)}</td></tr>" for nm, vals, u in gtab) + "</table>"
+                             f"<p class='muted'>{E(T('rp_gs_note_er' if ss.get('gs_x') == 'er' else 'rp_gs_note'))}</p>")
         parts.append("</section>")
 
     if "signoff" in sections:
