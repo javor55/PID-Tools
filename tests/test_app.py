@@ -96,16 +96,16 @@ def test_validation(app):
 
 
 def test_live_simulation(app):
-    app.session_state["live_run"] = True
-    app.run()
+    """Živá simulace běží v prohlížeči: stránka připojí komponentu s jádrem a konfigurací obou sad."""
+    tabs = [t.label for t in app.tabs]
+    app.session_state["main_tab"] = tabs[3]
     app.run()
     assert not _errors(app)
-    assert app.session_state["live"]["loop"].t > 0
-    for k, v in (("live_mode", "MAN"), ("live_set", "1"), ("live_speed", 20)):
-        app.session_state[k] = v
-        app.run()
-        assert not _errors(app)
-    app.session_state["live_run"] = False
+    comps = app.main.get("bidi_component")
+    assert len(comps) == 1
+    doc = str(comps[0].proto)
+    assert "pidtools_live_sim" in doc and "PIDLive" in doc and "sets" in doc and app.session_state["mcode"] in doc
+    app.session_state["main_tab"] = tabs[0]
     app.run()
 
 
