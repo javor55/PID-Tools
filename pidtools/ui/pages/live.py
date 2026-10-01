@@ -5,7 +5,6 @@ Výpočet je přepis jádra `pidtools.core.simulation` (`static/live_engine.js`,
 včetně prvků smyčky a ventilu ze záložky Ladění. Ladění sady 2 jde ze simulace zapsat zpět (trigger „apply“).
 """
 import json
-import os
 
 import numpy as np
 import streamlit as st
@@ -13,6 +12,7 @@ import streamlit as st
 from ...i18n import T
 from .. import loops
 from ..theme import C_MV, C_PV, C_SET1, C_SET2, C_SP, FONT
+from ..widgets import static_asset, v2_component
 
 ss = st.session_state
 SPEEDS = [1, 5, 20, 100, 500]
@@ -22,12 +22,6 @@ _LV_KEYS = ("compare", "advanced", "sec_tune", "apply", "revert", "tune_hint", "
             "meas_hint", "sec_plant", "pk", "pt", "pth", "stic", "plant_hint", "sec_view", "window", "win_auto",
             "view_hint", "zoomed", "kpi_since", "kpi_maxdev", "kpi_over", "kpi_settle", "kpi_travel", "ev_tune",
             "ev_set", "ev_dist", "ev_applied")
-_STATIC = os.path.join(os.path.dirname(__file__), "..", "static")
-
-
-def _asset(name):
-    with open(os.path.join(_STATIC, name), encoding="utf-8") as f:
-        return f.read()
 
 
 def _ctrl_js(c):
@@ -87,17 +81,10 @@ _CSS = """
 @media (max-width:700px) { .pidlive .sliders { grid-template-columns:1fr; } }
 """
 
-_COMPONENT = None
-
-
 def _component():
-    """Registrace komponenty (jednou za běh serveru; JS = jádro simulace + rozhraní)."""
-    global _COMPONENT
-    if _COMPONENT is None:
-        _COMPONENT = st.components.v2.component(
-            "pidtools_live_sim", css=_CSS % dict(font=FONT),
-            js=_asset("live_engine.js") + "\n" + _asset("live_ui.js"))
-    return _COMPONENT
+    """Komponenta simulace (JS = jádro simulace + rozhraní)."""
+    return v2_component("pidtools_live_sim", css=_CSS % dict(font=FONT),
+                        js=static_asset("live_engine.js") + "\n" + static_asset("live_ui.js"))
 
 
 def _apply_tuning():

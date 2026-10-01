@@ -1,5 +1,5 @@
 """
-Projekt smyčky (JSON) a HTML report.
+Projekt (JSON): uložení a obnova celé práce – všech smyček, modelů, ladění a volitelně dat.
 
 Projekt obsahuje stav widgetů (klíče ze STATE_KEYS a s prefixy STATE_PREFIX), mapování sloupců, úseky,
 nafitované modely, parametry sad a dopředné vazby a volitelně převzorkovaná data.
@@ -9,13 +9,9 @@ import datetime as _dt
 import json
 
 import numpy as np
-import plotly.graph_objects as go
 import streamlit as st
 
-from ..i18n import T
 from . import loops
-from .charts import REPORT
-from .theme import report_template
 
 ss = st.session_state
 
@@ -33,6 +29,8 @@ STATE_KEYS = [
     # plán testu, kaskáda, diagnostika
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
     "cas_samp", "cas_tci", "cas_tco", "diag_integ",
+    # hlavička reportu
+    "rep_plant", "rep_author", "rep_status", "rep_comment",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|")
 
@@ -151,10 +149,11 @@ def _record(c, snap, active):
     return rec
 
 
-def build_project(c, include_data):
+def gather_project(c, include_data):
     """
-    Projekt jako JSON text (c = Ctx aktuálního běhu). Nahoře je záznam aktivní smyčky (čitelný i starší verzí),
-    při více smyčkách navíc „loops“ se záznamy všech smyček a „active“ (pořadí aktivní smyčky od 1).
+    Obsah projektu jako slovník (rychlé – volá se při vykreslení). Data zůstávají jako pole numpy;
+    převod na JSON dělá `serialize_project` (až při stažení, mimo hlavní vlákno, bez přístupu k session state).
+    Nahoře je záznam aktivní smyčky (čitelný i starší verzí), při více smyčkách navíc „loops“ a „active“.
     """
     recs = loops.all_records()
     act = loops.active()
@@ -165,68 +164,31 @@ def build_project(c, include_data):
         proj["loops"] = [rec_of[i] for i, _ in recs]
         proj["active"] = [i for i, _ in recs].index(act) + 1
     if include_data:
-        r6 = lambda a: [None if not np.isfinite(x) else float(f"{x:.6g}") for x in np.asarray(a, float)]  # noqa: E731
-        cols_ = {"t_s": r6(c.t), str(c.c_pv): r6(c.pv_e), str(c.c_mv): r6(c.mv_e)}
+        cols_ = {"t_s": c.t, str(c.c_pv): c.pv_e, str(c.c_mv): c.mv_e}
         if c.has_sp:
-            cols_[str(c.c_sp)] = r6(c.sp_e)
+            cols_[str(c.c_sp)] = c.sp_e
         for nm, d in zip(c.c_d, c.dists):
-            cols_[str(nm)] = r6(d)
+            cols_[str(nm)] = d
         if c.pos_e is not None:
-            cols_[str(c.c_pos)] = r6(c.pos_e)
+            cols_[str(c.c_pos)] = c.pos_e
         for r in rec_of.values():  # sloupce ostatních smyček na časové mřížce aktivní smyčky
             for v in r["map"].values():
                 for col in (v if isinstance(v, list) else [v]):
                     if col and col != "—" and str(col) not in cols_ and col in c.sigs:
-                        cols_[str(col)] = r6(c.on_grid(col))
+                        cols_[str(col)] = c.on_grid(col)
         proj["data"] = {"cols": cols_}
+    return proj
+
+
+def serialize_project(proj):
+    """Projekt (z `gather_project`) → JSON text; pole dat zaokrouhlená na 6 platných číslic."""
+    proj = dict(proj)
+    if "data" in proj:
+        r6 = lambda a: [None if not np.isfinite(x) else float(f"{x:.6g}") for x in np.asarray(a, float)]  # noqa: E731
+        proj["data"] = {"cols": {k: r6(v) for k, v in proj["data"]["cols"].items()}}
     return json.dumps(proj, ensure_ascii=False)
 
 
-
-_REPORT_CSS = (
-    "body{font-family:Inter,'Segoe UI',Roboto,Arial,sans-serif;max-width:1100px;margin:32px auto;color:#1f2937;"
-    "padding:0 20px}h1{font-weight:650}h2{margin-top:32px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;"
-    "font-size:1.15rem}.meta{color:#6b7280}.note{background:#f9fafb;border-left:4px solid #1f5fa8;padding:10px 14px}"
-    "table.tbl{border-collapse:collapse;font-size:.9rem}table.tbl td,table.tbl th{border:1px solid #e5e7eb;"
-    "padding:4px 10px;text-align:right}table.tbl th{background:#f9fafb}@media print{h2{break-before:auto}}")
-
-
-def build_report(c, author, comment):
-    """Samostatný HTML report (grafy interaktivní i offline, Plotly vložené jednou)."""
-    tag = ss.get("loop_tag", "") or "—"
-    parts = [f"<h1>{T('rep_title')} – {tag}</h1>",
-             f"<p class='meta'>{_dt.datetime.now():%Y-%m-%d %H:%M} · {T('rep_author')}: {author or '—'}</p>"]
-    if comment:
-        parts.append(f"<div class='note'>{comment}</div>")
-    status = T("status", n=len(c.t), ts=f"{c.Ts:.3g}", dur=f"{c.t[-1]:.0f}", pvr=f"{c.pv_lo:g}–{c.pv_hi:g}",
-               mvr=f"{c.mv_lo:g}–{c.mv_hi:g}")
-    parts.append(f"<h2>{T('rep_sec_data')}</h2><ul><li>{status}</li>"
-                 f"<li>PV: {c.c_pv} · MV: {c.c_mv} · SP: {c.c_sp} · {T('col_dist')}: {', '.join(map(str, c.c_d)) or '—'}</li>"
-                 f"<li>{T('seg_id')}: {c.rng[0]:.0f}–{c.rng[1]:.0f} s</li>"
-                 f"<li>{c.block_summary}</li></ul>")
-    tu = REPORT.get("tuning")
-    if tu:
-        parts.append(f"<h2>{T('rep_sec_tuning')}</h2><ul><li>{T('model_for_tuning')}: {tu['model']} "
-                     f"({', '.join(f'{k} = {v:.4g}' for k, v in tu['params'].items())})</li>"
-                     f"<li>{T('method')}: {tu['method']} · {tu['ctype']}</li><li>{T('d_title')}: {tu['adv']}</li>"
-                     + (f"<li>{tu['notes']}</li>" if tu["notes"] else "") + "</ul>")
-    if REPORT.get("val"):
-        parts.append(f"<p>{REPORT['val']}</p>")
-    if REPORT["notes"]:
-        parts.append(f"<h2>{T('rep_sec_diag')}</h2><ul>" + "".join(f"<li>{x}</li>" for x in REPORT["notes"]) + "</ul>")
-    for title, tb in REPORT["tables"]:
-        parts.append(f"<h2>{title}</h2>" + tb.to_html(classes="tbl", border=0, na_rep="—"))
-    first = True
-    for title, fg in REPORT["figs"]:
-        f2 = go.Figure(fg)
-        f2.layout.template = report_template()
-        for tr_ in f2.data:  # zředění dlouhých průběhů kvůli velikosti souboru
-            if tr_.x is not None and len(tr_.x) > 2500:
-                k_ = int(np.ceil(len(tr_.x) / 2500))
-                tr_.x, tr_.y = tr_.x[::k_], tr_.y[::k_]
-        f2.update_layout(height=max(320, fg.layout.height or 420), width=None)
-        parts.append(f"<h2>{title}</h2>" + f2.to_html(full_html=False, include_plotlyjs=True if first else False,
-                                                    config={"displaylogo": False}))
-        first = False
-    return (f"<!doctype html><html lang='{ss.get('lang', 'en')}'><head><meta charset='utf-8'>"
-            f"<title>{T('rep_title')} {tag}</title><style>{_REPORT_CSS}</style></head><body>{''.join(parts)}</body></html>")
+def build_project(c, include_data):
+    """Projekt jako JSON text (c = Ctx aktuálního běhu)."""
+    return serialize_project(gather_project(c, include_data))

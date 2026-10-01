@@ -21,7 +21,7 @@ GLOBAL_KEYS = {
     "rep_author", "rep_comment", "plot_h", "time_fmt", "time_unit", "ts_manual", "ts_user", "c_tim", "c_tim_l",
     "c_tag", "c_val", "main_tab", "prev_open", "drag", "inner_fit", "test_inject", "proj_inc", "loops", "loop_sel",
 }
-GLOBAL_PREFIX = ("layout|", "cas_", "apc_")
+GLOBAL_PREFIX = ("layout|", "cas_", "apc_", "autosave", "_autosave", "rep_", "live_sim", "_proj")
 # widgety, jejichž hodnotu Streamlit nedovolí zapsat (tlačítka, výběr v grafu/tabulce, editory – ty se obnoví
 # z uložených „…|last“ hodnot); do snímku smyčky se neukládají
 SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|", "g_")
@@ -169,8 +169,9 @@ def model_of(i):
 
 def loop_data(i, fname):
     """
-    Co potřebují struktury APC o smyčce i: název, model, sloupce MV a měřených poruch, rozsahy PV/MV a parametry
-    regulátoru (sada 2). U navštívené smyčky ze souhrnu, jinak ze snímku (např. hned po načtení projektu).
+    Co potřebují struktury APC a report o smyčce i: název, model, FIT, úsek dat, sloupce PV/MV/SP a měřených poruch,
+    rozsahy PV/MV a parametry regulátoru (sada 2 = ctrl, sada 1 = ctrl1). U navštívené smyčky ze souhrnu,
+    jinak ze snímku (např. hned po načtení projektu).
     """
     inf = info(i)
     snap = snapshot() if i == active() else _state()["snap"].get(i, {})
@@ -179,7 +180,14 @@ def loop_data(i, fname):
     ctrl = inf.get("set2") or dict(Gain=g("set2_gain", 1.0), TI=ti if ti and ti > 0 else np.inf, TD=g("set2_td", 0.0),
                                    DiffGain=g("diffgain", 5.0), SampleTime=g("samp", 1.0), PropFbk=g("pfb", False),
                                    DiffFbk=g("dfb", True), MV_Lo=0.0, MV_Hi=100.0)
-    return dict(name=name(i), model=model_of(i), ctrl=ctrl,
+    ti1 = g("set1_ti", 100.0)
+    ctrl1 = inf.get("set1") or dict(ctrl, Gain=g("set1_gain", 1.0), TI=ti1 if ti1 and ti1 > 0 else np.inf,
+                                    TD=g("set1_td", 0.0))
+    fit = g("fit") or {}
+    code = g("mcode")
+    fit_pct = fit.get("res", {}).get(code, {}).get("fit") if code else None
+    rng = next((tuple(v) for k, v in snap.items() if str(k).startswith(f"rng_id|{fname}|")), None)
+    return dict(name=name(i), model=model_of(i), ctrl=ctrl, ctrl1=ctrl1, fit=fit_pct, rng=rng,
                 c_mv=inf.get("c_mv") or g(f"c_mv|{fname}"), c_pv=inf.get("c_pv") or g(f"c_pv|{fname}"),
                 c_sp=inf.get("c_sp") or g(f"c_sp|{fname}", "—"),
                 c_d=inf.get("c_d") if inf.get("c_d") is not None else list(g(f"c_d|{fname}", []) or []),
