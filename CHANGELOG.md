@@ -1,38 +1,40 @@
-# Změny
+# Changelog
 
-## 3.0.0 – první verze pro sdílení v týmu
+## 3.0.0 – first release for sharing within a team
 
 **Data**
-- Náhled načtených dat, vlastní časový sloupec u každé veličiny, dlouhý formát (tag, čas, hodnota), časy v českém,
-  ISO, US a evropském formátu, odhad rolí PV / MV / SP podle názvů tagů.
-- Kódování CSV: UTF-8, UTF-16 (WinCC, Excel „Unicode text“) i windows-1250; podpora starších souborů `.xls`.
-- Bezpečné přepínání mezi ukázkou, souborem a projektem (nastavení se nenulují, model patří ke svým datům,
-  nahraný soubor se pamatuje).
-- Rozsah regulátoru NormPV / NormMV přesunutý do bloku PIDConL v Ladění; upozornění, když data leží mimo rozsah
-  nebo zůstal výchozí 0–100; změna rozsahu model jen přepočítá.
+- Preview of loaded data, a time column per variable, long format (tag, time, value), time in ISO, Czech, US and
+  European formats, PV / MV / SP role guessing from tag names.
+- CSV encodings: UTF-8, UTF-16 (WinCC, Excel "Unicode text") and windows-1250; support for older `.xls` files.
+- Safe switching between demo, file and project (settings are not reset, a model belongs to its data, the uploaded
+  file is remembered).
+- Controller range NormPV / NormMV moved to the PIDConL block in Tuning; warnings when the data lie outside the range
+  or it is still the default 0–100; a range change only rescales the model.
 
-**Ladění a simulace**
-- Živá simulace přímo v prohlížeči: plynulá, porovnání sad, poruchy různých tvarů, šum a filtr, změna procesu,
-  ukazatele, události, export CSV / PNG.
-- Porovnání „Sada 2 bez dopředné vazby“ ve scénáři; řídicí pásmo ConZone v simulaci PIDConL.
+**Tuning and simulation**
+- Live simulation directly in the browser: smooth, comparison of sets, various disturbance shapes, noise and filter,
+  process change, indicators, events, CSV / PNG export.
+- "Set 2 without feedforward" comparison in the scenario; ConZone control zone in the PIDConL simulation.
 
 **APC**
-- Kaskáda, dopředná vazba (přesunutá z Ladění; zesílení v jednotkách MV pro FFwd, simulace bez / statická /
-  dynamická), rozvazbení 2×2 (RGA, decouplery), override s external reset, Smithův prediktor (hodnoty pro šablonu
-  SmithPredictorControl), gain scheduling podle PV i podle regulační odchylky.
-- Doporučení struktur podle modelů a vazeb mezi smyčkami, průvodce s implementací pomocí šablon APL.
+- Cascade, feedforward (moved from Tuning; gain in MV units for FFwd, simulation without / static / dynamic), 2×2
+  decoupling (RGA, decouplers), override with external reset, Smith predictor (values for the SmithPredictorControl
+  template), gain scheduling by PV and by control error.
+- Structure recommendations from the models and couplings between loops, guides with implementation using APL
+  templates.
 
-**Projekt a protokol**
-- Více smyček v jednom projektu, projekt jedním kliknutím, automatické ukládání v prohlížeči.
-- Protokol z ladění (HTML → PDF) pro všechny smyčky: co nastavit v PCS 7, robustnost, očekávaná odezva, APC, podpisy.
+**Project and protocol**
+- Several loops in one project, one-click project save, autosave in the browser.
+- Tuning protocol (HTML → PDF) for all loops: what to set in PCS 7, robustness, expected response, APC, sign-off.
 
-**Rozhraní a dokumentace**
-- Nativní světlý / tmavý vzhled, průvodci ve všech záložkách (výchozí sbalení), aktualizovaná nápověda s glosářem
-  a částí *O aplikaci* (verze, upozornění, data).
-- Dokumentace v `docs/` (příručka, metody, implementace v PCS 7, nasazení), nové README.
-- Provoz: vypnutá telemetrie Streamlitu, skryté vývojářské volby, `Dockerfile` pro interní server, opravený
-  devcontainer, ohraničené verze knihoven.
+**User interface and documentation**
+- Native light / dark theme, guides in all tabs (collapsed by default), updated help with glossary and an *About*
+  section (version, disclaimer, data handling).
+- Documentation in `docs/` (user guide, methods, implementation in PCS 7, deployment; Czech version in `docs/cs`),
+  new README.
+- Operation: Streamlit telemetry off, developer options hidden, `Dockerfile` for an internal server, fixed
+  devcontainer, bounded library versions.
 
 ## 2.0.0
-- Identifikace modelů s dopravním zpožděním a měřenými poruchami, ladění PIDConL (SIMC, iSIMC, Lambda, AMIGO,
-  průměrovací, optimalizace), robustnost, simulace scénářů, diagnostika, projekt a report, čeština a angličtina.
+- Identification of models with dead time and measured disturbances, PIDConL tuning (SIMC, iSIMC, Lambda, AMIGO,
+  averaging, optimization), robustness, scenario simulation, diagnostics, project and report, Czech and English UI.

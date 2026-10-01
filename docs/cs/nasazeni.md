@@ -83,7 +83,7 @@ a gain scheduling krátce vytíží jedno jádro CPU. Pro malý tým by měla st
 - **Docker:** znovu sestavte obraz a spusťte kontejner.
 
 Projekty uložené starší verzí aplikace jdou načíst i v nové verzi. Verze aplikace je v *Nápověda › O aplikaci*
-a v patičce protokolu; změny popisuje [CHANGELOG](../CHANGELOG.md).
+a v patičce protokolu; změny popisuje [CHANGELOG](CHANGELOG.md).
 
 ## Vývoj a testy
 

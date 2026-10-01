@@ -1,4 +1,4 @@
-# PID Tools – kontejner pro provoz na interním serveru
+# PID Tools – container for running on an internal server
 #   docker build -t pid-tools .
 #   docker run -d --name pid-tools -p 8501:8501 --restart unless-stopped pid-tools
 FROM python:3.11-slim

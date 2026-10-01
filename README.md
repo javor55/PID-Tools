@@ -1,165 +1,168 @@
 # PID Tools
 
-**Identifikace procesu z provozních dat a ladění regulátoru PIDConL (SIMATIC PCS 7 APL) – včetně pokročilých
-regulačních struktur (APC).**
+**Process identification from plant data and tuning of the PIDConL controller (SIMATIC PCS 7 APL) – including
+advanced process control (APC) structures.**
 
-Webová aplikace pro procesní a automatizační inženýry. Z exportu historianu nebo PCS 7 identifikuje model procesu,
-navrhne parametry regulátoru, ukáže jejich robustnost a očekávané chování a vytvoří protokol z ladění s tím, co
-přesně nastavit v PCS 7. Metody platí obecně pro průmyslové PID regulátory; terminologie, struktura regulátoru
-a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **APL**.
+A web application for process and automation engineers. From a historian or PCS 7 export it identifies a process
+model, proposes controller parameters, shows their robustness and expected behaviour, and creates a tuning protocol
+stating exactly what to set in PCS 7. The methods apply to industrial PID controllers in general; terminology,
+controller structure and implementation steps follow the **PIDConL** block and the templates of the **APL** library.
 
-- **Online:** <https://pidtools.streamlit.app/> (veřejná instance – viz [Data a bezpečnost](#data-a-bezpečnost))
-- **Dokumentace:** [Uživatelská příručka](docs/prirucka.md) · [Metody](docs/metody.md) ·
-  [Implementace v PCS 7](docs/pcs7.md) · [Nasazení a provoz](docs/nasazeni.md) · [Změny](CHANGELOG.md)
-
-> *English:* PID Tools identifies process models from plant data and tunes the PIDConL controller of SIMATIC PCS 7
-> APL, incl. cascade, feedforward, decoupling, override, Smith predictor and gain scheduling. The UI is available in
-> Czech and English (Settings › Language). The documentation in `docs/` is in Czech.
+- **Online:** <https://pidtools.streamlit.app/> (public instance – see [Data and security](#data-and-security))
+- **Documentation:** [User guide](docs/user-guide.md) · [Methods](docs/methods.md) ·
+  [Implementation in PCS 7](docs/pcs7.md) · [Deployment](docs/deployment.md) · [Changelog](CHANGELOG.md)
+- The user interface is in **English and Czech** (Settings › Language). Czech documentation: [docs/cs](docs/cs/README.md).
 
 ---
 
-## K čemu je
+## What it is for
 
-| Úloha | Co aplikace udělá |
+| Task | What the app does |
 |---|---|
-| **Přeladění smyčky** | z nahraného skokového testu nebo provozních dat identifikuje model, navrhne PI/PID a porovná ho se současným nastavením (robustnost i simulace) |
-| **Smyčka kmitá / je líná** | diagnostika provozu: výkon smyčky, oscilace, stikce ventilu, nelinearita; ukáže, zda pomůže přeladění, nebo je problém jinde |
-| **Návrh APC** | kaskáda, dopředná vazba, rozvazbení 2×2, override, Smithův prediktor, gain scheduling – s průvodcem *kdy použít* a hodnotami pro šablony APL |
-| **Dokumentace změny** | protokol z ladění (HTML → PDF): původní a nové parametry, robustnost, očekávaná odezva, modely, podpisy |
+| **Retuning a loop** | identifies a model from a step test or operating data, proposes PI/PID and compares it with the current settings (robustness and simulation) |
+| **Loop oscillates / is sluggish** | operating diagnostics: loop performance, oscillation, valve stiction, nonlinearity – shows whether retuning helps or the problem is elsewhere |
+| **APC design** | cascade, feedforward, 2×2 decoupling, override, Smith predictor, gain scheduling – with guidance on *when to use* and values for the APL templates |
+| **Documenting the change** | tuning protocol (HTML → PDF): original and new parameters, robustness, expected response, models, sign-off |
 
-## Hlavní funkce
+## Main features
 
-- **Data** – CSV / Excel z historianu nebo PCS 7: společný časový sloupec, vlastní čas u každé veličiny i „dlouhý“
-  formát (tag, čas, hodnota); čas jako číslo nebo datum v českém, ISO, US či evropském formátu; kódování UTF-8,
-  UTF-16 i windows-1250. Sloupce PV / MV / SP se předvyplní podle názvů tagů. Kontrola kvality dat (komprese
-  historianu, počet a velikost skoků, šum) a automatické hledání úseků vhodných pro identifikaci.
-- **Identifikace** – modely 0., 1. a 2. řádu a integrační, vždy s dopravním zpožděním a s modely měřených poruch;
-  potlačení neměřených poruch, vynucení znaménka zesílení, odhad stikce ventilu, zafixování známých parametrů,
-  nejistota modelu (bootstrap), ověření na jiném úseku a detailní hodnocení (FIT, rezidua).
-- **Ladění PIDConL** – SIMC, iSIMC, Lambda, AMIGO, průměrovací ladění hladiny a numerická optimalizace (MIGO,
-  IAE, ISE, ITAE, limit překmitu, celý scénář) vždy s podmínkou robustnosti Ms. Konfigurace bloku jako v PCS 7
-  (NormPV/NormMV, SampleTime, DiffGain, P/D ze zpětné vazby, deadband, limity a rychlost MV, filtr PV, rampa SP).
-  Dvě sady parametrů (současná / nová), porovnání všech metod, simulace scénářů s ventilem, stikcí a šumem.
-- **Živá simulace** v prohlížeči – plynulá, okamžitá reakce na SP, ruční MV, poruchy a šum, zrychlení až 500×.
-- **APC** – kaskáda, dopředná vazba (statická i lead-lag), rozvazbení 2×2 (RGA, decouplery), override (výběr
-  MIN/MAX s externí zpětnou vazbou), Smithův prediktor, gain scheduling podle PV nebo regulační odchylky; každá
-  struktura s průvodcem, simulací přínosu a hodnotami pro šablony APL.
-- **Více smyček v jednom projektu** (např. vnitřní a vnější smyčka kaskády z jednoho exportu).
-- **Projekt** (JSON) s modely, laděním a volitelně daty; **automatické ukládání** rozpracované práce v prohlížeči.
-- **Protokol z ladění** (HTML, tisk do PDF) pro všechny smyčky projektu.
-- **Průvodce v každé záložce** – k čemu záložka je, postup, kterou metodu kdy zvolit, tipy z praxe a kontrolní
-  seznam podle stavu projektu. Rozhraní česky i anglicky.
+- **Data** – CSV / Excel from a historian or PCS 7: common time column, a time column per variable, or long format
+  (tag, time, value); time as a number or a date in ISO, Czech, US or European format; UTF-8, UTF-16 and
+  windows-1250 encodings. PV / MV / SP are pre-filled from tag names. Data-quality check (historian compression,
+  number and size of steps, noise) and automatic search for segments suitable for identification.
+- **Identification** – zero-, first-, second-order and integrating models, all with dead time and with models of
+  measured disturbances; suppression of unmeasured disturbances, forced gain sign, valve stiction estimation, fixing
+  of known parameters, model uncertainty (bootstrap), validation on another segment and detailed evaluation
+  (FIT, residuals).
+- **PIDConL tuning** – SIMC, iSIMC, Lambda, AMIGO, averaging level control and numerical optimization (MIGO, IAE,
+  ISE, ITAE, overshoot limit, the whole scenario), always with a robustness constraint (Ms). Block configuration as
+  in PCS 7 (NormPV/NormMV, SampleTime, DiffGain, P/D on feedback, deadband, MV limits and rate, PV filter, SP ramp).
+  Two parameter sets (current / new), comparison of all methods, scenario simulation with valve, stiction and noise.
+- **Live simulation** in the browser – smooth, instant response to SP, manual MV, disturbances and noise, up to 500×
+  speed.
+- **APC** – cascade, feedforward (static and lead-lag), 2×2 decoupling (RGA, decouplers), override (MIN/MAX
+  selector with external reset), Smith predictor, gain scheduling by PV or by control error; each with a guide,
+  a simulation of the benefit and values for the APL templates.
+- **Several loops in one project** (e.g. the inner and outer loop of a cascade from one export).
+- **Project file** (JSON) with models, tuning and optionally data; **autosave** of work in progress in the browser.
+- **Tuning protocol** (HTML, print to PDF) for all loops of the project.
+- **A guide in every tab** – purpose, procedure, which method to choose when, practical tips and a checklist based
+  on the state of your project.
 
-## Rychlý start
+## Quick start
 
 ### Online
-Otevřete <https://pidtools.streamlit.app/>, zvolte **Demo** a projděte záložky 1–6 – každá má vlastního průvodce (📖).
+Open <https://pidtools.streamlit.app/>, choose **Demo** and go through tabs 1–6 – each has its own guide (📖).
 
-### Lokálně (Windows)
-1. Nainstalujte [Python 3.11](https://www.python.org/downloads/) (při instalaci zaškrtněte *Add Python to PATH*).
-2. Stáhněte repozitář (*Code › Download ZIP*) a rozbalte.
-3. Spusťte **`start.bat`** – nainstaluje knihovny a otevře aplikaci v prohlížeči (<http://localhost:8501>).
+### Locally (Windows)
+1. Install [Python 3.11](https://www.python.org/downloads/) (tick *Add Python to PATH*).
+2. Download the repository (*Code › Download ZIP*) and unzip it.
+3. Run **`start.bat`** – it installs the libraries and opens the app in the browser (<http://localhost:8501>).
 
-### Lokálně (Linux / macOS)
+### Locally (Linux / macOS)
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Podrobnosti, provoz na interním serveru a aktualizace: [docs/nasazeni.md](docs/nasazeni.md).
+Details, running on an internal server and updates: [docs/deployment.md](docs/deployment.md).
 
-## Postup v kostce
+## Workflow in brief
 
-1. **Data** – nahrajte export, zkontrolujte sloupce PV / MV / SP (případně měřené poruchy) a vyberte úsek
-   s výraznými změnami MV (skokový test v ručním režimu) nebo SP (v automatu).
-2. **Model** – spusťte identifikaci, vyberte model s dobrou shodou, zkontrolujte rezidua a ověřte ho na jiném úseku.
-3. **Ladění** – nastavte blok PIDConL jako v PCS 7 (hlavně **rozsah NormPV / NormMV**), do Set 1 zadejte současné
-   parametry z faceplatu, zvolte metodu a nový návrh převezměte do Set 2. Porovnejte Ms a simulaci.
-4. **Živá simulace** – vyzkoušejte obě sady interaktivně.
-5. **APC** – podívejte se na doporučení; pokročilé struktury jsou volitelné.
-6. **Projekt a report** – uložte projekt a vytvořte protokol z ladění.
+1. **Data** – upload an export, check the PV / MV / SP columns (and measured disturbances, if any) and select
+   a segment with clear MV changes (step test in manual) or SP changes (in auto).
+2. **Model** – run the identification, pick a model with a good fit, check the residuals and validate it on
+   another segment.
+3. **Tuning** – configure the PIDConL block as in PCS 7 (above all the **range NormPV / NormMV**), enter the current
+   faceplate parameters into Set 1, choose a method and take the new proposal into Set 2. Compare Ms and the
+   simulation.
+4. **Live simulation** – try both sets interactively.
+5. **APC** – look at the recommendations; advanced structures are optional.
+6. **Project & report** – save the project and create the tuning protocol.
 
-Podrobně: [Uživatelská příručka](docs/prirucka.md).
+In detail: [User guide](docs/user-guide.md).
 
-## Metody v kostce
+## Methods in brief
 
-**Modely** (vše s dopravním zpožděním θ): 0. řád (K), 1. řád (K, T1 – FOPDT), 2. řád (K, T1, T2 – SOPDT),
-integrační (Ki) a integrační s 1. řádem (Ki, T1). Volí se podle shody s daty a toho, zda se proces ustálí.
+**Models** (all with dead time θ): zero order (K), first order (K, T1 – FOPDT), second order (K, T1, T2 – SOPDT),
+integrating (Ki) and integrating with first order (Ki, T1). Chosen by fit and by whether the process settles.
 
-| Metoda ladění | Kdy ji použít |
+| Tuning method | When to use it |
 |---|---|
-| **SIMC** | univerzální výchozí volba; jeden parametr τc (výchozí = θ, větší = pomalejší a robustnější) |
-| **iSIMC** | samoregulační proces s výraznějším zpožděním, kde SIMC vychází zbytečně opatrně |
-| **Lambda (IMC)** | klidná odezva bez překmitu, navazující smyčky; poruchy dorovnává pomaleji |
-| **AMIGO** | bezpečné první nastavení bez ladicího parametru (Ms ≈ 1,4); nejistý nebo proměnný proces |
-| **Průměrovací** | vyrovnávací nádrže – klidný odtok, hladina smí kolísat v mezích |
-| **Optimalizace** | ověřený model a snaha vytěžit maximum; MIGO (nejrychlejší potlačení poruch při dané robustnosti), IAE / ISE / ITAE, limit překmitu nebo přímo váš scénář |
+| **SIMC** | universal default; one parameter τc (default = θ, larger = slower and more robust) |
+| **iSIMC** | self-regulating process with significant dead time, where SIMC is needlessly cautious |
+| **Lambda (IMC)** | calm response without overshoot, interacting loops; rejects disturbances more slowly |
+| **AMIGO** | safe first setting without a tuning parameter (Ms ≈ 1.4); uncertain or time-varying process |
+| **Averaging** | surge tanks – smooth outflow, the level may vary within limits |
+| **Optimization** | a validated model and the aim to get the most out of it; MIGO (fastest disturbance rejection at given robustness), IAE / ISE / ITAE, overshoot limit, or directly your scenario |
 
-**Robustnost:** Ms (maximum citlivosti) 1,4 velmi robustní, 1,6 obvyklé, 2,0 hraniční; dále amplitudová (GM)
-a fázová (PM) bezpečnost a šum MV.
+**Robustness:** Ms (maximum sensitivity) 1.4 very robust, 1.6 usual, 2.0 borderline; plus gain margin (GM), phase
+margin (PM) and MV noise.
 
-| Struktura APC | Kdy ji použít |
+| APC structure | When to use it |
 |---|---|
-| **Kaskáda** | porucha jde přes rychlejší měřitelnou veličinu (průtok, tlak); stikce nebo nelinearita ventilu |
-| **Dopředná vazba** | měřená porucha s výrazným vlivem na PV; regulátor se ladí normálně, dopředná vazba až potom |
-| **Rozvazbení 2×2** | dvě smyčky se navzájem ovlivňují (RGA daleko od 1) |
-| **Override** | jeden ventil, hlavní úkol + mez jiné veličiny (tlak, teplota, výkon) |
-| **Smithův prediktor** | dopravní zpoždění převládá (θ/(θ+T) ≳ 0,5) a je stálé |
-| **Gain scheduling** | nelineární proces v širokém rozsahu (podle PV) nebo rychlejší návrat z velkých odchylek (podle ER) |
+| **Cascade** | the disturbance passes through a faster measurable variable (flow, pressure); valve stiction or nonlinearity |
+| **Feedforward** | a measured disturbance with a strong effect on PV; tune the controller as usual, feedforward afterwards |
+| **2×2 decoupling** | two loops affect each other (RGA far from 1) |
+| **Override** | one valve, a main task plus a limit on another variable (pressure, temperature, load) |
+| **Smith predictor** | dead time dominates (θ/(θ+T) ≳ 0.5) and is constant |
+| **Gain scheduling** | nonlinear process over a wide range (by PV) or a faster return from large deviations (by ER) |
 
-Vysvětlení všech metod, kritérií a ukazatelů: [docs/metody.md](docs/metody.md).
+All methods, criteria and indicators explained: [docs/methods.md](docs/methods.md).
 
-## Data a bezpečnost
+## Data and security
 
-- Nahraná data se zpracují na serveru, kde aplikace běží, **jen po dobu relace** a nikam se neukládají (žádné
-  zápisy na disk, žádná volání externích služeb, telemetrie Streamlitu je vypnutá).
-- Rozpracovaná práce se automaticky ukládá **jen v prohlížeči uživatele** (lze vypnout v záložce Projekt a report).
-- Veřejná instance běží na Streamlit Community Cloud. Pokud provozní data nesmíte nahrávat na cizí server,
-  spusťte aplikaci **lokálně nebo na interním serveru** ([docs/nasazeni.md](docs/nasazeni.md)).
+- Uploaded data are processed on the server running the app **only for the session** and are not stored (no writes
+  to disk, no calls to external services, Streamlit telemetry is switched off).
+- Work in progress is autosaved **only in the user's browser** (can be switched off in the Project & report tab).
+- The public instance runs on Streamlit Community Cloud. If you may not upload plant data to a third-party server,
+  run the app **locally or on an internal server** ([docs/deployment.md](docs/deployment.md)).
 
-## Upozornění
+## Disclaimer
 
-Výsledky jsou **návrhem odvozeným z modelu**, který je vždy jen přiblížením procesu. Před nasazením parametry
-posuďte, změny zavádějte postupně a ověřte je na zařízení podle pravidel vašeho provozu. Odpovědnost za nasazení
-nese uživatel. Názvy parametrů bloků APL se mohou mezi verzemi knihovny lišit – ověřte je v dokumentaci své verze.
+The results are **proposals derived from a model**, which is always only an approximation of the process. Review the
+parameters before deployment, introduce changes gradually and verify them on the plant according to your site rules.
+The user is responsible for deployment. Parameter names of APL blocks may differ between library versions – check
+them in the documentation of your version.
 
-## Pro vývojáře
+## For developers
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest                                          # vše (~9 min, celá aplikace přes Streamlit AppTest)
-python -m pytest tests/test_core.py tests/test_basic.py   # jen výpočetní jádro (rychlé)
+python -m pytest                                          # everything (~9 min, whole app via Streamlit AppTest)
+python -m pytest tests/test_core.py tests/test_basic.py   # computation core only (fast)
 ```
 
 ```
-app.py                     vstupní bod – skládá stránku z modulů níže
+app.py                     entry point – builds the page from the modules below
 pidtools/
-  core/                    výpočty bez závislosti na Streamlitu
-    models.py              struktury modelů, simulace odezvy, predikce
-    identification.py      fit modelů, stikce, neměřené poruchy, hodnocení, nejistota, přepočet rozsahů
-    tuning.py              pravidla ladění a optimalizace
-    robustness.py          kmitočtová analýza (stabilita, Ms, GM, PM), šum MV
-    simulation.py          PIDConL / ventil / proces krok po kroku (dávková, kaskáda, živá)
-    apc.py                 rozvazbení (RGA), override, Smithův prediktor, návrh dopředné vazby
-    gainsched.py           gain scheduling (blok GainSched), řídicí pásmo
-    diagnostics.py         výkon smyčky, oscilace, stikce, kvalita dat, úseky, nelinearita
+  core/                    computations, no Streamlit dependency
+    models.py              model structures, response simulation, prediction
+    identification.py      model fitting, stiction, unmeasured disturbances, evaluation, uncertainty, range rescaling
+    tuning.py              tuning rules and optimizations
+    robustness.py          frequency analysis (stability, Ms, GM, PM), MV noise
+    simulation.py          PIDConL / valve / process step by step (batch, cascade, live)
+    apc.py                 decoupling (RGA), override, Smith predictor, feedforward design
+    gainsched.py           gain scheduling (GainSched block), control zone
+    diagnostics.py         loop performance, oscillation, stiction, data quality, segments, nonlinearity
     demo.py, util.py
-  i18n/                    texty: cs.py, en.py, T()
-  ui/                      rozhraní ve Streamlitu
-    context.py             Ctx – data sdílená záložkami v jednom běhu
+  i18n/                    texts: cs.py, en.py, T()
+  ui/                      Streamlit user interface
+    context.py             Ctx – data shared by the tabs within one run
     widgets.py charts.py theme.py dataio.py cache.py project.py
-    loops.py               více smyček v projektu (snímky stavu, přepínání)
-    ff.py                  dopředná vazba – stav sdílený Laděním a APC
-    guess.py               odhad rolí PV/MV/SP podle názvů tagů
-    report.py              protokol z ladění (HTML)
-    autosave.py            automatické ukládání v prohlížeči
-    static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py)
-    pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics,
+    loops.py               several loops in a project (state snapshots, switching)
+    ff.py                  feedforward – state shared by Tuning and APC
+    guess.py               PV/MV/SP role guessing from tag names
+    report.py              tuning protocol (HTML)
+    autosave.py            autosave in the browser
+    static/                live simulation in the browser (live_engine.js = port of core/simulation.py)
+    pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
                            apc (+ apc_guide, cascade), project, guides
-tests/                     pytest: jádro, celá aplikace (AppTest), načítání dat, smyčky, APC
-docs/                      uživatelská dokumentace
+tests/                     pytest: core, whole app (AppTest), data loading, loops, APC
+docs/                      user documentation (English; Czech in docs/cs)
 ```
 
-Uvnitř jádra jsou všechny procesní veličiny v % rozsahů regulátoru (NormPV, NormMV), takže zesílení procesu
-i Gain regulátoru jsou bezrozměrné jako v PIDConL. Data a výsledky se uživateli ukazují v reálných jednotkách.
+Inside the core all process quantities are in % of the controller ranges (NormPV, NormMV), so the process gain and
+the controller Gain are dimensionless as in PIDConL. Data and results are shown to the user in real units.
+Code comments are in Czech.

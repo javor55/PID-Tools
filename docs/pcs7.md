@@ -1,92 +1,98 @@
-# Implementace v PCS 7
+# Implementation in PCS 7
 
-Jak přenést výsledky z PID Tools do SIMATIC PCS 7 s knihovnou APL. Každá struktura APC má v aplikaci průvodce
-s konkrétními hodnotami pro vaši smyčku – tady je přehled.
+How to transfer results from PID Tools to SIMATIC PCS 7 with the APL library. Each APC structure in the app has
+a guide with concrete values for your loop – this is an overview.
 
-> Názvy parametrů a vstupů bloků se mohou mezi verzemi APL lišit. Ověřte je v dokumentaci své verze knihovny.
-> Parametry jsou návrhem z modelu – zavádějte je postupně a ověřte na zařízení.
-
----
-
-## Regulátor PIDConL
-
-| V aplikaci | V PCS 7 | Poznámka |
-|---|---|---|
-| Rozsah regulátoru **NormPV / NormMV** | normovací rozsahy PV a MV bloku | musí odpovídat bloku – podle nich se přepočítává Gain |
-| **Gain, TI, TD** (Set 2) | Gain, TI, TD | ideální tvar, Gain bezrozměrný; záporný Gain = opačný smysl působení |
-| **DiffGain** | DiffGain (faceplate *Derivative gain*) | filtr D složky TD/DiffGain |
-| **P / D ze zpětné vazby** | volby *P in feedforward path* / *D in feedback path* | P nebo D jen z PV – menší ráz MV při změně SP |
-| **SampleTime** | cyklus OB, ve kterém blok běží | návrhy s ním počítají |
-| **MV_LoLim / MV_HiLim** | MV_LoLim / MV_HiLim | v jednotkách MV |
-| **Deadband** | DeadBand | v jednotkách PV |
-| Řídicí pásmo | ConZone | jen pro gain scheduling podle ER / srovnání |
-| Dopředná vazba | FFwd, FFwdHiLim, FFwdLoLim | viz níže |
-
-**Postup:** do *Set 1* zadejte současné parametry z faceplatu, nový návrh je v *Set 2*. Tabulka parametrů
-v Ladění a sekce *Parametry regulátoru PIDConL* v protokolu z ladění uvádějí původní a nové hodnoty. Parametry zapisujte ve faceplatu nebo v CFC;
-změny provedené online načtěte zpět do ES, aby zůstaly v offline datech.
+> Parameter and input names of blocks may differ between APL versions. Check them in the documentation of your
+> library version. The parameters are model-based proposals – introduce them gradually and verify on the plant.
 
 ---
 
-## Šablony APC (Templates › Control)
+## PIDConL controller
 
-| Struktura | Šablona / bloky | Co dodá aplikace |
+| In the app | In PCS 7 | Note |
 |---|---|---|
-| **Kaskáda** | **CascadeControl** – dva PIDConL (+ ConPerMon) | Gain/TI vnitřní a vnější smyčky, kontrola oddělení rychlostí |
-| **Dopředná vazba** | **FfwdDisturbCompensat** – zesílení, LeadLag, DeadTime → vstup **FFwd** | zesílení v jednotkách MV, lead, lag, zpoždění, limity FFwd |
-| **Rozvazbení** | decoupler = dopředná vazba podle **FfwdDisturbCompensat**, poruchou je MV druhé smyčky | zesílení, lead-lag a zpoždění každého decoupleru |
-| **Override** | **OverrideControl** – dva PIDConR, výběr **SelA02In**, external reset (**ExtReset**, **ExtResOn**) | výběr MIN/MAX, mez, parametry obou regulátorů |
-| **Smithův prediktor** | **SmithPredictorControl** – Lag, Mul04, Add04 (PV0), DeadTime | LagTime, zesílení ve fyzikálních jednotkách, offset PV0, DeadTime, Gain/TI |
-| **Gain scheduling** | **GainScheduling** – blok **GainSched** + PIDConL | X1…X3, Gain1…3, TI1…3, TD1…3 (podle PV nebo ER) |
+| Controller range **NormPV / NormMV** | scaling ranges of PV and MV of the block | must match the block – Gain is scaled by them |
+| **Gain, TI, TD** (Set 2) | Gain, TI, TD | ideal form, Gain dimensionless; negative Gain = reverse action |
+| **DiffGain** | DiffGain (faceplate *Derivative gain*) | D filter TD/DiffGain |
+| **P / D on feedback** | options *P in feedforward path* / *D in feedback path* | P or D from PV only – smaller MV kick on SP changes |
+| **SampleTime** | cycle of the OB the block runs in | the proposals take it into account |
+| **MV_LoLim / MV_HiLim** | MV_LoLim / MV_HiLim | in MV units |
+| **Deadband** | DeadBand | in PV units |
+| Control zone | ConZone | only for gain scheduling by ER / comparison |
+| Feedforward | FFwd, FFwdHiLim, FFwdLoLim | see below |
 
-### Kaskáda
-1. Výstup MV vnějšího regulátoru na externí žádanou hodnotu **SP_Ext** vnitřního; rozsah MV vnějšího = rozsah PV
-   vnitřního.
-2. Nejdřív odlaďte a uveďte do automatu vnitřní smyčku, pak vnější.
+**Procedure:** enter the current faceplate parameters into *Set 1*; the new proposal is in *Set 2*. The parameter
+table in Tuning and the section *PIDConL controller parameters* of the tuning protocol list the original and new
+values. Enter parameters in the faceplate or in CFC; read changes made online back into the ES so they stay in the
+offline data.
 
-### Dopředná vazba
-1. Měřenou poruchu veďte přes zesílení, případně **LeadLag** a **DeadTime**, na vstup **FFwd** regulátoru.
-   FFwd se přičítá k výstupu v **jednotkách MV** – aplikace zesílení v těchto jednotkách uvádí.
-2. Posílejte **odchylku poruchy od pracovní hodnoty**, ne absolutní hodnotu – jinak MV při zapnutí skočí.
-3. Omezte příspěvek limity **FFwdHiLim / FFwdLoLim**.
-4. Zavádějte se zesílením 50–80 % návrhu; při chybě měření poruchy FF vypněte.
+---
 
-Regulátor se kvůli dopředné vazbě neladí jinak – nemění stabilitu smyčky.
+## APC templates (Templates › Control)
 
-### Rozvazbení
-Každý decoupler je dopředná vazba z MV druhé smyčky (změna od pracovního bodu × zesílení, přes lead-lag
-a zpoždění). Když je druhá smyčka v ručním režimu, decoupler vypněte.
+| Structure | Template / blocks | What the app provides |
+|---|---|---|
+| **Cascade** | **CascadeControl** – two PIDConL (+ ConPerMon) | Gain/TI of the inner and outer loop, check of speed separation |
+| **Feedforward** | **FfwdDisturbCompensat** – gain, LeadLag, DeadTime → input **FFwd** | gain in MV units, lead, lag, delay, FFwd limits |
+| **Decoupling** | decoupler = feedforward per **FfwdDisturbCompensat**, the disturbance is the MV of the other loop | gain, lead-lag and delay of each decoupler |
+| **Override** | **OverrideControl** – two PIDConR, selector **SelA02In**, external reset (**ExtReset**, **ExtResOn**) | MIN/MAX selection, limit, parameters of both controllers |
+| **Smith predictor** | **SmithPredictorControl** – Lag, Mul04, Add04 (PV0), DeadTime | LagTime, gain in engineering units, PV0 offset, DeadTime, Gain/TI |
+| **Gain scheduling** | **GainScheduling** – block **GainSched** + PIDConL | X1…X3, Gain1…3, TI1…3, TD1…3 (by PV or ER) |
+
+### Cascade
+1. Connect the MV of the outer controller to the external setpoint **SP_Ext** of the inner one; the MV range of the
+   outer controller = the PV range of the inner one.
+2. Tune and put the inner loop into auto first, then the outer one.
+
+### Feedforward
+1. Route the measured disturbance through the gain, optionally **LeadLag** and **DeadTime**, to input **FFwd** of the
+   controller. FFwd is added to the output in **MV units** – the app gives the gain in these units.
+2. Send the **deviation of the disturbance from its operating value**, not the absolute value – otherwise MV jumps
+   when FF is switched on.
+3. Limit the contribution with **FFwdHiLim / FFwdLoLim**.
+4. Commission with 50–80 % of the proposed gain; switch FF off when the disturbance measurement fails.
+
+The controller is not tuned differently because of feedforward – it does not change the stability of the loop.
+
+### Decoupling
+Each decoupler is feedforward from the MV of the other loop (change from the operating point × gain, through
+lead-lag and delay). When the other loop is in manual, switch the decoupler off.
 
 ### Override
-1. Výstupy obou regulátorů do **SelA02In**, vybraná hodnota na ventil.
-2. Vybranou MV veďte zpět na **ExtReset** obou regulátorů a zapněte **ExtResOn** – neaktivní regulátor se nenavíjí.
-3. SP omezujícího regulátoru = mez.
+1. Outputs of both controllers into **SelA02In**, the selected value to the valve.
+2. Feed the selected MV back to **ExtReset** of both controllers and switch on **ExtResOn** – the inactive controller
+   does not wind up.
+3. SP of the limiting controller = the limit.
 
-### Smithův prediktor
-Podle aplikačního příkladu Siemens *Smith Predictor for Control of Processes with Dead Times* (entry 37361207):
-1. Vstup PIDConL.PV je v šabloně připojený na virtuální PV bez zpoždění – nepřipojujte ho na periferii.
-2. Model prediktoru ve **fyzikálních jednotkách**: `SmithModelTimLag.LagTime`, `SmithModelGain.In2`,
-   `SmithModelDeadti.DeadTime`. Model 2. řádu se zadá součtovou časovou konstantou.
-3. Offset **PV0** (blok Add04 před DeadTime) = PV v ustáleném stavu při MV = 0; u záporného zesílení nutný.
-4. Pro identifikaci smyčky, která už prediktor má, berte PV z `Pcs7AnIn.PV_Out`, ne `PIDConL.PV`.
-5. Zpoždění ověřte skokem; raději ho zaokrouhlete nahoru (podhodnocené θ vede ke kmitání).
+### Smith predictor
+Following the Siemens application example *Smith Predictor for Control of Processes with Dead Times*
+(entry 37361207):
+1. Input PIDConL.PV is already connected to the virtual dead-time-free PV in the template – do not connect it to the
+   periphery.
+2. Predictor model in **engineering units**: `SmithModelTimLag.LagTime`, `SmithModelGain.In2`,
+   `SmithModelDeadti.DeadTime`. A second-order model is entered as the sum time constant.
+3. Offset **PV0** (Add04 block before DeadTime) = steady-state PV at MV = 0; mandatory for a negative gain.
+4. To identify a loop that already has a predictor, take PV from `Pcs7AnIn.PV_Out`, not `PIDConL.PV`.
+5. Verify the dead time with a step; rather round it up (an underestimated θ leads to oscillation).
 
 ### Gain scheduling
-Podle aplikačního příkladu Siemens *PID Tuning with Gain Scheduling* (entry 38755162):
-1. **Podle PV:** vstup `X` je v šabloně na PV; do `X1…X3`, `Gain1…3`, `TI1…3`, `TD1…3` zadejte hodnoty
-   z aplikace. PID Tuner do scheduleru parametry nenahraje – zadávají se v CFC nebo faceplatu GainSched.
-2. **Podle ER:** `X` připojte na výstup `ER` regulátoru; body −E, 0, +E, `Gain1 = Gain3 = k × Gain`, TI a TD
-   stejné. Ověřte bezrázovou změnu Gain a že smyčka při plném zesílení nekmitá.
-3. Gain, TI, TD v PIDConL jsou pak řízené schedulerem; pro mimořádné situace lze GainSched přepnout do ručního
-   režimu.
+Following the Siemens application example *PID Tuning with Gain Scheduling* (entry 38755162):
+1. **By PV:** input `X` is connected to PV in the template; enter the values from the app into `X1…X3`,
+   `Gain1…3`, `TI1…3`, `TD1…3`. The PID Tuner cannot download parameters into the scheduler – enter them in CFC or
+   in the GainSched faceplate.
+2. **By ER:** connect `X` to output `ER` of the controller; points −E, 0, +E, `Gain1 = Gain3 = k × Gain`, TI and TD
+   the same. Verify a bumpless Gain change and that the loop does not oscillate at full gain.
+3. Gain, TI, TD of PIDConL are then driven by the scheduler; for special situations GainSched can be switched to
+   manual.
 
 ---
 
-## Data z PCS 7 a historianu
+## Data from PCS 7 and the historian
 
-- **CFC Trend Display** – export do CSV (výchozí oddělovače); pro identifikaci zaznamenávejte PV z budiče
-  `Pcs7AnIn.PV_Out` a MV regulátoru.
-- **Process Historian / WinCC** – export tagů do CSV / Excelu; aplikace zvládne společný čas, čas u každé
-  veličiny i dlouhý formát (tag, čas, hodnota) a kódování UTF-16.
-- Pro identifikaci si vyžádejte **nekomprimovaná** data (bez deadbandu archivace) s periodou aspoň 10× kratší než
-  časová konstanta procesu.
+- **CFC Trend Display** – export to CSV (default separators); for identification record PV from the driver
+  `Pcs7AnIn.PV_Out` and the controller MV.
+- **Process Historian / WinCC** – export tags to CSV / Excel; the app handles common time, a time per variable and
+  long format (tag, time, value), including UTF-16 encoding.
+- For identification ask for **uncompressed** data (no archive deadband) with a period at least 10× shorter than the
+  process time constant.
