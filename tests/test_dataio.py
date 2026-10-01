@@ -65,3 +65,13 @@ def test_guess_roles(sigs, pv, mv, sp):
 
 def test_guess_roles_valve_position():
     assert guess_roles(["PIC5.X", "PIC5.Y", "PIC5.Y_POS"])["pos"] == "PIC5.Y_POS"
+
+
+def test_csv_encodings():
+    """Exporty z českých Windows (windows-1250), Excel / WinCC „Unicode text“ (UTF-16 s BOM) a UTF-8 s BOM."""
+    from pidtools.ui.dataio import read_table
+    text = "Čas;Teplota °C;Ventil %\n0;51,5;40\n1;51,7;41\n"
+    for enc, bom in (("cp1250", b""), ("utf-16-le", b"\xff\xfe"), ("utf-8", b"\xef\xbb\xbf"), ("utf-8", b"")):
+        df = read_table("export.csv", bom + text.encode(enc))
+        assert list(df.columns) == ["Čas", "Teplota °C", "Ventil %"], enc
+        assert df.iloc[1, 1] == 51.7

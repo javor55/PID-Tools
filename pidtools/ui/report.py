@@ -12,6 +12,7 @@ import html
 import numpy as np
 import streamlit as st
 
+from .. import __version__
 from ..core import MODELS, iae, pidconl_sim_full, predict, robustness
 from ..i18n import T
 from . import loops
@@ -342,7 +343,7 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
                      f"<th>{E(T('rp_date'))}</th><th>{E(T('rp_signature'))}</th></tr>"
                      + "".join(f"<tr><td>{E(T(k))}</td><td></td><td></td><td></td></tr>"
                                for k in ("rp_sig_made", "rp_sig_approved", "rp_sig_deployed")) + "</table>")
-    parts.append(f"<footer>{E(T('rp_footer', d=f'{now:%d.%m.%Y %H:%M}'))}</footer>")
+    parts.append(f"<footer>{E(T('rp_footer', d=f'{now:%d.%m.%Y %H:%M}', v=__version__))}</footer>")
     title = f"{T('rp_title')} – {meta.get('plant') or ', '.join(r['name'] for r in recs)}"
     return (f"<!doctype html><html lang='{ss.get('lang', 'en')}'><head><meta charset='utf-8'>"
             f"<meta name='viewport' content='width=device-width,initial-scale=1'><title>{E(title)}</title>"

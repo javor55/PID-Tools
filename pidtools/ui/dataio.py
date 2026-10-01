@@ -9,10 +9,25 @@ import streamlit as st
 from ..i18n import T
 
 
+def decode_text(raw_bytes):
+    """
+    Text exportu: UTF-16 / UTF-8 podle BOM (WinCC, Excel „Unicode text“), jinak UTF-8 a při chybě windows-1250
+    (CSV z českých Windows – „Čas“, „°C“). Neznámé znaky se nahradí, načtení nespadne.
+    """
+    if raw_bytes.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return raw_bytes.decode("utf-16", errors="replace")
+    if raw_bytes.startswith(b"\xef\xbb\xbf"):
+        return raw_bytes[3:].decode("utf-8", errors="replace")
+    try:
+        return raw_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw_bytes.decode("cp1250", errors="replace")
+
+
 def read_table(name, raw_bytes):
     if name.lower().endswith((".xlsx", ".xls")):
         return pd.read_excel(io.BytesIO(raw_bytes))
-    raw = raw_bytes.decode("utf-8", errors="replace")
+    raw = decode_text(raw_bytes)
     n_num = lambda d: sum(pd.api.types.is_numeric_dtype(d[c]) for c in d.columns)
     df = pd.read_csv(io.StringIO(raw), sep=None, engine="python")
     try:

@@ -2,6 +2,7 @@
 import pandas as pd
 import streamlit as st
 
+from ... import __version__
 from ...core import demo_data
 from ...i18n import T
 from .. import autosave, loops
@@ -31,6 +32,9 @@ def render(ctx):
             st.divider()
             st.markdown(f"**{T('gloss_title')}**")
             st.markdown(T("gloss_body"))
+            st.divider()
+            st.markdown(f"**{T('about_title')}**")
+            st.markdown(T("about_body", v=__version__))
         with b3.popover(T("tb_settings"), icon=":material/settings:", width="stretch"):
             st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,
                      format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
@@ -69,8 +73,17 @@ def render(ctx):
         else:
             t_, sp_, pv_, mv_, q_ = demo_data()
             ctx.df = pd.DataFrame({"Cas": t_, "LIC101.SP": sp_, "LIC101.PV": pv_, "LIC101.MV": mv_, "FI100.Pritok": q_})
+            if loops.active() == loops.ids()[0] and (ss.get("set1_gain", 1.0), ss.get("set1_ti", 100.0)) == (1.0, 100.0):
+                # „současné“ parametry ukázkové smyčky (odtokový ventil → záporné zesílení), dokud je uživatel nezmění
+                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = -2.0, 200.0, 0.0
+                ss["_set1_demo"] = True
             d2.download_button(T("demo_dl"), ctx.df.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
                                "text/csv", icon=":material/download:", help=T("demo_desc"), width="stretch")
+        if src != "demo" and ss.get("_set1_demo"):
+            # ukázkové „současné“ parametry nepatří k vlastním datům – vrátit výchozí, pokud je uživatel nezměnil
+            if (ss.get("set1_gain"), ss.get("set1_ti"), ss.get("set1_td", 0.0)) == (-2.0, 200.0, 0.0):
+                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = 1.0, 100.0, 0.0
+            ss["_set1_demo"] = False
         ctx.status_ph = d3.empty()
         _loop_switcher(d4)
 

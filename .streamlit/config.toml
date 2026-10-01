@@ -12,3 +12,15 @@ backgroundColor = "#0f172a"
 secondaryBackgroundColor = "#1e293b"
 textColor = "#e2e8f0"
 borderColor = "#334155"
+
+[browser]
+# žádná telemetrie Streamlitu (aplikace se používá s provozními daty)
+gatherUsageStats = false
+
+[client]
+# uživatelé vidí jen aplikaci, ne vývojářské volby (Deploy, Rerun …)
+toolbarMode = "viewer"
+
+[server]
+# největší nahrávaný soubor [MB] – exporty z historianu bývají velké
+maxUploadSize = 200
