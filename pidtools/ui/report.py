@@ -212,7 +212,7 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
     Celý report jako HTML text. meta: plant, author, status, comment; sections: podmnožina SECTIONS;
     chart_mode: "inline" (Plotly v souboru, funguje offline) nebo "cdn" (malý soubor, grafy z internetu).
     """
-    from .pages.apc import recommend   # až zde – stránka APC importuje moduly UI
+    from .pages.apc import recommend, smith_values   # až zde – stránka APC importuje moduly UI
     recs = loop_records(ctx)
     now = _dt.datetime.now()
     status = meta.get("status") or "draft"
@@ -307,6 +307,16 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
             items = recommend(ctx)
             if items:
                 parts.append(f"<h3>{E(T('rp_apc'))}</h3><ul>" + "".join(f"<li>{E(txt)}</li>" for _, txt, _ in items) + "</ul>")
+            if any(k == "smith" for k, _, _ in items) and not MODELS[code]["integ"]:
+                try:
+                    _, _, srows = smith_values(ctx)
+                    parts.append(f"<h3>{E(T('rp_smith'))}</h3><table><tr>"
+                                 + "".join(f"<th>{E(T('sm_apl_' + h))}</th>" for h in ("block", "input", "value", "unit"))
+                                 + "</tr>" + "".join(f"<tr><td>{E(b)}</td><td>{E(i)}</td><td>{_f(x)}</td><td>{E(u)}</td></tr>"
+                                                     for b, i, x, u in srows) + "</table>"
+                                 f"<p class='muted'>{E(T('sm_apl_note'))}</p>")
+                except Exception:
+                    pass
         parts.append("</section>")
 
     if "signoff" in sections:
