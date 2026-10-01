@@ -325,3 +325,30 @@ def test_gain_scheduling_page():
     assert g[0] == pytest.approx(1.25 * g[1], rel=1e-3) and g[2] == pytest.approx(g[0])
     kp = next(d.value for d in app.dataframe if len(d.value) and "Settled" in d.value.columns)
     assert len(kp) >= 2 and kp["Settled"].iloc[1] == "✓"
+
+
+def test_feedforward_in_apc(app):
+    """Dopředná vazba: stav v Ladění, návrh a simulace v APC, promítnutí do sad a obnova z projektu."""
+    assert any("Feedforward from measured disturbances is off" in c.value for c in app.caption)
+    app.session_state["main_tab"] = [t.label for t in app.tabs][4]
+    app.session_state["apc_kind"] = "ff"
+    app.run()
+    assert not _errors(app)
+    kp = next(d.value for d in app.dataframe if len(d.value) and "Max. PV deviation" in d.value.columns)
+    iae_ = dict(zip(kp.iloc[:, 0], kp["IAE disturbance"]))
+    assert iae_["Static FF"] < iae_["No FF"] and iae_["Dynamic FF"] < iae_["No FF"]
+    app.session_state["ffuse|0"] = True
+    app.run()
+    assert not _errors(app)
+    assert app.session_state["ff_state"][0]["use"]
+    assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
+    assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
+    # obnova z projektu (ff v projektu → klíče widgetů)
+    app.session_state["override_ff"] = [dict(use=True, gain=-0.5, dyn=True, lead=12.0, lag=4.0, delay=0.0)]
+    app.run()
+    st_ = app.session_state["ff_state"][0]
+    assert st_["gain"] == pytest.approx(-0.5) and st_["dyn"] and st_["lead"] == pytest.approx(12.0)
+    assert app.session_state["set2_ctrl"]["FF_LL"][0][0] == pytest.approx(12.0)
+    app.session_state["ffuse|0"] = False
+    app.session_state["apc_kind"] = "cascade"
+    app.run()

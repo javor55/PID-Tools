@@ -47,10 +47,13 @@ def rga_advice(lam):
 def ff_design(code, p, pd):
     """
     Dopředný člen ze vstupu x na MV smyčky (code, p), kde x působí na PV modelem pd = [K, T, θ]:
-    zesílení −K/Kp, lead = časové konstanty procesu, lag = T vazby, zpoždění = θ vazby − θ procesu (≥ 0).
+    ideálně −K/Kp · (Tp·s + 1)/(T·s + 1) · e^−(θ − θp)·s → zesílení −K/Kp, lead = časové konstanty procesu,
+    zpoždění = θ vazby − θ procesu. Působí-li vstup rychleji než MV (θ < θp), ideální člen by musel předbíhat
+    o Δ = θp − θ; to nejde, a tak se o Δ zkrátí lag (e^Δs/(T·s + 1) ≈ 1/((T − Δ)·s + 1)) – při Δ ≥ T zbude statická FF.
     """
     lead = (p[1] if code in ("P1D", "P2D", "I1D") else 0.0) + (p[2] if code == "P2D" else 0.0)
-    return dict(gain=-pd[0] / p[0], lead=lead, lag=pd[1], delay=max(0.0, pd[2] - p[-1]))
+    ahead = max(0.0, p[-1] - pd[2])
+    return dict(gain=-pd[0] / p[0], lead=lead, lag=max(0.0, pd[1] - ahead), delay=max(0.0, pd[2] - p[-1]))
 
 
 class LeadLag:

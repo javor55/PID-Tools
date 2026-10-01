@@ -120,11 +120,17 @@ def _param_rows(r):
            (T("pvfilt"), c2.get("PVFilt"), "s"),
            (T("rp_mvrate"), c2.get("MVRate", 0.0) * MR / 100 if c2.get("MVRate") is not None else None, f"{r['u_mv'] or 'MV'}/s"),
            (T("rp_sprate"), c2.get("SPRate", 0.0) * PR / 100 if c2.get("SPRate") is not None else None, f"{r['u_pv'] or 'PV'}/s")]
-    ff = [g for g in (c2.get("FF") or []) if g]   # noqa: F841 – jen pro přehlednost
+    ff = [g for g in (c2.get("FF") or []) if g]
+    ffll = list(c2.get("FF_LL") or [])
     for j, g in enumerate(c2.get("FF") or []):
         if g:
             nm = r["c_d"][j] if j < len(r["c_d"]) else f"#{j + 1}"
-            blk.append((T("rp_ff", d=nm), g, f"%/{T('rp_unit')}"))
+            blk.append((T("rp_ff", d=nm), g * MR / 100, f"{r['u_mv'] or 'MV'} / 1 {nm}"))   # vstup FFwd: jednotky MV
+            lead, lag_, delay = ffll[j] if j < len(ffll) else (0.0, 0.0, 0.0)
+            if lag_ > 0:
+                blk += [(T("rp_ff_lead", d=nm), lead, "s"), (T("rp_ff_lag", d=nm), lag_, "s")]
+            if delay > 0:
+                blk.append((T("rp_ff_delay", d=nm), delay, "s"))
     return rows, [b for b in blk if b[1] is not None], bool(ff)
 
 

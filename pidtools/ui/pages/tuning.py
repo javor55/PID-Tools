@@ -6,10 +6,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ...core import (DIST_PARAMS, MODELS, closed_loop_steps, d_advice, default_tc, ff_gain, iae, integ_gain, mv_noise, overshoot_ratio, tune)
+from ...core import (DIST_PARAMS, MODELS, closed_loop_steps, d_advice, default_tc, iae, integ_gain, mv_noise, overshoot_ratio, tune)
 from ...core.util import lag
 from ...i18n import T, TEXTS
 from .. import cache
+from .. import ff as ffmod
 from ..cache import pidconl_sim_full, robustness
 from ..charts import REPORT, mkfig, show, style, tr
 from ..theme import C_MV, C_SET1, C_SET2, C_SP, _c_dist
@@ -306,48 +307,17 @@ def render(ctx):
                     if not r["stable"]:
                         st.error(T("err_unstable", n=nm), icon=":material/error:")
                     
-            ff, ffll = [], []
-            ovf = ss.pop("override_ff", None)
+            # dopředná vazba se nastavuje v APC › Dopředná vazba; tady jen stav a promítnutí do simulací
+            ffd = ffmod.design(mcode, p, pdl)
+            ffmod.save_state(ffd)
+            ff, ffll = ffmod.to_ctrl(ffd)
             if pdl:
-                with st.expander(T("ff_title"), expanded=False, icon=":material/fast_forward:"):
-                    for j, dn in enumerate(c_d):
-                        g0 = ff_gain(mcode, p, pdl[j])
-                        tl0 = (p[1] if mcode in ("P1D", "P2D", "I1D") else 0.0) + (p[2] if mcode == "P2D" else 0.0)
-                        tg0 = pdl[j][1]
-                        dl0 = max(0.0, pdl[j][2] - p[-1])
-                        if ovf and j < len(ovf):
-                            o_ = ovf[j]
-                            ss[f"ffuse|{j}"] = bool(o_.get("use"))
-                            ss[f"ffg|{j}|{g0:.5g}"] = o_.get("gain", g0)
-                            ss[f"ffdyn|{j}"] = bool(o_.get("dyn"))
-                            ss[f"fftl|{j}|{tl0:.5g}"], ss[f"fftg|{j}|{tg0:.5g}"], ss[f"ffdl|{j}|{dl0:.5g}"] = \
-                                o_.get("lead", tl0), o_.get("lag", tg0), o_.get("delay", dl0)
-                        f1, f2 = st.columns([1, 2], vertical_alignment="bottom")
-                        use = f1.toggle(T("ff_use", d=dn), key=f"ffuse|{j}", help=T("h_ff_use"))
-                        g = num(T("ff_gain", d=dn), f"ffg|{j}|{g0:.5g}", g0, f2, format="%.5g", help=T("h_ff_gain"))
-                        dyn = st.toggle(T("ff_dyn"), key=f"ffdyn|{j}", help=T("h_ff_dyn"))
-                        ll = (0.0, 0.0, 0.0)
-                        if dyn:
-                            l1, l2, l3 = st.columns(3)
-                            tld = num(T("ff_lead"), f"fftl|{j}|{tl0:.5g}", tl0, l1, min_value=0.0, format="%.4g",
-                                      help=T("h_ff_lead"))
-                            tlg = num(T("ff_lag"), f"fftg|{j}|{tg0:.5g}", tg0, l2, min_value=0.0, format="%.4g",
-                                      help=T("h_ff_lag"))
-                            tdl = num(T("ff_delay"), f"ffdl|{j}|{dl0:.5g}", dl0, l3, min_value=0.0, format="%.4g",
-                                      help=T("h_ff_delay"))
-                            ll = (tld, max(tlg, tld / 20, 1e-6), tdl)
-                        ff.append(g if use else 0.0)
-                        ffll.append(ll)
-                        if use and pdl[j][2] < p[-1]:
-                            st.caption(T("ff_faster", d=dn, td=f"{pdl[j][2]:.3g}", t=f"{p[-1]:.3g}"))
-                        if j < len(c_d) - 1:
-                            st.divider()
-                    st.caption(T("ff_help"))
-
-            ss.ff_state = [dict(use=bool(ss.get(f"ffuse|{j}")), gain=float(ff[j]) if ff[j] else float(ff_gain(mcode, p, pdl[j])),
-                                dyn=bool(ss.get(f"ffdyn|{j}")), lead=ffll[j][0], lag=ffll[j][1], delay=ffll[j][2])
-                           for j in range(len(ff))]
-
+                on = [f"{dn} ({T('ff_dyn_s') if d['dyn'] else T('ff_static_s')})" for dn, d in zip(c_d, ffd) if d["use"]]
+                r_ = st.columns([0.78, 0.22], vertical_alignment="center")
+                r_[0].caption(":material/fast_forward: " + (T("ff_status_on", l=", ".join(on)) if on
+                                                            else T("ff_status_off")))
+                r_[1].button(T("ff_open"), key="g_ff_open", on_click=apc.guide.goto,
+                             kwargs=dict(tab="apc", kind="ff"), type="tertiary")
             set1_ctrl["FF"], set1_ctrl["FF_LL"] = ff, ffll
             set2_ctrl["FF"], set2_ctrl["FF_LL"] = ff, ffll
             ss.set2_ctrl = set2_ctrl

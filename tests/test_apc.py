@@ -76,3 +76,14 @@ def test_smith_apl_units_and_offset():
     neg = smith_apl([-1.0, 8.0, 2.0], 100.0, 100.0, 40.0, 30.0)   # záporné zesílení → PV0 nad pracovním bodem
     assert neg["pv0"] == pytest.approx(70.0)
     assert smith_apl([1.0, 3.0], 100.0, 100.0, 50.0, 50.0)["lag"] == 0.0   # P0D bez setrvačnosti
+
+
+def test_ff_design_faster_disturbance():
+    # porucha pomalejší než MV: lag = T poruchy, zpoždění = rozdíl θ
+    d = ff_design("P1D", [2.0, 30.0, 5.0], [1.0, 10.0, 8.0])
+    assert d["gain"] == pytest.approx(-0.5) and d["lead"] == 30.0 and d["lag"] == 10.0 and d["delay"] == 3.0
+    # porucha rychlejší o Δ = 4 s: předbíhat nejde → lag zkrácený o Δ, bez zpoždění
+    d = ff_design("P1D", [2.0, 30.0, 6.0], [1.0, 10.0, 2.0])
+    assert d["lag"] == pytest.approx(6.0) and d["delay"] == 0.0
+    # Δ ≥ T poruchy → statická (lead-lag jen s leadem procesu)
+    assert ff_design("I0D", [0.01, 24.0], [0.01, 8.0, 2.0])["lag"] == 0.0
