@@ -38,7 +38,9 @@ def render(ctx):
             ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
 
     with st.container(border=True):
-        d1, d2, d3, d4 = st.columns([1.5, 1.6, 2.6, 1.6], vertical_alignment="center")
+        n_loops = len(loops.ids())  # přepínač smyček dostane místo podle počtu smyček
+        d1, d2, d3, d4 = st.columns([1.5, 1.6, 2.6, 1.6 if n_loops == 1 else 1.2 + 0.75 * n_loops],
+                                    vertical_alignment="center")
         src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else [])
         if ss.get("src") not in src_opts:
             ss["src"] = "file"
