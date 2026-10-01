@@ -88,3 +88,27 @@ def v2_component(name, **kw):
     if key not in _V2 or mgr.get(name) is None:
         _V2[key] = st.components.v2.component(name, **kw)
     return _V2[key]
+
+
+# ---- stav widgetů mezi běhy, kdy se nevykreslí
+_NO_KEEP = ("up_file", "proj_up", "live_sim")
+
+
+def keep_widget_state():
+    """
+    Přepíše hodnoty widgetů do session state jako běžné klíče (volá se na začátku každého běhu).
+
+    Streamlit zahodí stav widgetu, který se v některém běhu nevykreslí – např. při přepnutí zdroje na Soubor před
+    nahráním souboru (`st.stop`) nebo na zavřené záložce. Klíč pak ještě chvíli „existuje“, takže `num()` nezapíše
+    výchozí hodnotu, a widget začne od nuly (rozsahy 0–0, SampleTime 0 …). Zápis `ss[k] = ss[k]` ho udrží.
+    """
+    from .loops import _restorable
+    for k in list(ss.keys()):
+        if k in _NO_KEEP or str(k).startswith("_"):
+            continue
+        try:
+            v = ss[k]
+            if _restorable(k, v):
+                ss[k] = v
+        except Exception:
+            pass

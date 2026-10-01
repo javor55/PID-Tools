@@ -20,6 +20,7 @@ GLOBAL_KEYS = {
     "lang", "src", "up_file", "proj_up", "proj", "proj_hash", "proj_err", "proj_json", "proj_saved", "report_html",
     "rep_author", "rep_comment", "plot_h", "time_fmt", "time_unit", "ts_manual", "ts_user", "c_tim", "c_tim_l",
     "c_tag", "c_val", "main_tab", "prev_open", "drag", "inner_fit", "test_inject", "proj_inc", "loops", "loop_sel",
+    "_up_keep", "_up_seen", "_src_prev", "_src_now",
 }
 GLOBAL_PREFIX = ("layout|", "cas_", "apc_", "autosave", "_autosave", "rep_", "live_sim", "_proj")
 # widgety, jejichž hodnotu Streamlit nedovolí zapsat (tlačítka, výběr v grafu/tabulce, editory – ty se obnoví

@@ -370,6 +370,7 @@ TEXTS = {
     'tgc_proj_report': 'The report has been created',
     'tgc_proj_meta': 'The report header is filled in (plant, author, status)',
     'ms_placeholder': 'Choose…',
+    'up_kept': 'Using the previously uploaded file **{f}** – upload a new one here.',
     'time_unit': 'Unit of numeric time',
     'time_unit_help': 'Used only when time is a number, not a date.',
     'col_tag': 'Tag name column',
