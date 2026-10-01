@@ -64,7 +64,8 @@ class PIDConL:
     deadband, limity a rychlost MV s anti-windupem, rampa SP, filtr PV, dopředná vazba a bezrázové přepínání.
     `step` se volá v každém kroku simulace h; regulátor počítá každých round(SampleTime/h) kroků.
     ctrl: Gain, TI, TD, DiffGain, SampleTime, PropFbk, DiffFbk, DeadBand [%], DbMode, MV_Lo, MV_Hi [%],
-          PVFilt [s], MVRate [%/s], SPRate [%/s]
+          PVFilt [s], MVRate [%/s], SPRate [%/s], ConZone [%] (řídicí pásmo: |ER| > ConZone → MV na limit,
+          po návratu do pásma regulátor pokračuje bezrázově z limitu; 0 = vypnuto)
     """
 
     def __init__(self, ctrl, h):
@@ -78,6 +79,7 @@ class PIDConL:
         self.apv = np.exp(-h / self.Tpv) if self.Tpv > 0 else 0.0
         self.rate = ctrl.get("MVRate", 0.0) or 0.0
         self.sprate = ctrl.get("SPRate", 0.0) or 0.0
+        self.cz = ctrl.get("ConZone", 0.0) or 0.0
         self.N = max(ctrl.get("DiffGain", 5.0), 1e-6)
         self._set_gains(ctrl["Gain"], ctrl["TI"], ctrl["TD"])
         self.k = 0
@@ -134,6 +136,15 @@ class PIDConL:
             if self.Td > 0:
                 self.D = self.Tf / (self.Tf + Tc) * self.D + self.Kc * self.Td / (self.Tf + Tc) * (xd - self.xd_prev)
             self.xd_prev = xd
+            if self.cz > 0 and abs(e) > self.cz and np.isfinite(self.lo) and np.isfinite(self.hi):
+                # řídicí pásmo: mimo pásmo MV na limit, I sleduje (bezrázový návrat do regulace)
+                u = self.hi if e * (1.0 if self.Kc >= 0 else -1.0) > 0 else self.lo
+                if self.rate > 0:
+                    u = float(np.clip(u, self.u_prev - self.rate * Tc, self.u_prev + self.rate * Tc))
+                self.I = u - P - self.D - ff
+                self.u = self.u_prev = u
+                self.k += 1
+                return self.u
             inc = self.Kc * Tc / self.Ti * e if self.use_i else 0.0
             u_un = P + self.I + inc + self.D + ff
             self.dem = max(self.dem, abs(u_un - self.u_prev))

@@ -310,3 +310,18 @@ def test_gain_scheduling_page():
     assert g[0] > g[2]                               # vyšší zesílení procesu → menší Gain regulátoru
     kp = next(d.value for d in app.dataframe if len(d.value) and "SP step" in d.value.columns)
     assert kp["IAE – scheduler"].sum() < kp["IAE – one set"].sum()
+    # režim X = ER: symetrická tabulka −E, 0, +E a srovnání se sadou 2 a řídicím pásmem
+    app.session_state["gs_x"] = "er"
+    app.session_state["gs_er_E"] = 4.0
+    app.session_state["gs_er_k"] = 3.0
+    app.run()
+    assert any("Reduce k" in e for e in _errors(app))   # sada 2 (SIMC, τc = θ) je už ostrá → k = 3 nestabilní
+    app.session_state["gs_er_k"] = 1.25
+    app.run()
+    assert not _errors(app)
+    tab = next(d.value for d in app.dataframe if len(d.value) and "X1 … X3 (ER)" in d.value.iloc[:, 0].values)
+    assert list(tab.iloc[0, 1:4].astype(float)) == [-4.0, 0.0, 4.0]
+    g = tab.iloc[1, 1:4].astype(float).values
+    assert g[0] == pytest.approx(1.25 * g[1], rel=1e-3) and g[2] == pytest.approx(g[0])
+    kp = next(d.value for d in app.dataframe if len(d.value) and "Settled" in d.value.columns)
+    assert len(kp) >= 2 and kp["Settled"].iloc[1] == "✓"

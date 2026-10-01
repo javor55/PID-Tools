@@ -24,5 +24,5 @@ from .tuning import (integ_gain, default_tc, tune, ff_gain, d_advice, optimize_m
                      overshoot_ratio, optimize_time, optimize_scenario, outer_with_inner)
 from .diagnostics import (oscillation, stiction_ccf, valve_hysteresis, harris_index, loop_kpis, detect_steps,
                           data_quality, find_segments, local_gains, step_plan)
-from .gainsched import gs_table, gs_interp, gs_issues, SchedPlant, gs_sim
+from .gainsched import gs_table, gs_er_table, gs_interp, gs_issues, SchedPlant, gs_sim, settled, best_conzone
 from .demo import demo_data

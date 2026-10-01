@@ -11,7 +11,7 @@ import numpy as np
 
 from .simulation import PIDConL
 
-__all__ = ["gs_table", "gs_interp", "gs_issues", "SchedPlant", "gs_sim"]
+__all__ = ["gs_table", "gs_er_table", "gs_interp", "gs_issues", "SchedPlant", "gs_sim", "settled", "best_conzone"]
 
 _LAGS = {"P0D": 0, "P1D": 1, "P2D": 2}
 
@@ -32,6 +32,15 @@ def gs_table(points):
         mid = {k: (a[k] + b[k]) / 2 for k in ("x", "gain", "ti", "td")}
         return [a, mid, b], True
     return pts[:3], False
+
+
+def gs_er_table(E, k, gain, ti, td):
+    """
+    Rozvrh podle regulační odchylky (X = ER): body −E, 0, +E, Gain k·G / G / k·G, TI a TD beze změny.
+    Mezi 0 a ±E roste Gain lineárně s |ER|, za ±E zůstává k·G (blok drží krajní hodnoty).
+    """
+    return [dict(x=-E, gain=k * gain, ti=ti, td=td), dict(x=0.0, gain=gain, ti=ti, td=td),
+            dict(x=E, gain=k * gain, ti=ti, td=td)]
 
 
 def gs_issues(points):
@@ -100,10 +109,11 @@ class SchedPlant:
         return self.y
 
 
-def gs_sim(code, points, ctrl, sched, h, sp, d=None):
+def gs_sim(code, points, ctrl, sched, h, sp, d=None, x_src="pv"):
     """
     Uzavřená smyčka PIDConL na nelineárním procesu. sched = None (pevné parametry ctrl) nebo
-    {X, gain, ti, td} – parametry se v každém kroku interpolují podle PV jako v bloku GainSched (bezrázově).
+    {X, gain, ti, td} – parametry se v každém kroku interpolují podle X jako v bloku GainSched (bezrázově);
+    X = PV (x_src="pv") nebo regulační odchylka ER = SP − PV (x_src="er"). Jeden bod = lineární proces.
     sp a d (porucha na vstupu procesu) v %. Vrací t a dict polí SP, PV, MV, Gain, TI.
     """
     n = len(sp)
@@ -115,11 +125,38 @@ def gs_sim(code, points, ctrl, sched, h, sp, d=None):
     y = plant.y
     c.init(sp[0], y, u0)
     X = sched["X"] if sched else None
+
+    def xv(k, y):
+        return y if x_src == "pv" else sp[k] - y
     out = {k: np.zeros(n) for k in ("SP", "PV", "MV", "Gain", "TI")}
     for k in range(n):
         if sched:
-            c.set_tuning(gs_interp(y, X, sched["gain"]), gs_interp(y, X, sched["ti"]), gs_interp(y, X, sched["td"]))
+            x = xv(k, y)
+            c.set_tuning(gs_interp(x, X, sched["gain"]), gs_interp(x, X, sched["ti"]), gs_interp(x, X, sched["td"]))
         u = c.step(sp[k], y)
         out["SP"][k], out["PV"][k], out["MV"][k], out["Gain"][k], out["TI"][k] = sp[k], y, u, c.Kc, c.Ti
         y = plant.step(u + d[k])
     return np.arange(n) * h, out
+
+
+def settled(t, sp, pv, tol=0.5):
+    """Smyčka se na konci ustálila u SP (poslední desetina simulace bez trvalého kmitání), tol v %."""
+    m = t >= t[-1] - 0.1 * (t[-1] - t[0])
+    return bool(np.max(np.abs(np.asarray(sp)[m] - np.asarray(pv)[m])) < tol)
+
+
+def best_conzone(code, points, ctrl, h, sp, d, widths):
+    """
+    Šířka řídicího pásma ConZone [%] s nejmenším IAE v daném scénáři (bez trvalého kmitání).
+    Vrací (nejlepší šířka nebo None, [(šířka, IAE, ustáleno)]). Úzké pásmo bývá horší než žádné – MV na limitu
+    „přestřelí“ a smyčka může přejít do kmitání mezi limity.
+    """
+    from .simulation import iae
+    res = []
+    for w in widths:
+        t, o = gs_sim(code, points, dict(ctrl, ConZone=float(w)), None, h, sp, d)
+        res.append((float(w), float(iae(t, sp, o["PV"])), settled(t, sp, o["PV"])))
+    t, o = gs_sim(code, points, ctrl, None, h, sp, d)
+    base = float(iae(t, sp, o["PV"]))
+    ok = [r for r in res if r[2] and r[1] < 0.97 * base]
+    return (min(ok, key=lambda r: r[1])[0] if ok else None), res

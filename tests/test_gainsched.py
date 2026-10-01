@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from pidtools.core import gs_interp, gs_issues, gs_sim, gs_table, iae, pidconl_sim, tune
+from pidtools.core import best_conzone, gs_er_table, gs_interp, gs_issues, gs_sim, gs_table, iae, pidconl_sim, settled, tune
 
 CTRL = dict(Gain=1.0, TI=20.0, TD=0.0, DiffGain=5.0, SampleTime=0.5, MV_Lo=0.0, MV_Hi=100.0, DiffFbk=True)
 
@@ -61,3 +61,51 @@ def test_scheduling_helps_on_nonlinear_process():
     _, os_ = gs_sim("P1D", pts, fixed, sched, h, sp)
     assert iae(t, sp, os_["PV"]) < 0.7 * iae(t, sp, of["PV"])
     assert os_["Gain"][-1] == pytest.approx(gs_interp(os_["PV"][-1], sched["X"], sched["gain"]), rel=1e-6)
+
+
+def test_er_table_symmetric():
+    rows = gs_er_table(5.0, 2.0, 1.5, 30.0, 0.0)
+    assert [r["x"] for r in rows] == [-5.0, 0.0, 5.0]
+    assert [r["gain"] for r in rows] == [3.0, 1.5, 3.0] and {r["ti"] for r in rows} == {30.0}
+    X, G = [r["x"] for r in rows], [r["gain"] for r in rows]
+    assert gs_interp(2.5, X, G) == pytest.approx(2.25) and gs_interp(-20.0, X, G) == 3.0
+
+
+def test_er_scheduling_faster_return():
+    # lineární proces (jeden bod), velká porucha: zesílení při velké odchylce zkrátí návrat
+    pts = [dict(x=50.0, u=50.0, p=[1.0, 30.0, 3.0])]
+    r = tune("P1D", [1.0, 30.0, 3.0], "SIMC", 12.0, "PI", 0.5)
+    ctrl = dict(CTRL, Gain=r["Kc"], TI=r["Ti"])
+    h, n = 0.5, 2400
+    t = np.arange(n) * h
+    sp = np.full(n, 50.0)
+    d = np.where(t >= 50, -15.0, 0.0)
+    sched = {k: [q[kq] for q in gs_er_table(3.0, 2.5, r["Kc"], r["Ti"], 0.0)]
+             for k, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
+    _, of = gs_sim("P1D", pts, ctrl, None, h, sp, d)
+    _, oe = gs_sim("P1D", pts, ctrl, sched, h, sp, d, x_src="er")
+    assert iae(t, sp, oe["PV"]) < 0.85 * iae(t, sp, of["PV"])
+    assert np.max(np.abs(oe["Gain"])) > 1.5 * r["Kc"]         # při velké odchylce scheduler zesílil
+    assert abs(oe["PV"][-1] - 50.0) < 0.2                      # a v klidu se vrátil k SP
+
+
+def test_control_zone():
+    # mimo řídicí pásmo MV na limitu; úzké pásmo rozkmitá smyčku mezi limity; pomůže jen široké pásmo
+    # u rychle naladěného regulátoru – u opatrného překmitne (MV po návratu do pásma zůstává u limitu)
+    pts = [dict(x=50.0, u=50.0, p=[1.0, 30.0, 3.0])]
+    h, n = 0.5, 2400
+    t = np.arange(n) * h
+    sp = np.where(t >= 20, 70.0, 50.0)
+    widths = [2.0, 5.0, 10.0, 15.0, 18.0]
+    fast = tune("P1D", [1.0, 30.0, 3.0], "SIMC", 12.0, "PI", 0.5)
+    base = dict(CTRL, Gain=fast["Kc"], TI=fast["Ti"])
+    _, oz = gs_sim("P1D", pts, dict(base, ConZone=18.0), None, h, sp)
+    assert oz["MV"][int(21 / h)] == pytest.approx(100.0)
+    assert settled(t, sp, oz["PV"])
+    _, on = gs_sim("P1D", pts, dict(base, ConZone=2.0), None, h, sp)
+    assert not settled(t, sp, on["PV"])
+    w, res = best_conzone("P1D", pts, base, h, sp, np.zeros(n), widths)
+    assert w == 18.0 and len(res) == len(widths)
+    slow = tune("P1D", [1.0, 30.0, 3.0], "SIMC", 40.0, "PI", 0.5)
+    w2, _ = best_conzone("P1D", pts, dict(CTRL, Gain=slow["Kc"], TI=slow["Ti"]), h, sp, np.zeros(n), widths)
+    assert w2 is None

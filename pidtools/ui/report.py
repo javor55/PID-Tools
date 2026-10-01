@@ -328,7 +328,7 @@ def build_report(ctx, meta, sections, chart_mode="inline"):
                              + f"<th>{E(T('sm_apl_unit'))}</th></tr>"
                              + "".join(f"<tr><td>{E(nm)}</td>" + "".join(f"<td>{_f(v)}</td>" for v in vals)
                                        + f"<td>{E(u)}</td></tr>" for nm, vals, u in gtab) + "</table>"
-                             f"<p class='muted'>{E(T('rp_gs_note'))}</p>")
+                             f"<p class='muted'>{E(T('rp_gs_note_er' if ss.get('gs_x') == 'er' else 'rp_gs_note'))}</p>")
         parts.append("</section>")
 
     if "signoff" in sections:
