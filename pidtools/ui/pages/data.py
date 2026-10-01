@@ -193,11 +193,21 @@ def _preview(ctx, df, tcols):
 
 
 def render(ctx):
-    """Výběr úseku pro identifikaci (posuvník, tažení v grafu, automaticky nalezené úseky) a kontrola kvality."""
+    """
+    Graf načtených dat (záložka Data) a výběr úseku pro identifikaci – posuvník, tažení v grafu, automaticky nalezené
+    úseky, kontrola kvality – vykreslený na začátku záložky Model (úsek je součástí identifikace). Počítá se tady,
+    protože úsek potřebují všechny další záložky.
+    """
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp
     with ctx.tabs["data"]:
         for w in compression_warnings(ctx.t_all, ctx.pv_raw, "PV"):
             st.warning(w, icon=":material/compress:")
+        st.markdown(f"**{T('data_chart')}**")
+        show(ctx.data_fig(t), key=f"chart_data_all|{ctx.fname}", fname="data_all")
+        st.caption(T("data_chart_help"))
+    with ctx.tabs["model"]:
+        ctx.gph["model"] = st.container()      # průvodce záložky Model nahoře (vyplní se na konci běhu)
+        st.markdown(f"#### {T('seg_title')}")
         rng_key = f"rng_id|{ctx.fname}|{t[-1]:.0f}"
         step = float(max(Ts, t[-1] / 1000))
         if "pending_rng" in ss:

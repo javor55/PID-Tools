@@ -120,14 +120,14 @@ def render_body(ctx):
                     oct_ = seg(l2, T("ctrl_type"), ["PI", "PID"], "PI", "cas_oct") or "PI"
                     tco = None
                     if om == "SIMC":
-                        tco0 = default_tc(co_, p_o, samp)
+                        tco0 = default_tc(co_, p_o, samp, "SIMC", oct_, diffgain)
                         tco = sld(l3, T("tc"), float(max(0.05 * tco0, 1e-3)), float(10 * tco0), float(tco0), "cas_tco",
                                   help=T("tc_help"))
                         so = tune(co_, p_o, "SIMC", tco, oct_, samp)
                     elif om == "AMIGO":
                         so = tune(co_, p_o, "AMIGO", None, oct_, samp)
                     else:
-                        r0 = tune(co_, p_o, "SIMC", default_tc(co_, p_o, samp), oct_, samp)
+                        r0 = tune(co_, p_o, "SIMC", default_tc(co_, p_o, samp, "SIMC", oct_, diffgain), oct_, samp)
                         so = cache.opt_migo(co_, tuple(p_o), oct_, samp, diffgain, 1.6, None, ((r0["Kc"], r0["Ti"], r0["Td"]),))
                     st.caption(T("mdesc_" + om) + (f" {T('cdesc_MIGO')}" if om == "OPT" else ""))
                     octrl = dict(base_ctrl, Gain=so["Kc"], TI=so["Ti"], TD=so["Td"], MV_Lo=0.0, MV_Hi=100.0)

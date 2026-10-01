@@ -107,6 +107,10 @@ Analytical rules with one parameter τc; default τc = θ ("tight" control), lar
 
 **When:** universal default, a good compromise between speed and robustness.
 
+The default τc is the *effective* dead time the rule works with: θ + SampleTime/2, plus T2/2 for a second-order PI
+(half rule), T1 for an integrating-plus-lag PI (lag treated as delay), and the D-filter lag TD/DiffGain when D
+cancels T2 / T1 (PID). Without it, processes with a large lag compared with θ got too aggressive settings.
+
 ### iSIMC (Grimholt & Skogestad 2018)
 SIMC shifted by θ/3: Gain = (T1 + θ/3) / (K·(τc + θ)), TI = min(T1 + θ/3, 4·(τc + θ)), for PID TD = θ/3.
 **When:** self-regulating processes with significant dead time, where SIMC is needlessly cautious.

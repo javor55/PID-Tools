@@ -17,6 +17,7 @@ loop_kpis = _cache(core.loop_kpis)
 local_gains = _cache(core.local_gains)
 fit_model = _cache(core.fit_model)
 identify = _cache(core.identify)
+settling_time = _cache(core.settling_time)
 
 
 @st.cache_data(show_spinner=False, max_entries=64)

@@ -23,8 +23,18 @@ def integ_gain(code, p):
     return None
 
 
-def default_tc(code, p, Ts_ctrl=0.0, method="SIMC"):
+def default_tc(code, p, Ts_ctrl=0.0, method="SIMC", ctype="PI", diffgain=None):
+    """
+    Výchozí τc (λ) z efektivního zpoždění, se kterým pravidla počítají:
+    PI u 2. řádu – pravidlo poloviny (θ + T2/2); PI u integračního + 1. řádu – setrvačnost jako zpoždění (θ + T1);
+    PID, kde D kompenzuje T2 / T1 – přidá se zpoždění filtru D v PIDConL (TD/DiffGain), je-li DiffGain zadán.
+    Bez toho vycházelo u procesů s velkou setrvačností vůči θ příliš agresivní ladění (Ms 2–6).
+    """
     theta = p[-1] + Ts_ctrl / 2
+    if code == "P2D":
+        theta += p[2] / 2 if ctype == "PI" else (p[2] / diffgain if diffgain else 0.0)
+    elif code == "I1D":
+        theta += p[1] if ctype == "PI" else (p[1] / diffgain if diffgain else 0.0)
     T = p[1] if code in ("P1D", "P2D", "I1D") else 0.0
     if method == "Lambda":  # běžná průmyslová volba λ ≈ 3θ (klidná, robustní smyčka)
         return float(max(3 * theta, 0.05 * T, Ts_ctrl, 1e-3))
@@ -532,3 +542,34 @@ def outer_with_inner(code, p, tc_i, th_i):
         return "I1D", [p[0], tc_i, th]
     T1, T2 = max(p[1], tc_i), min(p[1], tc_i)
     return "I1D", [p[0], T1, th + T2]
+
+
+def settling_time(code, p, ctrl, tol=0.02):
+    """
+    Doba ustálení uzavřené smyčky [s] – delší z odezvy na skok SP a na skok poruchy na vstupu procesu
+    (odchylka trvale pod tol · maximum odchylky). Lineární odezva bez limitů MV. None = nestabilní nebo neustálená.
+    """
+    h = float(ctrl.get("SampleTime", 1.0) or 1.0)
+    lags = sum(p[1:-1]) if code in ("P1D", "P2D", "I1D") else 0.0
+    ti = ctrl.get("TI") or 0.0
+    t_guess = 20 * (p[-1] + lags) + 10 * (ti if np.isfinite(ti) else 0.0) + 50 * h
+    for _ in range(4):
+        n = int(min(max(t_guess / h, 200), 200000))
+        try:
+            e_sp, e_d = closed_loop_steps(code, list(p), ctrl, h, n)
+        except Exception:
+            return None
+        out = []
+        for e in (e_sp, e_d):
+            if not np.all(np.isfinite(e)):
+                return None
+            pk = np.max(np.abs(e))
+            if pk <= 0:
+                out.append(0.0)
+                continue
+            big = np.nonzero(np.abs(e) > tol * pk)[0]
+            out.append(float((big[-1] + 1) * h) if len(big) else 0.0)
+        if max(out) < 0.8 * n * h:
+            return max(out)
+        t_guess *= 4
+    return None

@@ -68,7 +68,7 @@ def render(ctx):
     sigma_pv = 0.0
     model_stic, model_level, model_Th = 0.0, "none", None
     with ctx.tabs["model"]:
-        ctx.gph["model"] = st.container()
+        st.markdown(f"#### {T('id_title')}")
         with st.container(border=True):
             c1, c2, c3 = st.columns([3, 1, 1], vertical_alignment="bottom")
             if "chosen" not in ss:

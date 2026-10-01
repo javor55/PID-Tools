@@ -131,3 +131,25 @@ def test_diagnostics():
 def test_models_table_consistent():
     for code, m in MODELS.items():
         assert core.n_free(code) == len(m["params"]) - 1
+
+
+def test_default_tc_effective_delay_keeps_rules_robust():
+    """Výchozí τc z efektivního zpoždění: SIMC i Lambda (PI i PID) dají Ms ≤ 1,9 i u procesů s velkou setrvačností."""
+    from pidtools.core import default_tc, robustness, tune
+    cases = [("I0D", [0.004, 8.0]), ("I1D", [0.004, 15.0, 8.0]), ("I1D", [0.01, 60.0, 5.0]),
+             ("I1D", [-0.002, 5.0, 40.0]), ("P2D", [1.0, 40.0, 20.0, 3.0]), ("P1D", [1.0, 30.0, 5.0])]
+    for code, p in cases:
+        for m in ("SIMC", "Lambda"):
+            for ct in ("PI", "PID"):
+                r = tune(code, p, m, default_tc(code, p, 1.0, m, ct, 5.0), ct, 1.0)
+                rb = robustness(code, p, dict(Gain=r["Kc"], TI=r["Ti"], TD=r["Td"], DiffGain=5.0, SampleTime=1.0))
+                assert rb["stable"] and rb["Ms"] <= 1.9, (code, p, m, ct, rb["Ms"])
+
+
+def test_settling_time():
+    from pidtools.core import default_tc, settling_time, tune
+    p = [1.0, 30.0, 5.0]
+    r = tune("P1D", p, "SIMC", default_tc("P1D", p, 1.0), "PI", 1.0)
+    ts = settling_time("P1D", p, dict(Gain=r["Kc"], TI=r["Ti"], TD=0.0, DiffGain=5.0, SampleTime=1.0))
+    assert 50 < ts < 400
+    assert settling_time("P1D", p, dict(Gain=50.0, TI=10.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)) is None

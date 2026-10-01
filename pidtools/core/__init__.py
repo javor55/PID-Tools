@@ -21,7 +21,7 @@ from .robustness import loop_tf, is_stable, robustness, hf_gain, mv_noise
 from .simulation import (ProcStep, PIDConL, Valve, valve_char_fn, pidconl_sim_full, pidconl_sim, cascade_sim,
                          LiveLoop, iae)
 from .tuning import (integ_gain, default_tc, tune, ff_gain, d_advice, optimize_migo, closed_loop_steps,
-                     overshoot_ratio, optimize_time, optimize_scenario, outer_with_inner)
+                     overshoot_ratio, settling_time, optimize_time, optimize_scenario, outer_with_inner)
 from .diagnostics import (oscillation, stiction_ccf, valve_hysteresis, harris_index, loop_kpis, detect_steps,
                           data_quality, find_segments, local_gains, step_plan)
 from .gainsched import gs_table, gs_er_table, gs_interp, gs_issues, SchedPlant, gs_sim, settled, best_conzone
