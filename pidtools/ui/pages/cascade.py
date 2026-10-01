@@ -4,7 +4,7 @@ import streamlit as st
 
 from ...core import (MODELS, default_tc, outer_with_inner, predict, tune)
 from ...i18n import T
-from .. import cache
+from .. import cache, loops
 from ..cache import cascade_sim, fit_model, pidconl_sim
 from ..charts import mkfig, show, style, tr
 from ..theme import C_MV, C_PV, C_SET2, C_SP
@@ -24,10 +24,23 @@ def render(ctx):
         else:
             with st.container(border=True):
                 st.markdown(f"**{T('cas_inner')}**")
-                isrc = seg(st, T("cas_src"), ["data", "manual"], "manual", "cas_src",
-                                            format_func=lambda x: T("cas_src_" + x), help=T("h_cas_src")) or "manual"
+                other = [i for i in loops.ids() if i != loops.active()]
+                src_opts = (["loop"] if other else []) + ["data", "manual"]
+                isrc = seg(st, T("cas_src"), src_opts, src_opts[0] if other else "manual", "cas_src",
+                           format_func=lambda x: T("cas_src_" + x), help=T("h_cas_src")) or src_opts[0]
                 inner = None
-                if isrc == "data":
+                if isrc == "loop":
+                    names = {i: loops.name(i) for i in other}
+                    li = st.selectbox(T("cas_iloop"), other, format_func=names.get, key="cas_iloop",
+                                      help=T("h_cas_iloop", o=loops.name(loops.active())))
+                    m_i = loops.model_of(li)
+                    if m_i is None:
+                        st.info(T("cas_loop_nomodel", n=loops.name(li)), icon=":material/info:")
+                    else:
+                        inner = (m_i[0], list(m_i[1]))
+                        st.caption(T("cas_loop_model", n=loops.name(li), m=model_name(inner[0]),
+                                     p=", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[inner[0]]["params"], inner[1]))))
+                elif isrc == "data":
                     i1, i2, i3, i4 = st.columns(4)
                     c_ipv = i1.selectbox(T("cas_ipv"), sigs, key=f"cas_ipv|{fname}", help=T("h_cas_ipv"))
                     c_imv = i2.selectbox(T("cas_imv"), sigs, key=f"cas_imv|{fname}", help=T("h_cas_imv"))

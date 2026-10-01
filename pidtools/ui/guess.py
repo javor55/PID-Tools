@@ -59,10 +59,11 @@ def _shape(v):
     return len(np.unique(v)) / len(v), float(np.mean(np.diff(v) == 0))
 
 
-def guess_roles(sigs, get=None):
+def guess_roles(sigs, get=None, avoid_pv=()):
     """
     Doporučené sloupce → {"pv": …, "mv": …, "sp": … nebo None, "pos": … nebo None}.
     get(sloupec) → hodnoty; volitelné, slouží jen k rozhodnutí, když názvy nic neřeknou.
+    avoid_pv: PV už použité jinými smyčkami projektu – pokud je jiný kandidát, zvolí se on.
     """
     sigs = list(sigs)
     if not sigs:
@@ -95,7 +96,7 @@ def guess_roles(sigs, get=None):
                 best = max(cands, key=data_score)
         return best
 
-    pv = pick("pv", set())
+    pv = pick("pv", set(avoid_pv)) or pick("pv", set())
     tag = loop_tag(pv) if pv else None
     mv = pick("mv", {pv}, tag)
     sp = pick("sp", {pv, mv}, tag)

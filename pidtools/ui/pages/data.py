@@ -10,6 +10,7 @@ import streamlit as st
 
 from ...core import data_quality, find_segments
 from ...i18n import T
+from .. import loops
 from ..charts import show
 from ..dataio import (TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, pairs_cached,
                       pivot_cached, resample_cached, time_cached, time_columns_cached, to_num)
@@ -88,7 +89,7 @@ def render_setup(ctx):
         if not sigs:
             st.error(T("err_data", ex=T("err_no_signals")))
             st.stop()
-        g = guess_roles(sigs, ctx.get)
+        g = guess_roles(sigs, ctx.get, loops.other_pvs())
         r3 = st.columns(3)
         ctx.c_pv = sel(r3[0], "PV", sigs, sigs.index(g["pv"]), key=f"c_pv|{fname}", help=T("h_pv"))
         ctx.c_mv = sel(r3[1], "MV", sigs, sigs.index(g["mv"]), key=f"c_mv|{fname}", help=T("h_mv"))

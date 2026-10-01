@@ -7,7 +7,8 @@ import streamlit as st
 st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon="🎛️", layout="wide")
 
 from pidtools.i18n import DEFAULT_LANG, TEXTS, T  # noqa: E402
-from pidtools.ui import charts  # noqa: E402
+from pidtools.ui import charts, loops  # noqa: E402
+from pidtools.ui.guess import loop_tag  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (cascade, data, diagnostics, header, live, model, project,  # noqa: E402
                                tuning)
@@ -45,6 +46,7 @@ def main():
     diagnostics.render(ctx)
     cascade.render(ctx)
     project.render(ctx)
+    loops.save_info(ctx, loop_tag(ctx.c_pv).upper())   # souhrn smyčky pro přepínač a kaskádu
 
 
 main()

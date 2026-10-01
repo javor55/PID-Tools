@@ -4,6 +4,7 @@ import streamlit as st
 
 from ...core import demo_data
 from ...i18n import T
+from .. import loops
 from ..dataio import load_table
 from ..project import load_project_file
 from ..widgets import seg, sld
@@ -37,7 +38,7 @@ def render(ctx):
             ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
 
     with st.container(border=True):
-        d1, d2, d3 = st.columns([1.5, 1.6, 3.4], vertical_alignment="center")
+        d1, d2, d3, d4 = st.columns([1.5, 1.6, 2.6, 1.6], vertical_alignment="center")
         src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else [])
         if ss.get("src") not in src_opts:
             ss["src"] = "file"
@@ -46,7 +47,7 @@ def render(ctx):
         ctx.df, ctx.fname, ctx.ckey = None, "demo", "demo"
         if src == "project":
             ctx.df = pd.DataFrame(ss.proj["data"]["cols"])
-            ctx.fname = f"project|{ss.proj.get('tag', '')}|{len(ctx.df)}"
+            ctx.fname = f"project|{ss.proj.get('fname_tag', ss.proj.get('tag', ''))}|{len(ctx.df)}"
             ctx.ckey = f"{ctx.fname}|{ss.get('proj_hash')}"
             d2.caption(T("proj_data_caption", n=len(ctx.df)))
         elif src == "file":
@@ -68,6 +69,7 @@ def render(ctx):
             d2.download_button(T("demo_dl"), ctx.df.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
                                "text/csv", icon=":material/download:", help=T("demo_desc"), width="stretch")
         ctx.status_ph = d3.empty()
+        _loop_switcher(d4)
 
     if ctx.df is None:
         ctx.status_ph.caption(T("empty"))
@@ -82,3 +84,25 @@ def render_status(ctx):
                mvr=f"{ctx.mv_lo:g}–{ctx.mv_hi:g}")
     ctx.status_ph.markdown(f"<div class='pid-status' style='margin:0'>{('<b>' + tag_txt + '</b> · ') if tag_txt else ''}"
                          f"{status}</div>", unsafe_allow_html=True)
+
+
+def _loop_switcher(cont):
+    """
+    Smyčky projektu. S jednou smyčkou jen nenápadné „+ smyčka“; s více přepínač (platí pro všechny záložky)
+    a menu pro přidání / odstranění.
+    """
+    lids = loops.ids()
+    if len(lids) == 1:
+        cont.button(T("loop_add"), icon=":material/add:", type="tertiary", on_click=loops.add, help=T("h_loop_add"))
+        return
+    if ss.get("loop_sel") not in lids:
+        ss["loop_sel"] = loops.active()
+    c1, c2 = cont.columns([5, 1], vertical_alignment="center")
+    names = {i: loops.name(i) for i in lids}
+    c1.segmented_control(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
+                         label_visibility="collapsed", help=T("h_loop_sel"), width="stretch")
+    with c2.popover("", icon=":material/more_vert:", help=T("h_loop_menu")):
+        st.button(T("loop_add"), icon=":material/add:", on_click=loops.add, width="stretch")
+        st.button(T("loop_del", n=loops.name(loops.active())), icon=":material/delete:", width="stretch",
+                  on_click=loops.remove, args=(loops.active(),))
+        st.caption(T("loop_rename_hint"))

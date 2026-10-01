@@ -7,7 +7,8 @@ measured data and for tuning PID controllers. It is tailored to the **PIDConL** 
 methods apply to other industrial controllers as well.
 
 ## ✨ Main features
-- **Data:** CSV/Excel (also long historian format), automatic resampling, compression check, data quality rating,
+- **Data:** CSV/Excel (common time column, separate time column per variable, or long historian format; numeric,
+  ISO, Czech, US and European time formats), PV/MV/SP pre-filled from tag names, preview table, automatic resampling, compression check, data quality rating,
   automatic search for step-test segments.
 - **Identification:** models P0D, P1D, P2D, I0D, I1D with dead time and measured disturbances; suppression of unmeasured
   disturbances, forced gain sign, simultaneous valve stiction identification, fixing of known parameters, bootstrap
@@ -17,6 +18,8 @@ methods apply to other industrial controllers as well.
   Set 2), comparison of all methods, feedforward (static and lead-lag).
 - **Simulation:** PIDConL (ideal form, D filter, P/D on PV, deadband, MV limits and rate, SP ramp, PV filter,
   anti-windup, bumpless transfer), valve stiction and characteristic, PV noise, event scenarios, live real-time simulation.
+- **Multiple loops in one project** (e.g. the inner and outer loop of a cascade from one export) – each with its own
+  columns, model and tuning, switched from the data bar.
 - **Diagnostics, cascade tuning, project files (JSON) and HTML report**, Czech and English UI.
 
 ## 🛠 Running
@@ -49,6 +52,8 @@ pidtools/
   ui/                      Streamlit UI
     context.py             Ctx – data shared between tabs in one run
     widgets.py charts.py theme.py dataio.py cache.py project.py
+    loops.py               several loops in one project (state snapshots, switching)
+    guess.py               PV/MV/SP role guessing from tag names
     pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
                            cascade, project, progress
 tests/                     pytest: core, whole app (AppTest), legacy project file

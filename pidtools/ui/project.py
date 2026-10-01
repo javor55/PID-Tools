@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from ..i18n import T
+from . import loops
 from .charts import REPORT
 from .theme import report_template
 
@@ -47,7 +48,31 @@ def _jsonable(v):
 
 
 def apply_project(proj):
-    """Obnoví stav aplikace z projektu (volá se před vykreslením widgetů – z callbacku nahrání souboru)."""
+    """
+    Obnoví stav aplikace z projektu (volá se před vykreslením widgetů – z callbacku nahrání souboru).
+    Projekt s více smyčkami má v „loops“ záznam každé smyčky (stejný tvar jako jednosmyčkový projekt);
+    smyčky se obnoví jedna po druhé a uloží jako snímky, nakonec se přepne na tu, která byla aktivní.
+    """
+    recs = proj.get("loops") or []
+    if len(recs) < 2:
+        loops.reset(1)
+        loops.clear()
+        _apply_one(proj)
+        return
+    loops.reset(len(recs))
+    st_ = ss["loops"]
+    for i, rec in enumerate(recs, start=1):
+        st_["active"] = i
+        loops.clear()
+        _apply_one({**proj, **rec, "fname_tag": proj.get("tag", "")})
+        st_["info"][i] = {"name": rec.get("tag", "")}
+        if i < len(recs):
+            st_["snap"][i] = loops.snapshot()
+    loops.switch(min(max(int(proj.get("active", 1)), 1), len(recs)))
+
+
+def _apply_one(proj):
+    """Obnova jedné smyčky (a společného stavu) do session state."""
     ss.proj = proj
     state = proj.get("state", {})
     for k_, v_ in state.items():
@@ -55,7 +80,7 @@ def apply_project(proj):
     fnames = [proj.get("fname", "")]
     if proj.get("data"):
         n_ = len(next(iter(proj["data"]["cols"].values())))
-        fnames.append(f"project|{proj.get('tag', '')}|{n_}")
+        fnames.append(f"project|{proj.get('fname_tag', proj.get('tag', ''))}|{n_}")
         ss["src"] = "project"
         ss["c_tim"], ss["ts_manual"], ss["time_unit"], ss["time_fmt"] = "t_s", False, "s", "auto"
         ss[f"layout|{fnames[-1]}"] = "wide"  # uložená data jsou už na společné mřížce (sloupec t_s)
@@ -95,28 +120,52 @@ def load_project_file():
             ss.proj_err = str(ex)
 
 
-def build_project(c, include_data):
-    """Projekt jako JSON text (c = Ctx aktuálního běhu)."""
+def _record(c, snap, active):
+    """Záznam jedné smyčky v projektu ze snímku jejích klíčů (aktivní smyčka bere sloupce a úsek z běhu c)."""
+    fn = c.fname
+    get = lambda k, d=None: snap.get(k, ss.get(k, d)) if loops._is_loop_key(k) else ss.get(k, d)  # noqa: E731
     state = {}
-    for k in list(ss.keys()):
+    for k in set(snap) | set(ss.keys()):
         if k in STATE_KEYS or str(k).startswith(STATE_PREFIX):
-            v = _jsonable(ss[k])
+            if str(k).startswith(STATE_PREFIX) and loops._is_loop_key(k) and k not in snap:
+                continue
+            v = _jsonable(get(k))
             if v is not None:
                 state[k] = v
-    proj = dict(version=PROJECT_VERSION, created=_dt.datetime.now().isoformat(timespec="seconds"),
-                tag=ss.get("loop_tag", ""), fname=c.fname, state=state,
-                map={"c_pv": c.c_pv, "c_mv": c.c_mv, "c_sp": c.c_sp, "c_d": list(c.c_d), "c_pos": c.c_pos},
-                ranges={"id": list(c.rng), "val": list(ss.get(f"rng_val|{c.fname}|{c.t[-1]:.0f}", c.rng))})
-    if "fit" in ss and ss.fit.get("res"):
+    if active:
+        mp = {"c_pv": c.c_pv, "c_mv": c.c_mv, "c_sp": c.c_sp, "c_d": list(c.c_d), "c_pos": c.c_pos}
+        rng = list(c.rng)
+    else:
+        mp = {k: snap.get(f"{k}|{fn}") for k in ("c_pv", "c_mv", "c_sp", "c_d", "c_pos") if f"{k}|{fn}" in snap}
+        rng = next((list(v) for k, v in snap.items() if str(k).startswith(f"rng_id|{fn}|")), None)
+    rv = next((list(v) for k, v in snap.items() if str(k).startswith(f"rng_val|{fn}|")), rng)
+    rec = dict(tag=get("loop_tag", ""), state=state, map=mp, ranges={"id": rng, "val": rv}, ff=get("ff_state", []))
+    fit = get("fit")
+    if fit and fit.get("res"):
         res = {}
-        for code, r in ss.fit["res"].items():
+        for code, r in fit["res"].items():
             res[code] = dict(code=code, p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d] for d in r["pdl"]],
                              fit=float(r["fit"]), level=r.get("level", "none"),
                              Th=None if r.get("Th") is None else float(r["Th"]), stic=float(r.get("stic") or 0.0))
-        proj["fit"] = dict(res=res, dnames=list(ss.fit["dnames"]))
-    proj["ff"] = ss.get("ff_state", [])
+        rec["fit"] = dict(res=res, dnames=list(fit["dnames"]))
+    return rec
+
+
+def build_project(c, include_data):
+    """
+    Projekt jako JSON text (c = Ctx aktuálního běhu). Nahoře je záznam aktivní smyčky (čitelný i starší verzí),
+    při více smyčkách navíc „loops“ se záznamy všech smyček a „active“ (pořadí aktivní smyčky od 1).
+    """
+    recs = loops.all_records()
+    act = loops.active()
+    rec_of = {i: _record(c, snap, i == act) for i, snap in recs}
+    proj = dict(version=PROJECT_VERSION, created=_dt.datetime.now().isoformat(timespec="seconds"), fname=c.fname,
+                **rec_of[act])
+    if len(recs) > 1:
+        proj["loops"] = [rec_of[i] for i, _ in recs]
+        proj["active"] = [i for i, _ in recs].index(act) + 1
     if include_data:
-        r6 = lambda a: [None if not np.isfinite(x) else float(f"{x:.6g}") for x in np.asarray(a, float)]
+        r6 = lambda a: [None if not np.isfinite(x) else float(f"{x:.6g}") for x in np.asarray(a, float)]  # noqa: E731
         cols_ = {"t_s": r6(c.t), str(c.c_pv): r6(c.pv_e), str(c.c_mv): r6(c.mv_e)}
         if c.has_sp:
             cols_[str(c.c_sp)] = r6(c.sp_e)
@@ -124,8 +173,14 @@ def build_project(c, include_data):
             cols_[str(nm)] = r6(d)
         if c.pos_e is not None:
             cols_[str(c.c_pos)] = r6(c.pos_e)
+        for r in rec_of.values():  # sloupce ostatních smyček na časové mřížce aktivní smyčky
+            for v in r["map"].values():
+                for col in (v if isinstance(v, list) else [v]):
+                    if col and col != "—" and str(col) not in cols_ and col in c.sigs:
+                        cols_[str(col)] = r6(c.on_grid(col))
         proj["data"] = {"cols": cols_}
     return json.dumps(proj, ensure_ascii=False)
+
 
 
 _REPORT_CSS = (
