@@ -233,3 +233,25 @@ def test_switch_source_keeps_settings():
     assert not _errors(at)
     assert {k: at.number_input(key=k).value for k in before} == before
     assert "fit" in at.session_state            # identifikace dema zůstala
+
+
+def test_smith_template_values():
+    """APC › Smithův prediktor: tabulka hodnot do šablony SmithPredictorControl (zesílení ve fyzikálních jednotkách)."""
+    app = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    app.run()
+    app.session_state["src"] = "demo"
+    app.run()
+    app.session_state["pv_hi"] = 200.0           # rozsah PV ≠ MV → zesílení v %/% a ve fyzikálních jednotkách se liší
+    app.run()
+    _button(app, "Identify").click().run()
+    app.session_state["main_tab"] = [t.label for t in app.tabs][4]
+    app.session_state["mcode"] = "P1D"            # demo je hladina (integrační) – tam se tabulka nezobrazí
+    app.session_state["apc_kind"] = "smith"
+    app.run()
+    assert not _errors(app)
+    tab = next(d.value for d in app.dataframe if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
+    vals = dict(zip(tab.iloc[:, 0] + "." + tab.iloc[:, 1], tab.iloc[:, 2]))
+    k = app.session_state["fit"]["res"]["P1D"]["p"][0]
+    assert vals["SmithModelGain (Mul04).In2"] == pytest.approx(k * 2.0, rel=1e-3)
+    assert {"SmithModelTimLag (Lag).LagTime", "SmithModelDeadti (DeadTime).DeadTime", "PV0 (Add04).In2",
+            "PIDConL.Gain", "PIDConL.TI"} <= set(vals)

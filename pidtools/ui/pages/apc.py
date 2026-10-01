@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from ...core import MODELS, iae, pidconl_sim, tune
-from ...core.apc import ff_design, mimo2_sim, no_delay, override_sim, rga2, rga_advice, smith_sim
+from ...core.apc import ff_design, mimo2_sim, no_delay, override_sim, rga2, rga_advice, smith_apl, smith_sim
 from ...i18n import T
 from .. import loops
 from ..charts import mkfig, show, style, tr
@@ -336,28 +336,66 @@ def _override_page(ctx, bi, b):
 
 
 # ---------------------------------------------------------------- Smithův prediktor
+def _sm_tc_key(code, p):
+    return f"apc_sm_tc|{code}|{p[-1]:.4g}"
+
+
+def _sm_tc0(p, samp):
+    lags = float(sum(p[1:-1]))
+    return float(max(p[-1], 2 * samp, 0.05 * lags))   # τc = θ: rychlost jako SIMC, ale bez penalizace za zpoždění
+
+
+def smith_values(ctx):
+    """
+    Hodnoty pro bloky šablony SmithPredictorControl: (výsledek smith_apl, regulátor, řádky tabulky).
+    Pracovní bod = začátek úseku identifikace (ustálený stav před prvním skokem).
+    """
+    code, p = ctx.model[0], ctx.model[1]
+    n0 = max(3, len(ctx.pv_id) // 20)
+    pv_op = float(ctx.EP(np.nanmedian(ctx.pv_id[:n0])))
+    mv_op = float(ctx.EM(np.nanmedian(ctx.mv_id[:n0])))
+    v = smith_apl(p, ctx.PR, ctx.MR, pv_op, mv_op)
+    ct = ss.get("apc_sm_ct") or "PI"
+    r = tune(code, no_delay(p), "SIMC", ss.get(_sm_tc_key(code, p)) or _sm_tc0(p, ctx.samp), ct, ctx.samp)
+    u_pv, u_mv = ctx.u_pv or "PV", ctx.u_mv or "MV"
+    rows = [("SmithModelTimLag (Lag)", "LagTime", v["lag"], "s"),
+            ("SmithModelGain (Mul04)", "In2", v["k"], f"{u_pv}/{u_mv}"),
+            ("PV0 (Add04)", "In2", v["pv0"], u_pv),
+            ("SmithModelDeadti (DeadTime)", "DeadTime", v["theta"], "s"),
+            ("PIDConL", "Gain", r["Kc"], "–"),
+            ("PIDConL", "TI", r["Ti"], "s")]
+    if ct == "PID":
+        rows.append(("PIDConL", "TD", r["Td"], "s"))
+    return v, r, rows
+
+
+def smith_table(rows):
+    return pd.DataFrame([{T("sm_apl_block"): b, T("sm_apl_input"): i, T("sm_apl_value"): float(f"{x:.4g}"),
+                          T("sm_apl_unit"): u} for b, i, x, u in rows])
+
+
 def _smith_page(ctx):
     code, p, _ = ctx.model
     samp = ctx.samp
     lags = _tchar((code, p)) - p[-1]
     ratio = p[-1] / max(p[-1] + lags, 1e-9)
     integ = MODELS[code]["integ"]
-    tc_key = f"apc_sm_tc|{code}|{p[-1]:.4g}"
-    r_ = tune(code, no_delay(p), "SIMC", ss.get(tc_key) or max(p[-1], 2 * samp, 0.05 * lags),
-              ss.get("apc_sm_ct") or "PI", samp)
+    tc_key = _sm_tc_key(code, p)
+    v, r_, rows = smith_values(ctx)
     checks = [_chk_model_a(ctx), (not integ, T("g_chk_sm_integ"), None),
               (True if ratio >= 0.5 else None, T("g_chk_sm_ratio", r=f"{ratio:.2f}"), None),
+              (True if v["th_lag"] <= 3 else None, T("g_chk_sm_th3", r=f"{v['th_lag']:.2f}"), None),
               (None, T("g_chk_sm_model"), None)]
-    t_lag = lags if code != "P2D" else p[1] + p[2]
-    guide.render("smith", checks, T("g_impl_smith", k=f"{p[0]:.4g}", t=f"{t_lag:.4g}", th=f"{p[-1]:.4g}",
+    guide.render("smith", checks, T("g_impl_smith", k=f"{v['k']:.4g}", u=f"{ctx.u_pv or 'PV'}/{ctx.u_mv or 'MV'}",
+                                    t=f"{v['lag']:.4g}", th=f"{v['theta']:.4g}", pv0=f"{v['pv0']:.4g}",
                                     g=f"{r_['Kc']:.4g}", ti=f"{r_['Ti']:.4g}") +
-                 (" " + T("g_impl_smith_p2d", t1=f"{p[1]:.4g}", t2=f"{p[2]:.4g}") if code == "P2D" else ""))
+                 ("\n\n" + T("g_impl_smith_p2d", t1=f"{p[1]:.4g}", t2=f"{p[2]:.4g}") if code == "P2D" else ""))
     if integ:
         st.warning(T("sm_integ"), icon=":material/warning:")
     st.caption(T("sm_ratio", r=f"{ratio:.2f}"))
     c1, c2, c3 = st.columns([1, 1.2, 2], vertical_alignment="bottom")
     ctype = seg(c1, T("ctrl_type"), ["PI", "PID"], "PI", "apc_sm_ct") or "PI"
-    tc0 = float(max(p[-1], 2 * samp, 0.05 * lags))   # τc = θ: rychlost jako SIMC, ale bez penalizace za zpoždění
+    tc0 = _sm_tc0(p, samp)
     tc = sld(c3, T("sm_tc"), float(max(0.05 * tc0, 1e-3)), float(10 * tc0), tc0, tc_key,
              help=T("h_sm_tc"))
     st.markdown(f"**{T('sm_err')}**", help=T("h_sm_err"))
@@ -401,3 +439,15 @@ def _smith_page(ctx):
         {T("setting"): T("sm_smith"), T("iae_sp"): round(iae(tt[half], sp[half], o["PV"][half]) * PR, 4),
          T("iae_load"): round(iae(tt[~half], sp[~half], o["PV"][~half]) * PR, 4)}]), hide_index=True)
     st.caption(T("sm_help", m=model_name(code)))
+
+    # ---- hodnoty do šablony SmithPredictorControl (po volbě τc a typu regulátoru výše)
+    if integ:
+        return
+    v, _, rows = smith_values(ctx)
+    st.markdown(f"#### {T('sm_apl_title')}", help=T("h_sm_apl"))
+    st.dataframe(smith_table(rows), hide_index=True)
+    st.caption(T("sm_apl_note"))
+    if v["th_lag"] > 3:
+        st.warning(T("sm_apl_th3", r=f"{v['th_lag']:.1f}"), icon=":material/warning:")
+    if v["k"] < 0:
+        st.info(T("sm_apl_neg"), icon=":material/info:")

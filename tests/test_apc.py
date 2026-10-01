@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from pidtools.core import default_tc, iae, pidconl_sim, tune
-from pidtools.core.apc import ff_design, mimo2_sim, no_delay, override_sim, rga2, rga_advice, smith_sim
+from pidtools.core.apc import ff_design, mimo2_sim, no_delay, override_sim, rga2, rga_advice, smith_apl, smith_sim
 
 H = 0.5
 
@@ -64,3 +64,15 @@ def test_smith_predictor():
     p_err = [1.0, 20.0, 48.0]                               # skutečné zpoždění o 20 % delší než model
     _, o2 = smith_sim(code, p_err, p, cs, H, sp, d)
     assert o2["PV"][-1] == pytest.approx(55.0, abs=0.1)
+
+
+def test_smith_apl_units_and_offset():
+    # PV 0–150 °C, MV 0–100 %: K 2 %/% → 3 °C/%; P2D → součtová konstanta; PV0 z pracovního bodu (60 °C při 20 %)
+    r = smith_apl([2.0, 10.0, 5.0, 4.0], 150.0, 100.0, 60.0, 20.0)
+    assert r["k"] == pytest.approx(3.0)
+    assert r["lag"] == pytest.approx(15.0) and r["theta"] == pytest.approx(4.0)
+    assert r["pv0"] == pytest.approx(0.0)
+    assert r["th_lag"] == pytest.approx(4 / 15)
+    neg = smith_apl([-1.0, 8.0, 2.0], 100.0, 100.0, 40.0, 30.0)   # záporné zesílení → PV0 nad pracovním bodem
+    assert neg["pv0"] == pytest.approx(70.0)
+    assert smith_apl([1.0, 3.0], 100.0, 100.0, 50.0, 50.0)["lag"] == 0.0   # P0D bez setrvačnosti

@@ -174,6 +174,20 @@ def no_delay(p):
     return list(p[:-1]) + [0.0]
 
 
+def smith_apl(p, pv_span, mv_span, pv_op, mv_op):
+    """
+    Hodnoty pro šablonu SmithPredictorControl (PCS 7 APL; Siemens, entry 37361207). Bloky modelu v CFC pracují
+    ve fyzikálních jednotkách: Lag (LagTime) → Mul04 (zesílení) → Add04 PV0 → DeadTime.
+    p: model aplikace v % rozsahu (K v %/%); pv_span, mv_span: rozsahy PV a MV; pv_op, mv_op: pracovní bod
+    ve fyzikálních jednotkách. Model vyššího řádu se nahradí součtovou časovou konstantou (doporučení Siemens).
+    PV0 = PV v ustáleném stavu při MV = 0 – extrapolace lineárního modelu z pracovního bodu.
+    """
+    k = float(p[0]) * pv_span / mv_span
+    lag = float(sum(p[1:-1]))
+    th = float(p[-1])
+    return dict(k=k, lag=lag, theta=th, pv0=float(pv_op - k * mv_op), th_lag=th / lag if lag > 0 else np.inf)
+
+
 def smith_sim(code, p_plant, p_model, ctrl, h, sp, d=None, pv0=50.0, mv0=50.0):
     """
     Smithův prediktor: regulátor vidí PV + (model bez zpoždění − model se zpožděním)·MV, tj. predikci PV
