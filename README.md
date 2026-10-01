@@ -17,7 +17,8 @@ methods apply to other industrial controllers as well.
   overshoot limit, whole simulation scenario) – always with a robustness constraint (Ms). Two parameter sets (Set 1 /
   Set 2), comparison of all methods, feedforward (static and lead-lag).
 - **Simulation:** PIDConL (ideal form, D filter, P/D on PV, deadband, MV limits and rate, SP ramp, PV filter,
-  anti-windup, bumpless transfer), valve stiction and characteristic, PV noise, event scenarios, live real-time simulation.
+  anti-windup, bumpless transfer), valve stiction and characteristic, PV noise, event scenarios, live simulation running
+  directly in the browser (smooth, instant response to SP / manual MV / disturbance, 1–500× speed).
 - **Multiple loops in one project** (e.g. the inner and outer loop of a cascade from one export) – each with its own
   columns, model and tuning, switched from the data bar.
 - **APC structures:** cascade, 2×2 decoupling (RGA, static and lead-lag decouplers from cross-coupling models),
@@ -57,6 +58,7 @@ pidtools/
     context.py             Ctx – data shared between tabs in one run
     widgets.py charts.py theme.py dataio.py cache.py project.py
     loops.py               several loops in one project (state snapshots, switching)
+    static/                live simulation in the browser (live_engine.js = port of core/simulation.py, live_ui.js)
     guess.py               PV/MV/SP role guessing from tag names
     pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
                            apc (cascade, decoupling, override, Smith), project
