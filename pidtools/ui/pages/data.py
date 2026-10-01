@@ -11,7 +11,9 @@ import streamlit as st
 from ...core import data_quality, find_segments
 from ...i18n import T
 from ..charts import show
-from ..dataio import compression_warnings, pivot_cached, resample_cached, time_cached, to_num
+from ..dataio import (TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, pairs_cached,
+                      pivot_cached, resample_cached, time_cached, time_columns_cached, to_num)
+from ..guess import guess_roles
 from ..widgets import num, sel, seg
 
 ss = st.session_state
@@ -33,48 +35,73 @@ def render_setup(ctx):
         cols_exp = st.expander(T("cols_title"), expanded="fit" not in ss, icon=":material/table_chart:")
         mc1, mc2 = cols_exp.columns([2.2, 1], gap="large")
     cols = list(df.columns)
+    tcols = time_columns_cached(ctx.ckey, df)
 
     with mc1:
         st.markdown(f"**{T('cols_signals')}**")
-        r1 = st.columns(4, vertical_alignment="bottom")
-        ctx.long_fmt = r1[0].toggle(T("long_fmt"), key="long_fmt", help=T("long_fmt_help"))
-        time_unit = r1[1].selectbox(T("time_unit"), ["s", "ms", "min", "h"], help=T("time_unit_help"), key="time_unit")
+        r1 = st.columns([2.4, 1.3, 1], vertical_alignment="bottom")
+        layouts = ["wide", "pairs", "long"]
+        layout = seg(r1[0], T("layout"), layouts, "pairs" if len(tcols) >= 2 else "wide", f"layout|{ctx.fname}",
+                     format_func=lambda x: T("layout_" + x), help=T("h_layout")) or "wide"
+        ctx.long_fmt = layout == "long"
+        time_fmt = sel(r1[1], T("time_fmt"), TIME_FORMATS, 0, "time_fmt", format_func=lambda x: T("tf_" + x),
+                       help=T("h_time_fmt"))
+        time_unit = r1[2].selectbox(T("time_unit"), ["s", "ms", "min", "h"], help=T("time_unit_help"), key="time_unit")
         unit_mult = {"s": 1, "ms": 1e-3, "min": 60, "h": 3600}[time_unit]
-        ts_manual = r1[2].toggle(T("ts_manual"), key="ts_manual", help=T("h_ts_manual"))
-        Ts_user = num(T("ts_data"), "ts_user", 1.0, r1[3], min_value=0.001) if ts_manual else None
+        r1b = st.columns([1.6, 1, 1.7], vertical_alignment="bottom")
+        ts_manual = r1b[0].toggle(T("ts_manual"), key="ts_manual", help=T("h_ts_manual"))
+        Ts_user = num(T("ts_data"), "ts_user", 1.0, r1b[1], min_value=0.001) if ts_manual else None
         try:
-            if ctx.long_fmt:
+            if layout == "long":
                 r2 = st.columns(3)
                 c_tag = sel(r2[0], T("col_tag"), cols, _guess(cols, ["tag", "name", "název", "variable"]), key="c_tag")
                 c_tim = sel(r2[1], T("col_time"), cols, _guess(cols, ["time", "čas", "cas", "timestamp"], 1),
                             key="c_tim_l")
                 c_val = sel(r2[2], T("col_value"), cols, _guess(cols, ["value", "hodnota", "val"], 2), key="c_val")
-                wide = pivot_cached(ctx.ckey, c_tag, c_tim, c_val, unit_mult, df)
+                wide, ctx.t_origin = pivot_cached(ctx.ckey, c_tag, c_tim, c_val, unit_mult, time_fmt, df)
+                time_src = [c_tim]
+            elif layout == "pairs":
+                if not tcols:
+                    raise ValueError(T("err_no_time_cols"))
+                pairs = pair_time_columns(df, tcols)
+                wide, ctx.t_origin = pairs_cached(ctx.ckey, tuple(pairs.items()), unit_mult, time_fmt, df)
+                st.caption(T("pairs_caption", p=" · ".join(f"{c} ← {tc}" for c, tc in pairs.items())))
+                time_src = list(tcols)
+            else:
+                c_tim = sel(st, T("col_time"), cols, cols.index(tcols[0]) if tcols else
+                            _guess(cols, ["cas", "čas", "time", "datum", "date"]), key="c_tim")
+                ctx.t_all, ctx.t_origin = time_cached(ctx.ckey, c_tim, unit_mult, time_fmt, df[c_tim])
+                ctx.sigs = [s_ for s_ in cols if s_ != c_tim and s_ not in tcols]
+                ctx.get = lambda s_: to_num(df[s_])
+                time_src = [c_tim]
+            if layout != "wide":
                 ctx.t_all = wide["t"].to_numpy(float)
                 ctx.sigs = [s_ for s_ in wide.columns if s_ != "t"]
                 ctx.get = lambda s_: wide[s_].to_numpy(float)
-            else:
-                c_tim = sel(st, T("col_time"), cols, _guess(cols, ["cas", "čas", "time", "datum", "date"]), key="c_tim")
-                ctx.t_all = time_cached(ctx.ckey, c_tim, unit_mult, df[c_tim])
-                ctx.sigs = [s_ for s_ in cols if s_ != c_tim]
-                ctx.get = lambda s_: to_num(df[s_])
+            kinds = {detect_time_format(df[c_])[0] for c_ in time_src}
+            st.caption(T("time_detected", f=", ".join(T("tf_" + k_) if k_ in TIME_FORMATS else str(k_)
+                                                      for k_ in sorted(kinds, key=str))))
         except Exception as ex:
             st.error(T("err_data", ex=ex))
             st.stop()
         sigs, fname = ctx.sigs, ctx.fname
+        if not sigs:
+            st.error(T("err_data", ex=T("err_no_signals")))
+            st.stop()
+        g = guess_roles(sigs, ctx.get)
         r3 = st.columns(3)
-        ctx.c_pv = sel(r3[0], "PV", sigs, _guess(sigs, [".pv", "pv", "meren", "meas"], 1), key=f"c_pv|{fname}",
-                     help=T("h_pv"))
-        ctx.c_mv = sel(r3[1], "MV", sigs, _guess(sigs, [".mv", "mv", "out", "ventil", "valve"], 2), key=f"c_mv|{fname}",
-                     help=T("h_mv"))
+        ctx.c_pv = sel(r3[0], "PV", sigs, sigs.index(g["pv"]), key=f"c_pv|{fname}", help=T("h_pv"))
+        ctx.c_mv = sel(r3[1], "MV", sigs, sigs.index(g["mv"]), key=f"c_mv|{fname}", help=T("h_mv"))
         sp_opts = ["—"] + sigs
-        ctx.c_sp = sel(r3[2], T("col_sp"), sp_opts, _guess(sp_opts, [".sp", "sp", "setpoint"], 0), key=f"c_sp|{fname}",
-                     help=T("h_sp"))
+        ctx.c_sp = sel(r3[2], T("col_sp"), sp_opts, sp_opts.index(g["sp"]) if g["sp"] else 0, key=f"c_sp|{fname}",
+                       help=T("h_sp"))
         r4 = st.columns([2, 1])
         d_opts = [s_ for s_ in sigs if s_ not in (ctx.c_pv, ctx.c_mv, ctx.c_sp)]
         ctx.c_d = r4[0].multiselect(T("col_dist"), d_opts, help=T("col_dist_help"), key=f"c_d|{fname}")
         pos_opts = ["—"] + [s_ for s_ in d_opts if s_ not in ctx.c_d]
-        ctx.c_pos = r4[1].selectbox(T("col_pos"), pos_opts, key=f"c_pos|{fname}", help=T("h_pos"))
+        ctx.c_pos = sel(r4[1], T("col_pos"), pos_opts, pos_opts.index(g["pos"]) if g["pos"] in pos_opts else 0,
+                        key=f"c_pos|{fname}", help=T("h_pos"))
+        st.caption(T("guess_note"))
 
     # ---- převzorkování na společnou mřížku
     try:
@@ -83,7 +110,7 @@ def render_setup(ctx):
         ctx.has_sp = ctx.c_sp != "—"
         if ctx.has_sp:
             raw_cols.append(ctx.get(ctx.c_sp))
-        rkey = (ctx.ckey, ctx.long_fmt, unit_mult, str(ctx.c_pv), str(ctx.c_mv), str(ctx.c_sp), tuple(map(str, ctx.c_d)),
+        rkey = (ctx.ckey, layout, time_fmt, unit_mult, str(ctx.c_pv), str(ctx.c_mv), str(ctx.c_sp), tuple(map(str, ctx.c_d)),
                 str(ss.get("c_tag")), str(ss.get("c_tim") if not ctx.long_fmt else ss.get("c_tim_l")), str(ss.get("c_val")))
         ctx.t, ctx.Ts, rs, ctx.T0 = resample_cached(rkey, ctx.t_all, raw_cols, Ts_user)
         ctx.pv_e, ctx.mv_e = rs[0], rs[1]
@@ -113,6 +140,51 @@ def render_setup(ctx):
             st.error(T("err_range"))
         st.stop()
     ctx.pv, ctx.mv, ctx.sp = ctx.P(ctx.pv_e), ctx.M(ctx.mv_e), ctx.P(ctx.sp_e)
+    with ctx.tabs["data"]:
+        _preview(ctx, df, tcols)
+
+
+def _preview(ctx, df, tcols):
+    """Rozbalovací náhled: výsledná tabulka po převzorkování, statistika a původní soubor s rozpoznanými typy."""
+    exp = st.expander(T("prev_title"), icon=":material/table_view:", key="prev_open", on_change="rerun")
+    if not exp.open:  # tabulka se posílá do prohlížeče jen v rozbaleném stavu
+        return
+    with exp:
+        out = {T("time_s"): ctx.t}
+        if ctx.t_origin is not None:
+            out[T("prev_datetime")] = ctx.t_origin + pd.to_timedelta(ctx.t + ctx.T0, unit="s")
+        out[f"PV · {ctx.c_pv}"] = ctx.pv_e
+        out[f"MV · {ctx.c_mv}"] = ctx.mv_e
+        if ctx.has_sp:
+            out[f"SP · {ctx.c_sp}"] = ctx.sp_e
+        for nm, d in zip(ctx.c_d, ctx.dists):
+            out[f"{T('prev_dist')} · {nm}"] = d
+        if ctx.pos_e is not None:
+            out[f"{T('prev_pos')} · {ctx.c_pos}"] = ctx.pos_e
+        res = pd.DataFrame(out)
+        t1, t2, t3 = st.tabs([T("prev_result"), T("prev_stats"), T("prev_raw")])
+        with t1:
+            st.caption(T("prev_result_help", n=len(res), ts=f"{ctx.Ts:.4g}"))
+            st.dataframe(res, height=360, hide_index=True,
+                         column_config={T("prev_datetime"): st.column_config.DatetimeColumn(format="D.M.YYYY HH:mm:ss.SSS")})
+            st.download_button(T("prev_dl"), res.to_csv(index=False, sep=";", decimal=","), "data_resampled.csv",
+                               "text/csv", icon=":material/download:")
+        with t2:
+            num_ = res.drop(columns=[T("prev_datetime")], errors="ignore")
+            stats = pd.DataFrame({T("prev_min"): num_.min(), T("prev_max"): num_.max(), T("prev_mean"): num_.mean(),
+                                  T("prev_nan"): num_.isna().sum()})
+            st.dataframe(stats, width="stretch")
+        with t3:
+            def kind(c):
+                if c in tcols:
+                    k_ = detect_time_format(df[c])[0]
+                    return f"{T('prev_k_time')} ({T('tf_' + k_) if k_ in TIME_FORMATS else k_})"
+                v = to_num(df[c])
+                return T("prev_k_num") if np.isfinite(v).mean() > 0.5 else T("prev_k_text")
+            st.caption(T("prev_raw_help", n=len(df), c=len(df.columns)))
+            st.dataframe(pd.DataFrame({c: [kind(c), int(df[c].isna().sum())] for c in df.columns},
+                                      index=[T("prev_type"), T("prev_nan")]), width="stretch")
+            st.dataframe(df.head(200), height=300)
 
 
 def render(ctx):

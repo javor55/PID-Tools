@@ -57,7 +57,8 @@ def apply_project(proj):
         n_ = len(next(iter(proj["data"]["cols"].values())))
         fnames.append(f"project|{proj.get('tag', '')}|{n_}")
         ss["src"] = "project"
-        ss["c_tim"], ss["long_fmt"], ss["ts_manual"], ss["time_unit"] = "t_s", False, False, "s"
+        ss["c_tim"], ss["ts_manual"], ss["time_unit"], ss["time_fmt"] = "t_s", False, "s", "auto"
+        ss[f"layout|{fnames[-1]}"] = "wide"  # uložená data jsou už na společné mřížce (sloupec t_s)
     for fn_ in fnames:
         for k_, v_ in proj.get("map", {}).items():
             ss[f"{k_}|{fn_}"] = v_
