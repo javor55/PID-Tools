@@ -343,6 +343,10 @@ def test_feedforward_in_apc(app):
     assert app.session_state["ff_state"][0]["use"]
     assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
     assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
+    # simulace v Ladění: stejná sada 2 bez FF pro porovnání (výchozí scénář obsahuje skok měřené poruchy)
+    kp = next(d.value for d in app.dataframe if len(d.value) and "Set 2 without FF" in list(d.value.index))
+    iae_ = dict(zip(kp.index, kp["IAE [%·s]"].astype(float)))
+    assert iae_["Set 2"] != pytest.approx(iae_["Set 2 without FF"], rel=1e-3)   # FF se v simulaci projeví
     # obnova z projektu (ff v projektu → klíče widgetů)
     app.session_state["override_ff"] = [dict(use=True, gain=-0.5, dyn=True, lead=12.0, lag=4.0, delay=0.0)]
     app.run()

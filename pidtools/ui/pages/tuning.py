@@ -354,10 +354,13 @@ def render(ctx):
                 else:
                     T_end = float(ts_id[-1])
                     st.caption(T("replay_help"))
-                s1_, s2_ = st.columns(2)
+                s1_, s2_, s3_ = st.columns(3)
                 robust_on = s1_.toggle(T("robust_on"), key="robust_on", help=T("h_robust_on"))
                 spread_on = s2_.toggle(T("spread_on"), key="spread_on", help=T("h_spread_on"),
                                        disabled=not unc_models) and bool(unc_models)
+                if "ff_cmp" not in ss:
+                    ss["ff_cmp"] = True
+                ff_cmp = s3_.toggle(T("ff_cmp"), key="ff_cmp", help=T("h_ff_cmp"), disabled=not any(ff)) and any(ff)
 
             # ---- definice scénáře (tabulka událostí)
             tg_codes = ["SP", "IN", "PV"] + [f"M{j}" for j in range(len(c_d))]
@@ -517,6 +520,12 @@ def render(ctx):
                 pp[0] *= 1.3
                 pp[-1] *= 1.5
                 sims[T("new_err")] = (run(set2_ctrl, pp), C_SET2, "dash")
+            ff_moves = any(g and np.any(d != 0) for g, d in zip(ff, dmeas))
+            if ff_cmp and ff_moves:      # stejná sada 2 bez dopředné vazby – rozdíl = přínos FF
+                sims[T("set2_noff")] = (run(dict(set2_ctrl, FF=[0.0] * len(ff), FF_LL=[(0.0, 0.0, 0.0)] * len(ff))),
+                                        "#9aa5b1", "dashdot")
+            elif ff_cmp and not ff_moves:
+                st.caption(T("ff_cmp_nodist"))
 
             has_d = any(np.any(d != 0) for d in dmeas) or np.any(dmv_arr != 0) or np.any(dpv_arr != 0)
             nr = 3 if has_d else 2

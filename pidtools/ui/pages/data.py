@@ -138,6 +138,14 @@ def render_setup(ctx):
         ctx.u_pv = n1.text_input(T("unit_pv"), key="u_pv", placeholder="m, °C, bar…", help=T("h_unit"))
         ctx.u_mv = n2.text_input(T("unit_mv"), key="u_mv", help=T("h_unit"))
         st.caption(T("norm_help"))
+        if ctx.pv_hi > ctx.pv_lo and ctx.mv_hi > ctx.mv_lo:
+            pmin, pmax = float(np.nanmin(ctx.pv_e)), float(np.nanmax(ctx.pv_e))
+            mmin, mmax = float(np.nanmin(ctx.mv_e)), float(np.nanmax(ctx.mv_e))
+            if pmin < ctx.pv_lo or pmax > ctx.pv_hi or mmin < ctx.mv_lo or mmax > ctx.mv_hi:
+                st.warning(T("norm_out", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"),
+                           icon=":material/warning:")
+            elif (ctx.pv_lo, ctx.pv_hi) == (0.0, 100.0):
+                st.info(T("norm_pv_default", pv=f"{pmin:.4g}–{pmax:.4g}"), icon=":material/straighten:")
     if ctx.pv_hi <= ctx.pv_lo or ctx.mv_hi <= ctx.mv_lo:
         with ctx.tabs["data"]:
             st.error(T("err_range"))
