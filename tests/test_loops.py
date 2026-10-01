@@ -94,6 +94,43 @@ def test_project_roundtrip_two_loops(two_loops):
     assert at2.session_state["mcode"] == "P1D" and at2.session_state["set1_gain"] == 0.5
 
 
+def test_apc_pages(two_loops):
+    """Rozvazbení, override a Smithův prediktor se dvěma smyčkami (vazby přes měřené poruchy)."""
+    at, _ = two_loops
+    _switcher(at).set_value(2).run()
+    at.session_state["c_mv|demo"] = "FI100.Pritok"
+    at.session_state["c_d|demo"] = ["LIC101.MV"]
+    at.run()
+    _button(at, "Identify").click().run()
+    _ok(at)
+    _switcher(at).set_value(1).run()
+    for kind in ("decouple", "override", "smith"):
+        at.session_state["apc_kind"] = kind
+        if kind != "smith":
+            at.session_state[f"apc_{kind}_b"] = 2
+        at.run()
+        _ok(at)
+    at.session_state["apc_kind"] = "decouple"
+    at.run()
+    assert any(m.label == "RGA λ₁₁" for m in at.metric)
+    assert any("**When to use**" in m.value for m in at.markdown)                 # průvodce
+    assert any("FfwdDisturbCompensat" in m.value for m in at.markdown)          # implementace v APL
+    # smyčky se stejnou MV → doporučení override; tlačítko v záložce Ladění přepne na záložku APC
+    at.session_state["apc_kind"] = "cascade"
+    _switcher(at).set_value(2).run()
+    at.session_state["c_mv|demo"], at.session_state["c_d|demo"] = "LIC101.MV", []
+    at.run()
+    _switcher(at).set_value(1).run()
+    _ok(at)
+    hint = next(b for b in at.button if b.key == "g_tuning_apc")
+    hint.click().run()
+    _ok(at)
+    assert at.session_state["main_tab"] == "5 · APC" and at.session_state["apc_kind"] == "override"
+    at.session_state["apc_kind"] = "cascade"
+    at.session_state["main_tab"] = "1 · Data"
+    at.run()
+
+
 def test_remove_loop(two_loops):
     at, _ = two_loops
     _switcher(at).set_value(2).run()

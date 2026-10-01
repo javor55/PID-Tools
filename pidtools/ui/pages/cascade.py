@@ -12,12 +12,11 @@ from ..widgets import model_name, num, seg, sld
 
 ss = st.session_state
 
-def render(ctx):
-    """Záložka Kaskáda."""
+def render_body(ctx):
+    """Kaskáda (v záložce APC)."""
     H, Ts, base_ctrl, diffgain, fname, model, samp, sel_mask, sigs, ts_id = ctx.H, ctx.Ts, ctx.base_ctrl, ctx.diffgain, ctx.fname, ctx.model, ctx.samp, ctx.sel_mask, ctx.sigs, ctx.ts_id
     EP, M, lab_pv, lab_t = ctx.EP, ctx.M, ctx.lab_pv, ctx.lab_t
-    with ctx.tabs["cascade"]:
-        st.caption(ctx.block_summary)
+    with st.container():
         st.markdown(T("cas_intro"))
         if model is None:
             st.info(T("need_model"), icon=":material/arrow_back:")

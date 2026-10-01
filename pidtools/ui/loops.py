@@ -9,6 +9,7 @@ všechno ostatní (sloupce, rozsahy, blok PIDConL, identifikace, ladění…) pa
 Stav: ss["loops"] = {"ids": [...], "active": id, "next": id, "snap": {id: {klíč: hodnota}}, "info": {id: souhrn}}
 Souhrn (název, model, sady, sloupce) se ukládá na konci každého běhu – čte ho záložka Kaskáda a přepínač.
 """
+import numpy as np
 import streamlit as st
 
 from ..i18n import T
@@ -20,10 +21,10 @@ GLOBAL_KEYS = {
     "rep_author", "rep_comment", "plot_h", "time_fmt", "time_unit", "ts_manual", "ts_user", "c_tim", "c_tim_l",
     "c_tag", "c_val", "main_tab", "prev_open", "drag", "inner_fit", "test_inject", "proj_inc", "loops", "loop_sel",
 }
-GLOBAL_PREFIX = ("layout|", "cas_")
+GLOBAL_PREFIX = ("layout|", "cas_", "apc_")
 # widgety, jejichž hodnotu Streamlit nedovolí zapsat (tlačítka, výběr v grafu/tabulce, editory – ty se obnoví
 # z uložených „…|last“ hodnot); do snímku smyčky se neukládají
-SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|")
+SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|", "g_")
 
 
 def _is_loop_key(k):
@@ -146,7 +147,8 @@ def save_info(ctx, tag_from_pv=""):
     """Souhrn aktivní smyčky na konci běhu (pro přepínač a záložku Kaskáda)."""
     s = _state()
     s["info"][s["active"]] = dict(
-        name=(ss.get("loop_tag") or tag_from_pv or "").strip(), c_pv=ctx.c_pv, c_mv=ctx.c_mv,
+        name=(ss.get("loop_tag") or tag_from_pv or "").strip(), c_pv=ctx.c_pv, c_mv=ctx.c_mv, c_sp=ctx.c_sp,
+        c_d=list(ctx.c_d),
         model=ctx.model, set1=ctx.set1_ctrl, set2=ctx.set2_ctrl, samp=ctx.samp,
         pv_rng=(ctx.pv_lo, ctx.pv_hi), mv_rng=(ctx.mv_lo, ctx.mv_hi), u_pv=ctx.u_pv, u_mv=ctx.u_mv)
 
@@ -161,7 +163,29 @@ def model_of(i):
     if not fit or code not in fit.get("res", {}):
         return None
     r = fit["res"][code]
-    return code, [float(snap.get(f"ed|{code}|{k}", v)) for k, v in enumerate(r["p"])], [list(d) for d in r["pdl"]]
+    return (code, [float(snap.get(f"ed|{code}|{k}", v)) for k, v in enumerate(r["p"])],
+            [[float(snap.get(f"ed|{code}|d{j}|{k}", v)) for k, v in enumerate(d)] for j, d in enumerate(r["pdl"])])
+
+
+def loop_data(i, fname):
+    """
+    Co potřebují struktury APC o smyčce i: název, model, sloupce MV a měřených poruch, rozsahy PV/MV a parametry
+    regulátoru (sada 2). U navštívené smyčky ze souhrnu, jinak ze snímku (např. hned po načtení projektu).
+    """
+    inf = info(i)
+    snap = snapshot() if i == active() else _state()["snap"].get(i, {})
+    g = snap.get
+    ti = g("set2_ti", 100.0)
+    ctrl = inf.get("set2") or dict(Gain=g("set2_gain", 1.0), TI=ti if ti and ti > 0 else np.inf, TD=g("set2_td", 0.0),
+                                   DiffGain=g("diffgain", 5.0), SampleTime=g("samp", 1.0), PropFbk=g("pfb", False),
+                                   DiffFbk=g("dfb", True), MV_Lo=0.0, MV_Hi=100.0)
+    return dict(name=name(i), model=model_of(i), ctrl=ctrl,
+                c_mv=inf.get("c_mv") or g(f"c_mv|{fname}"), c_pv=inf.get("c_pv") or g(f"c_pv|{fname}"),
+                c_sp=inf.get("c_sp") or g(f"c_sp|{fname}", "—"),
+                c_d=inf.get("c_d") if inf.get("c_d") is not None else list(g(f"c_d|{fname}", []) or []),
+                pv_rng=inf.get("pv_rng") or (g("pv_lo", 0.0), g("pv_hi", 100.0)),
+                mv_rng=inf.get("mv_rng") or (g("mv_lo", 0.0), g("mv_hi", 100.0)),
+                u_pv=inf.get("u_pv", g("u_pv", "")), u_mv=inf.get("u_mv", g("u_mv", "%")))
 
 
 def all_records():

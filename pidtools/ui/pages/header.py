@@ -38,7 +38,12 @@ def render(ctx):
             ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
 
     with st.container(border=True):
-        d1, d2, d3, d4 = st.columns([1.5, 1.6, 2.6, 1.6], vertical_alignment="center")
+        n_loops = len(loops.ids())  # od tří smyček má přepínač vlastní řádek pod zdrojem dat
+        if n_loops <= 2:
+            d1, d2, d3, d4 = st.columns([1.5, 1.6, 2.6, 1.6 if n_loops == 1 else 2.7], vertical_alignment="center")
+        else:
+            d1, d2, d3 = st.columns([1.5, 1.6, 4.2], vertical_alignment="center")
+            d4 = st.container()
         src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else [])
         if ss.get("src") not in src_opts:
             ss["src"] = "file"
@@ -97,7 +102,7 @@ def _loop_switcher(cont):
         return
     if ss.get("loop_sel") not in lids:
         ss["loop_sel"] = loops.active()
-    c1, c2 = cont.columns([5, 1], vertical_alignment="center")
+    c1, c2 = cont.columns([5, 1] if len(lids) <= 2 else [12, 1], vertical_alignment="center")
     names = {i: loops.name(i) for i in lids}
     c1.segmented_control(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
                          label_visibility="collapsed", help=T("h_loop_sel"), width="stretch")

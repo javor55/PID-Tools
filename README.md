@@ -20,7 +20,10 @@ methods apply to other industrial controllers as well.
   anti-windup, bumpless transfer), valve stiction and characteristic, PV noise, event scenarios, live real-time simulation.
 - **Multiple loops in one project** (e.g. the inner and outer loop of a cascade from one export) – each with its own
   columns, model and tuning, switched from the data bar.
-- **Diagnostics, cascade tuning, project files (JSON) and HTML report**, Czech and English UI.
+- **APC structures:** cascade, 2×2 decoupling (RGA, static and lead-lag decouplers from cross-coupling models),
+  override / constraint control (MIN/MAX selector with external reset feedback) and Smith predictor with model-error
+  sensitivity.
+- **Diagnostics, project files (JSON) and HTML report**, Czech and English UI.
 
 ## 🛠 Running
 Windows: run **`start.bat`**. Otherwise:
@@ -46,6 +49,7 @@ pidtools/
     tuning.py              tuning rules and optimizations
     robustness.py          frequency analysis (stability, Ms, GM, PM), MV noise
     simulation.py          PIDConL / valve / process step engine (batch, cascade, live)
+    apc.py                 decoupling (RGA), override, Smith predictor
     diagnostics.py         loop performance, oscillation, stiction, data quality, segments
     demo.py, util.py
   i18n/                    texts: cs.py, en.py, T()
@@ -55,7 +59,7 @@ pidtools/
     loops.py               several loops in one project (state snapshots, switching)
     guess.py               PV/MV/SP role guessing from tag names
     pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
-                           cascade, project, progress
+                           apc (cascade, decoupling, override, Smith), project
 tests/                     pytest: core, whole app (AppTest), legacy project file
 ```
 All process quantities inside the core are in % of the scaling ranges (NormPV, NormMV), so process gain and controller
