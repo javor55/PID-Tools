@@ -530,6 +530,7 @@ TEXTS = {
     'sb_units': 'Units',
     'norm_where': 'Data stay in real units. The controller range (NormPV {pv}, NormMV {mv}) is set in the Tuning tab › PIDConL block.',
     'err_range_blk': 'The controller range is invalid (the upper limit must be greater than the lower one) – correct NormPV / NormMV in the Tuning tab › PIDConL block.',
+    'norm_rescaled': 'The controller range changed – the model was rescaled (it is the same in real units), no new identification needed.',
     'time_unit': 'Unit of numeric time',
     'time_unit_help': 'Used only when time is a number, not a date.',
     'col_tag': 'Tag name column',

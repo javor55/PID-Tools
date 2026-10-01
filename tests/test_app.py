@@ -325,6 +325,15 @@ def test_gain_scheduling_page():
     assert g[0] == pytest.approx(1.25 * g[1], rel=1e-3) and g[2] == pytest.approx(g[0])
     kp = next(d.value for d in app.dataframe if len(d.value) and "Settled" in d.value.columns)
     assert len(kp) >= 2 and kp["Settled"].iloc[1] == "✓"
+    # změna NormPV: body se přepočítají (X v jednotkách PV stejné), identifikace bodů není potřeba
+    app.session_state["gs_x"] = "pv"
+    app.run()
+    x_before = [q[0] for q in app.session_state["gs_pts"]]
+    app.session_state["pv_hi"] = 200.0
+    app.run()
+    assert not _errors(app)
+    assert [q[0] for q in app.session_state["gs_pts"]] == pytest.approx([x / 2 for x in x_before])
+    assert not any("Segments, ranges or the model changed" in w.value for w in app.warning)
 
 
 def test_feedforward_in_apc(app):
@@ -356,3 +365,26 @@ def test_feedforward_in_apc(app):
     app.session_state["ffuse|0"] = False
     app.session_state["apc_kind"] = "cascade"
     app.run()
+
+
+def test_range_change_rescales_model():
+    """Změna NormPV po identifikaci: model se přepočítá (K / 3), žádná výzva k nové identifikaci."""
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["src"] = "demo"
+    at.run()
+    at.session_state["c_d|demo"] = ["FI100.Pritok"]
+    at.run()
+    _button(at, "Identify").click().run()
+    code = at.session_state["mcode"]
+    k0 = at.session_state["fit"]["res"][code]["p"][0]
+    kd0 = at.session_state["fit"]["res"][code]["pdl"][0][0]
+    t0 = at.session_state["fit"]["res"][code]["p"][-1]
+    at.session_state["pv_hi"] = 300.0
+    at.run()
+    assert not _errors(at)
+    r = at.session_state["fit"]["res"][code]
+    assert r["p"][0] == pytest.approx(k0 / 3) and r["pdl"][0][0] == pytest.approx(kd0 / 3)
+    assert r["p"][-1] == pytest.approx(t0)
+    assert at.session_state[f"ed|{code}|0"] == pytest.approx(k0 / 3)
+    assert not any("changed since the last fit" in w.value for w in at.warning)

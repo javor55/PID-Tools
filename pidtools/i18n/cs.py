@@ -530,6 +530,7 @@ TEXTS = {
     'sb_units': 'Jednotky',
     'norm_where': 'Data zůstávají v reálných jednotkách. Rozsah regulátoru (NormPV {pv}, NormMV {mv}) se nastavuje v záložce Ladění › Blok PIDConL.',
     'err_range_blk': 'Rozsah regulátoru je neplatný (horní mez musí být větší než dolní) – opravte NormPV / NormMV v záložce Ladění › Blok PIDConL.',
+    'norm_rescaled': 'Rozsah regulátoru se změnil – model se přepočítal (v reálných jednotkách je stejný), identifikace není potřeba.',
     'time_unit': 'Jednotka číselného času',
     'time_unit_help': 'Použije se, jen když je čas číslo, ne datum.',
     'col_tag': 'Sloupec s názvem tagu',

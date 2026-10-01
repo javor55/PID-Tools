@@ -296,3 +296,25 @@ def bootstrap_models(code, t, pv, mv, h, dists, theta_max, base, n=15, seed=0, p
         if progress:
             progress((i + 1) / n)
     return res
+
+
+def norm_factors(old, new):
+    """
+    Převodní faktory parametrů modelu při změně normovacích rozsahů old/new = (pv_lo, pv_hi, mv_lo, mv_hi).
+    Model v reálných jednotkách se nemění, jen jeho vyjádření v % rozsahů:
+    K (%/%) ∝ rozsah MV / rozsah PV, Kd (% PV na jednotku poruchy) ∝ 1 / rozsah PV, stikce (% MV) ∝ 1 / rozsah MV.
+    Časové konstanty a zpoždění (s) se nemění. Vrací (fK, fKd, fS).
+    """
+    pr_o, pr_n = old[1] - old[0], new[1] - new[0]
+    mr_o, mr_n = old[3] - old[2], new[3] - new[2]
+    return (mr_n / mr_o) * (pr_o / pr_n), pr_o / pr_n, mr_o / mr_n
+
+
+def rescale_fit(r, old, new):
+    """Výsledek identifikace (dict z fit_model / identify) přepočtený na nové normovací rozsahy."""
+    fK, fKd, fS = norm_factors(old, new)
+    out = dict(r)
+    out["p"] = [float(r["p"][0]) * fK] + [float(x) for x in r["p"][1:]]
+    out["pdl"] = [[float(d[0]) * fKd] + [float(x) for x in d[1:]] for d in r["pdl"]]
+    out["stic"] = float(r.get("stic") or 0.0) * fS
+    return out

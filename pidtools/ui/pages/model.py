@@ -5,8 +5,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, predict, predict_full,
-                     step_response)
+from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, norm_factors, predict,
+                     predict_full, rescale_fit, step_response)
 from ...i18n import T
 from .. import cache
 from ..cache import pidconl_sim
@@ -15,6 +15,37 @@ from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..widgets import model_name, num, seg, sld
 
 ss = st.session_state
+
+_NORM = slice(4, 8)   # pozice pv_lo, pv_hi, mv_lo, mv_hi v klíči identifikace (fit_key)
+
+
+def _only_norm_changed(old, new):
+    """Klíč identifikace se liší jen normovacími rozsahy (data, úsek i nastavení stejné)."""
+    return (isinstance(old, tuple) and len(old) == len(new) and old != new
+            and old[:_NORM.start] == new[:_NORM.start] and old[_NORM.stop:] == new[_NORM.stop:])
+
+
+def _rescale_fit_state(old_key, new_key, c_d):
+    """
+    Přepočet uložených modelů (a ručních úprav, nejistoty) na nové rozsahy NormPV / NormMV. Model v reálných
+    jednotkách je stejný – mění se jen K v %/%, Kd a stikce v %; časy zůstávají.
+    """
+    old, new = old_key[_NORM], new_key[_NORM]
+    fK, fKd, fS = norm_factors(old, new)
+    for c in list(ss.fit["res"]):
+        ss.fit["res"][c] = rescale_fit(ss.fit["res"][c], old, new)
+        if f"ed|{c}|0" in ss:
+            ss[f"ed|{c}|0"] = float(ss[f"ed|{c}|0"]) * fK
+        for j in range(len(c_d)):
+            if f"ed|{c}|d{j}|0" in ss:
+                ss[f"ed|{c}|d{j}|0"] = float(ss[f"ed|{c}|d{j}|0"]) * fKd
+        if f"ed|{c}|stic" in ss:
+            ss[f"ed|{c}|stic"] = float(ss[f"ed|{c}|stic"] or 0.0) * fS
+    ss.fit["key"] = new_key
+    unc = ss.get("unc")
+    if unc and unc.get("key") == old_key:
+        ss.unc = dict(unc, key=new_key, ps=[[q[0] * fK] + list(q[1:]) for q in unc["ps"]])
+
 
 def render(ctx):
     """Záložka Model."""
@@ -111,6 +142,9 @@ def render(ctx):
         else:
             if ss.fit["key"] == "__restore__":  # model obnovený z projektu
                 ss.fit["key"] = fit_key
+            if _only_norm_changed(ss.fit["key"], fit_key):   # jiný rozsah regulátoru → přepočet, ne nová identifikace
+                _rescale_fit_state(ss.fit["key"], fit_key, list(c_d))
+                st.toast(T("norm_rescaled"), icon=":material/straighten:")
             res = ss.fit["res"]
             if ss.fit["key"] != fit_key:
                 st.warning(T("warn_stale"), icon=":material/update:")

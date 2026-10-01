@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from ...core import (MODELS, best_conzone, default_tc, detect_steps, find_segments, gs_er_table, gs_issues, gs_sim,
-                     gs_table, iae, pidconl_sim, predict, settled, tune)
+                     gs_table, iae, norm_factors, pidconl_sim, predict, settled, tune)
 from ...core.apc import ff_design, mimo2_sim, no_delay, override_sim, rga2, rga_advice, smith_apl, smith_sim
 from ...i18n import T
 from .. import cache, loops
@@ -555,6 +555,18 @@ def _gs_key(ctx, code, ranges):
     return [code] + [round(x, 1) for r in ranges for x in r] + [ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi]
 
 
+def _gs_rescale(old, new):
+    """Body gain schedulingu přepočtené na nové rozsahy NormPV / NormMV (liší-li se klíč jen jimi)."""
+    if not (isinstance(old, list) and len(old) == len(new) and old[:-4] == new[:-4] and old[-4:] != new[-4:]):
+        return
+    o, n_ = old[-4:], new[-4:]
+    fK = norm_factors(o, n_)[0]
+    conv = lambda v, lo_o, hi_o, lo_n, hi_n: ((lo_o + v * (hi_o - lo_o) / 100) - lo_n) / (hi_n - lo_n) * 100  # noqa: E731
+    ss["gs_pts"] = [[conv(q[0], o[0], o[1], n_[0], n_[1]), conv(q[1], o[2], o[3], n_[2], n_[3]), q[2], q[3] * fK]
+                    + list(q[4:]) for q in ss.get("gs_pts") or []]
+    ss["gs_key"] = new
+
+
 def _gs_fit(ctx, code, ranges):
     """Identifikace modelu (typ aktivní smyčky) v každém úseku → body {x, u, fit, p} nebo chybová hláška."""
     pts = []
@@ -661,6 +673,8 @@ def _gainsched_page(ctx):
         show(style(f, max(ctx.H - 60, 320), [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_gs_seg"),
              key="chart_apc_gs_seg", fname="gs_segments")
         key = _gs_key(ctx, code, ranges)
+        _gs_rescale(ss.get("gs_key"), key)
+        pts_now = _gs_points()
         b1, b2 = st.columns([1, 3], vertical_alignment="center")
         if b1.button(T("gs_fit"), type="primary", icon=":material/play_arrow:", width="stretch"):
             with st.spinner(T("gs_fitting")):
