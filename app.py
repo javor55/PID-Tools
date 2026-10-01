@@ -13,6 +13,7 @@ from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (apc, data, diagnostics, guides, header, live, model, project,  # noqa: E402
                                tuning)
 from pidtools.ui.theme import apply_theme  # noqa: E402
+from pidtools.ui.widgets import keep_widget_state  # noqa: E402
 
 TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_live"),
         ("cascade", "tab5"), ("project", "tab6")]
@@ -21,6 +22,7 @@ TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_
 def main():
     if "lang" not in st.session_state:
         st.session_state.lang = DEFAULT_LANG
+    keep_widget_state()                      # stav widgetů přežije běh, kdy se nevykreslí (zdroj bez dat …)
     apply_theme()
     charts.reset_report()
     ctx = Ctx()

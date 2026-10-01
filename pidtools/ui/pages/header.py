@@ -50,22 +50,20 @@ def render(ctx):
         src = seg(d1, T("source"), src_opts, "file", "src", format_func=lambda x: T("src_" + x), help=T("h_source"),
                   label_visibility="collapsed") or "file"
         ctx.df, ctx.fname, ctx.ckey = None, "demo", "demo"
+        ss["_src_prev"], ss["_src_now"] = ss.get("_src_now"), src
         if src == "project":
             ctx.df = pd.DataFrame(ss.proj["data"]["cols"])
             ctx.fname = f"project|{ss.proj.get('fname_tag', ss.proj.get('tag', ''))}|{len(ctx.df)}"
             ctx.ckey = f"{ctx.fname}|{ss.get('proj_hash')}"
             d2.caption(T("proj_data_caption", n=len(ctx.df)))
         elif src == "file":
-            cur_f = ss.get("up_file")
-            with d2.popover(cur_f.name if cur_f is not None else T("tb_choose_file"), icon=":material/upload_file:",
-                            width="stretch", type="secondary" if cur_f is not None else "primary"):
-                f = st.file_uploader(T("upload"), type=["csv", "txt", "xlsx", "xls"], key="up_file")
+            f = _file(d2)
             if f is not None:
-                ctx.fname = f"{f.name}|{f.size}"
-                ctx.ckey = f"{ctx.fname}|{f.file_id}"
+                ctx.fname = f"{f['name']}|{f['size']}"
+                ctx.ckey = f"{ctx.fname}|{f['id']}"
                 try:
                     with st.spinner(T("loading")):
-                        ctx.df = load_table(ctx.ckey, f.name, f.getvalue())
+                        ctx.df = load_table(ctx.ckey, f["name"], f["data"])
                 except Exception as ex:
                     st.error(T("err_read", ex=ex))
         else:
@@ -83,6 +81,48 @@ def render(ctx):
         autosave.offer_restore()          # rozpracovaná práce uložená v prohlížeči
         st.info(T("empty"), icon=":material/upload_file:")
         st.stop()
+    _swap_fit(ctx.fname)
+
+
+def _file(cont):
+    """
+    Nahraný soubor {name, size, id, data}. Pamatuje si ho i po přepnutí na demo / projekt (nahrávací widget se pak
+    nevykresluje a Streamlit soubor zahodí); zapomene ho jen po odebrání souboru v nahrávacím poli.
+    """
+    keep = ss.get("_up_keep")
+    cur = ss.get("up_file")
+    with cont.popover(cur.name if cur is not None else keep["name"] if keep else T("tb_choose_file"),
+                      icon=":material/upload_file:", width="stretch",
+                      type="secondary" if cur is not None or keep else "primary"):
+        f = st.file_uploader(T("upload"), type=["csv", "txt", "xlsx", "xls"], key="up_file")
+        if f is None and keep:
+            st.caption(T("up_kept", f=keep["name"]))
+    if f is not None:
+        if not keep or keep["id"] != f.file_id:
+            keep = ss["_up_keep"] = dict(name=f.name, size=f.size, id=f.file_id, data=f.getvalue())
+    elif keep and ss.get("_src_prev") == "file" and ss.get("_up_seen"):
+        keep = ss["_up_keep"] = None      # soubor odebraný v nahrávacím poli
+    ss["_up_seen"] = f is not None
+    return keep
+
+
+def _swap_fit(fname):
+    """
+    Identifikace patří k datům: při přepnutí zdroje (demo ↔ soubor ↔ projekt) se model předchozích dat odloží
+    a obnoví se ten, který k novým datům už byl (jinak se ladění počítalo se starým modelem na nových datech).
+    """
+    prev = ss.get("_fit_src")
+    ss["_fit_src"] = fname
+    if prev is None or prev == fname or (ss.get("fit") or {}).get("key") == "__restore__":
+        return
+    store = ss.setdefault("_fit_by_src", {})
+    if "fit" in ss:
+        store[prev] = dict(fit=ss.pop("fit"), mcode=ss.get("mcode"))
+    saved = store.pop(fname, None)
+    if saved:
+        ss["fit"] = saved["fit"]
+        if saved["mcode"]:
+            ss["mcode"] = saved["mcode"]
 
 
 def render_status(ctx):

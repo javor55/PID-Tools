@@ -211,3 +211,25 @@ def test_legacy_project_v1():
     at.run()
     assert not at.exception
     assert at.session_state["set2_gain"] == pytest.approx(proj["new"]["Gain"])
+
+
+def test_switch_source_keeps_settings():
+    """
+    Demo → Soubor (bez souboru, běh skončí st.stop) → Demo: bez chyb, nastavení i identifikace zůstanou.
+    (Samotné vynulování widgetů nastávalo jen v prohlížeči – AppTest stav nevykreslených widgetů nezahazuje;
+    ověřeno ručně přes Playwright.)
+    """
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["src"] = "demo"
+    at.run()
+    _button(at, "Identify").click().run()
+    before = {k: at.number_input(key=k).value for k in ("pv_hi", "mv_hi", "mvl_hi", "thmax", "samp")}
+    assert all(v > 0 for v in before.values())
+    at.session_state["src"] = "file"
+    at.run()
+    at.session_state["src"] = "demo"
+    at.run()
+    assert not _errors(at)
+    assert {k: at.number_input(key=k).value for k in before} == before
+    assert "fit" in at.session_state            # identifikace dema zůstala

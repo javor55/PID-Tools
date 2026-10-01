@@ -370,6 +370,7 @@ TEXTS = {
     'tgc_proj_report': 'Report je vytvořený',
     'tgc_proj_meta': 'Hlavička reportu je vyplněná (zařízení, autor, stav)',
     'ms_placeholder': 'Vyberte…',
+    'up_kept': 'Používá se dříve nahraný soubor **{f}** – nový nahrajete sem.',
     'time_unit': 'Jednotka číselného času',
     'time_unit_help': 'Použije se, jen když je čas číslo, ne datum.',
     'col_tag': 'Sloupec s názvem tagu',
