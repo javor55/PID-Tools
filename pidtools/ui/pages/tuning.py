@@ -14,6 +14,7 @@ from ..cache import pidconl_sim_full, robustness
 from ..charts import REPORT, mkfig, show, style, tr
 from ..theme import C_MV, C_SET1, C_SET2, C_SP, _c_dist
 from ..widgets import fmt, model_name, notes_text, num, seg, sel, sld
+from . import apc
 
 ss = st.session_state
 
@@ -63,6 +64,7 @@ def render(ctx):
             mcode, p, pdl = model
             st.caption(f"{model_name(mcode)} · " + ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[mcode]["params"], p))
                        + " · " + T("samp_note", s=f"{samp:g}", h=f"{samp / 2:g}"))
+            apc.tuning_hint(ctx)   # odkaz na záložku APC, když by smyčce pomohla pokročilá struktura
             p_eff = list(p[:-1]) + [p[-1] + samp / 2]
             methods = (["SIMC"] + (["iSIMC"] if mcode in ("P1D", "P2D") else []) + ["Lambda", "AMIGO", "OPT"]
                        + (["AVG"] if integ_gain(mcode, p) is not None and mcode != "P0D" else []))

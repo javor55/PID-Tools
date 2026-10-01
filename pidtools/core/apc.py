@@ -129,7 +129,7 @@ def _ext_reset(c, u_sel, ff=0.0):
         return
     a = c.Tc / (c.Ti + c.Tc) if c.use_i else 1.0
     c.I += a * (u_sel - ff - c.I)
-    c.u = c.u_prev = u_sel
+    c.u_prev = u_sel   # rychlost MV se počítá od skutečně použité hodnoty; vlastní návrh výstupu (c.u) zůstává
 
 
 def override_sim(ga, gb, ctrl_a, ctrl_b, h, sp_a, sp_b, select="min", enabled=True, d=None,

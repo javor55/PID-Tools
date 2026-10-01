@@ -13,6 +13,7 @@ from .. import loops
 from ..charts import mkfig, show, style, tr
 from ..theme import C_MV, C_PV, C_SET1, C_SET2, C_SP
 from ..widgets import model_name, num, seg, sld
+from . import apc_guide as guide
 from . import cascade
 
 ss = st.session_state
@@ -30,44 +31,111 @@ def render(ctx):
         st.caption(ctx.block_summary)
         kind = seg(st, T("apc_kind"), KINDS, "cascade", "apc_kind", format_func=lambda x: T("apc_" + x),
                    help=T("h_apc_kind")) or "cascade"
+        if ctx.model is not None:
+            guide.recommendations(recommend(ctx))
         if kind == "cascade":
+            guide.render("cascade", _checks_cascade(ctx), T("g_impl_cascade"))
             cascade.render_body(ctx)
             return
         st.markdown(T("apc_intro_" + kind))
         if ctx.model is None or ctx.set2_ctrl is None:
+            guide.render(kind, [(False, T("g_chk_model", n=loops.name(loops.active())),
+                                 (T("g_btn_model"), guide.goto, (None, "model")))], None)
             st.info(T("need_model"), icon=":material/arrow_back:")
             return
         if kind == "smith":
             _smith_page(ctx)
             return
-        b = _pick_other(ctx, kind)
-        if b is None:
+        other = [i for i in loops.ids() if i != loops.active()]
+        if not other:
+            guide.render(kind, [_chk_model_a(ctx), (False, T("apc_need_loop"),
+                                                    (T("loop_add"), guide.add_loop_and_go, ()))], None)
             return
-        (_decouple_page if kind == "decouple" else _override_page)(ctx, b)
+        names = {i: loops.name(i) for i in other}
+        if ss.get(f"apc_{kind}_b") not in other:  # výchozí druhá smyčka = ta, kterou doporučení navrhuje
+            pref = [it[2] for it in (recommend(ctx)) if it[0] == kind and it[2] in other]
+            ss[f"apc_{kind}_b"] = pref[0] if pref else other[0]
+        bi = st.selectbox(T(f"apc_{kind}_b"), other, format_func=names.get, key=f"apc_{kind}_b",
+                          help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
+        b = loops.loop_data(bi, ctx.fname)
+        if b["model"] is None:
+            guide.render(kind, [_chk_model_a(ctx), (False, T("g_chk_model", n=b["name"]),
+                                                    (T("g_btn_model"), guide.goto, (bi, "model")))], None)
+            return
+        (_decouple_page if kind == "decouple" else _override_page)(ctx, bi, b)
+
+
+def tuning_hint(ctx):
+    """Jednořádkové upozornění v záložce Ladění, když by aktivní smyčce mohla pomoct struktura APC."""
+    items = recommend(ctx)
+    if items:
+        r = st.columns([0.8, 0.2], vertical_alignment="center")
+        r[0].caption(":material/lightbulb: " + T("g_tuning_hint", m=", ".join(dict.fromkeys(T("apc_" + k)
+                                                                                         for k, _, _ in items))))
+        r[1].button(T("g_open", m="APC"), key="g_tuning_apc", on_click=guide.goto,
+                    kwargs=dict(tab="apc", kind=items[0][0], other=items[0][2]), type="tertiary")
+
+
+# ---------------------------------------------------------------- doporučení a kontroly
+def recommend(ctx):
+    """Struktury, které by mohly aktivní smyčce pomoct – podle modelů a vazeb mezi smyčkami projektu."""
+    items = []
+    code, p = ctx.model[0], ctx.model[1]
+    lags = _tchar((code, p)) - p[-1]
+    ratio = p[-1] / max(p[-1] + lags, 1e-9)
+    if ratio >= 0.5 and not MODELS[code]["integ"]:
+        items.append(("smith", T("g_reco_smith", r=f"{ratio:.2f}"), None))
+    a = _active(ctx)
+    for i in loops.ids():
+        if i == loops.active():
+            continue
+        b = loops.loop_data(i, ctx.fname)
+        if b["c_sp"] not in (None, "—") and b["c_sp"] == a["c_mv"]:
+            items.append(("cascade", T("g_reco_cascade", a=a["name"], b=b["name"]), i))
+        if b["c_mv"] == a["c_mv"]:
+            items.append(("override", T("g_reco_override", a=a["name"], b=b["name"], mv=a["c_mv"]), i))
+        if b["model"] is not None and (b["c_mv"] in a["c_d"] or a["c_mv"] in b["c_d"]):
+            xab, xba = _cross_model(a, b), _cross_model(b, a)
+            lam = rga2(a["model"][1][0], xab[0] if xab else 0.0, xba[0] if xba else 0.0, b["model"][1][0])
+            if not np.isfinite(lam) or abs(lam - 1) > 0.2:
+                items.append(("decouple", T("g_reco_decouple", a=a["name"], b=b["name"],
+                                            l="∞" if not np.isfinite(lam) else f"{lam:.2f}"), i))
+    seen, out = set(), []
+    for it in items:
+        if it[:2] not in seen:
+            seen.add(it[:2])
+            out.append(it)
+    return out
+
+
+def _chk_model_a(ctx):
+    return True, T("g_chk_model_ok", n=loops.name(loops.active()), m=model_name(ctx.model[0])), None
+
+
+def _checks_cascade(ctx):
+    if ctx.model is None:
+        return [(False, T("g_chk_model", n=loops.name(loops.active())), (T("g_btn_model"), guide.goto, (None, "model")))]
+    checks = [_chk_model_a(ctx)]
+    others = [(i, loops.loop_data(i, ctx.fname)) for i in loops.ids() if i != loops.active()]
+    with_model = [b["name"] for _, b in others if b["model"] is not None]
+    if with_model:
+        checks.append((True, T("g_chk_cas_inner", n=", ".join(with_model)), None))
+    else:
+        checks.append((None, T("g_chk_cas_noinner"), (T("loop_add"), guide.add_loop_and_go, ())))
+    inner = [b["name"] for _, b in others if b["c_sp"] not in (None, "—") and b["c_sp"] == ctx.c_mv]
+    checks.append((True, T("g_chk_cas_mvsp_ok", mv=ctx.c_mv, n=", ".join(inner)), None) if inner
+                  else (None, T("g_chk_cas_mvsp", mv=ctx.c_mv), None))
+    checks.append((None, T("g_chk_cas_speed"), None))
+    return checks
 
 
 # ---------------------------------------------------------------- společné
 def _active(ctx):
     """Aktivní smyčka ve stejném tvaru jako loops.loop_data."""
     return dict(name=loops.name(loops.active()), model=ctx.model, ctrl=ctx.set2_ctrl, c_mv=ctx.c_mv, c_pv=ctx.c_pv,
+                c_sp=ctx.c_sp,
                 c_d=list(ctx.c_d), pv_rng=(ctx.pv_lo, ctx.pv_hi), mv_rng=(ctx.mv_lo, ctx.mv_hi), u_pv=ctx.u_pv,
                 u_mv=ctx.u_mv)
-
-
-def _pick_other(ctx, kind):
-    """Výběr druhé smyčky projektu (s modelem); bez ní návod, jak ji přidat."""
-    other = [i for i in loops.ids() if i != loops.active()]
-    if not other:
-        st.info(T("apc_need_loop"), icon=":material/add:")
-        return None
-    names = {i: loops.name(i) for i in other}
-    i = st.selectbox(T(f"apc_{kind}_b"), other, format_func=names.get, key=f"apc_{kind}_b",
-                     help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
-    b = loops.loop_data(i, ctx.fname)
-    if b["model"] is None:
-        st.info(T("cas_loop_nomodel", n=b["name"]), icon=":material/info:")
-        return None
-    return b
 
 
 def _eng(rng):
@@ -106,9 +174,28 @@ def _cross_model(x, y):
     return None
 
 
-def _decouple_page(ctx, b):
+def _gain_eng(d_, src, dst):
+    """Zesílení decoupleru v inženýrských jednotkách: ΔMV_dst [j.] / ΔMV_src [j.]."""
+    return d_["gain"] * (dst["mv_rng"][1] - dst["mv_rng"][0]) / (src["mv_rng"][1] - src["mv_rng"][0])
+
+
+def _decouple_page(ctx, bi, b):
     a = _active(ctx)
     xab, xba = _cross_model(a, b), _cross_model(b, a)
+    ga, gb = (a["model"][0], list(a["model"][1])), (b["model"][0], list(b["model"][1]))
+    dab = ff_design(*ga, xab) if xab else None
+    dba = ff_design(*gb, xba) if xba else None
+    checks = [_chk_model_a(ctx), (True, T("g_chk_model_ok", n=b["name"], m=model_name(b["model"][0])), None),
+              (xab is not None, T("g_chk_cross", n=a["name"], mv=b["c_mv"]),
+               (T("g_btn_data", n=a["name"]), guide.goto, (loops.active(), "data"))),
+              (xba is not None, T("g_chk_cross", n=b["name"], mv=a["c_mv"]),
+               (T("g_btn_data", n=b["name"]), guide.goto, (bi, "data"))),
+              (None, T("g_chk_tuned"), None)]
+    impl = T("g_impl_decouple") + "".join(
+        "\n" + T("g_impl_dec_line", src=src["c_mv"], dst=dst["name"], g=f"{_gain_eng(d_, src, dst):.4g}",
+                  lead=f"{d_['lead']:.3g}", lag=f"{d_['lag']:.3g}", dt=f"{d_['delay']:.3g}")
+        for d_, src, dst in ((dab, b, a), (dba, a, b)) if d_)
+    guide.render("decouple", checks, impl)
     if xab is None and xba is None:
         st.warning(T("dec_need_cross", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]),
                    icon=":material/link_off:")
@@ -116,7 +203,6 @@ def _decouple_page(ctx, b):
     if xab is None or xba is None:
         st.caption(T("dec_one_way", x=a["name"] if xab is None else b["name"],
                      mv=b["c_mv"] if xab is None else a["c_mv"]))
-    ga, gb = (a["model"][0], list(a["model"][1])), (b["model"][0], list(b["model"][1]))
 
     # ---- RGA
     lam = rga2(ga[1][0], xab[0] if xab else 0.0, xba[0] if xba else 0.0, gb[1][0])
@@ -126,8 +212,6 @@ def _decouple_page(ctx, b):
         r2.markdown(T(rga_advice(lam), a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]))
 
     # ---- decouplery a scénář
-    dab = ff_design(*ga, xab) if xab else None
-    dba = ff_design(*gb, xba) if xba else None
     c1, c2, c3 = st.columns([1.4, 1, 1], vertical_alignment="bottom")
     dtype = seg(c1, T("dec_type"), ["static", "dyn"], "dyn", "apc_dec_type", format_func=lambda x: T("dec_" + x),
                 help=T("h_dec_type")) or "dyn"
@@ -173,7 +257,7 @@ def _decouple_page(ctx, b):
     for d_, src, dst in ((dab, b, a), (dba, a, b)):
         if d_ is None:
             continue
-        g_eng = d_["gain"] * (dst["mv_rng"][1] - dst["mv_rng"][0]) / (src["mv_rng"][1] - src["mv_rng"][0])
+        g_eng = _gain_eng(d_, src, dst)
         prm.append({T("dec_path"): f"{src['c_mv']} → MV {dst['name']}", T("dec_gain_pct"): round(d_["gain"], 4),
                     T("dec_gain_eng"): round(g_eng, 4), "Lead [s]": round(d_["lead"], 3), "Lag [s]": round(d_["lag"], 3),
                     T("ff_delay"): round(d_["delay"], 3)})
@@ -183,9 +267,15 @@ def _decouple_page(ctx, b):
 
 
 # ---------------------------------------------------------------- override
-def _override_page(ctx, b):
+def _override_page(ctx, bi, b):
     a = _active(ctx)
-    if b["c_mv"] != a["c_mv"]:
+    same = b["c_mv"] == a["c_mv"]
+    checks = [_chk_model_a(ctx), (True, T("g_chk_model_ok", n=b["name"], m=model_name(b["model"][0])), None),
+              (same, T("g_chk_same_mv", a=a["name"], b=b["name"], mv=a["c_mv"]),
+               (T("g_btn_data", n=b["name"]), guide.goto, (bi, "data"))),
+              (None, T("g_chk_ov_dir", b=b["name"]), None), (None, T("g_chk_tuned"), None)]
+    guide_ph = st.container()   # průvodce nahoře, vyplní se až se známou mezí
+    if not same:
         st.warning(T("ov_mv_differs", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]), icon=":material/warning:")
     ga, gb = (a["model"][0], list(a["model"][1])), (b["model"][0], list(b["model"][1]))
     ka, kb = ga[1][0], gb[1][0]
@@ -204,6 +294,9 @@ def _override_page(ctx, b):
                  help=T("h_ov_step"))
     lim = num(T("ov_limit", n=b["name"], u=b["u_pv"] or "PV"), f"apc_ov_lim|{b['name']}|{sel}", lim_def, c3,
               format="%.4g", help=T("h_ov_limit"))
+    with guide_ph:
+        guide.render("override", checks, T("g_impl_override", a=a["name"], b=b["name"], s=T("ov_" + sel),
+                                           lim=f"{lim:.4g}", u=b["u_pv"] or ""))
     ctrl_a, ctrl_b = _clean(a["ctrl"]), _clean(b["ctrl"])
     t_end = 14 * max(_tchar(ga), _tchar(gb)) + 200 * max(ctrl_a["SampleTime"], ctrl_b["SampleTime"])
     h, n, t = _grid(t_end, min(ctrl_a["SampleTime"], ctrl_b["SampleTime"]))
@@ -245,14 +338,26 @@ def _override_page(ctx, b):
 def _smith_page(ctx):
     code, p, _ = ctx.model
     samp = ctx.samp
-    if MODELS[code]["integ"]:
-        st.warning(T("sm_integ"), icon=":material/warning:")
     lags = _tchar((code, p)) - p[-1]
-    st.caption(T("sm_ratio", r=f"{p[-1] / max(p[-1] + lags, 1e-9):.2f}"))
+    ratio = p[-1] / max(p[-1] + lags, 1e-9)
+    integ = MODELS[code]["integ"]
+    tc_key = f"apc_sm_tc|{code}|{p[-1]:.4g}"
+    r_ = tune(code, no_delay(p), "SIMC", ss.get(tc_key) or max(p[-1], 2 * samp, 0.05 * lags),
+              ss.get("apc_sm_ct") or "PI", samp)
+    checks = [_chk_model_a(ctx), (not integ, T("g_chk_sm_integ"), None),
+              (True if ratio >= 0.5 else None, T("g_chk_sm_ratio", r=f"{ratio:.2f}"), None),
+              (None, T("g_chk_sm_model"), None)]
+    t_lag = lags if code != "P2D" else p[1] + p[2]
+    guide.render("smith", checks, T("g_impl_smith", k=f"{p[0]:.4g}", t=f"{t_lag:.4g}", th=f"{p[-1]:.4g}",
+                                    g=f"{r_['Kc']:.4g}", ti=f"{r_['Ti']:.4g}") +
+                 (" " + T("g_impl_smith_p2d", t1=f"{p[1]:.4g}", t2=f"{p[2]:.4g}") if code == "P2D" else ""))
+    if integ:
+        st.warning(T("sm_integ"), icon=":material/warning:")
+    st.caption(T("sm_ratio", r=f"{ratio:.2f}"))
     c1, c2, c3 = st.columns([1, 1.2, 2], vertical_alignment="bottom")
     ctype = seg(c1, T("ctrl_type"), ["PI", "PID"], "PI", "apc_sm_ct") or "PI"
     tc0 = float(max(p[-1], 2 * samp, 0.05 * lags))   # τc = θ: rychlost jako SIMC, ale bez penalizace za zpoždění
-    tc = sld(c3, T("sm_tc"), float(max(0.05 * tc0, 1e-3)), float(10 * tc0), tc0, f"apc_sm_tc|{code}|{p[-1]:.4g}",
+    tc = sld(c3, T("sm_tc"), float(max(0.05 * tc0, 1e-3)), float(10 * tc0), tc0, tc_key,
              help=T("h_sm_tc"))
     st.markdown(f"**{T('sm_err')}**", help=T("h_sm_err"))
     e1, e2, e3 = st.columns(3)

@@ -24,7 +24,7 @@ GLOBAL_KEYS = {
 GLOBAL_PREFIX = ("layout|", "cas_", "apc_")
 # widgety, jejichž hodnotu Streamlit nedovolí zapsat (tlačítka, výběr v grafu/tabulce, editory – ty se obnoví
 # z uložených „…|last“ hodnot); do snímku smyčky se neukládají
-SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|")
+SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|", "g_")
 
 
 def _is_loop_key(k):
@@ -147,7 +147,8 @@ def save_info(ctx, tag_from_pv=""):
     """Souhrn aktivní smyčky na konci běhu (pro přepínač a záložku Kaskáda)."""
     s = _state()
     s["info"][s["active"]] = dict(
-        name=(ss.get("loop_tag") or tag_from_pv or "").strip(), c_pv=ctx.c_pv, c_mv=ctx.c_mv, c_d=list(ctx.c_d),
+        name=(ss.get("loop_tag") or tag_from_pv or "").strip(), c_pv=ctx.c_pv, c_mv=ctx.c_mv, c_sp=ctx.c_sp,
+        c_d=list(ctx.c_d),
         model=ctx.model, set1=ctx.set1_ctrl, set2=ctx.set2_ctrl, samp=ctx.samp,
         pv_rng=(ctx.pv_lo, ctx.pv_hi), mv_rng=(ctx.mv_lo, ctx.mv_hi), u_pv=ctx.u_pv, u_mv=ctx.u_mv)
 
@@ -180,6 +181,7 @@ def loop_data(i, fname):
                                    DiffFbk=g("dfb", True), MV_Lo=0.0, MV_Hi=100.0)
     return dict(name=name(i), model=model_of(i), ctrl=ctrl,
                 c_mv=inf.get("c_mv") or g(f"c_mv|{fname}"), c_pv=inf.get("c_pv") or g(f"c_pv|{fname}"),
+                c_sp=inf.get("c_sp") or g(f"c_sp|{fname}", "—"),
                 c_d=inf.get("c_d") if inf.get("c_d") is not None else list(g(f"c_d|{fname}", []) or []),
                 pv_rng=inf.get("pv_rng") or (g("pv_lo", 0.0), g("pv_hi", 100.0)),
                 mv_rng=inf.get("mv_rng") or (g("mv_lo", 0.0), g("mv_hi", 100.0)),

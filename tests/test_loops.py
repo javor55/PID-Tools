@@ -113,7 +113,21 @@ def test_apc_pages(two_loops):
     at.session_state["apc_kind"] = "decouple"
     at.run()
     assert any(m.label == "RGA λ₁₁" for m in at.metric)
+    assert any("**When to use**" in m.value for m in at.markdown)                 # průvodce
+    assert any("FfwdDisturbCompensat" in m.value for m in at.markdown)          # implementace v APL
+    # smyčky se stejnou MV → doporučení override; tlačítko v záložce Ladění přepne na záložku APC
     at.session_state["apc_kind"] = "cascade"
+    _switcher(at).set_value(2).run()
+    at.session_state["c_mv|demo"], at.session_state["c_d|demo"] = "LIC101.MV", []
+    at.run()
+    _switcher(at).set_value(1).run()
+    _ok(at)
+    hint = next(b for b in at.button if b.key == "g_tuning_apc")
+    hint.click().run()
+    _ok(at)
+    assert at.session_state["main_tab"] == "5 · APC" and at.session_state["apc_kind"] == "override"
+    at.session_state["apc_kind"] = "cascade"
+    at.session_state["main_tab"] = "1 · Data"
     at.run()
 
 
