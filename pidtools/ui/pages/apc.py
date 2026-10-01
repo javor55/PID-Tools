@@ -800,8 +800,8 @@ def _gs_er_tab(ctx):
 
 
 def _k_max(code, p, ctrl, ms_lim=2.0):
-    """Největší násobek zesílení k (krok 0,25), při kterém je smyčka stabilní a Ms ≤ ms_lim."""
-    best = 1.0
+    """Největší násobek zesílení k (krok 0,25), při kterém je smyčka stabilní a Ms ≤ ms_lim (0 = nesplní ani sada sama)."""
+    best = 0.0
     for k in np.arange(1.0, 6.01, 0.25):
         rb = cache.robustness(code, p, dict(ctrl, Gain=k * ctrl["Gain"]))
         if not (rb["stable"] and np.isfinite(rb["Ms"]) and rb["Ms"] <= ms_lim):
@@ -823,13 +823,15 @@ def _gs_er_page(ctx):
         c1, c2, c3 = st.columns(3)
         e_u = num(T("gs_er_E", u=ctx.u_pv or "PV"), "gs_er_E", round(0.05 * PR, 6), c1, min_value=1e-9,
                   format="%.4g", help=T("h_gs_er_E"))
-        k = sld(c2, T("gs_er_k"), 1.0, 6.0, float(min(2.0, kmax)), "gs_er_k", step=0.25, help=T("h_gs_er_k"))
+        k = sld(c2, T("gs_er_k"), 1.0, 6.0, float(min(2.0, max(kmax, 1.0))), "gs_er_k", step=0.25, help=T("h_gs_er_k"))
         rb_k = cache.robustness(code, p, dict(set2, Gain=k * set2["Gain"]))
         ms_k = rb_k["Ms"] if rb_k["stable"] and np.isfinite(rb_k["Ms"]) else np.inf
         c3.metric(T("gs_er_ms"), "∞" if not np.isfinite(ms_k) else f"{ms_k:.2f}",
                   help=T("h_gs_er_ms", k=f"{kmax:.2f}"))
         st.caption(T("gs_er_kmax", k=f"{kmax:.2f}", g=f"{set2['Gain']:.4g}", ti=f"{set2['TI']:.4g}"))
-        if not np.isfinite(ms_k) or ms_k > 2.0:
+        if kmax < 1.0:
+            st.error(T("gs_er_base_bad"), icon=":material/warning:")
+        elif not np.isfinite(ms_k) or ms_k > 2.0:
             st.error(T("gs_er_unstable", k=f"{k:.2f}", m=f"{kmax:.2f}"), icon=":material/warning:")
 
     checks = [_chk_model_a(ctx),

@@ -329,9 +329,13 @@ def render(ctx):
                 st.markdown(f"**{T('robust_title')}**")
                 st.dataframe(tbl, width="stretch")
                 REPORT["tables"].append((T("rep_tab_tuning"), tbl))
+                set1_placeholder = (set1_ctrl["Gain"], set1_ctrl["TI"], set1_ctrl.get("TD", 0.0)) == (1.0, 100.0, 0.0)
                 for nm, r in ((T("set_1"), rc), (T("set_2"), rn)):
                     if not r["stable"]:
-                        st.error(T("err_unstable", n=nm), icon=":material/error:")
+                        if nm == T("set_1") and set1_placeholder:    # výchozí zástupné hodnoty, ne skutečné nastavení
+                            st.info(T("set1_placeholder"), icon=":material/edit:")
+                        else:
+                            st.error(T("err_unstable", n=nm), icon=":material/error:")
                     
             # dopředná vazba se nastavuje v APC › Dopředná vazba; tady jen stav a promítnutí do simulací
             ffd = ffmod.design(mcode, p, pdl)
