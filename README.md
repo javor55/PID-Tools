@@ -24,7 +24,11 @@ methods apply to other industrial controllers as well.
 - **APC structures:** cascade, 2×2 decoupling (RGA, static and lead-lag decouplers from cross-coupling models),
   override / constraint control (MIN/MAX selector with external reset feedback) and Smith predictor with model-error
   sensitivity.
-- **Diagnostics, project files (JSON) and HTML report**, Czech and English UI.
+- **Project files (JSON)** with all loops and optionally data, saved with one click; **autosave in the browser**
+  (IndexedDB) with restore on the start screen.
+- **Tuning protocol (HTML report, print to PDF):** what to set in PCS 7 (original → new), robustness (Ms, GM, PM),
+  expected response of both parameter sets, models and their fit, APC recommendations, sign-off – for all loops.
+- **Diagnostics**, Czech and English UI.
 
 ## 🛠 Running
 Windows: run **`start.bat`**. Otherwise:
@@ -60,6 +64,8 @@ pidtools/
     loops.py               several loops in one project (state snapshots, switching)
     static/                live simulation in the browser (live_engine.js = port of core/simulation.py, live_ui.js)
     guess.py               PV/MV/SP role guessing from tag names
+    report.py              tuning protocol (HTML report)
+    autosave.py            autosave of the project in the browser
     pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
                            apc (cascade, decoupling, override, Smith), project
 tests/                     pytest: core, whole app (AppTest), legacy project file

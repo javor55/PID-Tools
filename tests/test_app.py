@@ -9,6 +9,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from pidtools.core import MODELS
+from pidtools.ui.project import serialize_project
 
 WRAPPER = os.path.join(os.path.dirname(__file__), "_app_wrapper.py")
 TIMEOUT = 900
@@ -101,7 +102,7 @@ def test_live_simulation(app):
     app.session_state["main_tab"] = tabs[3]
     app.run()
     assert not _errors(app)
-    comps = app.main.get("bidi_component")
+    comps = [c for c in app.main.get("bidi_component") if c.key == "live_sim"]
     assert len(comps) == 1
     doc = str(comps[0].proto)
     assert "pidtools_live_sim" in doc and "PIDLive" in doc and "sets" in doc and app.session_state["mcode"] in doc
@@ -156,10 +157,17 @@ def test_other_tabs(app):
 
 
 def test_report_project_roundtrip_and_language(app):
+    app.session_state["main_tab"] = [t.label for t in app.tabs][5]      # Projekt a report
+    app.session_state["rep_plant"], app.session_state["rep_comment"] = "Kotelna <K2>", "a & b"
+    app.run()
     _button(app, "Create report").click().run()
-    assert app.session_state["report_html"].startswith("<!doctype html>")
-    _button(app, "Prepare project").click().run()
-    proj = json.loads(app.session_state["proj_json"])
+    assert not _errors(app)
+    rep = app.session_state["report_html"]
+    assert rep.startswith("<!doctype html>") and "Kotelna &lt;K2&gt;" in rep and "a &amp; b" in rep
+    assert "PIDConL" in rep and "Ms" in rep and "Gain" in rep
+    proj = json.loads(serialize_project(app.session_state["_proj_payload"]))
+    app.session_state["main_tab"] = [t.label for t in app.tabs][0]
+    app.run()
     assert proj["version"] == 2 and proj["data"] and proj["fit"]
 
     at2 = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)

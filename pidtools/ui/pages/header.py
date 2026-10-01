@@ -4,7 +4,7 @@ import streamlit as st
 
 from ...core import demo_data
 from ...i18n import T
-from .. import loops
+from .. import autosave, loops
 from ..dataio import load_table
 from ..project import load_project_file
 from ..widgets import seg, sld
@@ -76,8 +76,11 @@ def render(ctx):
         ctx.status_ph = d3.empty()
         _loop_switcher(d4)
 
+    if ss.pop("autosave_restored", False):
+        st.toast(T("as_restored"), icon=":material/restore:")
     if ctx.df is None:
         ctx.status_ph.caption(T("empty"))
+        autosave.offer_restore()          # rozpracovaná práce uložená v prohlížeči
         st.info(T("empty"), icon=":material/upload_file:")
         st.stop()
 

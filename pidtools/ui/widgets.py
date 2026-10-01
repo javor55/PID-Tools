@@ -4,6 +4,9 @@ Widgety se stavem v `st.session_state`.
 Výchozí hodnota se zapíše do session state jen jednou; widget pak dostává jen klíč. Tím odpadá varování
 Streamlitu o souběhu výchozí hodnoty a session state a hodnoty přežijí přepnutí jazyka i obnovu projektu.
 """
+import functools
+import os
+
 import numpy as np
 import streamlit as st
 
@@ -60,3 +63,28 @@ def notes_text(notes):
 
 def model_name(code):
     return T("model_" + code)
+
+
+# ---- komponenty st.components.v2 (JS přímo na stránce)
+_STATIC = os.path.join(os.path.dirname(__file__), "static")
+_V2 = {}
+
+
+@functools.lru_cache(maxsize=None)
+def static_asset(name):
+    """Obsah souboru z pidtools/ui/static (čte se jednou)."""
+    with open(os.path.join(_STATIC, name), encoding="utf-8") as f:
+        return f.read()
+
+
+def v2_component(name, **kw):
+    """
+    Komponenta v2 zaregistrovaná v aktuálním runtime (každý runtime – i každá instance AppTest – má vlastní registr;
+    opakovaná registrace se stejným názvem by jen vypisovala varování).
+    """
+    from streamlit.components.v2 import get_bidi_component_manager
+    mgr = get_bidi_component_manager()
+    key = (id(mgr), name)
+    if key not in _V2 or mgr.get(name) is None:
+        _V2[key] = st.components.v2.component(name, **kw)
+    return _V2[key]

@@ -5,6 +5,8 @@ import os
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from pidtools.ui.project import serialize_project
+
 WRAPPER = os.path.join(os.path.dirname(__file__), "_app_wrapper.py")
 TIMEOUT = 900
 
@@ -77,8 +79,15 @@ def test_cascade_inner_from_other_loop(two_loops):
 
 def test_project_roundtrip_two_loops(two_loops):
     at, mcode1 = two_loops
-    _button(at, "Prepare project").click().run()
-    proj = json.loads(at.session_state["proj_json"])
+    at.session_state["main_tab"] = [t.label for t in at.tabs][5]
+    at.run()
+    proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
+    _button(at, "Create report").click().run()
+    _ok(at)
+    rep = at.session_state["report_html"]
+    assert "LIC101" in rep and "FIC100" in rep                       # report pokrývá všechny smyčky
+    at.session_state["main_tab"] = [t.label for t in at.tabs][0]
+    at.run()
     assert len(proj["loops"]) == 2 and proj["active"] == 1
     assert [r["tag"] for r in proj["loops"]] == ["LIC101", "FIC100"]
 
