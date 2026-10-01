@@ -122,6 +122,11 @@ Výsledky jsou **návrhem odvozeným z modelu**, který je vždy jen přiblíže
 posuďte, změny zavádějte postupně a ověřte je na zařízení podle pravidel vašeho provozu. Odpovědnost za nasazení
 nese uživatel. Názvy parametrů bloků APL se mohou mezi verzemi knihovny lišit – ověřte je v dokumentaci své verze.
 
+## Licence
+
+[MIT](../../LICENSE) – volné použití, úpravy i sdílení při zachování uvedení autora. Software je poskytován bez
+jakékoli záruky.
+
 ## Pro vývojáře
 
 ```bash

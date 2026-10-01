@@ -126,6 +126,11 @@ parameters before deployment, introduce changes gradually and verify them on the
 The user is responsible for deployment. Parameter names of APL blocks may differ between library versions – check
 them in the documentation of your version.
 
+## License
+
+[MIT](LICENSE) – free to use, modify and share, provided the copyright notice is kept. The software is provided
+without any warranty.
+
 ## For developers
 
 ```bash
