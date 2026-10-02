@@ -3,6 +3,7 @@
 ## Unreleased
 
 **Development**
+- Offline package for Windows contains the desktop application (`PID-Tools-desktop.bat`, PySide6-Essentials).
 - Fix: the gain sign options in the Model tab showed the gain-scheduling button text.
 - Desktop application (preview, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Tuning with the
   scenario and method comparison, model validation and uncertainty, live simulation, APC (cascade, feedforward,

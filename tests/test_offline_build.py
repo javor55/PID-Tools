@@ -16,6 +16,8 @@ def test_launcher_is_ascii():
     b = _builder()
     b.LAUNCHER.replace("\n", "\r\n").encode("ascii")
     assert "python\\python.exe" in b.LAUNCHER and "streamlit run app.py" in b.LAUNCHER
+    b.LAUNCHER_DESKTOP.replace("\n", "\r\n").encode("ascii")
+    assert "pythonw.exe" in b.LAUNCHER_DESKTOP and "-m pidtools.desktop" in b.LAUNCHER_DESKTOP
 
 
 def test_readme_and_app_files():

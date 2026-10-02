@@ -3,6 +3,7 @@
 ## Nevydáno
 
 **Vývoj**
+- Offline balíček pro Windows obsahuje desktopovou aplikaci (`PID-Tools-desktop.bat`, PySide6-Essentials).
 - Oprava: volby znaménka zesílení v záložce Model ukazovaly text tlačítka gain schedulingu.
 - Desktopová aplikace (náhled, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Ladění se
   scénářem a srovnáním metod, validace a nejistota modelu, živá simulace, APC (kaskáda, dopředná vazba,

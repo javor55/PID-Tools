@@ -11,6 +11,7 @@ on:
       - "tools/smoke_test.py"
       - ".github/workflows/offline-package.yml"
       - "requirements.txt"
+      - "requirements-desktop.txt"
 
 permissions:
   contents: write
@@ -32,6 +33,10 @@ jobs:
       - name: Test with the embedded Python
         working-directory: dist/PID-Tools/app
         run: ..\python\python.exe ..\..\..\tools\smoke_test.py
+
+      - name: Desktop launcher path (pidtools importable outside the app folder)
+        working-directory: dist
+        run: PID-Tools\python\python.exe -c "import pidtools.desktop.main, PySide6, pyqtgraph; print('desktop import ok')"
 
       - name: Start the server and check health
         shell: pwsh
@@ -63,5 +68,5 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "PID Tools $GITHUB_REF_NAME" \
-              --notes "Offline package for Windows (x64): unzip and run PID-Tools.bat. See docs/deployment.md."
+              --notes "Offline package for Windows (x64): unzip and run PID-Tools-desktop.bat (window) or PID-Tools.bat (browser). See docs/deployment.md."
           gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-win64-offline.zip --clobber

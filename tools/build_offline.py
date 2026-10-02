@@ -2,12 +2,14 @@
 Build a portable offline package of PID Tools for Windows (x64).
 
 The result is a folder / ZIP with an embedded Python, all libraries and the application. On the target PC it is
-just unzipped (e.g. from a USB stick) and started with PID-Tools.bat – no installation, no admin rights, no internet.
+just unzipped (e.g. from a USB stick) and started with PID-Tools-desktop.bat (window application) or PID-Tools.bat
+(web app in the browser) – no installation, no admin rights, no internet.
 
 Run on a Windows PC with internet access and Python 3.11 (the same minor version as the embedded one):
 
     python tools/build_offline.py            # -> dist/PID-Tools-<version>-win64-offline.zip
     python tools/build_offline.py --no-zip   # folder only (dist/PID-Tools)
+    python tools/build_offline.py --no-desktop   # web app only (smaller, without Qt)
 
 The GitHub workflow .github/workflows/offline-package.yml runs this script on windows-latest.
 """
@@ -40,15 +42,23 @@ start "" /b cmd /c "timeout /t 6 /nobreak >nul & start http://localhost:%PORT%"
 pause
 """
 
+LAUNCHER_DESKTOP = r"""@echo off
+rem PID Tools - desktop application (window, no browser, no network port).
+setlocal
+set PYTHONNOUSERSITE=1
+start "" "%~dp0python\pythonw.exe" -m pidtools.desktop %*
+"""
+
 README_TXT = """PID Tools {version} – offline package for Windows (x64)
 
 1. Copy the whole folder to the target PC (e.g. C:\\Tools\\PID-Tools). The path should not be too long.
-2. Double-click PID-Tools.bat. A console window starts the app and the browser opens http://localhost:8501
-   (if not, open the address manually).
-3. Close the console window to stop the app.
+2. Desktop application: double-click PID-Tools-desktop.bat – a window opens (no browser, no network port).
+   A data file or a project (.json) can be dropped on the .bat file to open it directly.
+3. Web app (same functions in the browser): double-click PID-Tools.bat. A console window starts the app and
+   the browser opens http://localhost:8501 (if not, open the address manually). Close the console to stop it.
 
 No installation, no admin rights and no internet are needed. To uninstall, delete the folder.
-Work in progress is autosaved in the browser; projects (JSON) and reports (HTML) are downloaded to the PC.
+Projects (JSON) are interchangeable between the desktop and the web app.
 Documentation: README.md and the docs folder.
 """
 
@@ -59,7 +69,7 @@ def version():
     return ns["__version__"]
 
 
-def build(out_dir: Path, make_zip: bool):
+def build(out_dir: Path, make_zip: bool, desktop: bool = True):
     pkg = out_dir / "PID-Tools"
     if pkg.exists():
         shutil.rmtree(pkg)
@@ -73,12 +83,15 @@ def build(out_dir: Path, make_zip: bool):
     # embedded Python ignores site-packages unless enabled in the ._pth file
     pth = next(py_dir.glob("python*._pth"))
     lines = [ln for ln in pth.read_text().splitlines() if ln.strip() and ln.strip() != "#import site"]
-    pth.write_text("\n".join(lines + ["Lib\\site-packages", "import site"]) + "\n")
+    # ..\app: pidtools importable from anywhere (python -m pidtools.desktop from the launcher)
+    pth.write_text("\n".join(lines + ["Lib\\site-packages", "..\\app", "import site"]) + "\n")
 
     site = py_dir / "Lib" / "site-packages"
     print("Installing libraries ...")
     cmd = [sys.executable, "-m", "pip", "install", "--no-cache-dir", "--disable-pip-version-check",
            "--target", str(site), "-r", str(ROOT / "requirements.txt")]
+    if desktop:
+        cmd += ["-r", str(ROOT / "requirements-desktop.txt")]
     if os.name != "nt":   # cross-build from Linux/macOS: Windows wheels only (+ Windows-only dependencies)
         cmd += ["--platform", "win_amd64", "--python-version", "3.11", "--implementation", "cp",
                 "--only-binary=:all:", "colorama"]
@@ -99,6 +112,8 @@ def build(out_dir: Path, make_zip: bool):
 
     v = version()
     (pkg / "PID-Tools.bat").write_text(LAUNCHER.replace("\n", "\r\n"), encoding="ascii")
+    if desktop:
+        (pkg / "PID-Tools-desktop.bat").write_text(LAUNCHER_DESKTOP.replace("\n", "\r\n"), encoding="ascii")
     (pkg / "README.txt").write_text(README_TXT.format(version=v).replace("\n", "\r\n"), encoding="utf-8")
 
     if make_zip:
@@ -119,5 +134,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(ROOT / "dist"), help="output directory (default: dist)")
     ap.add_argument("--no-zip", action="store_true", help="build the folder only")
+    ap.add_argument("--no-desktop", action="store_true", help="web app only (without Qt)")
     a = ap.parse_args()
-    build(Path(a.out), not a.no_zip)
+    build(Path(a.out), not a.no_zip, not a.no_desktop)
