@@ -100,7 +100,7 @@ class PIDConL:
         e = _deadband(self.spr - self.yf, self.db, self.dbm)
         self.I = u0 - self._p_term(e) - ff
         self.D = 0.0
-        self.xd_prev = -self.yf if self.dfb else self.spr - self.yf
+        self.xd_prev = -self.yf if self.dfb else e
         self.u = self.u_prev = u0
 
     def set_tuning(self, Gain, TI, TD):
@@ -115,7 +115,7 @@ class PIDConL:
         self.yf = self.apv * self.yf + (1 - self.apv) * y_meas if self.Tpv > 0 else y_meas
         self.spr = sp
         e = _deadband(self.spr - self.yf, self.db, self.dbm)
-        self.xd_prev = -self.yf if self.dfb else self.spr - self.yf
+        self.xd_prev = -self.yf if self.dfb else e
         self.D = 0.0
         self.I = u_man - self._p_term(e) - ff
         self.u = self.u_prev = u_man
@@ -132,7 +132,7 @@ class PIDConL:
                 self.spr = sp
             e = _deadband(self.spr - self.yf, self.db, self.dbm)
             P = self._p_term(e)
-            xd = -self.yf if self.dfb else self.spr - self.yf
+            xd = -self.yf if self.dfb else e      # D z regulační odchylky za deadbandem (DiffToFbk = 0) nebo z −PV
             if self.Td > 0:
                 self.D = self.Tf / (self.Tf + Tc) * self.D + self.Kc * self.Td / (self.Tf + Tc) * (xd - self.xd_prev)
             self.xd_prev = xd

@@ -63,7 +63,7 @@
     this.yf = y; this.spr = sp;
     var e = deadband(this.spr - this.yf, this.db, this.dbm);
     this.I = u0 - this.pTerm(e); this.D = 0;
-    this.xdPrev = this.dfb ? -this.yf : this.spr - this.yf;
+    this.xdPrev = this.dfb ? -this.yf : e;
     this.u = this.uPrev = u0;
   };
   PIDConL.prototype.setTuning = function (Kc, Ti, Td) {      // bez rázu výstupu
@@ -76,7 +76,7 @@
     this.yf = this.Tpv > 0 ? this.apv * this.yf + (1 - this.apv) * y : y;
     this.spr = sp;
     var e = deadband(this.spr - this.yf, this.db, this.dbm);
-    this.xdPrev = this.dfb ? -this.yf : this.spr - this.yf;
+    this.xdPrev = this.dfb ? -this.yf : e;
     this.D = 0;
     this.I = uMan - this.pTerm(e);
     this.u = this.uPrev = uMan;
@@ -93,7 +93,7 @@
       } else this.spr = sp;
       var e = deadband(this.spr - this.yf, this.db, this.dbm);
       var P = this.pTerm(e);
-      var xd = this.dfb ? -this.yf : this.spr - this.yf;
+      var xd = this.dfb ? -this.yf : e;
       if (this.Td > 0) this.D = this.Tf / (this.Tf + Tc) * this.D + this.Kc * this.Td / (this.Tf + Tc) * (xd - this.xdPrev);
       this.xdPrev = xd;
       var inc = this.useI ? this.Kc * Tc / this.Ti * e : 0;

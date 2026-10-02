@@ -153,3 +153,13 @@ def test_settling_time():
     ts = settling_time("P1D", p, dict(Gain=r["Kc"], TI=r["Ti"], TD=0.0, DiffGain=5.0, SampleTime=1.0))
     assert 50 < ts < 400
     assert settling_time("P1D", p, dict(Gain=50.0, TI=10.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)) is None
+
+
+def test_pidconl_d_action_after_deadband():
+    """D složka (DiffToFbk = 0) bere regulační odchylku za deadbandem jako v PIDConL – šum uvnitř pásma MV nehýbe."""
+    from pidtools.core.simulation import PIDConL
+    c = PIDConL(dict(Gain=2.0, TI=50.0, TD=10.0, DiffGain=5.0, SampleTime=1.0, DeadBand=1.0, DbMode="spojité"), 1.0)
+    c.init(50.0, 50.0, 40.0)
+    rng = np.random.default_rng(0)
+    u = [c.step(50.0, 50.0 + rng.uniform(-0.9, 0.9)) for _ in range(50)]
+    assert np.allclose(u, 40.0)
