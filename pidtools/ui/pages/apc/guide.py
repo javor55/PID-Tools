@@ -5,8 +5,8 @@ standardních šablon a bloků knihovny APL.
 """
 import streamlit as st
 
-from ...i18n import T
-from .. import loops
+from ....i18n import T
+from ... import loops
 
 ss = st.session_state
 TAB_KEYS = {"data": "tab1", "model": "tab2", "tuning": "tab3", "live": "tab4_live", "apc": "tab5", "project": "tab6"}

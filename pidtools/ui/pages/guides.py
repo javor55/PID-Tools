@@ -12,7 +12,7 @@ import streamlit as st
 from ...i18n import T
 from .. import loops
 from ..cache import robustness
-from . import apc_guide
+from .apc import guide as apc_guide
 
 ss = st.session_state
 goto = apc_guide.goto

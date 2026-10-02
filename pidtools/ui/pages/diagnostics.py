@@ -10,7 +10,7 @@ from ..cache import local_gains, loop_kpis
 from ..charts import REPORT, show, style, tr
 from ..theme import C_MV, C_PV
 from ..widgets import num, tog
-from . import apc_guide
+from .apc import guide as apc_guide
 
 ss = st.session_state
 
