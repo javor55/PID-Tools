@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ....core import (iae)
 from ....i18n import T
 from ... import cache
 from ... import ff as ffmod
@@ -15,7 +14,7 @@ from ...widgets import num
 from . import guide
 from .recommend import chk_model_a
 from ....app.apc import feedforward as app_ff
-from .common import C_REF, clean, grid
+from .common import C_REF
 
 
 # ---------------------------------------------------------------- dopředná vazba z měřených poruch
@@ -43,7 +42,6 @@ def ff_render(ctx):
     guide.render("ff", checks, T("g_impl_ff"))
 
     # ---- 1. návrh pro každou měřenou poruchu
-    set2 = clean(ctx.set2_ctrl)
     for j, (dn, pdm) in enumerate(zip(names, pdl)):
         k_ = ffmod.keys(j, code, p, pdm)
         g0, tl0, tg0, dl0 = ffmod.defaults(code, p, pdm)
@@ -74,27 +72,16 @@ def ff_render(ctx):
     span = float(np.nanmax(dd) - np.nanmin(dd)) if len(dd) else 1.0
     step = num(T("ff_step", d=names[jsel]), f"ff_step|{jsel}", float(f"{(span / 2 or 1.0):.3g}"), s2, format="%.4g",
                help=T("h_ff_step"))
-    pdm = pdl[jsel]
-    t_end = 12 * (max(p[-1], pdm[2]) + sum(p[1:-1]) + pdm[1]) + 50 * ctx.samp
-    h, n, t = grid(t_end, ctx.samp)
-    dm = [np.where((t >= 0.1 * t_end) & (i == jsel), float(step), 0.0) for i in range(len(pdl))]
-    sp = np.full(n, 50.0)
-    dsel = dict(des[jsel], use=True)
-    variants = [("none", [0.0] * len(pdl), [(0.0, 0.0, 0.0)] * len(pdl), C_REF, "dot"),
-                ("static", *ffmod.to_ctrl([dsel if i == jsel else des[i] for i in range(len(des))], only=jsel,
-                                          dyn=False), C_SET1, "dash"),
-                ("dynamic", *ffmod.to_ctrl([dict(dsel, dyn=True) if i == jsel else des[i] for i in range(len(des))],
-                                           only=jsel, dyn=True), C_SET2, "solid")]
+    t, outs = app_ff.simulate(code, p, pdl, ctx.set2_ctrl, des, jsel, step, ctx.samp, cache.pidconl_sim_full)
+    kp = app_ff.sim_kpis(t, outs, ctx.PR)
     f = mkfig(2, [0.62, 0.38])
     rows = []
-    PRf = ctx.PR / 100
-    for key, ffv, ffl, col, dash in variants:
-        o = cache.pidconl_sim_full(code, p, [list(x) for x in pdl], h, sp, 50.0, 50.0,
-                                   dict(set2, FF=ffv, FF_LL=ffl), dm)
+    for key, col, dash in (("none", C_REF, "dot"), ("static", C_SET1, "dash"), ("dynamic", C_SET2, "solid")):
+        o = outs[key]
         f.add_trace(tr(t, ctx.EP(o["PV"]), T("ff_" + key), col, 1.8, dash), 1, 1)
         f.add_trace(tr(t, ctx.EM(o["MV"]), T("ff_" + key), col, 1.5, dash, show=False), 2, 1)
-        rows.append({T("setting"): T("ff_" + key), T("iae_load"): round(iae(t, sp, o["PV"]) * PRf, 4),
-                     T("ff_maxdev"): float(f"{np.max(np.abs(o['PV'] - 50.0)) * PRf:.4g}")})
+        rows.append({T("setting"): T("ff_" + key), T("iae_load"): round(kp[key]["iae"], 4),
+                     T("ff_maxdev"): float(f"{kp[key]['maxdev']:.4g}")})
     show(style(f, ctx.H, [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_ff"), key="chart_apc_ff", fname="feedforward",
          report=T("apc_ff"))
     st.dataframe(pd.DataFrame(rows), hide_index=True)

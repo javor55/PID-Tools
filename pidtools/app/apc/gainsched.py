@@ -137,3 +137,67 @@ def k_max(code, p, ctrl, ms_lim=2.0, robustness=core.robustness):
             break
         best = float(k)
     return best
+
+
+def simulate_pv(code, pts, base_ctrl, set2, samp, sim=None):
+    """
+    Nelineární proces z pracovních bodů: SP postupně do všech bodů a zpět, v každém úseku porucha na vstupu.
+    Jedna sada (set2) vs. gain scheduling (pts s laděním gain, ti, td). Vrací dict(t, sp, seq, k_seg,
+    fixed = (čas, výsledek), sched = (čas, výsledek), iae = [(z, na, IAE jedna sada, IAE scheduling)] v %·s).
+    """
+    from ...core import gs_sim, iae
+    from .common import clean, grid, tchar
+    sim = sim or gs_sim
+    xs = sorted(q["x"] for q in pts)
+    seq = xs + [xs[0]]
+    tp = max(12 * tchar((code, q["p"])) for q in pts) + 50 * samp
+    h, nn, t = grid(tp * len(seq), samp)
+    k_seg = np.minimum((t // tp).astype(int), len(seq) - 1)
+    sp = np.array(seq)[k_seg]
+    d = np.where((t % tp) >= 0.55 * tp, 5.0, 0.0)
+    rows3 = gs_table(pts)[0]
+    sched = {k: [q[kq] for q in rows3] for k, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
+    plant = [dict(x=q["x"], u=q["u"], p=q["p"]) for q in pts]
+    tf, of = sim(code, plant, clean(set2), None, h, sp, d)
+    ts_, os_ = sim(code, plant, dict(clean(base_ctrl), Gain=sched["gain"][0], TI=sched["ti"][0], TD=sched["td"][0]),
+                   sched, h, sp, d)
+    out = []
+    for i, x in enumerate(seq[1:], start=1):
+        m = k_seg == i
+        out.append((seq[i - 1], x, iae(t[m], sp[m], of["PV"][m]), iae(t[m], sp[m], os_["PV"][m])))
+    return dict(t=t, sp=sp, seq=seq, k_seg=k_seg, fixed=(tf, of), sched=(ts_, os_), iae=out)
+
+
+def simulate_er(code, p, set2, E_pct, k, step_pct, d_mv, samp, sim=None, best_cz=None):
+    """
+    Gain scheduling podle regulační odchylky: skok SP (step_pct %) a pak porucha na vstupu (d_mv %). Jedna sada vs.
+    scheduling podle ER vs. nejlepší řídicí pásmo ConZone. Vrací dict(t, sp, tp, fixed, sched, cz, scan, zone)
+    – průběhy jako (čas, výsledek), zone = výsledek s ConZone nebo None.
+    """
+    from ...core import best_conzone, gs_sim
+    from .common import grid, tchar
+    sim, best_cz = sim or gs_sim, best_cz or best_conzone
+    tp = 15 * tchar((code, p)) + 50 * samp
+    h, nn, t = grid(2 * tp, samp)
+    sp = np.where(t >= 0.05 * tp, 50.0 + step_pct, 50.0)
+    d = np.where(t >= tp, float(d_mv), 0.0)
+    plant = [dict(x=50.0, u=50.0, p=p)]
+    rows = gs_er_table(E_pct, k, set2["Gain"], set2["TI"], set2.get("TD", 0.0))
+    sched = {kk: [q[kq] for q in rows] for kk, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
+    fixed = sim(code, plant, set2, None, h, sp, d)
+    sch = sim(code, plant, set2, sched, h, sp, d, "er")
+    widths = tuple(float(f) * abs(step_pct) for f in (0.15, 0.3, 0.45, 0.6, 0.75, 0.9))
+    cz, scan = best_cz(code, plant, set2, h, sp, d, widths)
+    zone = sim(code, plant, dict(set2, ConZone=cz), None, h, sp, d)[1] if cz else None
+    return dict(t=t, sp=sp, tp=tp, fixed=fixed, sched=sch, cz=cz, scan=scan, zone=zone)
+
+
+def er_kpis(t, sp, tp, o, ctrl, pv_range):
+    """Ukazatele simulace podle ER: IAE skoku SP a poruchy, max. odchylka po poruše [PV], podíl času na limitu MV,
+    ustálení."""
+    from ...core import iae, settled
+    a, b = t < tp, t >= tp
+    f = pv_range / 100
+    sat = np.mean((o["MV"] <= ctrl.get("MV_Lo", 0) + 1e-6) | (o["MV"] >= ctrl.get("MV_Hi", 100) - 1e-6))
+    return dict(iae_sp=float(iae(t[a], sp[a], o["PV"][a]) * f), iae_d=float(iae(t[b], sp[b], o["PV"][b]) * f),
+                maxdev=float(np.max(np.abs(sp[b] - o["PV"][b])) * f), sat=float(sat), settled=bool(settled(t, sp, o["PV"])))

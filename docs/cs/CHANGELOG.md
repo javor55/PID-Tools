@@ -5,7 +5,8 @@
 **Vývoj**
 - Oprava: volby znaménka zesílení v záložce Model ukazovaly text tlačítka gain schedulingu.
 - Desktopová aplikace (náhled, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Ladění se
-  scénářem, projekty zaměnitelné s webovou aplikací, export protokolu.
+  scénářem, živá simulace, APC (kaskáda, dopředná vazba, Smithův prediktor, gain scheduling podle PV a ER),
+  projekty zaměnitelné s webovou aplikací, export protokolu.
 - Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
   desktopové verze pro inženýrské stanice; webová aplikace beze změny.
 - Stránka APC rozdělená na moduly po strukturách.

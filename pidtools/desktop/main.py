@@ -14,7 +14,9 @@ from .. import __version__, i18n
 from ..app.report import SECTIONS, STATUSES
 from ..i18n import T
 from .state import LoopState
+from .tabs.apc import ApcTab
 from .tabs.data import DataTab
+from .tabs.live import LiveTab
 from .tabs.model import ModelTab
 from .tabs.tuning import TuningTab
 
@@ -64,10 +66,13 @@ class MainWindow(QMainWindow):
         h.addAction(a)
         cur = self.tabs.currentIndex() if hasattr(self, "tabs") else 0
         self.tabs = QTabWidget()
-        self.pages = [DataTab(self), ModelTab(self), TuningTab(self)]
-        for p, key in zip(self.pages, ("tab1", "tab2", "tab3")):
+        self.pages = [DataTab(self), ModelTab(self), TuningTab(self), LiveTab(self), ApcTab(self)]
+        for p, key in zip(self.pages, ("tab1", "tab2", "tab3", "tab4_live", "tab5")):
             self.tabs.addTab(p, T(key))
         self.tabs.setCurrentIndex(cur)
+        # živá simulace převezme aktuální sady, když se na ni přepne (úpravy v Ladění ji jinak nerestartují)
+        self.tabs.currentChanged.connect(lambda i: self.pages[i].refresh() if isinstance(self.pages[i], (LiveTab, ApcTab))
+                                         else None)
         self.setCentralWidget(self.tabs)
         self.refresh()
 
@@ -80,7 +85,7 @@ class MainWindow(QMainWindow):
     def refresh(self, skip=None):
         """Překreslí záložky ze stavu (po změně dat, sloupců, úseku, modelu, parametrů)."""
         has = self.state.has_data
-        for i in (1, 2):
+        for i in range(1, self.tabs.count()):
             self.tabs.setTabEnabled(i, has)
         for p in self.pages:
             if p is not skip:

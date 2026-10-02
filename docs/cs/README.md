@@ -67,8 +67,9 @@ pip install -r requirements.txt -r requirements-desktop.txt
 python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.json
 ```
 
-Data, Model a Ladění (včetně simulace scénáře), projekty (stejné soubory JSON jako webová aplikace) a protokol
-z ladění. Živá simulace, APC a více smyček přijdou v dalších krocích.
+Data, Model, Ladění (včetně simulace scénáře), živá simulace a APC (kaskáda, dopředná vazba, Smithův prediktor,
+gain scheduling podle PV a podle regulační odchylky), projekty (stejné soubory JSON jako webová aplikace) a protokol
+z ladění. Více smyček v projektu (rozvazbení, override) a balíček pro Windows přijdou v dalších krocích.
 
 ### Lokálně (Linux / macOS)
 ```bash

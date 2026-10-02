@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ....core import (gs_er_table, iae, settled)
 from ....i18n import T
 from ... import cache
 from ...charts import mkfig, show, style, tr
@@ -14,7 +13,7 @@ from ...widgets import num, sld
 from . import guide
 from .recommend import chk_model_a
 from ....app.apc import gainsched as app_gs
-from .common import C_B, best_cz, clean, gs_frame, grid, gs_sim_c, tchar, ss
+from .common import C_B, best_cz, clean, gs_frame, gs_sim_c, ss
 
 
 # ---------------------------------------------------------------- gain scheduling podle regulační odchylky
@@ -74,19 +73,10 @@ def gs_er_render(ctx):
                   help=T("h_gs_er_spstep"))
     d_mv = num(T("gs_er_d"), "gs_er_d", 10.0, s2, format="%.3g", help=T("h_gs_er_d"))
     step_pct = float(np.clip(sp_step / PR * 100, -45, 45))
-    tp = 15 * tchar((code, p)) + 50 * ctx.samp
-    h, nn, t = grid(2 * tp, ctx.samp)
-    sp = np.where(t >= 0.05 * tp, 50.0 + step_pct, 50.0)
-    d = np.where(t >= tp, float(d_mv), 0.0)
-    plant = [dict(x=50.0, u=50.0, p=p)]
-    e_pct = float(e_u) / PR * 100
-    rows = gs_er_table(e_pct, k, set2["Gain"], set2["TI"], set2.get("TD", 0.0))
-    sched = {kk: [q[kq] for q in rows] for kk, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
-    tf, of = gs_sim_c(code, plant, set2, None, h, sp, d)
-    te, oe = gs_sim_c(code, plant, set2, sched, h, sp, d, "er")
-    widths = tuple(float(f) * abs(step_pct) for f in (0.15, 0.3, 0.45, 0.6, 0.75, 0.9))
-    cz, scan = best_cz(code, plant, set2, h, sp, d, widths)
-    oz = gs_sim_c(code, plant, dict(set2, ConZone=cz), None, h, sp, d)[1] if cz else None
+    sim = app_gs.simulate_er(code, p, set2, float(e_u) / PR * 100, k, step_pct, d_mv, ctx.samp, gs_sim_c, best_cz)
+    t, sp, tp, cz, scan, oz = sim["t"], sim["sp"], sim["tp"], sim["cz"], sim["scan"], sim["zone"]
+    tf, of = sim["fixed"]
+    te, oe = sim["sched"]
     f = mkfig(3, [0.5, 0.27, 0.23])
     f.add_trace(tr(t, E(sp), "SP", C_SP, 1.3, "dash", "hv"), 1, 1)
     f.add_trace(tr(tf, E(of["PV"]), T("gs_fixed"), C_SET1, 1.6, "dot"), 1, 1)
@@ -101,15 +91,13 @@ def gs_er_render(ctx):
     f.add_trace(tr(te, oe["Gain"], T("gs_er_sched"), C_SET2, 1.6, show=False), 3, 1)
     show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gser"), key="chart_apc_gser",
          fname="gainsched_er", report=T("gs_x_er"))
-    a, b = t < tp, t >= tp
     PRf = PR / 100
 
     def kpi(name, o):
-        return {T("setting"): name, T("iae_sp"): round(iae(t[a], sp[a], o["PV"][a]) * PRf, 4),
-                T("iae_load"): round(iae(t[b], sp[b], o["PV"][b]) * PRf, 4),
-                T("gs_er_maxdev"): float(f"{np.max(np.abs(sp[b] - o['PV'][b])) * PRf:.4g}"),
-                T("gs_er_sat"): f"{100 * np.mean((o['MV'] <= set2.get('MV_Lo', 0) + 1e-6) | (o['MV'] >= set2.get('MV_Hi', 100) - 1e-6)):.0f} %",
-                T("gs_er_settled"): "✓" if settled(t, sp, o["PV"]) else "✗"}
+        q = app_gs.er_kpis(t, sp, tp, o, set2, PR)
+        return {T("setting"): name, T("iae_sp"): round(q["iae_sp"], 4), T("iae_load"): round(q["iae_d"], 4),
+                T("gs_er_maxdev"): float(f"{q['maxdev']:.4g}"), T("gs_er_sat"): f"{100 * q['sat']:.0f} %",
+                T("gs_er_settled"): "✓" if q["settled"] else "✗"}
     kp = [kpi(T("gs_fixed"), of), kpi(T("gs_er_sched"), oe)] + ([kpi(T("gs_er_cz"), oz)] if oz is not None else [])
     st.dataframe(pd.DataFrame(kp), hide_index=True)
     if cz:

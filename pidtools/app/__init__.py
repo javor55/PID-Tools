@@ -10,6 +10,7 @@ Moduly:
   loop         – převody jednotek (NormPV / NormMV), konfigurace bloku PIDConL a sad parametrů
   scenario     – scénář simulace: události → průběhy, délka simulace, proces a ventil, ukazatele
   feedforward  – dopředná vazba: výchozí návrh a parametry pro simulaci
+  live         – živá simulace pro frontend, který ji počítá sám (desktop)
   model        – identifikace, přepočet rozsahu, úpravy, hodnocení, validace a nejistota modelu
   tuning       – metody ladění, návrh parametrů, srovnání metod, robustnost sad
   apc          – výpočty pokročilých struktur (doporučení, Smith, gain scheduling, FF, decoupling)

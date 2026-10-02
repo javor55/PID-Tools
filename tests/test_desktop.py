@@ -143,3 +143,48 @@ def test_window_project_and_report(win, tmp_path):
     html = w2.state.report_html(dict(plant="x"), ["tuning"], "cdn")
     assert "<table" in html
     w2.close()
+
+
+def test_live_session_without_qt(state):
+    """Živá simulace (app.live) – dvě sady, změna SP, porucha, ukazatele od poslední události."""
+    from pidtools.app.live import LiveSession
+    s = state
+    sets = {n: {k: v for k, v in s.set_ctrl(n).items() if k not in ("FF", "FF_LL")} for n in (1, 2)}
+    _, _, mv_id, _ = s.segment()
+    ls = LiveSession(s, s.model, sets, 50.0, float(mv_id[0]))
+    ls.advance(100)
+    ls.set_sp(55.0)
+    ls.advance(2000)
+    d = ls.series(2)
+    assert abs(d["PV"][-1] - 55.0) < 0.5 and ls.kpis(2)["iae"] > 0
+    ls.set_dist(d_in_e=5.0)
+    ls.advance(500)
+    assert ls.kpis(1)["maxdev"] > 0
+    ls.set_process(k_fac=1.5)
+    assert ls.t == 0.0
+
+
+def test_window_live_and_apc(win):
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    w.tabs.setCurrentIndex(3)
+    app.processEvents()
+    lv = w.pages[3]
+    for _ in range(5):
+        lv.tick()
+    lv.sp.setValue(55.0)
+    for _ in range(5):
+        lv.tick()
+    assert lv.sess.t > 0 and lv.kpi.rowCount() >= 1
+    w.tabs.setCurrentIndex(4)
+    app.processEvents()
+    apc = w.pages[4]
+    for i in range(len(apc.panels)):
+        apc.tabs.setCurrentIndex(i)
+        app.processEvents()
+    _wait(app)
+    assert apc.panels[2].kpi.rowCount() == 2          # Smith: PID a prediktor
+    assert apc.panels[1].kpi.rowCount() == 3          # dopředná vazba: bez, statická, dynamická

@@ -1,12 +1,10 @@
 """
 APC – Smithův prediktor: volba τc, citlivost na chybu modelu, hodnoty pro šablonu SmithPredictorControl.
 """
-import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ....core import (MODELS, iae, pidconl_sim, tune)
-from ....core.apc import no_delay
+from ....core import (MODELS, pidconl_sim)
 from ....i18n import T
 from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
@@ -14,7 +12,7 @@ from ...widgets import model_name, seg, sld
 from . import guide
 from .recommend import chk_model_a
 from ....app.apc import smith as app_smith
-from .common import clean, grid, smith_sim_c, tchar, ss
+from .common import smith_sim_c, tchar, ss
 
 
 # ---------------------------------------------------------------- Smithův prediktor
@@ -71,25 +69,16 @@ def smith_render(ctx):
     ek = sld(e1, T("sm_err_k"), -50, 50, 0, "apc_sm_ek", format="%d %%")
     et = sld(e2, T("sm_err_t"), -50, 50, 0, "apc_sm_et", format="%d %%")
     eth = sld(e3, T("sm_err_th"), -50, 50, 0, "apc_sm_eth", format="%d %%")
-    plant = list(p)
-    plant[0] *= 1 + ek / 100
-    for i in range(1, len(plant) - 1):
-        plant[i] *= 1 + et / 100
-    plant[-1] *= 1 + eth / 100
-
-    r = tune(code, no_delay(p), "SIMC", tc, ctype, samp)
-    ctrl_s = dict(clean(ctx.base_ctrl), Gain=r["Kc"], TI=r["Ti"] if r["Ti"] > 0 else np.inf, TD=r["Td"])
+    plant = app_smith.plant_error(p, ek, et, eth)
+    sm = app_smith.simulate(code, p, plant, ctx.base_ctrl, ctx.set2_ctrl, ctype, tc, samp, smith_sim_c, pidconl_sim)
+    r = sm["r"]
     k1, k2, k3 = c2.columns(3)
     k1.metric("Gain", f"{r['Kc']:.4g}")
     k2.metric("TI", f"{r['Ti']:.4g}")
     k3.metric("TD", f"{r['Td']:.3g}")
-
-    t_end = 30 * (p[-1] + lags) + 200 * samp
-    h, n, t = grid(t_end, samp)
-    sp = np.where(t >= 0.05 * t_end, 55.0, 50.0)
-    d = np.where(t >= 0.5 * t_end, 5.0, 0.0)
-    tt, o = smith_sim_c(code, plant, list(p), ctrl_s, h, sp, d)
-    tb, _, PVb, MVb = pidconl_sim(code, plant, [], h, sp, 50.0, 50.0, clean(ctx.set2_ctrl), [], d)
+    sp = sm["sp"]
+    tt, o = sm["smith"]
+    tb, PVb, MVb = sm["pid"]
     E, M = ctx.EP, ctx.EM
     f = mkfig(2, [0.62, 0.38])
     f.add_trace(tr(tt, E(sp), "SP", C_SP, 1.3, "dash", "hv"), 1, 1)
@@ -99,13 +88,10 @@ def smith_render(ctx):
     f.add_trace(tr(tt, M(o["MV"]), T("sm_smith"), C_SET2, 1.8, show=False), 2, 1)
     show(style(f, ctx.H, [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_sm"), key="chart_apc_sm", fname="smith",
          report=T("apc_smith"))
-    half = t < 0.5 * t_end
     PR = ctx.PR / 100
     st.dataframe(pd.DataFrame([
-        {T("setting"): T("sm_pid"), T("iae_sp"): round(iae(tb[half], sp[half], PVb[half]) * PR, 4),
-         T("iae_load"): round(iae(tb[~half], sp[~half], PVb[~half]) * PR, 4)},
-        {T("setting"): T("sm_smith"), T("iae_sp"): round(iae(tt[half], sp[half], o["PV"][half]) * PR, 4),
-         T("iae_load"): round(iae(tt[~half], sp[~half], o["PV"][~half]) * PR, 4)}]), hide_index=True)
+        {T("setting"): T("sm_" + k), T("iae_sp"): round(sm["iae"][k][0] * PR, 4), T("iae_load"): round(sm["iae"][k][1] * PR, 4)}
+        for k in ("pid", "smith")]), hide_index=True)
     st.caption(T("sm_help", m=model_name(code)))
 
     # ---- hodnoty do šablony SmithPredictorControl (po volbě τc a typu regulátoru výše)

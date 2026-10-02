@@ -313,10 +313,10 @@ class LiveLoop:
     def set_tuning(self, ctrl):
         self.pid.set_tuning(ctrl["Gain"], ctrl["TI"], ctrl["TD"])
 
-    def advance(self, seconds, sp, auto=True, u_man=None, d_in=0.0):
-        """Posune simulaci o `seconds` sekund (sp, u_man, d_in v % rozsahů)."""
+    def advance(self, seconds, sp, auto=True, u_man=None, d_in=0.0, d_out=0.0):
+        """Posune simulaci o `seconds` sekund (sp, u_man, d_in na vstupu procesu, d_out na PV – vše v % rozsahů)."""
         for _ in range(max(1, int(round(seconds / self.h)))):
-            y = self.pv0 + self.proc.output()
+            y = self.pv0 + self.proc.output() + d_out
             ym = y + (self.rng.normal(0, self.sigma) if self.sigma > 0 else 0.0)
             if auto:
                 u = self.pid.step(sp, ym)

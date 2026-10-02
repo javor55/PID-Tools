@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ....core import (MODELS, gs_issues, gs_table, iae)
+from ....core import (MODELS, gs_issues)
 from ....i18n import T
 from ... import cache
 from ...charts import mkfig, show, style, tr
@@ -14,7 +14,7 @@ from ...widgets import seg, sld
 from . import guide
 from .recommend import chk_model_a, nl_spread
 from ....app.apc import gainsched as app_gs
-from .common import C_PTS, clean, gs_frame, grid, gs_sim_c, tchar, ss
+from .common import C_PTS, clean, gs_frame, gs_sim_c, tchar, ss
 from .gainsched_er import gs_er_render, gs_er_tab
 
 
@@ -206,19 +206,10 @@ def gainsched_render(ctx):
 
     # ---- 4. simulace: jedna sada vs. gain scheduling na nelineárním procesu
     st.markdown(f"#### {T('gs_sim_title')}", help=T("h_gs_sim"))
-    xs = sorted(q["x"] for q in pts)
-    seq = xs + [xs[0]]
-    tp = max(12 * tchar((code, q["p"])) for q in pts) + 50 * ctx.samp
-    h, nn, t = grid(tp * len(seq), ctx.samp)
-    k_seg = np.minimum((t // tp).astype(int), len(seq) - 1)
-    sp = np.array(seq)[k_seg]
-    d = np.where((t % tp) >= 0.55 * tp, 5.0, 0.0)
-    rows3 = gs_table(pts)[0]
-    sched = {k: [q[kq] for q in rows3] for k, kq in (("X", "x"), ("gain", "gain"), ("ti", "ti"), ("td", "td"))}
-    plant = [dict(x=q["x"], u=q["u"], p=q["p"]) for q in pts]
-    tf, of = gs_sim_c(code, plant, set2, None, h, sp, d)
-    ts_, os_ = gs_sim_c(code, plant, dict(clean(ctx.base_ctrl), Gain=sched["gain"][0], TI=sched["ti"][0],
-                                     TD=sched["td"][0]), sched, h, sp, d)
+    sim = app_gs.simulate_pv(code, pts, ctx.base_ctrl, set2, ctx.samp, gs_sim_c)
+    t, sp = sim["t"], sim["sp"]
+    tf, of = sim["fixed"]
+    ts_, os_ = sim["sched"]
     f = mkfig(3, [0.5, 0.27, 0.23])
     f.add_trace(tr(t, E(sp), "SP", C_SP, 1.3, "dash", "hv"), 1, 1)
     f.add_trace(tr(tf, E(of["PV"]), T("gs_fixed"), C_SET1, 1.6, "dot"), 1, 1)
@@ -230,12 +221,8 @@ def gainsched_render(ctx):
     show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gs"), key="chart_apc_gs",
          fname="gainsched", report=T("apc_gainsched"))
     PR = ctx.PR / 100
-    kp = []
-    for i, x in enumerate(seq[1:], start=1):
-        m_ = k_seg == i
-        kp.append({T("gs_step"): f"{E(seq[i - 1]):.4g} → {E(x):.4g}",
-                   T("gs_iae_fixed"): round(iae(t[m_], sp[m_], of["PV"][m_]) * PR, 4),
-                   T("gs_iae_sched"): round(iae(t[m_], sp[m_], os_["PV"][m_]) * PR, 4),
-                   T("gs_ms_fixed"): ms_at.get(x, ("—",))[0], T("gs_ms_sched"): ms_at.get(x, ("—", "—"))[1]})
+    kp = [{T("gs_step"): f"{E(x0):.4g} → {E(x):.4g}", T("gs_iae_fixed"): round(i_f * PR, 4),
+           T("gs_iae_sched"): round(i_s * PR, 4), T("gs_ms_fixed"): ms_at.get(x, ("—",))[0],
+           T("gs_ms_sched"): ms_at.get(x, ("—", "—"))[1]} for x0, x, i_f, i_s in sim["iae"]]
     st.dataframe(pd.DataFrame(kp), hide_index=True)
     st.caption(T("gs_sim_help"))
