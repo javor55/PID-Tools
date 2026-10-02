@@ -1,14 +1,16 @@
 """Záložka Ladění: konfigurace bloku PIDConL, doporučení D, metody ladění, sady parametrů, porovnání metod, FF, simulace scénáře."""
 from contextlib import nullcontext
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ...core import (DIST_PARAMS, MODELS, closed_loop_steps, d_advice, default_tc, integ_gain, mv_noise, overshoot_ratio, tune)
+from ...core import (DIST_PARAMS, MODELS, d_advice, default_tc, tune)
 from ...app import scenario
-from ...app.loop import block_ctrl, rule_ctrl
+from ...app import tuning as tun
+from ...app.loop import block_ctrl, rule_ctrl, set_ctrl
 from ...i18n import T, TEXTS
 from .. import cache
 from .. import ff as ffmod
@@ -91,7 +93,7 @@ def _norm_section(ctx):
 
 def render(ctx):
     """Záložka Ladění: doporučení D, metody, sady parametrů, porovnání metod, dopředná vazba, scénář a simulace."""
-    H, base_ctrl, c_d, d_id, dfb, diffgain, dists, has_sp, model, model_stic, mv_hi, mv_id, mv_lo, propfac, plant, pv_hi, pv_id, pv_lo, pvfilt, samp, sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, ts_id, u_mv, u_pv, unc_models = ctx.H, ctx.base_ctrl, ctx.c_d, ctx.d_id, ctx.dfb, ctx.diffgain, ctx.dists, ctx.has_sp, ctx.model, ctx.model_stic, ctx.mv_hi, ctx.mv_id, ctx.mv_lo, ctx.propfac, ctx.plant, ctx.pv_hi, ctx.pv_id, ctx.pv_lo, ctx.pvfilt, ctx.samp, ctx.sel_mask, ctx.set1_ctrl, ctx.set2_ctrl, ctx.sigma_pv, ctx.sp, ctx.ts_id, ctx.u_mv, ctx.u_pv, ctx.unc_models
+    H, base_ctrl, c_d, d_id, diffgain, dists, has_sp, model, model_stic, mv_hi, mv_id, mv_lo, plant, pv_hi, pv_id, pv_lo, samp, sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, ts_id, u_mv, u_pv, unc_models = ctx.H, ctx.base_ctrl, ctx.c_d, ctx.d_id, ctx.diffgain, ctx.dists, ctx.has_sp, ctx.model, ctx.model_stic, ctx.mv_hi, ctx.mv_id, ctx.mv_lo, ctx.plant, ctx.pv_hi, ctx.pv_id, ctx.pv_lo, ctx.samp, ctx.sel_mask, ctx.set1_ctrl, ctx.set2_ctrl, ctx.sigma_pv, ctx.sp, ctx.ts_id, ctx.u_mv, ctx.u_pv, ctx.unc_models
     EM, EP, MR, PR, lab_mv, lab_pv, lab_t = ctx.EM, ctx.EP, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv, ctx.lab_t
     with ctx.tabs["tuning"]:
         if model is None:
@@ -101,9 +103,8 @@ def render(ctx):
             st.caption(f"{model_name(mcode)} · " + ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[mcode]["params"], p))
                        + " · " + T("samp_note", s=f"{samp:g}", h=f"{samp / 2:g}"))
             apc.tuning_hint(ctx)   # odkaz na záložku APC, když by smyčce pomohla pokročilá struktura
-            p_eff = list(p[:-1]) + [p[-1] + samp / 2]
-            methods = (["SIMC"] + (["iSIMC"] if mcode in ("P1D", "P2D") else []) + ["Lambda", "AMIGO", "OPT"]
-                       + (["AVG"] if integ_gain(mcode, p) is not None and mcode != "P0D" else []))
+            p_eff = tun.p_eff(p, samp)
+            methods = tun.methods(mcode, p)
             mkey = f"method|{mcode}"
             if "pending_tune" in ss:
                 m_, c_, cr_ = ss.pop("pending_tune")
@@ -126,45 +127,13 @@ def render(ctx):
                 if sigma_pv > 0:
                     a2.caption(T("noise_note", s=f"{sigma_pv * PR / 100:.3g}", u=u_pv or "PV"))
 
-            def corner_models():
-                out_ = []
-                for kf in (0.8, 1.2):
-                    for tf_ in (0.8, 1.3):
-                        q = list(p)
-                        q[0] *= kf
-                        q[-1] *= tf_
-                        out_.append(tuple(q))
-                return out_
-
-            robust_set = ()
-            if ss.get("opt_robust"):
-                robust_set = tuple(tuple(q) for q in unc_models[:15]) if unc_models else tuple(corner_models())
+            robust_set = tun.robust_models(p, unc_models, ss.get("opt_robust"))
+            solvers = SimpleNamespace(opt_migo=cache.opt_migo, opt_time=cache.opt_time, opt_scenario=cache.opt_scenario)
 
             def get_sug(meth, ct, tc_=None, avg_=None, ms_=1.6, hf_=None, crit_="MIGO", tgt_="both", ovs_=0.02):
-                if meth == "OPT":
-                    starts = []
-                    for m0 in ("SIMC", "AMIGO"):
-                        r0 = tune(mcode, p, m0, default_tc(mcode, p, samp, m0, ct, diffgain), ct, samp)
-                        starts.append((r0["Kc"], r0["Ti"], r0["Td"]))
-                    mg = cache.opt_migo(mcode, tuple(p), ct, samp, diffgain, ms_, hf_, tuple(starts), robust_set, pvfilt)
-                    if crit_ == "MIGO":
-                        return mg
-                    starts.append((mg["Kc"], mg["Ti"], mg["Td"]))
-                    sb = ss.get("scen_built") if (ss.get("scen_built") or {}).get("mcode") == mcode else None
-                    sp_amp, d_amp = (sb["sp_amp"], sb["d_amp"]) if sb else (5.0, 5.0)
-                    tg_lin = "both" if tgt_ == "scen" else tgt_
-                    lin = cache.opt_time(mcode, tuple(p), ct, samp, diffgain, crit_, tg_lin, ms_, hf_, tuple(starts), robust_set,
-                                      ovs_, propfac, dfb, pvfilt, base_ctrl["MVRate"], sp_amp, d_amp)
-                    if tgt_ != "scen":
-                        return lin
-                    if sb is None:
-                        return dict(lin, notes=lin["notes"] + [("note_scen_missing", {})])
-                    starts.append((lin["Kc"], lin["Ti"], lin["Td"]))
-                    cb = dict(base_ctrl, **sb["plant"])
-                    return cache.opt_scenario(mcode, tuple(p), tuple(tuple(d) for d in pdl), ct, cb, crit_, sb["h"], sb["sp"],
-                                       sb["pv0"], sb["mv0"], tuple(sb["dmeas"]), sb["dmv"], sb["dpv"], ms_, hf_,
-                                       tuple(starts), robust_set, ovs_)
-                return tune(mcode, p, meth, tc_ if tc_ else default_tc(mcode, p, samp, meth, ct, diffgain), ct, samp, avg_)
+                sb = ss.get("scen_built") if (ss.get("scen_built") or {}).get("mcode") == mcode else None
+                return tun.suggest(mcode, p, pdl, base_ctrl, tun.Request(meth, ct, tc_, avg_, ms_, hf_, crit_, tgt_, ovs_),
+                                   robust_set, sb, solvers)
 
             with st.container(border=True):
                 c1, c2 = st.columns([2.6, 1])
@@ -206,8 +175,7 @@ def render(ctx):
                     tc0 = default_tc(mcode, p, samp, method, ctype, diffgain)
                     tc = sld(st, T("tc"), float(max(0.05 * tc0, 1e-3)), float(10 * tc0), float(tc0),
                              f"tc|{mcode}|{method}|{ctype}", help=T("tc_help"))
-            nmax = ss.get("opt_noise", 0.01 * MR)
-            hf_max = (nmax / MR * 100) / sigma_pv if (nmax and sigma_pv > 0) else None  # omezení šumu MV (jen PID)
+            hf_max = tun.hf_max(ss.get("opt_noise", 0.01 * MR), MR, sigma_pv)  # omezení šumu MV (jen PID)
             try:
                 with st.spinner(T("optimizing")) if method == "OPT" else nullcontext():
                     sug = get_sug(method, ctype, tc, avg, ms_max, hf_max, crit, tgt, ovs_lim)
@@ -236,53 +204,23 @@ def render(ctx):
             with st.expander(T("cmp_title"), expanded=False, icon=":material/leaderboard:", key="cmp_open",
                              on_change="rerun") as cmp_exp:
                 if cmp_exp.open:  # porovnání (vč. optimalizací) se počítá až po rozbalení
-                    T_c = p_eff[-1] + (p[1] if mcode in ("P1D", "P2D", "I1D") else 0) + samp
-                    T_cmp = max(25 * T_c, 100 * samp)
-                    h_c = max(samp, T_cmp / 6000)
-                    n_c = int(T_cmp / h_c) + 1
-                    rows, keys = [], []
-                    variants = []
-                    for m_ in methods:
-                        if m_ == "OPT":
-                            variants += [("OPT", c_) for c_ in ("MIGO", "IAE", "ISE", "ITAE", "OVS")]
-                        else:
-                            variants.append((m_, None))
+                    avg_c = (ss.get("avg_dpv", 1) / PR * 100, ss.get("avg_dmv", 1) / MR * 100) if "avg_dpv" in ss else None
+                    req_c = tun.Request(ms=ss.get("opt_ms") or 1.6, hf=hf_max, target=ss.get("opt_target") or "both",
+                                        ovs=(ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100)
                     with st.spinner(T("optimizing")):
-                        for m_, cr_ in variants:
-                            if m_ == "AVG" and "avg_dpv" not in ss:
-                                continue
-                            avg_ = (ss.get("avg_dpv", 1) / PR * 100, ss.get("avg_dmv", 1) / MR * 100) if m_ == "AVG" else None
-                            for ct_ in ("PI", "PID"):
-                                try:
-                                    tg_ = ss.get("opt_target") or "both"
-                                    if tg_ == "scen":
-                                        tg_ = "both"  # optimalizace na scénáři jen pro vybranou metodu (je pomalejší)
-                                    if cr_ == "OVS" and tg_ == "dist":
-                                        tg_ = "sp"  # překmit má smysl hlavně u změny SP
-                                    s_ = get_sug(m_, ct_, None, avg_, ss.get("opt_ms") or 1.6, hf_max, cr_ or "MIGO", tg_,
-                                                 (ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100
-                                                 if cr_ == "OVS" else 0.02)
-                                except Exception:
-                                    continue
-                                if ct_ == "PID" and s_["Td"] <= 0:
-                                    continue  # PID by byl shodný s PI
-                                ctrl_ = dict(base_ctrl, Gain=s_["Kc"], TI=s_["Ti"], TD=s_["Td"], FF=[], DeadBand=0.0,
-                                             MV_Lo=-1e12, MV_Hi=1e12)
-                                rb_ = robustness(mcode, p, ctrl_)
-                                label = T("m_" + m_) + (f" · {T('crit_' + cr_)}" if cr_ else "")
-                                row = {T("col_method"): label, T("ctrl_type"): ct_, "Gain": float(f"{s_['Kc']:.4g}"),
-                                       "TI [s]": float(f"{s_['Ti']:.4g}"), "TD [s]": float(f"{s_['Td']:.4g}"),
-                                       "Ms": round(rb_["Ms"], 2) if rb_["stable"] else None}
-                                e_sp, e_d = closed_loop_steps(mcode, p, ctrl_, h_c, n_c)
-                                ok_ = rb_["stable"] and np.all(np.isfinite(e_sp)) and np.abs(e_sp).max() < 1e3
-                                row[T("iae_load")] = float(f"{np.sum(np.abs(e_d)) * h_c:.4g}") if ok_ else None
-                                row[T("iae_sp")] = float(f"{np.sum(np.abs(e_sp)) * h_c:.4g}") if ok_ else None
-                                row[T("ovs_col")] = round(100 * overshoot_ratio(e_sp), 1) if ok_ else None
-                                row[T("noise_col", u=u_mv or "MV")] = (float(f"{mv_noise(ctrl_, sigma_pv) * MR / 100:.3g}")
-                                                                       if sigma_pv > 0 else None)
-                                row[T("use_col")] = T("use_" + (cr_ or m_))
-                                rows.append(row)
-                                keys.append((m_, ct_, cr_))
+                        cmp_ = tun.compare(mcode, p, pdl, base_ctrl, req_c, avg_c, sigma_pv, robust_set, solvers, robustness)
+                    rows = []
+                    for q in cmp_:
+                        rows.append({T("col_method"): T("m_" + q["method"]) + (f" · {T('crit_' + q['crit'])}" if q["crit"] else ""),
+                                     T("ctrl_type"): q["ctype"], "Gain": float(f"{q['Kc']:.4g}"),
+                                     "TI [s]": float(f"{q['Ti']:.4g}"), "TD [s]": float(f"{q['Td']:.4g}"),
+                                     "Ms": round(q["Ms"], 2) if q["Ms"] is not None else None,
+                                     T("iae_load"): float(f"{q['iae_load']:.4g}") if q["iae_load"] is not None else None,
+                                     T("iae_sp"): float(f"{q['iae_sp']:.4g}") if q["iae_sp"] is not None else None,
+                                     T("ovs_col"): round(q["ovs"], 1) if q["ovs"] is not None else None,
+                                     T("noise_col", u=u_mv or "MV"): (float(f"{q['noise'] * MR / 100:.3g}")
+                                                                      if q["noise"] is not None else None),
+                                     T("use_col"): T("use_" + (q["crit"] or q["method"]))})
                     cdf = pd.DataFrame(rows)
                     ev_c = st.dataframe(cdf, hide_index=True, width="stretch", on_select="rerun", selection_mode="single-row", key=f"cmp|{mcode}",
                                         column_config={"Ms": st.column_config.NumberColumn(format="%.2f"),
@@ -319,25 +257,24 @@ def render(ctx):
                     set2_ti = num("TI [s]", "set2_ti", sug["Ti"], q2[0], min_value=0.0, format="%.5g", help=T("h_ti"))
                     set2_td = num("TD [s]", "set2_td", sug["Td"], q2[1], min_value=0.0, format="%.5g", help=T("h_td"))
                 
-                set1_ctrl = dict(base_ctrl, Gain=set1_gain, TI=set1_ti if set1_ti > 0 else np.inf, TD=set1_td, FF=[])
-                set2_ctrl = dict(base_ctrl, Gain=set2_gain, TI=set2_ti if set2_ti > 0 else np.inf, TD=set2_td, FF=[])
-            
-                rc, rn = robustness(mcode, p, set1_ctrl), robustness(mcode, p, set2_ctrl)
+                set1_ctrl = set_ctrl(base_ctrl, set1_gain, set1_ti, set1_td)
+                set2_ctrl = set_ctrl(base_ctrl, set2_gain, set2_ti, set2_td)
+                rc = tun.set_metrics(mcode, p, set1_ctrl, sigma_pv, unc_models, robustness)
+                rn = tun.set_metrics(mcode, p, set2_ctrl, sigma_pv, unc_models, robustness)
                 ctx.PROG["tune"] = 2 if not rn["stable"] else (0 if rn["Ms"] <= 2.0 else 1)
                 tbl = pd.DataFrame({
                     T("set_1"): [fmt(set1_gain), fmt(set1_ctrl["TI"]), fmt(set1_td), fmt(rc["Ms"], 3), fmt(rc["GM"], 3),
-                                   fmt(rc["PM"], 3), fmt(mv_noise(set1_ctrl, sigma_pv) * MR / 100, 3)],
+                                 fmt(rc["PM"], 3), fmt(rc["noise"] * MR / 100, 3)],
                     T("set_2"): [fmt(set2_gain), fmt(set2_ctrl["TI"]), fmt(set2_td), fmt(rn["Ms"], 3), fmt(rn["GM"], 3),
-                               fmt(rn["PM"], 3), fmt(mv_noise(set2_ctrl, sigma_pv) * MR / 100, 3)]},
+                                 fmt(rn["PM"], 3), fmt(rn["noise"] * MR / 100, 3)]},
                     index=["Gain", "TI [s]", "TD [s]", T("ms"), T("gm"), T("pm"), T("noise_col", u=u_mv or "MV")])
                 if unc_models:
-                    worst = lambda c_: max(robustness(mcode, q, c_)["Ms"] for q in unc_models)
-                    tbl.loc[T("ms_worst")] = [fmt(worst(set1_ctrl), 3), fmt(worst(set2_ctrl), 3)]
+                    tbl.loc[T("ms_worst")] = [fmt(rc["Ms_worst"], 3), fmt(rn["Ms_worst"], 3)]
             
                 st.markdown(f"**{T('robust_title')}**")
                 st.dataframe(tbl, width="stretch")
                 REPORT["tables"].append((T("rep_tab_tuning"), tbl))
-                set1_placeholder = (set1_ctrl["Gain"], set1_ctrl["TI"], set1_ctrl.get("TD", 0.0)) == (1.0, 100.0, 0.0)
+                set1_placeholder = tun.is_placeholder(set1_ctrl["Gain"], set1_ctrl["TI"], set1_ctrl.get("TD", 0.0))
                 for nm, r in ((T("set_1"), rc), (T("set_2"), rn)):
                     if not r["stable"]:
                         if nm == T("set_1") and set1_placeholder:    # výchozí zástupné hodnoty, ne skutečné nastavení

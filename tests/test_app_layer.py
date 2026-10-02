@@ -11,7 +11,9 @@ from pidtools.app import feedforward, loop, project, scenario
 def test_app_layer_has_no_ui_dependency():
     """Jádro, aplikační vrstva a texty se dají použít bez Streamlitu a Qt (desktopový frontend, skripty)."""
     code = ("import sys, pidtools.core, pidtools.i18n, pidtools.app.dataio, pidtools.app.guess, pidtools.app.loop, "
-            "pidtools.app.scenario, pidtools.app.feedforward, pidtools.app.project; "
+            "pidtools.app.scenario, pidtools.app.feedforward, pidtools.app.project, pidtools.app.model, "
+            "pidtools.app.tuning, pidtools.app.apc.recommend, pidtools.app.apc.smith, pidtools.app.apc.gainsched, "
+            "pidtools.app.apc.feedforward, pidtools.app.apc.decouple; "
             "bad = [m for m in ('streamlit', 'plotly', 'PySide6', 'PyQt5') if m in sys.modules]; "
             "print(','.join(bad)); sys.exit(1 if bad else 0)")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
@@ -155,3 +157,57 @@ def test_model_workflow():
     assert vr["stable"] and len(vr["PV"]) == len(t)
     un = mdl.uncertainty([[1.0, 10.0, 2.0], [1.2, 12.0, 2.0], [0.8, 8.0, 2.0]], [1.0, 10.0, 2.0])
     assert un["rel"][2] == pytest.approx(0.0) and un["rel"][0] > 10
+
+
+def test_tuning_suggest_compare_and_sets():
+    from pidtools.app import tuning as tun
+    p = [1.5, 30.0, 4.0]
+    base = dict(SampleTime=1.0, DiffGain=5.0, PropFacSP=1.0, DiffFbk=True, PVFilt=0.0, MVRate=0.0)
+    assert "iSIMC" in tun.methods("P1D", p) and "iSIMC" not in tun.methods("I0D", [0.01, 4.0])
+    s = tun.suggest("P1D", p, [], base, tun.Request("SIMC", "PI"))
+    assert s["Kc"] > 0 and s["Ti"] > 0
+    o = tun.suggest("P1D", p, [], base, tun.Request("OPT", "PI", crit="IAE", target="dist"))
+    m = tun.set_metrics("P1D", p, dict(base, Gain=o["Kc"], TI=o["Ti"], TD=o["Td"]))
+    assert m["stable"] and m["Ms"] <= 1.65
+    o2 = tun.suggest("P1D", p, [], base, tun.Request("OPT", "PI", crit="IAE", target="scen"))
+    assert ("note_scen_missing", {}) in o2["notes"]
+    rows = tun.compare("P1D", p, [], base, tun.Request())
+    assert {r["method"] for r in rows} >= {"SIMC", "AMIGO", "OPT"} and all(r["Ms"] for r in rows)
+    assert len(tun.robust_models(p, [], True)) == 4 and tun.robust_models(p, [], False) == ()
+    assert tun.is_placeholder(1.0, 100.0, 0.0)
+
+
+def test_report_without_ui():
+    """Protokol se sestaví jen z dat smyček (desktop, skripty) – bez Streamlitu."""
+    from pidtools.app import report
+    base = dict(SampleTime=1.0, DiffGain=5.0, MV_Lo=0.0, MV_Hi=100.0)
+    rec = dict(id=1, name="TIC1", active=True, model=("P1D", [1.5, 30.0, 4.0], []), fit=96.0, rng=(0.0, 100.0),
+               ctrl=dict(base, Gain=0.8, TI=30.0, TD=0.0), ctrl1=dict(base, Gain=1.0, TI=100.0, TD=0.0),
+               c_pv="TIC1.PV", c_mv="TIC1.MV", c_sp="—", c_d=[], pv_rng=(0.0, 200.0), mv_rng=(0.0, 100.0),
+               u_pv="°C", u_mv="%")
+    t = np.arange(0, 200.0)
+    md = (t, 100 + 0 * t, 50 + 0 * t, [], 1.0)
+    html_ = report.build_report([rec], dict(plant="Test", status="draft"), report.SECTIONS, "cdn", lambda r: md,
+                                dict(items=[("smith", "Smith?", None)], smith=[("PIDConL", "Gain", 0.5, "–")]))
+    assert html_.startswith("<!doctype html>") and "TIC1" in html_ and "PIDConL" in html_ and "plotly" in html_
+
+
+def test_apc_cascade():
+    from pidtools import core
+    from pidtools.app.apc import cascade as acas
+    inner = acas.manual_inner(1.0, 5.0, 0.0, 1.0)
+    assert inner == ("P1D", [1.0, 5.0, 1.0])
+    si = acas.tune_loop(*inner, "SIMC", "PI", 0.5, 5.0)
+    ictrl = acas.inner_ctrl(si, 5.0, 0.5)
+    t63, tc_eff = acas.inner_response(*inner, ictrl, 0.5)
+    assert 0 < tc_eff < t63 < 60
+    co, p_o = acas.outer_model(("P1D", [2.0, 120.0, 10.0]), tc_eff, inner[1][-1])
+    so = acas.tune_loop(co, p_o, "OPT", "PI", 1.0, 5.0)
+    octrl = dict(Gain=so["Kc"], TI=so["Ti"], TD=so["Td"], DiffGain=5.0, SampleTime=1.0, MV_Lo=0.0, MV_Hi=100.0)
+    ts, oc, ok = acas.simulate(inner, ictrl, ("P1D", [2.0, 120.0, 10.0]), octrl, 1.0, 0.5, p_o, co)
+    assert ok and oc.shape[1] == 5 and acas.separation(None, so, t63) > 1
+    t = np.arange(0, 300.0)
+    mv = 50 + 10.0 * (t >= 20)
+    pv = core.simulate("P1D", [1.0, 5.0, 1.0], t, mv - 50, 1.0) + 50
+    best, errs = acas.fit_inner(t, pv, mv, 1.0)
+    assert best["code"] == "P1D" and best["fit"] > 95

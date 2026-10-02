@@ -11,13 +11,8 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
 
-# ── Barvy stop (grafy) – čitelné na světlém i tmavém pozadí ──────────
-C_PV, C_SP, C_MV = "#1f5fa8", "#9aa5b1", "#c2410c"
-C_MODEL = {"P0D": "#94a3b8", "P1D": "#ea580c", "P2D": "#16a34a", "I0D": "#9333ea", "I1D": "#db2777"}
-C_SET1, C_SET2 = "#64748b", "#15803d"
-C_DIST = ["#0d9488", "#8b5cf6", "#ca8a04", "#64748b"]
-C_EDIT = "#0891b2"
-FONT = "Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+from ..app.plots import (C_DIST, C_EDIT, C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, FONT, _layout,  # noqa: F401
+                         report_template)
 
 
 def _c_dist():
@@ -58,38 +53,12 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 
 
 # ── Šablony grafů ─────────────────────────────────────────────────────
-def _layout(tpl):
-    """Společné rozvržení grafů (bez barev pozadí, písma a mřížky – ty určuje téma)."""
-    tpl.layout.update(
-        font=dict(family=FONT, size=12),
-        margin=dict(l=8, r=8, t=36, b=8),
-        hovermode="x unified", hoversubplots="axis",
-        hoverlabel=dict(font=dict(family=FONT)),
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, bgcolor="rgba(0,0,0,0)"),
-    )
-    tpl.layout.xaxis.update(showspikes=True, spikemode="across", spikesnap="cursor", spikethickness=1,
-                            zeroline=False)
-    tpl.layout.yaxis.update(zeroline=False)
-    return tpl
-
-
 def plotly_template():
     """Šablona grafů v aplikaci: šablona „streamlit“ (barvy doplní prohlížeč podle tématu) + rozvržení."""
     if "pidtuner" not in pio.templates:
         base = pio.templates["streamlit"] if "streamlit" in pio.templates else pio.templates["plotly_white"]
         pio.templates["pidtuner"] = _layout(go.layout.Template(base))
     return pio.templates["pidtuner"]
-
-
-def report_template():
-    """Šablona grafů v HTML reportu (samostatný soubor bez Streamlitu → pevné světlé barvy)."""
-    if "pidtuner_report" not in pio.templates:
-        tpl = _layout(go.layout.Template(pio.templates["plotly_white"]))
-        tpl.layout.update(font=dict(color="#1f2933"), paper_bgcolor="#ffffff", plot_bgcolor="#ffffff")
-        tpl.layout.xaxis.update(gridcolor="#f0f0f0", spikecolor="#94a3b8")
-        tpl.layout.yaxis.update(gridcolor="#f0f0f0")
-        pio.templates["pidtuner_report"] = tpl
-    return pio.templates["pidtuner_report"]
 
 
 def apply_theme():
