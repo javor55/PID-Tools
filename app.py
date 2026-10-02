@@ -11,15 +11,15 @@ from pidtools.i18n import set_lang_provider  # noqa: E402
 from pidtools.ui import autosave, charts, loops  # noqa: E402
 from pidtools.app.guess import loop_tag  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
-from pidtools.ui.pages import (apc, data, diagnostics, guides, header, live, model, project,  # noqa: E402
-                               tuning)
+from pidtools.ui.pages import (apc, audit, data, diagnostics, guides, header, live, model,  # noqa: E402
+                               project, tuning)
 from pidtools.ui.theme import apply_theme  # noqa: E402
 from pidtools.ui.widgets import keep_widget_state  # noqa: E402
 
 set_lang_provider(lambda: st.session_state.get("lang", DEFAULT_LANG))
 
 TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_live"),
-        ("cascade", "tab5"), ("project", "tab6")]
+        ("cascade", "tab5"), ("project", "tab6"), ("audit", "tab7_audit")]
 
 
 def main():
@@ -53,6 +53,7 @@ def main():
     diagnostics.render(ctx)
     apc.render(ctx)
     project.render(ctx)
+    audit.render(ctx)
     loops.save_info(ctx, loop_tag(ctx.c_pv).upper())   # souhrn smyčky pro přepínač a kaskádu
     autosave.save(ctx)                                  # průběžné uložení do prohlížeče
     guides.render_all(ctx)                              # průvodci záložek (s výsledky tohoto běhu)

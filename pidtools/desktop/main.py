@@ -21,6 +21,7 @@ from . import layout
 from .help import HelpWindow, general_markdown, guide_state, tab_markdown
 from .project import Project
 from .tabs.apc import ApcTab
+from .tabs.audit import AuditTab
 from .tabs.data import DataTab
 from .tabs.diagnostics import DiagnosticsTab
 from .tabs.live import LiveTab
@@ -117,8 +118,9 @@ class MainWindow(QMainWindow):
         h.addAction(a)
         cur = self.tabs.currentIndex() if hasattr(self, "tabs") else 0
         self.tabs = QTabWidget()
-        self.pages = [DataTab(self), ModelTab(self), TuningTab(self), LiveTab(self), ApcTab(self), DiagnosticsTab(self)]
-        for p, key in zip(self.pages, ("tab1", "tab2", "tab3", "tab4_live", "tab5", "dk_diag_tab")):
+        self.pages = [DataTab(self), ModelTab(self), TuningTab(self), LiveTab(self), ApcTab(self), DiagnosticsTab(self),
+                      AuditTab(self)]
+        for p, key in zip(self.pages, ("tab1", "tab2", "tab3", "tab4_live", "tab5", "dk_diag_tab", "dk_audit_tab")):
             self.tabs.addTab(p, T(key))
         self.tabs.setCurrentIndex(cur)
         # živá simulace převezme aktuální sady, když se na ni přepne (úpravy v Ladění ji jinak nerestartují)
@@ -159,7 +161,7 @@ class MainWindow(QMainWindow):
         bar.addAction(gd)
 
     # ---- nápověda (samostatné okno, sdílený obsah s webem)
-    TAB_GUIDES = ("data", "model", "tuning", "live", "apc", "diag")
+    TAB_GUIDES = ("data", "model", "tuning", "live", "apc", "diag", "audit")
 
     def help_window(self):
         if getattr(self, "_help", None) is None:

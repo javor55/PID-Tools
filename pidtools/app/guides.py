@@ -14,7 +14,7 @@ import numpy as np
 from ..core import robustness
 from ..i18n import T, TEXTS
 
-TABS = ("data", "model", "tuning", "live", "apc", "project", "diag")
+TABS = ("data", "model", "tuning", "live", "apc", "project", "diag", "audit")
 
 
 @dataclass
@@ -235,7 +235,11 @@ def apc_gs_er(a, ms_k):
             (None, T("g_chk_gser_bumpless"), None)]
 
 
-CHECKS = {"data": _data, "model": _model_checks, "tuning": _tuning, "live": _live, "apc": _apc,
+def _audit(g):
+    return [(True, T("tgc_data_loaded", n=g.n_samples, ts=f"{g.Ts:.3g}"), None)] if g.n_samples else []
+
+
+CHECKS = {"audit": _audit, "data": _data, "model": _model_checks, "tuning": _tuning, "live": _live, "apc": _apc,
           "project": _project, "diag": _diag}
 
 

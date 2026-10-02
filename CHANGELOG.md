@@ -19,7 +19,7 @@
   the optimisation targets the scenario by default; tuning history with return to a set (saved in the project).
 - Desktop charts: cursor with the values of all curves, two measuring cursors (Δt, ΔY), full range, PNG / CSV
   export, copy to clipboard, separate window (second monitor), hiding curves via the legend.
-- Desktop: recent files, drag and drop of data and project files, Ctrl+1…6 tab shortcuts, remembered window size,
+- Desktop: recent files, drag and drop of data and project files, Ctrl+1…7 tab shortcuts, remembered window size,
   keyboard shortcut overview in Help.
 - Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
   desktop version for engineering stations; the web app is unchanged.

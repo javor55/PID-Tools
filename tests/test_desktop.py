@@ -460,3 +460,49 @@ def test_closed_loop_identification_in_desktop():
     assert s.id_closed and not s.identify()
     r = s.fit["res"]["P1D"]
     assert r["method"] == "cl" and r["fit_cl_pv"] > 98 and r["p"][1] == pytest.approx(40, rel=0.06)
+
+
+def _audit_frame():
+    import pandas as pd
+    t = np.arange(0, 7200.0, 1.0)
+    rng = np.random.default_rng(0)
+    osc = 3 * np.sign(np.sin(2 * np.pi * t / 300))
+    return pd.DataFrame({
+        "Time": t, "FIC101.PV": 50 + 2 * np.sin(2 * np.pi * (t - 20) / 300) + rng.normal(0, 0.1, t.size),
+        "FIC101.MV": 40 + osc, "FIC101.SP": 50.0,
+        "TIC200.PV": 70 + 0.8 * np.sin(2 * np.pi * (t - 60) / 300) + rng.normal(0, 0.1, t.size),
+        "TIC200.OP": 55 + 0.5 * np.sin(2 * np.pi * (t - 80) / 300), "TIC200.SP": 70.0,
+        "LIC300.PV": 30 + rng.normal(0, 0.2, t.size), "LIC300.OUT": 20 + 0.01 * t / 72, "LIC300.SP": 30.0})
+
+
+def test_audit_without_qt():
+    from pidtools.app import audit
+    from pidtools.app.dataset import signals
+    s = signals(_audit_frame())
+    loops = audit.propose(s.sigs, s.get)
+    assert [(d.name, d.pv, d.mv, d.sp) for d in loops][1] == ("TIC200", "TIC200.PV", "TIC200.OP", "TIC200.SP")
+    res = audit.analyse(s, loops)
+    assert [r["name"] for r in res][:2] == ["FIC101", "TIC200"] and all(r["ok"] for r in res)
+    assert res[-1]["score"] < res[0]["score"]
+    g = audit.common_oscillations(res)
+    assert len(g) == 1 and set(g[0]["loops"]) == {"FIC101", "TIC200"} and g[0]["period"] == pytest.approx(300, rel=0.05)
+    assert audit.from_records(audit.to_records(loops), s.sigs)[2].mv == "LIC300.OUT"
+
+
+def test_window_audit(win):
+    app, w = win
+    from pidtools.desktop.project import Project
+    w.project = Project()
+    w.project.state.load_frame(_audit_frame(), "plant.csv")
+    w.build()
+    a = w.pages[6]
+    w.tabs.setCurrentIndex(6)
+    app.processEvents()
+    assert a.tab.rowCount() == 3                         # návrh smyček z názvů tagů
+    a.analyse()
+    _wait(app)
+    assert a.rank.rowCount() == 3 and "FIC101" in a.common.text()
+    assert w.state.get("audit_loops")[0]["pv"] == "FIC101.PV"
+    a.tab.selectRow(1)
+    a.open_as_loop()
+    assert len(w.project.loops) == 2 and w.state.c_pv == "TIC200.PV" and w.state.c_mv == "TIC200.OP"

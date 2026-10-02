@@ -57,7 +57,7 @@ def test_identification(app):
     assert app.session_state["mcode"] in MODELS
     fits = [float(m.value.rstrip(" %")) for m in app.metric if m.label.startswith("Fit – identified")]
     assert fits and fits[0] > 95
-    assert len(_main(app)) == 6
+    assert len(_main(app)) == 7
 
 
 @pytest.mark.parametrize("method", ["SIMC", "iSIMC", "Lambda", "AMIGO", "AVG", "OPT"])
@@ -113,6 +113,19 @@ def test_closed_loop_identification_web(app):
     app.run()
     _button(app, "Identify").click().run()
     assert not _errors(app)
+
+
+def test_loop_overview_web(app):
+    """Přehled smyček: návrh smyček z názvů tagů a analýza bez chyb."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][6]
+    app.run()
+    _button(app, "Analyse loops").click().run()
+    assert not _errors(app)
+    res = app.session_state["au_res"]["res"]
+    assert res and res[0]["ok"] and res[0]["name"] == "LIC101"
+    assert app.session_state["audit_loops"][0]["pv"] == "LIC101.PV"
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
+    app.run()
 
 
 def test_validation(app):

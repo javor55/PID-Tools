@@ -50,6 +50,15 @@ class Project:
         self.active = len(self.loops) - 1
         return ls
 
+    def add_loop_with(self, name, pv, mv, sp=None, pos=None):
+        """Smyčka projektu se zadanými sloupci (např. z přehledu smyček)."""
+        ls = self.add_loop()
+        if ls is None:
+            return None
+        ls.set_columns(pv, mv, sp or "—", [], pos or "—")
+        ls.set(loop_tag=name)
+        return ls
+
     def remove_loop(self, i):
         if len(self.loops) > 1:
             del self.loops[i]

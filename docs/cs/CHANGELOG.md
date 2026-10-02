@@ -19,7 +19,7 @@
   stavu cílí na scénář; historie ladění s návratem do sady (ukládá se do projektu).
 - Grafy v desktopu: kurzor s hodnotami všech křivek, dva měřicí kurzory (Δt, ΔY), celý rozsah, export PNG / CSV,
   kopie do schránky, samostatné okno (druhý monitor), skrytí křivky kliknutím na legendu.
-- Desktop: nedávné soubory, přetažení dat a projektů do okna, zkratky Ctrl+1…6 pro záložky, zapamatovaná velikost
+- Desktop: nedávné soubory, přetažení dat a projektů do okna, zkratky Ctrl+1…7 pro záložky, zapamatovaná velikost
   okna, přehled klávesových zkratek v Nápovědě.
 - Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
   desktopové verze pro inženýrské stanice; webová aplikace beze změny.
