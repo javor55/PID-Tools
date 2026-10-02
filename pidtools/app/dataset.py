@@ -127,6 +127,7 @@ def on_grid(s, g, col, zoh=False):
 
 
 DEMO_SET1 = (-2.0, 200.0, 0.0)     # „současné“ parametry ukázkové smyčky (odtokový ventil → záporné zesílení)
+DEMO_DISTS = ["FI100.Pritok"]                     # měřená porucha ukázkových dat
 
 
 def demo_frame():

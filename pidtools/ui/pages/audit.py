@@ -79,7 +79,10 @@ def render(ctx):
                 st.rerun()
         with section(ws.side, T("au_sec_window"), "au_window", expanded=False, icon=":material/date_range:"):
             T_ = float(ctx.t[-1])
-            win = st.slider(T("seg_diag"), 0.0, T_, (0.0, T_), step=float(max(ctx.Ts, T_ / 1000)), key=f"au_win|{ctx.fname}")
+            wkey = f"au_win|{ctx.fname}"
+            if wkey not in ss or not (0.0 <= ss[wkey][0] < ss[wkey][1] <= T_ + 1e-9):
+                ss[wkey] = (0.0, T_)
+            win = st.slider(T("seg_diag"), 0.0, T_, step=float(max(ctx.Ts, T_ / 1000)), key=wkey)
         with section(ws.side, T("au_sec_help"), "au_help", expanded=False, icon=":material/help:"):
             st.markdown(T("au_help"))
         with top:

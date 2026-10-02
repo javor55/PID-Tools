@@ -1,5 +1,6 @@
 """Horní panel: nadpis, projekt, nápověda, nastavení a datová lišta (zdroj dat a souhrn)."""
 import datetime as dt
+import html
 
 import pandas as pd
 import streamlit as st
@@ -113,7 +114,9 @@ def _opc(cont):
     with cont.popover(T("src_opc") + (f" · {od['n']}" if od else ""), icon=":material/lan:", width="stretch",
                       type="secondary" if od else "primary"):
         st.caption(T("opc_intro"))
-        url = st.text_input(T("opc_url"), key="opc_url", value=ss.get("opc_url", "opc.tcp://localhost:4840"))
+        if "opc_url" not in ss:
+            ss["opc_url"] = "opc.tcp://localhost:4840"
+        url = st.text_input(T("opc_url"), key="opc_url")
         c1, c2 = st.columns(2)
         user = c1.text_input(T("opc_user"), key="opc_user")
         pw = c2.text_input(T("opc_pw"), key="opc_pw", type="password")
@@ -187,7 +190,7 @@ def _swap_fit(fname):
 
 def render_status(ctx):
     """Souhrn dat v datové liště (po výběru sloupců a normování)."""
-    tag_txt = ss.get("loop_tag") or ""
+    tag_txt = html.escape(str(ss.get("loop_tag") or ""))   # tag může přijít z cizího projektu
     status = T("status", n=len(ctx.t), ts=f"{ctx.Ts:.3g}", dur=f"{ctx.t[-1]:.0f}", pvr=f"{ctx.pv_lo:g}–{ctx.pv_hi:g}",
                mvr=f"{ctx.mv_lo:g}–{ctx.mv_hi:g}")
     ctx.status_ph.markdown(f"<div class='pid-status' style='margin:0'>{('<b>' + tag_txt + '</b> · ') if tag_txt else ''}"

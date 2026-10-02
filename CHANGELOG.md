@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 
 **Development**
 - Offline package for Windows contains the desktop application (`PID-Tools-desktop.bat`, PySide6-Essentials).
@@ -35,6 +35,8 @@
 - Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
   desktop version for engineering stations; the web app is unchanged.
 - APC page split into one module per structure.
+- Deployment readiness: CI workflow with lint and tests on every push, user-supplied names escaped in HTML
+  output, no Session State warnings in the web, the demo preselects its measured disturbance.
 
 ## 3.0.0 – first release for sharing within a team
 

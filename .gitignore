@@ -12,3 +12,6 @@ cache/
 
 # offline package build
 dist/
+
+# test artefacts
+_smoke.ini

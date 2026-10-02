@@ -1,6 +1,6 @@
 # Změny
 
-## Nevydáno
+## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 
 **Vývoj**
 - Offline balíček pro Windows obsahuje desktopovou aplikaci (`PID-Tools-desktop.bat`, PySide6-Essentials).
@@ -34,6 +34,8 @@
 - Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
   desktopové verze pro inženýrské stanice; webová aplikace beze změny.
 - Stránka APC rozdělená na moduly po strukturách.
+- Připravenost k nasazení: CI s lintem a testy při každém pushi, uživatelské názvy escapované ve výstupu HTML,
+  žádná varování Session State na webu, ukázka předvybírá měřenou poruchu.
 
 ## 3.0.0 – první verze pro sdílení v týmu
 

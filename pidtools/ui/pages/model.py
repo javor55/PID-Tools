@@ -1,4 +1,6 @@
 """Záložka Model: identifikace (neměřené poruchy, znaménko, stikce), úprava a fixace parametrů, hodnocení, ověření, nejistota."""
+import html
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -208,7 +210,8 @@ def render(ctx):
                         st.checkbox(T("fix"), key=f"fx|{mcode}|{i}", help=T("h_fix"))
                 pdl_ed = []
                 for j, dn in enumerate(c_d):
-                    st.markdown(f"<span class='pid-big'>{T('dist_model')}: <b>{dn}</b></span>", unsafe_allow_html=True)
+                    st.markdown(f"<span class='pid-big'>{T('dist_model')}: <b>{html.escape(str(dn))}</b></span>",
+                                unsafe_allow_html=True)
                     cc = st.columns(len(DIST_PARAMS))
                     row_ = []
                     for i, n in enumerate(DIST_PARAMS):

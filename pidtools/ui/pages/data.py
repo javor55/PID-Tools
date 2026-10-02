@@ -13,7 +13,7 @@ from .. import loops
 from ..charts import show
 from ...app.dataio import TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, to_num
 from ...app import segments as segs_mod
-from ...app.dataset import default_layout
+from ...app.dataset import DEMO_DISTS, default_layout
 from ...app.guess import guess_roles
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
@@ -107,6 +107,8 @@ def render_setup(ctx):
                        help=T("h_sp"))
         r4 = st.columns(1) * 2
         d_opts = [s_ for s_ in sigs if s_ not in (ctx.c_pv, ctx.c_mv, ctx.c_sp)]
+        if fname == "demo" and f"c_d|{fname}" not in ss:      # ukázka: měřený přítok jako porucha (jako desktop)
+            ss[f"c_d|{fname}"] = [d_ for d_ in DEMO_DISTS if d_ in d_opts]
         ctx.c_d = r4[0].multiselect(T("col_dist"), d_opts, help=T("col_dist_help"), key=f"c_d|{fname}",
                                     placeholder=T("ms_placeholder"))
         pos_opts = ["—"] + [s_ for s_ in d_opts if s_ not in ctx.c_d]

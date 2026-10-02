@@ -88,7 +88,7 @@ class LoopState(Scaling):
 
     def load_demo(self):
         self.load_frame(ds.demo_frame(), "demo")
-        self.c_d = ["FI100.Pritok"]
+        self.c_d = list(ds.DEMO_DISTS)
         if (self.get("set1_gain"), self.get("set1_ti")) == (1.0, 100.0):
             g, ti, td = ds.DEMO_SET1
             self.set(set1_gain=g, set1_ti=ti, set1_td=td)
