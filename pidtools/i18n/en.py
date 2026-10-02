@@ -1266,4 +1266,13 @@ TEXTS = {
     'dk_gser_sp': 'SP step [{u}]',
     'dk_gser_d': 'Input disturbance [% MV]',
     'dk_gser_kmax': 'Largest stable multiple with Ms ≤ 2: k = {k}',
+    'dk_loop': 'Loop:',
+    'dk_loop_remove': 'Remove loop',
+    'dk_ov_step': 'SP step of the main loop A (its units)',
+    'dk_ov_limit': 'Limit of loop B (its units)',
+    'dk_diag_tab': '6 · Diagnostics',
+    'dk_diag_help': 'Operating data: drag the shaded segment (and the second one for comparison) in the chart.',
+    'dk_diag_valve': 'Oscillation and valve',
+    'dk_model_vs_data': 'Model vs. data',
+    'dk_val_same': 'The segment overlaps the identification segment – choose other data for a real check.',
 }

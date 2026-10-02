@@ -43,7 +43,8 @@ class DataTab(QWidget):
             c.currentIndexChanged.connect(self._cols_changed)
         self.c_d.itemChanged.connect(self._cols_changed)
         for e, k in ((self.u_pv, "u_pv"), (self.u_mv, "u_mv"), (self.tag, "loop_tag")):
-            e.editingFinished.connect(lambda e=e, k=k: (self.s.set(**{k: e.text()}), self.win.refresh(skip=self)))
+            e.editingFinished.connect(lambda e=e, k=k: (self.s.set(**{k: e.text()}), self.win._build_loopbar(),
+                                                        self.win.refresh(skip=self)))
         self._busy = False
 
     def refresh(self):

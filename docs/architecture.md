@@ -37,7 +37,7 @@ port of `core/simulation.py`, checked against it by `tests/test_live_js.py`).
 
 ## Desktop frontend (`pidtools/desktop`)
 
-`state.py` (`LoopState`) holds one loop – data, columns, ranges, identification segment, models, PIDConL block,
+`project.py` (`Project`) holds the loops of a project over one data file; `state.py` (`LoopState`) holds one loop – data, columns, ranges, identification segment, models, PIDConL block,
 parameter sets, scenario – in a `settings` dictionary with the same keys as the web app, so projects are
 interchangeable. It has no Qt dependency and is tested on its own. The windows (`main.py`, `tabs/`) only read and
 change the state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use

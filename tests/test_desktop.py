@@ -186,5 +186,112 @@ def test_window_live_and_apc(win):
         apc.tabs.setCurrentIndex(i)
         app.processEvents()
     _wait(app)
-    assert apc.panels[2].kpi.rowCount() == 2          # Smith: PID a prediktor
+    assert apc.panels[4].kpi.rowCount() == 2          # Smith: PID a prediktor
     assert apc.panels[1].kpi.rowCount() == 3          # dopředná vazba: bez, statická, dynamická
+
+
+def _two_loops():
+    """Dvě provázané smyčky: MV každé působí i na PV té druhé."""
+    import pandas as pd
+    from pidtools import core
+    t = np.arange(0, 3000.0)
+    rng = np.random.default_rng(1)
+    mv1 = 50 + 8.0 * ((t >= 200) & (t < 800)) - 6.0 * ((t >= 1600) & (t < 2200))
+    mv2 = 50 + 7.0 * ((t >= 500) & (t < 1100)) - 5.0 * ((t >= 1900) & (t < 2500))
+    pv1 = 50 + core.simulate("P1D", [1.0, 30.0, 3.0], t, mv1 - 50, 1.0) + \
+        core.simulate("P1D", [0.5, 40.0, 4.0], t, mv2 - 50, 1.0) + rng.normal(0, 0.05, t.size)
+    pv2 = 50 + core.simulate("P1D", [0.8, 25.0, 2.0], t, mv2 - 50, 1.0) + \
+        core.simulate("P1D", [0.4, 35.0, 3.0], t, mv1 - 50, 1.0) + rng.normal(0, 0.05, t.size)
+    return pd.DataFrame({"Time": t, "FIC1.PV": pv1, "FIC1.MV": mv1, "FIC2.PV": pv2, "FIC2.MV": mv2})
+
+
+def test_project_two_loops(tmp_path):
+    from pidtools.app.apc import decouple
+    from pidtools.desktop.project import Project
+    pr = Project()
+    pr.state.load_frame(_two_loops(), "two.csv")
+    pr.state.set_columns("FIC1.PV", "FIC1.MV", "—", ["FIC2.MV"])
+    assert not pr.state.identify()
+    pr.add_loop()
+    assert pr.active == 1 and pr.state.c_pv == "FIC2.PV"        # druhá smyčka si vybere jinou PV
+    pr.state.set_columns("FIC2.PV", "FIC2.MV", "—", ["FIC1.MV"])
+    assert not pr.state.identify()
+    pr.active = 0
+    (i, b), = pr.others()
+    a = dict(pr.state.report_record(), name="FIC1")
+    dz = decouple.design(a, b)
+    assert dz["dab"]["gain"] == pytest.approx(-0.5, abs=0.05) and dz["lam"] == pytest.approx(1 / (1 - 0.25), rel=0.1)
+    p = tmp_path / "two.json"
+    pr.save(p)
+    pr2 = Project()
+    pr2.load(p)
+    assert pr2.names() == ["FIC1.PV", "FIC2.PV"] and all(ls.model for ls in pr2.loops) and pr2.active == 0
+    assert pr2.report_html({}, ["tuning"], "cdn").count("<section class='loop'>") == 2
+
+
+def test_window_two_loops(win):
+    app, w = win
+    from pidtools.desktop.project import Project
+    w.project = Project()
+    w.project.state.load_frame(_two_loops(), "two.csv")
+    w.project.state.set_columns("FIC1.PV", "FIC1.MV", "—", ["FIC2.MV"])
+    w.project.state.identify()
+    w.build()
+    w.add_loop()
+    assert w.loop_combo.count() == 2 and w.project.active == 1
+    w.state.set_columns("FIC2.PV", "FIC2.MV", "—", ["FIC1.MV"])
+    w.state.identify()
+    w.switch_loop(0)
+    w.tabs.setCurrentIndex(4)
+    apc = w.pages[4]
+    apc.tabs.setCurrentIndex(2)          # rozvazbení
+    app.processEvents()
+    assert apc.panels[2].kpi.rowCount() == 3
+    apc.tabs.setCurrentIndex(3)          # override (stejné MV nemají – jen upozornění, simulace proběhne)
+    app.processEvents()
+    w.remove_loop()
+    assert len(w.project.loops) == 1
+
+
+def test_diagnostics_without_qt(state):
+    from pidtools.app import diagnostics as dg
+    s = state
+    g = s.grid
+    k = dg.kpis(s, s.t, s.sp, s.pv, s.mv, g.Ts, 0.0, 100.0, 10.0, g.has_sp)
+    assert k["std_e"] > 0 and k["at_lim"] == 0
+    v = dg.valve(s.sp, s.pv, s.mv, g.Ts, g.has_sp, True)
+    assert not v["osc"]["osc"] and v["verdict"] is None
+    ts, pv, mv, d = s.segment()
+    lg, spread = dg.nonlinearity(s.model, ts, pv, mv, d, g.Ts)
+    assert len(lg) >= 2 and spread < 1.2          # demo je lineární
+
+
+def test_window_validation_and_diagnostics(win):
+    app, w = win
+    w.open_demo()
+    w.state.rng = (0.0, 1800.0)
+    w.state.identify()
+    w.refresh()
+    mt = w.pages[1]
+    w.tabs.setCurrentIndex(1)
+    mt.sub.setCurrentIndex(1)
+    mt.v_from.setValue(1800.0)
+    mt.v_to.setValue(3599.0)
+    app.processEvents()
+    assert "%" in mt.v_res.text()
+    w.tabs.setCurrentIndex(5)
+    app.processEvents()
+    dt = w.pages[5]
+    dt.cmp.setChecked(True)
+    app.processEvents()
+    assert dt.kpi.rowCount() == 7 and dt.kpi.columnCount() == 3 and dt.nl.rowCount() >= 2
+
+
+def test_uncertainty_and_comparison(state):
+    s = state
+    u = s.bootstrap(6)
+    assert len(u["ps"]) == 6 and len(s.unc_models()) == 6
+    m = s.set_metrics(2)
+    assert m["Ms_worst"] is not None and m["Ms_worst"] >= m["Ms"] - 1e-9
+    rows = s.compare_methods()
+    assert {r["method"] for r in rows} >= {"SIMC", "OPT"} and all(r["ctype"] in ("PI", "PID") for r in rows)

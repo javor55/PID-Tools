@@ -5,8 +5,9 @@
 **Development**
 - Fix: the gain sign options in the Model tab showed the gain-scheduling button text.
 - Desktop application (preview, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Tuning with the
-  scenario, live simulation, APC (cascade, feedforward, Smith predictor, gain scheduling by PV and ER), projects
-  interchangeable with the web app, tuning protocol export.
+  scenario and method comparison, model validation and uncertainty, live simulation, APC (cascade, feedforward,
+  decoupling, override, Smith predictor, gain scheduling by PV and ER), operating diagnostics, several loops,
+  projects interchangeable with the web app, tuning protocol export.
 - Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
   desktop version for engineering stations; the web app is unchanged.
 - APC page split into one module per structure.

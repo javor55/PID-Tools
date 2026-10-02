@@ -16,9 +16,15 @@ METHODS = ["SIMC", "AMIGO", "OPT"]
 class CascadePanel(Panel):
     def __init__(self, win):
         super().__init__(win, "cas_intro")
-        self.src = w.combo(["manual", "data"], labels=[T("cas_src_manual"), T("cas_src_data")])
+        self.src = w.combo(["loop", "manual", "data"], labels=[T("cas_src_loop"), T("cas_src_manual"), T("cas_src_data")])
         self.src.currentIndexChanged.connect(self._src_changed)
         self.stack = QStackedWidget()
+        lp = QWidget()
+        self.iloop = w.combo([])
+        self.iloop.currentIndexChanged.connect(self._update)
+        self.iloop_lab = w.note("")
+        lp.setLayout(w.form([(T("cas_iloop"), self.iloop), ("", self.iloop_lab)]))
+        self.stack.addWidget(lp)
         man = QWidget()
         self.k, self.t1, self.t2, self.th = (w.spin(v, lo, 1e9, 4) for v, lo in ((1.0, -1e9), (5.0, 1e-3), (0.0, 0.0),
                                                                                 (1.0, 0.0)))
@@ -60,6 +66,15 @@ class CascadePanel(Panel):
         if s.model is None:
             return
         self._busy = True
+        cur = self.iloop.currentData()
+        self.iloop.clear()
+        for i, rec in self.win.project.others(include_without_model=True):
+            self.iloop.addItem(rec["name"], i)
+        if cur is not None and self.iloop.findData(cur) >= 0:
+            self.iloop.setCurrentIndex(self.iloop.findData(cur))
+        if self.iloop.count() == 0 and self.src.currentData() == "loop":
+            self.src.setCurrentIndex(1)
+            self.stack.setCurrentIndex(1)
         sigs = s.sig.sigs
         for c in (self.ipv, self.imv):
             cur = c.currentData()
@@ -77,6 +92,15 @@ class CascadePanel(Panel):
         self._update()
 
     def _inner(self):
+        if self.src.currentData() == "loop":
+            i = self.iloop.currentData()
+            m = self.win.project.loops[i].model if i is not None else None
+            if m is None:
+                self.iloop_lab.setText(T("cas_loop_nomodel", n=self.iloop.currentText()) if i is not None else "")
+                return None
+            pars = ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[m[0]]["params"], m[1]))
+            self.iloop_lab.setText(T("cas_loop_model", n=self.iloop.currentText(), m=T("model_" + m[0]), p=pars))
+            return m[0], list(m[1])
         if self.src.currentData() == "manual":
             return acas.manual_inner(self.k.value(), self.t1.value(), self.t2.value(), self.th.value())
         if self.inner_fit:

@@ -45,6 +45,7 @@ class LoopState(Scaling):
         self.ff_state = []
         self.scen_rows = None        # události scénáře (app.scenario), None = výchozí
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
+        self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
 
     # ---- nastavení a rozsahy
     def get(self, k, default=None):
@@ -219,6 +220,33 @@ class LoopState(Scaling):
         p, pdl = mdl.clamp(p, pdl)
         return code, p, pdl
 
+    def bootstrap(self, n=15, progress=None):
+        """Nejistota modelu: bootstrap reziduí (n refitů na decimovaných datech)."""
+        from ..core import bootstrap_models
+        code, p, pdl = self.model
+        ts, pv, mv, d = self.segment()
+        k = int(np.ceil(len(ts) / 1500))
+        bs = bootstrap_models(code, ts[::k], pv[::k], mv[::k], self.grid.Ts * k, [x[::k] for x in d],
+                              float(self.get("thmax")), {"p": p, "pdl": pdl}, n=n, progress=progress)
+        self.unc = dict(code=code, key=self.fit_key(), ps=[b["p"] for b in bs])
+        return self.unc
+
+    def unc_models(self):
+        """Varianty modelu z nejistoty (jen pro aktuální model a data)."""
+        m = self.model
+        if m is None or not self.unc or self.unc["code"] != m[0] or self.unc.get("key") != self.fit_key():
+            return []
+        return self.unc["ps"]
+
+    def compare_methods(self):
+        """Srovnání všech metod a kritérií pro PI i PID (app.tuning.compare)."""
+        code, p, pdl = self.model
+        avg = (10.0, 10.0) if "AVG" in tun.methods(code, p) else None
+        req = tun.Request(ms=float(self.get("opt_ms")), target=self.get("opt_target"),
+                          ovs=float(self.get("opt_ovs")) / 100)
+        return tun.compare(code, p, pdl, self.base_ctrl(), req, avg, self.sigma_pv(),
+                           tun.robust_models(p, self.unc_models(), bool(self.get("opt_robust"))))
+
     def evaluate(self):
         code, p, pdl = self.model
         r = self.fit["res"][code]
@@ -259,7 +287,7 @@ class LoopState(Scaling):
 
     def suggest(self, method=None, tc=None, solvers=tun.SOLVERS):
         code, p, pdl = self.model
-        robust = tun.robust_models(p, [], bool(self.get("opt_robust")))
+        robust = tun.robust_models(p, self.unc_models(), bool(self.get("opt_robust")))
         return tun.suggest(code, p, pdl, self.base_ctrl(), self.request(method, tc), robust, None, solvers)
 
     def write_set(self, n, s):
@@ -267,7 +295,7 @@ class LoopState(Scaling):
 
     def set_metrics(self, n):
         code, p, _ = self.model
-        return tun.set_metrics(code, p, self.set_ctrl(n), self.sigma_pv())
+        return tun.set_metrics(code, p, self.set_ctrl(n), self.sigma_pv(), self.unc_models())
 
     def sigma_pv(self):
         try:

@@ -72,9 +72,10 @@ pip install -r requirements.txt -r requirements-desktop.txt
 python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.json
 ```
 
-Data, Model, Tuning (incl. the scenario simulation), live simulation and APC (cascade, feedforward, Smith predictor,
-gain scheduling by PV and by control error), projects (the same JSON files as the web app) and the tuning protocol.
-Several loops in one project (decoupling, override) and the Windows package follow.
+Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,
+feedforward, decoupling, override, Smith predictor, gain scheduling by PV and by control error), operating
+diagnostics, several loops in one project, projects (the same JSON files as the web app) and the tuning protocol.
+A Windows package follows.
 
 ### Locally (Linux / macOS)
 ```bash

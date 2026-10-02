@@ -1,7 +1,7 @@
 """
 Záložka APC v desktopu: doporučení a pokročilé struktury pro aktivní smyčku – kaskáda, dopředná vazba, Smithův
 prediktor, gain scheduling podle PV a podle regulační odchylky. Výpočty jsou v pidtools.app.apc.
-(Rozvazbení a override potřebují druhou smyčku – přijdou s více smyčkami v projektu.)
+Rozvazbení a override pracují s druhou smyčkou projektu (lišta smyček nahoře).
 """
 from PySide6.QtWidgets import QTabWidget, QVBoxLayout, QWidget
 
@@ -9,9 +9,11 @@ from ....app.apc import recommend as reco
 from ....i18n import T
 from ... import widgets as w
 from .cascade import CascadePanel
+from .decouple import DecouplePanel
 from .feedforward import FFPanel
 from .gainsched import GainSchedPanel
 from .gainsched_er import GainSchedErPanel
+from .override import OverridePanel
 from .smith import SmithPanel
 
 
@@ -23,8 +25,10 @@ class ApcTab(QWidget):
         self.reco = w.note("")
         lay.addWidget(w.group(T("dk_apc_reco"), w.form([("", self.reco)])))
         self.tabs = QTabWidget()
-        self.panels = [CascadePanel(win), FFPanel(win), SmithPanel(win), GainSchedPanel(win), GainSchedErPanel(win)]
-        for p, key in zip(self.panels, ("apc_cascade", "apc_ff", "apc_smith", "apc_gainsched", "gs_x_er")):
+        self.panels = [CascadePanel(win), FFPanel(win), DecouplePanel(win), OverridePanel(win), SmithPanel(win),
+                       GainSchedPanel(win), GainSchedErPanel(win)]
+        for p, key in zip(self.panels, ("apc_cascade", "apc_ff", "apc_decouple", "apc_override", "apc_smith",
+                                        "apc_gainsched", "gs_x_er")):
             self.tabs.addTab(p, T(key))
         self.tabs.currentChanged.connect(lambda i: self.panels[i].refresh())
         lay.addWidget(self.tabs, 1)
@@ -38,6 +42,6 @@ class ApcTab(QWidget):
         g = s.grid
         ts, pv, mv, d = s.segment()
         spread = reco.nl_spread(s.model[0], s.model[1], s.model[2], ts, pv, mv, d, g.Ts)
-        items = reco.recommend(rec, [], spread, any(x.get("use") for x in s.ff_state))
+        items = reco.recommend(rec, self.win.project.others(), spread, any(x.get("use") for x in s.ff_state))
         self.reco.setText("  \n".join("💡 " + txt for _, txt, _ in items) or T("dk_apc_none"))
         self.panels[self.tabs.currentIndex()].refresh()

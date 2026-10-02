@@ -5,7 +5,7 @@ srovnání modelů, výběr modelu pro ladění, úprava parametrů a graf model
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSplitter,
-                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+                               QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from ...app import model as mdl
 from ...core import DIST_PARAMS, MODELS
@@ -91,10 +91,21 @@ class ModelTab(QWidget):
         left.addWidget(w.group(T("model_for_tuning"), w.form([("", self.mcode)])))
         left.addWidget(w.group(T("dk_params"), w.form([("", self.params), ("", b_reset)])))
         left.addWidget(self.fit_lab)
+        self.unc_n = w.spin(15, 5, 50, 0, 1)
+        self.b_unc = QPushButton(T("unc_run"))
+        self.b_unc.clicked.connect(self._bootstrap)
+        self.unc_tab = w.table([], [])
+        self.unc_tab.setMaximumHeight(130)
+        left.addWidget(w.group(T("unc_title"), w.form([(T("unc_n"), w.hbox(self.unc_n, self.b_unc)),
+                                                      ("", self.unc_tab)])))
         left.addStretch(1)
         bl.addLayout(left, 1)
         self.fit_chart, self.fit_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.65, 0.35))
-        bl.addWidget(self.fit_chart, 2)
+        self.sub = QTabWidget()
+        self.sub.addTab(self.fit_chart, T("dk_model_vs_data"))
+        self.sub.addTab(self._validation_page(), T("val_title"))
+        self.sub.currentChanged.connect(lambda i: self._validate() if i == 1 else None)
+        bl.addWidget(self.sub, 2)
         split.addWidget(bot)
         split.setSizes([300, 260, 320])
 
@@ -175,6 +186,8 @@ class ModelTab(QWidget):
             self._busy = False
         self._fill_params()
         self._draw_fit()
+        self._show_unc()
+        self._validate()
 
     def _fill_params(self):
         s = self.s
@@ -196,6 +209,33 @@ class ModelTab(QWidget):
         finally:
             self._busy = False
 
+    def _bootstrap(self):
+        s = self.s
+        if s.model is None:
+            return
+        self.b_unc.setEnabled(False)
+        n = int(self.unc_n.value())
+
+        def done(_):
+            self.b_unc.setEnabled(True)
+            self.win.status("")
+            self.win.refresh()
+        w.run_task(lambda prog: s.bootstrap(n, progress=lambda f: prog(f)), done,
+                   lambda e: (self.b_unc.setEnabled(True), self.win.error(T(e))),
+                   lambda f, _t: self.win.status(f"{T('unc_running')} {100 * f:.0f} %"))
+
+    def _show_unc(self):
+        s = self.s
+        ps = s.unc_models()
+        if not ps or s.model is None:
+            w.fill(self.unc_tab, [""], [])
+            return
+        code, p, _ = s.model
+        un = mdl.uncertainty(ps, p)
+        w.fill(self.unc_tab, ["", T("unc_nominal"), T("unc_p05"), T("unc_p95"), T("unc_rel")],
+               [[n, p[i], un["p05"][i], un["p95"][i], f"± {un['rel'][i]:.0f} %"]
+                for i, n in enumerate(MODELS[code]["params"])])
+
     def _draw_fit(self):
         for p in self.fit_plots:
             p.clear()
@@ -212,6 +252,75 @@ class ModelTab(QWidget):
         mm = ev["metrics"]
         self.fit_lab.setText(f"**{T('fit_edit')}: {ev['fit']:.1f} %** · NRMSE {mm['NRMSE']:.2f} % · "
                              f"{T('col_status')}: {T('st_' + str(mm['status']))}")
+
+    # ---- validace na jiném úseku
+    def _validation_page(self):
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        self.v_from, self.v_to = w.spin(0.0, 0, 1e9, 1), w.spin(0.0, 0, 1e9, 1)
+        self.v_mode = w.combo(["pred", "cl"], labels=[T("val_pred"), T("val_cl")])
+        self.v_which = w.combo(["cur", "new"], labels=[T("val_cur"), T("val_new")])
+        self.v_res = w.note("")
+        for c in (self.v_from, self.v_to):
+            c.valueChanged.connect(self._validate)
+        for c in (self.v_mode, self.v_which):
+            c.currentIndexChanged.connect(self._validate)
+        lay.addLayout(w.hbox(QLabel(T("dk_from")), self.v_from, QLabel(T("dk_to")), self.v_to, QLabel(T("val_mode")),
+                             self.v_mode, QLabel(T("val_params")), self.v_which))
+        lay.addWidget(self.v_res)
+        self.v_chart, self.v_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.62, 0.38))
+        lay.addWidget(self.v_chart, 1)
+        return page
+
+    def _validate(self, *_):
+        s = self.s
+        if self._busy or s.model is None or self.sub.currentIndex() != 1:
+            return
+        t = s.t
+        if self.v_to.value() <= self.v_from.value():          # výchozí: celý záznam
+            self._busy = True
+            for sp in (self.v_from, self.v_to):
+                sp.setRange(0, float(t[-1]))
+            self.v_from.setValue(0.0)
+            self.v_to.setValue(float(t[-1]))
+            self._busy = False
+        rv = (self.v_from.value(), self.v_to.value())
+        sv, tv = mdl.segment(t, rv)
+        for p in self.v_plots:
+            p.clear()
+        if len(tv) < 20:
+            self.v_res.setText(T("err_short"))
+            return
+        code, p, pdl = s.model
+        r = s.fit["res"][code]
+        stic = r.get("stic", 0.0) or 0.0
+        g = s.grid
+        tt = t[sv]
+        w.line(self.v_plots[0], tt, g.pv_e[sv], T("measured"), w.C_PV, 1.2)
+        w.line(self.v_plots[1], tt, g.mv_e[sv], f"MV {T('measured')}", w.C_MV, 1.4)
+        if self.v_mode.currentData() == "pred":
+            from ...core import predict
+            yv, fv = predict(code, p, pdl, tv, s.pv[sv], s.mv[sv], [d[sv] for d in g.dists], g.Ts, stic)
+            w.line(self.v_plots[0], tt, s.EP(yv), T("prediction"), "#ea580c", 2.0)
+            same = mdl.overlap(rv, s.rng) > 0.5
+            self.v_res.setText(f"**{T('fit_pred')}: {fv:.1f} %**" + ("  \n" + T("dk_val_same") if same else ""))
+            return
+        if not g.has_sp:
+            self.v_res.setText(T("need_sp"))
+            return
+        which = self.v_which.currentData()
+        ctrl = dict(s.set_ctrl(1 if which == "cur" else 2), Stic=stic)
+        vr = mdl.validate_cl(code, p, pdl, ctrl, tv, s.sp[sv], s.pv[sv], s.mv[sv], [d[sv] for d in g.dists], g.Ts,
+                             float(s.get("samp")))
+        if not vr["stable"]:
+            self.v_res.setText(T("err_sim_unstable", n=T("val_" + which)))
+            return
+        col = w.C_SET2 if which == "new" else w.C_SET1
+        w.line(self.v_plots[0], tt, g.sp_e[sv], "SP", w.C_SP, 1.2, dash=True)
+        w.line(self.v_plots[0], tt[0] + vr["t"], s.EP(vr["PV"]), T("simulated"), col, 2.0)
+        w.line(self.v_plots[1], tt[0] + vr["t"], s.EM(vr["MV"]), f"MV {T('simulated')}", col, 1.8)
+        self.v_res.setText(f"**{T('fit_pv')}: {vr['fit_pv']:.1f} %** · {T('fit_mv')}: {vr['fit_mv']:.1f} %  \n"
+                           + T("val_cl_help") if which == "cur" else T("val_cl_help"))
 
     # ---- akce
     def _region_moved(self):

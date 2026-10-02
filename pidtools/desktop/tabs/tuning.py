@@ -3,8 +3,8 @@ Záložka Ladění: blok PIDConL (rozsahy NormPV / NormMV, SampleTime, DiffGain,
 metoda a návrh (optimalizace na pozadí), sady 1 a 2, robustnost a simulace scénáře.
 """
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSplitter,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QDialog, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+                               QSplitter, QTableWidget, QVBoxLayout, QWidget)
 
 from ...core import default_tc
 from ...i18n import T
@@ -68,7 +68,12 @@ class TuningTab(QWidget):
         box.addLayout(mg)
         box.addWidget(self.desc)
         box.addWidget(self.sug)
-        box.addLayout(w.hbox(self.b_s1, self.b_s2))
+        self.robust = QCheckBox(T("opt_robust"))
+        self.robust.toggled.connect(self._robust_toggled)
+        self.b_cmp = QPushButton(T("cmp_title"))
+        self.b_cmp.clicked.connect(self._compare)
+        box.addWidget(self.robust)
+        box.addLayout(w.hbox(self.b_s1, self.b_s2, self.b_cmp))
         ll.addWidget(w.group(T("calc_title"), box))
         for c in (self.method, self.ctype, self.crit, self.target):
             c.currentIndexChanged.connect(self._method_changed)
@@ -132,6 +137,7 @@ class TuningTab(QWidget):
                     v = s.mv_lo if k == "mvl_lo" else s.mv_hi
                 sp.setValue(float(v))
             self.dfb.setChecked(bool(s.get("dfb")))
+            self.robust.setChecked(bool(s.get("opt_robust")))
             for (n, k), sp in self.sets.items():
                 sp.setValue(float(s.get(f"set{n}_{k}")))
             if s.model is not None:
@@ -219,6 +225,24 @@ class TuningTab(QWidget):
             self.s.write_set(n, self._last)
             self.win.refresh()
 
+    def _robust_toggled(self, on):
+        if not self._busy:
+            self.s.set(opt_robust=on)
+            self._compute()
+
+    def _compare(self):
+        s = self.s
+        if s.model is None:
+            return
+        self.b_cmp.setEnabled(False)
+        self.win.status(T("dk_optimizing"))
+
+        def done(rows):
+            self.b_cmp.setEnabled(True)
+            self.win.status("")
+            CompareDialog(self, rows).exec()
+        w.run_task(lambda _p: s.compare_methods(), done, lambda e: (self.b_cmp.setEnabled(True), self.win.error(T(e))))
+
     # ---- blok a sady
     def _block_changed(self, *_):
         if self._busy:
@@ -245,6 +269,8 @@ class TuningTab(QWidget):
         rows = [[T("ms"), r[1]["Ms"], r[2]["Ms"]], [T("gm"), r[1]["GM"], r[2]["GM"]], [T("pm"), r[1]["PM"], r[2]["PM"]],
                 [T("noise_col", u=s.get("u_mv") or "MV"), r[1]["noise"] * mr, r[2]["noise"] * mr],
                 ["", *(("" if r[n]["stable"] else T("dk_unstable")) for n in (1, 2))]]
+        if r[1]["Ms_worst"] is not None:
+            rows.insert(1, [T("ms_worst"), r[1]["Ms_worst"], r[2]["Ms_worst"]])
         w.fill(self.rob, ["", T("set_1"), T("set_2")], rows)
 
     # ---- scénář
@@ -284,3 +310,40 @@ class TuningTab(QWidget):
         u_pv, u_mv = s.get("u_pv") or "PV", s.get("u_mv") or "MV"
         w.fill(self.kpi, [T("setting"), "IAE [%·s]", T("kpi_maxdev", u=u_pv), T("kpi_mvrange", u=u_mv),
                           T("kpi_mvtravel", u=u_mv), T("kpi_rev")], rows)
+
+
+class CompareDialog(QDialog):
+    """Srovnání všech metod (PI i PID): Gain, TI, TD, Ms, IAE, překmit, šum MV; vybraný řádek do sady 1 nebo 2."""
+
+    def __init__(self, tab, rows):
+        super().__init__(tab)
+        self.tab, self.rows = tab, rows
+        s = tab.s
+        self.setWindowTitle(T("cmp_title"))
+        self.resize(1100, 520)
+        lay = QVBoxLayout(self)
+        u_mv = s.get("u_mv") or "MV"
+        mr = s.MR / 100
+        self.table = w.table(
+            [T("col_method"), T("ctrl_type"), "Gain", "TI [s]", "TD [s]", "Ms", T("iae_load"), T("iae_sp"),
+             T("ovs_col"), T("noise_col", u=u_mv)],
+            [[T("m_" + q["method"]) + (f" · {T('crit_' + q['crit'])}" if q["crit"] else ""), q["ctype"], q["Kc"], q["Ti"],
+              q["Td"], q["Ms"], q["iae_load"], q["iae_sp"], q["ovs"], q["noise"] * mr if q["noise"] is not None else None]
+             for q in rows])
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SingleSelection)
+        lay.addWidget(self.table)
+        lay.addWidget(w.note(T("cmp_help")))
+        b1, b2 = QPushButton(T("write_sel_s1")), QPushButton(T("write_sel_s2"))
+        b1.clicked.connect(lambda: self._write(1))
+        b2.clicked.connect(lambda: self._write(2))
+        lay.addLayout(w.hbox(b1, b2))
+
+    def _write(self, n):
+        i = self.table.currentRow()
+        if i < 0:
+            return
+        q = self.rows[i]
+        self.tab.s.write_set(n, dict(Kc=q["Kc"], Ti=q["Ti"], Td=q["Td"]))
+        self.tab.win.refresh()
+        self.accept()

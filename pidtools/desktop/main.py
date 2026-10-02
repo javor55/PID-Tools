@@ -1,21 +1,22 @@
 """
-Desktopová aplikace PID Tools (Qt): okno se záložkami Data, Model, Ladění; menu Soubor (data, ukázka, projekt,
-protokol), jazyk a nápověda. Spuštění: python -m pidtools.desktop
+Desktopová aplikace PID Tools (Qt): okno se záložkami Data, Model, Ladění, Živá simulace, APC; lišta smyček projektu;
+menu Soubor (data, ukázka, projekt, protokol), jazyk a nápověda. Spuštění: python -m pidtools.desktop
 """
 import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSettings, QThreadPool
 from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
-                               QLineEdit, QMainWindow, QMessageBox, QPlainTextEdit, QTabWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QLabel,
+                               QLineEdit, QMainWindow, QMessageBox, QPlainTextEdit, QTabWidget, QToolBar)
 
 from .. import __version__, i18n
 from ..app.report import SECTIONS, STATUSES
 from ..i18n import T
-from .state import LoopState
+from .project import Project
 from .tabs.apc import ApcTab
 from .tabs.data import DataTab
+from .tabs.diagnostics import DiagnosticsTab
 from .tabs.live import LiveTab
 from .tabs.model import ModelTab
 from .tabs.tuning import TuningTab
@@ -24,13 +25,23 @@ ORG, APP = "PID Tools", "PID Tools desktop"
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, state=None, prefs=None):
+    def __init__(self, state=None, prefs=None, project=None):
         super().__init__()
-        self.state = state or LoopState()
+        self.project = project or Project()
+        if state is not None:
+            self.project.loops = [state]
         self.prefs = prefs if prefs is not None else QSettings(ORG, APP)   # jazyk, poslední složka
         i18n.set_lang(self.prefs.value("lang", self.state.get("lang", "en")))
         self.resize(1400, 900)
+        self.loopbar = QToolBar()
+        self.loopbar.setMovable(False)
+        self.addToolBar(self.loopbar)
         self.build()
+
+    @property
+    def state(self):
+        """Aktivní smyčka projektu."""
+        return self.project.state
 
     # ---- sestavení (znovu po změně jazyka)
     def build(self):
@@ -66,15 +77,51 @@ class MainWindow(QMainWindow):
         h.addAction(a)
         cur = self.tabs.currentIndex() if hasattr(self, "tabs") else 0
         self.tabs = QTabWidget()
-        self.pages = [DataTab(self), ModelTab(self), TuningTab(self), LiveTab(self), ApcTab(self)]
-        for p, key in zip(self.pages, ("tab1", "tab2", "tab3", "tab4_live", "tab5")):
+        self.pages = [DataTab(self), ModelTab(self), TuningTab(self), LiveTab(self), ApcTab(self), DiagnosticsTab(self)]
+        for p, key in zip(self.pages, ("tab1", "tab2", "tab3", "tab4_live", "tab5", "dk_diag_tab")):
             self.tabs.addTab(p, T(key))
         self.tabs.setCurrentIndex(cur)
         # živá simulace převezme aktuální sady, když se na ni přepne (úpravy v Ladění ji jinak nerestartují)
         self.tabs.currentChanged.connect(lambda i: self.pages[i].refresh() if isinstance(self.pages[i], (LiveTab, ApcTab))
                                          else None)
         self.setCentralWidget(self.tabs)
+        self._build_loopbar()
         self.refresh()
+
+    # ---- smyčky projektu
+    def _build_loopbar(self):
+        bar = self.loopbar
+        bar.clear()
+        bar.addWidget(QLabel(" " + T("dk_loop") + " "))
+        self.loop_combo = QComboBox()
+        for i, n in enumerate(self.project.names()):
+            self.loop_combo.addItem(n, i)
+        self.loop_combo.setCurrentIndex(self.project.active)
+        self.loop_combo.currentIndexChanged.connect(self.switch_loop)
+        bar.addWidget(self.loop_combo)
+        a = QAction(T("loop_add"), self)
+        a.triggered.connect(self.add_loop)
+        a.setEnabled(self.state.has_data)
+        bar.addAction(a)
+        r = QAction(T("dk_loop_remove"), self)
+        r.triggered.connect(self.remove_loop)
+        r.setEnabled(len(self.project.loops) > 1)
+        bar.addAction(r)
+
+    def switch_loop(self, i):
+        if i < 0 or i == self.project.active:
+            return
+        self.project.active = i
+        self.build()
+
+    def add_loop(self):
+        if self.project.add_loop() is not None:
+            self.tabs.setCurrentIndex(0)
+            self.build()
+
+    def remove_loop(self):
+        self.project.remove_loop(self.project.active)
+        self.build()
 
     def set_lang(self, code):
         i18n.set_lang(code)
@@ -85,6 +132,9 @@ class MainWindow(QMainWindow):
     def refresh(self, skip=None):
         """Překreslí záložky ze stavu (po změně dat, sloupců, úseku, modelu, parametrů)."""
         has = self.state.has_data
+        if hasattr(self, "loop_combo"):          # názvy smyček (tag nebo PV) se mění v záložce Data
+            for i, n in enumerate(self.project.names()):
+                self.loop_combo.setItemText(i, n)
         for i in range(1, self.tabs.count()):
             self.tabs.setTabEnabled(i, has)
         for p in self.pages:
@@ -114,27 +164,26 @@ class MainWindow(QMainWindow):
         if path:
             self._remember(path)
             try:
-                self.state.load_file(path)
+                self.project.load_file(path)
             except Exception as ex:
                 self.error(T("err_data", ex=T(str(ex))))
             self.tabs.setCurrentIndex(0)
-            self.refresh()
+            self.build()
 
     def open_demo(self):
-        self.state.load_demo()
+        self.project.load_demo()
         self.tabs.setCurrentIndex(0)
-        self.refresh()
+        self.build()
 
     def open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, T("dk_open_project"), self._dir(), "PID Tools (*.json)")
         if path:
             self._remember(path)
             try:
-                self.state.load_project(path)
-                i18n.set_lang(self.prefs.value("lang", "en"))
+                self.project.load(path)
             except Exception as ex:
                 self.error(str(ex))
-            self.refresh()
+            self.build()
 
     def save_project(self):
         name = (self.state.get("loop_tag") or "pidtools_project") + ".json"
@@ -142,7 +191,7 @@ class MainWindow(QMainWindow):
                                               "PID Tools (*.json)")
         if path:
             self._remember(path)
-            self.state.save_project(path, include_data=True)
+            self.project.save(path, include_data=True)
             self.status(T("dk_saved", f=path))
 
     def export_report(self):
@@ -156,7 +205,7 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, T("dk_export_report"), str(Path(self._dir()) / name), "HTML (*.html)")
         if path:
             self._remember(path)
-            html = self.state.report_html(dlg.meta(), SECTIONS, "inline")
+            html = self.project.report_html(dlg.meta(), SECTIONS, "inline")
             Path(path).write_text(html, encoding="utf-8")
             self.status(T("dk_saved", f=path))
 
@@ -201,9 +250,9 @@ def run(argv=None):
     if len(argv) > 1:
         p = argv[1]
         try:
-            (win.state.load_project if p.lower().endswith(".json") else win.state.load_file)(p)
+            (win.project.load if p.lower().endswith(".json") else win.project.load_file)(p)
         except Exception as ex:
             win.error(str(ex))
-        win.refresh()
+        win.build()
     win.show()
     return app.exec()

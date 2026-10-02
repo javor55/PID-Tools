@@ -1266,4 +1266,13 @@ TEXTS = {
     'dk_gser_sp': 'Skok SP [{u}]',
     'dk_gser_d': 'Porucha na vstupu [% MV]',
     'dk_gser_kmax': 'Největší stabilní násobek s Ms ≤ 2: k = {k}',
+    'dk_loop': 'Smyčka:',
+    'dk_loop_remove': 'Odebrat smyčku',
+    'dk_ov_step': 'Skok SP hlavní smyčky A (její jednotky)',
+    'dk_ov_limit': 'Mez smyčky B (její jednotky)',
+    'dk_diag_tab': '6 · Diagnostika',
+    'dk_diag_help': 'Provozní data: v grafu táhněte vybarvený úsek (a druhý pro srovnání).',
+    'dk_diag_valve': 'Oscilace a ventil',
+    'dk_model_vs_data': 'Model vs. data',
+    'dk_val_same': 'Úsek se překrývá s úsekem identifikace – pro skutečné ověření zvolte jiná data.',
 }
