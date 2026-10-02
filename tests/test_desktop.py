@@ -114,12 +114,23 @@ def test_window_full_flow(win):
     _wait(app)
     assert w.state.model is not None and w.pages[1].res.rowCount() == 5
     t = w.pages[2]
+    assert t.kpi.rowCount() == 0                       # bez výpočtu – počítá se až tlačítkem
     t.method.setCurrentIndex(t.method.findData("OPT"))
+    t.calculate()
     _wait(app)
-    assert "Gain" in t.sug.text()
+    assert "Gain" in t.sug.text() and t.kpi.rowCount() == 3     # sady 1, 2 a návrh
     t._write(2)
     _wait(app)
-    assert t.rob.rowCount() == 5 and t.kpi.rowCount() == 2
+    assert t.rob.rowCount() == 5 and t.kpi.rowCount() == 3
+    t.kind.setCurrentIndex(t.kind.findData("in"))     # porucha na vstupu → neaktuální, po výpočtu bez skoku SP
+    assert "F5" in t.status.text()
+    t.calculate()
+    _wait(app)
+    r = t._result
+    assert np.ptp(r["sp"]) == 0 and r["sig"]["dmv"].any()
+    t.chart.b_meas.setChecked(True)
+    assert t.chart.measured() is not None and "Δt" in t.chart.readout.text()
+    assert {"t"} < set(t.chart.frame().columns)
     w.set_lang("cs")
     assert w.tabs.tabText(2).startswith("3")
     _wait(app)
@@ -391,3 +402,40 @@ def test_autosave_and_restore(tmp_path, monkeypatch):
     assert not w3.offer_restore() and not path.exists()
     for x in (w2, w3):
         x.close()
+
+
+def test_history_recent_and_sections(tmp_path):
+    from PySide6.QtWidgets import QApplication
+    from pidtools.desktop import layout
+    from pidtools.desktop.main import MainWindow
+    app = QApplication.instance()
+    prefs = _prefs(tmp_path / "p.ini")
+    w = MainWindow(prefs=prefs)
+    w.open_demo()
+    w.state.identify()
+    w.refresh()
+    t = w.pages[2]
+    t.calculate()
+    _wait(app)
+    t._write(2)
+    _wait(app)
+    t = w.pages[2]
+    h = w.state.history()
+    assert len(h) == 1 and h[0]["set"] == 2 and h[0]["iae"] is not None and t.hist.rowCount() == 1
+    w.state.set(set2_gain=-1.0)
+    t.hist.selectRow(0)
+    t._hist_restore(2)
+    assert w.state.get("set2_gain") == pytest.approx(h[0]["Kc"])
+    p = tmp_path / "proj.json"
+    w.project.save(p)
+    assert json.loads(p.read_text(encoding="utf-8"))["state"]["tune_hist"][0]["set"] == 2
+    assert w.open_path(p) and w.recent()[0] == str(p) and len(w.state.history()) == 1
+    errs = []
+    w.error = errs.append                              # bez modálního okna
+    assert not w.open_path(tmp_path / "missing.csv") and errs
+    sec = t.hist_sec
+    sec.expand(True)                                   # stav sekce se pamatuje v nastavení
+    assert prefs.value("sec/tuning/hist") == "true"
+    assert layout.Section("x", key="tuning/hist").is_expanded()
+    w.close()
+    _wait(app)

@@ -5,57 +5,56 @@ Záložka Diagnostika: úsek provozních dat (tažením v grafu), výkon smyčky
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QSplitter, QTabWidget, QVBoxLayout
 
 from ...app import diagnostics as dg
 from ...core import MODELS
 from ...i18n import T
 from .. import widgets as w
+from ..layout import Workspace, caption
 
 
-class DiagnosticsTab(QWidget):
+class DiagnosticsTab(Workspace):
     def __init__(self, win):
-        super().__init__()
+        super().__init__("diag")
         self.win, self.s = win, win.state
-        lay = QVBoxLayout(self)
+        # ---- hlavní plocha: záznam s úseky a grafy diagnostiky
         split = QSplitter(Qt.Vertical)
-        lay.addWidget(split)
-        top = QWidget()
-        tl = QHBoxLayout(top)
+        split.setChildrenCollapsible(False)
+        self.main.addWidget(split, 1)
         self.chart, self.plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.6, 0.4))
         self.ra = pg.LinearRegionItem(brush=(31, 95, 168, 40))
         self.rb = pg.LinearRegionItem(brush=(194, 65, 12, 35))
         for r in (self.ra, self.rb):
             r.sigRegionChangeFinished.connect(self.update)
-        tl.addWidget(self.chart, 3)
-        side = QVBoxLayout()
+        split.addWidget(self.chart)
+        self.sub = QTabWidget()
+        self.ccf = w.plot(T("ccf_title"), T("ccf"), T("lag_s"))
+        self.phase = w.plot(T("phase_title"), "PV", "MV")
+        self.pos = w.plot(T("pos_title"), T("col_pos"), "MV")
+        self.sub.addTab(self.ccf, T("ccf_title"))
+        self.sub.addTab(self.phase, T("phase_title"))
+        self.pos_index = self.sub.addTab(self.pos, T("pos_title"))
+        split.addWidget(self.sub)
+        split.setSizes([420, 380])
+        # ---- panel
         self.cmp = QCheckBox(T("perf_compare"))
         self.cmp.toggled.connect(self._cmp_toggled)
         self.integ = QCheckBox(T("diag_integ"))
         self.integ.toggled.connect(self.update)
+        box = QVBoxLayout()
+        box.addWidget(caption(T("dk_diag_help")))
+        box.addWidget(self.cmp)
+        box.addWidget(self.integ)
+        self.section(T("dk_sec_diag_seg"), box, "seg")
         self.kpi = w.table([], [])
-        side.addWidget(w.note(T("dk_diag_help")))
-        side.addWidget(self.cmp)
-        side.addWidget(self.integ)
-        side.addWidget(w.group(T("perf_title"), w.form([("", self.kpi)])))
-        tl.addLayout(side, 2)
-        split.addWidget(top)
-        bot = QWidget()
-        bl = QHBoxLayout(bot)
+        self.kpi.setMinimumHeight(230)
+        self.section(T("perf_title"), self.kpi, "perf")
         self.verdict = w.note("")
-        left = QVBoxLayout()
-        left.addWidget(w.group(T("dk_diag_valve"), w.form([("", self.verdict)])))
+        self.section(T("dk_diag_valve"), self.verdict, "valve")
         self.nl = w.table([], [])
-        left.addWidget(w.group(T("nl_title"), w.form([("", self.nl)])))
-        bl.addLayout(left, 2)
-        self.ccf = w.plot(T("ccf_title"), T("ccf"), T("lag_s"))
-        self.phase = w.plot(T("phase_title"), "PV", "MV")
-        self.pos = w.plot(T("pos_title"), T("col_pos"), "MV")
-        bl.addWidget(self.ccf, 2)
-        bl.addWidget(self.phase, 2)
-        bl.addWidget(self.pos, 2)
-        split.addWidget(bot)
-        split.setSizes([380, 420])
+        self.nl.setMinimumHeight(180)
+        self.section(T("nl_title"), self.nl, "nl", expanded=False)
         self._busy = False
 
     def refresh(self):
@@ -135,7 +134,7 @@ class DiagnosticsTab(QWidget):
             self.pos.clear()
             self.pos.plot(g.mv_e[m], pos[m], pen=pg.mkPen("#fecaca", width=0.6), symbol="o", symbolSize=3,
                           symbolBrush=w.C_MV, symbolPen=None)
-        self.pos.setVisible(s.c_pos not in (None, "", "—"))
+        self.sub.setTabVisible(self.pos_index, s.c_pos not in (None, "", "—"))
         self.verdict.setText("  \n".join(lines))
         self.ccf.clear()
         self.ccf.plot(v["stic"]["lags"], v["stic"]["ccf"], pen=pg.mkPen(w.C_PV, width=2))

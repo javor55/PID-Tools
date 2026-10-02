@@ -11,6 +11,16 @@
   projects interchangeable with the web app, tuning protocol export, help window with tab guides (content shared
   with the web app), autosave with restore on the next start, clickable APC recommendations.
 - APC structure checklists computed in the shared layer – identical on the web and in the desktop.
+- Desktop layout: every tab has the largest possible area for charts and data on the left and a settings panel
+  on the right with collapsible sections (state and panel width are remembered); compact number fields.
+- Desktop tuning: scenario first (default setpoint step; load or output disturbance, measured disturbance step,
+  replay of measured disturbances, custom events), then the suggestion; nothing is computed until **Calculate (F5)**,
+  changes mark the result as out of date; the suggestion is shown as a third curve before it is written to a set;
+  the optimisation targets the scenario by default; tuning history with return to a set (saved in the project).
+- Desktop charts: cursor with the values of all curves, two measuring cursors (Δt, ΔY), full range, PNG / CSV
+  export, copy to clipboard, separate window (second monitor), hiding curves via the legend.
+- Desktop: recent files, drag and drop of data and project files, Ctrl+1…6 tab shortcuts, remembered window size,
+  keyboard shortcut overview in Help.
 - Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
   desktop version for engineering stations; the web app is unchanged.
 - APC page split into one module per structure.

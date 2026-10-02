@@ -11,6 +11,16 @@
   projekty zaměnitelné s webovou aplikací, export protokolu, okno nápovědy s průvodci záložek (obsah sdílený
   s webem), automatické ukládání s nabídkou obnovení při dalším spuštění, proklik z doporučení APC.
 - Kontrolní seznamy struktur APC počítané ve sdílené vrstvě – na webu i v desktopu stejné.
+- Rozložení desktopu: každá záložka má vlevo co největší plochu pro grafy a data a vpravo panel nastavení se
+  sbalitelnými sekcemi (stav i šířka panelu se pamatují); kompaktní číselná pole.
+- Ladění v desktopu: nejdřív scénář (výchozí skok SP; porucha na vstupu či výstupu, skok měřené poruchy, přehrání
+  naměřených poruch, vlastní události), potom návrh; nic se nepočítá před stiskem **Vypočítat (F5)**, změny označí
+  výsledek jako neaktuální; návrh se ukáže jako třetí křivka ještě před zápisem do sady; optimalizace ve výchozím
+  stavu cílí na scénář; historie ladění s návratem do sady (ukládá se do projektu).
+- Grafy v desktopu: kurzor s hodnotami všech křivek, dva měřicí kurzory (Δt, ΔY), celý rozsah, export PNG / CSV,
+  kopie do schránky, samostatné okno (druhý monitor), skrytí křivky kliknutím na legendu.
+- Desktop: nedávné soubory, přetažení dat a projektů do okna, zkratky Ctrl+1…6 pro záložky, zapamatovaná velikost
+  okna, přehled klávesových zkratek v Nápovědě.
 - Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
   desktopové verze pro inženýrské stanice; webová aplikace beze změny.
 - Stránka APC rozdělená na moduly po strukturách.

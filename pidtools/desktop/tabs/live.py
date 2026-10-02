@@ -3,23 +3,30 @@ Záložka Živá simulace: smyčka běží v reálném čase (zrychleně) – re
 i výstupu procesu, šum PV, změna procesu (K, θ), srovnání sad 1 a 2, ukazatele od poslední události.
 """
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QLabel, QPushButton, QSlider
 
 from ...app.live import LiveSession
 from ...i18n import T
 from .. import widgets as w
+from ..layout import Workspace
 
 TICK_MS = 50
 
 
-class LiveTab(QWidget):
+class LiveTab(Workspace):
     def __init__(self, win):
-        super().__init__()
+        super().__init__("live")
         self.win, self.s = win, win.state
         self.sess = None
-        lay = QVBoxLayout(self)
-        # ---- ovládání
+        # ---- hlavní plocha
+        self.chart, self.plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.62, 0.38))
+        self.main.addWidget(self.chart, 1)
+        self.kpi = w.table([], [])
+        self.kpi.setMaximumHeight(100)
+        self.main.addWidget(self.kpi)
+        # ---- běh
         self.b_run = QPushButton("▶")
+        self.b_run.setObjectName("primary")
         self.b_run.setCheckable(True)
         self.b_run.toggled.connect(self._run_toggled)
         b_reset = QPushButton(T("dk_lv_reset"))
@@ -29,18 +36,9 @@ class LiveTab(QWidget):
         self.speed.setValue(40)
         self.speed_lab = QLabel("")
         self.speed.valueChanged.connect(self._speed_label)
-        self.cmp = QCheckBox(T("dk_lv_compare"))
-        self.cmp.setChecked(True)
-        self.cmp.toggled.connect(self.restart)
-        self.win_len = w.spin(0.0, 0.0, 1e9, 0, 60)
-        w.tip(self.win_len, "dk_lv_window_help")
-        self.win_len.valueChanged.connect(self.draw)
-        b_csv, b_png = QPushButton("CSV"), QPushButton("PNG")
-        b_csv.clicked.connect(self._export_csv)
-        b_png.clicked.connect(self._export_png)
-        lay.addLayout(w.hbox(self.b_run, b_reset, QLabel(T("dk_lv_speed")), self.speed, self.speed_lab, self.cmp,
-                             QLabel(T("dk_lv_window")), self.win_len, b_csv, b_png))
-
+        self.top_bar(self.b_run, b_reset)
+        self.top_bar(QLabel(T("dk_lv_speed")), self.speed, self.speed_lab)
+        # ---- režim a SP
         self.auto = QCheckBox("Auto")
         self.auto.setChecked(True)
         self.auto.toggled.connect(self._mode)
@@ -48,6 +46,10 @@ class LiveTab(QWidget):
         self.sp.valueChanged.connect(lambda v: self.sess and self.sess.set_sp(v))
         self.man = w.spin(0.0, -1e12, 1e12, 4)
         self.man.valueChanged.connect(self._mode)
+        self.lab_sp, self.lab_man = QLabel("SP"), QLabel(T("dk_lv_man"))
+        self.section(T("dk_sec_lv_mode"), w.form([("", self.auto), (self.lab_sp, self.sp), (self.lab_man, self.man)]),
+                     "mode")
+        # ---- poruchy
         self.d_in = w.spin(0.0, -1e12, 1e12, 4)
         self.d_out = w.spin(0.0, -1e12, 1e12, 4)
         for sp in (self.d_in, self.d_out):
@@ -58,26 +60,30 @@ class LiveTab(QWidget):
         self.shape.currentIndexChanged.connect(self._dist)
         self.period.valueChanged.connect(self._dist)
         self.noise = w.spin(0.0, 0.0, 1e12, 4)
+        self.lab_din, self.lab_dout = QLabel(T("dk_lv_din")), QLabel(T("dk_lv_dout"))
+        self.lab_noise = QLabel(T("dk_lv_noise"))
+        self.section(T("dk_sec_lv_dist"), w.form([(self.lab_din, self.d_in), (self.lab_dout, self.d_out),
+                                                  (T("dk_lv_shape"), self.shape), (T("dk_lv_period"), self.period),
+                                                  (self.lab_noise, self.noise)]), "dist")
+        # ---- změna procesu
         self.k_fac = w.spin(1.0, 0.05, 20.0, 3, 0.1)
         self.th_fac = w.spin(1.0, 0.0, 20.0, 3, 0.1)
         for sp in (self.noise, self.k_fac, self.th_fac):
             sp.valueChanged.connect(self.restart)
-        self.lab_sp, self.lab_man = QLabel("SP"), QLabel(T("dk_lv_man"))
-        self.lab_din, self.lab_dout = QLabel(T("dk_lv_din")), QLabel(T("dk_lv_dout"))
-        self.lab_noise = QLabel(T("dk_lv_noise"))
-        row = QHBoxLayout()
-        for wd in (self.auto, self.lab_sp, self.sp, self.lab_man, self.man, self.lab_din, self.d_in, self.lab_dout,
-                   self.d_out, QLabel(T("dk_lv_shape")), self.shape, QLabel(T("dk_lv_period")), self.period,
-                   self.lab_noise, self.noise, QLabel(T("dk_lv_kfac")), self.k_fac,
-                   QLabel(T("dk_lv_thfac")), self.th_fac):
-            row.addWidget(wd)
-        row.addStretch(1)
-        lay.addLayout(row)
-        self.chart, self.plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.62, 0.38))
-        lay.addWidget(self.chart, 1)
-        self.kpi = w.table([], [])
-        self.kpi.setMaximumHeight(100)
-        lay.addWidget(self.kpi)
+        self.section(T("dk_sec_lv_plant"), w.form([(T("dk_lv_kfac"), self.k_fac), (T("dk_lv_thfac"), self.th_fac)]),
+                     "plant", expanded=False)
+        # ---- zobrazení
+        self.cmp = QCheckBox(T("dk_lv_compare"))
+        self.cmp.setChecked(True)
+        self.cmp.toggled.connect(self.restart)
+        self.win_len = w.spin(0.0, 0.0, 1e9, 0, 60)
+        w.tip(self.win_len, "dk_lv_window_help")
+        self.win_len.valueChanged.connect(self.draw)
+        b_csv = QPushButton(T("dk_lv_csv"))
+        b_csv.clicked.connect(self._export_csv)
+        sec = self.section(T("dk_sec_lv_view"), w.form([("", self.cmp), (T("dk_lv_window"), self.win_len)]), "view",
+                           expanded=False)
+        sec.add(w.hbox(b_csv))
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
         self._curves = {}
@@ -117,8 +123,7 @@ class LiveTab(QWidget):
         self.sess.set_mode(self.auto.isChecked(), self.man.value())
         self.sess.set_dist(self.d_in.value(), self.d_out.value(), self.shape.currentData(), self.period.value())
         self.sess.events = []
-        for p in self.plots:
-            p.clear()
+        self.chart.clear()
         self._curves = {}
         self.draw()
 
@@ -160,12 +165,6 @@ class LiveTab(QWidget):
         path, _ = QFileDialog.getSaveFileName(self, "CSV", "live_simulation.csv", "CSV (*.csv)")
         if path:
             self.sess.to_frame().to_csv(path, index=False, sep=";", decimal=",")
-
-    def _export_png(self):
-        from PySide6.QtWidgets import QFileDialog
-        path, _ = QFileDialog.getSaveFileName(self, "PNG", "live_simulation.png", "PNG (*.png)")
-        if path:
-            self.chart.grab().save(path)
 
     # ---- kreslení
     def draw(self):

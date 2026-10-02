@@ -44,6 +44,27 @@ def quick_rows(kind, sp_amp, mv_range, T_end, pv_noise=0.0):
     return rows
 
 
+PRESETS = ("sp", "in", "pv", "sp_in", "meas", "replay", "custom")
+
+
+def preset_rows(kind, sp_amp, d_in, d_pv, d_meas, T_end):
+    """
+    Předvolené scénáře (desktop): "sp" skok SP, "in" skok poruchy na vstupu (d_in v jednotkách MV),
+    "pv" skok poruchy na výstupu (d_pv v jednotkách PV), "sp_in" skok SP a později porucha na vstupu,
+    "meas" skoky měřených poruch (d_meas = amplitudy v jejich jednotkách). Událost začíná v 5 % délky.
+    """
+    t0 = round(0.05 * T_end)
+    if kind == "in":
+        return [row("IN", "step", round(d_in, 6), t0)]
+    if kind == "pv":
+        return [row("PV", "step", round(d_pv, 6), t0)]
+    if kind == "sp_in":
+        return [row("SP", "step", round(sp_amp, 6), t0), row("IN", "step", round(d_in, 6), round(0.5 * T_end))]
+    if kind == "meas":
+        return [row(f"M{j}", "step", round(a, 6), round((0.05 + 0.3 * j) * T_end)) for j, a in enumerate(d_meas)]
+    return [row("SP", "step", round(sp_amp, 6), t0)]
+
+
 def rescale_times(rows, f):
     """Časy událostí (začátek, konec) × f – při změně délky simulace zůstanou události na stejném místě."""
     out = [list(r) for r in rows]

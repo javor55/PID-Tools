@@ -43,6 +43,11 @@ interchangeable. It has no Qt dependency and is tested on its own. The windows (
 change the state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
 pyqtgraph. Start: `python -m pidtools.desktop`.
 
+Every tab is a `layout.Workspace`: the main area on the left (`main` – charts, tables) and a settings panel on the
+right (`section()` adds a collapsible `layout.Section`; expanded state and panel width are stored in `QSettings`).
+Charts are `chartbox.ChartBox` (one or more plots with a shared time axis, cursor read-out, measuring cursors,
+PNG / CSV export, detachable window); `widgets.plot()` and `widgets.stack()` create them.
+
 ## Deployment
 
 Streamlit Community Cloud deploys `app.py` from the repository and installs `requirements.txt`. Desktop-only

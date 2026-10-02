@@ -20,6 +20,7 @@ STATE_KEYS = [
     "thmax", "chosen", "mcode", "dist_level", "dist_strength", "gain_sign", "id_stic",
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
+    "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist",
     "scen2", "sim_len_u", "sim_J", "sim_noise", "vchar_last",
     # plán testu, kaskáda, diagnostika
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
@@ -42,6 +43,8 @@ def jsonable(v):
         return v.item() if isinstance(v, np.generic) else v
     if isinstance(v, (list, tuple)):
         return [jsonable(x) for x in v]
+    if isinstance(v, dict):
+        return {str(k): jsonable(x) for k, x in v.items()}
     return None
 
 

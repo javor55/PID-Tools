@@ -1,58 +1,61 @@
 """Záložka Data: rozložení tabulky, sloupce PV / MV / SP / poruchy / poloha, jednotky a graf celého záznamu."""
-from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QListWidgetItem, QPushButton, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+                               QPushButton, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtCore import Qt
 
 from ...app.dataio import TIME_FORMATS
 from ...app.dataset import LAYOUTS, UNITS
 from ...i18n import T
 from .. import widgets as w
+from ..layout import Workspace, caption
 
 
-class DataTab(QWidget):
+class DataTab(Workspace):
     def __init__(self, win):
-        super().__init__()
+        super().__init__("data")
         self.win, self.s = win, win.state
-        lay = QVBoxLayout(self)
+        # hlavní plocha: informace o souboru, upozornění, graf celého záznamu
         self.info = w.note(T("dk_no_data"))
-        lay.addWidget(self.info)
-        top = QHBoxLayout()
-        # rozložení a čas
+        self.main.addWidget(self.info)
+        self.warn = w.note("")
+        self.main.addWidget(self.warn)
+        self.chart, self.plots = w.stack(3, ["PV", "MV", T("dists")], T("time_s"), heights=(0.5, 0.3, 0.2))
+        self.main.addWidget(self.chart, 1)
+        # pevný pruh
+        b_open, b_prev = QPushButton(T("dk_open_data")), QPushButton(T("prev_title"))
+        b_open.setObjectName("primary")
+        b_open.clicked.connect(win.open_data)
+        b_prev.clicked.connect(self._preview)
+        self.top_bar(b_open, b_prev)
+        # signály smyčky
+        self.c_pv, self.c_mv, self.c_sp, self.c_pos = w.combo([]), w.combo([]), w.combo([]), w.combo([])
+        self.c_d = QListWidget()
+        self.c_d.setMinimumHeight(80)
+        self.c_d.setMaximumHeight(160)
+        sec = self.section(T("dk_sec_signals"), w.form([("PV", self.c_pv), ("MV", self.c_mv), (T("col_sp"), self.c_sp),
+                                                        (T("col_pos"), self.c_pos)]), "signals")
+        sec.add(QLabel(T("col_dist")))
+        sec.add(self.c_d)
+        # jednotky a tag
+        self.u_pv, self.u_mv = QLineEdit(), QLineEdit()
+        self.tag = QLineEdit()
+        self.section(T("sb_units"), w.form([(T("unit_pv"), self.u_pv), (T("unit_mv"), self.u_mv), ("Tag", self.tag)]),
+                     "units")
+        # soubor a čas
         self.layout_c = w.combo(LAYOUTS, labels=[T("layout_" + x) for x in LAYOUTS])
         self.tfmt = w.combo(TIME_FORMATS, labels=[T("tf_" + x) for x in TIME_FORMATS])
         self.tunit = w.combo(list(UNITS))
         self.c_time, self.c_tag, self.c_val = w.combo([]), w.combo([]), w.combo([])
         self.ts_man = QCheckBox(T("ts_manual"))
         self.ts_val = w.spin(1.0, 0.001, 1e6, 4)
-        self.tdet = QLabel("")
+        self.tdet = caption("")
         w.tip(self.layout_c, "h_layout"), w.tip(self.tfmt, "h_time_fmt"), w.tip(self.tunit, "time_unit_help")
         w.tip(self.ts_man, "h_ts_manual")
-        self.lab_time, self.lab_tag, self.lab_val = QLabel(T("col_time")), QLabel(T("col_tag")), QLabel(T("col_value"))
-        tf = w.form([(T("layout"), self.layout_c), (self.lab_time, self.c_time), (self.lab_tag, self.c_tag),
-                     (self.lab_val, self.c_val), (T("time_fmt"), self.tfmt), (T("time_unit"), self.tunit),
-                     (self.ts_man, self.ts_val), ("", self.tdet)])
-        top.addWidget(w.group(T("cols_title"), tf))
-        # sloupce
-        self.c_pv, self.c_mv, self.c_sp, self.c_pos = w.combo([]), w.combo([]), w.combo([]), w.combo([])
-        self.c_d = QListWidget()
-        self.c_d.setMaximumHeight(90)
-        top.addWidget(w.group("PV / MV / SP", w.form([("PV", self.c_pv), ("MV", self.c_mv), (T("col_sp"), self.c_sp),
-                                                     (T("col_pos"), self.c_pos)])), 2)
-        top.addWidget(w.group(T("col_dist"), w.form([("", self.c_d)])), 2)
-        # jednotky
-        self.u_pv, self.u_mv = QLineEdit(), QLineEdit()
-        self.tag = QLineEdit()
-        top.addWidget(w.group(T("sb_units"), w.form([(T("unit_pv"), self.u_pv), (T("unit_mv"), self.u_mv),
-                                                     ("Tag", self.tag)])))
-        lay.addLayout(top)
-        self.warn = w.note("")
-        b_prev = QPushButton(T("prev_title"))
-        b_prev.clicked.connect(self._preview)
-        row = w.hbox(b_prev)
-        row.insertWidget(0, self.warn, 1)
-        lay.addLayout(row)
-        self.chart, self.plots = w.stack(3, ["PV", "MV", T("dists")], T("time_s"), heights=(0.5, 0.3, 0.2))
-        lay.addWidget(self.chart, 1)
+        self.tf = w.form([(T("layout"), self.layout_c), (T("col_time"), self.c_time), (T("col_tag"), self.c_tag),
+                          (T("col_value"), self.c_val), (T("time_fmt"), self.tfmt), (T("time_unit"), self.tunit),
+                          (self.ts_man, self.ts_val)])
+        sec = self.section(T("dk_sec_file"), self.tf, "file", expanded=False)
+        sec.add(self.tdet)
         for c in (self.layout_c, self.tfmt, self.tunit, self.c_time, self.c_tag, self.c_val):
             c.currentIndexChanged.connect(self._layout_changed)
         self.ts_man.toggled.connect(self._ts_changed)
@@ -84,17 +87,15 @@ class DataTab(QWidget):
                     c.addItem(str(col), col)
                 if cur in cols:
                     c.setCurrentIndex(cols.index(cur))
-                c.setVisible(vis)
+                self.tf.setRowVisible(c, vis)
             if s.layout == "long":
-                self.c_time.setVisible(True)
+                self.tf.setRowVisible(self.c_time, True)
                 if src and src[0] in cols:
                     self.c_time.setCurrentIndex(cols.index(src[0]))
                 if s.c_tag is None or s.c_val is None:          # odhad pro zobrazení
                     from ...app.dataset import guess_col
                     self.c_tag.setCurrentIndex(guess_col(cols, ["tag", "name", "název", "variable"]))
                     self.c_val.setCurrentIndex(guess_col(cols, ["value", "hodnota", "val"], 2))
-            for lab, c in ((self.lab_time, self.c_time), (self.lab_tag, self.c_tag), (self.lab_val, self.c_val)):
-                lab.setVisible(not c.isHidden())
             self.ts_man.setChecked(s.ts_user is not None)
             self.ts_val.setEnabled(s.ts_user is not None)
             self.ts_val.setValue(float(s.ts_user or s.grid.Ts))
@@ -139,7 +140,7 @@ class DataTab(QWidget):
             w.line(self.plots[2], g.t, d, str(nm), w.C_DIST[i % 4], 1.3)
         self.plots[0].setLabel("left", f"PV [{s.get('u_pv')}]" if s.get("u_pv") else "PV")
         self.plots[1].setLabel("left", f"MV [{s.get('u_mv')}]" if s.get("u_mv") else "MV")
-        self.plots[2].setVisible(bool(s.c_d))
+        self.chart.set_row_visible(2, bool(s.c_d))
 
     def _ts_changed(self, *_):
         if self._busy or not self.s.has_data:

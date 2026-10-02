@@ -1,7 +1,8 @@
 """Společné prvky oken: grafy (pyqtgraph), číselná pole, tabulky a výpočty na pozadí."""
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, Signal
+from PySide6.QtCore import QObject, QRunnable, QSize, Qt, QThreadPool, Signal
+from PySide6.QtGui import QValidator
 from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout,
                                QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QWidget)
 
@@ -10,47 +11,19 @@ from ..app.plots import C_DIST, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: F401 (
 pg.setConfigOptions(background="w", foreground="#1f2933", antialias=True)
 
 
-# ---- grafy
-def _setup(p):
-    """Mřížka, legenda a zředění dlouhých průběhů (špičky zůstanou)."""
-    p.showGrid(x=True, y=True, alpha=0.25)
-    p.setDownsampling(auto=True, mode="peak")
-    p.setClipToView(True)
-    if p.legend is None:
-        p.addLegend(offset=(8, 8))
+# ---- grafy (ChartBox: kurzor, měření, export, odpojení do okna)
+from .chartbox import ChartBox, _setup  # noqa: E402,F401
 
 
 def plot(title=None, ylabel=None, xlabel=None):
-    """Graf s mřížkou a legendou."""
-    w = pg.PlotWidget()
-    _setup(w.getPlotItem())
-    if title:
-        w.setTitle(title)
-    if ylabel:
-        w.setLabel("left", ylabel)
-    if xlabel:
-        w.setLabel("bottom", xlabel)
-    return w
+    """Jeden graf s mřížkou, legendou a nástroji."""
+    return ChartBox(1, [ylabel] if ylabel else (), xlabel, title=title)
 
 
 def stack(n, ylabels=(), xlabel=None, heights=None):
-    """n grafů pod sebou se společnou osou x (GraphicsLayoutWidget). Vrací (widget, [grafy])."""
-    lw = pg.GraphicsLayoutWidget()
-    plots = []
-    for i in range(n):
-        p = lw.addPlot(row=i, col=0)
-        _setup(p)
-        if i < len(ylabels):
-            p.setLabel("left", ylabels[i])
-        if plots:
-            p.setXLink(plots[0])
-        plots.append(p)
-    if xlabel:
-        plots[-1].setLabel("bottom", xlabel)
-    if heights:
-        for i, h in enumerate(heights):
-            lw.ci.layout.setRowStretchFactor(i, int(h * 100))
-    return lw, plots
+    """n grafů pod sebou se společnou osou x. Vrací (widget, [grafy])."""
+    box = ChartBox(n, ylabels, xlabel, heights)
+    return box, box.plots
 
 
 def line(p, x, y, name=None, color=C_PV, width=1.5, dash=False, step=False):
@@ -63,9 +36,42 @@ def line(p, x, y, name=None, color=C_PV, width=1.5, dash=False, step=False):
 
 
 # ---- vstupy
+class Num(QDoubleSpinBox):
+    """
+    Kompaktní číselné pole: platné číslice místo pevných desetinných míst (5000, 24.19, 0.00123), tečka i čárka,
+    šířka podle obsahu, ne podle rozsahu (±1e12 by pole zbytečně roztáhlo).
+    """
+
+    def textFromValue(self, v):
+        return f"{v:.{max(self.decimals(), 4) + 1}g}"
+
+    def valueFromText(self, text):
+        t = text.replace(self.suffix(), "").replace(",", ".").replace(" ", "").strip()
+        try:
+            return float(t)
+        except ValueError:
+            return self.value()
+
+    def validate(self, text, pos):
+        t = text.replace(self.suffix(), "").replace(",", ".").replace(" ", "").strip()
+        try:
+            float(t)
+            return QValidator.Acceptable, text, pos
+        except ValueError:
+            return QValidator.Intermediate, text, pos
+
+    def sizeHint(self):
+        h = super().sizeHint()
+        return QSize(min(h.width(), 110), h.height())
+
+    def minimumSizeHint(self):
+        h = super().minimumSizeHint()
+        return QSize(60, h.height())
+
+
 def spin(value=0.0, lo=-1e12, hi=1e12, decimals=6, step=None, suffix=""):
     """Číselné pole bez šipek s rozumným krokem."""
-    s = QDoubleSpinBox()
+    s = Num()
     s.setDecimals(decimals)
     s.setRange(lo, hi)
     s.setValue(float(value))
@@ -97,6 +103,8 @@ def group(title, layout=None):
 def form(rows):
     """Formulář z dvojic (popisek, widget)."""
     f = QFormLayout()
+    f.setRowWrapPolicy(QFormLayout.WrapLongRows)
+    f.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
     for lab, w in rows:
         f.addRow(lab, w)
     return f

@@ -17,6 +17,7 @@ from .. import __version__, i18n
 from ..app.report import SECTIONS, STATUSES
 from ..i18n import T
 from ..app import guides
+from . import layout
 from .help import HelpWindow, general_markdown, guide_state, tab_markdown
 from .project import Project
 from .tabs.apc import ApcTab
@@ -35,9 +36,17 @@ class MainWindow(QMainWindow):
         self.project = project or Project()
         if state is not None:
             self.project.loops = [state]
-        self.prefs = prefs if prefs is not None else QSettings(ORG, APP)   # jazyk, poslední složka
+        self.prefs = prefs if prefs is not None else QSettings(ORG, APP)   # jazyk, poslední složka, rozložení
+        layout.PREFS = self.prefs
+        app = QApplication.instance()
+        if app is not None and layout.STYLE not in (app.styleSheet() or ""):
+            app.setStyleSheet((app.styleSheet() or "") + layout.STYLE)
         i18n.set_lang(self.prefs.value("lang", self.state.get("lang", "en")))
         self.resize(1400, 900)
+        geo = self.prefs.value("geometry")
+        if geo is not None:
+            self.restoreGeometry(geo)
+        self.setAcceptDrops(True)
         self.autosave_path = Path(autosave) if autosave else None   # None = bez automatického ukládání (testy)
         self._as_timer = QTimer(self)
         self._as_timer.timeout.connect(self.autosave)
@@ -59,7 +68,7 @@ class MainWindow(QMainWindow):
         self.menuBar().clear()
         m = self.menuBar().addMenu(T("dk_file"))
         for key, fn, sc in (("dk_open_data", self.open_data, "Ctrl+O"), ("dk_demo", self.open_demo, None),
-                            (None, None, None),
+                            ("dk_recent", None, None), (None, None, None),
                             ("dk_open_project", self.open_project, "Ctrl+Shift+O"),
                             ("dk_save_project", self.save_project, "Ctrl+S"),
                             ("dk_export_report", self.export_report, "Ctrl+P"),
@@ -67,6 +76,9 @@ class MainWindow(QMainWindow):
                             (None, None, None), ("dk_quit", self.close, "Ctrl+Q")):
             if key is None:
                 m.addSeparator()
+                continue
+            if key == "dk_recent":
+                self._recent_menu(m.addMenu(T(key)))
                 continue
             a = QAction(T(key), self)
             if sc:
@@ -97,6 +109,9 @@ class MainWindow(QMainWindow):
         gh = QAction(T("dk_help_general"), self)
         gh.triggered.connect(lambda: self.help_window().show_markdown(general_markdown()))
         h.addAction(gh)
+        a = QAction(T("dk_keys"), self)
+        a.triggered.connect(lambda: self.help_window().show_markdown(T("dk_keys_body"), T("dk_keys")))
+        h.addAction(a)
         a = QAction(T("dk_about"), self)
         a.triggered.connect(lambda: QMessageBox.about(self, T("dk_about"), T("dk_about_text", v=__version__)))
         h.addAction(a)
@@ -109,6 +124,11 @@ class MainWindow(QMainWindow):
         # živá simulace převezme aktuální sady, když se na ni přepne (úpravy v Ladění ji jinak nerestartují)
         self.tabs.currentChanged.connect(lambda i: self.pages[i].refresh() if isinstance(self.pages[i], (LiveTab, ApcTab))
                                          else None)
+        for i in range(len(self.pages)):          # Ctrl+1 … Ctrl+6 = záložky
+            a = QAction(self)
+            a.setShortcut(f"Ctrl+{i + 1}")
+            a.triggered.connect(lambda _=False, i=i: self.tabs.setCurrentIndex(i) if self.tabs.isTabEnabled(i) else None)
+            self.tabs.addAction(a)
         self.setCentralWidget(self.tabs)
         self._build_loopbar()
         self.refresh()
@@ -203,6 +223,7 @@ class MainWindow(QMainWindow):
         QThreadPool.globalInstance().waitForDone(30000)    # dokončit výpočty na pozadí před zavřením
         self._as_timer.stop()
         self.autosave()
+        self.prefs.setValue("geometry", self.saveGeometry())
         super().closeEvent(ev)
 
     # ---- automatické ukládání (projekt s daty do složky dat aplikace, při startu nabídka obnovení)
@@ -262,16 +283,70 @@ class MainWindow(QMainWindow):
         self.prefs.setValue("dir", str(Path(path).parent))
 
     # ---- soubor
+    def open_path(self, path):
+        """Otevře data nebo projekt (.json) – z dialogu, nedávných souborů i přetažením do okna."""
+        path = str(path)
+        if not Path(path).exists():
+            self.error(T("dk_missing", f=path))
+            self._recent_remove(path)
+            return False
+        self._remember(path)
+        try:
+            if path.lower().endswith(".json"):
+                self.project.load(path)
+            else:
+                self.project.load_file(path)
+                self.tabs.setCurrentIndex(0)
+        except Exception as ex:
+            self.error(T("err_data", ex=T(str(ex))))
+            return False
+        self._recent_add(path)
+        self.build()
+        return True
+
     def open_data(self):
         path, _ = QFileDialog.getOpenFileName(self, T("dk_open_data"), self._dir(), "Data (*.csv *.txt *.xlsx *.xls)")
         if path:
-            self._remember(path)
-            try:
-                self.project.load_file(path)
-            except Exception as ex:
-                self.error(T("err_data", ex=T(str(ex))))
-            self.tabs.setCurrentIndex(0)
-            self.build()
+            self.open_path(path)
+
+    # ---- nedávné soubory
+    def recent(self):
+        v = self.prefs.value("recent") or []
+        return [v] if isinstance(v, str) else [str(x) for x in v]
+
+    def _recent_add(self, path):
+        lst = [path] + [p for p in self.recent() if p != path]
+        self.prefs.setValue("recent", lst[:8])
+
+    def _recent_remove(self, path):
+        self.prefs.setValue("recent", [p for p in self.recent() if p != path])
+
+    def _recent_menu(self, menu):
+        lst = self.recent()
+        for p in lst:
+            a = QAction(Path(p).name, self)
+            a.setToolTip(p)
+            a.setStatusTip(p)
+            a.triggered.connect(lambda _=False, p=p: self.open_path(p))
+            menu.addAction(a)
+        if not lst:
+            menu.addAction(QAction(T("dk_recent_none"), self, enabled=False))
+        else:
+            menu.addSeparator()
+            c = QAction(T("dk_recent_clear"), self)
+            c.triggered.connect(lambda: (self.prefs.setValue("recent", []), self.build()))
+            menu.addAction(c)
+
+    # ---- přetažení souboru do okna
+    def dragEnterEvent(self, ev):
+        if ev.mimeData().hasUrls() and any(u.isLocalFile() for u in ev.mimeData().urls()):
+            ev.acceptProposedAction()
+
+    def dropEvent(self, ev):
+        for u in ev.mimeData().urls():
+            if u.isLocalFile():
+                self.open_path(u.toLocalFile())
+                break
 
     def open_demo(self):
         self.project.load_demo()
@@ -281,12 +356,7 @@ class MainWindow(QMainWindow):
     def open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, T("dk_open_project"), self._dir(), "PID Tools (*.json)")
         if path:
-            self._remember(path)
-            try:
-                self.project.load(path)
-            except Exception as ex:
-                self.error(str(ex))
-            self.build()
+            self.open_path(path)
 
     def save_project(self):
         name = (self.state.get("loop_tag") or "pidtools_project") + ".json"
@@ -295,6 +365,7 @@ class MainWindow(QMainWindow):
         if path:
             self._remember(path)
             self.project.save(path, include_data=True)
+            self._recent_add(path)
             self.status(T("dk_saved", f=path))
 
     def export_report(self):
@@ -356,10 +427,5 @@ def run(argv=None):
     if len(argv) <= 1:
         win.offer_restore()
     else:
-        p = argv[1]
-        try:
-            (win.project.load if p.lower().endswith(".json") else win.project.load_file)(p)
-        except Exception as ex:
-            win.error(str(ex))
-        win.build()
+        win.open_path(argv[1])
     return app.exec()

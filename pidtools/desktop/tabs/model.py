@@ -12,113 +12,34 @@ from ...app import model as mdl
 from ...core import DIST_PARAMS, MODELS
 from ...i18n import T
 from .. import widgets as w
+from ..layout import Workspace, caption
 
 LEVEL_ICON = {0: "✅", 1: "⚠️", 2: "⛔"}
 
 
-class ModelTab(QWidget):
+class ModelTab(Workspace):
     def __init__(self, win):
-        super().__init__()
+        super().__init__("model")
         self.win, self.s = win, win.state
-        lay = QVBoxLayout(self)
-        split = QSplitter(Qt.Vertical)
-        lay.addWidget(split)
 
-        # ---- úsek identifikace
-        top = QWidget()
-        tl = QHBoxLayout(top)
+        # ---- hlavní plocha: záznam s úsekem, výsledky identifikace, grafy modelu
+        split = QSplitter(Qt.Vertical)
+        split.setChildrenCollapsible(False)
+        self.main.addWidget(split, 1)
         self.seg_chart, self.seg_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.6, 0.4))
         self.region = pg.LinearRegionItem(brush=(31, 95, 168, 40))
         self.seg_plots[0].addItem(self.region)
         self.region.sigRegionChangeFinished.connect(self._region_moved)
-        tl.addWidget(self.seg_chart, 3)
-        side = QVBoxLayout()
-        self.r_from, self.r_to = w.spin(0.0, 0, 1e9, 1), w.spin(0.0, 0, 1e9, 1)
-        b_all = QPushButton(T("dk_whole"))
-        b_all.clicked.connect(self._whole)
-        for sp in (self.r_from, self.r_to):
-            sp.valueChanged.connect(self._range_typed)
-        side.addWidget(w.group(T("seg_title"), w.form([(T("dk_from"), self.r_from), (T("dk_to"), self.r_to),
-                                                       ("", b_all)])))
-        side.addWidget(w.note(T("dk_segment_help")))
-        self.quality = w.note("")
-        side.addWidget(w.group(T("q_title"), w.form([("", self.quality)])))
-        self.auto_tab = w.table([], [], stretch=False)
-        self.auto_tab.setSelectionBehavior(QTableWidget.SelectRows)
-        self.auto_tab.setSelectionMode(QTableWidget.SingleSelection)
-        self.auto_tab.setMinimumHeight(120)
-        self.gap = w.spin(0.0, 0.0, 1e9, 1)
-        w.tip(self.gap, "h_auto_gap")
-        self.gap.valueChanged.connect(self._auto_segments)
-        b_id, b_val = QPushButton(T("auto_use_id")), QPushButton(T("auto_use_val"))
-        b_id.clicked.connect(lambda: self._use_segment(False))
-        b_val.clicked.connect(lambda: self._use_segment(True))
-        self.auto_grp = w.group(T("auto_title", n=0), w.form([("", self.auto_tab), (T("auto_gap"), self.gap),
-                                                              ("", w.hbox(b_id, b_val))]))
-        side.addWidget(self.auto_grp)
-        side.addStretch(1)
-        tl.addLayout(side, 1)
-        split.addWidget(top)
-
-        # ---- identifikace
+        split.addWidget(self.seg_chart)
         mid = QWidget()
         ml = QVBoxLayout(mid)
-        g = QGridLayout()
-        self.chk = {}
-        for i, c in enumerate(MODELS):
-            cb = QCheckBox(T("model_" + c))
-            self.chk[c] = cb
-            g.addWidget(cb, 0, i)
-        self.thmax = w.spin(100.0, 0, 1e9, 1)
-        self.level = w.combo(["none", "medium", "high"], labels=[T("dl_" + x) for x in ("none", "medium", "high")])
-        self.strength = w.spin(4, 1, 10, 0, 1)
-        self.sign = w.combo(["auto", "pos", "neg"], labels=[T("gsg_" + x) for x in ("auto", "pos", "neg")])
-        self.stic = QCheckBox(T("id_stic"))
-        self.run = QPushButton(T("run_fit"))
-        self.run.setDefault(True)
-        self.run.clicked.connect(self._identify)
-        self.prog = QProgressBar()
-        self.prog.setVisible(False)
-        ml.addWidget(w.group(T("id_title"), g))
-        ml.addLayout(w.hbox(QLabel(T("thmax")), self.thmax, QLabel(T("dist_level")), self.level,
-                            QLabel(T("dist_strength")), self.strength, QLabel(T("gain_sign")), self.sign, self.stic,
-                            self.run, self.prog))
+        ml.setContentsMargins(0, 0, 0, 0)
         self.stale = w.note("")
         ml.addWidget(self.stale)
         self.res = w.table(["", "FIT [%]", "NRMSE [%]", T("col_status"), ""], [])
-        self.res.setMaximumHeight(170)
-        ml.addWidget(self.res)
+        self.res.setMinimumHeight(110)
+        ml.addWidget(self.res, 1)
         split.addWidget(mid)
-
-        # ---- vybraný model
-        bot = QWidget()
-        bl = QHBoxLayout(bot)
-        left = QVBoxLayout()
-        self.mcode = w.combo([])
-        self.mcode.currentIndexChanged.connect(self._model_chosen)
-        self.params = QTableWidget(0, 0)
-        self.params.setMinimumHeight(112)
-        self.params.setMaximumHeight(130)
-        self.params.setToolTip(T("fix_help"))
-        self.params.itemChanged.connect(self._param_edited)
-        b_reset = QPushButton(T("dk_reset"))
-        b_reset.clicked.connect(self._reset)
-        self.b_refit = QPushButton(T("refit"))
-        w.tip(self.b_refit, "h_refit")
-        self.b_refit.clicked.connect(self._refit)
-        self.fit_lab = w.note("")
-        left.addWidget(w.group(T("model_for_tuning"), w.form([("", self.mcode)])))
-        left.addWidget(w.group(T("dk_params"), w.form([("", self.params), ("", w.hbox(self.b_refit, b_reset))])))
-        left.addWidget(self.fit_lab)
-        self.unc_n = w.spin(15, 5, 50, 0, 1)
-        self.b_unc = QPushButton(T("unc_run"))
-        self.b_unc.clicked.connect(self._bootstrap)
-        self.unc_tab = w.table([], [])
-        self.unc_tab.setMaximumHeight(130)
-        left.addWidget(w.group(T("unc_title"), w.form([(T("unc_n"), w.hbox(self.unc_n, self.b_unc)),
-                                                      ("", self.unc_tab)])))
-        left.addStretch(1)
-        bl.addLayout(left, 1)
         self.fit_chart, self.fit_plots = w.stack(3, ["PV", T("resid"), "MV"], T("time_s"), heights=(0.5, 0.2, 0.3))
         self.sub = QTabWidget()
         self.sub.addTab(self.fit_chart, T("dk_model_vs_data"))
@@ -143,9 +64,94 @@ class ModelTab(QWidget):
         self.sub.addTab(self.dist_plot, T("dk_unmeasured"))
         self.val_index = self.sub.addTab(self._validation_page(), T("val_title"))
         self.sub.currentChanged.connect(lambda i: self._validate() if i == self.val_index else None)
-        bl.addWidget(self.sub, 2)
-        split.addWidget(bot)
-        split.setSizes([300, 260, 320])
+        split.addWidget(self.sub)
+        split.setStretchFactor(0, 3)
+        split.setStretchFactor(1, 1)
+        split.setStretchFactor(2, 5)
+        split.setSizes([300, 150, 450])
+
+        # ---- pevný pruh: identifikace
+        self.run = QPushButton("▶  " + T("run_fit"))
+        self.run.setObjectName("primary")
+        self.run.clicked.connect(self._identify)
+        self.prog = QProgressBar()
+        self.prog.setVisible(False)
+        self.top_bar(self.run)
+        self.top.addWidget(self.prog)
+
+        # ---- 1 · úsek
+        self.r_from, self.r_to = w.spin(0.0, 0, 1e9, 1), w.spin(0.0, 0, 1e9, 1)
+        b_all = QPushButton(T("dk_whole"))
+        b_all.clicked.connect(self._whole)
+        for sp in (self.r_from, self.r_to):
+            sp.valueChanged.connect(self._range_typed)
+        sec = self.section(T("dk_sec_segment"), w.form([(T("dk_from"), self.r_from), (T("dk_to"), self.r_to),
+                                                        ("", b_all)]), "segment")
+        sec.add(caption(T("dk_segment_help")))
+        self.quality = w.note("")
+        sec.add(QLabel("<b>" + T("q_title") + "</b>"))
+        sec.add(self.quality)
+
+        # ---- automatické úseky
+        self.auto_tab = w.table([], [], stretch=False)
+        self.auto_tab.setSelectionBehavior(QTableWidget.SelectRows)
+        self.auto_tab.setSelectionMode(QTableWidget.SingleSelection)
+        self.auto_tab.setMinimumHeight(120)
+        self.gap = w.spin(0.0, 0.0, 1e9, 1)
+        w.tip(self.gap, "h_auto_gap")
+        self.gap.valueChanged.connect(self._auto_segments)
+        b_id, b_val = QPushButton(T("auto_use_id")), QPushButton(T("auto_use_val"))
+        b_id.clicked.connect(lambda: self._use_segment(False))
+        b_val.clicked.connect(lambda: self._use_segment(True))
+        self.auto_grp = self.section(T("auto_title", n=0), self.auto_tab, "auto", expanded=False)
+        self.auto_grp.add(w.form([(T("auto_gap"), self.gap)]))
+        self.auto_grp.add(w.hbox(b_id, b_val))
+
+        # ---- 2 · identifikace
+        g = QGridLayout()
+        self.chk = {}
+        for i, c in enumerate(MODELS):
+            cb = QCheckBox(T("model_" + c))
+            self.chk[c] = cb
+            g.addWidget(cb, i, 0)
+        self.thmax = w.spin(100.0, 0, 1e9, 1)
+        self.level = w.combo(["none", "medium", "high"], labels=[T("dl_" + x) for x in ("none", "medium", "high")])
+        self.strength = w.spin(4, 1, 10, 0, 1)
+        self.sign = w.combo(["auto", "pos", "neg"], labels=[T("gsg_" + x) for x in ("auto", "pos", "neg")])
+        self.stic = QCheckBox(T("id_stic"))
+        sec = self.section(T("dk_sec_ident"), g, "ident")
+        sec.add(w.form([(T("thmax"), self.thmax), (T("dist_level"), self.level), (T("dist_strength"), self.strength),
+                        (T("gain_sign"), self.sign), ("", self.stic)]))
+
+        # ---- 3 · model pro ladění
+        self.mcode = w.combo([])
+        self.mcode.currentIndexChanged.connect(self._model_chosen)
+        self.params = QTableWidget(0, 0)
+        self.params.setMinimumHeight(112)
+        self.params.setMaximumHeight(130)
+        self.params.setToolTip(T("fix_help"))
+        self.params.itemChanged.connect(self._param_edited)
+        b_reset = QPushButton(T("dk_reset"))
+        b_reset.clicked.connect(self._reset)
+        self.b_refit = QPushButton(T("refit"))
+        w.tip(self.b_refit, "h_refit")
+        self.b_refit.clicked.connect(self._refit)
+        self.fit_lab = w.note("")
+        sec = self.section(T("dk_sec_model"), w.form([(T("model_for_tuning"), self.mcode)]), "model")
+        sec.add(QLabel(T("dk_params")))
+        sec.add(self.params)
+        self.params.setMinimumWidth(0)
+        sec.add(w.hbox(self.b_refit, b_reset))
+        sec.add(self.fit_lab)
+
+        # ---- nejistota
+        self.unc_n = w.spin(15, 5, 50, 0, 1)
+        self.b_unc = QPushButton(T("unc_run"))
+        self.b_unc.clicked.connect(self._bootstrap)
+        self.unc_tab = w.table([], [])
+        self.unc_tab.setMaximumHeight(130)
+        sec = self.section(T("unc_title"), w.form([(T("unc_n"), w.hbox(self.unc_n, self.b_unc))]), "unc", expanded=False)
+        sec.add(self.unc_tab)
 
         for c in self.chk.values():
             c.toggled.connect(self._settings_changed)
@@ -465,7 +471,7 @@ class ModelTab(QWidget):
         w.fill(self.auto_tab, ["#", T("auto_from"), T("auto_to"), T("auto_len"), T("auto_steps"), T("auto_dirs"), "SNR",
                                T("auto_quality")], rows)
         self.auto_tab.resizeColumnsToContents()
-        self.auto_grp.setTitle(T("auto_title", n=len(segs)))
+        self.auto_grp.set_title(T("auto_title", n=len(segs)))
         for it in getattr(self, "_seg_items", []):
             self.seg_plots[0].removeItem(it)
         self._seg_items = []

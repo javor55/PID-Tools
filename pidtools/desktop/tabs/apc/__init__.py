@@ -24,6 +24,7 @@ from .gainsched_er import GainSchedErPanel
 from .override import OverridePanel
 from .smith import SmithPanel
 from ...help import checklist_markdown
+from ...layout import Section
 
 
 class ApcTab(QWidget):
@@ -31,9 +32,10 @@ class ApcTab(QWidget):
         super().__init__()
         self.win, self.s = win, win.state
         lay = QVBoxLayout(self)
+        lay.setContentsMargins(4, 4, 4, 0)
         self.reco = w.note("")
         self.reco.linkActivated.connect(self._open)
-        lay.addWidget(w.group(T("dk_apc_reco"), w.form([("", self.reco)])))
+        lay.addWidget(Section(T("dk_sec_reco"), self.reco, "apc/reco"))
         self.tabs = QTabWidget()
         self.panels = [CascadePanel(win), FFPanel(win), DecouplePanel(win), OverridePanel(win), SmithPanel(win),
                        GainSchedPanel(win), GainSchedErPanel(win)]
