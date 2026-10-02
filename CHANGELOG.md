@@ -1,5 +1,43 @@
 # Changelog
 
+## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
+
+**Development**
+- Offline package for Windows contains the desktop application (`PID-Tools-desktop.bat`, PySide6-Essentials).
+- Fix: the gain sign options in the Model tab showed the gain-scheduling button text.
+- Desktop application (preview, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Tuning with the
+  scenario and method comparison, model validation and uncertainty, live simulation, APC (cascade, feedforward,
+  decoupling, override, Smith predictor, gain scheduling by PV and ER), operating diagnostics, several loops,
+  projects interchangeable with the web app, tuning protocol export, help window with tab guides (content shared
+  with the web app), autosave with restore on the next start, clickable APC recommendations.
+- APC structure checklists computed in the shared layer – identical on the web and in the desktop.
+- Desktop layout: every tab has the largest possible area for charts and data on the left and a settings panel
+  on the right with collapsible sections (state and panel width are remembered); compact number fields.
+- Desktop tuning: scenario first (default setpoint step; load or output disturbance, measured disturbance step,
+  replay of measured disturbances, custom events), then the suggestion; nothing is computed until **Calculate (F5)**,
+  changes mark the result as out of date; the suggestion is shown as a third curve before it is written to a set;
+  the optimisation targets the scenario by default; tuning history with return to a set (saved in the project).
+- Desktop charts: cursor with the values of all curves, two measuring cursors (Δt, ΔY), full range, PNG / CSV
+  export, copy to clipboard, separate window (second monitor), hiding curves via the legend.
+- Desktop: recent files, drag and drop of data and project files, Ctrl+1…7 tab shortcuts, remembered window size,
+  keyboard shortcut overview in Help.
+- Frequency analysis (Bode, Nyquist with the Ms circle, |S| and |T|, bandwidth) of set 1, set 2 and the suggestion –
+  web and desktop.
+- Closed-loop identification from data with the loop in AUTO (SP changes): indirect method simulating the whole
+  loop with the controller from the record; the open-loop model is shown for comparison.
+- Loop overview (tab 7): several loops from one file, ranking by problems, common oscillations and their source,
+  opening a loop as a project loop.
+- APC: split range, valve position control, ratio with cross-limiting, N×N interaction (RGA, Niederlinski index,
+  recommended pairing).
+- OPC UA (read only): browsing, history and live recording in the desktop; OPC UA data source in the local web.
+- Web interface in the desktop layout: charts on the left, settings in collapsible sections on the right on every
+  tab; tuning with scenario presets and Calculate; Model, Data with diagnostics, APC, live simulation and project.
+- Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
+  desktop version for engineering stations; the web app is unchanged.
+- APC page split into one module per structure.
+- Deployment readiness: CI workflow with lint and tests on every push, user-supplied names escaped in HTML
+  output, no Session State warnings in the web, the demo preselects its measured disturbance.
+
 ## 3.0.0 – first release for sharing within a team
 
 **Data**

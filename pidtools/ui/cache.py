@@ -2,10 +2,11 @@
 Výpočty jádra s cache Streamlitu (stejné vstupy → okamžitý výsledek).
 Stránky volají výpočty přes tento modul, ne přímo přes `pidtools.core`.
 """
-import numpy as np
 import streamlit as st
 
 from .. import core
+from ..app import closedloop as app_cl
+from ..app import tuning as app_tuning
 
 _cache = st.cache_data(show_spinner=False, max_entries=256)
 
@@ -20,21 +21,8 @@ identify = _cache(core.identify)
 settling_time = _cache(core.settling_time)
 
 
-@st.cache_data(show_spinner=False, max_entries=64)
-def opt_migo(code, p, ctype, samp, dg, ms, hf, starts, extra=(), pvf=0.0):
-    return core.optimize_migo(code, list(p), ctype, samp, dg, ms, hf, starts, [list(e) for e in extra], pvf)
-
-
-@st.cache_data(show_spinner=False, max_entries=128)
-def opt_time(code, p, ctype, samp, dg, crit, target, ms, hf, starts, extra=(), ovs=0.02, pfac=1.0, dfb=True,
-             pvf=0.0, rate=0.0, sp_amp=1.0, d_amp=1.0):
-    return core.optimize_time(code, list(p), ctype, samp, dg, crit, target, ms, hf, starts, [list(e) for e in extra],
-                              ovs, pfac, dfb, pvf, rate, sp_amp, d_amp)
-
-
-@st.cache_data(show_spinner=False, max_entries=32)
-def opt_scenario(code, p, pdl, ctype, ctrl_base, crit, h, sp, pv0, mv0, dmeas, dist_mv, dist_pv, ms, hf, starts,
-                 extra=(), ovs=0.02):
-    return core.optimize_scenario(code, list(p), [list(d) for d in pdl], ctype, dict(ctrl_base), crit, h,
-                                  np.asarray(sp), pv0, mv0, [np.asarray(d) for d in dmeas], np.asarray(dist_mv),
-                                  np.asarray(dist_pv), ms, hf, starts, [list(e) for e in extra], ovs)
+# optimalizace ladění (pidtools.app.tuning) – hashovatelné argumenty
+opt_migo = st.cache_data(show_spinner=False, max_entries=64)(app_tuning.opt_migo)
+opt_time = st.cache_data(show_spinner=False, max_entries=128)(app_tuning.opt_time)
+opt_scenario = st.cache_data(show_spinner=False, max_entries=32)(app_tuning.opt_scenario)
+identify_cl = st.cache_data(show_spinner=False, max_entries=32)(app_cl.identify)

@@ -155,48 +155,51 @@ export default function (component) {
   const el = document.createElement("div");
   el.className = "pidlive";
   el.innerHTML = `
+  <div class="lvg">
+  <div class="lvm">
+    <div id="read"></div>
+    <div class="cvwrap"><canvas id="cv" style="height:${CFG.ch}px"></canvas><div id="tip"></div></div>
+    <table id="kpi"></table>
+  </div>
+  <div class="lvs">
   <div class="row">
-    <div class="grp"><div class="lab">&nbsp;</div><div class="btns"><button id="run"></button><button id="reset">⟲ ${L.reset}</button></div></div>
+    <div class="btns"><button id="run"></button><button id="reset">⟲ ${L.reset}</button></div>
     <div class="grp"><div class="lab">${L.lspeed}</div><div class="segs" id="speed"></div></div>
     <div class="grp" id="setgrp"><div class="lab">${L.lset}</div><div class="segs" id="set"></div></div>
     <div class="grp"><div class="lab">${L.lmode}</div><div class="segs" id="mode"></div></div>
-    <div class="grp"><div class="lab">&nbsp;</div><label class="chk"><input type="checkbox" id="cmp"> ${L.compare}</label></div>
+    <label class="chk"><input type="checkbox" id="cmp"> ${L.compare}</label>
   </div>
+  <details open><summary>${L.lsp.split("[")[0].trim()} · ${L.lmv.split("[")[0].trim()}</summary>
   <div class="sliders">
     <div class="sl"><div class="top"><span class="lab">${L.lsp}</span><span class="val" id="spv"></span></div><input type="range" id="sps"></div>
     <div class="sl" id="mvbox"><div class="top"><span class="lab">${L.lmv}</span><span class="val" id="mvv"></span></div><input type="range" id="mvs"></div>
     <div class="sl"><div class="top"><span class="lab" id="ldist"></span><span><span class="val" id="dv"></span> <button class="mini" id="d0" title="${L.d0}">0</button></span></div><input type="range" id="ds"></div>
-  </div>
-  <details id="adv"><summary>${L.advanced}</summary>
-    <div class="adv">
-      <section><h4>${L.sec_tune}</h4>
+  </div></details>
+  <details><summary>${L.sec_tune}</summary><section>
         <div class="tune" id="tune"></div>
         <div class="btns"><button id="apply" class="primary">${L.apply}</button><button id="revert">${L.revert}</button></div>
-        <div class="hint">${L.tune_hint}</div></section>
-      <section><h4>${L.sec_dist}</h4>
+        <div class="hint">${L.tune_hint}</div></section></details>
+  <details><summary>${L.sec_dist}</summary><section>
         <div class="lab">${L.dist_type}</div><div class="segs" id="dtype"></div>
         <div class="lab">${L.dist_loc}</div><div class="segs" id="dloc"></div>
         <div class="sl"><div class="top"><span class="lab" id="lpp"></span><span class="val" id="ppv"></span></div><input type="range" id="pps"></div>
-        <button id="pulse">${L.pulse_go}</button></section>
-      <section><h4>${L.sec_meas}</h4>
+        <button id="pulse">${L.pulse_go}</button></section></details>
+  <details><summary>${L.sec_meas}</summary><section>
         <div class="sl"><div class="top"><span class="lab">${L.noise}</span><span class="val" id="nzv"></span></div><input type="range" id="nzs"></div>
         <div class="sl"><div class="top"><span class="lab">${L.pvf}</span><span class="val" id="pfv"></span></div><input type="range" id="pfs"></div>
-        <div class="hint">${L.meas_hint}</div></section>
-      <section><h4>${L.sec_plant}</h4>
+        <div class="hint">${L.meas_hint}</div></section></details>
+  <details><summary>${L.sec_plant}</summary><section>
         <div class="sl"><div class="top"><span class="lab">${L.pk}</span><span class="val" id="pkv"></span></div><input type="range" id="pks"></div>
         <div class="sl"><div class="top"><span class="lab">${L.pt}</span><span class="val" id="ptv"></span></div><input type="range" id="pts"></div>
         <div class="sl"><div class="top"><span class="lab">${L.pth}</span><span class="val" id="pthv"></span></div><input type="range" id="pths"></div>
         <div class="sl"><div class="top"><span class="lab">${L.stic}</span><span class="val" id="stv"></span></div><input type="range" id="sts"></div>
-        <div class="hint">${L.plant_hint}</div></section>
-      <section><h4>${L.sec_view}</h4>
+        <div class="hint">${L.plant_hint}</div></section></details>
+  <details><summary>${L.sec_view}</summary><section>
         <div class="lab">${L.window}</div><div class="segs" id="win"></div>
         <div class="btns"><button id="csv">⤓ CSV</button><button id="png">⤓ PNG</button></div>
-        <div class="hint">${L.view_hint}</div></section>
-    </div>
-  </details>
-  <div id="read"></div>
-  <table id="kpi"></table>
-  <div class="cvwrap"><canvas id="cv" style="height:${CFG.ch}px"></canvas><div id="tip"></div></div>`;
+        <div class="hint">${L.view_hint}</div></section></details>
+  </div>
+  </div>`;
   root.appendChild(el);
   const $ = (id) => el.querySelector("#" + id);
 

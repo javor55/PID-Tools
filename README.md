@@ -29,20 +29,30 @@ controller structure and implementation steps follow the **PIDConL** block and t
 - **Data** – CSV / Excel from a historian or PCS 7: common time column, a time column per variable, or long format
   (tag, time, value); time as a number or a date in ISO, Czech, US or European format; UTF-8, UTF-16 and
   windows-1250 encodings. PV / MV / SP are pre-filled from tag names. Data-quality check (historian compression,
-  number and size of steps, noise) and automatic search for segments suitable for identification.
+  number and size of steps, noise) and automatic search for segments suitable for identification. **OPC UA**
+  (read only, local / desktop version): browse the server, read the history of chosen tags or record live values.
 - **Identification** – zero-, first-, second-order and integrating models, all with dead time and with models of
   measured disturbances; suppression of unmeasured disturbances, forced gain sign, valve stiction estimation, fixing
   of known parameters, model uncertainty (bootstrap), validation on another segment and detailed evaluation
-  (FIT, residuals).
+  (FIT, residuals). **Closed-loop identification** from normal operation with the loop in AUTO (SP changes,
+  indirect method with the controller from the record).
 - **PIDConL tuning** – SIMC, iSIMC, Lambda, AMIGO, averaging level control and numerical optimization (MIGO, IAE,
   ISE, ITAE, overshoot limit, the whole scenario), always with a robustness constraint (Ms). Block configuration as
   in PCS 7 (NormPV/NormMV, SampleTime, DiffGain, PropFacSP, D on feedback, deadband, MV limits and rate, PV filter, SP ramp).
-  Two parameter sets (current / new), comparison of all methods, scenario simulation with valve, stiction and noise.
+  Two parameter sets (current / new), comparison of all methods, scenario simulation with valve, stiction and noise
+  (scenario first – setpoint step, load or output disturbance, measured disturbances, custom events – the suggestion
+  is calculated on request and shown next to both sets), **frequency analysis** (Bode, Nyquist with the Ms circle,
+  sensitivity |S| and |T|, bandwidth) and a tuning history.
 - **Live simulation** in the browser – smooth, instant response to SP, manual MV, disturbances and noise, up to 500×
   speed.
 - **APC** – cascade, feedforward (static and lead-lag), 2×2 decoupling (RGA, decouplers), override (MIN/MAX
-  selector with external reset), Smith predictor, gain scheduling by PV or by control error; each with a guide,
-  a simulation of the benefit and values for the APL templates.
+  selector with external reset), Smith predictor, gain scheduling by PV or by control error, **split range**
+  (balanced breakpoint), **valve position control** (small and large actuator), **ratio with cross-limiting**
+  (fuel / air) and **N×N interaction** (RGA, Niederlinski index, pairing); each with a guide, a simulation of the
+  benefit and values for the implementation.
+- **Loop overview** – many loops from one file: mark PV / MV / SP of each loop (proposed from the tag names), the
+  loops are ranked by their problems (oscillation, stiction, saturation, Harris index, valve wear, manual mode) and
+  common oscillations are grouped with their likely source.
 - **Several loops in one project** (e.g. the inner and outer loop of a cascade from one export).
 - **Project file** (JSON) with models, tuning and optionally data; **autosave** of work in progress in the browser.
 - **Tuning protocol** (HTML, print to PDF) for all loops of the project.
@@ -61,7 +71,23 @@ Open <https://pidtools.streamlit.app/>, choose **Demo** and go through tabs 1–
 
 ### Offline PC (USB)
 Download the portable package `PID-Tools-<version>-win64-offline.zip` (Releases / Actions artifacts), copy it to the
-PC, unzip and run **`PID-Tools.bat`** – no installation, no internet. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
+PC, unzip and run **`PID-Tools-desktop.bat`** (window application) or **`PID-Tools.bat`** (browser) – no installation,
+no internet. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
+
+### Desktop application (preview)
+
+The same computations as a desktop window without a browser – for engineering stations (Windows 10/11):
+
+```bash
+pip install -r requirements.txt -r requirements-desktop.txt
+python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.json
+```
+
+Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,
+feedforward, decoupling, override, Smith predictor, gain scheduling by PV and by control error), operating
+diagnostics, several loops in one project, projects (the same JSON files as the web app) and the tuning protocol.
+The offline package for Windows contains both the desktop and the web app (`PID-Tools-desktop.bat`,
+`PID-Tools.bat`) – see [Deployment](docs/deployment.md).
 
 ### Locally (Linux / macOS)
 ```bash
@@ -120,6 +146,7 @@ All methods, criteria and indicators explained: [docs/methods.md](docs/methods.m
 - Uploaded data are processed on the server running the app **only for the session** and are not stored (no writes
   to disk, no calls to external services, Streamlit telemetry is switched off).
 - Work in progress is autosaved **only in the user's browser** (can be switched off in the Project & report tab).
+- OPC UA access is **read only** – the application never writes to the server.
 - The public instance runs on Streamlit Community Cloud. If you may not upload plant data to a third-party server,
   run the app **locally or on an internal server** ([docs/deployment.md](docs/deployment.md)).
 
@@ -144,9 +171,9 @@ python -m pytest tests/test_core.py tests/test_basic.py   # computation core onl
 ```
 
 ```
-app.py                     entry point – builds the page from the modules below
+app.py                     entry point of the web app (Streamlit Community Cloud deploys this file)
 pidtools/
-  core/                    computations, no Streamlit dependency
+  core/                    computations – numpy/scipy only
     models.py              model structures, response simulation, prediction
     identification.py      model fitting, stiction, unmeasured disturbances, evaluation, uncertainty, range rescaling
     tuning.py              tuning rules and optimizations
@@ -156,22 +183,34 @@ pidtools/
     gainsched.py           gain scheduling (GainSched block), control zone
     diagnostics.py         loop performance, oscillation, stiction, data quality, segments, nonlinearity
     demo.py, util.py
-  i18n/                    texts: cs.py, en.py, T()
-  ui/                      Streamlit user interface
+  app/                     application layer – workflow shared by all frontends, no UI framework
+    dataio.py guess.py     data loading, time parsing, resampling, PV/MV/SP role guessing
+    dataset.py             table layouts (common time, time per variable, long format) → common time grid
+    loop.py                NormPV/NormMV scaling, PIDConL block configuration, parameter sets
+    model.py               identification settings, rescaling, edits, evaluation, validation, uncertainty
+    tuning.py              methods, proposals (rules and optimizations), comparison, robustness of sets
+    scenario.py            scenario events → signals, automatic length, plant, indicators
+    feedforward.py         feedforward defaults and simulation parameters
+    apc/                   one module per structure: recommend, cascade, feedforward, decouple, override,
+                           smith, gainsched
+    project.py             project file format (JSON)
+    report.py plots.py     tuning protocol (HTML) and Plotly figure helpers
+  i18n/                    texts: cs.py, en.py, T() – the frontend sets the language
+  ui/                      Streamlit web frontend (widgets, session state, caching, charts)
+  desktop/                 Qt desktop frontend (PySide6, pyqtgraph): state.py (one loop, no Qt), main.py, tabs/
     context.py             Ctx – data shared by the tabs within one run
-    widgets.py charts.py theme.py dataio.py cache.py project.py
     loops.py               several loops in a project (state snapshots, switching)
-    ff.py                  feedforward – state shared by Tuning and APC
-    guess.py               PV/MV/SP role guessing from tag names
-    report.py              tuning protocol (HTML)
-    autosave.py            autosave in the browser
     static/                live simulation in the browser (live_engine.js = port of core/simulation.py)
-    pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
-                           apc (+ apc_guide, cascade), project, guides
-tests/                     pytest: core, whole app (AppTest), data loading, loops, APC
+    pages/                 one module per tab: header, data, model, tuning, live, diagnostics, project, guides,
+                           apc/ (one module per structure)
+tests/                     pytest: core, app layer, whole app (AppTest), data loading, loops, APC
 tools/                     offline package for Windows (build_offline.py, smoke_test.py)
-docs/                      user documentation (English; Czech in docs/cs)
+docs/                      user documentation (English; Czech in docs/cs), architecture.md
 ```
+
+Layers: `core` ← `app` ← frontend (`ui` today; a desktop frontend can reuse `core` and `app` unchanged). `core`,
+`app` (except the Plotly-based `report.py` and `plots.py`) and `i18n` must not import Streamlit or Qt – a test
+checks it. See [docs/architecture.md](docs/architecture.md).
 
 Inside the core all process quantities are in % of the controller ranges (NormPV, NormMV), so the process gain and
 the controller Gain are dimensionless as in PIDConL. Data and results are shown to the user in real units.

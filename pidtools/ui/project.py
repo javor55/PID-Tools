@@ -8,42 +8,13 @@ Obnova (`apply_project`) jen zapíše hodnoty do session state – widgety si je
 import datetime as _dt
 import json
 
-import numpy as np
 import streamlit as st
 
+from ..app.project import (PROJECT_VERSION, STATE_KEYS, STATE_PREFIX, fit_record, jsonable, loop_records,  # noqa: F401
+                           is_state_key, migrate_state, serialize_project)
 from . import loops
 
 ss = st.session_state
-
-PROJECT_VERSION = 2
-STATE_KEYS = [
-    "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h",
-    # blok PIDConL a sady parametrů
-    "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
-    "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
-    # identifikace
-    "thmax", "chosen", "mcode", "dist_level", "dist_strength", "gain_sign", "id_stic",
-    # ladění a simulace
-    "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
-    "scen2", "sim_len_u", "sim_J", "sim_noise", "vchar_last",
-    # plán testu, kaskáda, diagnostika
-    "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
-    "cas_samp", "cas_tci", "cas_tco", "diag_integ",
-    # hlavička reportu
-    "rep_plant", "rep_author", "rep_status", "rep_comment",
-]
-STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|", "gs_")
-
-
-def _jsonable(v):
-    if isinstance(v, (np.floating, float)):
-        return float(v)
-    if isinstance(v, (np.integer, int, bool, str)) or v is None:
-        return v.item() if isinstance(v, np.generic) else v
-    if isinstance(v, (list, tuple)):
-        return [_jsonable(x) for x in v]
-    return None
-
 
 def apply_project(proj):
     """
@@ -51,7 +22,7 @@ def apply_project(proj):
     Projekt s více smyčkami má v „loops“ záznam každé smyčky (stejný tvar jako jednosmyčkový projekt);
     smyčky se obnoví jedna po druhé a uloží jako snímky, nakonec se přepne na tu, která byla aktivní.
     """
-    recs = proj.get("loops") or []
+    recs, act = loop_records(proj)
     if len(recs) < 2:
         loops.reset(1)
         loops.clear()
@@ -62,21 +33,19 @@ def apply_project(proj):
     for i, rec in enumerate(recs, start=1):
         st_["active"] = i
         loops.clear()
-        _apply_one({**proj, **rec, "fname_tag": proj.get("tag", "")})
+        _apply_one(rec)
         st_["info"][i] = {"name": rec.get("tag", "")}
         if i < len(recs):
             st_["snap"][i] = loops.snapshot()
-    loops.switch(min(max(int(proj.get("active", 1)), 1), len(recs)))
+    loops.switch(act + 1)
 
 
 def _apply_one(proj):
     """Obnova jedné smyčky (a společného stavu) do session state."""
     ss.proj = proj
-    state = proj.get("state", {})
+    state = migrate_state(proj.get("state", {}))
     for k_, v_ in state.items():
         ss[k_] = v_
-    if "propfac" not in state and "pfb" in state:   # starší projekty: přepínač P ve zpětné vazbě → PropFacSP
-        ss["propfac"] = 0.0 if state["pfb"] else 1.0
     fnames = [proj.get("fname", "")]
     if proj.get("data"):
         n_ = len(next(iter(proj["data"]["cols"].values())))
@@ -126,10 +95,10 @@ def _record(c, snap, active):
     get = lambda k, d=None: snap.get(k, ss.get(k, d)) if loops._is_loop_key(k) else ss.get(k, d)  # noqa: E731
     state = {}
     for k in set(snap) | set(ss.keys()):
-        if k in STATE_KEYS or str(k).startswith(STATE_PREFIX):
+        if is_state_key(k):
             if str(k).startswith(STATE_PREFIX) and loops._is_loop_key(k) and k not in snap:
                 continue
-            v = _jsonable(get(k))
+            v = jsonable(get(k))
             if v is not None:
                 state[k] = v
     if active:
@@ -140,14 +109,9 @@ def _record(c, snap, active):
         rng = next((list(v) for k, v in snap.items() if str(k).startswith(f"rng_id|{fn}|")), None)
     rv = next((list(v) for k, v in snap.items() if str(k).startswith(f"rng_val|{fn}|")), rng)
     rec = dict(tag=get("loop_tag", ""), state=state, map=mp, ranges={"id": rng, "val": rv}, ff=get("ff_state", []))
-    fit = get("fit")
-    if fit and fit.get("res"):
-        res = {}
-        for code, r in fit["res"].items():
-            res[code] = dict(code=code, p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d] for d in r["pdl"]],
-                             fit=float(r["fit"]), level=r.get("level", "none"),
-                             Th=None if r.get("Th") is None else float(r["Th"]), stic=float(r.get("stic") or 0.0))
-        rec["fit"] = dict(res=res, dnames=list(fit["dnames"]))
+    fit = fit_record(get("fit"))
+    if fit:
+        rec["fit"] = fit
     return rec
 
 
@@ -180,15 +144,6 @@ def gather_project(c, include_data):
                         cols_[str(col)] = c.on_grid(col)
         proj["data"] = {"cols": cols_}
     return proj
-
-
-def serialize_project(proj):
-    """Projekt (z `gather_project`) → JSON text; pole dat zaokrouhlená na 6 platných číslic."""
-    proj = dict(proj)
-    if "data" in proj:
-        r6 = lambda a: [None if not np.isfinite(x) else float(f"{x:.6g}") for x in np.asarray(a, float)]  # noqa: E731
-        proj["data"] = {"cols": {k: r6(v) for k, v in proj["data"]["cols"].items()}}
-    return json.dumps(proj, ensure_ascii=False)
 
 
 def build_project(c, include_data):

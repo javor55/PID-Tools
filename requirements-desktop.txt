@@ -1,0 +1,5 @@
+# Desktop application (python -m pidtools.desktop) – in addition to requirements.txt.
+# Not used by the web app / Streamlit Community Cloud.
+PySide6-Essentials>=6.6,<7      # QtCore, QtGui, QtWidgets (the full PySide6 also works)
+pyqtgraph>=0.13,<1
+asyncua>=1.1,<3                 # OPC UA – read-only data import (optional: the rest works without it)

@@ -10,26 +10,28 @@ from ..cache import local_gains, loop_kpis
 from ..charts import REPORT, show, style, tr
 from ..theme import C_MV, C_PV
 from ..widgets import num, tog
-from . import apc_guide
+from .apc import guide as apc_guide
 
 ss = st.session_state
 
 def render(ctx):
-    """Záložka Diagnostika."""
+    """Diagnostika provozu v záložce Data: nastavení a ukazatele vpravo, grafy (CCF, MV–PV, poloha, nelinearita) vlevo."""
     Ts, d_id, fname, has_sp, model, mv, mv_e, mv_id, mvl_hi, mvl_lo, pos_e, pv, pv_id, samp, sp, t, ts_id, u_mv, u_pv = ctx.Ts, ctx.d_id, ctx.fname, ctx.has_sp, ctx.model, ctx.mv, ctx.mv_e, ctx.mv_id, ctx.mvl_hi, ctx.mvl_lo, ctx.pos_e, ctx.pv, ctx.pv_id, ctx.samp, ctx.sp, ctx.t, ctx.ts_id, ctx.u_mv, ctx.u_pv
     EM, M, MR, PR, lab_mv, lab_pv = ctx.EM, ctx.M, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv
+    ws = ctx.dws
     with ctx.tabs["data"]:
-        st.caption(ctx.block_summary)
         integ_known = MODELS[model[0]]["integ"] if model is not None else None
-        with st.container(border=True):
-            st.markdown(T("diag_intro"))
+        side = ws.diag
+        with side:
+            st.caption(ctx.block_summary)
+            st.caption(T("diag_intro"))
             dkey = f"rng_diag|{fname}|{t[-1]:.0f}"
             if dkey not in ss:
                 ss[dkey] = (0.0, float(t[-1]))
-            c1, c2 = st.columns([3, 1.3], vertical_alignment="bottom")
-            rd = c1.slider(T("seg_diag"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=dkey, help=T("h_seg_diag"))
-            integ_d = tog(c2, T("diag_integ"), bool(integ_known), "diag_integ", help=T("h_diag_integ"))
-            th_d = model[1][-1] if model is not None else num(T("diag_theta"), "diag_theta", 5.0, c2, min_value=0.0,
+            rd = st.slider(T("seg_diag"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=dkey,
+                           help=T("h_seg_diag"))
+            integ_d = tog(st, T("diag_integ"), bool(integ_known), "diag_integ", help=T("h_diag_integ"))
+            th_d = model[1][-1] if model is not None else num(T("diag_theta"), "diag_theta", 5.0, min_value=0.0,
                                                                help=T("h_diag_theta"))
         sd = (t >= rd[0]) & (t <= rd[1])
 
@@ -47,12 +49,14 @@ def render(ctx):
             }
 
         if sd.sum() < 100:
-            st.warning(T("err_short"))
-        else:
-            # ---- výkon smyčky
-            st.markdown(f"#### {T('perf_title')}")
+            side.warning(T("err_short"))
+            return
+        # ---- výkon smyčky (panel)
+        with side:
+            st.markdown(f"**{T('perf_title')}**")
             kA, rowA = kpi_row(sd)
             compare = st.toggle(T("perf_compare"), key="perf_compare", help=T("h_perf_compare"))
+            ptab = pd.DataFrame({T("seg_a"): rowA})
             if compare:
                 bkey = f"rng_diagB|{fname}|{t[-1]:.0f}"
                 if bkey not in ss:
@@ -62,16 +66,12 @@ def render(ctx):
                 if sB.sum() >= 100:
                     kB, rowB = kpi_row(sB)
                     ptab = pd.DataFrame({T("seg_a"): rowA, T("seg_b"): rowB})
-                else:
-                    ptab = pd.DataFrame({T("seg_a"): rowA})
-            else:
-                ptab = pd.DataFrame({T("seg_a"): rowA})
             st.dataframe(ptab, width="stretch")
             REPORT["tables"].append((T("perf_title"), ptab))
             st.caption(T("perf_help"))
 
-            # ---- oscilace a ventil
-            st.markdown(f"#### {T('osc_title')}")
+            # ---- oscilace a ventil (verdikt)
+            st.markdown(f"**{T('osc_title')}**")
             sig = (sp[sd] - pv[sd]) if has_sp else pv[sd]
             osc = oscillation(sig, Ts)
             if not osc["osc"]:
@@ -90,42 +90,47 @@ def render(ctx):
                 else:
                     st.info(T("stic_unclear", r=f"{ratio:.2f}"), icon=":material/help:")
                 REPORT["notes"].append(T("rep_osc", p=f"{osc['period']:.0f}", r=f"{ratio:.2f}"))
-            cc1, cc2 = st.columns(2)
-            with cc1:
-                fcc = go.Figure()
-                fcc.add_trace(tr(sc["lags"], sc["ccf"], T("ccf"), C_PV, 2.0))
-                fcc.add_vline(x=0, line=dict(color="#94a3b8", dash="dot", width=1))
-                style(fcc, 300, xtitle=T("lag_s"), rev="ccf")
-                fcc.update_layout(title=dict(text=T("ccf_title_d") if integ_d else T("ccf_title"), font=dict(size=13), x=0),
-                                  hovermode="x")
-                show(fcc, key="chart_ccf", fname="ccf")
-            with cc2:
-                yy = np.gradient(pv[sd], Ts) if integ_d else pv[sd]
-                fph = go.Figure(go.Scattergl(x=EM(mv[sd]), y=yy * PR / 100 if not integ_d else yy * PR / 100,
-                                             mode="markers+lines", marker=dict(size=3, color=C_PV, opacity=0.5),
-                                             line=dict(width=0.6, color="#cbd5e1"), name="MV–PV"))
-                style(fph, 300, rev="phase")
-                fph.update_layout(title=dict(text=T("phase_title"), font=dict(size=13), x=0), hovermode="closest",
-                                  xaxis_title=lab_mv, yaxis_title=("dPV/dt" if integ_d else lab_pv))
-                show(fph, key="chart_phase", fname="mv_pv")
-            st.caption(T("osc_help"))
+            hyst = valve_hysteresis(mv_e[sd], pos_e[sd]) if pos_e is not None else np.nan
             if pos_e is not None:
-                hyst = valve_hysteresis(mv_e[sd], pos_e[sd])
                 st.metric(T("hyst"), "—" if not np.isfinite(hyst) else f"{abs(hyst):.3g} {u_mv or ''}", help=T("h_hyst"))
-                fpos = go.Figure(go.Scattergl(x=mv_e[sd], y=pos_e[sd], mode="markers+lines",
-                                              marker=dict(size=3, color=C_MV, opacity=0.5),
-                                              line=dict(width=0.6, color="#fecaca")))
-                style(fpos, 300, rev="pos")
-                fpos.update_layout(xaxis_title=lab_mv, yaxis_title=T("col_pos"), hovermode="closest",
-                                   title=dict(text=T("pos_title"), font=dict(size=13), x=0))
-                show(fpos, key="chart_pos", fname="valve", report=T("pos_title"))
                 if np.isfinite(hyst):
                     REPORT["notes"].append(T("rep_hyst", h=f"{abs(hyst):.3g}", u=u_mv or ""))
             else:
                 st.caption(T("pos_missing"))
 
-            # ---- nelinearita
-            st.markdown(f"#### {T('nl_title')}")
+        # ---- grafy diagnostiky (pod záznamem)
+        labels = [T("ccf_title_d") if integ_d else T("ccf_title"), T("phase_title")] + \
+            ([T("pos_title")] if pos_e is not None else []) + [T("nl_title")]
+        with ws.m_diag:
+            st.markdown(f"**{T('dk_diag_tab').split('·')[-1].strip()}**")
+            tabs_ = st.tabs(labels, key="diag_view", on_change="rerun")
+        with tabs_[0]:
+            fcc = go.Figure()
+            fcc.add_trace(tr(sc["lags"], sc["ccf"], T("ccf"), C_PV, 2.0))
+            fcc.add_vline(x=0, line=dict(color="#94a3b8", dash="dot", width=1))
+            style(fcc, 360, xtitle=T("lag_s"), rev="ccf")
+            fcc.update_layout(hovermode="x")
+            show(fcc, key="chart_ccf", fname="ccf")
+            st.caption(T("osc_help"))
+        with tabs_[1]:
+            yy = np.gradient(pv[sd], Ts) if integ_d else pv[sd]
+            fph = go.Figure(go.Scattergl(x=EM(mv[sd]), y=yy * PR / 100, mode="markers+lines",
+                                         marker=dict(size=3, color=C_PV, opacity=0.5),
+                                         line=dict(width=0.6, color="#cbd5e1"), name="MV–PV"))
+            style(fph, 360, rev="phase")
+            fph.update_layout(hovermode="closest", xaxis_title=lab_mv, yaxis_title=("dPV/dt" if integ_d else lab_pv))
+            show(fph, key="chart_phase", fname="mv_pv")
+        if pos_e is not None:
+            with tabs_[2]:
+                fpos = go.Figure(go.Scattergl(x=mv_e[sd], y=pos_e[sd], mode="markers+lines",
+                                              marker=dict(size=3, color=C_MV, opacity=0.5),
+                                              line=dict(width=0.6, color="#fecaca")))
+                style(fpos, 360, rev="pos")
+                fpos.update_layout(xaxis_title=lab_mv, yaxis_title=T("col_pos"), hovermode="closest")
+                show(fpos, key="chart_pos", fname="valve", report=T("pos_title"))
+
+        # ---- nelinearita
+        with tabs_[-1]:
             if model is None:
                 st.info(T("need_model"), icon=":material/arrow_back:")
             else:
@@ -164,5 +169,3 @@ def render(ctx):
                         st.info(T("nl_dir_warn", r=f"{np.mean(ups) / np.mean(dns):.2f}"), icon=":material/swap_vert:")
                     REPORT["notes"].append(T("rep_nl", s=f"{spread:.2f}"))
                     st.caption(T("nl_help"))
-
-

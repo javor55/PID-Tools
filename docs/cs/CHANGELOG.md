@@ -1,5 +1,42 @@
 # Změny
 
+## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
+
+**Vývoj**
+- Offline balíček pro Windows obsahuje desktopovou aplikaci (`PID-Tools-desktop.bat`, PySide6-Essentials).
+- Oprava: volby znaménka zesílení v záložce Model ukazovaly text tlačítka gain schedulingu.
+- Desktopová aplikace (náhled, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Ladění se
+  scénářem a srovnáním metod, validace a nejistota modelu, živá simulace, APC (kaskáda, dopředná vazba,
+  rozvazbení, override, Smithův prediktor, gain scheduling podle PV a ER), diagnostika provozu, více smyček,
+  projekty zaměnitelné s webovou aplikací, export protokolu, okno nápovědy s průvodci záložek (obsah sdílený
+  s webem), automatické ukládání s nabídkou obnovení při dalším spuštění, proklik z doporučení APC.
+- Kontrolní seznamy struktur APC počítané ve sdílené vrstvě – na webu i v desktopu stejné.
+- Rozložení desktopu: každá záložka má vlevo co největší plochu pro grafy a data a vpravo panel nastavení se
+  sbalitelnými sekcemi (stav i šířka panelu se pamatují); kompaktní číselná pole.
+- Ladění v desktopu: nejdřív scénář (výchozí skok SP; porucha na vstupu či výstupu, skok měřené poruchy, přehrání
+  naměřených poruch, vlastní události), potom návrh; nic se nepočítá před stiskem **Vypočítat (F5)**, změny označí
+  výsledek jako neaktuální; návrh se ukáže jako třetí křivka ještě před zápisem do sady; optimalizace ve výchozím
+  stavu cílí na scénář; historie ladění s návratem do sady (ukládá se do projektu).
+- Grafy v desktopu: kurzor s hodnotami všech křivek, dva měřicí kurzory (Δt, ΔY), celý rozsah, export PNG / CSV,
+  kopie do schránky, samostatné okno (druhý monitor), skrytí křivky kliknutím na legendu.
+- Desktop: nedávné soubory, přetažení dat a projektů do okna, zkratky Ctrl+1…7 pro záložky, zapamatovaná velikost
+  okna, přehled klávesových zkratek v Nápovědě.
+- Frekvenční analýza (Bode, Nyquist s kružnicí Ms, |S| a |T|, šířka pásma) sady 1, sady 2 a návrhu – web i desktop.
+- Identifikace v uzavřené smyčce z dat se smyčkou v AUTO (změny SP): nepřímá metoda se simulací celé smyčky
+  s regulátorem ze záznamu; pro srovnání se ukáže model z otevřené smyčky.
+- Přehled smyček (záložka 7): více smyček z jednoho souboru, pořadí podle problémů, společné oscilace a jejich
+  zdroj, otevření smyčky jako smyčky projektu.
+- APC: split range, regulace polohy ventilu, poměrová regulace s křížovým omezením, interakce N×N (RGA,
+  Niederlinskiho index, doporučené párování).
+- OPC UA (jen čtení): procházení, historie a záznam živých hodnot v desktopu; zdroj dat OPC UA v lokálním webu.
+- Webové rozhraní v rozložení desktopu: grafy vlevo, nastavení ve sbalitelných sekcích vpravo na všech záložkách;
+  ladění s předvolbami scénáře a tlačítkem Vypočítat; Model, Data s diagnostikou, APC, živá simulace a projekt.
+- Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
+  desktopové verze pro inženýrské stanice; webová aplikace beze změny.
+- Stránka APC rozdělená na moduly po strukturách.
+- Připravenost k nasazení: CI s lintem a testy při každém pushi, uživatelské názvy escapované ve výstupu HTML,
+  žádná varování Session State na webu, ukázka předvybírá měřenou poruchu.
+
 ## 3.0.0 – první verze pro sdílení v týmu
 
 **Data**

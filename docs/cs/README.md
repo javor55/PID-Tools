@@ -30,18 +30,28 @@ a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **A
 - **Data** – CSV / Excel z historianu nebo PCS 7: společný časový sloupec, vlastní čas u každé veličiny i „dlouhý“
   formát (tag, čas, hodnota); čas jako číslo nebo datum v českém, ISO, US či evropském formátu; kódování UTF-8,
   UTF-16 i windows-1250. Sloupce PV / MV / SP se předvyplní podle názvů tagů. Kontrola kvality dat (komprese
-  historianu, počet a velikost skoků, šum) a automatické hledání úseků vhodných pro identifikaci.
+  historianu, počet a velikost skoků, šum) a automatické hledání úseků vhodných pro identifikaci. **OPC UA**
+  (jen čtení, lokální / desktopová verze): procházení serveru, historie vybraných tagů nebo záznam živých hodnot.
 - **Identifikace** – modely 0., 1. a 2. řádu a integrační, vždy s dopravním zpožděním a s modely měřených poruch;
   potlačení neměřených poruch, vynucení znaménka zesílení, odhad stikce ventilu, zafixování známých parametrů,
-  nejistota modelu (bootstrap), ověření na jiném úseku a detailní hodnocení (FIT, rezidua).
+  nejistota modelu (bootstrap), ověření na jiném úseku a detailní hodnocení (FIT, rezidua). **Identifikace
+  v uzavřené smyčce** z běžného provozu se smyčkou v AUTO (změny SP, nepřímá metoda s regulátorem ze záznamu).
 - **Ladění PIDConL** – SIMC, iSIMC, Lambda, AMIGO, průměrovací ladění hladiny a numerická optimalizace (MIGO,
   IAE, ISE, ITAE, limit překmitu, celý scénář) vždy s podmínkou robustnosti Ms. Konfigurace bloku jako v PCS 7
   (NormPV/NormMV, SampleTime, DiffGain, PropFacSP, D ze zpětné vazby, deadband, limity a rychlost MV, filtr PV, rampa SP).
-  Dvě sady parametrů (současná / nová), porovnání všech metod, simulace scénářů s ventilem, stikcí a šumem.
+  Dvě sady parametrů (současná / nová), porovnání všech metod, simulace scénářů s ventilem, stikcí a šumem
+  (nejdřív scénář – skok SP, porucha na vstupu či výstupu, měřené poruchy, vlastní události – návrh se počítá na
+  požádání a ukáže se vedle obou sad), **frekvenční analýza** (Bode, Nyquist s kružnicí Ms, citlivost |S| a |T|,
+  šířka pásma) a historie ladění.
 - **Živá simulace** v prohlížeči – plynulá, okamžitá reakce na SP, ruční MV, poruchy a šum, zrychlení až 500×.
 - **APC** – kaskáda, dopředná vazba (statická i lead-lag), rozvazbení 2×2 (RGA, decouplery), override (výběr
-  MIN/MAX s externí zpětnou vazbou), Smithův prediktor, gain scheduling podle PV nebo regulační odchylky; každá
-  struktura s průvodcem, simulací přínosu a hodnotami pro šablony APL.
+  MIN/MAX s externí zpětnou vazbou), Smithův prediktor, gain scheduling podle PV nebo regulační odchylky,
+  **split range** (vyvážený bod rozdělení), **regulace polohy ventilu** (malý a velký akční člen), **poměrová
+  regulace s křížovým omezením** (palivo / vzduch) a **interakce N×N** (RGA, Niederlinskiho index, párování); každá
+  struktura s průvodcem, simulací přínosu a hodnotami pro implementaci.
+- **Přehled smyček** – mnoho smyček z jednoho souboru: označte PV / MV / SP každé smyčky (návrh z názvů tagů),
+  smyčky se seřadí podle problémů (oscilace, stikce, saturace, Harrisův index, opotřebení ventilu, ruční režim)
+  a společné oscilace se seskupí s pravděpodobným zdrojem.
 - **Více smyček v jednom projektu** (např. vnitřní a vnější smyčka kaskády z jednoho exportu).
 - **Projekt** (JSON) s modely, laděním a volitelně daty; **automatické ukládání** rozpracované práce v prohlížeči.
 - **Protokol z ladění** (HTML, tisk do PDF) pro všechny smyčky projektu.
@@ -57,6 +67,21 @@ Otevřete <https://pidtools.streamlit.app/>, zvolte **Demo** a projděte zálož
 1. Nainstalujte [Python 3.11](https://www.python.org/downloads/) (při instalaci zaškrtněte *Add Python to PATH*).
 2. Stáhněte repozitář (*Code › Download ZIP*) a rozbalte.
 3. Spusťte **`start.bat`** – nainstaluje knihovny a otevře aplikaci v prohlížeči (<http://localhost:8501>).
+
+### Desktopová aplikace (náhled)
+
+Stejné výpočty v okně bez prohlížeče – pro inženýrské stanice (Windows 10/11):
+
+```bash
+pip install -r requirements.txt -r requirements-desktop.txt
+python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.json
+```
+
+Data, Model (validace, nejistota), Ladění (srovnání metod, simulace scénáře), živá simulace, APC (kaskáda, dopředná
+vazba, rozvazbení, override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika
+provozu, více smyček v projektu, projekty (stejné soubory JSON jako webová aplikace) a protokol z ladění.
+Offline balíček pro Windows obsahuje desktop i webovou aplikaci (`PID-Tools-desktop.bat`, `PID-Tools.bat`)
+– viz [Nasazení](nasazeni.md).
 
 ### Lokálně (Linux / macOS)
 ```bash
@@ -113,6 +138,7 @@ Vysvětlení všech metod, kritérií a ukazatelů: [metody.md](metody.md).
 - Nahraná data se zpracují na serveru, kde aplikace běží, **jen po dobu relace** a nikam se neukládají (žádné
   zápisy na disk, žádná volání externích služeb, telemetrie Streamlitu je vypnutá).
 - Rozpracovaná práce se automaticky ukládá **jen v prohlížeči uživatele** (lze vypnout v záložce Projekt a report).
+- Přístup přes OPC UA je **jen pro čtení** – aplikace do serveru nikdy nezapisuje.
 - Veřejná instance běží na Streamlit Community Cloud. Pokud provozní data nesmíte nahrávat na cizí server,
   spusťte aplikaci **lokálně nebo na interním serveru** ([nasazeni.md](nasazeni.md)).
 
@@ -136,9 +162,9 @@ python -m pytest tests/test_core.py tests/test_basic.py   # jen výpočetní já
 ```
 
 ```
-app.py                     vstupní bod – skládá stránku z modulů níže
+app.py                     vstupní bod webové aplikace (Streamlit Community Cloud nasazuje tento soubor)
 pidtools/
-  core/                    výpočty bez závislosti na Streamlitu
+  core/                    výpočty – jen numpy/scipy
     models.py              struktury modelů, simulace odezvy, predikce
     identification.py      fit modelů, stikce, neměřené poruchy, hodnocení, nejistota, přepočet rozsahů
     tuning.py              pravidla ladění a optimalizace
@@ -148,21 +174,33 @@ pidtools/
     gainsched.py           gain scheduling (blok GainSched), řídicí pásmo
     diagnostics.py         výkon smyčky, oscilace, stikce, kvalita dat, úseky, nelinearita
     demo.py, util.py
-  i18n/                    texty: cs.py, en.py, T()
-  ui/                      rozhraní ve Streamlitu
+  app/                     aplikační vrstva – pracovní postup společný všem frontendům, bez UI frameworku
+    dataio.py guess.py     načtení dat, čas, převzorkování, odhad rolí PV/MV/SP
+    dataset.py             rozložení tabulky (společný čas, čas u veličiny, dlouhý formát) → společná mřížka
+    loop.py                převody NormPV/NormMV, konfigurace bloku PIDConL, sady parametrů
+    model.py               nastavení identifikace, přepočet, úpravy, hodnocení, validace, nejistota
+    tuning.py              metody, návrhy (pravidla i optimalizace), srovnání, robustnost sad
+    scenario.py            události scénáře → průběhy, automatická délka, proces, ukazatele
+    feedforward.py         výchozí návrh dopředné vazby a parametry pro simulaci
+    apc/                   jeden modul na strukturu: recommend, cascade, feedforward, decouple, override,
+                           smith, gainsched
+    project.py             formát projektu (JSON)
+    report.py plots.py     protokol z ladění (HTML) a pomocníci grafů Plotly
+  i18n/                    texty: cs.py, en.py, T() – jazyk nastavuje frontend
+  ui/                      webový frontend ve Streamlitu (widgety, session state, cache, grafy)
+  desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): state.py (jedna smyčka, bez Qt), main.py, tabs/
     context.py             Ctx – data sdílená záložkami v jednom běhu
-    widgets.py charts.py theme.py dataio.py cache.py project.py
     loops.py               více smyček v projektu (snímky stavu, přepínání)
-    ff.py                  dopředná vazba – stav sdílený Laděním a APC
-    guess.py               odhad rolí PV/MV/SP podle názvů tagů
-    report.py              protokol z ladění (HTML)
-    autosave.py            automatické ukládání v prohlížeči
     static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py)
-    pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics,
-                           apc (+ apc_guide, cascade), project, guides
-tests/                     pytest: jádro, celá aplikace (AppTest), načítání dat, smyčky, APC
-docs/                      uživatelská dokumentace
+    pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics, project, guides,
+                           apc/ (jeden modul na strukturu)
+tests/                     pytest: jádro, aplikační vrstva, celá aplikace (AppTest), načítání dat, smyčky, APC
+docs/                      uživatelská dokumentace, architecture.md (architektura, anglicky)
 ```
+
+Vrstvy: `core` ← `app` ← frontend (dnes `ui`; desktopový frontend může `core` i `app` použít beze změny). `core`,
+`app` (kromě `report.py` a `plots.py`, které používají Plotly) a `i18n` nesmí importovat Streamlit ani Qt – hlídá to
+test. Podrobnosti v [docs/architecture.md](../architecture.md).
 
 Uvnitř jádra jsou všechny procesní veličiny v % rozsahů regulátoru (NormPV, NormMV), takže zesílení procesu
 i Gain regulátoru jsou bezrozměrné jako v PIDConL. Data a výsledky se uživateli ukazují v reálných jednotkách.

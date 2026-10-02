@@ -16,6 +16,11 @@ WRAPPER = os.path.join(os.path.dirname(__file__), "_app_wrapper.py")
 TIMEOUT = 900
 
 
+def _main(at):
+    """Hlavní záložky aplikace (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
+    return [t for t in at.tabs if t.label[:1].isdigit()]
+
+
 def _errors(at):
     """Výjimky a chybová hlášení aplikace (bez očekávaného hlášení o nestabilní výchozí sadě)."""
     exc = [x.message for x in at.exception]
@@ -52,14 +57,16 @@ def test_identification(app):
     assert app.session_state["mcode"] in MODELS
     fits = [float(m.value.rstrip(" %")) for m in app.metric if m.label.startswith("Fit – identified")]
     assert fits and fits[0] > 95
-    assert len(app.tabs) == 6
+    assert len(_main(app)) == 7
 
 
 @pytest.mark.parametrize("method", ["SIMC", "iSIMC", "Lambda", "AMIGO", "AVG", "OPT"])
 def test_tuning_methods(app, method):
     app.session_state[f"method|{app.session_state['mcode']}"] = method
     app.run()
+    _button(app, "Calculate").click().run()          # návrh se počítá až na tlačítko (jako v desktopu)
     assert not _errors(app)
+    assert app.session_state["sug_last"]["sig"]
 
 
 @pytest.mark.parametrize("crit", ["MIGO", "IAE", "ISE", "ITAE", "OVS"])
@@ -74,14 +81,64 @@ def test_scenario_target_and_sets(app):
     app.session_state["opt_crit"], app.session_state["opt_target"], app.session_state["ctype"] = "IAE", "scen", "PID"
     app.run()
     app.run()
+    _button(app, "Calculate").click().run()
     assert not _errors(app)
     _button(app, "Write to Set 2").click().run()
-    assert not _errors(app)
-    app.session_state["pvfilt"], app.session_state["mvrate"] = 2.0, 0.5
-    app.session_state["scen2"] = "replay"
+    assert app.session_state["tune_hist"][0]["set"] == 2
+    for kind in ("in", "pv", "sp_in", "meas", "replay", "custom", "sp"):     # předvolby scénáře (jako desktop)
+        app.session_state["scen_kind"] = kind
+        app.run()
+        assert not _errors(app), kind
+    app.session_state["tun_view"] = "Frequency analysis"
     app.run()
     assert not _errors(app)
-    app.session_state["scen2"] = "custom"
+    app.session_state["tun_view"] = "Scenario response"
+    app.run()
+    assert not _errors(app)
+    app.session_state["pvfilt"], app.session_state["mvrate"] = 2.0, 0.5
+    app.run()
+    assert not _errors(app)
+
+
+def test_closed_loop_identification_web(app):
+    """Režim „smyčka v AUTO“: po identifikaci jsou modely doladěné simulací smyčky se Set 1."""
+    mc = app.session_state["mcode"]
+    chosen = list(app.session_state["chosen"])
+    app.session_state["id_mode"], app.session_state["chosen"] = "cl", [mc]
+    app.run()
+    _button(app, "Identify").click().run()
+    assert not app.exception            # ukázková data nejsou z AUTO se Set 1 → sada 2 může vyjít nestabilní
+    assert app.session_state["fit"]["res"][mc]["method"] == "cl"
+    app.session_state["id_mode"], app.session_state["chosen"] = "open", chosen
+    app.run()
+    _button(app, "Identify").click().run()
+    assert not _errors(app)
+
+
+def test_loop_overview_web(app):
+    """Přehled smyček: návrh smyček z názvů tagů a analýza bez chyb."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][6]
+    app.run()
+    _button(app, "Analyse loops").click().run()
+    assert not _errors(app)
+    res = app.session_state["au_res"]["res"]
+    assert res and res[0]["ok"] and res[0]["name"] == "LIC101"
+    assert app.session_state["audit_loops"][0]["pv"] == "LIC101.PV"
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
+    app.run()
+
+
+def test_apc_more_structures_web(app):
+    """Split range, VPC, poměr s křížovým omezením a RGA N×N: stránky bez chyb, s ukazateli."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
+    for kind in ("split", "vpc", "ratio", "rga"):
+        app.session_state["apc_kind"] = kind
+        app.run()
+        assert not app.exception, kind
+    app.session_state["apc_kind"] = "split"
+    app.run()
+    assert any("b* =" in m.value for m in app.markdown)
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
     app.run()
 
 
@@ -99,7 +156,7 @@ def test_validation(app):
 
 def test_live_simulation(app):
     """Živá simulace běží v prohlížeči: stránka připojí komponentu s jádrem a konfigurací obou sad."""
-    tabs = [t.label for t in app.tabs]
+    tabs = [t.label for t in _main(app)]
     app.session_state["main_tab"] = tabs[3]
     app.run()
     assert not _errors(app)
@@ -130,7 +187,7 @@ def test_model_tools(app):
 
 def test_lazy_tabs_and_comparison(app):
     """Grafy se posílají jen pro aktivní záložku; porovnání metod se počítá až po rozbalení."""
-    labels = [t.label for t in app.tabs]
+    labels = [t.label for t in _main(app)]
     n_charts = {}
     for lbl in labels:
         app.session_state["main_tab"] = lbl
@@ -154,14 +211,14 @@ def test_guides(app):
     """Každá záložka má průvodce; tlačítko v kontrolním seznamu přepne na správnou záložku."""
     app.run()
     heads = [m.value for m in app.markdown if m.value == "##### Purpose and steps"]
-    assert len(heads) == 6
+    assert len(heads) == 7                  # 7 záložek včetně přehledu smyček
     assert any("**Which model when**" in m.value for m in app.markdown)
     assert any("**Which method when**" in m.value for m in app.markdown)
     btn = next(b for b in app.button if b.label == "Go to Live simulation")
     btn.click().run()
     assert not _errors(app)
-    assert app.session_state["main_tab"] == [t.label for t in app.tabs][3]
-    app.session_state["main_tab"] = [t.label for t in app.tabs][0]
+    assert app.session_state["main_tab"] == [t.label for t in _main(app)][3]
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
     app.run()
 
 
@@ -173,7 +230,7 @@ def test_other_tabs(app):
 
 
 def test_report_project_roundtrip_and_language(app):
-    app.session_state["main_tab"] = [t.label for t in app.tabs][5]      # Projekt a report
+    app.session_state["main_tab"] = [t.label for t in _main(app)][5]      # Projekt a report
     app.session_state["rep_plant"], app.session_state["rep_comment"] = "Kotelna <K2>", "a & b"
     app.run()
     _button(app, "Create report").click().run()
@@ -182,7 +239,7 @@ def test_report_project_roundtrip_and_language(app):
     assert rep.startswith("<!doctype html>") and "Kotelna &lt;K2&gt;" in rep and "a &amp; b" in rep
     assert "PIDConL" in rep and "Ms" in rep and "Gain" in rep
     proj = json.loads(serialize_project(app.session_state["_proj_payload"]))
-    app.session_state["main_tab"] = [t.label for t in app.tabs][0]
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
     app.run()
     assert proj["version"] == 2 and proj["data"] and proj["fit"]
 
@@ -199,7 +256,7 @@ def test_report_project_roundtrip_and_language(app):
     at2.run()
     assert not at2.exception
     assert at2.session_state["mcode"] == app.session_state["mcode"]
-    assert any(t.label.startswith("4 · Živá") for t in at2.tabs)
+    assert any(t.label.startswith("4 · Živá") for t in _main(at2))
 
 
 def test_legacy_project_v1():
@@ -245,7 +302,7 @@ def test_smith_template_values():
     app.session_state["pv_hi"] = 200.0           # rozsah PV ≠ MV → zesílení v %/% a ve fyzikálních jednotkách se liší
     app.run()
     _button(app, "Identify").click().run()
-    app.session_state["main_tab"] = [t.label for t in app.tabs][4]
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
     app.session_state["mcode"] = "P1D"            # demo je hladina (integrační) – tam se tabulka nezobrazí
     app.session_state["apc_kind"] = "smith"
     app.run()
@@ -291,7 +348,10 @@ def test_gain_scheduling_page():
     app.run()
     _button(app, "Identify").click().run()
     app.session_state["mcode"] = "P1D"
-    app.session_state["main_tab"] = [t_.label for t_ in app.tabs][4]
+    app.run()
+    _button(app, "Calculate").click().run()            # sada 2 = návrh SIMC (návrh se počítá na tlačítko)
+    _button(app, "Write to Set 2").click().run()
+    app.session_state["main_tab"] = [t_.label for t_ in _main(app)][4]
     app.session_state["apc_kind"] = "gainsched"
     for i, (a, b) in enumerate(((0, 2090), (2100, 4190), (4200, 6290)), start=1):
         app.session_state[f"gs_r{i}"] = (float(a), float(b))
@@ -339,7 +399,7 @@ def test_gain_scheduling_page():
 def test_feedforward_in_apc(app):
     """Dopředná vazba: stav v Ladění, návrh a simulace v APC, promítnutí do sad a obnova z projektu."""
     assert any("Feedforward from measured disturbances is off" in c.value for c in app.caption)
-    app.session_state["main_tab"] = [t.label for t in app.tabs][4]
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
     app.session_state["apc_kind"] = "ff"
     app.run()
     assert not _errors(app)
@@ -352,7 +412,10 @@ def test_feedforward_in_apc(app):
     assert app.session_state["ff_state"][0]["use"]
     assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
     assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
-    # simulace v Ladění: stejná sada 2 bez FF pro porovnání (výchozí scénář obsahuje skok měřené poruchy)
+    # simulace v Ladění: stejná sada 2 bez FF pro porovnání (scénář se skokem měřené poruchy)
+    app.session_state["scen_kind"] = "meas"
+    app.run()
+    assert not _errors(app)
     kp = next(d.value for d in app.dataframe if len(d.value) and "Set 2 without FF" in list(d.value.index))
     iae_ = dict(zip(kp.index, kp["IAE [%·s]"].astype(float)))
     assert iae_["Set 2"] != pytest.approx(iae_["Set 2 without FF"], rel=1e-3)   # FF se v simulaci projeví
@@ -404,7 +467,7 @@ def _ff_example_app():
     at.session_state["test_inject"] = json.dumps(proj)
     at.run()
     _button(at, "Identify").click().run()
-    at.session_state["main_tab"] = [t.label for t in at.tabs][2]
+    at.session_state["main_tab"] = [t.label for t in _main(at)][2]
     at.run()
     return at
 
@@ -413,6 +476,7 @@ def test_scenario_sp_from_to():
     """Scénář: SP z → na v jednotkách PV; po změně rozsahu výchozí skok neuvízne na 5 % starého rozsahu."""
     at = _ff_example_app()
     at.session_state["pv_hi"] = 400.0
+    at.session_state["scen_kind"] = "custom"          # vlastní události: skok SP v tabulce se přepíše z „z → na“
     at.run()
     k0 = next(k for k in at.session_state if str(k).startswith("sim_sp0|"))
     k1 = next(k for k in at.session_state if str(k).startswith("sim_sp1|"))
@@ -426,3 +490,27 @@ def test_scenario_sp_from_to():
     assert sb["sp"][0] * 4 == pytest.approx(360.0) and sb["sp"][-1] * 4 == pytest.approx(380.0)
     # pracovní bod MV 130 % mimo limity 0–100 → varování
     assert any("lies outside the controller limits" in w.value for w in at.warning)
+
+
+def test_opc_source_web():
+    """Zdroj OPC UA (jen čtení): hledání tagů na testovacím serveru, historie → data aplikace."""
+    pytest.importorskip("asyncua")
+    from pidtools.app import opc
+    url, stop = opc.test_server(48451)
+    try:
+        at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+        at.run()
+        at.session_state["src"] = "opc"
+        at.session_state["opc_url"] = url
+        at.session_state["opc_q"] = "TIC200"
+        at.run()
+        _button(at, "Find").click().run()
+        assert len(at.session_state["opc_found"]) == 3
+        at.session_state["opc_pick"] = list(at.session_state["opc_found"])
+        at.run()
+        _button(at, "Read history").click().run()
+        assert not at.exception
+        assert at.session_state["opc_df"]["n"] == 3 and len(_main(at)) == 7
+        assert at.session_state[next(k for k in at.session_state if str(k).startswith("c_pv|opc|"))] == "TIC200.PV"
+    finally:
+        stop()

@@ -25,5 +25,34 @@ at.run()
 next(b for b in at.button if b.label == "Identify").click().run()
 errors = [x.message for x in at.exception]
 assert not errors, errors
-assert len(at.tabs) == 6 and "fit" in at.session_state
+assert len([t for t in at.tabs if t.label[:1].isdigit()]) == 7 and "fit" in at.session_state
 print("app ok:", at.session_state["mcode"])
+
+# ---- desktop application (if the package contains it): windows without a display, demo data
+try:
+    import PySide6  # noqa: F401
+except ImportError:
+    print("desktop: not in the package")
+else:
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    from PySide6.QtCore import QSettings, QThreadPool  # noqa: E402
+    from PySide6.QtWidgets import QApplication  # noqa: E402
+
+    from pidtools.desktop.main import MainWindow  # noqa: E402
+
+    qapp = QApplication([])
+    win = MainWindow(prefs=QSettings(os.path.join(os.getcwd(), "_smoke.ini"), QSettings.IniFormat))
+    win.show()
+    win.open_demo()
+    win.pages[1]._identify()
+    QThreadPool.globalInstance().waitForDone(300000)
+    for _ in range(3):
+        qapp.processEvents()
+    assert win.state.model is not None
+    for i in range(win.tabs.count()):
+        win.tabs.setCurrentIndex(i)
+        qapp.processEvents()
+    win.close()
+    if os.path.exists(os.path.join(os.getcwd(), "_smoke.ini")):
+        os.remove(os.path.join(os.getcwd(), "_smoke.ini"))
+    print("desktop ok:", win.state.model[0])

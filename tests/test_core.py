@@ -76,7 +76,8 @@ def test_unmeasured_disturbance_suppression_improves_model():
         m[t >= t0] = v
     dist = np.cumsum(rng.normal(0, 0.05, len(t))) + 3 * np.sin(2 * np.pi * t / 4000)
     y = 40 + core.simulate("P1D", [1.5, 80, 20], t, m - 50, 2.0) + dist + rng.normal(0, 0.2, len(t))
-    err = lambda r: abs(r["p"][0] - 1.5) + abs(r["p"][2] - 20) / 20
+    def err(r):
+        return abs(r["p"][0] - 1.5) + abs(r["p"][2] - 20) / 20
     assert err(core.fit_model("P1D", t, y, m, 2.0, level="high")) < err(core.fit_model("P1D", t, y, m, 2.0))
 
 

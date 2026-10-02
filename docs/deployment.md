@@ -1,13 +1,14 @@
 # Deployment and operation
 
-PID Tools is a [Streamlit](https://streamlit.io/) application: a Python server, users work in the browser.
-It can be run in several ways.
+PID Tools runs as a web app ([Streamlit](https://streamlit.io/): a Python server, users work in the browser) or as a
+desktop application (a window, no browser and no network port – suitable for engineering stations). Both use the
+same computations and the same project files.
 
 | Option | For whom | Data |
 |---|---|---|
 | **Public instance** (Streamlit Community Cloud) | quick trial, demo and non-sensitive data | leave for a third-party server |
 | **Locally on a PC** | an individual engineer | stay on the own PC |
-| **Offline PC** (portable package via USB) | PCs without internet | stay on the PC |
+| **Offline PC / engineering station** (portable package via USB, desktop application or web app) | PCs without internet, PCS 7 engineering stations | stay on the PC |
 | **Internal server** | a team / company | stay in the company network |
 
 ---
@@ -42,12 +43,16 @@ streamlit run app.py
 For a PC without internet there is a **portable package for Windows (x64)**: a folder with its own Python, all
 libraries and the application. Nothing is installed, no admin rights are needed.
 
-1. On a PC with internet download `PID-Tools-<version>-win64-offline.zip` (about 200 MB) from the repository's
+1. On a PC with internet download `PID-Tools-<version>-win64-offline.zip` (about 300 MB) from the repository's
    GitHub **Releases** or from the latest run of the *Offline package (Windows)* workflow (*Actions* tab ›
    run › *Artifacts*; the artifact is a ZIP that contains the package ZIP).
 2. Copy it to the offline PC (USB stick) and unzip it, e.g. to `C:\Tools\PID-Tools` (avoid very long paths).
-3. Double-click **`PID-Tools.bat`**. A console window starts the app and the browser opens
-   <http://localhost:8501>. Close the console window to stop the app.
+3. **Desktop application:** double-click **`PID-Tools-desktop.bat`** – a window opens (no browser, no network port,
+   nothing running in the background). A data file or a project can be dropped on the `.bat` file to open it.
+4. **Web app** (the same functions in the browser): double-click **`PID-Tools.bat`**. A console window starts the
+   app and the browser opens <http://localhost:8501>. Close the console window to stop the app.
+
+The package needs Windows 10 or 11 (x64).
 
 To uninstall, delete the folder. To update, replace the folder with a newer package (projects saved in JSON stay
 compatible).
@@ -55,9 +60,11 @@ compatible).
 **Building the package yourself** (Windows PC with internet and Python 3.11):
 ```bash
 python tools/build_offline.py        # -> dist/PID-Tools-<version>-win64-offline.zip
+python tools/build_offline.py --no-desktop   # web app only, without Qt (smaller)
 ```
 The workflow `.github/workflows/offline-package.yml` does the same on GitHub: it builds the package on Windows,
-tests it with its own embedded Python (core, the whole app on demo data, server start) and publishes it as an
+tests it with its own embedded Python (core, the whole web app and the desktop windows on demo data, server start)
+and publishes it as an
 artifact; for a version tag (`v*`) it attaches it to a release.
 
 ## Internal server
