@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from ... import __version__
-from ...core import demo_data
+from ...app.dataset import DEMO_SET1, demo_frame
 from ...i18n import T
 from .. import autosave, loops
 from ..dataio import load_table
@@ -71,11 +71,10 @@ def render(ctx):
                 except Exception as ex:
                     st.error(T("err_read", ex=ex))
         else:
-            t_, sp_, pv_, mv_, q_ = demo_data()
-            ctx.df = pd.DataFrame({"Cas": t_, "LIC101.SP": sp_, "LIC101.PV": pv_, "LIC101.MV": mv_, "FI100.Pritok": q_})
+            ctx.df = demo_frame()
             if loops.active() == loops.ids()[0] and (ss.get("set1_gain", 1.0), ss.get("set1_ti", 100.0)) == (1.0, 100.0):
                 # „současné“ parametry ukázkové smyčky (odtokový ventil → záporné zesílení), dokud je uživatel nezmění
-                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = -2.0, 200.0, 0.0
+                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = DEMO_SET1
                 ss["_set1_demo"] = True
             d2.download_button(T("demo_dl"), ctx.df.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
                                "text/csv", icon=":material/download:", help=T("demo_desc"), width="stretch")

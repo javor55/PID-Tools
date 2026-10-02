@@ -4,7 +4,7 @@ PID Tools is split into three layers. The aim is that the same computations and 
 by more than one frontend – today the Streamlit web app, later a desktop application for engineering stations.
 
 ```
-frontend   pidtools/ui (Streamlit)        future: pidtools/desktop (Qt)
+frontend   pidtools/ui (Streamlit, web)   pidtools/desktop (Qt, engineering station)
               │                                   │
 application   pidtools/app  – workflow, project format, report      (no UI framework)
               │
@@ -34,6 +34,14 @@ Streamlit reruns the script on every interaction. `ui/context.py` (`Ctx`) carrie
 tabs; widget state lives in the session state, several loops are snapshots of it (`ui/loops.py`). Pages read
 widgets, call `app` and draw the results. The live simulation runs in the browser (`ui/static/live_engine.js`, a
 port of `core/simulation.py`, checked against it by `tests/test_live_js.py`).
+
+## Desktop frontend (`pidtools/desktop`)
+
+`state.py` (`LoopState`) holds one loop – data, columns, ranges, identification segment, models, PIDConL block,
+parameter sets, scenario – in a `settings` dictionary with the same keys as the web app, so projects are
+interchangeable. It has no Qt dependency and is tested on its own. The windows (`main.py`, `tabs/`) only read and
+change the state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
+pyqtgraph. Start: `python -m pidtools.desktop`.
 
 ## Deployment
 

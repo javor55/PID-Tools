@@ -63,6 +63,18 @@ Open <https://pidtools.streamlit.app/>, choose **Demo** and go through tabs 1–
 Download the portable package `PID-Tools-<version>-win64-offline.zip` (Releases / Actions artifacts), copy it to the
 PC, unzip and run **`PID-Tools.bat`** – no installation, no internet. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
 
+### Desktop application (preview)
+
+The same computations as a desktop window without a browser – for engineering stations (Windows 10/11):
+
+```bash
+pip install -r requirements.txt -r requirements-desktop.txt
+python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.json
+```
+
+Data, Model and Tuning (incl. the scenario simulation), projects (the same JSON files as the web app) and the tuning
+protocol. Live simulation, APC and several loops follow.
+
 ### Locally (Linux / macOS)
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -158,6 +170,7 @@ pidtools/
     demo.py, util.py
   app/                     application layer – workflow shared by all frontends, no UI framework
     dataio.py guess.py     data loading, time parsing, resampling, PV/MV/SP role guessing
+    dataset.py             table layouts (common time, time per variable, long format) → common time grid
     loop.py                NormPV/NormMV scaling, PIDConL block configuration, parameter sets
     model.py               identification settings, rescaling, edits, evaluation, validation, uncertainty
     tuning.py              methods, proposals (rules and optimizations), comparison, robustness of sets
@@ -169,6 +182,7 @@ pidtools/
     report.py plots.py     tuning protocol (HTML) and Plotly figure helpers
   i18n/                    texts: cs.py, en.py, T() – the frontend sets the language
   ui/                      Streamlit web frontend (widgets, session state, caching, charts)
+  desktop/                 Qt desktop frontend (PySide6, pyqtgraph): state.py (one loop, no Qt), main.py, tabs/
     context.py             Ctx – data shared by the tabs within one run
     loops.py               several loops in a project (state snapshots, switching)
     static/                live simulation in the browser (live_engine.js = port of core/simulation.py)

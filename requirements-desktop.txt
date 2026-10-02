@@ -1,0 +1,4 @@
+# Desktop application (python -m pidtools.desktop) – in addition to requirements.txt.
+# Not used by the web app / Streamlit Community Cloud.
+PySide6>=6.6,<7
+pyqtgraph>=0.13,<1

@@ -58,6 +58,18 @@ Otevřete <https://pidtools.streamlit.app/>, zvolte **Demo** a projděte zálož
 2. Stáhněte repozitář (*Code › Download ZIP*) a rozbalte.
 3. Spusťte **`start.bat`** – nainstaluje knihovny a otevře aplikaci v prohlížeči (<http://localhost:8501>).
 
+### Desktopová aplikace (náhled)
+
+Stejné výpočty v okně bez prohlížeče – pro inženýrské stanice (Windows 10/11):
+
+```bash
+pip install -r requirements.txt -r requirements-desktop.txt
+python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.json
+```
+
+Data, Model a Ladění (včetně simulace scénáře), projekty (stejné soubory JSON jako webová aplikace) a protokol
+z ladění. Živá simulace, APC a více smyček přijdou v dalších krocích.
+
 ### Lokálně (Linux / macOS)
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -150,6 +162,7 @@ pidtools/
     demo.py, util.py
   app/                     aplikační vrstva – pracovní postup společný všem frontendům, bez UI frameworku
     dataio.py guess.py     načtení dat, čas, převzorkování, odhad rolí PV/MV/SP
+    dataset.py             rozložení tabulky (společný čas, čas u veličiny, dlouhý formát) → společná mřížka
     loop.py                převody NormPV/NormMV, konfigurace bloku PIDConL, sady parametrů
     model.py               nastavení identifikace, přepočet, úpravy, hodnocení, validace, nejistota
     tuning.py              metody, návrhy (pravidla i optimalizace), srovnání, robustnost sad
@@ -161,6 +174,7 @@ pidtools/
     report.py plots.py     protokol z ladění (HTML) a pomocníci grafů Plotly
   i18n/                    texty: cs.py, en.py, T() – jazyk nastavuje frontend
   ui/                      webový frontend ve Streamlitu (widgety, session state, cache, grafy)
+  desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): state.py (jedna smyčka, bez Qt), main.py, tabs/
     context.py             Ctx – data sdílená záložkami v jednom běhu
     loops.py               více smyček v projektu (snímky stavu, přepínání)
     static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py)

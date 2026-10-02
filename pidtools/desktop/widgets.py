@@ -1,0 +1,199 @@
+"""Společné prvky oken: grafy (pyqtgraph), číselná pole, tabulky a výpočty na pozadí."""
+import numpy as np
+import pyqtgraph as pg
+from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, Signal
+from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout,
+                               QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QWidget)
+
+from ..app.plots import C_DIST, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: F401 (barvy pro okna)
+
+pg.setConfigOptions(background="w", foreground="#1f2933", antialias=True)
+
+
+# ---- grafy
+def _setup(p):
+    """Mřížka, legenda a zředění dlouhých průběhů (špičky zůstanou)."""
+    p.showGrid(x=True, y=True, alpha=0.25)
+    p.setDownsampling(auto=True, mode="peak")
+    p.setClipToView(True)
+    if p.legend is None:
+        p.addLegend(offset=(8, 8))
+
+
+def plot(title=None, ylabel=None, xlabel=None):
+    """Graf s mřížkou a legendou."""
+    w = pg.PlotWidget()
+    _setup(w.getPlotItem())
+    if title:
+        w.setTitle(title)
+    if ylabel:
+        w.setLabel("left", ylabel)
+    if xlabel:
+        w.setLabel("bottom", xlabel)
+    return w
+
+
+def stack(n, ylabels=(), xlabel=None, heights=None):
+    """n grafů pod sebou se společnou osou x (GraphicsLayoutWidget). Vrací (widget, [grafy])."""
+    lw = pg.GraphicsLayoutWidget()
+    plots = []
+    for i in range(n):
+        p = lw.addPlot(row=i, col=0)
+        _setup(p)
+        if i < len(ylabels):
+            p.setLabel("left", ylabels[i])
+        if plots:
+            p.setXLink(plots[0])
+        plots.append(p)
+    if xlabel:
+        plots[-1].setLabel("bottom", xlabel)
+    if heights:
+        for i, h in enumerate(heights):
+            lw.ci.layout.setRowStretchFactor(i, int(h * 100))
+    return lw, plots
+
+
+def line(p, x, y, name=None, color=C_PV, width=1.5, dash=False, step=False):
+    """Čára do grafu p (u schodovitých průběhů MV „step“)."""
+    pen = pg.mkPen(color=color, width=width, style=Qt.DashLine if dash else Qt.SolidLine)
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    if step and len(x) > 1:
+        return p.plot(np.r_[x, x[-1] + (x[-1] - x[-2])], y, stepMode="center", pen=pen, name=name)
+    return p.plot(x, y, pen=pen, name=name)
+
+
+# ---- vstupy
+def spin(value=0.0, lo=-1e12, hi=1e12, decimals=6, step=None, suffix=""):
+    """Číselné pole bez šipek s rozumným krokem."""
+    s = QDoubleSpinBox()
+    s.setDecimals(decimals)
+    s.setRange(lo, hi)
+    s.setValue(float(value))
+    s.setSingleStep(step if step else max(abs(float(value)) * 0.05, 0.01))
+    s.setButtonSymbols(QAbstractSpinBox.NoButtons)
+    s.setKeyboardTracking(False)
+    if suffix:
+        s.setSuffix(" " + suffix)
+    return s
+
+
+def combo(items, current=None, labels=None):
+    """Výběr; items = hodnoty, labels = zobrazované texty (výchozí = hodnoty)."""
+    c = QComboBox()
+    for i, it in enumerate(items):
+        c.addItem(str(labels[i]) if labels else str(it), it)
+    if current in items:
+        c.setCurrentIndex(list(items).index(current))
+    return c
+
+
+def group(title, layout=None):
+    g = QGroupBox(title)
+    if layout is not None:
+        g.setLayout(layout)
+    return g
+
+
+def form(rows):
+    """Formulář z dvojic (popisek, widget)."""
+    f = QFormLayout()
+    for lab, w in rows:
+        f.addRow(lab, w)
+    return f
+
+
+def hbox(*widgets, stretch=True):
+    h = QHBoxLayout()
+    for w in widgets:
+        if isinstance(w, QWidget):
+            h.addWidget(w)
+        else:
+            h.addLayout(w)
+    if stretch:
+        h.addStretch(1)
+    return h
+
+
+def table(headers, rows, stretch=True):
+    """Tabulka jen pro čtení."""
+    t = QTableWidget(len(rows), len(headers))
+    fill(t, headers, rows)
+    if stretch:
+        t.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    t.setEditTriggers(QTableWidget.NoEditTriggers)
+    t.verticalHeader().setVisible(False)
+    return t
+
+
+def fill(t, headers, rows):
+    t.clear()
+    t.setColumnCount(len(headers))
+    t.setRowCount(len(rows))
+    t.setHorizontalHeaderLabels([str(h) for h in headers])
+    for i, r in enumerate(rows):
+        for j, v in enumerate(r):
+            t.setItem(i, j, QTableWidgetItem(fmt(v)))
+
+
+def fmt(v, d=4):
+    if v is None:
+        return "—"
+    if isinstance(v, (float, np.floating)):
+        return "∞" if np.isinf(v) else ("—" if not np.isfinite(v) else f"{v:.{d}g}")
+    return str(v)
+
+
+def note(text="", wrap=True):
+    lab = QLabel(text)
+    lab.setWordWrap(wrap)
+    lab.setTextFormat(Qt.MarkdownText)
+    return lab
+
+
+# ---- výpočty na pozadí
+class _Signals(QObject):
+    done = Signal(object)
+    failed = Signal(str)
+    progress = Signal(float, str)
+
+
+class Task(QRunnable):
+    """Funkce na pozadí: fn(progress) → výsledek; done / failed se volají v hlavním vlákně (signály Qt)."""
+
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+        self.signals = _Signals()
+
+    def run(self):
+        try:
+            res = self.fn(lambda f, txt="": self.signals.progress.emit(float(f), txt))
+        except Exception as ex:
+            self.signals.failed.emit(str(ex))
+            return
+        self.signals.done.emit(res)
+
+
+def _safe(fn, arg):
+    """Výsledek pro okno, které mezitím mohlo zaniknout (přestavba po změně jazyka) – pak se zahodí."""
+    if fn is None:
+        return
+    try:
+        fn(arg)
+    except RuntimeError:     # C++ objekt widgetu už neexistuje
+        pass
+
+
+_running = set()   # běžící úlohy – drží objekt signálů naživu, dokud se výsledek nedoručí do hlavního vlákna
+
+
+def run_task(fn, on_done, on_failed=None, on_progress=None):
+    t = Task(fn)
+    t.setAutoDelete(False)
+    _running.add(t)
+    t.signals.done.connect(lambda r: (_running.discard(t), _safe(on_done, r)))
+    t.signals.failed.connect(lambda e: (_running.discard(t), _safe(on_failed, e)))
+    if on_progress:
+        t.signals.progress.connect(on_progress)
+    QThreadPool.globalInstance().start(t)
+    return t

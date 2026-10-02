@@ -74,7 +74,7 @@ def render(ctx):
             dist_strength = sld(o2, T("dist_strength"), 1, 10, 4, "dist_strength", help=T("h_dist_strength"),
                                 disabled=dist_level == "none")
             gain_sign = seg(o3, T("gain_sign"), ["auto", "pos", "neg"], "auto", "gain_sign",
-                            format_func=lambda x: T("gs_" + x), help=T("h_gain_sign")) or "auto"
+                            format_func=lambda x: T("gsg_" + x), help=T("h_gain_sign")) or "auto"
             id_stic = o4.toggle(T("id_stic"), key="id_stic", help=T("h_id_stic"))
             st.caption(T("dl_desc_" + dist_level))
         sets = mdl.IdSettings(tuple(chosen), th_max, dist_level, dist_strength, gain_sign, id_stic)
