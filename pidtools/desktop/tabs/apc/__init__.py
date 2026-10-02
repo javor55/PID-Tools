@@ -5,6 +5,7 @@ Rozvazbení a override pracují s druhou smyčkou projektu (lišta smyček naho�
 """
 from PySide6.QtWidgets import QTabWidget, QVBoxLayout, QWidget
 
+from ....app import guides
 from ....app.apc import recommend as reco
 from ....i18n import T
 from ... import widgets as w
@@ -32,6 +33,20 @@ class ApcTab(QWidget):
             self.tabs.addTab(p, T(key))
         self.tabs.currentChanged.connect(lambda i: self.panels[i].refresh())
         lay.addWidget(self.tabs, 1)
+
+    KINDS = ("cascade", "ff", "decouple", "override", "smith", "gainsched", "gainsched")
+
+    def guide_extra(self):
+        """Průvodce zvolenou strukturou (sdílený s webem): kdy použít, příklady, implementace v PCS 7."""
+        p = self.panels[self.tabs.currentIndex()]
+        kind = self.KINDS[self.tabs.currentIndex()]
+        impl = p.impl() if hasattr(p, "impl") else None
+        if impl is None:
+            import re
+            raw = T("g_impl_" + kind)
+            impl = None if re.search(r"\{\w+\}", raw) else raw
+        head = [(T("g_title", m=T("apc_" + kind)), "")]
+        return head + guides.apc_sections(kind, impl)
 
     def refresh(self):
         s = self.s

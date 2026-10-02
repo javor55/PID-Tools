@@ -8,6 +8,11 @@ from .common import Panel
 
 
 class SmithPanel(Panel):
+    _impl = None
+
+    def impl(self):
+        return self._impl
+
     def __init__(self, win):
         super().__init__(win, "apc_intro_smith")
         self.ctype = w.combo(["PI", "PID"])
@@ -71,8 +76,11 @@ class SmithPanel(Panel):
             return
         _, pv_id, mv_id, _ = s.segment()
         pv_op, mv_op = asm.operating_point(pv_id, mv_id)
-        _, _, rows = asm.values(code, p, s, pv_op, mv_op, self.ctype.currentData(), self.tc.value(),
-                                float(s.get("samp")), s.get("u_pv") or "PV", s.get("u_mv") or "MV")
+        v, r_, rows = asm.values(code, p, s, pv_op, mv_op, self.ctype.currentData(), self.tc.value(),
+                                 float(s.get("samp")), s.get("u_pv") or "PV", s.get("u_mv") or "MV")
+        self._impl = T("g_impl_smith", k=f"{v['k']:.4g}", u=f"{s.get('u_pv') or 'PV'}/{s.get('u_mv') or 'MV'}",
+                       t=f"{v['lag']:.4g}", th=f"{v['theta']:.4g}", pv0=f"{v['pv0']:.4g}", g=f"{r_['Kc']:.4g}",
+                       ti=f"{r_['Ti']:.4g}")
         w.fill(self.vals, [T("sm_apl_block"), T("sm_apl_input"), T("sm_apl_value"), T("sm_apl_unit")],
                [list(r_) for r_ in rows])
         self.vals.resizeColumnsToContents()

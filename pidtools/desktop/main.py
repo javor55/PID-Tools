@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBo
 from .. import __version__, i18n
 from ..app.report import SECTIONS, STATUSES
 from ..i18n import T
+from ..app import guides
+from .help import HelpWindow, general_markdown, guide_state, tab_markdown
 from .project import Project
 from .tabs.apc import ApcTab
 from .tabs.data import DataTab
@@ -72,6 +74,13 @@ class MainWindow(QMainWindow):
             grp.addAction(a)
             lm.addAction(a)
         h = self.menuBar().addMenu(T("dk_help"))
+        g = QAction(T("dk_help_guide"), self)
+        g.setShortcut("F1")
+        g.triggered.connect(self.show_guide)
+        h.addAction(g)
+        gh = QAction(T("dk_help_general"), self)
+        gh.triggered.connect(lambda: self.help_window().show_markdown(general_markdown()))
+        h.addAction(gh)
         a = QAction(T("dk_about"), self)
         a.triggered.connect(lambda: QMessageBox.about(self, T("dk_about"), T("dk_about_text", v=__version__)))
         h.addAction(a)
@@ -107,6 +116,35 @@ class MainWindow(QMainWindow):
         r.triggered.connect(self.remove_loop)
         r.setEnabled(len(self.project.loops) > 1)
         bar.addAction(r)
+        bar.addSeparator()
+        gd = QAction("📖 " + T("dk_help_btn"), self)
+        gd.setToolTip(T("dk_help_guide") + " (F1)")
+        gd.triggered.connect(self.show_guide)
+        bar.addAction(gd)
+
+    # ---- nápověda (samostatné okno, sdílený obsah s webem)
+    TAB_GUIDES = ("data", "model", "tuning", "live", "apc", "diag")
+
+    def help_window(self):
+        if getattr(self, "_help", None) is None:
+            self._help = HelpWindow(self)
+        return self._help
+
+    def show_guide(self):
+        """Průvodce aktuální záložky (u APC i průvodce zvolenou strukturou)."""
+        i = self.tabs.currentIndex()
+        key = self.TAB_GUIDES[i] if i < len(self.TAB_GUIDES) else "data"
+        extra = self.pages[i].guide_extra() if hasattr(self.pages[i], "guide_extra") else ()
+        self.help_window().show_markdown(tab_markdown(key, guide_state(self), extra), guides.title(key))
+
+    def do_action(self, act):
+        """Akce z kontrolního seznamu průvodce: přepnout záložku, přidat smyčku."""
+        if act == "add_loop":
+            self.add_loop()
+        elif act.startswith("tab:"):
+            tab = act.split(":", 1)[1]
+            if tab in self.TAB_GUIDES:
+                self.tabs.setCurrentIndex(self.TAB_GUIDES.index(tab))
 
     def switch_loop(self, i):
         if i < 0 or i == self.project.active:

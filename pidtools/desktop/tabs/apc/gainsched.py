@@ -16,6 +16,9 @@ METHODS = ["SIMC", "AMIGO", "OPT"]
 
 
 class GainSchedPanel(Panel):
+    def impl(self):
+        return T("g_impl_gainsched", u=self.s.get("u_pv") or "PV")
+
     def __init__(self, win):
         super().__init__(win, "apc_intro_gainsched")
         self.n = w.combo([2, 3], 3)

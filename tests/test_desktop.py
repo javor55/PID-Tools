@@ -319,3 +319,20 @@ def test_scenario_editor(win):
     assert r2["rows"][-1][4] == pytest.approx(1200.0)
     s.set_scen_rows(None, 0)
     s.set(sim_noise=0.0)
+
+
+def test_shared_guides_and_help_window(win):
+    """Průvodci: obsah a kontroly ze sdíleného modulu, v desktopu samostatné okno s odkazy na akce."""
+    from pidtools.app import guides
+    app, w = win
+    assert guides.sections("tuning") and guides.checks("model", guides.GuideState(loop_name="X"))[0][0] is False
+    w.open_demo()
+    w.state.identify()
+    w.refresh()
+    for i in range(w.tabs.count()):
+        w.tabs.setCurrentIndex(i)
+        w.show_guide()
+        assert len(w._help.view.toPlainText()) > 200
+    w.do_action("tab:model")
+    assert w.tabs.currentIndex() == 1
+    w._help.close()

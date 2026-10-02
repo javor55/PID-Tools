@@ -7,6 +7,10 @@ from .twoloop import TwoLoopPanel
 
 class OverridePanel(TwoLoopPanel):
     kind = "override"
+    _impl = None
+
+    def impl(self):
+        return self._impl
 
     def __init__(self, win):
         super().__init__(win, "apc_intro_override")
@@ -44,6 +48,8 @@ class OverridePanel(TwoLoopPanel):
         if b["c_mv"] != a["c_mv"]:
             self.need.setText("⚠️ " + T("ov_mv_differs", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]))
         sel = self.sel.currentData()
+        self._impl = T("g_impl_override", a=a["name"], b=b["name"], s=T("ov_" + sel), lim=f"{self.lim.value():.4g}",
+                       u=b["u_pv"] or "")
         tt, o, o0 = aov.simulate(a, b, self.step.value(), self.lim.value(), sel)
         k = aov.kpis(a, b, o, o0, sel)
 
