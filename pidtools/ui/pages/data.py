@@ -16,6 +16,7 @@ from ...app import segments as segs_mod
 from ...app.dataset import default_layout
 from ...app.guess import guess_roles
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
+from ..layout import section, workspace
 from ..widgets import num, sel, seg
 
 ss = st.session_state
@@ -208,23 +209,23 @@ def render(ctx):
         st.caption(T("data_chart_help"))
     with ctx.tabs["model"]:
         ctx.gph["model"] = st.container()      # průvodce záložky Model nahoře (vyplní se na konci běhu)
-        st.markdown(f"#### {T('seg_title')}")
+        ws = workspace()
+        with ws.side:
+            ws.top = st.container()            # tlačítko Identifikovat a průběh
+        with ws.main:
+            ws.m_seg = st.container()
+            ws.m_res = st.container()
+            ws.m_tabs = st.container()
+        ctx.mws = ws
         rng_key = f"rng_id|{ctx.fname}|{t[-1]:.0f}"
         step = float(max(Ts, t[-1] / 1000))
         if "pending_rng" in ss:
             ss[rng_key] = ss.pop("pending_rng")
         if rng_key not in ss:
             ss[rng_key] = (0.0, float(t[-1]))
-        snap = lambda v: float(np.clip(round(v / step) * step, 0.0, float(t[-1])))
 
-        with st.container(border=True):
-            st.markdown(T("seg_intro"))
-            c1, c2 = st.columns([3, 1.3])
-            rng = c1.slider(T("seg_id"), 0.0, float(t[-1]), step=step, key=rng_key, help=T("h_seg_id"))
-            drag = seg(c2, T("mouse"), ["zoom", "select"], "zoom", "drag",
-                       format_func=lambda x: T("mouse_" + x), help=T("h_mouse")) or "zoom"
-        ctx.rng = rng
-        ctx.sel_mask = (t >= rng[0]) & (t <= rng[1])
+        def snap(v):
+            return float(np.clip(round(v / step) * step, 0.0, float(t[-1])))
 
         # model pro hodnocení dat (pokud už existuje)
         qmodel = None
@@ -236,10 +237,25 @@ def render(ctx):
             return segs_mod.quality(t, pv, mv, sp, Ts, has_sp, float(ctx.M(ctx.mvl_lo)), float(ctx.M(ctx.mvl_hi)), a, b,
                                     segs_mod.rep_frac(ctx.t_all, ctx.pv_raw, ctx.T0, a, b), qmodel)
 
-        # ---- automaticky nalezené úseky
         segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"))
-        with st.expander(T("auto_title", n=len(segs)), expanded=bool(segs) and rng == (0.0, float(t[-1])),
-                         icon=":material/auto_awesome:"):
+        sec_seg = section(ws.side, T("dk_sec_segment"), "mod_seg", icon=":material/straighten:")
+        sec_auto = section(ws.side, T("auto_title", n=len(segs)), "mod_auto", expanded=False,
+                           icon=":material/auto_awesome:")
+        ws.ident = section(ws.side, T("dk_sec_ident"), "mod_ident", icon=":material/model_training:")
+        ws.model = section(ws.side, T("dk_sec_model"), "mod_model", icon=":material/tune:")
+        ws.unc = section(ws.side, T("unc_title"), "mod_unc", expanded=False, icon=":material/scatter_plot:")
+
+        with sec_seg:
+            st.caption(T("seg_intro"))
+            rng = st.slider(T("seg_id"), 0.0, float(t[-1]), step=step, key=rng_key, help=T("h_seg_id"))
+            drag = seg(st, T("mouse"), ["zoom", "select"], "zoom", "drag",
+                       format_func=lambda x: T("mouse_" + x), help=T("h_mouse")) or "zoom"
+            q_box = st.container()
+        ctx.rng = rng
+        ctx.sel_mask = (t >= rng[0]) & (t <= rng[1])
+
+        # ---- automaticky nalezené úseky
+        with sec_auto:
             if not segs:
                 st.info(T("auto_none"), icon=":material/search_off:")
             else:
@@ -247,10 +263,7 @@ def render(ctx):
                 for i_, sg in enumerate(segs):
                     q_ = quality(sg["start"], sg["end"])
                     rows_s.append({"#": i_ + 1, T("auto_from"): f"{sg['start']:.0f}", T("auto_to"): f"{sg['end']:.0f}",
-                                   T("auto_len"): f"{(sg['end'] - sg['start']) / 60:.1f}",
                                    T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
-                                   T("auto_dirs"): f"{sg['up']}↑ {sg['down']}↓",
-                                   "SNR": f"{q_['snr']:.0f}" if np.isfinite(q_["snr"]) else "∞",
                                    T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
                 ev_s = st.dataframe(pd.DataFrame(rows_s), hide_index=True, width="stretch", on_select="rerun",
                                     selection_mode="single-row", key=f"segtab|{ctx.fname}")
@@ -260,11 +273,13 @@ def render(ctx):
                         chosen_s = segs[ev_s.selection.rows[0]]
                 except AttributeError:
                     pass
-                b1, b2, _ = st.columns([1, 1, 1.2], vertical_alignment="bottom")
-                if b1.button(T("auto_use_id"), icon=":material/model_training:", disabled=chosen_s is None):
+                b1, b2 = st.columns(2)
+                if b1.button(T("auto_use_id"), icon=":material/model_training:", disabled=chosen_s is None,
+                             width="stretch"):
                     ss.pending_rng = (snap(chosen_s["start"]), snap(chosen_s["end"]))
                     st.rerun()
-                if b2.button(T("auto_use_val"), icon=":material/fact_check:", disabled=chosen_s is None):
+                if b2.button(T("auto_use_val"), icon=":material/fact_check:", disabled=chosen_s is None,
+                             width="stretch"):
                     ss.pending_rngv = (snap(chosen_s["start"]), snap(chosen_s["end"]))
                     st.rerun()
                 st.caption(T("auto_help"))
@@ -279,8 +294,9 @@ def render(ctx):
         for r in range(1, (3 if ctx.dists else 2) + 1):
             fig.add_vrect(x0=rng[0], x1=rng[1], fillcolor="#fde68a", opacity=0.25, line_width=0, row=r, col=1)
         fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
-        ev = show(fig, key=f"chart_data|{ctx.fname}", fname="data", select=True, report=T("rep_fig_data"))
-        st.caption(T("seg_tip"))
+        with ws.m_seg:
+            ev = show(fig, key=f"chart_data|{ctx.fname}", fname="data", select=True, report=T("rep_fig_data"))
+            st.caption(T("seg_tip"))
 
         # výběr úseku tažením v grafu
         try:
@@ -305,13 +321,13 @@ def render(ctx):
         ctx.PROG["data"] = dq["level"]
         icons = ["✓", "⚠", "✗"]
         lv_ = dq["level"]
-        box_fn = [st.success, st.warning, st.error][lv_]
+        box_fn = [q_box.success, q_box.warning, q_box.error][lv_]
         lines = "  \n".join(f"{icons[lv]} {T(k_, **segs_mod.format_args(ar))}"
                             for k_, lv, ar in sorted(dq["checks"], key=lambda c_: -c_[1]))
         box_fn(f"**{T('q_title')}: {T('q_level' + str(lv_))}**  \n{lines}",
                icon=[":material/verified:", ":material/rule:", ":material/block:"][lv_])
         if has_sp and np.nanmax(sp[ctx.sel_mask]) - np.nanmin(sp[ctx.sel_mask]) > 1e-6:
-            st.caption(T("info_auto"))
+            q_box.caption(T("info_auto"))
 
     # data úseku identifikace pro další záložky
     ctx.ts_id = t[ctx.sel_mask] - t[ctx.sel_mask][0]

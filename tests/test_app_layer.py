@@ -245,3 +245,27 @@ def test_frequency_analysis():
     slow = fq.response("P2D", [256, 2297, 2297, 658], dict(c, Gain=0.002, TI=3000.0))
     assert np.all(np.diff(slow["phase_deg"]) <= 1e-9)           # monotónní (zpoždění odečteno analyticky)
     assert fq.bandwidth(r) and fq.phase_floor({"a": slow}) >= -740
+
+
+def _cl_data(noise=0.0):
+    from pidtools import core
+    from pidtools.app.loop import set_ctrl
+    base = dict(SampleTime=1.0, DiffGain=5.0, PropFacSP=1.0, DiffToFbk=False, DeadBand=0.0, MV_Lo=0.0, MV_Hi=100.0,
+                PVFilt=0.0, MVRate=0.0, SPRate=0.0)
+    ctrl = set_ctrl(base, 1.2, 50.0, 0.0, [], [])
+    t = np.arange(3000.0)
+    sp = 50 + 5 * ((t > 200) & (t < 1000)) - 4 * ((t > 1600) & (t < 2300)) + 3 * (t > 2600)
+    r = core.pidconl_sim_full("P1D", [1.5, 40.0, 8.0], [], 1.0, sp, 50.0, 50.0, ctrl, [], None, None)
+    return t, sp, r["PV"], r["MV"], ctrl
+
+
+def test_closed_loop_identification():
+    """Data ze smyčky v AUTO: nepřímá metoda se známým regulátorem najde proces (bez šumu přesně)."""
+    from pidtools import core
+    from pidtools.app import closedloop as cl
+    t, sp, pv, mv, ctrl = _cl_data()
+    assert cl.excitation(sp, pv, mv)["ok"]
+    r0 = core.identify("P1D", t, pv, mv, 1.0)
+    rc = cl.identify("P1D", [r0["p"][0] * 0.7, r0["p"][1] * 1.4, r0["p"][2]], [], t, sp, pv, mv, [], 1.0, ctrl)
+    assert rc["p"][0] == pytest.approx(1.5, rel=0.03) and rc["p"][1] == pytest.approx(40, rel=0.05)
+    assert rc["fit_pv"] > 98 and rc["fit_mv"] > 97

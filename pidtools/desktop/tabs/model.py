@@ -119,7 +119,12 @@ class ModelTab(Workspace):
         self.strength = w.spin(4, 1, 10, 0, 1)
         self.sign = w.combo(["auto", "pos", "neg"], labels=[T("gsg_" + x) for x in ("auto", "pos", "neg")])
         self.stic = QCheckBox(T("id_stic"))
-        sec = self.section(T("dk_sec_ident"), g, "ident")
+        self.mode = w.combo(["open", "cl"], labels=[T("idm_open"), T("idm_cl")])
+        w.tip(self.mode, "h_idm")
+        self.mode_note = caption("")
+        sec = self.section(T("dk_sec_ident"), w.form([(T("idm"), self.mode)]), "ident")
+        sec.add(self.mode_note)
+        sec.add(g)
         sec.add(w.form([(T("thmax"), self.thmax), (T("dist_level"), self.level), (T("dist_strength"), self.strength),
                         (T("gain_sign"), self.sign), ("", self.stic)]))
 
@@ -160,6 +165,7 @@ class ModelTab(Workspace):
         for c in (self.thmax, self.strength):
             c.valueChanged.connect(self._settings_changed)
         self.stic.toggled.connect(self._settings_changed)
+        self.mode.currentIndexChanged.connect(self._mode_changed)
         self._busy = False
 
     # ---- obnova z stavu
@@ -190,9 +196,11 @@ class ModelTab(Workspace):
             self.strength.setValue(float(s.get("dist_strength")))
             self.sign.setCurrentIndex(self.sign.findData(s.get("gain_sign")))
             self.stic.setChecked(bool(s.get("id_stic")))
+            self.mode.setCurrentIndex(max(self.mode.findData(s.get("id_mode") or "open"), 0))
         finally:
             self._busy = False
         self._quality()
+        self._mode_note()
         self._results()
 
     def _quality(self):
@@ -219,8 +227,13 @@ class ModelTab(Workspace):
         rows = []
         for q in mdl.summary(s.fit["res"], ts, pv, mv, d, s.grid.Ts):
             pars = ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[q["code"]]["params"], q["p"]))
-            rows.append([T("model_" + q["code"]), round(q["FIT"], 1), round(q["NRMSE"], 2), T(f"st_{q['status']}"), pars])
-        w.fill(self.res, [T("col_model"), "FIT [%]", "NRMSE [%]", T("col_status"), T("dk_params")], rows)
+            r_ = s.fit["res"][q["code"]]
+            cl_ = (f"PV {r_['fit_cl_pv']:.1f} / MV {r_['fit_cl_mv']:.1f}" if r_.get("method") == "cl"
+                   and r_.get("fit_cl_pv") is not None else "—")
+            rows.append([T("model_" + q["code"]), round(q["FIT"], 1), round(q["NRMSE"], 2), T(f"st_{q['status']}"), cl_,
+                         pars])
+        w.fill(self.res, [T("col_model"), "FIT [%]", "NRMSE [%]", T("col_status"), T("idm_fit_cl"), T("dk_params")],
+               rows)
         self._busy = True
         try:
             self.mcode.clear()
@@ -532,6 +545,26 @@ class ModelTab(Workspace):
         self.s.rng = (0.0, float(self.s.t[-1]))
         self.win.refresh()
 
+    def _mode_changed(self, *_):
+        if self._busy:
+            return
+        self.s.set(id_mode=self.mode.currentData())
+        self._mode_note()
+
+    def _mode_note(self):
+        s = self.s
+        if self.mode.currentData() != "cl":
+            self.mode_note.setText(T("idm_open_note"))
+            return
+        if not s.grid.has_sp:
+            self.mode_note.setText("⚠️ " + T("idm_need_sp"))
+            return
+        from ...app import closedloop as cl
+        ex = cl.excitation(s.sp[s.sel_mask], s.pv[s.sel_mask], s.mv[s.sel_mask])
+        g = [float(s.get(f"set1_{k}")) for k in ("gain", "ti", "td")]
+        self.mode_note.setText(T("idm_cl_note", g=f"{g[0]:.4g}", ti=f"{g[1]:.4g}", td=f"{g[2]:.4g}")
+                               + ("" if ex["ok"] else "  \n⚠️ " + T("idm_low_exc")))
+
     def _settings_changed(self, *_):
         if self._busy:
             return
@@ -546,7 +579,7 @@ class ModelTab(Workspace):
             return
         self.run.setEnabled(False)
         self.prog.setVisible(True)
-        self.prog.setRange(0, len(s.get("chosen")))
+        self.prog.setRange(0, len(s.get("chosen")) * (2 if s.id_closed else 1))
         self.win.status(T("dk_identifying"))
 
         def work(progress):

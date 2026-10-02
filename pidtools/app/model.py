@@ -71,6 +71,29 @@ def identify_all(ts, pv, mv, Ts, d, s, fn=core.identify, progress=None):
     return res, errs
 
 
+def identify_cl_all(res, ts, sp, pv, mv, Ts, d, ctrl, s, progress=None, fn=None):
+    """
+    Doladění modelů z otevřené smyčky nepřímou identifikací v uzavřené smyčce (smyčka v AUTO, buzení změnami SP,
+    regulátor ze záznamu = blok PIDConL + Set 1). Vrací (výsledky {kód: výsledek}, chyby [(kód, text)]); výsledek
+    má stejný tvar jako core.identify, navíc method="cl", fit_cl_pv / fit_cl_mv a p_open (model z otevřené smyčky).
+    """
+    from . import closedloop as cl
+    fn = fn or cl.identify
+    out, errs = {}, []
+    for i, (c, r) in enumerate(res.items()):
+        if progress:
+            progress(i, c)
+        try:
+            rc = fn(c, r["p"], r["pdl"], ts, sp, pv, mv, d, Ts, ctrl, s.th_max)
+            fit = core.predict_full(c, rc["p"], rc["pdl"], ts, pv, mv, d, Ts, r.get("stic") or 0.0, r.get("level", "none"),
+                                    r.get("Th"))["fit"]
+            out[c] = cl.as_result(r, rc, fit)
+        except Exception as ex:
+            out[c] = r
+            errs.append((c, str(ex)))
+    return out, errs
+
+
 def best(res):
     """Model s nejlepší shodou."""
     return max(res, key=lambda c: res[c]["fit"])

@@ -100,6 +100,21 @@ def test_scenario_target_and_sets(app):
     assert not _errors(app)
 
 
+def test_closed_loop_identification_web(app):
+    """Režim „smyčka v AUTO“: po identifikaci jsou modely doladěné simulací smyčky se Set 1."""
+    mc = app.session_state["mcode"]
+    chosen = list(app.session_state["chosen"])
+    app.session_state["id_mode"], app.session_state["chosen"] = "cl", [mc]
+    app.run()
+    _button(app, "Identify").click().run()
+    assert not app.exception            # ukázková data nejsou z AUTO se Set 1 → sada 2 může vyjít nestabilní
+    assert app.session_state["fit"]["res"][mc]["method"] == "cl"
+    app.session_state["id_mode"], app.session_state["chosen"] = "open", chosen
+    app.run()
+    _button(app, "Identify").click().run()
+    assert not _errors(app)
+
+
 def test_validation(app):
     app.session_state["pending_rngv"] = (2000.0, 3599.0)
     app.run()
@@ -306,6 +321,9 @@ def test_gain_scheduling_page():
     app.run()
     _button(app, "Identify").click().run()
     app.session_state["mcode"] = "P1D"
+    app.run()
+    _button(app, "Calculate").click().run()            # sada 2 = návrh SIMC (návrh se počítá na tlačítko)
+    _button(app, "Write to Set 2").click().run()
     app.session_state["main_tab"] = [t_.label for t_ in _main(app)][4]
     app.session_state["apc_kind"] = "gainsched"
     for i, (a, b) in enumerate(((0, 2090), (2100, 4190), (4200, 6290)), start=1):
@@ -367,7 +385,10 @@ def test_feedforward_in_apc(app):
     assert app.session_state["ff_state"][0]["use"]
     assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
     assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
-    # simulace v Ladění: stejná sada 2 bez FF pro porovnání (výchozí scénář obsahuje skok měřené poruchy)
+    # simulace v Ladění: stejná sada 2 bez FF pro porovnání (scénář se skokem měřené poruchy)
+    app.session_state["scen_kind"] = "meas"
+    app.run()
+    assert not _errors(app)
     kp = next(d.value for d in app.dataframe if len(d.value) and "Set 2 without FF" in list(d.value.index))
     iae_ = dict(zip(kp.index, kp["IAE [%·s]"].astype(float)))
     assert iae_["Set 2"] != pytest.approx(iae_["Set 2 without FF"], rel=1e-3)   # FF se v simulaci projeví
@@ -428,6 +449,7 @@ def test_scenario_sp_from_to():
     """Scénář: SP z → na v jednotkách PV; po změně rozsahu výchozí skok neuvízne na 5 % starého rozsahu."""
     at = _ff_example_app()
     at.session_state["pv_hi"] = 400.0
+    at.session_state["scen_kind"] = "custom"          # vlastní události: skok SP v tabulce se přepíše z „z → na“
     at.run()
     k0 = next(k for k in at.session_state if str(k).startswith("sim_sp0|"))
     k1 = next(k for k in at.session_state if str(k).startswith("sim_sp1|"))

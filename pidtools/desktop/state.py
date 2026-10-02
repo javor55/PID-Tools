@@ -210,10 +210,22 @@ class LoopState(Scaling):
         return mdl.fit_key(self.fname, tuple(self.rng), self.id_settings(), self.norm, self.grid.Ts, self.c_pv,
                            self.c_mv, self.c_d, self.layout == "long")
 
+    @property
+    def id_closed(self):
+        """Identifikace z dat v AUTO (nepřímá metoda se Set 1) – jen se sloupcem SP."""
+        return self.get("id_mode") == "cl" and self.grid is not None and self.grid.has_sp
+
     def identify(self, progress=None):
-        """Identifikace zvolených modelů na úseku. Vrací chyby [(kód, text)]."""
+        """Identifikace zvolených modelů na úseku (v AUTO i doladění v uzavřené smyčce). Vrací chyby [(kód, text)]."""
         ts, pv, mv, d = self.segment()
         res, errs = mdl.identify_all(ts, pv, mv, self.grid.Ts, d, self.id_settings(), progress=progress)
+        if res and self.id_closed:
+            n = len(res)
+            ctrl = {k: v for k, v in self.set_ctrl_plain(1).items()}
+            res, e2 = mdl.identify_cl_all(res, ts, self.sp[self.sel_mask], pv, mv, self.grid.Ts, d, ctrl,
+                                          self.id_settings(),
+                                          progress=(lambda i, c: progress(n + i, c)) if progress else None)
+            errs = errs + e2
         if res:
             self.fit = dict(res=res, dnames=list(self.c_d), key=self.fit_key())
             self.settings["mcode"] = mdl.best(res)
@@ -325,6 +337,11 @@ class LoopState(Scaling):
         code, p, pdl = self.model
         des = ffm.design(code, p, pdl, self.ff_state)
         return ffm.to_ctrl(des)
+
+    def set_ctrl_plain(self, n):
+        """Sada n bez dopředné vazby (regulátor ze záznamu pro identifikaci v uzavřené smyčce)."""
+        return set_ctrl(self.base_ctrl(), float(self.get(f"set{n}_gain")), float(self.get(f"set{n}_ti")),
+                        float(self.get(f"set{n}_td")), [], [])
 
     def set_ctrl(self, n):
         ff, ffll = self.ff() if self.model else ([], [])

@@ -440,3 +440,23 @@ def test_history_recent_and_sections(tmp_path):
     assert layout.Section("x", key="tuning/hist").is_expanded()
     w.close()
     _wait(app)
+
+
+def test_closed_loop_identification_in_desktop():
+    """Režim „smyčka v AUTO“: identifikace se doladí simulací smyčky se Set 1 (nepřímá metoda)."""
+    import pandas as pd
+    from pidtools import core
+    from pidtools.app.loop import set_ctrl
+    s = LoopState()
+    s.load_demo()
+    t = np.arange(3000.0)
+    sp = 50 + 5 * ((t > 200) & (t < 1000)) - 4 * ((t > 1600) & (t < 2300)) + 3 * (t > 2600)
+    base = s.base_ctrl()
+    r = core.pidconl_sim_full("P1D", [1.5, 40.0, 8.0], [], 1.0, sp, 50.0, 50.0, set_ctrl(base, 1.2, 50.0, 0.0, [], []),
+                              [], None, None)
+    s.load_frame(pd.DataFrame({"Time": t, "FIC1.PV": r["PV"], "FIC1.MV": r["MV"], "FIC1.SP": sp}), "cl.csv")
+    s.set_columns("FIC1.PV", "FIC1.MV", "FIC1.SP", [])
+    s.set(set1_gain=1.2, set1_ti=50.0, set1_td=0.0, id_mode="cl", chosen=["P1D"])
+    assert s.id_closed and not s.identify()
+    r = s.fit["res"]["P1D"]
+    assert r["method"] == "cl" and r["fit_cl_pv"] > 98 and r["p"][1] == pytest.approx(40, rel=0.06)

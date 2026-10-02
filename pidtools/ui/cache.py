@@ -5,6 +5,7 @@ Stránky volají výpočty přes tento modul, ne přímo přes `pidtools.core`.
 import streamlit as st
 
 from .. import core
+from ..app import closedloop as app_cl
 from ..app import tuning as app_tuning
 
 _cache = st.cache_data(show_spinner=False, max_entries=256)
@@ -24,3 +25,4 @@ settling_time = _cache(core.settling_time)
 opt_migo = st.cache_data(show_spinner=False, max_entries=64)(app_tuning.opt_migo)
 opt_time = st.cache_data(show_spinner=False, max_entries=128)(app_tuning.opt_time)
 opt_scenario = st.cache_data(show_spinner=False, max_entries=32)(app_tuning.opt_scenario)
+identify_cl = st.cache_data(show_spinner=False, max_entries=32)(app_cl.identify)
