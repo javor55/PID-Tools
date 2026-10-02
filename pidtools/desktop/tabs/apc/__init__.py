@@ -22,7 +22,9 @@ from .feedforward import FFPanel
 from .gainsched import GainSchedPanel
 from .gainsched_er import GainSchedErPanel
 from .override import OverridePanel
+from .more import RatioPanel, RgaPanel, SplitRangePanel, VpcPanel
 from .smith import SmithPanel
+from ....app.apc import rgan
 from ...help import checklist_markdown
 from ...layout import Section
 
@@ -38,16 +40,19 @@ class ApcTab(QWidget):
         lay.addWidget(Section(T("dk_sec_reco"), self.reco, "apc/reco"))
         self.tabs = QTabWidget()
         self.panels = [CascadePanel(win), FFPanel(win), DecouplePanel(win), OverridePanel(win), SmithPanel(win),
-                       GainSchedPanel(win), GainSchedErPanel(win)]
+                       GainSchedPanel(win), GainSchedErPanel(win), SplitRangePanel(win), VpcPanel(win), RatioPanel(win),
+                       RgaPanel(win)]
         for p, key in zip(self.panels, ("apc_cascade", "apc_ff", "apc_decouple", "apc_override", "apc_smith",
-                                        "apc_gainsched", "gs_x_er")):
+                                        "apc_gainsched", "gs_x_er", "apc_split", "apc_vpc", "apc_ratio", "apc_rga")):
             self.tabs.addTab(p, T(key))
         self.tabs.currentChanged.connect(lambda i: self.panels[i].refresh())
         lay.addWidget(self.tabs, 1)
 
     _spread = None
-    KINDS = ("cascade", "ff", "decouple", "override", "smith", "gainsched", "gainsched")
-    GUIDE_KINDS = ("cascade", "ff", "decouple", "override", "smith", "gainsched", "gs_er")
+    KINDS = ("cascade", "ff", "decouple", "override", "smith", "gainsched", "gainsched", "split", "vpc", "ratio",
+             "rga")
+    GUIDE_KINDS = ("cascade", "ff", "decouple", "override", "smith", "gainsched", "gs_er", "split", "vpc", "ratio",
+                   "rga")
 
     def guide_extra(self):
         """Průvodce zvolenou strukturou (sdílený s webem): kdy použít, příklady, kontroly, implementace v PCS 7."""
@@ -76,6 +81,14 @@ class ApcTab(QWidget):
         integ = MODELS[code]["integ"]
         if kind == "cascade":
             return guides.apc_cascade(a, pr.others(include_without_model=True))
+        if kind in ("split", "vpc"):
+            return guides.apc_actuators(a, kind)
+        if kind == "ratio":
+            return guides.apc_ratio(a, len(pr.others()))
+        if kind == "rga":
+            recs = [a] + [r for _, r in pr.others()]
+            n_cross = int(rgan.matrix(recs)[1].sum() - len(recs)) if len(recs) > 1 else 0
+            return guides.apc_rga(a, len(recs), n_cross)
         if kind == "ff":
             return guides.apc_ff(a, [str(x) for x in s.c_d] if pdl else [],
                                  ffm.design(code, p, pdl, s.ff_state) if pdl else [], p)

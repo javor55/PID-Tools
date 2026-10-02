@@ -128,6 +128,20 @@ def test_loop_overview_web(app):
     app.run()
 
 
+def test_apc_more_structures_web(app):
+    """Split range, VPC, poměr s křížovým omezením a RGA N×N: stránky bez chyb, s ukazateli."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
+    for kind in ("split", "vpc", "ratio", "rga"):
+        app.session_state["apc_kind"] = kind
+        app.run()
+        assert not app.exception, kind
+    app.session_state["apc_kind"] = "split"
+    app.run()
+    assert any("b* =" in m.value for m in app.markdown)
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
+    app.run()
+
+
 def test_validation(app):
     app.session_state["pending_rngv"] = (2000.0, 3599.0)
     app.run()

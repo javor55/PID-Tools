@@ -212,3 +212,129 @@ def smith_sim(code, p_plant, p_model, ctrl, h, sp, d=None, pv0=50.0, mv0=50.0):
         m0.step(u - mv0)
         out["SP"][k], out["PV"][k], out["MV"][k], out["PRED"][k] = sp[k], y, u, ym
     return np.arange(n) * h, out
+
+
+# ================================================================ split range
+def split_map(u, b, mode="opposite", gap=0.0):
+    """
+    Výstup regulátoru u [%] → (ventil A, ventil B) [%] s bodem rozdělení b [%] a mezerou (+) / překryvem (−) gap.
+    mode "opposite": A se zavírá od 0 do b (např. chlazení), B se otevírá od b do 100 (ohřev);
+    mode "sequence": nejdřív A (0 … b), pak B (b … 100), oba otevírají (malý a velký ventil).
+    """
+    lo, hi = b - gap / 2, b + gap / 2
+    a = (lo - u) / max(lo, 1e-9) * 100 if mode == "opposite" else u / max(lo, 1e-9) * 100
+    bb = (u - hi) / max(100 - hi, 1e-9) * 100
+    return float(np.clip(a, 0, 100)), float(np.clip(bb, 0, 100))
+
+
+def split_range_sim(ga, gb, ctrl, h, sp, b, mode="opposite", gap=0.0, pv0=50.0, u0=None, d=None):
+    """
+    Jeden regulátor, dva akční členy přes rozdělení rozsahu. ga, gb = (kód, p) modely ventil A / B [% ventilu]
+    → PV [%]. d = porucha na výstupu (PV) [%]. Vrací t a dict polí SP, PV, U, VA, VB.
+    """
+    n = len(sp)
+    pa, pb = ProcStep(*ga, h), ProcStep(*gb, h)
+    c = PIDConL(ctrl, h)
+    u0 = b + (100 - b) / 2 if u0 is None else u0
+    a0, b0 = split_map(u0, b, mode, gap)
+    c.init(sp[0], pv0, u0)
+    d = np.zeros(n) if d is None else d
+    out = {k: np.zeros(n) for k in ("SP", "PV", "U", "VA", "VB")}
+    for k in range(n):
+        y = pv0 + pa.output() + pb.output() + d[k]
+        u = c.step(sp[k], y)
+        va, vb = split_map(u, b, mode, gap)
+        pa.step(va - a0)
+        pb.step(vb - b0)
+        for key, v in (("SP", sp[k]), ("PV", y), ("U", u), ("VA", va), ("VB", vb)):
+            out[key][k] = v
+    return np.arange(n) * h, out
+
+
+# ================================================================ regulace polohy ventilu (mid-range, VPC)
+def vpc_sim(g1, g2, ctrl1, ctrl_vpc, h, sp, sp_vpc=50.0, d=None, pv0=50.0, mv10=50.0, mv20=50.0, enabled=True):
+    """
+    Regulace polohy ventilu: hlavní regulátor řídí PV rychlým (malým) akčním členem MV1, regulátor VPC pomalu
+    přestavuje velký akční člen MV2 tak, aby MV1 zůstal kolem sp_vpc (rezerva na obě strany).
+    g1, g2 = (kód, p) modely MV1 → PV a MV2 → PV [%]. d = porucha na vstupu procesu 1 [% MV1].
+    enabled=False → MV2 stojí (srovnání). Vrací t a dict polí SP, PV, MV1, MV2.
+    """
+    n = len(sp)
+    p1, p2 = ProcStep(*g1, h), ProcStep(*g2, h)
+    c1, cv = PIDConL(ctrl1, h), PIDConL(ctrl_vpc, h)
+    c1.init(sp[0], pv0, mv10)
+    cv.init(sp_vpc, mv10, mv20)
+    d = np.zeros(n) if d is None else d
+    out = {k: np.zeros(n) for k in ("SP", "PV", "MV1", "MV2")}
+    for k in range(n):
+        y = pv0 + p1.output() + p2.output()
+        u1 = c1.step(sp[k], y)
+        u2 = cv.step(sp_vpc, u1) if enabled else mv20
+        p1.step(u1 - mv10 + d[k])
+        p2.step(u2 - mv20)
+        for key, v in (("SP", sp[k]), ("PV", y), ("MV1", u1), ("MV2", u2)):
+            out[key][k] = v
+    return np.arange(n) * h, out
+
+
+# ================================================================ poměrová regulace s křížovým omezením
+def ratio_sim(gf, ga, ctrl_f, ctrl_a, h, demand, R, cross=True, pv0=(50.0, 50.0), mv0=(50.0, 50.0)):
+    """
+    Poměrová regulace palivo–vzduch: požadavek výkonu (demand, % rozsahu paliva) → SP paliva a SP vzduchu = R × SP
+    paliva (R v %vzduchu / %paliva). S křížovým omezením: vzduch = max(požadavek, skutečné palivo) × R, palivo =
+    min(požadavek, skutečný vzduch / R) – při růstu výkonu vede vzduch, při poklesu palivo (nikdy přebytek paliva).
+    gf, ga = (kód, p) modely MV → průtok paliva / vzduchu [%]. Vrací t a dict polí D, SPF, PVF, SPA, PVA, LAM
+    (LAM = vzduch / (R × palivo), < 1 = nedostatek vzduchu).
+    """
+    n = len(demand)
+    pf, pa = ProcStep(*gf, h), ProcStep(*ga, h)
+    cf, ca = PIDConL(ctrl_f, h), PIDConL(ctrl_a, h)
+    cf.init(demand[0], pv0[0], mv0[0])
+    ca.init(demand[0] * R, pv0[1], mv0[1])
+    out = {k: np.zeros(n) for k in ("D", "SPF", "PVF", "SPA", "PVA", "LAM")}
+    for k in range(n):
+        yf, ya = pv0[0] + pf.output(), pv0[1] + pa.output()
+        if cross:
+            spf, spa = min(demand[k], ya / R), max(demand[k], yf) * R
+        else:
+            spf, spa = demand[k], demand[k] * R
+        uf, ua = cf.step(spf, yf), ca.step(spa, ya)
+        pf.step(uf - mv0[0])
+        pa.step(ua - mv0[1])
+        lam = ya / (R * yf) if yf > 1e-6 else np.nan
+        for key, v in (("D", demand[k]), ("SPF", spf), ("PVF", yf), ("SPA", spa), ("PVA", ya), ("LAM", lam)):
+            out[key][k] = v
+    return np.arange(n) * h, out
+
+
+# ================================================================ interakce N×N
+def rga(K):
+    """Relativní zisková matice Λ = K ∘ (K⁻¹)ᵀ (NaN, je-li K singulární)."""
+    K = np.asarray(K, float)
+    try:
+        return K * np.linalg.inv(K).T
+    except np.linalg.LinAlgError:
+        return np.full_like(K, np.nan)
+
+
+def niederlinski(K):
+    """Niederlinskiho index NI = det K / Π K_ii (záporný → párování po diagonále je nestabilní s integrací)."""
+    K = np.asarray(K, float)
+    dg = np.prod(np.diag(K))
+    return float(np.linalg.det(K) / dg) if abs(dg) > 1e-12 else float("nan")
+
+
+def best_pairing(K):
+    """Párování MV → PV s RGA prvky nejblíž 1 (bez záporných); malé N – všechny permutace. Vrací (perm, skóre)."""
+    from itertools import permutations
+    L = rga(K)
+    n = len(L)
+    best, best_s = None, np.inf
+    for perm in permutations(range(n)):
+        lam = [L[i, perm[i]] for i in range(n)]
+        if any(not np.isfinite(v) or v <= 0 for v in lam):
+            continue
+        s = sum(abs(np.log(v)) for v in lam)
+        if s < best_s:
+            best, best_s = list(perm), s
+    return best, best_s

@@ -239,6 +239,24 @@ def _audit(g):
     return [(True, T("tgc_data_loaded", n=g.n_samples, ts=f"{g.Ts:.3g}"), None)] if g.n_samples else []
 
 
+def apc_actuators(a, kind):
+    """Split range / VPC: model smyčky, model druhého akčního členu (zadaný), sada 2, ladění v provozu."""
+    return [_ok_model(a["name"], a["model"]), (None, T(f"g_chk_{kind}_model"), None),
+            (None, T(f"g_chk_{kind}_tune"), None), (None, T("g_chk_tuned"), None)]
+
+
+def apc_ratio(a, n_other):
+    return [_ok_model(a["name"], a["model"]),
+            (True if n_other else None, T("g_chk_ratio_air"), None if n_other else "add_loop"),
+            (None, T("g_chk_ratio_R"), None), (None, T("g_chk_ratio_safety"), None)]
+
+
+def apc_rga(a, n_loops, n_cross):
+    return [_ok_model(a["name"], a["model"]),
+            (n_loops > 1, T("tgc_apc_loops", n=n_loops), None if n_loops > 1 else "add_loop"),
+            (True if n_cross else False, T("g_chk_rga_cross", n=n_cross), None if n_cross else "tab:data")]
+
+
 CHECKS = {"audit": _audit, "data": _data, "model": _model_checks, "tuning": _tuning, "live": _live, "apc": _apc,
           "project": _project, "diag": _diag}
 

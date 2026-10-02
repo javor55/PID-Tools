@@ -14,7 +14,7 @@ from ... import loops
 
 
 ss = st.session_state
-KINDS = ["cascade", "ff", "decouple", "override", "smith", "gainsched"]
+KINDS = ["cascade", "ff", "decouple", "override", "smith", "gainsched", "split", "vpc", "ratio", "rga"]
 C_B = "#7c3aed"          # druhá smyčka
 C_REF = "#9aa5b1"        # srovnání (bez struktury)
 

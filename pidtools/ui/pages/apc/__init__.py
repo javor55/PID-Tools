@@ -18,6 +18,9 @@ from .override import override_render
 from ....app import guides as app_guides
 from .recommend import checks_cascade, rec_a, recommend
 from .smith import smith_render, smith_values  # noqa: F401 (protokol)
+from .more import ratio_render, rga_render, split_render, vpc_render
+
+MORE = {"split": split_render, "vpc": vpc_render, "ratio": ratio_render, "rga": rga_render}
 
 
 def render(ctx):
@@ -39,6 +42,9 @@ def render(ctx):
             return
         if kind == "smith":
             smith_render(ctx)
+            return
+        if kind in MORE:
+            MORE[kind](ctx)
             return
         if kind == "gainsched":
             gainsched_render(ctx)

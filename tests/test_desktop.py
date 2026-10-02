@@ -274,6 +274,10 @@ def test_window_two_loops(win):
         app.processEvents()
         md = tab_markdown("apc", guide_state(w), apc.guide_extra())
         assert md.count(T("g_checklist")) == 2, apc.GUIDE_KINDS[i]
+    apc.tabs.setCurrentIndex(10)                            # interakce N×N
+    app.processEvents()
+    rg = apc.panels[10]
+    assert rg.k.rowCount() == 2 and rg.l_tab.rowCount() == 2 and "NI" in rg.res.text()
     w.do_action("loop:1:data")
     assert w.project.active == 1 and w.tabs.currentIndex() == 0
     w.switch_loop(0)
@@ -506,3 +510,31 @@ def test_window_audit(win):
     a.tab.selectRow(1)
     a.open_as_loop()
     assert len(w.project.loops) == 2 and w.state.c_pv == "TIC200.PV" and w.state.c_mv == "TIC200.OP"
+
+
+def test_window_apc_more(win):
+    """Split range, regulace polohy ventilu a poměrová regulace: simulace s ukazateli bez chyb."""
+    app, w = win
+    from pidtools.desktop.project import Project
+    w.project = Project()
+    w.project.state.load_frame(_two_loops(), "two.csv")
+    w.project.state.set_columns("FIC1.PV", "FIC1.MV", "—", [])
+    w.project.state.identify()
+    w.project.state.write_set(2, w.project.state.suggest("SIMC"))
+    w.build()
+    w.tabs.setCurrentIndex(4)
+    apc = w.pages[4]
+    for i in (7, 8, 9):
+        apc.tabs.setCurrentIndex(i)
+        app.processEvents()
+        p = apc.panels[i]
+        assert p.kpi.rowCount() == 2, apc.KINDS[i]
+        assert p.impl() and "{" not in p.impl()
+    sr = apc.panels[7]
+    assert "b* =" in sr.res.text() and sr.halves.rowCount() == 2
+    from pidtools.desktop.help import tab_markdown, guide_state
+    from pidtools.i18n import T
+    for i in (7, 8, 9, 10):
+        apc.tabs.setCurrentIndex(i)
+        app.processEvents()
+        assert tab_markdown("apc", guide_state(w), apc.guide_extra()).count(T("g_checklist")) == 2
