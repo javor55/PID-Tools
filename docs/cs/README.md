@@ -136,9 +136,9 @@ python -m pytest tests/test_core.py tests/test_basic.py   # jen výpočetní já
 ```
 
 ```
-app.py                     vstupní bod – skládá stránku z modulů níže
+app.py                     vstupní bod webové aplikace (Streamlit Community Cloud nasazuje tento soubor)
 pidtools/
-  core/                    výpočty bez závislosti na Streamlitu
+  core/                    výpočty – jen numpy/scipy
     models.py              struktury modelů, simulace odezvy, predikce
     identification.py      fit modelů, stikce, neměřené poruchy, hodnocení, nejistota, přepočet rozsahů
     tuning.py              pravidla ladění a optimalizace
@@ -148,21 +148,31 @@ pidtools/
     gainsched.py           gain scheduling (blok GainSched), řídicí pásmo
     diagnostics.py         výkon smyčky, oscilace, stikce, kvalita dat, úseky, nelinearita
     demo.py, util.py
-  i18n/                    texty: cs.py, en.py, T()
-  ui/                      rozhraní ve Streamlitu
+  app/                     aplikační vrstva – pracovní postup společný všem frontendům, bez UI frameworku
+    dataio.py guess.py     načtení dat, čas, převzorkování, odhad rolí PV/MV/SP
+    loop.py                převody NormPV/NormMV, konfigurace bloku PIDConL, sady parametrů
+    model.py               nastavení identifikace, přepočet, úpravy, hodnocení, validace, nejistota
+    tuning.py              metody, návrhy (pravidla i optimalizace), srovnání, robustnost sad
+    scenario.py            události scénáře → průběhy, automatická délka, proces, ukazatele
+    feedforward.py         výchozí návrh dopředné vazby a parametry pro simulaci
+    apc/                   jeden modul na strukturu: recommend, cascade, feedforward, decouple, override,
+                           smith, gainsched
+    project.py             formát projektu (JSON)
+    report.py plots.py     protokol z ladění (HTML) a pomocníci grafů Plotly
+  i18n/                    texty: cs.py, en.py, T() – jazyk nastavuje frontend
+  ui/                      webový frontend ve Streamlitu (widgety, session state, cache, grafy)
     context.py             Ctx – data sdílená záložkami v jednom běhu
-    widgets.py charts.py theme.py dataio.py cache.py project.py
     loops.py               více smyček v projektu (snímky stavu, přepínání)
-    ff.py                  dopředná vazba – stav sdílený Laděním a APC
-    guess.py               odhad rolí PV/MV/SP podle názvů tagů
-    report.py              protokol z ladění (HTML)
-    autosave.py            automatické ukládání v prohlížeči
     static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py)
-    pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics,
-                           apc (+ apc_guide, cascade), project, guides
-tests/                     pytest: jádro, celá aplikace (AppTest), načítání dat, smyčky, APC
-docs/                      uživatelská dokumentace
+    pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics, project, guides,
+                           apc/ (jeden modul na strukturu)
+tests/                     pytest: jádro, aplikační vrstva, celá aplikace (AppTest), načítání dat, smyčky, APC
+docs/                      uživatelská dokumentace, architecture.md (architektura, anglicky)
 ```
+
+Vrstvy: `core` ← `app` ← frontend (dnes `ui`; desktopový frontend může `core` i `app` použít beze změny). `core`,
+`app` (kromě `report.py` a `plots.py`, které používají Plotly) a `i18n` nesmí importovat Streamlit ani Qt – hlídá to
+test. Podrobnosti v [docs/architecture.md](../architecture.md).
 
 Uvnitř jádra jsou všechny procesní veličiny v % rozsahů regulátoru (NormPV, NormMV), takže zesílení procesu
 i Gain regulátoru jsou bezrozměrné jako v PIDConL. Data a výsledky se uživateli ukazují v reálných jednotkách.

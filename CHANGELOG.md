@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+**Development**
+- Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
+  desktop version for engineering stations; the web app is unchanged.
+- APC page split into one module per structure.
+
 ## 3.0.0 – first release for sharing within a team
 
 **Data**

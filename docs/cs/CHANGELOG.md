@@ -1,5 +1,12 @@
 # Změny
 
+## Nevydáno
+
+**Vývoj**
+- Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
+  desktopové verze pro inženýrské stanice; webová aplikace beze změny.
+- Stránka APC rozdělená na moduly po strukturách.
+
 ## 3.0.0 – první verze pro sdílení v týmu
 
 **Data**

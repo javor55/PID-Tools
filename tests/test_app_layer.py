@@ -211,3 +211,21 @@ def test_apc_cascade():
     pv = core.simulate("P1D", [1.0, 5.0, 1.0], t, mv - 50, 1.0) + 50
     best, errs = acas.fit_inner(t, pv, mv, 1.0)
     assert best["code"] == "P1D" and best["fit"] > 95
+
+
+def test_apc_decouple_and_override():
+    from pidtools.app.apc import decouple, override
+    ctrl = dict(Gain=1.0, TI=20.0, TD=0.0, DiffGain=5.0, SampleTime=1.0, MV_Lo=0.0, MV_Hi=100.0)
+    a = dict(_rec("FIC1", ("P1D", [1.0, 10.0, 1.0], [[0.5, 10.0, 1.0]]), "FV1", c_d=["FV2"]), ctrl=ctrl)
+    b = dict(_rec("FIC2", ("P1D", [1.0, 12.0, 1.0], [[0.4, 12.0, 1.0]]), "FV2", c_d=["FV1"]), ctrl=ctrl)
+    dz = decouple.design(a, b)
+    assert dz["dab"] is not None and dz["lam"] == pytest.approx(1 / (1 - 0.5 * 0.4 / 1.0))
+    runs = decouple.simulate(dz, ctrl, ctrl, 5.0, 5.0)
+    tab = decouple.iae_table(runs, a, b)
+    assert tab[2][1] < tab[0][1]            # dynamické decouplery zlepší smyčku A
+    assert len(decouple.params(dz, a, b)) == 2
+    b2 = dict(b, c_mv="FV1")
+    step, lim = override.defaults(a, b2, "min")
+    tt, o, o0 = override.simulate(a, b2, step, lim, "min")
+    k = override.kpis(a, b2, o, o0, "min")
+    assert 0 <= k["share"] <= 1 and isinstance(override.active_spans(o["ACT"]), list)

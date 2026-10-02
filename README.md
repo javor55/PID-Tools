@@ -144,9 +144,9 @@ python -m pytest tests/test_core.py tests/test_basic.py   # computation core onl
 ```
 
 ```
-app.py                     entry point – builds the page from the modules below
+app.py                     entry point of the web app (Streamlit Community Cloud deploys this file)
 pidtools/
-  core/                    computations, no Streamlit dependency
+  core/                    computations – numpy/scipy only
     models.py              model structures, response simulation, prediction
     identification.py      model fitting, stiction, unmeasured disturbances, evaluation, uncertainty, range rescaling
     tuning.py              tuning rules and optimizations
@@ -156,22 +156,32 @@ pidtools/
     gainsched.py           gain scheduling (GainSched block), control zone
     diagnostics.py         loop performance, oscillation, stiction, data quality, segments, nonlinearity
     demo.py, util.py
-  i18n/                    texts: cs.py, en.py, T()
-  ui/                      Streamlit user interface
+  app/                     application layer – workflow shared by all frontends, no UI framework
+    dataio.py guess.py     data loading, time parsing, resampling, PV/MV/SP role guessing
+    loop.py                NormPV/NormMV scaling, PIDConL block configuration, parameter sets
+    model.py               identification settings, rescaling, edits, evaluation, validation, uncertainty
+    tuning.py              methods, proposals (rules and optimizations), comparison, robustness of sets
+    scenario.py            scenario events → signals, automatic length, plant, indicators
+    feedforward.py         feedforward defaults and simulation parameters
+    apc/                   one module per structure: recommend, cascade, feedforward, decouple, override,
+                           smith, gainsched
+    project.py             project file format (JSON)
+    report.py plots.py     tuning protocol (HTML) and Plotly figure helpers
+  i18n/                    texts: cs.py, en.py, T() – the frontend sets the language
+  ui/                      Streamlit web frontend (widgets, session state, caching, charts)
     context.py             Ctx – data shared by the tabs within one run
-    widgets.py charts.py theme.py dataio.py cache.py project.py
     loops.py               several loops in a project (state snapshots, switching)
-    ff.py                  feedforward – state shared by Tuning and APC
-    guess.py               PV/MV/SP role guessing from tag names
-    report.py              tuning protocol (HTML)
-    autosave.py            autosave in the browser
     static/                live simulation in the browser (live_engine.js = port of core/simulation.py)
-    pages/                 one module per tab: header, data, model, tuning, live, diagnostics,
-                           apc (+ apc_guide, cascade), project, guides
-tests/                     pytest: core, whole app (AppTest), data loading, loops, APC
+    pages/                 one module per tab: header, data, model, tuning, live, diagnostics, project, guides,
+                           apc/ (one module per structure)
+tests/                     pytest: core, app layer, whole app (AppTest), data loading, loops, APC
 tools/                     offline package for Windows (build_offline.py, smoke_test.py)
-docs/                      user documentation (English; Czech in docs/cs)
+docs/                      user documentation (English; Czech in docs/cs), architecture.md
 ```
+
+Layers: `core` ← `app` ← frontend (`ui` today; a desktop frontend can reuse `core` and `app` unchanged). `core`,
+`app` (except the Plotly-based `report.py` and `plots.py`) and `i18n` must not import Streamlit or Qt – a test
+checks it. See [docs/architecture.md](docs/architecture.md).
 
 Inside the core all process quantities are in % of the controller ranges (NormPV, NormMV), so the process gain and
 the controller Gain are dimensionless as in PIDConL. Data and results are shown to the user in real units.

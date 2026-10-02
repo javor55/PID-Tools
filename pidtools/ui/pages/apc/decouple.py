@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ....core import (iae)
-from ....core.apc import ff_design, rga2, rga_advice
+from ....core.apc import rga_advice
 from ....i18n import T
 from ... import loops
 from ...charts import mkfig, show, style, tr
@@ -14,8 +13,9 @@ from ...theme import C_MV, C_PV, C_SET2, C_SP
 from ...widgets import model_name, num, seg
 from . import guide
 from .recommend import chk_model_a
+from ....app.apc import decouple as adec
 from ....app.apc.decouple import gain_eng
-from .common import C_B, C_REF, active_model, clean, cross_model, eng, grid, lab, mimo_sim, tchar
+from .common import C_B, C_REF, active_model, clean, eng, lab, mimo_sim
 
 
 # ---------------------------------------------------------------- rozvazbení 2×2
@@ -25,10 +25,8 @@ def _gain_eng(d_, src, dst):
 
 def decouple_render(ctx, bi, b):
     a = active_model(ctx)
-    xab, xba = cross_model(a, b), cross_model(b, a)
-    ga, gb = (a["model"][0], list(a["model"][1])), (b["model"][0], list(b["model"][1]))
-    dab = ff_design(*ga, xab) if xab else None
-    dba = ff_design(*gb, xba) if xba else None
+    dz = adec.design(a, b)
+    xab, xba, dab, dba = dz["xab"], dz["xba"], dz["dab"], dz["dba"]
     checks = [chk_model_a(ctx), (True, T("g_chk_model_ok", n=b["name"], m=model_name(b["model"][0])), None),
               (xab is not None, T("g_chk_cross", n=a["name"], mv=b["c_mv"]),
                (T("g_btn_data", n=a["name"]), guide.goto, (loops.active(), "data"))),
@@ -49,7 +47,7 @@ def decouple_render(ctx, bi, b):
                      mv=b["c_mv"] if xab is None else a["c_mv"]))
 
     # ---- RGA
-    lam = rga2(ga[1][0], xab[0] if xab else 0.0, xba[0] if xba else 0.0, gb[1][0])
+    lam = dz["lam"]
     with st.container(border=True):
         r1, r2 = st.columns([1, 3], vertical_alignment="center")
         r1.metric("RGA λ₁₁", "∞" if not np.isfinite(lam) else f"{lam:.2f}", help=T("h_rga"))
@@ -62,15 +60,7 @@ def decouple_render(ctx, bi, b):
     amp_a = num(T("dec_step", n=a["name"]), "apc_dec_spa", 5.0, c2, format="%.4g", help=T("h_dec_step"))
     amp_b = num(T("dec_step", n=b["name"]), "apc_dec_spb", 5.0, c3, format="%.4g", help=T("h_dec_step"))
     ctrl_a, ctrl_b = clean(a["ctrl"]), clean(b["ctrl"])
-    t_end = 14 * max(tchar(ga), tchar(gb)) + 200 * max(ctrl_a["SampleTime"], ctrl_b["SampleTime"])
-    h, n, t = grid(t_end, min(ctrl_a["SampleTime"], ctrl_b["SampleTime"]))
-    sp_a = np.where(t >= 0.05 * t_end, 50.0 + amp_a, 50.0)
-    sp_b = np.where(t >= 0.5 * t_end, 50.0 + amp_b, 50.0)
-    runs = {}
-    for v_ in ("none", "static", "dyn"):
-        on = v_ != "none"
-        runs[v_] = mimo_sim(ga, gb, xab, xba, ctrl_a, ctrl_b, h, sp_a, sp_b, dab if on else None, dba if on else None,
-                         v_ == "dyn")
+    runs = adec.simulate(dz, ctrl_a, ctrl_b, amp_a, amp_b, mimo_sim)
     EA, EB = eng(a["pv_rng"]), eng(b["pv_rng"])
     MA, MB = eng(a["mv_rng"]), eng(b["mv_rng"])
     tt, o_ref = runs["none"]
@@ -88,23 +78,14 @@ def decouple_render(ctx, bi, b):
                rev="apc_dec"), key="chart_apc_dec", fname="decoupling", report=T("apc_decouple"))
     st.caption(T("dec_sim_help"))
 
-    rows = []
-    for v_ in ("none", "static", "dyn"):
-        tt_, oo = runs[v_]
-        rows.append({T("dec_variant"): T("dec_" + v_),
-                     f"IAE {a['name']}": round(iae(tt_, oo["SP_A"], oo["PV_A"]) * (a["pv_rng"][1] - a["pv_rng"][0]) / 100, 4),
-                     f"IAE {b['name']}": round(iae(tt_, oo["SP_B"], oo["PV_B"]) * (b["pv_rng"][1] - b["pv_rng"][0]) / 100, 4)})
+    rows = [{T("dec_variant"): T("dec_" + v_), f"IAE {a['name']}": round(ia, 4), f"IAE {b['name']}": round(ib, 4)}
+            for v_, ia, ib in adec.iae_table(runs, a, b)]
     st.dataframe(pd.DataFrame(rows), hide_index=True)
 
     # ---- parametry pro implementaci (dopředná vazba z MV druhé smyčky)
-    prm = []
-    for d_, src, dst in ((dab, b, a), (dba, a, b)):
-        if d_ is None:
-            continue
-        g_eng = _gain_eng(d_, src, dst)
-        prm.append({T("dec_path"): f"{src['c_mv']} → MV {dst['name']}", T("dec_gain_pct"): round(d_["gain"], 4),
-                    T("dec_gain_eng"): round(g_eng, 4), "Lead [s]": round(d_["lead"], 3), "Lag [s]": round(d_["lag"], 3),
-                    T("ff_delay"): round(d_["delay"], 3)})
+    prm = [{T("dec_path"): f"{src} → MV {dst}", T("dec_gain_pct"): round(g, 4), T("dec_gain_eng"): round(ge, 4),
+            "Lead [s]": round(ld, 3), "Lag [s]": round(lg, 3), T("ff_delay"): round(dl, 3)}
+           for src, dst, g, ge, ld, lg, dl in adec.params(dz, a, b)]
     st.markdown(f"**{T('dec_params')}**")
     st.dataframe(pd.DataFrame(prm), hide_index=True)
     st.caption(T("dec_params_help"))

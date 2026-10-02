@@ -10,6 +10,8 @@ Moduly:
   recommend    – doporučení struktur podle modelů a vazeb mezi smyčkami
   smith        – Smithův prediktor: τc, hodnoty pro šablonu SmithPredictorControl
   gainsched    – gain scheduling podle PV (pracovní body) a podle regulační odchylky
+  cascade      – kaskáda: model a ladění vnitřní a vnější smyčky, oddělení rychlostí, simulace
   feedforward  – hodnoty dopředné vazby pro PIDConL (FFwd)
-  decouple     – zesílení decouplerů v inženýrských jednotkách
+  decouple     – rozvazbení 2×2: RGA, decouplery, simulace, parametry pro PCS 7
+  override     – výběr MIN/MAX: výchozí scénář, simulace, ukazatele
 """
