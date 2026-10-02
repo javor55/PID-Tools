@@ -1,14 +1,17 @@
 """Horní panel: nadpis, projekt, nápověda, nastavení a datová lišta (zdroj dat a souhrn)."""
+import datetime as dt
+
 import pandas as pd
 import streamlit as st
 
 from ... import __version__
+from ...app import opc
 from ...app.dataset import DEMO_SET1, demo_frame
 from ...i18n import T
 from .. import autosave, loops
 from ..dataio import load_table
 from ..project import load_project_file
-from ..widgets import seg, sld
+from ..widgets import num, seg, sld
 
 ss = st.session_state
 
@@ -48,7 +51,8 @@ def render(ctx):
         else:
             d1, d2, d3 = st.columns([1.5, 1.6, 4.2], vertical_alignment="center")
             d4 = st.container()
-        src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else [])
+        src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else []) + \
+            (["opc"] if opc.available() else [])
         if ss.get("src") not in src_opts:
             ss["src"] = "file"
         src = seg(d1, T("source"), src_opts, "file", "src", format_func=lambda x: T("src_" + x), help=T("h_source"),
@@ -60,6 +64,13 @@ def render(ctx):
             ctx.fname = f"project|{ss.proj.get('fname_tag', ss.proj.get('tag', ''))}|{len(ctx.df)}"
             ctx.ckey = f"{ctx.fname}|{ss.get('proj_hash')}"
             d2.caption(T("proj_data_caption", n=len(ctx.df)))
+        elif src == "opc":
+            _opc(d2)
+            od = ss.get("opc_df")
+            if od is not None:
+                ctx.df = od["df"]
+                ctx.fname = f"opc|{od['stamp']}|{len(ctx.df)}"
+                ctx.ckey = ctx.fname
         elif src == "file":
             f = _file(d2)
             if f is not None:
@@ -94,6 +105,43 @@ def render(ctx):
         st.info(T("empty"), icon=":material/upload_file:")
         st.stop()
     _swap_fit(ctx.fname)
+
+
+def _opc(cont):
+    """Zdroj OPC UA (jen čtení): server, hledání tagů, historie posledních hodin → dlouhá tabulka (Tag, Time, Value)."""
+    od = ss.get("opc_df")
+    with cont.popover(T("src_opc") + (f" · {od['n']}" if od else ""), icon=":material/lan:", width="stretch",
+                      type="secondary" if od else "primary"):
+        st.caption(T("opc_intro"))
+        url = st.text_input(T("opc_url"), key="opc_url", value=ss.get("opc_url", "opc.tcp://localhost:4840"))
+        c1, c2 = st.columns(2)
+        user = c1.text_input(T("opc_user"), key="opc_user")
+        pw = c2.text_input(T("opc_pw"), key="opc_pw", type="password")
+        q = st.text_input(T("opc_search_ph"), key="opc_q")
+        if st.button(T("opc_find"), key="g_opc_find", icon=":material/search:"):
+            try:
+                with opc.Connection(url, user or None, pw) as c, st.spinner(T("loading")):
+                    ss["opc_found"] = {it.node_id: it.path for it in c.find(q)}
+            except Exception as ex:
+                st.error(T("opc_failed", e=ex))
+        found = ss.get("opc_found") or {}
+        pick = st.multiselect(T("opc_selected"), list(found), format_func=lambda n: found.get(n, n), key="opc_pick")
+        hours = num(T("opc_web_hours"), "opc_hours", 8.0, min_value=0.01, max_value=24.0 * 365)
+        if st.button(T("opc_history"), key="g_opc_hist", type="primary", disabled=not pick, icon=":material/download:"):
+            try:
+                end = dt.datetime.now(dt.timezone.utc)
+                with opc.Connection(url, user or None, pw) as c, st.spinner(T("loading")):
+                    h = c.history(pick, end - dt.timedelta(hours=hours), end + dt.timedelta(minutes=1))
+                df = opc.to_frame(h, {n: found.get(n, n) for n in pick})
+                if df.empty:
+                    st.warning(T("opc_empty"))
+                else:
+                    ss["opc_df"] = dict(df=df, stamp=end.strftime("%Y%m%d%H%M%S"), n=df["Tag"].nunique())
+                    st.rerun()
+            except Exception as ex:
+                st.error(T("opc_failed", e=ex))
+        if od:
+            st.caption(T("opc_web_loaded", n=len(od["df"]), k=od["n"]))
 
 
 def _file(cont):

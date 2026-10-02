@@ -490,3 +490,27 @@ def test_scenario_sp_from_to():
     assert sb["sp"][0] * 4 == pytest.approx(360.0) and sb["sp"][-1] * 4 == pytest.approx(380.0)
     # pracovní bod MV 130 % mimo limity 0–100 → varování
     assert any("lies outside the controller limits" in w.value for w in at.warning)
+
+
+def test_opc_source_web():
+    """Zdroj OPC UA (jen čtení): hledání tagů na testovacím serveru, historie → data aplikace."""
+    pytest.importorskip("asyncua")
+    from pidtools.app import opc
+    url, stop = opc.test_server(48451)
+    try:
+        at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+        at.run()
+        at.session_state["src"] = "opc"
+        at.session_state["opc_url"] = url
+        at.session_state["opc_q"] = "TIC200"
+        at.run()
+        _button(at, "Find").click().run()
+        assert len(at.session_state["opc_found"]) == 3
+        at.session_state["opc_pick"] = list(at.session_state["opc_found"])
+        at.run()
+        _button(at, "Read history").click().run()
+        assert not at.exception
+        assert at.session_state["opc_df"]["n"] == 3 and len(_main(at)) == 7
+        assert at.session_state[next(k for k in at.session_state if str(k).startswith("c_pv|opc|"))] == "TIC200.PV"
+    finally:
+        stop()

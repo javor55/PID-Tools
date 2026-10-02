@@ -538,3 +538,35 @@ def test_window_apc_more(win):
         apc.tabs.setCurrentIndex(i)
         app.processEvents()
         assert tab_markdown("apc", guide_state(w), apc.guide_extra()).count(T("g_checklist")) == 2
+
+
+def test_opc_dialog(win):
+    """OPC UA (jen čtení): připojení k testovacímu serveru, hledání tagů, historie → data projektu."""
+    pytest.importorskip("asyncua")
+    app, w = win
+    from pidtools.app import opc
+    from pidtools.desktop.opc import OpcDialog
+    url, stop = opc.test_server(48441)
+    try:
+        dlg = OpcDialog(w)
+        dlg.url.setText(url)
+        dlg.connect()
+        assert dlg.conn is not None and dlg.tree.topLevelItemCount() == 2
+        dlg.search.setText("FIC101")
+        dlg.find()
+        assert dlg.tree.topLevelItemCount() == 3
+        for i in range(dlg.tree.topLevelItemCount()):
+            dlg._pick_item(dlg.tree.topLevelItem(i))
+        assert sorted(dlg.selected().values()) == ["FIC101.MV", "FIC101.PV", "FIC101.SP"]
+        from PySide6.QtCore import QDateTime
+        dlg.t_from.setDateTime(QDateTime.currentDateTime().addSecs(-3600))
+        dlg.t_to.setDateTime(QDateTime.currentDateTime().addSecs(60))
+        dlg.read_history()
+        _wait(app)
+        assert dlg.df is not None and set(dlg.df["Tag"]) == {"FIC101.PV", "FIC101.MV", "FIC101.SP"}
+        w.project.load_frame(dlg.df, "opc")
+        w.build()
+        assert w.state.c_pv == "FIC101.PV" and w.state.c_mv == "FIC101.MV" and w.state.grid.has_sp
+        dlg.done(0)
+    finally:
+        stop()

@@ -68,7 +68,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(T("dk_title"))
         self.menuBar().clear()
         m = self.menuBar().addMenu(T("dk_file"))
-        for key, fn, sc in (("dk_open_data", self.open_data, "Ctrl+O"), ("dk_demo", self.open_demo, None),
+        for key, fn, sc in (("dk_open_data", self.open_data, "Ctrl+O"), ("opc_menu", self.open_opc, None),
+                            ("dk_demo", self.open_demo, None),
                             ("dk_recent", None, None), (None, None, None),
                             ("dk_open_project", self.open_project, "Ctrl+Shift+O"),
                             ("dk_save_project", self.save_project, "Ctrl+S"),
@@ -349,6 +350,19 @@ class MainWindow(QMainWindow):
             if u.isLocalFile():
                 self.open_path(u.toLocalFile())
                 break
+
+    def open_opc(self):
+        """Data z OPC UA serveru (jen čtení)."""
+        from ..app import opc
+        if not opc.available():
+            self.error(T("opc_missing"))
+            return
+        from .opc import OpcDialog
+        dlg = OpcDialog(self)
+        if dlg.exec() == QDialog.Accepted and dlg.df is not None:
+            self.project.load_frame(dlg.df, "opc-" + _dt.datetime.now().strftime("%Y%m%d-%H%M"))
+            self.tabs.setCurrentIndex(0)
+            self.build()
 
     def open_demo(self):
         self.project.load_demo()

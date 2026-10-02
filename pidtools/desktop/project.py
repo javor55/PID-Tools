@@ -31,6 +31,12 @@ class Project:
         ls.load_demo()
         self._reset_to(ls)
 
+    def load_frame(self, df, name):
+        """Data z tabulky (např. z OPC UA) – nový projekt s jednou smyčkou."""
+        ls = LoopState()
+        ls.load_frame(df, name)
+        self._reset_to(ls)
+
     # ---- smyčky
     def names(self):
         return [ls.get("loop_tag") or str(ls.c_pv or f"#{i + 1}") for i, ls in enumerate(self.loops)]
