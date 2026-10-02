@@ -1275,4 +1275,7 @@ TEXTS = {
     'dk_diag_valve': 'Oscillation and valve',
     'dk_model_vs_data': 'Model vs. data',
     'dk_val_same': 'The segment overlaps the identification segment – choose other data for a real check.',
+    'dk_scen_edit': 'Scenario events…',
+    'dk_scen_default': 'Default scenario',
+    'dk_scen_custom': 'Custom scenario (events can be edited).',
 }

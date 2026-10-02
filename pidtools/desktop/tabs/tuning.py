@@ -3,8 +3,8 @@ Záložka Ladění: blok PIDConL (rozsahy NormPV / NormMV, SampleTime, DiffGain,
 metoda a návrh (optimalizace na pozadí), sady 1 a 2, robustnost a simulace scénáře.
 """
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QDialog, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-                               QSplitter, QTableWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QGridLayout, QHBoxLayout, QLabel, QPushButton,
+                               QScrollArea, QSplitter, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from ...core import default_tc
 from ...i18n import T
@@ -106,16 +106,19 @@ class TuningTab(QWidget):
         self.t_end = w.spin(1000.0, 1.0, 1e9, 1)
         b_sim = QPushButton(T("dk_run_sim"))
         b_sim.clicked.connect(self._simulate)
+        b_ev = QPushButton(T("dk_scen_edit"))
+        b_ev.clicked.connect(self._edit_scenario)
         self.len_src = QLabel("")
         rl.addLayout(w.hbox(QLabel(T("sim_sp_from", u="PV")), self.sp0, QLabel(T("sim_sp_to", u="PV")), self.sp1,
-                            QLabel(T("sim_len")), self.t_end, self.auto_len, b_sim))
+                            QLabel(T("sim_len")), self.t_end, self.auto_len, b_sim, b_ev))
         rl.addWidget(self.len_src)
         self.chart, self.plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.62, 0.38))
         rl.addWidget(self.chart, 1)
         self.kpi = w.table([], [])
         self.kpi.setMaximumHeight(110)
         rl.addWidget(self.kpi)
-        rl.addWidget(w.note(T("dk_sp_step")))
+        self.scen_note = w.note(T("dk_sp_step"))
+        rl.addWidget(self.scen_note)
         split.addWidget(right)
         split.setSizes([520, 880])
         for sp in (self.sp0, self.sp1, self.t_end):
@@ -274,10 +277,28 @@ class TuningTab(QWidget):
         w.fill(self.rob, ["", T("set_1"), T("set_2")], rows)
 
     # ---- scénář
+    def _edit_scenario(self):
+        s = self.s
+        if s.model is None:
+            return
+        T_end = self.t_end.value()
+        dlg = ScenarioDialog(self, s, s.scen_rows(T_end), T_end)
+        if dlg.exec() == QDialog.Accepted:
+            s.set_scen_rows(dlg.rows(), T_end)
+            dlg.apply_plant()
+            self._simulate()
+
     def _scenario_changed(self, *_):
         if self._busy:
             return
-        self.s.sim_sp = (self.sp0.value(), self.sp1.value())
+        s = self.s
+        s.sim_sp = (self.sp0.value(), self.sp1.value())
+        rows = s.settings.get(s.scen_key)
+        if rows:                       # vlastní scénář: „z → na“ přepíše první skok SP (jako ve webu)
+            from ...app.scenario import set_sp_step
+            rows, hit = set_sp_step(rows, s.sim_sp[1] - s.sim_sp[0])
+            if hit:
+                s.settings[s.scen_key] = rows
         self._simulate()
 
     def _simulate(self):
@@ -294,6 +315,7 @@ class TuningTab(QWidget):
         self.t_end.setValue(r["T_end"])
         self._busy = False
         self.len_src.setText(T("sim_len_src_" + r["src"]) if r["src"] != "manual" else "")
+        self.scen_note.setText(T("dk_scen_custom") if s.settings.get(s.scen_key) else T("dk_sp_step"))
         for p in self.plots:
             p.clear()
         w.line(self.plots[0], r["t"], s.EP(r["sp"]), "SP", w.C_SP, 1.3, dash=True)
@@ -347,3 +369,80 @@ class CompareDialog(QDialog):
         self.tab.s.write_set(n, dict(Kc=q["Kc"], Ti=q["Ti"], Td=q["Td"]))
         self.tab.win.refresh()
         self.accept()
+
+
+class ScenarioDialog(QDialog):
+    """Události scénáře (cíl, typ, amplituda, začátek, konec, perioda, τ) a proces a ventil v simulaci."""
+
+    COLS = ("on", "target", "type", "amp", "start", "end", "period", "tau")
+
+    def __init__(self, tab, state, rows, T_end):
+        from ...app import scenario as scn
+        super().__init__(tab)
+        self.s, self.scn = state, scn
+        self.setWindowTitle(T("scen_title"))
+        self.resize(980, 520)
+        lay = QVBoxLayout(self)
+        self.targets = scn.targets(len(state.c_d))
+        self.tab = QTableWidget(0, len(self.COLS))
+        self.tab.setHorizontalHeaderLabels([T("sc_" + c) for c in self.COLS])
+        lay.addWidget(self.tab, 1)
+        lay.addWidget(w.note(T("scen_help")))
+        b_add, b_del, b_def = QPushButton("+"), QPushButton("−"), QPushButton(T("dk_scen_default"))
+        b_add.clicked.connect(lambda: self._add(scn.row("SP", "step", 0.0, 0.0)))
+        b_del.clicked.connect(lambda: self.tab.removeRow(self.tab.currentRow()))
+        b_def.clicked.connect(self._default)
+        lay.addLayout(w.hbox(b_add, b_del, b_def))
+        u_pv, u_mv = state.get("u_pv") or "PV", state.get("u_mv") or "MV"
+        st0 = state.plant()["Stic"] * state.MR / 100
+        self.stic = w.spin(st0, 0.0, 1e12, 4)
+        self.slip = w.spin(float(state.get("sim_J", 100.0)), 0.0, 100.0, 1)
+        self.noise = w.spin(float(state.get("sim_noise", 0.0)), 0.0, 1e12, 4)
+        lay.addWidget(w.group(T("plant_title"), w.form([(T("sim_stic", u=u_mv), self.stic), (T("sim_slip"), self.slip),
+                                                        (T("sim_noise", u=u_pv), self.noise)])))
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.accepted.connect(self.accept)
+        bb.rejected.connect(self.reject)
+        lay.addWidget(bb)
+        self.T_end = T_end
+        for r in rows:
+            self._add(r)
+
+    def _tlabel(self, c):
+        return T("tg_" + c) if c[0] != "M" else f"{T('tg_M')}: {self.s.c_d[int(c[1:])]}"
+
+    def _add(self, r):
+        i = self.tab.rowCount()
+        self.tab.insertRow(i)
+        it = QTableWidgetItem()
+        it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+        it.setCheckState(Qt.Checked if r[0] else Qt.Unchecked)
+        self.tab.setItem(i, 0, it)
+        self.tab.setCellWidget(i, 1, w.combo(self.targets, r[1], labels=[self._tlabel(c) for c in self.targets]))
+        self.tab.setCellWidget(i, 2, w.combo(list(self.scn.TYPES), r[2], labels=[T("ty_" + c) for c in self.scn.TYPES]))
+        for j in range(3, 8):
+            self.tab.setItem(i, j, QTableWidgetItem("" if r[j] is None else f"{r[j]:.6g}"))
+
+    def _default(self):
+        self.tab.setRowCount(0)
+        sp0, sp1 = self.s.sp_from_to()
+        for r in self.scn.default_rows(sp1 - sp0, self.s.MR, len(self.s.c_d), self.T_end):
+            self._add(r)
+
+    def rows(self):
+        out = []
+        for i in range(self.tab.rowCount()):
+            vals = []
+            for j in range(3, 8):
+                it = self.tab.item(i, j)
+                try:
+                    vals.append(float(it.text().replace(",", ".")) if it and it.text().strip() else None)
+                except ValueError:
+                    vals.append(None)
+            out.append([self.tab.item(i, 0).checkState() == Qt.Checked, self.tab.cellWidget(i, 1).currentData(),
+                        self.tab.cellWidget(i, 2).currentData()] + vals)
+        return out
+
+    def apply_plant(self):
+        self.s.settings[self.s.stic_key] = self.stic.value()
+        self.s.set(sim_J=self.slip.value(), sim_noise=self.noise.value())

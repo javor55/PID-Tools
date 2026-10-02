@@ -295,3 +295,27 @@ def test_uncertainty_and_comparison(state):
     assert m["Ms_worst"] is not None and m["Ms_worst"] >= m["Ms"] - 1e-9
     rows = s.compare_methods()
     assert {r["method"] for r in rows} >= {"SIMC", "OPT"} and all(r["ctype"] in ("PI", "PID") for r in rows)
+
+
+def test_scenario_editor(win):
+    app, w = win
+    from pidtools.desktop.tabs.tuning import ScenarioDialog
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    s = w.state
+    dlg = ScenarioDialog(w.pages[2], s, s.scen_rows(1000.0), 1000.0)
+    n0 = dlg.tab.rowCount()
+    dlg._add(["on" == "on", "IN", "ramp", 3.0, 600.0, 800.0, None, None])
+    rows = dlg.rows()
+    assert len(rows) == n0 + 1 and rows[-1][1:3] == ["IN", "ramp"]
+    s.set_scen_rows(rows, 1000.0)
+    dlg.noise.setValue(0.2)
+    dlg.apply_plant()
+    r = s.simulate(1000.0)
+    assert r["rows"][-1][2] == "ramp" and s.plant()["Noise"] > 0
+    r2 = s.simulate(2000.0)                     # jiná délka → časy událostí se přepočtou
+    assert r2["rows"][-1][4] == pytest.approx(1200.0)
+    s.set_scen_rows(None, 0)
+    s.set(sim_noise=0.0)

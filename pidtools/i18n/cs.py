@@ -1275,4 +1275,7 @@ TEXTS = {
     'dk_diag_valve': 'Oscilace a ventil',
     'dk_model_vs_data': 'Model vs. data',
     'dk_val_same': 'Úsek se překrývá s úsekem identifikace – pro skutečné ověření zvolte jiná data.',
+    'dk_scen_edit': 'Události scénáře…',
+    'dk_scen_default': 'Výchozí scénář',
+    'dk_scen_custom': 'Vlastní scénář (události lze upravit).',
 }

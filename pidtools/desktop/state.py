@@ -43,7 +43,6 @@ class LoopState(Scaling):
         self.rng = (0.0, 0.0)
         self.fit = None              # {"res": {kód: výsledek}, "dnames": [...], "key": ...}
         self.ff_state = []
-        self.scen_rows = None        # události scénáře (app.scenario), None = výchozí
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
         self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
 
@@ -320,6 +319,42 @@ class LoopState(Scaling):
         return scn.auto_length(code, p, (self.set_ctrl(1), self.set_ctrl(2), prop), scn.t_char(code, p, 0, samp),
                                samp, ts)
 
+    @property
+    def scen_key(self):
+        """Klíč událostí scénáře – stejný jako ve webu (projekt nese vlastní scénář)."""
+        return f"scen_df|{self.get('mcode')}|{len(self.c_d)}"
+
+    def scen_rows(self, T_end):
+        """Události scénáře: vlastní (časy přepočtené na aktuální délku), jinak výchozí."""
+        rows = self.settings.get(self.scen_key)
+        if not rows:
+            sp0, sp1 = self.sp_from_to()
+            return scn.default_rows(sp1 - sp0, self.MR, len(self.c_d), T_end)
+        t_prev = self.settings.get(self.scen_key + "|tend")
+        if t_prev and abs(T_end / t_prev - 1) > 0.02:
+            rows = scn.rescale_times(rows, T_end / t_prev)
+            self.settings[self.scen_key] = rows
+        self.settings[self.scen_key + "|tend"] = T_end
+        return rows
+
+    def set_scen_rows(self, rows, T_end):
+        if rows is None:
+            self.settings.pop(self.scen_key, None)
+        else:
+            self.settings[self.scen_key] = [list(r) for r in rows]
+            self.settings[self.scen_key + "|tend"] = T_end
+
+    @property
+    def stic_key(self):
+        return f"sim_S|{self.get('mcode')}|desktop"
+
+    def plant(self):
+        """Proces a ventil v simulaci: stikce [MV] (výchozí z identifikace), skluz [%], šum PV [PV], charakteristika."""
+        code = self.get("mcode")
+        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit and code in self.fit["res"] else 0.0
+        return scn.plant(float(self.get(self.stic_key, st0)), float(self.get("sim_J", 100.0)),
+                         float(self.get("sim_noise", 0.0)), self.get("vchar_last") or [1.0] * 10, self.PR, self.MR)
+
     def simulate(self, T_end=None):
         """Scénář pro obě sady: dict(t, sp, runs = {1: výsledek, 2: výsledek}, kpis, T_end, src)."""
         code, p, pdl = self.model
@@ -327,12 +362,12 @@ class LoopState(Scaling):
         src = "manual"
         if T_end is None:
             T_end, src = self.sim_length()
-        sp0, sp1 = self.sp_from_to()
-        rows = self.scen_rows or scn.default_rows(sp1 - sp0, self.MR, len(self.c_d), T_end)
+        sp0, _ = self.sp_from_to()
+        rows = self.scen_rows(T_end)
         h, ts = scn.grid(samp, T_end)
         sig = scn.signals(rows, ts, h, T_end, self.PR, self.MR, float(self.P(sp0)), len(self.c_d))
         _, _, mv_id, _ = self.segment()
-        plant = scn.plant(0.0, 100.0, 0.0, [1.0] * 10, self.PR, self.MR)
+        plant = self.plant()
         runs, kp = {}, {}
         for n in (1, 2):
             r = pidconl_sim_full(code, p, pdl, h, sig["sp"], float(self.P(sp0)), float(mv_id[0]),
