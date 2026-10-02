@@ -131,3 +131,52 @@ def test_diagnostics():
 def test_models_table_consistent():
     for code, m in MODELS.items():
         assert core.n_free(code) == len(m["params"]) - 1
+
+
+def test_default_tc_effective_delay_keeps_rules_robust():
+    """Výchozí τc z efektivního zpoždění: SIMC i Lambda (PI i PID) dají Ms ≤ 1,9 i u procesů s velkou setrvačností."""
+    from pidtools.core import default_tc, robustness, tune
+    cases = [("I0D", [0.004, 8.0]), ("I1D", [0.004, 15.0, 8.0]), ("I1D", [0.01, 60.0, 5.0]),
+             ("I1D", [-0.002, 5.0, 40.0]), ("P2D", [1.0, 40.0, 20.0, 3.0]), ("P1D", [1.0, 30.0, 5.0])]
+    for code, p in cases:
+        for m in ("SIMC", "Lambda"):
+            for ct in ("PI", "PID"):
+                r = tune(code, p, m, default_tc(code, p, 1.0, m, ct, 5.0), ct, 1.0)
+                rb = robustness(code, p, dict(Gain=r["Kc"], TI=r["Ti"], TD=r["Td"], DiffGain=5.0, SampleTime=1.0))
+                assert rb["stable"] and rb["Ms"] <= 1.9, (code, p, m, ct, rb["Ms"])
+
+
+def test_settling_time():
+    from pidtools.core import default_tc, settling_time, tune
+    p = [1.0, 30.0, 5.0]
+    r = tune("P1D", p, "SIMC", default_tc("P1D", p, 1.0), "PI", 1.0)
+    ts = settling_time("P1D", p, dict(Gain=r["Kc"], TI=r["Ti"], TD=0.0, DiffGain=5.0, SampleTime=1.0))
+    assert 50 < ts < 400
+    assert settling_time("P1D", p, dict(Gain=50.0, TI=10.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)) is None
+
+
+def test_pidconl_d_action_after_deadband():
+    """D složka (DiffToFbk = 0) bere regulační odchylku za deadbandem jako v PIDConL – šum uvnitř pásma MV nehýbe."""
+    from pidtools.core.simulation import PIDConL
+    c = PIDConL(dict(Gain=2.0, TI=50.0, TD=10.0, DiffGain=5.0, SampleTime=1.0, DeadBand=1.0, DbMode="spojité"), 1.0)
+    c.init(50.0, 50.0, 40.0)
+    rng = np.random.default_rng(0)
+    u = [c.step(50.0, 50.0 + rng.uniform(-0.9, 0.9)) for _ in range(50)]
+    assert np.allclose(u, 40.0)
+
+
+def test_propfacsp_setpoint_weight():
+    """PropFacSP jako v PIDConL: skok MV při skoku SP = Gain·PropFacSP·ΔSP; odezva na poruchu na PropFacSP nezávisí;
+    lineární polynomy odpovídají simulaci krok po kroku."""
+    from pidtools.core.simulation import PIDConL
+    for b in (0.0, 0.4, 1.0):
+        c = PIDConL(dict(Gain=2.0, TI=np.inf, TD=0.0, DiffGain=5.0, SampleTime=1.0, PropFacSP=b), 1.0)
+        c.init(50.0, 50.0, 40.0)
+        assert c.step(55.0, 50.0) == pytest.approx(40.0 + 2.0 * b * 5.0)
+    p = [1.5, 30.0, 4.0]
+    ctrl = dict(Gain=1.2, TI=35.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)
+    e_d = [core.closed_loop_steps("P1D", p, dict(ctrl, PropFacSP=b), 1.0, 300)[1] for b in (0.0, 0.5, 1.0)]
+    assert np.allclose(e_d[0], e_d[1]) and np.allclose(e_d[1], e_d[2])
+    e_sp = [core.closed_loop_steps("P1D", p, dict(ctrl, PropFacSP=b), 1.0, 300)[0] for b in (0.0, 0.5, 1.0)]
+    assert e_sp[0][5] > e_sp[1][5] > e_sp[2][5]        # menší váha SP → pomalejší náběh PV, větší odchylka
+    assert core.propfac(dict(PropFbk=True)) == 0.0 and core.propfac({}) == 1.0

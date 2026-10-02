@@ -171,7 +171,12 @@ def data_quality(t, pv, mv, sp, h, has_sp, mv_lo, mv_hi, rep_frac=None, model=No
         checks.append(("q_snr_low", 1, dict(s=snr)))
     else:
         checks.append(("q_snr_bad", 2, dict(s=snr)))
-    at_lim = float(np.mean((mv <= mv_lo + 1e-6) | (mv >= mv_hi - 1e-6)) * 100)
+    tol = 0.005 * max(mv_hi - mv_lo, 1e-9)
+    out_lim = float(np.mean((mv < mv_lo - tol) | (mv > mv_hi + tol)) * 100)
+    at_lim = float(np.mean(((mv <= mv_lo + 1e-6) & (mv >= mv_lo - tol)) | ((mv >= mv_hi - 1e-6) & (mv <= mv_hi + tol))) * 100)
+    if out_lim >= 5:
+        # MV za limity: nesouhlasí rozsah NormMV / limity MV s daty, ne kvalita dat
+        checks.append(("q_lim_out", 1, dict(p=out_lim)))
     if at_lim >= 20:
         checks.append(("q_lim_bad", 2, dict(p=at_lim)))
     elif at_lim >= 5:

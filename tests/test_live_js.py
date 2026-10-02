@@ -19,7 +19,7 @@ CASES = {
     "I0D": ("I0D", [0.02, 5.0]),
     "I1D": ("I1D", [0.015, 20.0, 3.0]),
 }
-CTRL = dict(Gain=1.1, TI=35.0, TD=4.0, DiffGain=5.0, SampleTime=1.0, PropFbk=False, DiffFbk=True,
+CTRL = dict(Gain=1.1, TI=35.0, TD=4.0, DiffGain=5.0, SampleTime=1.0, PropFacSP=0.6, DiffFbk=True,
             DeadBand=0.3, DbMode="spojité", MV_Lo=5.0, MV_Hi=95.0, PVFilt=2.0, MVRate=2.0, SPRate=0.5)
 PLANT = dict(Stic=1.5, SticJ=1.0, ValveChar=[0.6, 0.8, 1.0, 1.1, 1.2, 1.2, 1.1, 1.0, 0.9, 0.8])
 

@@ -61,18 +61,17 @@ def _checks_data(ctx):
     out.append((ctx.c_pv != ctx.c_mv, T("tgc_data_cols", pv=ctx.c_pv, mv=ctx.c_mv), None))
     default_rng = (ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi) == (0.0, 100.0, 0.0, 100.0)
     out.append((None if default_rng else True, T("tgc_data_ranges"), (T("tgb_tuning"), goto, dict(tab="tuning"))))
-    dq = ctx.dq or {}
-    if dq:
-        n = int(dq.get("n_steps") or 0)
-        out.append((True if n >= 2 else (None if n == 1 else False), T("tgc_data_steps", n=n), None))
-        lvl = dq.get("level", 2)
-        out.append((True if lvl == 0 else (None if lvl == 1 else False), T("tgc_data_quality_" + str(lvl)), None))
     return out
 
 
 def _checks_model(ctx):
-    out = [(True, T("tgc_data_ok"), None) if (ctx.dq or {}).get("level", 2) < 2
-           else (None, T("tgc_data_weak"), (T("tgb_data"), goto, dict(tab="data")))]
+    out = []
+    dq = ctx.dq or {}
+    if dq:   # úsek pro identifikaci se vybírá nahoře v záložce Model
+        n = int(dq.get("n_steps") or 0)
+        out.append((True if n >= 2 else (None if n == 1 else False), T("tgc_data_steps", n=n), None))
+        lvl = dq.get("level", 2)
+        out.append((True if lvl == 0 else (None if lvl == 1 else False), T("tgc_data_quality_" + str(lvl)), None))
     out.append(_model_check(ctx, here=True))
     if _has_model(ctx):
         fit = (ss.get("fit") or {}).get("res", {}).get(ctx.model[0], {}).get("fit")

@@ -5,7 +5,7 @@ from scipy.signal import lfilter
 from .models import MODELS
 from .robustness import loop_tf, is_stable, _freq_grid, hf_gain
 from .simulation import pidconl_sim_full
-from .util import padd as _padd
+from .util import padd as _padd, propfac
 
 def _series_to_ideal(Kc, Ti, Td):
     if Td <= 0:
@@ -23,8 +23,18 @@ def integ_gain(code, p):
     return None
 
 
-def default_tc(code, p, Ts_ctrl=0.0, method="SIMC"):
+def default_tc(code, p, Ts_ctrl=0.0, method="SIMC", ctype="PI", diffgain=None):
+    """
+    Výchozí τc (λ) z efektivního zpoždění, se kterým pravidla počítají:
+    PI u 2. řádu – pravidlo poloviny (θ + T2/2); PI u integračního + 1. řádu – setrvačnost jako zpoždění (θ + T1);
+    PID, kde D kompenzuje T2 / T1 – přidá se zpoždění filtru D v PIDConL (TD/DiffGain), je-li DiffGain zadán.
+    Bez toho vycházelo u procesů s velkou setrvačností vůči θ příliš agresivní ladění (Ms 2–6).
+    """
     theta = p[-1] + Ts_ctrl / 2
+    if code == "P2D":
+        theta += p[2] / 2 if ctype == "PI" else (p[2] / diffgain if diffgain else 0.0)
+    elif code == "I1D":
+        theta += p[1] if ctype == "PI" else (p[1] / diffgain if diffgain else 0.0)
     T = p[1] if code in ("P1D", "P2D", "I1D") else 0.0
     if method == "Lambda":  # běžná průmyslová volba λ ≈ 3θ (klidná, robustní smyčka)
         return float(max(3 * theta, 0.05 * T, Ts_ctrl, 1e-3))
@@ -279,7 +289,7 @@ def _ctrl_poly(ctrl, h):
     cf = Tf / (Tf + h) if Td > 0 else 0.0
     Ki = Kc * h / Ti if (Ti and np.isfinite(Ti) and Ti > 0) else 0.0
     Kd = Kc * Td / (Tf + h) if Td > 0 else 0.0
-    beta = 0.0 if ctrl.get("PropFbk") else 1.0
+    beta = propfac(ctrl)
     gam = 0.0 if ctrl.get("DiffFbk") else 1.0
     d1 = np.convolve([1.0, -1.0], [1.0, -cf])
     d2 = np.convolve([1.0, -1.0], [1.0, -1.0])
@@ -338,7 +348,7 @@ def overshoot_ratio(e):
 
 
 def optimize_time(code, p, ctype, Ts_ctrl, diffgain=5.0, crit="IAE", target="both", Ms_max=1.6, hf_max=None,
-                  starts=(), extra_ps=(), ovs_lim=0.02, pfb=False, dfb=True, pvf=0.0, rate=0.0, sp_amp=1.0, d_amp=1.0):
+                  starts=(), extra_ps=(), ovs_lim=0.02, pfac=1.0, dfb=True, pvf=0.0, rate=0.0, sp_amp=1.0, d_amp=1.0):
     """
     Optimalizace parametrů podle časového kritéria odezvy (IAE, ISE, ITAE nebo IAE s limitem překmitu „OVS“)
     na skok SP, skok poruchy na vstupu procesu nebo obojí. Vždy s podmínkou robustnosti Ms (a Mt) ≤ Ms_max,
@@ -354,7 +364,7 @@ def optimize_time(code, p, ctype, Ts_ctrl, diffgain=5.0, crit="IAE", target="bot
     Th = max(40 * (th + Tsum + Ts_ctrl), 8 * Ti_s, 200 * Ts_ctrl)
     h = max(Ts_ctrl, Th / 8000)
     n = int(Th / h) + 1
-    base = dict(DiffGain=diffgain, SampleTime=Ts_ctrl, PropFbk=pfb, DiffFbk=dfb, PVFilt=pvf)
+    base = dict(DiffGain=diffgain, SampleTime=Ts_ctrl, PropFacSP=pfac, DiffFbk=dfb, PVFilt=pvf)
     w = _freq_grid(code, p, dict(base, TI=1.0), n=1200)
     rate_state = {"du": 0.0}
 
@@ -532,3 +542,34 @@ def outer_with_inner(code, p, tc_i, th_i):
         return "I1D", [p[0], tc_i, th]
     T1, T2 = max(p[1], tc_i), min(p[1], tc_i)
     return "I1D", [p[0], T1, th + T2]
+
+
+def settling_time(code, p, ctrl, tol=0.02):
+    """
+    Doba ustálení uzavřené smyčky [s] – delší z odezvy na skok SP a na skok poruchy na vstupu procesu
+    (odchylka trvale pod tol · maximum odchylky). Lineární odezva bez limitů MV. None = nestabilní nebo neustálená.
+    """
+    h = float(ctrl.get("SampleTime", 1.0) or 1.0)
+    lags = sum(p[1:-1]) if code in ("P1D", "P2D", "I1D") else 0.0
+    ti = ctrl.get("TI") or 0.0
+    t_guess = 20 * (p[-1] + lags) + 10 * (ti if np.isfinite(ti) else 0.0) + 50 * h
+    for _ in range(4):
+        n = int(min(max(t_guess / h, 200), 200000))
+        try:
+            e_sp, e_d = closed_loop_steps(code, list(p), ctrl, h, n)
+        except Exception:
+            return None
+        out = []
+        for e in (e_sp, e_d):
+            if not np.all(np.isfinite(e)):
+                return None
+            pk = np.max(np.abs(e))
+            if pk <= 0:
+                out.append(0.0)
+                continue
+            big = np.nonzero(np.abs(e) > tol * pk)[0]
+            out.append(float((big[-1] + 1) * h) if len(big) else 0.0)
+        if max(out) < 0.8 * n * h:
+            return max(out)
+        t_guess *= 4
+    return None

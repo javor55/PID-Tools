@@ -36,7 +36,7 @@ controller structure and implementation steps follow the **PIDConL** block and t
   (FIT, residuals).
 - **PIDConL tuning** – SIMC, iSIMC, Lambda, AMIGO, averaging level control and numerical optimization (MIGO, IAE,
   ISE, ITAE, overshoot limit, the whole scenario), always with a robustness constraint (Ms). Block configuration as
-  in PCS 7 (NormPV/NormMV, SampleTime, DiffGain, P/D on feedback, deadband, MV limits and rate, PV filter, SP ramp).
+  in PCS 7 (NormPV/NormMV, SampleTime, DiffGain, PropFacSP, D on feedback, deadband, MV limits and rate, PV filter, SP ramp).
   Two parameter sets (current / new), comparison of all methods, scenario simulation with valve, stiction and noise.
 - **Live simulation** in the browser – smooth, instant response to SP, manual MV, disturbances and noise, up to 500×
   speed.

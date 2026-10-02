@@ -596,7 +596,7 @@ def _gs_tune(ctx, code, p):
     samp = ctx.samp
     if m == "AMIGO":
         return tune(code, p, "AMIGO", None, ct, samp)
-    r0 = tune(code, p, "SIMC", float(ss.get("gs_tcf") or 1.0) * default_tc(code, p, samp), ct, samp)
+    r0 = tune(code, p, "SIMC", float(ss.get("gs_tcf") or 1.0) * default_tc(code, p, samp, "SIMC", ct, ctx.diffgain), ct, samp)
     if m == "SIMC":
         return r0
     return cache.opt_migo(code, tuple(p), ct, samp, ctx.diffgain, float(ss.get("gs_ms") or 1.6), None,

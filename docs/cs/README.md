@@ -36,7 +36,7 @@ a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **A
   nejistota modelu (bootstrap), ověření na jiném úseku a detailní hodnocení (FIT, rezidua).
 - **Ladění PIDConL** – SIMC, iSIMC, Lambda, AMIGO, průměrovací ladění hladiny a numerická optimalizace (MIGO,
   IAE, ISE, ITAE, limit překmitu, celý scénář) vždy s podmínkou robustnosti Ms. Konfigurace bloku jako v PCS 7
-  (NormPV/NormMV, SampleTime, DiffGain, P/D ze zpětné vazby, deadband, limity a rychlost MV, filtr PV, rampa SP).
+  (NormPV/NormMV, SampleTime, DiffGain, PropFacSP, D ze zpětné vazby, deadband, limity a rychlost MV, filtr PV, rampa SP).
   Dvě sady parametrů (současná / nová), porovnání všech metod, simulace scénářů s ventilem, stikcí a šumem.
 - **Živá simulace** v prohlížeči – plynulá, okamžitá reakce na SP, ruční MV, poruchy a šum, zrychlení až 500×.
 - **APC** – kaskáda, dopředná vazba (statická i lead-lag), rozvazbení 2×2 (RGA, decouplery), override (výběr

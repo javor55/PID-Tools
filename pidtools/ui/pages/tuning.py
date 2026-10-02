@@ -36,7 +36,10 @@ def render_block(ctx):
             q = st.columns(4, vertical_alignment="bottom")
             ctx.mvl_lo = num("MV_LoLim", "mvl_lo", ctx.mv_lo, q[0], help=T("h_mvlim"))
             ctx.mvl_hi = num("MV_HiLim", "mvl_hi", ctx.mv_hi, q[1], help=T("h_mvlim"))
-            ctx.pfb = q[2].toggle(T("pfb"), key="pfb", help=T("pfb_help"))
+            if "propfac" not in ss:      # starší projekty: přepínač „P ve zpětné vazbě“ → PropFacSP 0 / 1
+                ss["propfac"] = 0.0 if ss.get("pfb") else 1.0
+            ctx.propfac = num("PropFacSP", "propfac", 1.0, q[2], min_value=0.0, max_value=1.0, step=0.1,
+                              format="%.2g", help=T("pfb_help"))
             if "dfb" not in ss:
                 ss["dfb"] = True
             ctx.dfb = q[3].toggle(T("dfb"), key="dfb", help=T("h_dfb"))
@@ -47,13 +50,39 @@ def render_block(ctx):
                            help=T("h_mvrate"))
             sprate_e = num(T("sprate", u=ctx.u_pv or "PV"), "sprate", 0.0, q[2], min_value=0.0, format="%.4g",
                            help=T("h_sprate"))
-    ctx.base_ctrl = dict(SampleTime=ctx.samp, DiffGain=ctx.diffgain, PropFbk=ctx.pfb, DiffFbk=ctx.dfb,
+    ctx.base_ctrl = dict(SampleTime=ctx.samp, DiffGain=ctx.diffgain, PropFacSP=ctx.propfac, DiffFbk=ctx.dfb,
                          DeadBand=db_e / ctx.PR * 100, DbMode="spojité" if db_mode == "cont" else "skokové",
                          MV_Lo=float(ctx.M(ctx.mvl_lo)), MV_Hi=float(ctx.M(ctx.mvl_hi)), PVFilt=ctx.pvfilt,
                          MVRate=mvrate_e / ctx.MR * 100, SPRate=sprate_e / ctx.PR * 100)
-    ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p="✓" if ctx.pfb else "✗",
+    ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p=f"{ctx.propfac:g}",
                           d="✓" if ctx.dfb else "✗", g=f"{ss.get('set1_gain', 1.0):.4g}",
                           ti=f"{ss.get('set1_ti', 100.0):.4g}", td=f"{ss.get('set1_td', 0.0):.4g}")
+
+
+def _nice(x):
+    """Zaokrouhlení nahoru na „hezké“ číslo (1, 1,5, 2, 3, 5, 7,5 × 10^n)."""
+    if not np.isfinite(x) or x <= 0:
+        return x
+    e = 10 ** np.floor(np.log10(x))
+    return float(next(m * e for m in (1, 1.5, 2, 3, 5, 7.5, 10) if m * e >= x * 0.999))
+
+
+def auto_sim_length(mcode, p, ctrls, T_char, samp, ts_id):
+    """
+    Délka simulace scénáře podle dynamiky: 4× nejdelší doba ustálení uzavřené smyčky (sada 1 a 2; skok SP i porucha),
+    aby se mezi událostmi (5 %, 40 %, 70 % délky) smyčka vždy ustálila. Když se žádná sada neustálí (nestabilní),
+    podle modelu procesu (20× charakteristický čas), nejméně délka úseku identifikace. Vrací (délka [s], zdroj).
+    """
+    st_ = [cache.settling_time(mcode, tuple(p), {k: v for k, v in c.items() if k not in ("FF", "FF_LL")})
+           for c in ctrls if c is not None]
+    st_ = [x for x in st_ if x]
+    if st_:
+        return _nice(max(4 * max(st_), 50 * samp)), "cl"
+    t_data = float(ts_id[-1]) if ts_id is not None and len(ts_id) else 0.0
+    t_mod = max(20 * T_char, 50 * samp)
+    if t_data > 0:      # nevěrohodně pomalý model (časová konstanta ≫ záznam) nesmí dát simulaci na dny
+        t_mod = min(t_mod, 20 * t_data)
+    return _nice(max(t_mod, t_data)), ("data" if t_data >= t_mod else "model")
 
 
 def _norm_section(ctx):
@@ -83,7 +112,7 @@ def _norm_section(ctx):
 
 def render(ctx):
     """Záložka Ladění: doporučení D, metody, sady parametrů, porovnání metod, dopředná vazba, scénář a simulace."""
-    H, base_ctrl, c_d, d_id, dfb, diffgain, dists, has_sp, model, model_stic, mv_hi, mv_id, mv_lo, pfb, plant, pv_hi, pv_id, pv_lo, pvfilt, samp, sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, ts_id, u_mv, u_pv, unc_models = ctx.H, ctx.base_ctrl, ctx.c_d, ctx.d_id, ctx.dfb, ctx.diffgain, ctx.dists, ctx.has_sp, ctx.model, ctx.model_stic, ctx.mv_hi, ctx.mv_id, ctx.mv_lo, ctx.pfb, ctx.plant, ctx.pv_hi, ctx.pv_id, ctx.pv_lo, ctx.pvfilt, ctx.samp, ctx.sel_mask, ctx.set1_ctrl, ctx.set2_ctrl, ctx.sigma_pv, ctx.sp, ctx.ts_id, ctx.u_mv, ctx.u_pv, ctx.unc_models
+    H, base_ctrl, c_d, d_id, dfb, diffgain, dists, has_sp, model, model_stic, mv_hi, mv_id, mv_lo, propfac, plant, pv_hi, pv_id, pv_lo, pvfilt, samp, sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, ts_id, u_mv, u_pv, unc_models = ctx.H, ctx.base_ctrl, ctx.c_d, ctx.d_id, ctx.dfb, ctx.diffgain, ctx.dists, ctx.has_sp, ctx.model, ctx.model_stic, ctx.mv_hi, ctx.mv_id, ctx.mv_lo, ctx.propfac, ctx.plant, ctx.pv_hi, ctx.pv_id, ctx.pv_lo, ctx.pvfilt, ctx.samp, ctx.sel_mask, ctx.set1_ctrl, ctx.set2_ctrl, ctx.sigma_pv, ctx.sp, ctx.ts_id, ctx.u_mv, ctx.u_pv, ctx.unc_models
     EM, EP, MR, PR, lab_mv, lab_pv, lab_t = ctx.EM, ctx.EP, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv, ctx.lab_t
     with ctx.tabs["tuning"]:
         if model is None:
@@ -136,7 +165,7 @@ def render(ctx):
                 if meth == "OPT":
                     starts = []
                     for m0 in ("SIMC", "AMIGO"):
-                        r0 = tune(mcode, p, m0, default_tc(mcode, p, samp, m0), ct, samp)
+                        r0 = tune(mcode, p, m0, default_tc(mcode, p, samp, m0, ct, diffgain), ct, samp)
                         starts.append((r0["Kc"], r0["Ti"], r0["Td"]))
                     mg = cache.opt_migo(mcode, tuple(p), ct, samp, diffgain, ms_, hf_, tuple(starts), robust_set, pvfilt)
                     if crit_ == "MIGO":
@@ -146,7 +175,7 @@ def render(ctx):
                     sp_amp, d_amp = (sb["sp_amp"], sb["d_amp"]) if sb else (5.0, 5.0)
                     tg_lin = "both" if tgt_ == "scen" else tgt_
                     lin = cache.opt_time(mcode, tuple(p), ct, samp, diffgain, crit_, tg_lin, ms_, hf_, tuple(starts), robust_set,
-                                      ovs_, pfb, dfb, pvfilt, base_ctrl["MVRate"], sp_amp, d_amp)
+                                      ovs_, propfac, dfb, pvfilt, base_ctrl["MVRate"], sp_amp, d_amp)
                     if tgt_ != "scen":
                         return lin
                     if sb is None:
@@ -156,7 +185,7 @@ def render(ctx):
                     return cache.opt_scenario(mcode, tuple(p), tuple(tuple(d) for d in pdl), ct, cb, crit_, sb["h"], sb["sp"],
                                        sb["pv0"], sb["mv0"], tuple(sb["dmeas"]), sb["dmv"], sb["dpv"], ms_, hf_,
                                        tuple(starts), robust_set, ovs_)
-                return tune(mcode, p, meth, tc_ if tc_ else default_tc(mcode, p, samp, meth), ct, samp, avg_)
+                return tune(mcode, p, meth, tc_ if tc_ else default_tc(mcode, p, samp, meth, ct, diffgain), ct, samp, avg_)
 
             with st.container(border=True):
                 c1, c2 = st.columns([2.6, 1])
@@ -195,9 +224,9 @@ def render(ctx):
                     o2.toggle(T("opt_robust"), key="opt_robust",
                               help=T("h_opt_robust_bs") if unc_models else T("h_opt_robust_corner"))
                 elif method in ("SIMC", "iSIMC", "Lambda"):
-                    tc0 = default_tc(mcode, p, samp, method)
+                    tc0 = default_tc(mcode, p, samp, method, ctype, diffgain)
                     tc = sld(st, T("tc"), float(max(0.05 * tc0, 1e-3)), float(10 * tc0), float(tc0),
-                             f"tc|{mcode}|{method}", help=T("tc_help"))
+                             f"tc|{mcode}|{method}|{ctype}", help=T("tc_help"))
             nmax = ss.get("opt_noise", 0.01 * MR)
             hf_max = (nmax / MR * 100) / sigma_pv if (nmax and sigma_pv > 0) else None  # omezení šumu MV (jen PID)
             try:
@@ -357,27 +386,79 @@ def render(ctx):
                            format_func=lambda x: T("scen_" + x), help=T("h_scenario")) or "custom"
                 T_char = p[-1] + (p[1] if mcode in ("P1D", "P2D", "I1D") else 0) + (tc or 0) + samp
                 if scen == "custom":
-                    sim_l1, sim_l2 = st.columns([2, 1])
+                    sim_l1, sim_l2, sim_l3 = st.columns([2, 1, 1], vertical_alignment="bottom")
                     T_end_unit = sel(sim_l2, T("time_unit"), ["s", "min", "h"], 0, "sim_len_u")
                     mult = {"s": 1.0, "min": 60.0, "h": 3600.0}[T_end_unit]
-                    def_tend = round(max(20 * T_char, 50 * samp) / mult, 2)
-                    T_end_raw = num(T("sim_len"), f"tend_r|{mcode}", def_tend, sim_l1, min_value=samp * 10 / mult, help=T("h_sim_len"))
+                    if "sim_len_auto" not in ss:
+                        ss["sim_len_auto"] = True
+                    auto_len = sim_l3.toggle(T("sim_len_auto"), key="sim_len_auto", help=T("h_sim_len_auto"))
+                    # i návrh (sady mohou mít ještě výchozí hodnoty) – SIMC, ne zvolená metoda: optimalizace na scénáři
+                    # závisí na délce simulace a délka na jejím výsledku by se navzájem posouvaly (optimalizace stále znovu)
+                    r_ = tune(mcode, p, "SIMC", default_tc(mcode, p, samp, "SIMC", ctype, diffgain), ctype, samp)
+                    prop_ctrl = dict(base_ctrl, Gain=r_["Kc"], TI=r_["Ti"] if r_["Ti"] > 0 else np.inf, TD=r_["Td"])
+                    t_auto, auto_src = auto_sim_length(mcode, p, (set1_ctrl, set2_ctrl, prop_ctrl), T_char, samp, ts_id)
+                    tend_key = f"tend_r|{mcode}"
+                    if auto_len or tend_key not in ss:
+                        ss[tend_key] = float(f"{t_auto / mult:.4g}")
+                    T_end_raw = num(T("sim_len"), tend_key, t_auto / mult, sim_l1, min_value=samp * 10 / mult,
+                                    help=T("h_sim_len"), disabled=auto_len)
                     T_end = T_end_raw * mult
-                    st.markdown(f"**{T('quick_scen')}**")
-                    ps1, ps2, ps3 = st.columns(3)
+                    if auto_len:
+                        st.caption(T("sim_len_src_" + auto_src))
                     sdf_key = f"scen_df|{mcode}|{len(c_d)}"
                     edkey = f"scen_ed|{sdf_key}|{ss.lang}"
+                    # jiná délka simulace → časy událostí scénáře se poměrně přepočítají (zůstanou na stejném místě)
+                    tk_ = f"{sdf_key}|tend"
+                    t_prev = ss.get(tk_)
+                    ss[tk_] = T_end
+                    if sdf_key in ss and t_prev and abs(T_end / t_prev - 1) > 0.02:
+                        f_ = T_end / t_prev
+                        rows_ = [list(r_) for r_ in ss.get(f"{sdf_key}|last", ss[sdf_key])]
+                        for r_ in rows_:
+                            for i_ in (4, 5):
+                                if r_[i_] is not None:
+                                    r_[i_] = round(float(r_[i_]) * f_, 6)
+                        ss[sdf_key] = rows_
+                        for k_ in (edkey, f"{edkey}|init", f"{sdf_key}|last"):
+                            ss.pop(k_, None)
+                        st.rerun()
+                    # žádaná hodnota simulace „z → na“ v jednotkách PV (výchozí: SP úseku identifikace, +5 % rozsahu)
+                    sp_data = float(EP(np.nanmedian(sp[sel_mask]) if has_sp else pv_id[0]))
+                    f1_, f2_ = st.columns(2)
+                    sp_from = num(T("sim_sp_from", u=u_pv or "PV"), f"sim_sp0|{ctx.fname}", float(f"{sp_data:.5g}"), f1_,
+                                  format="%.5g", help=T("h_sim_sp_from"))
+                    sp_to = num(T("sim_sp_to", u=u_pv or "PV"), f"sim_sp1|{ctx.fname}",
+                                float(f"{sp_data + 0.05 * PR:.5g}"), f2_, format="%.5g", help=T("h_sim_sp_to"))
+                    sp_amp_e = float(sp_to - sp_from)
+                    ctx.sim_sp0 = sp_from
+                    ft_key = f"{sdf_key}|spft"
+                    if sdf_key in ss and ss.get(ft_key) not in (None, (sp_from, sp_to)):
+                        # změna „z → na“: přepsat skoky SP v tabulce scénáře (amplituda = na − z)
+                        rows_ = [list(r_) for r_ in ss.get(f"{sdf_key}|last", ss[sdf_key])]
+                        hit = False
+                        for r_ in rows_:
+                            if r_[1] == "SP" and r_[2] == "step" and not hit:
+                                r_[3], hit = round(sp_amp_e, 6), True
+                        if hit:
+                            ss[ft_key] = (sp_from, sp_to)
+                            ss[sdf_key] = rows_
+                            for k_ in (edkey, f"{edkey}|init", f"{sdf_key}|last"):
+                                ss.pop(k_, None)
+                            st.rerun()
+                    ss[ft_key] = (sp_from, sp_to)
+                    st.markdown(f"**{T('quick_scen')}**")
+                    ps1, ps2, ps3 = st.columns(3)
                     if ps1.button(T("sp_step_base"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None]]
+                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None]]
                         ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
                         st.rerun()
                     if ps2.button(T("sp_step_dist"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None],
+                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
                                        [True, "IN", "step", round(0.05 * MR, 4), round(0.4 * T_end), None, None, None]]
                         ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
                         st.rerun()
                     if ps3.button(T("pv_noise_real"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None],
+                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
                                        [True, "PV", "noise", round(sigma_pv * PR / 100, 4), 0.0, None, None, None]]
                         ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
                         st.rerun()
@@ -406,7 +487,7 @@ def render(ctx):
                 with st.expander(T("scen_title"), expanded=True, icon=":material/timeline:"):
                     sdf_key = f"scen_df|{mcode}|{len(c_d)}"
                     if sdf_key not in ss:
-                        rows_ = [[True, "SP", "step", round(0.05 * PR, 4), round(0.05 * T_end), None, None, None],
+                        rows_ = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
                                  [True, "IN", "step", round(0.05 * MR, 4), round(0.4 * T_end), None, None, None]]
                         rows_ += [[True, f"M{j}", "step", 1.0, round((0.7 + 0.05 * j) * T_end), None, None, None]
                                   for j in range(len(c_d))]
@@ -484,7 +565,12 @@ def render(ctx):
             n = int(T_end / h) + 1
             ts_sim = np.arange(n) * h
             pv0 = float(np.nanmedian(sp[sel_mask])) if has_sp else float(pv_id[0])
+            if scen == "custom":
+                pv0 = float(ctx.P(ctx.sim_sp0))     # počáteční SP (a PV) simulace = „SP z“
             mv0 = float(mv_id[0])
+            if not (base_ctrl["MV_Lo"] - 1e-9 <= mv0 <= base_ctrl["MV_Hi"] + 1e-9):
+                st.warning(T("sim_mv0_out", m=f"{EM(mv0):.4g}", lo=f"{ctx.mvl_lo:g}", hi=f"{ctx.mvl_hi:g}",
+                             u=u_mv or "MV"), icon=":material/warning:")
             spv = np.full(n, pv0)
             dmv_arr, dpv_arr = np.zeros(n), np.zeros(n)
             dmeas = [np.zeros(n) for _ in c_d]

@@ -53,12 +53,9 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
    **measured disturbances** and the **valve position** (position feedback – for valve diagnostics). Enter the PV
    and MV units. *The controller range NormPV / NormMV is set in the Tuning tab.*
 2. **Preview of loaded data** – the table after resampling, statistics and the original file with detected types.
-3. **Identification segment** – drag in the chart, use the slider or pick from the **automatically found segments**
-   (clusters of MV or SP steps with a suitability rating).
-4. **Data quality for identification** – number, direction and spacing of steps, settling after the last step,
-   signal-to-noise ratio, historian compression, sampling, MV at a limit, SP ramps. Each warning says what to do
-   about it.
-5. **Operating diagnostics** (bottom of the tab) – on a selected operating segment:
+3. **Loaded data** – an overview chart of the whole recording. *The identification segment is selected in the
+   Model tab.*
+4. **Operating diagnostics** (bottom of the tab) – on a selected operating segment:
    - **loop performance**: standard deviation and IAE of the control error, MV travel and reversals, time at a limit,
      Harris index (how far the loop is from the theoretical minimum variance);
    - **oscillation** (period, regularity) and **valve stiction** (MV–PV cross-correlation, phase plot);
@@ -71,21 +68,25 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
 
 ## 2 · Model
 
-1. **Models** – choose which structures to try (default: all; the best fit is offered). Integrating models are for
+1. **Identification segment** – drag in the chart, use the slider or pick from the **automatically found segments**
+   (clusters of MV or SP steps with a suitability rating). Below it the **data quality for identification**: number,
+   direction and spacing of steps, settling after the last step, signal-to-noise ratio, historian compression,
+   sampling, MV at or beyond a limit, SP ramps. Each warning says what to do about it.
+2. **Models** – choose which structures to try (default: all; the best fit is offered). Integrating models are for
    processes that do not settle (level).
-2. **Identification settings**:
+3. **Identification settings**:
    - *Max. θ* – upper limit of the dead time;
    - *Unmeasured disturbances* – none / medium (filter of slow changes) / strong (slow disturbance estimated
      together with the model);
    - *Gain sign* – automatic / positive / negative (e.g. an outflow valve);
    - *Identify stiction* – estimates the valve stiction band together with the model.
-3. **Identify** – the result is a table of models (FIT, NRMSE, rating, parameters) and a chart of model vs. data.
+4. **Identify** – the result is a table of models (FIT, NRMSE, rating, parameters) and a chart of model vs. data.
    Select the model for tuning.
-4. **Checks** – residuals (should look like noise), comparison of all models, **manual parameter editing** with the
+5. **Checks** – residuals (should look like noise), comparison of all models, **manual parameter editing** with the
    option to fix parameters and refit the rest (e.g. a known dead time).
-5. **Model uncertainty** – bootstrap: spread of parameters and responses; used for robust tuning and simulation
+6. **Model uncertainty** – bootstrap: spread of parameters and responses; used for robust tuning and simulation
    spread.
-6. **Model validation** – the model on another data segment and a replay of the loop with Set 1 (does the
+7. **Model validation** – the model on another data segment and a replay of the loop with Set 1 (does the
    simulation match how the loop actually ran).
 
 The model belongs to the specific data and segment; when the data change, the app warns that a new identification
@@ -98,7 +99,8 @@ is needed. A change of the controller range only rescales the model.
 1. **PIDConL block** – configure exactly as in PCS 7:
    - **Controller range NormPV / NormMV** – the range of the block, not of the data (e.g. 0–300 °C). Gain is
      dimensionless (error in % of NormPV, MV in % of NormMV), so it depends directly on the range;
-   - SampleTime (OB cycle), DiffGain, P and D on feedback (from PV only), deadband, MV limits;
+   - SampleTime (OB cycle), DiffGain, PropFacSP (setpoint weight of P, 0–1), D on feedback (DiffToFbk), deadband,
+     MV limits;
    - loop elements: PV filter, MV rate, SP ramp.
 2. **D-action recommendation** – from the ratio of dead time and time constants (PI vs. PID).
 3. **Method** – SIMC, iSIMC, Lambda, AMIGO, averaging, optimization (see [Methods](methods.md)).
@@ -106,7 +108,9 @@ is needed. A change of the controller range only rescales the model.
    *Write to Set 2*). Robustness table: Ms, GM, PM, MV noise, optionally the worst Ms over the model uncertainty.
 5. **Compare all methods** (expander) – all methods side by side with Ms and IAE; a selection can be written to
    a set.
-6. **Scenario simulation** – your own events (step, ramp, sine, pulses, noise on SP, process input, PV or
+6. **Scenario simulation** – **SP from → to** (start and target setpoint in PV units) and the simulation length,
+   by default **automatic** from the closed-loop settling time (4×, so the loop settles between the events; event
+   times scale with it). Your own events (step, ramp, sine, pulses, noise on SP, process input, PV or
    a measured disturbance) or a **replay of the measured disturbances**. Process and valve in simulation: stiction,
    valve characteristic in bands, PV noise. Optionally sensitivity to model error, spread over the model
    uncertainty and **compare without feedforward**. Indicator table: IAE, max. deviation, MV range and travel,

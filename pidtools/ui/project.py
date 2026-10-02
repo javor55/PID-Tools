@@ -19,7 +19,7 @@ PROJECT_VERSION = 2
 STATE_KEYS = [
     "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h",
     # blok PIDConL a sady parametrů
-    "samp", "diffgain", "pfb", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
+    "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
     "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
     # identifikace
     "thmax", "chosen", "mcode", "dist_level", "dist_strength", "gain_sign", "id_stic",
@@ -75,6 +75,8 @@ def _apply_one(proj):
     state = proj.get("state", {})
     for k_, v_ in state.items():
         ss[k_] = v_
+    if "propfac" not in state and "pfb" in state:   # starší projekty: přepínač P ve zpětné vazbě → PropFacSP
+        ss["propfac"] = 0.0 if state["pfb"] else 1.0
     fnames = [proj.get("fname", "")]
     if proj.get("data"):
         n_ = len(next(iter(proj["data"]["cols"].values())))

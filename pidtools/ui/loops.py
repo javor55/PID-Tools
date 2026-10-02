@@ -179,7 +179,7 @@ def loop_data(i, fname):
     g = snap.get
     ti = g("set2_ti", 100.0)
     ctrl = inf.get("set2") or dict(Gain=g("set2_gain", 1.0), TI=ti if ti and ti > 0 else np.inf, TD=g("set2_td", 0.0),
-                                   DiffGain=g("diffgain", 5.0), SampleTime=g("samp", 1.0), PropFbk=g("pfb", False),
+                                   DiffGain=g("diffgain", 5.0), SampleTime=g("samp", 1.0), PropFacSP=g("propfac", 0.0 if g("pfb", False) else 1.0),
                                    DiffFbk=g("dfb", True), MV_Lo=0.0, MV_Hi=100.0)
     ti1 = g("set1_ti", 100.0)
     ctrl1 = inf.get("set1") or dict(ctrl, Gain=g("set1_gain", 1.0), TI=ti1 if ti1 and ti1 > 0 else np.inf,

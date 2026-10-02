@@ -8,7 +8,7 @@ Všechny veličiny PV, SP, MV jsou v % normovacích rozsahů.
 import numpy as np
 
 from .models import MODELS, simulate_dist
-from .util import lag as _lag
+from .util import lag as _lag, propfac
 
 __all__ = ["ProcStep", "PIDConL", "Valve", "valve_char_fn", "pidconl_sim_full", "pidconl_sim", "cascade_sim",
            "LiveLoop", "iae"]
@@ -63,7 +63,7 @@ class PIDConL:
     Regulátor PIDConL krok po kroku: ideální tvar, D s filtrem TD/DiffGain, P a D volitelně jen z PV,
     deadband, limity a rychlost MV s anti-windupem, rampa SP, filtr PV, dopředná vazba a bezrázové přepínání.
     `step` se volá v každém kroku simulace h; regulátor počítá každých round(SampleTime/h) kroků.
-    ctrl: Gain, TI, TD, DiffGain, SampleTime, PropFbk, DiffFbk, DeadBand [%], DbMode, MV_Lo, MV_Hi [%],
+    ctrl: Gain, TI, TD, DiffGain, SampleTime, PropFacSP (0–1), DiffFbk, DeadBand [%], DbMode, MV_Lo, MV_Hi [%],
           PVFilt [s], MVRate [%/s], SPRate [%/s], ConZone [%] (řídicí pásmo: |ER| > ConZone → MV na limit,
           po návratu do pásma regulátor pokračuje bezrázově z limitu; 0 = vypnuto)
     """
@@ -74,7 +74,7 @@ class PIDConL:
         self.Tc = self.m * h
         self.lo, self.hi = ctrl.get("MV_Lo", -np.inf), ctrl.get("MV_Hi", np.inf)
         self.db, self.dbm = ctrl.get("DeadBand", 0.0), ctrl.get("DbMode", "spojité")
-        self.pfb, self.dfb = ctrl.get("PropFbk", False), ctrl.get("DiffFbk", False)
+        self.b, self.dfb = propfac(ctrl), ctrl.get("DiffFbk", False)
         self.Tpv = ctrl.get("PVFilt", 0.0) or 0.0
         self.apv = np.exp(-h / self.Tpv) if self.Tpv > 0 else 0.0
         self.rate = ctrl.get("MVRate", 0.0) or 0.0
@@ -91,7 +91,8 @@ class PIDConL:
         self.Tf = Td / self.N if Td > 0 else 0.0
 
     def _p_term(self, e):
-        return self.Kc * (-self.yf) if self.pfb else self.Kc * e
+        # PropFacSP: váha SP v P složce – P = Gain·(b·ER − (1 − b)·PV); zbytek P působí jen z PV (zpětná vazba)
+        return self.Kc * (self.b * e - (1.0 - self.b) * self.yf)
 
     def init(self, sp, y_meas, u0, ff=0.0):
         """Bezrázový start: I složka se nastaví tak, aby výstup byl u0."""
@@ -100,7 +101,7 @@ class PIDConL:
         e = _deadband(self.spr - self.yf, self.db, self.dbm)
         self.I = u0 - self._p_term(e) - ff
         self.D = 0.0
-        self.xd_prev = -self.yf if self.dfb else self.spr - self.yf
+        self.xd_prev = -self.yf if self.dfb else e
         self.u = self.u_prev = u0
 
     def set_tuning(self, Gain, TI, TD):
@@ -115,7 +116,7 @@ class PIDConL:
         self.yf = self.apv * self.yf + (1 - self.apv) * y_meas if self.Tpv > 0 else y_meas
         self.spr = sp
         e = _deadband(self.spr - self.yf, self.db, self.dbm)
-        self.xd_prev = -self.yf if self.dfb else self.spr - self.yf
+        self.xd_prev = -self.yf if self.dfb else e
         self.D = 0.0
         self.I = u_man - self._p_term(e) - ff
         self.u = self.u_prev = u_man
@@ -132,7 +133,7 @@ class PIDConL:
                 self.spr = sp
             e = _deadband(self.spr - self.yf, self.db, self.dbm)
             P = self._p_term(e)
-            xd = -self.yf if self.dfb else self.spr - self.yf
+            xd = -self.yf if self.dfb else e      # D z regulační odchylky za deadbandem (DiffToFbk = 0) nebo z −PV
             if self.Td > 0:
                 self.D = self.Tf / (self.Tf + Tc) * self.D + self.Kc * self.Td / (self.Tf + Tc) * (xd - self.xd_prev)
             self.xd_prev = xd
