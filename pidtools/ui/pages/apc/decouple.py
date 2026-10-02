@@ -14,13 +14,13 @@ from ...theme import C_MV, C_PV, C_SET2, C_SP
 from ...widgets import model_name, num, seg
 from . import guide
 from .recommend import chk_model_a
+from ....app.apc.decouple import gain_eng
 from .common import C_B, C_REF, active_model, clean, cross_model, eng, grid, lab, mimo_sim, tchar
 
 
 # ---------------------------------------------------------------- rozvazbení 2×2
 def _gain_eng(d_, src, dst):
-    """Zesílení decoupleru v inženýrských jednotkách: ΔMV_dst [j.] / ΔMV_src [j.]."""
-    return d_["gain"] * (dst["mv_rng"][1] - dst["mv_rng"][0]) / (src["mv_rng"][1] - src["mv_rng"][0])
+    return gain_eng(d_, src, dst)
 
 
 def decouple_render(ctx, bi, b):

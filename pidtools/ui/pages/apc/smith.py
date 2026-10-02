@@ -6,13 +6,14 @@ import pandas as pd
 import streamlit as st
 
 from ....core import (MODELS, iae, pidconl_sim, tune)
-from ....core.apc import no_delay, smith_apl
+from ....core.apc import no_delay
 from ....i18n import T
 from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
 from ...widgets import model_name, seg, sld
 from . import guide
 from .recommend import chk_model_a
+from ....app.apc import smith as app_smith
 from .common import clean, grid, smith_sim_c, tchar, ss
 
 
@@ -22,8 +23,7 @@ def _sm_tc_key(code, p):
 
 
 def _sm_tc0(p, samp):
-    lags = float(sum(p[1:-1]))
-    return float(max(p[-1], 2 * samp, 0.05 * lags))   # τc = θ: rychlost jako SIMC, ale bez penalizace za zpoždění
+    return app_smith.tc0(p, samp)
 
 
 def smith_values(ctx):
@@ -32,22 +32,9 @@ def smith_values(ctx):
     Pracovní bod = začátek úseku identifikace (ustálený stav před prvním skokem).
     """
     code, p = ctx.model[0], ctx.model[1]
-    n0 = max(3, len(ctx.pv_id) // 20)
-    pv_op = float(ctx.EP(np.nanmedian(ctx.pv_id[:n0])))
-    mv_op = float(ctx.EM(np.nanmedian(ctx.mv_id[:n0])))
-    v = smith_apl(p, ctx.PR, ctx.MR, pv_op, mv_op)
-    ct = ss.get("apc_sm_ct") or "PI"
-    r = tune(code, no_delay(p), "SIMC", ss.get(_sm_tc_key(code, p)) or _sm_tc0(p, ctx.samp), ct, ctx.samp)
-    u_pv, u_mv = ctx.u_pv or "PV", ctx.u_mv or "MV"
-    rows = [("SmithModelTimLag (Lag)", "LagTime", v["lag"], "s"),
-            ("SmithModelGain (Mul04)", "In2", v["k"], f"{u_pv}/{u_mv}"),
-            ("PV0 (Add04)", "In2", v["pv0"], u_pv),
-            ("SmithModelDeadti (DeadTime)", "DeadTime", v["theta"], "s"),
-            ("PIDConL", "Gain", r["Kc"], "–"),
-            ("PIDConL", "TI", r["Ti"], "s")]
-    if ct == "PID":
-        rows.append(("PIDConL", "TD", r["Td"], "s"))
-    return v, r, rows
+    pv_op, mv_op = app_smith.operating_point(ctx.pv_id, ctx.mv_id)
+    return app_smith.values(code, p, ctx, pv_op, mv_op, ss.get("apc_sm_ct") or "PI", ss.get(_sm_tc_key(code, p)),
+                            ctx.samp, ctx.u_pv or "PV", ctx.u_mv or "MV")
 
 
 def smith_table(rows):

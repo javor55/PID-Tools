@@ -91,3 +91,67 @@ def test_feedforward_design_from_settings():
     ff, ffll = feedforward.to_ctrl(des)
     assert ff == [-0.3, 0.0] and ffll[0] == (0.0, 0.0, 0.0)
     assert feedforward.state(des)[0]["gain"] == -0.3
+
+
+def _rec(name, model, c_mv, c_sp="—", c_d=(), mv_rng=(0.0, 100.0)):
+    return dict(name=name, model=model, ctrl=None, c_pv=name + ".PV", c_mv=c_mv, c_sp=c_sp, c_d=list(c_d),
+                pv_rng=(0.0, 100.0), mv_rng=mv_rng, u_pv="", u_mv="")
+
+
+def test_apc_recommend():
+    from pidtools.app.apc import recommend
+    a = _rec("TIC1", ("P1D", [1.0, 10.0, 30.0], []), "FIC2.SP")        # θ/(θ+T) = 0,75 → Smith
+    b = _rec("FIC2", ("P1D", [1.0, 2.0, 0.5], []), "FV2", c_sp="FIC2.SP")
+    c = _rec("PIC3", None, "FIC2.SP")
+    kinds = [(k, i) for k, _, i in recommend.recommend(a, [(2, b), (3, c)], spread=2.0, ff_on=True)]
+    assert ("smith", None) in kinds and ("gainsched", None) in kinds and ("override", 3) in kinds
+    assert recommend.delay_ratio("P1D", [1.0, 10.0, 30.0]) == pytest.approx(0.75)
+
+
+def test_apc_smith_gainsched_ff():
+    from pidtools.app.apc import feedforward as aff, gainsched, smith
+    sc = _Loop()
+    v, r, rows = smith.values("P1D", [1.0, 20.0, 40.0], sc, 50.0, 40.0, "PI", None, 1.0, "°C", "%")
+    assert v["theta"] == pytest.approx(40.0) and r["Kc"] > 0 and rows[0][0].startswith("SmithModelTimLag")
+    assert smith.tc0([1.0, 20.0, 40.0], 1.0) == 40.0
+    old = gainsched.key("P1D", [(0.0, 10.0)], (0.0, 100.0, 0.0, 100.0))
+    new = gainsched.key("P1D", [(0.0, 10.0)], (0.0, 200.0, 0.0, 100.0))
+    pts = gainsched.rescale(old, new, [[50.0, 40.0, 95.0, 2.0, 10.0, 1.0]])
+    assert pts[0][0] == pytest.approx(25.0) and pts[0][3] == pytest.approx(1.0)       # Kp v %: 2 → 1
+    assert gainsched.rescale(old, old, [[1, 2, 3, 4]]) is None
+    ctrl = dict(Gain=1.0, TI=20.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)
+    tab = gainsched.er_table(5.0, 2.0, ctrl)
+    assert tab[1][1][-1] == pytest.approx(2.0)
+    assert gainsched.k_max("P1D", [1.0, 20.0, 2.0], ctrl) >= 1.0
+    des = [dict(use=True, dyn=False, gain=-50.0, lead=0.0, lag=0.0, delay=0.0)]
+    rows = aff.rows(["F1"], [np.array([0.0, 2.0])], des, 100.0, "%")
+    assert rows[0][1][0][1] == pytest.approx(-50.0) and rows[0][1][-1][1] == pytest.approx(-100.0)
+
+
+def test_model_workflow():
+    """Identifikace, přepočet rozsahu, úpravy, hodnocení a validace na simulovaných datech P1D."""
+    from pidtools import core
+    from pidtools.app import model as mdl
+    Ts = 1.0
+    t = np.arange(0, 600.0, Ts)
+    mv = 40.0 + 10.0 * (t >= 50) - 10.0 * (t >= 300)
+    pv = 30.0 + core.simulate("P1D", [1.5, 20.0, 5.0], t, mv - 40.0, Ts)
+    s = mdl.IdSettings(("P1D", "P0D"), 100.0)
+    res, errs = mdl.identify_all(t, pv, mv, Ts, [], s)
+    assert not errs and mdl.best(res) == "P1D" and res["P1D"]["p"][0] == pytest.approx(1.5, rel=0.05)
+    k1 = mdl.fit_key("f", (0, 600), s, (0, 100, 0, 100), Ts, "PV", "MV", [], False)
+    k2 = mdl.fit_key("f", (0, 600), s, (0, 200, 0, 100), Ts, "PV", "MV", [], False)
+    assert mdl.only_norm_changed(k1, k2) and not mdl.only_norm_changed(k1, k1)
+    res2, (fK, _, _) = mdl.rescale_results(res, k1[mdl.NORM], k2[mdl.NORM])
+    assert fK == pytest.approx(0.5) and res2["P1D"]["p"][0] == pytest.approx(res["P1D"]["p"][0] * 0.5)
+    p, pdl = mdl.clamp([1.5, -1.0, -2.0], [])
+    assert p == [1.5, 1e-6, 0.0] and mdl.is_edited(p, pdl, 0.0, res["P1D"])
+    ev = mdl.evaluate("P1D", res["P1D"]["p"], [], 0.0, "none", None, t, pv, mv, [], Ts)
+    assert ev["fit"] > 95 and ev["sigma_pv"] < 0.1
+    assert mdl.fixed_params([1.0, 2.0, 3.0], [False, False, True], [], []) == {"p2": 3.0}
+    assert mdl.overlap((0, 100), (50, 300)) == pytest.approx(0.5)
+    ctrl = dict(Gain=1.0, TI=20.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)
+    vr = mdl.validate_cl("P1D", res["P1D"]["p"], [], ctrl, t, np.full_like(t, 30.0), pv, mv, [], Ts, 1.0)
+    assert vr["stable"] and len(vr["PV"]) == len(t)
+    un = mdl.uncertainty([[1.0, 10.0, 2.0], [1.2, 12.0, 2.0], [0.8, 8.0, 2.0]], [1.0, 10.0, 2.0])
+    assert un["rel"][2] == pytest.approx(0.0) and un["rel"][0] > 10

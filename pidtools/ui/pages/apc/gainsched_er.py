@@ -13,6 +13,7 @@ from ...theme import C_SET1, C_SET2, C_SP
 from ...widgets import num, sld
 from . import guide
 from .recommend import chk_model_a
+from ....app.apc import gainsched as app_gs
 from .common import C_B, best_cz, clean, gs_frame, grid, gs_sim_c, tchar, ss
 
 
@@ -23,22 +24,12 @@ def _gs_er_E(ctx):
 
 
 def gs_er_tab(ctx):
-    c2 = ctx.set2_ctrl
-    rows = gs_er_table(_gs_er_E(ctx), float(ss.get("gs_er_k") or 2.0), c2["Gain"], c2["TI"], c2.get("TD", 0.0))
-    u_pv = ctx.u_pv or "PV"
-    return [("X1 … X3 (ER)", [q["x"] for q in rows], u_pv), ("Gain1 … Gain3", [q["gain"] for q in rows], "–"),
-            ("TI1 … TI3", [q["ti"] for q in rows], "s"), ("TD1 … TD3", [q["td"] for q in rows], "s")]
+    return app_gs.er_table(_gs_er_E(ctx), float(ss.get("gs_er_k") or 2.0), ctx.set2_ctrl, ctx.u_pv or "PV")
 
 
 def _k_max(code, p, ctrl, ms_lim=2.0):
-    """Největší násobek zesílení k (krok 0,25), při kterém je smyčka stabilní a Ms ≤ ms_lim (0 = nesplní ani sada sama)."""
-    best = 0.0
-    for k in np.arange(1.0, 6.01, 0.25):
-        rb = cache.robustness(code, p, dict(ctrl, Gain=k * ctrl["Gain"]))
-        if not (rb["stable"] and np.isfinite(rb["Ms"]) and rb["Ms"] <= ms_lim):
-            break
-        best = float(k)
-    return best
+    """Největší násobek zesílení k (krok 0,25), při kterém je smyčka stabilní a Ms ≤ ms_lim."""
+    return app_gs.k_max(code, p, ctrl, ms_lim, cache.robustness)
 
 
 def gs_er_render(ctx):

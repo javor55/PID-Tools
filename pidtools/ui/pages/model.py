@@ -5,35 +5,25 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, norm_factors, predict,
-                     predict_full, rescale_fit, step_response)
+from ...core import (DIST_PARAMS, MODELS, bootstrap_models, predict,
+                     step_response)
 from ...i18n import T
 from .. import cache
 from ..cache import pidconl_sim
 from ..charts import REPORT, mkfig, show, style, tr
 from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..widgets import model_name, num, seg, sld
+from ...app import model as mdl
 
 ss = st.session_state
-
-_NORM = slice(4, 8)   # pozice pv_lo, pv_hi, mv_lo, mv_hi v klíči identifikace (fit_key)
-
-
-def _only_norm_changed(old, new):
-    """Klíč identifikace se liší jen normovacími rozsahy (data, úsek i nastavení stejné)."""
-    return (isinstance(old, tuple) and len(old) == len(new) and old != new
-            and old[:_NORM.start] == new[:_NORM.start] and old[_NORM.stop:] == new[_NORM.stop:])
-
 
 def _rescale_fit_state(old_key, new_key, c_d):
     """
     Přepočet uložených modelů (a ručních úprav, nejistoty) na nové rozsahy NormPV / NormMV. Model v reálných
     jednotkách je stejný – mění se jen K v %/%, Kd a stikce v %; časy zůstávají.
     """
-    old, new = old_key[_NORM], new_key[_NORM]
-    fK, fKd, fS = norm_factors(old, new)
+    ss.fit["res"], (fK, fKd, fS) = mdl.rescale_results(ss.fit["res"], old_key[mdl.NORM], new_key[mdl.NORM])
     for c in list(ss.fit["res"]):
-        ss.fit["res"][c] = rescale_fit(ss.fit["res"][c], old, new)
         if f"ed|{c}|0" in ss:
             ss[f"ed|{c}|0"] = float(ss[f"ed|{c}|0"]) * fK
         for j in range(len(c_d)):
@@ -87,31 +77,25 @@ def render(ctx):
                             format_func=lambda x: T("gs_" + x), help=T("h_gain_sign")) or "auto"
             id_stic = o4.toggle(T("id_stic"), key="id_stic", help=T("h_id_stic"))
             st.caption(T("dl_desc_" + dist_level))
-        sign_v = {"auto": 0, "pos": 1, "neg": -1}[gain_sign]
-        fit_key = (fname, rng, tuple(chosen), th_max, pv_lo, pv_hi, mv_lo, mv_hi, Ts, c_pv, c_mv, tuple(c_d), long_fmt,
-                   dist_level, dist_strength, gain_sign, id_stic)
-        k_dec = int(np.ceil(len(ts_id) / 2500))
-
-        fit_args = (ts_id, pv_id, mv_id, Ts, d_id, th_max)
-        fit_kw = dict(level=dist_level, strength=float(dist_strength), sign=sign_v, id_stic=id_stic, k=k_dec)
+        sets = mdl.IdSettings(tuple(chosen), th_max, dist_level, dist_strength, gain_sign, id_stic)
+        fit_key = mdl.fit_key(fname, rng, sets, (pv_lo, pv_hi, mv_lo, mv_hi), Ts, c_pv, c_mv, c_d, long_fmt)
 
         def do_fit(c, fixed=None, stic_fixed=None):
             """Fit jednoho modelu podle nastavení (neměřené poruchy, znaménko, stikce, zafixované parametry)."""
-            return cache.identify(c, *fit_args, fixed=fixed, stic_fixed=stic_fixed, **fit_kw)
+            return mdl.identify(c, ts_id, pv_id, mv_id, Ts, d_id, sets, fixed, stic_fixed, fn=cache.identify)
 
         if run_fit:
             if len(ts_id) < 20:
                 st.error(T("err_short"))
             else:
-                res = {}
                 prog = st.progress(0.0, text=T("fitting"))
-                for i, c in enumerate(chosen):
-                    prog.progress(i / max(len(chosen), 1), text=f"{T('fitting')} {model_name(c)} ({i + 1}/{len(chosen)})")
-                    try:
-                        res[c] = do_fit(c)
-                    except Exception as ex:
-                        st.error(f"{model_name(c)}: {T(str(ex))}")
+                res, errs = mdl.identify_all(
+                    ts_id, pv_id, mv_id, Ts, d_id, sets, fn=cache.identify,
+                    progress=lambda i, c: prog.progress(i / max(len(chosen), 1),
+                                                        text=f"{T('fitting')} {model_name(c)} ({i + 1}/{len(chosen)})"))
                 prog.empty()
+                for c, ex in errs:
+                    st.error(f"{model_name(c)}: {T(ex)}")
                 if res:
                     ss.fit = dict(key=fit_key, res=res, dnames=list(c_d))
                     for c in res:
@@ -142,7 +126,7 @@ def render(ctx):
         else:
             if ss.fit["key"] == "__restore__":  # model obnovený z projektu
                 ss.fit["key"] = fit_key
-            if _only_norm_changed(ss.fit["key"], fit_key):   # jiný rozsah regulátoru → přepočet, ne nová identifikace
+            if mdl.only_norm_changed(ss.fit["key"], fit_key):   # jiný rozsah regulátoru → přepočet, ne nová identifikace
                 _rescale_fit_state(ss.fit["key"], fit_key, list(c_d))
                 st.toast(T("norm_rescaled"), icon=":material/straighten:")
             res = ss.fit["res"]
@@ -155,32 +139,28 @@ def render(ctx):
         if res:
             rows = []
             lvl_fit = next(iter(res.values())).get("level", "none")
-            for c, r in res.items():
-                pf_ = predict_full(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts, r.get("stic", 0.0),
-                                   r.get("level", "none"), r.get("Th"))
-                mm_ = model_metrics(pf_["pv"], pf_["yhat"], mv_id, Ts, dyn_scale(c, r["p"]))
-                row = {T("col_model"): model_name(c), "FIT [%]": round(mm_["FIT"], 1), "NRMSE [%]": round(mm_["NRMSE"], 2),
-                       T("col_status"): T(f"st_{mm_['status']}")}
-                row.update({n: float(f"{v:.4g}") for n, v in zip(MODELS[c]["params"], r["p"])})
-                for j, pd_ in enumerate(r["pdl"]):
+            any_stic = any(rr_.get("stic") for rr_ in res.values()) or id_stic
+            for q in mdl.summary(res, ts_id, pv_id, mv_id, d_id, Ts):
+                c = q["code"]
+                row = {T("col_model"): model_name(c), "FIT [%]": round(q["FIT"], 1), "NRMSE [%]": round(q["NRMSE"], 2),
+                       T("col_status"): T(f"st_{q['status']}")}
+                row.update({n: float(f"{v:.4g}") for n, v in zip(MODELS[c]["params"], q["p"])})
+                for j, pd_ in enumerate(q["pdl"]):
                     row.update({f"{n} ({c_d[j]})": float(f"{v:.4g}") for n, v in zip(DIST_PARAMS, pd_)})
-                if any(rr_.get("stic") for rr_ in res.values()) or id_stic:
-                    row[T("col_stic", u=u_mv or "MV")] = float(f"{(r.get('stic') or 0.0) * MR / 100:.3g}")
+                if any_stic:
+                    row[T("col_stic", u=u_mv or "MV")] = float(f"{q['stic'] * MR / 100:.3g}")
                 if lvl_fit != "none":
-                    row[T("col_rawfit")] = round(r.get("fit_raw", r["fit"]), 1)
+                    row[T("col_rawfit")] = round(q["fit_raw"], 1)
                 rows.append(row)
             st.dataframe(pd.DataFrame(rows).set_index(T("col_model")), width="stretch",
                          column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0, max_value=100,
                                                                                   format="%.1f")})
             st.caption(T("units_note") + (" " + T("fit_eff_note") if lvl_fit != "none" else ""))
-            for c, r in res.items():
-                if c in ("P1D", "P2D") and r["p"][1] > ts_id[-1]:
-                    st.warning(T("warn_long_T", m=model_name(c)), icon=":material/trending_up:")
-                if r["p"][-1] >= 0.98 * th_max and "p" + str(len(r["p"]) - 1) not in r.get("fixed", []):
-                    st.warning(T("warn_theta_max", m=model_name(c)), icon=":material/warning:")
+            for wk, c in mdl.warnings(res, ts_id[-1], th_max):
+                st.warning(T(wk, m=model_name(c)), icon=":material/trending_up:" if wk == "warn_long_T" else ":material/warning:")
 
             st.markdown(f"#### {T('edit_title')}")
-            best = max(res, key=lambda c: res[c]["fit"])
+            best = mdl.best(res)
             c1, c2 = st.columns([1.15, 1], gap="large")
             with c1:
                 with st.container(border=True):
@@ -227,29 +207,19 @@ def render(ctx):
                               width="stretch")
                     if ss.get("refit_msg"):
                         st.caption(ss.pop("refit_msg"))
-            for i in range(1, len(p_ed)):
-                p_ed[i] = max(p_ed[i], 1e-6) if i < len(p_ed) - 1 else max(p_ed[i], 0.0)
-            for pd_ in pdl_ed:
-                pd_[1] = max(pd_[1], 1e-6)
-            model = (mcode, [float(v) for v in p_ed], [[float(v) for v in d] for d in pdl_ed])
+            model = (mcode, *mdl.clamp(p_ed, pdl_ed))
             rp = res[mcode]
             model_stic = float(ss.get(f"ed|{mcode}|stic", 0.0) or 0.0)
             model_level, model_Th = rp.get("level", "none"), rp.get("Th")
-            edited = not np.allclose(model[1], rp["p"]) or (
-                bool(rp["pdl"]) and not np.allclose(np.ravel(model[2]), np.ravel(rp["pdl"]))) or \
-                abs(model_stic - (rp.get("stic") or 0.0)) > 1e-9
-
-            pf_fit = predict_full(mcode, rp["p"], rp["pdl"], ts_id, pv_id, mv_id, d_id, Ts, rp.get("stic", 0.0),
-                                  model_level, model_Th)
-            pf_ed = predict_full(mcode, model[1], model[2], ts_id, pv_id, mv_id, d_id, Ts, model_stic, model_level, model_Th)
-            f_fit, f_ed = pf_fit["fit"], pf_ed["fit"]
-            # pro graf v jednotkách PV: u „medium“ se kreslí surová data a model s optimálním posunem
-            y_fit = pf_fit["yhat"] if model_level != "medium" else predict(mcode, rp["p"], rp["pdl"], ts_id, pv_id, mv_id,
-                                                                          d_id, Ts, rp.get("stic", 0.0))[0]
-            y_ed = pf_ed["yhat"] if model_level != "medium" else predict(mcode, model[1], model[2], ts_id, pv_id, mv_id,
-                                                                        d_id, Ts, model_stic)[0]
-            sigma_pv = float(np.std(np.diff(pf_ed["pv"] - pf_ed["yhat"])) / np.sqrt(2))  # bílý šum PV [%] z reziduí
-            mm = model_metrics(pf_ed["pv"], pf_ed["yhat"], mv_id, Ts, dyn_scale(mcode, model[1]))
+            edited = mdl.is_edited(model[1], model[2], model_stic, rp)
+            ev_fit = mdl.evaluate(mcode, rp["p"], rp["pdl"], rp.get("stic", 0.0), model_level, model_Th,
+                                  ts_id, pv_id, mv_id, d_id, Ts)
+            ev_ed = mdl.evaluate(mcode, model[1], model[2], model_stic, model_level, model_Th, ts_id, pv_id, mv_id, d_id, Ts)
+            pf_ed = ev_ed["pf"]
+            f_fit, f_ed = ev_fit["fit"], ev_ed["fit"]
+            y_fit, y_ed = ev_fit["y_plot"], ev_ed["y_plot"]
+            sigma_pv = ev_ed["sigma_pv"]
+            mm = ev_ed["metrics"]
             ctx.PROG["model"] = 1 if ss.fit["key"] != fit_key else (0 if mm["status"] <= 1 else 1 if mm["status"] <= 3 else 2)
             ctx.PROG["model_stale"] = ss.fit["key"] != fit_key
 
@@ -301,13 +271,11 @@ def render(ctx):
                 rv_ = ss.get(vkey_)
                 segs_eval = [(T("eval_id"), sel_mask, mm)]
                 if rv_ and tuple(rv_) != tuple(rng):
-                    sv_ = (t >= rv_[0]) & (t <= rv_[1])
+                    sv_, tv_ = mdl.segment(t, rv_)
                     if sv_.sum() > 50:
-                        tv_ = t[sv_] - t[sv_][0]
-                        pfv = predict_full(mcode, model[1], model[2], tv_, pv[sv_], mv[sv_], [d[sv_] for d in dists], Ts,
-                                           model_stic, model_level, model_Th)
-                        segs_eval.append((T("eval_val"), sv_, model_metrics(pfv["pv"], pfv["yhat"], mv[sv_], Ts,
-                                                                            dyn_scale(mcode, model[1]))))
+                        ev_v = mdl.evaluate(mcode, model[1], model[2], model_stic, model_level, model_Th, tv_, pv[sv_],
+                                            mv[sv_], [d[sv_] for d in dists], Ts)
+                        segs_eval.append((T("eval_val"), sv_, ev_v["metrics"]))
                 etab = pd.DataFrame({nm_: {
                     "FIT [%]": f"{m_['FIT']:.1f}", "NRMSE [%]": f"{m_['NRMSE']:.2f}",
                     T("eval_iae", u=u_pv or "PV"): f"{m_['IAE'] * PR / 100:.3g}", "R²": f"{m_['R2']:.3f}",
@@ -364,13 +332,12 @@ def render(ctx):
                     prog.empty()
                     ss.unc = dict(code=mcode, key=fit_key, ps=[b["p"] for b in bs])
                 if ss.get("unc") and ss.unc["code"] == mcode and ss.unc["ps"]:
-                    arr = np.array(ss.unc["ps"])
+                    un = mdl.uncertainty(ss.unc["ps"], model[1])
                     utab = pd.DataFrame({
                         T("unc_nominal"): [float(f"{v:.4g}") for v in model[1]],
-                        T("unc_p05"): [float(f"{v:.4g}") for v in np.percentile(arr, 5, axis=0)],
-                        T("unc_p95"): [float(f"{v:.4g}") for v in np.percentile(arr, 95, axis=0)],
-                        T("unc_rel"): [f"± {100 * (np.percentile(arr[:, i], 95) - np.percentile(arr[:, i], 5)) / 2 / max(abs(model[1][i]), 1e-12):.0f} %"
-                                       for i in range(arr.shape[1])]},
+                        T("unc_p05"): [float(f"{v:.4g}") for v in un["p05"]],
+                        T("unc_p95"): [float(f"{v:.4g}") for v in un["p95"]],
+                        T("unc_rel"): [f"± {v:.0f} %" for v in un["rel"]]},
                         index=MODELS[mcode]["params"])
                     st.dataframe(utab, width="stretch")
                     REPORT["tables"].append((T("unc_title"), utab))
@@ -413,8 +380,7 @@ def _validation(ctx, model, stic):
                        help=T("h_seg_val"))
         mode = seg(c2, T("val_mode"), ["pred", "cl"], "pred", "val_mode",
                    format_func=lambda x: T("val_" + x), help=T("val_mode_help")) or "pred"
-        sv = (t >= rv[0]) & (t <= rv[1])
-        tv = t[sv] - t[sv][0]
+        sv, tv = mdl.segment(t, rv)
         if len(tv) < 20:
             st.warning(T("err_short"))
             return
@@ -422,7 +388,7 @@ def _validation(ctx, model, stic):
             yv, fv = predict(mcode, p, pdl, tv, pv[sv], mv[sv], [d[sv] for d in dists], Ts, stic)
             st.metric(T("fit_pred"), f"{fv:.1f} %")
             REPORT["val"] = T("rep_val_pred", f=f"{fv:.1f}")
-            ov_ = max(0.0, min(rv[1], rng[1]) - max(rv[0], rng[0])) / max(rv[1] - rv[0], 1e-9)
+            ov_ = mdl.overlap(rv, rng)
             ctx.PROG["val"] = 1 if ov_ > 0.5 else (0 if fv >= 70 else 2)
             ctx.PROG["val_same"] = ov_ > 0.5
             show(ctx.data_fig(tv, sv, [(f"{mcode} {T('prediction')}", yv, C_MODEL[mcode], None)]),
@@ -435,22 +401,17 @@ def _validation(ctx, model, stic):
                     format_func=lambda x: T("val_" + x), help=T("h_val_which")) or "cur"
         ctrl = ctx.set_ctrl(1 if which == "cur" else 2)
         ctrl.update(Stic=stic, ValveChar=ss.get("vchar_last"))
-        h = min(Ts, ctx.samp)
-        n = int(tv[-1] / h) + 1
-        tg = np.arange(n) * h
-        spg = np.interp(tg, tv, sp[sv])
-        dg = [np.interp(tg, tv, d[sv] - d[sv][0]) for d in dists]
-        tt, _, Pv, Mv = pidconl_sim(mcode, p, pdl, h, spg, float(pv[sv][0]), float(mv[sv][0]), ctrl, dg)
-        if not (np.all(np.isfinite(Pv)) and np.abs(Pv).max() < 1e5):
+        vr = mdl.validate_cl(mcode, p, pdl, ctrl, tv, sp[sv], pv[sv], mv[sv], [d[sv] for d in dists], Ts, ctx.samp,
+                             sim=pidconl_sim)
+        if not vr["stable"]:
             st.error(T("err_sim_unstable", n=T("val_" + which)))
             return
+        tt, Pv, Mv = vr["t"], vr["PV"], vr["MV"]
         if which == "cur":
-            pv_i, mv_i = np.interp(tv, tt, Pv), np.interp(tv, tt, Mv)
-            nf = lambda a, b: 100 * (1 - np.linalg.norm(a - b) / max(np.linalg.norm(a - a.mean()), 1e-12))
             m1, m2 = st.columns(2)
-            m1.metric(T("fit_pv"), f"{nf(pv[sv], pv_i):.1f} %")
-            m2.metric(T("fit_mv"), f"{nf(mv[sv], mv_i):.1f} %")
-            ctx.PROG["val"] = 0 if nf(pv[sv], pv_i) >= 60 else 2
+            m1.metric(T("fit_pv"), f"{vr['fit_pv']:.1f} %")
+            m2.metric(T("fit_mv"), f"{vr['fit_mv']:.1f} %")
+            ctx.PROG["val"] = 0 if vr["fit_pv"] >= 60 else 2
             st.caption(T("val_cl_help"))
         col = C_SET2 if which == "new" else C_SET1
         fig = mkfig(2, [0.62, 0.38])

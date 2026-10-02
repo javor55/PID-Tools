@@ -27,7 +27,9 @@ def read_table(name, raw_bytes):
     if name.lower().endswith((".xlsx", ".xls")):
         return pd.read_excel(io.BytesIO(raw_bytes))
     raw = decode_text(raw_bytes)
-    n_num = lambda d: sum(pd.api.types.is_numeric_dtype(d[c]) for c in d.columns)
+
+    def n_num(d):
+        return sum(pd.api.types.is_numeric_dtype(d[c]) for c in d.columns)
     df = pd.read_csv(io.StringIO(raw), sep=None, engine="python")
     try:
         df2 = pd.read_csv(io.StringIO(raw), sep=None, engine="python", decimal=",")

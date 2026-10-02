@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ....core import (MODELS, default_tc, detect_steps, find_segments, gs_issues, gs_table, iae, norm_factors, predict, tune)
+from ....core import (MODELS, gs_issues, gs_table, iae)
 from ....i18n import T
 from ... import cache
 from ...charts import mkfig, show, style, tr
@@ -13,57 +13,18 @@ from ...theme import C_MV, C_PV, C_SET1, C_SET2, C_SP
 from ...widgets import seg, sld
 from . import guide
 from .recommend import chk_model_a, nl_spread
+from ....app.apc import gainsched as app_gs
 from .common import C_PTS, clean, gs_frame, grid, gs_sim_c, tchar, ss
 from .gainsched_er import gs_er_render, gs_er_tab
 
 
 # ---------------------------------------------------------------- gain scheduling
-def _gs_blocks(ctx, settle):
-    """Bloky dat mezi velkými přechody MV (změna pracovního bodu); začátek bloku bez přechodového děje."""
-    t = ctx.t
-    try:
-        st_ = detect_steps(ctx.mv, ctx.Ts)
-    except Exception:
-        return []
-    if len(st_) < 3:
-        return []
-    sizes = np.abs([q["size"] for q in st_])
-    big = sorted(q["i"] for q in st_ if abs(q["size"]) > 2.5 * np.median(sizes))
-    edges = [0] + big + [len(t) - 1]
-    out = []
-    for a, b in zip(edges[:-1], edges[1:]):
-        t0 = t[a] + (settle if a > 0 else 0.0)
-        t1 = t[b] - ctx.Ts
-        if t1 - t0 > 2 * settle:
-            out.append((float(t0), float(t1)))
-    return out
+
 
 
 def _gs_auto(ctx, n=3):
-    """
-    Návrh úseků pro pracovní body: bloky mezi velkými přechody MV, jinak shluky skoků (find_segments);
-    z kandidátů se vyberou ty na nejnižší, prostřední a nejvyšší úrovni PV. Nouzově třetiny dat.
-    """
-    t = ctx.t
-    settle = 4 * tchar(ctx.model)
-    cands = _gs_blocks(ctx, settle)
-    if len(cands) < n:
-        try:
-            cands = [(float(g["start"]), float(g["end"]))
-                     for g in find_segments(t, ctx.mv, ctx.sp, ctx.Ts, ctx.has_sp, settle=settle)]
-        except Exception:
-            cands = []
-    lv = []
-    for a, b in cands:
-        m = (t >= a) & (t <= b)
-        if m.sum() > 10 and np.nanmax(ctx.mv[m]) - np.nanmin(ctx.mv[m]) > 0.2:
-            lv.append((float(np.nanmean(ctx.pv[m])), (a, b)))
-    lv.sort()
-    if len(lv) >= n:
-        pick = [lv[0], lv[len(lv) // 2], lv[-1]] if n == 3 else [lv[0], lv[-1]]
-        return [r for _, r in pick]
-    edges = np.linspace(t[0], t[-1], n + 1)
-    return [(float(a), float(b)) for a, b in zip(edges[:-1], edges[1:])]
+    """Návrh úseků pro pracovní body (bloky mezi velkými přechody MV, shluky skoků, nouzově třetiny dat)."""
+    return app_gs.auto_ranges(ctx.t, ctx.pv, ctx.mv, ctx.sp, ctx.Ts, ctx.has_sp, 4 * tchar(ctx.model), n)
 
 
 def _gs_ranges(ctx, n):
@@ -83,55 +44,30 @@ def _gs_ranges(ctx, n):
 
 
 def _gs_key(ctx, code, ranges):
-    return [code] + [round(x, 1) for r in ranges for x in r] + [ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi]
+    return app_gs.key(code, ranges, (ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi))
 
 
 def _gs_rescale(old, new):
     """Body gain schedulingu přepočtené na nové rozsahy NormPV / NormMV (liší-li se klíč jen jimi)."""
-    if not (isinstance(old, list) and len(old) == len(new) and old[:-4] == new[:-4] and old[-4:] != new[-4:]):
-        return
-    o, n_ = old[-4:], new[-4:]
-    fK = norm_factors(o, n_)[0]
-    conv = lambda v, lo_o, hi_o, lo_n, hi_n: ((lo_o + v * (hi_o - lo_o) / 100) - lo_n) / (hi_n - lo_n) * 100  # noqa: E731
-    ss["gs_pts"] = [[conv(q[0], o[0], o[1], n_[0], n_[1]), conv(q[1], o[2], o[3], n_[2], n_[3]), q[2], q[3] * fK]
-                    + list(q[4:]) for q in ss.get("gs_pts") or []]
-    ss["gs_key"] = new
+    pts = app_gs.rescale(old, new, ss.get("gs_pts"))
+    if pts is not None:
+        ss["gs_pts"] = pts
+        ss["gs_key"] = new
 
 
 def _gs_fit(ctx, code, ranges):
-    """Identifikace modelu (typ aktivní smyčky) v každém úseku → body {x, u, fit, p} nebo chybová hláška."""
-    pts = []
-    for i, (a, b) in enumerate(ranges):
-        m = (ctx.t >= a) & (ctx.t <= b)
-        tt, pv, mv = ctx.t[m] - ctx.t[m][0], ctx.pv[m], ctx.mv[m]
-        if m.sum() < 20 or np.nanmax(mv) - np.nanmin(mv) < 0.2:
-            return None, T("gs_err_steps", i=i + 1)
-        k = int(np.ceil(len(tt) / 2500))
-        try:
-            r = cache.fit_model(code, tt[::k], pv[::k], mv[::k], ctx.Ts * k)
-            fit = float(predict(code, r["p"], [], tt, pv, mv, [], ctx.Ts)[1])
-        except Exception as ex:
-            return None, f"{T('gs_point', i=i + 1)}: {T(str(ex))}"
-        pts.append([float(np.nanmean(pv)), float(np.nanmean(mv)), fit] + [float(x) for x in r["p"]])
-    return pts, None
+    """Identifikace modelu (typ aktivní smyčky) v každém úseku → body nebo chybová hláška."""
+    return app_gs.fit_points(code, ranges, ctx.t, ctx.pv, ctx.mv, ctx.Ts, cache.fit_model)
 
 
 def _gs_points():
-    return [dict(x=q[0], u=q[1], fit=q[2], p=list(q[3:])) for q in ss.get("gs_pts") or []]
+    return app_gs.points(ss.get("gs_pts"))
 
 
 def _gs_tune(ctx, code, p):
     """Ladění jednoho bodu zvolenou metodou (stejná agresivita ve všech bodech)."""
-    ct = ss.get("gs_ct") or "PI"
-    m = ss.get("gs_m") or "SIMC"
-    samp = ctx.samp
-    if m == "AMIGO":
-        return tune(code, p, "AMIGO", None, ct, samp)
-    r0 = tune(code, p, "SIMC", float(ss.get("gs_tcf") or 1.0) * default_tc(code, p, samp, "SIMC", ct, ctx.diffgain), ct, samp)
-    if m == "SIMC":
-        return r0
-    return cache.opt_migo(code, tuple(p), ct, samp, ctx.diffgain, float(ss.get("gs_ms") or 1.6), None,
-                          ((r0["Kc"], r0["Ti"], r0["Td"]),))
+    return app_gs.tune_point(code, p, ss.get("gs_m") or "SIMC", ss.get("gs_ct") or "PI", ctx.samp, ctx.diffgain,
+                             float(ss.get("gs_tcf") or 1.0), float(ss.get("gs_ms") or 1.6), cache.opt_migo)
 
 
 def gs_values(ctx):
@@ -148,12 +84,7 @@ def gs_values(ctx):
     for q in pts:
         r = _gs_tune(ctx, code, q["p"])
         q.update(gain=float(r["Kc"]), ti=float(r["Ti"]) if r["Ti"] > 0 else np.inf, td=float(r["Td"]))
-    rows, filled = gs_table(pts)
-    u_pv = ctx.u_pv or "PV"
-    tab = [("X1 … X3", [float(ctx.EP(q["x"])) for q in rows], u_pv),
-           ("Gain1 … Gain3", [q["gain"] for q in rows], "–"),
-           ("TI1 … TI3", [q["ti"] for q in rows], "s"),
-           ("TD1 … TD3", [q["td"] for q in rows], "s")]
+    tab, filled = app_gs.table(pts, ctx.EP, ctx.u_pv or "PV")
     return pts, tab, filled
 
 

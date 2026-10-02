@@ -1,69 +1,29 @@
 """
 APC – doporučení struktur podle modelů a vazeb mezi smyčkami projektu, kontroly pro průvodce.
 """
-import numpy as np
 
-from ....core import (MODELS)
-from ....core.apc import rga2
 from ....i18n import T
 from ... import cache, loops
 from ... import ff as ffmod
 from ...widgets import model_name
 from . import guide
-from .common import active_model, cross_model, tchar
+from ....app.apc import recommend as app_reco
+from .common import active_model
 
 
 # ---------------------------------------------------------------- doporučení a kontroly
 def recommend(ctx):
     """Struktury, které by mohly aktivní smyčce pomoct – podle modelů a vazeb mezi smyčkami projektu."""
-    items = []
-    code, p = ctx.model[0], ctx.model[1]
-    lags = tchar((code, p)) - p[-1]
-    ratio = p[-1] / max(p[-1] + lags, 1e-9)
-    if ratio >= 0.5 and not MODELS[code]["integ"]:
-        items.append(("smith", T("g_reco_smith", r=f"{ratio:.2f}"), None))
-    spread = nl_spread(ctx)
-    if spread is not None and spread > 1.5:
-        items.append(("gainsched", T("g_reco_gs", s=f"{spread:.1f}"), None))
-    a = active_model(ctx)
-    for i in loops.ids():
-        if i == loops.active():
-            continue
-        b = loops.loop_data(i, ctx.fname)
-        if b["c_sp"] not in (None, "—") and b["c_sp"] == a["c_mv"]:
-            items.append(("cascade", T("g_reco_cascade", a=a["name"], b=b["name"]), i))
-        if b["c_mv"] == a["c_mv"]:
-            items.append(("override", T("g_reco_override", a=a["name"], b=b["name"], mv=a["c_mv"]), i))
-        if b["model"] is not None and (b["c_mv"] in a["c_d"] or a["c_mv"] in b["c_d"]):
-            xab, xba = cross_model(a, b), cross_model(b, a)
-            lam = rga2(a["model"][1][0], xab[0] if xab else 0.0, xba[0] if xba else 0.0, b["model"][1][0])
-            if not np.isfinite(lam) or abs(lam - 1) > 0.2:
-                items.append(("decouple", T("g_reco_decouple", a=a["name"], b=b["name"],
-                                            l="∞" if not np.isfinite(lam) else f"{lam:.2f}"), i))
-    pdl = ctx.model[2]
-    if pdl and not any(d["use"] for d in ffmod.design(code, p, pdl)):   # volitelné – až za strukturami smyček
-        items.append(("ff", T("g_reco_ff", d=", ".join(map(str, ctx.c_d))), None))
-    seen, out = set(), []
-    for it in items:
-        if it[:2] not in seen:
-            seen.add(it[:2])
-            out.append(it)
-    return out
+    code, p, pdl = ctx.model
+    others = [(i, loops.loop_data(i, ctx.fname)) for i in loops.ids() if i != loops.active()]
+    ff_on = bool(pdl) and any(d["use"] for d in ffmod.design(code, p, pdl))
+    return app_reco.recommend(active_model(ctx), others, nl_spread(ctx), ff_on)
 
 
 def nl_spread(ctx):
     """Poměr největšího a nejmenšího lokálního zesílení na úseku identifikace (None = nelze určit)."""
-    code, p, pdl = ctx.model[0], ctx.model[1], ctx.model[2]
-    if MODELS[code]["integ"] or ctx.ts_id is None:
-        return None
-    try:
-        lg = cache.local_gains(code, p, pdl, ctx.ts_id, ctx.pv_id, ctx.mv_id, ctx.d_id, ctx.Ts)
-    except Exception:
-        return None
-    if len(lg) < 2:
-        return None
-    g = np.abs([q["gain"] for q in lg])
-    return float(np.max(g) / max(np.min(g), 1e-12))
+    code, p, pdl = ctx.model
+    return app_reco.nl_spread(code, p, pdl, ctx.ts_id, ctx.pv_id, ctx.mv_id, ctx.d_id, ctx.Ts, cache.local_gains)
 
 
 def chk_model_a(ctx):

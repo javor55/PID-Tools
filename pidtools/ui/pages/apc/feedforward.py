@@ -14,31 +14,14 @@ from ...theme import C_SET1, C_SET2
 from ...widgets import num
 from . import guide
 from .recommend import chk_model_a
+from ....app.apc import feedforward as app_ff
 from .common import C_REF, clean, grid
 
 
 # ---------------------------------------------------------------- dopředná vazba z měřených poruch
 def ff_rows(ctx, des):
     """Hodnoty do PCS 7 pro zapnuté poruchy: [(porucha, [(parametr, hodnota, jednotka)])] v jednotkách MV."""
-    out = []
-    u_mv = ctx.u_mv or "MV"
-    for j, (dn, d) in enumerate(zip(ctx.c_d, des)):
-        if not d["use"]:
-            continue
-        g = ffmod.eng_gain(d["gain"], ctx.MR)
-        dd = ctx.dists[j]
-        span = float(np.nanmax(dd) - np.nanmin(dd)) if len(dd) else 0.0
-        lim = float(min(ctx.MR, 1.5 * abs(g) * span)) if span > 0 else float(ctx.MR)
-        rows = [(T("ff_p_gain"), g, f"{u_mv} / 1 {dn}")]
-        if d["dyn"]:
-            lead, lag, delay = ffmod.lead_lag(d)
-            if lag > 0:
-                rows += [(T("ff_p_lead"), lead, "s"), (T("ff_p_lag"), lag, "s")]
-            if delay > 0:
-                rows.append((T("ff_p_delay"), delay, "s"))
-        rows += [("PIDConL.FFwdHiLim", lim, u_mv), ("PIDConL.FFwdLoLim", -lim, u_mv)]
-        out.append((str(dn), rows))
-    return out
+    return app_ff.rows(ctx.c_d, ctx.dists, des, ctx.MR, ctx.u_mv or "MV")
 
 
 def ff_render(ctx):
