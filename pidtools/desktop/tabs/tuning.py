@@ -11,7 +11,7 @@ from ...i18n import T
 from .. import widgets as w
 
 CRITS = ["MIGO", "IAE", "ISE", "ITAE", "OVS"]
-TARGETS = ["dist", "sp", "both"]
+TARGETS = ["dist", "sp", "both", "scen"]
 
 
 class TuningTab(QWidget):
@@ -34,7 +34,7 @@ class TuningTab(QWidget):
         rows = [("pv_lo", "NormPV Low"), ("pv_hi", "NormPV High"), ("mv_lo", "NormMV Low"), ("mv_hi", "NormMV High"),
                 ("samp", T("sampletime")), ("diffgain", "DiffGain"), ("propfac", "PropFacSP"), ("db", T("deadband")),
                 ("mvl_lo", "MV_LoLim"), ("mvl_hi", "MV_HiLim"), ("pvfilt", T("pvfilt")),
-                ("mvrate", T("mvrate", u="MV"))]
+                ("mvrate", T("mvrate", u="MV")), ("sprate", T("sprate", u="PV"))]
         frm = []
         for k, lab in rows:
             sp = w.spin(0.0, -1e12, 1e12, 6)
@@ -46,10 +46,24 @@ class TuningTab(QWidget):
             self.f[k] = sp
             frm.append((lab, sp))
             sp.valueChanged.connect(self._block_changed)
+        self.db_mode = w.combo(["cont", "step"], labels=[T("db_cont"), T("db_step")])
+        w.tip(self.db_mode, "db_mode_help")
+        self.db_mode.currentIndexChanged.connect(self._block_changed)
+        frm.insert(8, (T("db_mode"), self.db_mode))
         self.dfb = QCheckBox("DiffToFbk (" + T("dfb") + ")")
+        w.tip(self.dfb, "h_dfb")
         self.dfb.toggled.connect(self._block_changed)
         frm.append(("", self.dfb))
+        for k, key in (("pv_lo", "h_normpv"), ("pv_hi", "h_normpv"), ("mv_lo", "h_normmv"), ("mv_hi", "h_normmv"),
+                       ("samp", "sampletime_help"), ("diffgain", "diffgain_help"), ("propfac", "pfb_help"),
+                       ("db", "h_deadband"), ("mvl_lo", "h_mvlim"), ("mvl_hi", "h_mvlim"), ("pvfilt", "h_pvfilt"),
+                       ("mvrate", "h_mvrate"), ("sprate", "h_sprate")):
+            w.tip(self.f[k], key)
         ll.addWidget(w.group("PIDConL", w.form(frm)))
+
+        # ---- doporučení D složky
+        self.dadv = w.note("")
+        ll.addWidget(w.group(T("d_title"), w.form([("", self.dadv)])))
 
         # ---- metoda a návrh
         self.method = w.combo([])
@@ -62,8 +76,21 @@ class TuningTab(QWidget):
         self.b_s1.clicked.connect(lambda: self._write(1))
         self.b_s2.clicked.connect(lambda: self._write(2))
         self.desc = w.note("")
-        mg = w.form([(T("method"), self.method), (T("ctrl_type"), self.ctype), (T("tc"), self.tc),
-                     (T("opt_crit"), self.crit), (T("opt_target"), self.target)])
+        self.ms = w.combo([1.4, 1.6, 1.8, 2.0], 1.6, labels=["1.4", "1.6", "1.8", "2.0"])
+        self.ovs = w.combo([0, 2, 5, 10], 2, labels=["0 %", "2 %", "5 %", "10 %"])
+        self.noise = w.spin(1.0, 0.0, 1e12, 4)
+        self.avg_dpv, self.avg_dmv = w.spin(1.0, 1e-9, 1e12, 4), w.spin(1.0, 1e-9, 1e12, 4)
+        for c, k in ((self.method, "method_help"), (self.ctype, "h_ctype"), (self.tc, "tc_help"), (self.crit, "h_opt_crit"),
+                     (self.target, "h_opt_target"), (self.ms, "opt_ms_help"), (self.ovs, "h_opt_ovs"),
+                     (self.noise, "opt_noise_help"), (self.avg_dpv, "h_avg_dpv"), (self.avg_dmv, "avg_dmv_help")):
+            w.tip(c, k)
+        self.lab_ms, self.lab_ovs, self.lab_noise = QLabel(T("opt_ms")), QLabel(T("opt_ovs")), QLabel(T("opt_noise", u="MV"))
+        self.lab_dpv, self.lab_dmv = QLabel(T("avg_dpv", u="PV")), QLabel(T("avg_dmv", u="MV"))
+        self.lab_tc, self.lab_crit, self.lab_tgt = QLabel(T("tc")), QLabel(T("opt_crit")), QLabel(T("opt_target"))
+        mg = w.form([(T("method"), self.method), (T("ctrl_type"), self.ctype), (self.lab_tc, self.tc),
+                     (self.lab_crit, self.crit), (self.lab_tgt, self.target), (self.lab_ms, self.ms),
+                     (self.lab_ovs, self.ovs), (self.lab_noise, self.noise), (self.lab_dpv, self.avg_dpv),
+                     (self.lab_dmv, self.avg_dmv)])
         box = QVBoxLayout()
         box.addLayout(mg)
         box.addWidget(self.desc)
@@ -75,8 +102,10 @@ class TuningTab(QWidget):
         box.addWidget(self.robust)
         box.addLayout(w.hbox(self.b_s1, self.b_s2, self.b_cmp))
         ll.addWidget(w.group(T("calc_title"), box))
-        for c in (self.method, self.ctype, self.crit, self.target):
+        for c in (self.method, self.ctype, self.crit, self.target, self.ms, self.ovs):
             c.currentIndexChanged.connect(self._method_changed)
+        for sp in (self.noise, self.avg_dpv, self.avg_dmv):
+            sp.valueChanged.connect(self._method_changed)
         self.tc.valueChanged.connect(self._compute)
 
         # ---- sady
@@ -111,8 +140,17 @@ class TuningTab(QWidget):
         self.len_src = QLabel("")
         rl.addLayout(w.hbox(QLabel(T("sim_sp_from", u="PV")), self.sp0, QLabel(T("sim_sp_to", u="PV")), self.sp1,
                             QLabel(T("sim_len")), self.t_end, self.auto_len, b_sim, b_ev))
+        self.scen = w.combo(["custom", "replay"], labels=[T("scen_custom"), T("scen_replay")])
+        w.tip(self.scen, "h_scenario")
+        self.c_robust, self.c_spread, self.c_ffcmp = QCheckBox(T("robust_on")), QCheckBox(T("spread_on")), QCheckBox(T("ff_cmp"))
+        self.c_ffcmp.setChecked(True)          # před připojením signálů – graf ještě neexistuje
+        for c, k in ((self.c_robust, "h_robust_on"), (self.c_spread, "h_spread_on"), (self.c_ffcmp, "h_ff_cmp")):
+            w.tip(c, k)
+            c.toggled.connect(self._simulate)
+        self.scen.currentIndexChanged.connect(self._scen_type)
+        rl.addLayout(w.hbox(QLabel(T("scenario")), self.scen, self.c_robust, self.c_spread, self.c_ffcmp))
         rl.addWidget(self.len_src)
-        self.chart, self.plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.62, 0.38))
+        self.chart, self.plots = w.stack(3, ["PV", "MV", T("dists")], T("time_s"), heights=(0.55, 0.25, 0.2))
         rl.addWidget(self.chart, 1)
         self.kpi = w.table([], [])
         self.kpi.setMaximumHeight(110)
@@ -140,6 +178,7 @@ class TuningTab(QWidget):
                     v = s.mv_lo if k == "mvl_lo" else s.mv_hi
                 sp.setValue(float(v))
             self.dfb.setChecked(bool(s.get("dfb")))
+            self.db_mode.setCurrentIndex(max(self.db_mode.findData(s.get("db_mode")), 0))
             self.robust.setChecked(bool(s.get("opt_robust")))
             for (n, k), sp in self.sets.items():
                 sp.setValue(float(s.get(f"set{n}_{k}")))
@@ -153,6 +192,21 @@ class TuningTab(QWidget):
                 self.ctype.setCurrentIndex(self.ctype.findData(s.get("ctype")))
                 self.crit.setCurrentIndex(max(self.crit.findData(s.get("opt_crit")), 0))
                 self.target.setCurrentIndex(max(self.target.findData(s.get("opt_target")), 0))
+                self.ms.setCurrentIndex(max(self.ms.findData(float(s.get("opt_ms"))), 0))
+                self.ovs.setCurrentIndex(max(self.ovs.findData(int(s.get("opt_ovs"))), 0))
+                self.noise.setValue(float(s.get("opt_noise", round(0.01 * s.MR, 4))))
+                self.avg_dpv.setValue(float(s.get("avg_dpv", round(0.1 * s.PR, 3))))
+                self.avg_dmv.setValue(float(s.get("avg_dmv", round(0.1 * s.MR, 3))))
+                adv = s.d_advice()
+                val = (f"{T('tau_label')} = {adv['tau']:.2f}" if adv.get("tau") is not None else
+                       f"{T('ratio_label')} = {adv['ratio']:.2f}" if adv.get("ratio") is not None else "")
+                sig = s.sigma_pv()
+                self.dadv.setText(f"**{adv['rec']}** — {T(adv['key'])}" + (f"  \n{val}" if val else "") +
+                                  (f"  \n{T('noise_note', s=f'{sig * s.PR / 100:.3g}', u=s.get('u_pv') or 'PV')}"
+                                   if sig > 0 else ""))
+                self.scen.setEnabled(bool(s.c_d))
+                self.scen.setCurrentIndex(max(self.scen.findData(s.get("scen2", "custom") if s.c_d else "custom"), 0))
+                self.c_spread.setEnabled(bool(s.unc_models()))
                 sp0, sp1 = s.sp_from_to()
                 self.sp0.setValue(sp0)
                 self.sp1.setValue(sp1)
@@ -171,10 +225,16 @@ class TuningTab(QWidget):
 
     def _enable(self):
         m = self.method.currentData()
-        self.tc.setEnabled(m in ("SIMC", "iSIMC", "Lambda"))
-        self.crit.setEnabled(m == "OPT")
-        self.target.setEnabled(m == "OPT" and self.crit.currentData() != "MIGO")
-        self.desc.setText(T("mdesc_" + m) if m else "")
+        opt, crit = m == "OPT", self.crit.currentData()
+        for wd, on in ((self.tc, m in ("SIMC", "iSIMC", "Lambda")), (self.crit, opt), (self.target, opt and crit != "MIGO"),
+                       (self.ms, opt), (self.ovs, opt and crit == "OVS"), (self.noise, opt and self.ctype.currentData() == "PID"),
+                       (self.avg_dpv, m == "AVG"), (self.avg_dmv, m == "AVG")):
+            wd.setVisible(on)
+        for lab, wd in ((self.lab_tc, self.tc), (self.lab_crit, self.crit), (self.lab_tgt, self.target),
+                        (self.lab_ms, self.ms), (self.lab_ovs, self.ovs), (self.lab_noise, self.noise),
+                        (self.lab_dpv, self.avg_dpv), (self.lab_dmv, self.avg_dmv)):
+            lab.setVisible(not wd.isHidden())
+        self.desc.setText((T("mdesc_" + m) + (f"  \n{T('cdesc_' + crit)}" if opt else "")) if m else "")
 
     def _tc_default(self):
         s, m = self.s, self.method.currentData()
@@ -190,7 +250,9 @@ class TuningTab(QWidget):
             return
         s = self.s
         s.set(**{f"method|{s.model[0]}": self.method.currentData(), "ctype": self.ctype.currentData(),
-                 "opt_crit": self.crit.currentData(), "opt_target": self.target.currentData()})
+                 "opt_crit": self.crit.currentData(), "opt_target": self.target.currentData(),
+                 "opt_ms": self.ms.currentData(), "opt_ovs": self.ovs.currentData(), "opt_noise": self.noise.value(),
+                 "avg_dpv": self.avg_dpv.value(), "avg_dmv": self.avg_dmv.value()})
         self._busy = True
         self._tc_default()
         self._busy = False
@@ -220,8 +282,15 @@ class TuningTab(QWidget):
         self.b_s1.setEnabled(True)
         self.b_s2.setEnabled(True)
         notes = "  \n".join("💡 " + T(k, **a) for k, a in sug.get("notes", []))
+        warn = []
+        if sug["Kc"] < 0:
+            warn.append("↕️ " + T("warn_neg_gain"))
+        s = self.s
+        if s.model is not None and s.fit["res"][s.model[0]]["fit"] < 70:
+            warn.append("⚠️ " + T("warn_low_fit"))
         self.sug.setText(f"**{T('dk_suggest')}:** Gain = {sug['Kc']:.4g} · TI = {sug['Ti']:.4g} s · "
-                         f"TD = {sug['Td']:.4g} s" + ("  \n" + notes if notes else ""))
+                         f"TD = {sug['Td']:.4g} s" + ("  \n" + notes if notes else "")
+                         + ("  \n" + "  \n".join(warn) if warn else ""))
 
     def _write(self, n):
         if self._last:
@@ -251,7 +320,7 @@ class TuningTab(QWidget):
         if self._busy:
             return
         s = self.s
-        s.set(**{k: sp.value() for k, sp in self.f.items()}, dfb=self.dfb.isChecked())
+        s.set(**{k: sp.value() for k, sp in self.f.items()}, dfb=self.dfb.isChecked(), db_mode=self.db_mode.currentData())
         if s.rescale_if_needed():
             self.win.status(T("norm_rescaled"))
         self.win.refresh()
@@ -277,6 +346,12 @@ class TuningTab(QWidget):
         w.fill(self.rob, ["", T("set_1"), T("set_2")], rows)
 
     # ---- scénář
+    def _scen_type(self, *_):
+        if self._busy:
+            return
+        self.s.set(scen2=self.scen.currentData())
+        self._simulate()
+
     def _edit_scenario(self):
         s = self.s
         if s.model is None:
@@ -307,7 +382,8 @@ class TuningTab(QWidget):
             return
         self.t_end.setEnabled(not self.auto_len.isChecked())
         try:
-            r = s.simulate(None if self.auto_len.isChecked() else self.t_end.value())
+            r = s.simulate(None if self.auto_len.isChecked() else self.t_end.value(), self.c_robust.isChecked(),
+                           self.c_spread.isChecked(), self.c_ffcmp.isChecked())
         except Exception as ex:
             self.win.error(T(str(ex)))
             return
@@ -315,7 +391,8 @@ class TuningTab(QWidget):
         self.t_end.setValue(r["T_end"])
         self._busy = False
         self.len_src.setText(T("sim_len_src_" + r["src"]) if r["src"] != "manual" else "")
-        self.scen_note.setText(T("dk_scen_custom") if s.settings.get(s.scen_key) else T("dk_sp_step"))
+        self.scen_note.setText(T("replay_help") if s.get("scen2") == "replay" and s.c_d else
+                               (T("dk_scen_custom") if s.settings.get(s.scen_key) else T("dk_sp_step")))
         for p in self.plots:
             p.clear()
         w.line(self.plots[0], r["t"], s.EP(r["sp"]), "SP", w.C_SP, 1.3, dash=True)
@@ -329,6 +406,27 @@ class TuningTab(QWidget):
             w.line(self.plots[0], o["t"], s.EP(o["PV"]), T(f"set_{n}"), col, 2.0, dash=n == 1)
             w.line(self.plots[1], o["t"], s.EM(o["MV"]), f"MV {T(f'set_{n}')}", col, 1.6, dash=n == 1)
             rows.append([T(f"set_{n}"), k["iae"], k["maxdev"], k["mv_range"], k["mv_travel"], k["reversals"]])
+        shown = set()
+        for k, o in r["extra"]:                  # citlivost, bez FF, varianty z nejistoty
+            col, dash, name = {"new_err": (w.C_SET2, True, T("new_err")), "set2_noff": ("#9aa5b1", True, T("set2_noff")),
+                               "unc_variants": ("#86efac", False, T("unc_variants"))}[k]
+            wd = 1.0 if k == "unc_variants" else 1.8
+            w.line(self.plots[0], o["t"], s.EP(o["PV"]), None if k in shown else name, col, wd, dash)
+            w.line(self.plots[1], o["t"], s.EM(o["MV"]), None, col, wd, dash)
+            shown.add(k)
+        sig = r["sig"]                           # poruchy scénáře (měřené v jejich jednotkách, IN a PV v jednotkách)
+        has_d = False
+        for i, (nm, d) in enumerate(zip(s.c_d, sig["dmeas"])):
+            if (d != 0).any():
+                w.line(self.plots[2], r["t"], d, str(nm), w.C_DIST[i % 4], 1.4)
+                has_d = True
+        if (sig["dmv"] != 0).any():
+            w.line(self.plots[2], r["t"], sig["dmv"] * s.MR / 100, T("tg_IN"), "#a16207", 1.4)
+            has_d = True
+        if (sig["dpv"] != 0).any():
+            w.line(self.plots[2], r["t"], sig["dpv"] * s.PR / 100, T("tg_PV"), "#7c3aed", 1.4)
+            has_d = True
+        self.plots[2].setVisible(has_d)
         u_pv, u_mv = s.get("u_pv") or "PV", s.get("u_mv") or "MV"
         w.fill(self.kpi, [T("setting"), "IAE [%·s]", T("kpi_maxdev", u=u_pv), T("kpi_mvrange", u=u_mv),
                           T("kpi_mvtravel", u=u_mv), T("kpi_rev")], rows)
@@ -398,8 +496,16 @@ class ScenarioDialog(QDialog):
         self.stic = w.spin(st0, 0.0, 1e12, 4)
         self.slip = w.spin(float(state.get("sim_J", 100.0)), 0.0, 100.0, 1)
         self.noise = w.spin(float(state.get("sim_noise", 0.0)), 0.0, 1e12, 4)
+        self.vchar = QTableWidget(1, 10)
+        self.vchar.setHorizontalHeaderLabels([f"{10 * i}–{10 * i + 10}" for i in range(10)])
+        self.vchar.setVerticalHeaderLabels([T("vchar_gain")])
+        self.vchar.setMaximumHeight(70)
+        self.vchar.setToolTip(T("h_vchar"))
+        for i, g_ in enumerate(state.get("vchar_last") or [1.0] * 10):
+            self.vchar.setItem(0, i, QTableWidgetItem(f"{g_:.3g}"))
         lay.addWidget(w.group(T("plant_title"), w.form([(T("sim_stic", u=u_mv), self.stic), (T("sim_slip"), self.slip),
-                                                        (T("sim_noise", u=u_pv), self.noise)])))
+                                                        (T("sim_noise", u=u_pv), self.noise),
+                                                        (T("vchar_title"), self.vchar)])))
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         bb.accepted.connect(self.accept)
         bb.rejected.connect(self.reject)
@@ -445,4 +551,10 @@ class ScenarioDialog(QDialog):
 
     def apply_plant(self):
         self.s.settings[self.s.stic_key] = self.stic.value()
-        self.s.set(sim_J=self.slip.value(), sim_noise=self.noise.value())
+        gains = []
+        for i in range(10):
+            try:
+                gains.append(max(float(self.vchar.item(0, i).text().replace(",", ".")), 0.0))
+            except (AttributeError, ValueError):
+                gains.append(1.0)
+        self.s.set(sim_J=self.slip.value(), sim_noise=self.noise.value(), vchar_last=gains)

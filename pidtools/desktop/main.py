@@ -5,7 +5,10 @@ menu Soubor (data, ukázka, projekt, protokol), jazyk a nápověda. Spuštění:
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, QThreadPool
+import datetime as _dt
+import json
+
+from PySide6.QtCore import QSettings, QStandardPaths, Qt, QThreadPool, QTimer
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QLabel,
                                QLineEdit, QMainWindow, QMessageBox, QPlainTextEdit, QTabWidget, QToolBar)
@@ -27,7 +30,7 @@ ORG, APP = "PID Tools", "PID Tools desktop"
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, state=None, prefs=None, project=None):
+    def __init__(self, state=None, prefs=None, project=None, autosave=None):
         super().__init__()
         self.project = project or Project()
         if state is not None:
@@ -35,6 +38,11 @@ class MainWindow(QMainWindow):
         self.prefs = prefs if prefs is not None else QSettings(ORG, APP)   # jazyk, poslední složka
         i18n.set_lang(self.prefs.value("lang", self.state.get("lang", "en")))
         self.resize(1400, 900)
+        self.autosave_path = Path(autosave) if autosave else None   # None = bez automatického ukládání (testy)
+        self._as_timer = QTimer(self)
+        self._as_timer.timeout.connect(self.autosave)
+        if self.autosave_path is not None:
+            self._as_timer.start(60_000)
         self.loopbar = QToolBar()
         self.loopbar.setMovable(False)
         self.addToolBar(self.loopbar)
@@ -55,6 +63,7 @@ class MainWindow(QMainWindow):
                             ("dk_open_project", self.open_project, "Ctrl+Shift+O"),
                             ("dk_save_project", self.save_project, "Ctrl+S"),
                             ("dk_export_report", self.export_report, "Ctrl+P"),
+                            (None, None, None), ("dk_as_on", None, None),
                             (None, None, None), ("dk_quit", self.close, "Ctrl+Q")):
             if key is None:
                 m.addSeparator()
@@ -62,7 +71,14 @@ class MainWindow(QMainWindow):
             a = QAction(T(key), self)
             if sc:
                 a.setShortcut(sc)
-            a.triggered.connect(fn)
+            if key == "dk_as_on":
+                a.setCheckable(True)
+                a.setChecked(self.prefs.value("autosave", "true") in (True, "true"))
+                a.setToolTip(T("dk_as_help"))
+                a.setStatusTip(T("dk_as_help"))
+                a.toggled.connect(lambda on: self.prefs.setValue("autosave", "true" if on else "false"))
+            else:
+                a.triggered.connect(fn)
             m.addAction(a)
         v = self.menuBar().addMenu(T("dk_view"))
         lm = v.addMenu(T("dk_lang"))
@@ -138,9 +154,13 @@ class MainWindow(QMainWindow):
         self.help_window().show_markdown(tab_markdown(key, guide_state(self), extra), guides.title(key))
 
     def do_action(self, act):
-        """Akce z kontrolního seznamu průvodce: přepnout záložku, přidat smyčku."""
+        """Akce z kontrolního seznamu průvodce: přepnout záložku / smyčku, přidat smyčku."""
         if act == "add_loop":
             self.add_loop()
+        elif act.startswith("loop:"):                 # loop:<index>:<záložka>
+            _, i, tab = act.split(":")
+            self.switch_loop(int(i))
+            self.do_action("tab:" + tab)
         elif act.startswith("tab:"):
             tab = act.split(":", 1)[1]
             if tab in self.TAB_GUIDES:
@@ -181,7 +201,52 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, ev):
         QThreadPool.globalInstance().waitForDone(30000)    # dokončit výpočty na pozadí před zavřením
+        self._as_timer.stop()
+        self.autosave()
         super().closeEvent(ev)
+
+    # ---- automatické ukládání (projekt s daty do složky dat aplikace, při startu nabídka obnovení)
+    def autosave_on(self):
+        return self.autosave_path is not None and self.prefs.value("autosave", "true") in (True, "true")
+
+    def autosave(self):
+        if not self.autosave_on() or not self.state.has_data:
+            return
+        try:
+            self.autosave_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.autosave_path.with_suffix(".tmp")
+            self.project.save(tmp, include_data=True)
+            tmp.replace(self.autosave_path)
+        except Exception as ex:          # ukládání nesmí shodit aplikaci
+            self.status(str(ex))
+
+    def offer_restore(self):
+        """Při startu: rozpracovaná práce z minula → dotaz na obnovení (Ne = smazat)."""
+        p = self.autosave_path
+        if not self.autosave_on() or p is None or not p.exists():
+            return False
+        try:
+            n = len(json.loads(p.read_text(encoding="utf-8")).get("loops") or [0])
+        except Exception:
+            p.unlink(missing_ok=True)
+            return False
+        t = _dt.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        box = QMessageBox(QMessageBox.Question, T("as_title"), T("dk_as_found", t=t, n=n), parent=self)
+        box.setTextFormat(Qt.MarkdownText)
+        yes = box.addButton(T("as_restore"), QMessageBox.AcceptRole)
+        box.addButton(T("as_discard"), QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is not yes:
+            p.unlink(missing_ok=True)
+            return False
+        try:
+            self.project.load(p)
+        except Exception as ex:
+            self.error(str(ex))
+            return False
+        self.build()
+        self.status(T("as_restored"))
+        return True
 
     # ---- hlášení
     def status(self, text):
@@ -283,14 +348,18 @@ def run(argv=None):
     """Spuštění aplikace; volitelně s cestou k datům nebo projektu (.json)."""
     argv = sys.argv if argv is None else argv
     app = QApplication.instance() or QApplication(argv)
+    app.setOrganizationName(ORG)
     app.setApplicationName(APP)
-    win = MainWindow()
-    if len(argv) > 1:
+    data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+    win = MainWindow(autosave=Path(data_dir) / "autosave.json" if data_dir else None)
+    win.show()
+    if len(argv) <= 1:
+        win.offer_restore()
+    else:
         p = argv[1]
         try:
             (win.project.load if p.lower().endswith(".json") else win.project.load_file)(p)
         except Exception as ex:
             win.error(str(ex))
         win.build()
-    win.show()
     return app.exec()

@@ -29,10 +29,24 @@ def add_loop_and_go():
     ss["main_tab"] = T("tab1")
 
 
+def action(a):
+    """Identifikátor akce ze sdílených kontrol (pidtools.app.guides) → (popisek, callback, args) tlačítka."""
+    if a is None or not isinstance(a, str):
+        return a
+    if a == "add_loop":
+        return T("loop_add"), add_loop_and_go, ()
+    if a.startswith("tab:"):
+        tab = a[4:]
+        return T("tgb_data" if tab == "data" else "g_btn_model"), goto, (None, tab)
+    _, lid, tab = a.split(":")
+    lid = int(lid)
+    return (T("g_btn_data", n=loops.name(lid)) if tab == "data" else T("g_btn_model")), goto, (lid, tab)
+
+
 def render(kind, checks, impl):
     """
     checks: [(stav, text, akce)] – stav True (splněno) / False (chybí) / None (připomínka);
-            akce = (popisek, callback, args) nebo None.
+            akce = identifikátor ze sdílených kontrol (viz action) nebo None.
     impl:   markdown s implementací v PCS 7 (už s vypočtenými parametry), nebo None.
     Průvodce je ve výchozím stavu sbalený.
     """
@@ -41,13 +55,14 @@ def render(kind, checks, impl):
         c1.markdown(T(f"g_{kind}_when"))
         c2.markdown(T(f"g_{kind}_examples"))
         st.markdown(f"**{T('g_checklist')}**")
-        for n, (ok, text, action) in enumerate(checks):
+        for n, (ok, text, act_id) in enumerate(checks):
             r = st.columns([0.05, 0.7, 0.25], vertical_alignment="center")
             r[0].markdown(":material/check_circle:" if ok else (":material/radio_button_unchecked:" if ok is False
                                                                  else ":material/info:"))
             r[1].markdown(text)
-            if action and ok is not True:
-                label, cb, args = action
+            act = action(act_id)
+            if act and ok is not True:
+                label, cb, args = act
                 r[2].button(label, on_click=cb, args=args, key=f"g_act|{kind}|{n}", width="stretch",
                             icon=":material/arrow_forward:")
         if impl:

@@ -152,6 +152,89 @@ def _diag(g):
     return [_model(g)]
 
 
+# ---------------------------------------------------------------- kontroly struktur APC
+# Akce navíc: "loop:<id>:<záložka>" (přepnout smyčku a záložku). a / b = záznamy smyček (name, model, c_mv, c_sp …).
+def _ok_model(name, model):
+    return True, T("g_chk_model_ok", n=name, m=T("model_" + model[0])), None
+
+
+def apc_no_model(name, loop=None):
+    """Smyčka bez modelu – jediná položka seznamu (loop = id smyčky pro tlačítko, None = aktivní)."""
+    return [(False, T("g_chk_model", n=name), "tab:model" if loop is None else f"loop:{loop}:model")]
+
+
+def apc_need_loop(a):
+    return [_ok_model(a["name"], a["model"]), (False, T("apc_need_loop"), "add_loop")]
+
+
+def apc_cascade(a, others):
+    """others: [(id, záznam)] ostatních smyček."""
+    if a["model"] is None:
+        return apc_no_model(a["name"])
+    out = [_ok_model(a["name"], a["model"])]
+    with_model = [b["name"] for _, b in others if b["model"] is not None]
+    out.append((True, T("g_chk_cas_inner", n=", ".join(with_model)), None) if with_model
+               else (None, T("g_chk_cas_noinner"), "add_loop"))
+    inner = [b["name"] for _, b in others if b["c_sp"] not in (None, "—") and b["c_sp"] == a["c_mv"]]
+    out.append((True, T("g_chk_cas_mvsp_ok", mv=a["c_mv"], n=", ".join(inner)), None) if inner
+               else (None, T("g_chk_cas_mvsp", mv=a["c_mv"]), None))
+    out.append((None, T("g_chk_cas_speed"), None))
+    return out
+
+
+def apc_override(a, b, bi):
+    same = b["c_mv"] == a["c_mv"]
+    return [_ok_model(a["name"], a["model"]), _ok_model(b["name"], b["model"]),
+            (same, T("g_chk_same_mv", a=a["name"], b=b["name"], mv=a["c_mv"]), f"loop:{bi}:data"),
+            (None, T("g_chk_ov_dir", b=b["name"]), None), (None, T("g_chk_tuned"), None)]
+
+
+def apc_decouple(a, b, ai, bi, xab, xba):
+    return [_ok_model(a["name"], a["model"]), _ok_model(b["name"], b["model"]),
+            (xab is not None, T("g_chk_cross", n=a["name"], mv=b["c_mv"]), f"loop:{ai}:data"),
+            (xba is not None, T("g_chk_cross", n=b["name"], mv=a["c_mv"]), f"loop:{bi}:data"),
+            (None, T("g_chk_tuned"), None)]
+
+
+def apc_ff(a, names, des, p):
+    """names: názvy poruch, des: návrhy feedforward.design, p: parametry modelu (zpoždění = p[-1])."""
+    if not names:
+        return [_ok_model(a["name"], a["model"]), (False, T("g_chk_ff_dist"), "tab:data")]
+    slow = [n for n, pdm, d in zip(names, a["model"][2], des) if d["use"] and pdm[2] < p[-1]]
+    return [_ok_model(a["name"], a["model"]), (True, T("g_chk_ff_dist_ok", d=", ".join(names)), None),
+            (any(d["use"] for d in des), T("g_chk_ff_on"), None),
+            ((None if slow else True), T("g_chk_ff_fast", d=", ".join(slow)) if slow else T("g_chk_ff_fast_ok"), None),
+            (None, T("g_chk_ff_indep"), None), (None, T("g_chk_ff_commission"), None)]
+
+
+def apc_smith(a, integ, ratio, th_lag):
+    return [_ok_model(a["name"], a["model"]), (not integ, T("g_chk_sm_integ"), None),
+            (True if ratio >= 0.5 else None, T("g_chk_sm_ratio", r=f"{ratio:.2f}"), None),
+            (True if th_lag <= 3 else None, T("g_chk_sm_th3", r=f"{th_lag:.2f}"), None),
+            (None, T("g_chk_sm_model"), None)]
+
+
+def apc_gainsched(a, integ, spread=None, pts=(), stale=False, issues=()):
+    if integ:
+        return [_ok_model(a["name"], a["model"]), (False, T("g_chk_gs_integ"), None)]
+    fits_ok = all(q["fit"] >= 70 for q in pts) if pts else None
+    return [_ok_model(a["name"], a["model"]),
+            (True if spread and spread > 1.5 else None,
+             T("g_chk_gs_nl", s=f"{spread:.1f}") if spread else T("g_chk_gs_nl_unknown"), None),
+            (bool(pts) and not stale, T("g_chk_gs_pts"), None),
+            (fits_ok if pts else None, T("g_chk_gs_fit"), None),
+            (not issues if pts else None, T("g_chk_gs_mono"), None),
+            (None, T("g_chk_gs_x"), None)]
+
+
+def apc_gs_er(a, ms_k):
+    ok = bool(np.isfinite(ms_k) and ms_k <= 2.0)
+    return [_ok_model(a["name"], a["model"]),
+            (ok, T("g_chk_gser_ms", m="∞" if not np.isfinite(ms_k) else f"{ms_k:.2f}"), None),
+            (None, T("g_chk_gser_noise"), None), (None, T("g_chk_gser_sat"), None),
+            (None, T("g_chk_gser_bumpless"), None)]
+
+
 CHECKS = {"data": _data, "model": _model_checks, "tuning": _tuning, "live": _live, "apc": _apc,
           "project": _project, "diag": _diag}
 

@@ -8,7 +8,9 @@
 - Desktop application (preview, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Tuning with the
   scenario and method comparison, model validation and uncertainty, live simulation, APC (cascade, feedforward,
   decoupling, override, Smith predictor, gain scheduling by PV and ER), operating diagnostics, several loops,
-  projects interchangeable with the web app, tuning protocol export.
+  projects interchangeable with the web app, tuning protocol export, help window with tab guides (content shared
+  with the web app), autosave with restore on the next start, clickable APC recommendations.
+- APC structure checklists computed in the shared layer – identical on the web and in the desktop.
 - Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
   desktop version for engineering stations; the web app is unchanged.
 - APC page split into one module per structure.

@@ -50,8 +50,10 @@ class DiagnosticsTab(QWidget):
         bl.addLayout(left, 2)
         self.ccf = w.plot(T("ccf_title"), T("ccf"), T("lag_s"))
         self.phase = w.plot(T("phase_title"), "PV", "MV")
+        self.pos = w.plot(T("pos_title"), T("col_pos"), "MV")
         bl.addWidget(self.ccf, 2)
         bl.addWidget(self.phase, 2)
+        bl.addWidget(self.pos, 2)
         split.addWidget(bot)
         split.setSizes([380, 420])
         self._busy = False
@@ -130,6 +132,10 @@ class DiagnosticsTab(QWidget):
             pos = on_grid(s.sig, g, s.c_pos)
             h = dg.hysteresis(g.mv_e[m], pos[m])
             lines.append(f"{T('hyst')}: " + ("—" if not np.isfinite(h) else f"{abs(h):.3g} {u_mv}"))
+            self.pos.clear()
+            self.pos.plot(g.mv_e[m], pos[m], pen=pg.mkPen("#fecaca", width=0.6), symbol="o", symbolSize=3,
+                          symbolBrush=w.C_MV, symbolPen=None)
+        self.pos.setVisible(s.c_pos not in (None, "", "—"))
         self.verdict.setText("  \n".join(lines))
         self.ccf.clear()
         self.ccf.plot(v["stic"]["lags"], v["stic"]["ccf"], pen=pg.mkPen(w.C_PV, width=2))

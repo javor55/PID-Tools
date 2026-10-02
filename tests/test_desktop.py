@@ -149,6 +149,7 @@ def test_live_session_without_qt(state):
     """Živá simulace (app.live) – dvě sady, změna SP, porucha, ukazatele od poslední události."""
     from pidtools.app.live import LiveSession
     s = state
+    s.write_set(2, s.suggest("SIMC"))
     sets = {n: {k: v for k, v in s.set_ctrl(n).items() if k not in ("FF", "FF_LL")} for n in (1, 2)}
     _, _, mv_id, _ = s.segment()
     ls = LiveSession(s, s.model, sets, 50.0, float(mv_id[0]))
@@ -249,6 +250,21 @@ def test_window_two_loops(win):
     assert apc.panels[2].kpi.rowCount() == 3
     apc.tabs.setCurrentIndex(3)          # override (stejné MV nemají – jen upozornění, simulace proběhne)
     app.processEvents()
+    apc.tabs.setCurrentIndex(0)
+    apc.refresh()
+    assert "apc:decouple:1" in apc.reco.text()            # doporučení s odkazem na strukturu a druhou smyčku
+    apc._open("apc:decouple:1")
+    assert apc.tabs.currentIndex() == 2 and apc.panels[2].other.currentData() == 1
+    from pidtools.desktop.help import tab_markdown, guide_state
+    from pidtools.i18n import T
+    for i in range(len(apc.panels)):                        # kontrolní seznam každé struktury (sdílený s webem)
+        apc.tabs.setCurrentIndex(i)
+        app.processEvents()
+        md = tab_markdown("apc", guide_state(w), apc.guide_extra())
+        assert md.count(T("g_checklist")) == 2, apc.GUIDE_KINDS[i]
+    w.do_action("loop:1:data")
+    assert w.project.active == 1 and w.tabs.currentIndex() == 0
+    w.switch_loop(0)
     w.remove_loop()
     assert len(w.project.loops) == 1
 
@@ -336,3 +352,42 @@ def test_shared_guides_and_help_window(win):
     w.do_action("tab:model")
     assert w.tabs.currentIndex() == 1
     w._help.close()
+
+
+def test_live_disturbance_shapes(state):
+    from pidtools.app.live import LiveSession
+    s = state
+    s.write_set(2, s.suggest("SIMC"))
+    sets = {2: {k: v for k, v in s.set_ctrl(2).items() if k not in ("FF", "FF_LL")}}
+    for kind in ("ramp", "sine", "random", "pulse"):
+        ls = LiveSession(s, s.model, sets, 50.0, 50.0)
+        ls.set_dist(d_in_e=5.0, kind=kind, period=100.0)
+        ls.advance(300)
+        assert np.ptp(ls.series(2)["MV"]) > 0.1, kind
+    assert ls.to_frame().shape[1] == 4 and ls.events[-1][1] == "D"
+
+
+def test_autosave_and_restore(tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+    from pidtools.desktop.main import MainWindow
+    from pidtools.desktop.project import Project
+    path = tmp_path / "as" / "autosave.json"
+    w = MainWindow(prefs=_prefs(tmp_path / "p.ini"), autosave=path)
+    w.autosave()
+    assert not path.exists()                               # bez dat se neukládá
+    pr = Project()
+    pr.state.load_demo()
+    pr.state.identify()
+    w.project = pr
+    w.build()
+    w.close()                                              # při zavření se uloží
+    assert path.exists()
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)
+    monkeypatch.setattr(QMessageBox, "clickedButton", lambda self: self.buttons()[0])   # „Obnovit“
+    w2 = MainWindow(prefs=_prefs(tmp_path / "p.ini"), autosave=path)
+    assert w2.offer_restore() and w2.state.model is not None and w2.state.c_pv == "LIC101.PV"
+    monkeypatch.setattr(QMessageBox, "clickedButton", lambda self: None)                # „Zahodit“
+    w3 = MainWindow(prefs=_prefs(tmp_path / "p.ini"), autosave=path)
+    assert not w3.offer_restore() and not path.exists()
+    for x in (w2, w3):
+        x.close()

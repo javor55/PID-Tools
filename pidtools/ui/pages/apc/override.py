@@ -6,10 +6,10 @@ import streamlit as st
 from ....i18n import T
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SP
-from ...widgets import model_name, num, seg
+from ...widgets import num, seg
 from . import guide
 from ....app.apc import override as aov
-from .recommend import chk_model_a
+from ....app import guides as app_guides
 from .common import C_B, C_REF, active_model, eng, lab, override_sim_c
 
 
@@ -17,10 +17,7 @@ from .common import C_B, C_REF, active_model, eng, lab, override_sim_c
 def override_render(ctx, bi, b):
     a = active_model(ctx)
     same = b["c_mv"] == a["c_mv"]
-    checks = [chk_model_a(ctx), (True, T("g_chk_model_ok", n=b["name"], m=model_name(b["model"][0])), None),
-              (same, T("g_chk_same_mv", a=a["name"], b=b["name"], mv=a["c_mv"]),
-               (T("g_btn_data", n=b["name"]), guide.goto, (bi, "data"))),
-              (None, T("g_chk_ov_dir", b=b["name"]), None), (None, T("g_chk_tuned"), None)]
+    checks = app_guides.apc_override(a, b, bi)
     guide_ph = st.container()   # průvodce nahoře, vyplní se až se známou mezí
     if not same:
         st.warning(T("ov_mv_differs", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]), icon=":material/warning:")

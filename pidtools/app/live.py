@@ -31,6 +31,8 @@ class LiveSession:
         self.k_fac, self.th_fac = 1.0, 1.0
         self.sp, self.auto, self.u_man = self.pv0, True, self.mv0
         self.d_in, self.d_out = 0.0, 0.0
+        self.shape = dict(kind="step", period=60.0, t0=0.0)    # tvar poruch: step, ramp, sine, random, pulse
+        self._rnd, self._rnd_val, self._rnd_k = np.random.default_rng(1), 0.0, -1
         self.events = []
         self.reset()
 
@@ -74,19 +76,67 @@ class LiveSession:
             self.u_man = float(self.sc.M(u_man_e))
         self.event("A" if auto else "M")
 
-    def set_dist(self, d_in_e=None, d_out_e=None):
-        """Porucha na vstupu procesu [jednotky MV] a na výstupu [jednotky PV] (odchylky od nuly)."""
+    def set_dist(self, d_in_e=None, d_out_e=None, kind=None, period=None):
+        """
+        Porucha na vstupu procesu [jednotky MV] a na výstupu [jednotky PV] (amplitudy) a její tvar: step (skok),
+        ramp (náběh za periodu), sine (sinus s periodou), random (náhodná změna každou periodu), pulse (pulz délky
+        poloviny periody, opakovaně).
+        """
         if d_in_e is not None:
             self.d_in = float(d_in_e) / self.sc.MR * 100
         if d_out_e is not None:
             self.d_out = float(d_out_e) / self.sc.PR * 100
+        if kind is not None:
+            self.shape["kind"] = kind
+        if period is not None:
+            self.shape["period"] = max(float(period), 1e-3)
+        self.shape["t0"] = self.t
+        self._rnd = np.random.default_rng(int(self.t * 1000) % 2 ** 31)
+        self._rnd_val, self._rnd_k = 0.0, -1
         self.event("D")
+
+    def _shape(self, t):
+        """Násobek amplitudy poruchy v čase t (0 … 1, u sinu −1 … 1)."""
+        k, per, t0 = self.shape["kind"], self.shape["period"], self.shape["t0"]
+        x = t - t0
+        if k == "ramp":
+            return min(max(x / per, 0.0), 1.0)
+        if k == "sine":
+            return float(np.sin(2 * np.pi * x / per))
+        if k == "pulse":
+            return 1.0 if (x % per) < per / 2 else 0.0
+        if k == "random":
+            n = int(x // per)
+            if n != self._rnd_k:
+                self._rnd_k, self._rnd_val = n, float(self._rnd.uniform(-1, 1))
+            return self._rnd_val
+        return 1.0
 
     # ---- běh
     def advance(self, seconds):
-        for lp in self.loops.values():
-            lp.advance(seconds, self.sp, self.auto, self.u_man, self.d_in, self.d_out)
-        self.t = next(iter(self.loops.values())).t
+        """Posun o seconds; u proměnných poruch po krocích (≤ 1/40 periody), aby tvar zůstal zachovaný."""
+        k = self.shape["kind"]
+        chunk = seconds if k == "step" else max(self.h, min(seconds, self.shape["period"] / 40))
+        done = 0.0
+        while done < seconds - 1e-9:
+            dt = min(chunk, seconds - done)
+            f = self._shape(self.t + dt / 2) if k != "step" else 1.0
+            for lp in self.loops.values():
+                lp.advance(dt, self.sp, self.auto, self.u_man, self.d_in * f, self.d_out * f)
+            self.t = next(iter(self.loops.values())).t
+            done += dt
+
+    def to_frame(self):
+        """Průběhy všech sad v jednotkách (export CSV)."""
+        import pandas as pd
+        cols = {}
+        for n in self.loops:
+            d = self.series(n)
+            cols.setdefault("t [s]", d["t"])
+            cols.setdefault("SP", d["SP"])
+            cols[f"PV {n}"], cols[f"MV {n}"] = d["PV"], d["MV"]
+        m = min(len(v) for v in cols.values())
+        return pd.DataFrame({k: v[-m:] for k, v in cols.items()})
 
     def series(self, n):
         """Průběhy sady n v inženýrských jednotkách: dict(t, SP, PV, MV)."""

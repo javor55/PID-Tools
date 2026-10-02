@@ -8,7 +8,9 @@
 - Desktopová aplikace (náhled, `python -m pidtools.desktop`, PySide6 + pyqtgraph): Data, Model, Ladění se
   scénářem a srovnáním metod, validace a nejistota modelu, živá simulace, APC (kaskáda, dopředná vazba,
   rozvazbení, override, Smithův prediktor, gain scheduling podle PV a ER), diagnostika provozu, více smyček,
-  projekty zaměnitelné s webovou aplikací, export protokolu.
+  projekty zaměnitelné s webovou aplikací, export protokolu, okno nápovědy s průvodci záložek (obsah sdílený
+  s webem), automatické ukládání s nabídkou obnovení při dalším spuštění, proklik z doporučení APC.
+- Kontrolní seznamy struktur APC počítané ve sdílené vrstvě – na webu i v desktopu stejné.
 - Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
   desktopové verze pro inženýrské stanice; webová aplikace beze změny.
 - Stránka APC rozdělená na moduly po strukturách.

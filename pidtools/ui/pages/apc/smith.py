@@ -10,7 +10,8 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
 from ...widgets import model_name, seg, sld
 from . import guide
-from .recommend import chk_model_a
+from ....app import guides as app_guides
+from .recommend import rec_a
 from ....app.apc import smith as app_smith
 from .common import smith_sim_c, tchar, ss
 
@@ -48,10 +49,7 @@ def smith_render(ctx):
     integ = MODELS[code]["integ"]
     tc_key = _sm_tc_key(code, p)
     v, r_, rows = smith_values(ctx)
-    checks = [chk_model_a(ctx), (not integ, T("g_chk_sm_integ"), None),
-              (True if ratio >= 0.5 else None, T("g_chk_sm_ratio", r=f"{ratio:.2f}"), None),
-              (True if v["th_lag"] <= 3 else None, T("g_chk_sm_th3", r=f"{v['th_lag']:.2f}"), None),
-              (None, T("g_chk_sm_model"), None)]
+    checks = app_guides.apc_smith(rec_a(ctx), integ, ratio, v["th_lag"])
     guide.render("smith", checks, T("g_impl_smith", k=f"{v['k']:.4g}", u=f"{ctx.u_pv or 'PV'}/{ctx.u_mv or 'MV'}",
                                     t=f"{v['lag']:.4g}", th=f"{v['theta']:.4g}", pv0=f"{v['pv0']:.4g}",
                                     g=f"{r_['Kc']:.4g}", ti=f"{r_['Ti']:.4g}") +

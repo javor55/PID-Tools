@@ -12,7 +12,8 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2
 from ...widgets import num
 from . import guide
-from .recommend import chk_model_a
+from ....app import guides as app_guides
+from .recommend import rec_a
 from ....app.apc import feedforward as app_ff
 from .common import C_REF
 
@@ -26,20 +27,12 @@ def ff_rows(ctx, des):
 def ff_render(ctx):
     code, p, pdl = ctx.model[0], list(ctx.model[1]), ctx.model[2]
     if not pdl:
-        guide.render("ff", [chk_model_a(ctx), (False, T("g_chk_ff_dist"), (T("tgb_data"), guide.goto, (None, "data")))],
-                     None)
+        guide.render("ff", app_guides.apc_ff(rec_a(ctx), [], [], p), None)
         st.info(T("ff_need_dist"), icon=":material/info:")
         return
     des = ffmod.design(code, p, pdl)
     names = [str(x) for x in ctx.c_d]
-    slow = [n for n, pdm, d in zip(names, pdl, des) if d["use"] and pdm[2] < p[-1]]
-    checks = [chk_model_a(ctx),
-              (True, T("g_chk_ff_dist_ok", d=", ".join(names)), None),
-              (any(d["use"] for d in des), T("g_chk_ff_on"), None),
-              ((None if slow else True), T("g_chk_ff_fast", d=", ".join(slow)) if slow else T("g_chk_ff_fast_ok"), None),
-              (None, T("g_chk_ff_indep"), None),
-              (None, T("g_chk_ff_commission"), None)]
-    guide.render("ff", checks, T("g_impl_ff"))
+    guide.render("ff", app_guides.apc_ff(rec_a(ctx), names, des, p), T("g_impl_ff"))
 
     # ---- 1. návrh pro každou měřenou poruchu
     for j, (dn, pdm) in enumerate(zip(names, pdl)):

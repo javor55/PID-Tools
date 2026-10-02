@@ -11,7 +11,8 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
 from ...widgets import num, sld
 from . import guide
-from .recommend import chk_model_a
+from ....app import guides as app_guides
+from .recommend import rec_a
 from ....app.apc import gainsched as app_gs
 from .common import C_B, best_cz, clean, gs_frame, gs_sim_c, ss
 
@@ -55,12 +56,7 @@ def gs_er_render(ctx):
         elif not np.isfinite(ms_k) or ms_k > 2.0:
             st.error(T("gs_er_unstable", k=f"{k:.2f}", m=f"{kmax:.2f}"), icon=":material/warning:")
 
-    checks = [chk_model_a(ctx),
-              (bool(np.isfinite(ms_k) and ms_k <= 2.0), T("g_chk_gser_ms", m="∞" if not np.isfinite(ms_k) else f"{ms_k:.2f}"),
-               None),
-              (None, T("g_chk_gser_noise"), None),
-              (None, T("g_chk_gser_sat"), None),
-              (None, T("g_chk_gser_bumpless"), None)]
+    checks = app_guides.apc_gs_er(rec_a(ctx), ms_k)
     guide.render("gs_er", checks, T("g_impl_gs_er", u=ctx.u_pv or "PV"))
 
     st.markdown(f"#### {T('gs_tab_title')}", help=T("h_gs_er_tab"))

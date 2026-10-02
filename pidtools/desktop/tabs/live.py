@@ -32,7 +32,14 @@ class LiveTab(QWidget):
         self.cmp = QCheckBox(T("dk_lv_compare"))
         self.cmp.setChecked(True)
         self.cmp.toggled.connect(self.restart)
-        lay.addLayout(w.hbox(self.b_run, b_reset, QLabel(T("dk_lv_speed")), self.speed, self.speed_lab, self.cmp))
+        self.win_len = w.spin(0.0, 0.0, 1e9, 0, 60)
+        w.tip(self.win_len, "dk_lv_window_help")
+        self.win_len.valueChanged.connect(self.draw)
+        b_csv, b_png = QPushButton("CSV"), QPushButton("PNG")
+        b_csv.clicked.connect(self._export_csv)
+        b_png.clicked.connect(self._export_png)
+        lay.addLayout(w.hbox(self.b_run, b_reset, QLabel(T("dk_lv_speed")), self.speed, self.speed_lab, self.cmp,
+                             QLabel(T("dk_lv_window")), self.win_len, b_csv, b_png))
 
         self.auto = QCheckBox("Auto")
         self.auto.setChecked(True)
@@ -45,6 +52,11 @@ class LiveTab(QWidget):
         self.d_out = w.spin(0.0, -1e12, 1e12, 4)
         for sp in (self.d_in, self.d_out):
             sp.valueChanged.connect(self._dist)
+        self.shape = w.combo(["step", "ramp", "sine", "random", "pulse"],
+                             labels=[T("lv_pp_" + k) for k in ("step", "ramp", "sine", "random", "pulse")])
+        self.period = w.spin(60.0, 0.1, 1e9, 1)
+        self.shape.currentIndexChanged.connect(self._dist)
+        self.period.valueChanged.connect(self._dist)
         self.noise = w.spin(0.0, 0.0, 1e12, 4)
         self.k_fac = w.spin(1.0, 0.05, 20.0, 3, 0.1)
         self.th_fac = w.spin(1.0, 0.0, 20.0, 3, 0.1)
@@ -55,7 +67,8 @@ class LiveTab(QWidget):
         self.lab_noise = QLabel(T("dk_lv_noise"))
         row = QHBoxLayout()
         for wd in (self.auto, self.lab_sp, self.sp, self.lab_man, self.man, self.lab_din, self.d_in, self.lab_dout,
-                   self.d_out, self.lab_noise, self.noise, QLabel(T("dk_lv_kfac")), self.k_fac,
+                   self.d_out, QLabel(T("dk_lv_shape")), self.shape, QLabel(T("dk_lv_period")), self.period,
+                   self.lab_noise, self.noise, QLabel(T("dk_lv_kfac")), self.k_fac,
                    QLabel(T("dk_lv_thfac")), self.th_fac):
             row.addWidget(wd)
         row.addStretch(1)
@@ -102,7 +115,8 @@ class LiveTab(QWidget):
             sp.setValue(v)
             sp.blockSignals(False)
         self.sess.set_mode(self.auto.isChecked(), self.man.value())
-        self.sess.set_dist(self.d_in.value(), self.d_out.value())
+        self.sess.set_dist(self.d_in.value(), self.d_out.value(), self.shape.currentData(), self.period.value())
+        self.sess.events = []
         for p in self.plots:
             p.clear()
         self._curves = {}
@@ -136,7 +150,22 @@ class LiveTab(QWidget):
 
     def _dist(self, *_):
         if self.sess:
-            self.sess.set_dist(self.d_in.value(), self.d_out.value())
+            self.sess.set_dist(self.d_in.value(), self.d_out.value(), self.shape.currentData(), self.period.value())
+
+    # ---- export
+    def _export_csv(self):
+        from PySide6.QtWidgets import QFileDialog
+        if self.sess is None:
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "CSV", "live_simulation.csv", "CSV (*.csv)")
+        if path:
+            self.sess.to_frame().to_csv(path, index=False, sep=";", decimal=",")
+
+    def _export_png(self):
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(self, "PNG", "live_simulation.png", "PNG (*.png)")
+        if path:
+            self.chart.grab().save(path)
 
     # ---- kreslení
     def draw(self):
@@ -160,6 +189,26 @@ class LiveTab(QWidget):
                 c["sp"].setData(d["t"], d["SP"])
             c["pv"].setData(d["t"], d["PV"])
             c["mv"].setData(d["t"], d["MV"])
+        # okno a značky událostí
+        wl = self.win_len.value()
+        if wl > 0 and sess.t > wl:
+            for p in self.plots:
+                p.setXRange(sess.t - wl, sess.t, padding=0)
+        else:
+            for p in self.plots:
+                p.enableAutoRange(axis="x")
+        for it in getattr(self, "_marks", []):
+            self.plots[0].removeItem(it)
+        self._marks = []
+        t0 = sess.series(next(iter(sess.loops)))["t"]
+        tmin = t0[0] if len(t0) else 0.0
+        import pyqtgraph as pg
+        for te, lab in sess.events[-30:]:
+            if te >= tmin and te > 0:
+                ln = pg.InfiniteLine(pos=te, angle=90, pen=pg.mkPen("#94a3b8", style=Qt.DotLine),
+                                     label=lab, labelOpts=dict(position=0.95, color="#64748b"))
+                self.plots[0].addItem(ln)
+                self._marks.append(ln)
         rows = []
         for n in sess.loops:
             k = sess.kpis(n)

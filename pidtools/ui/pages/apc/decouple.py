@@ -10,9 +10,9 @@ from ....i18n import T
 from ... import loops
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET2, C_SP
-from ...widgets import model_name, num, seg
+from ...widgets import num, seg
 from . import guide
-from .recommend import chk_model_a
+from ....app import guides as app_guides
 from ....app.apc import decouple as adec
 from ....app.apc.decouple import gain_eng
 from .common import C_B, C_REF, active_model, clean, eng, lab, mimo_sim
@@ -27,12 +27,7 @@ def decouple_render(ctx, bi, b):
     a = active_model(ctx)
     dz = adec.design(a, b)
     xab, xba, dab, dba = dz["xab"], dz["xba"], dz["dab"], dz["dba"]
-    checks = [chk_model_a(ctx), (True, T("g_chk_model_ok", n=b["name"], m=model_name(b["model"][0])), None),
-              (xab is not None, T("g_chk_cross", n=a["name"], mv=b["c_mv"]),
-               (T("g_btn_data", n=a["name"]), guide.goto, (loops.active(), "data"))),
-              (xba is not None, T("g_chk_cross", n=b["name"], mv=a["c_mv"]),
-               (T("g_btn_data", n=b["name"]), guide.goto, (bi, "data"))),
-              (None, T("g_chk_tuned"), None)]
+    checks = app_guides.apc_decouple(a, b, loops.active(), bi, xab, xba)
     impl = T("g_impl_decouple") + "".join(
         "\n" + T("g_impl_dec_line", src=src["c_mv"], dst=dst["name"], g=f"{_gain_eng(d_, src, dst):.4g}",
                   lead=f"{d_['lead']:.3g}", lag=f"{d_['lag']:.3g}", dt=f"{d_['delay']:.3g}")

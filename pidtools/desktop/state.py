@@ -485,7 +485,7 @@ class LoopState(Scaling):
                 if scn.stable(r):
                     extra.append(("unc_variants", r))
         return dict(t=x["ts"], sp=sig["sp"], runs=runs, kpis=kp, T_end=x["T_end"], src=x["src"], rows=x["rows"],
-                    extra=extra)
+                    extra=extra, sig=sig)
 
     # ---- projekt
     def to_project(self, include_data=False):

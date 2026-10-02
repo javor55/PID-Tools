@@ -15,7 +15,8 @@ from .decouple import decouple_render
 from .feedforward import ff_render
 from .gainsched import gainsched_render, gs_values  # noqa: F401 (protokol)
 from .override import override_render
-from .recommend import checks_cascade, chk_model_a, recommend
+from ....app import guides as app_guides
+from .recommend import checks_cascade, rec_a, recommend
 from .smith import smith_render, smith_values  # noqa: F401 (protokol)
 
 
@@ -33,8 +34,7 @@ def render(ctx):
             return
         st.markdown(T("apc_intro_" + kind))
         if ctx.model is None or ctx.set2_ctrl is None:
-            guide.render(kind, [(False, T("g_chk_model", n=loops.name(loops.active())),
-                                 (T("g_btn_model"), guide.goto, (None, "model")))], None)
+            guide.render(kind, app_guides.apc_no_model(loops.name(loops.active())), None)
             st.info(T("need_model"), icon=":material/arrow_back:")
             return
         if kind == "smith":
@@ -48,8 +48,7 @@ def render(ctx):
             return
         other = [i for i in loops.ids() if i != loops.active()]
         if not other:
-            guide.render(kind, [chk_model_a(ctx), (False, T("apc_need_loop"),
-                                                    (T("loop_add"), guide.add_loop_and_go, ()))], None)
+            guide.render(kind, app_guides.apc_need_loop(rec_a(ctx)), None)
             return
         names = {i: loops.name(i) for i in other}
         if ss.get(f"apc_{kind}_b") not in other:  # výchozí druhá smyčka = ta, kterou doporučení navrhuje
@@ -59,8 +58,7 @@ def render(ctx):
                           help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
         b = loops.loop_data(bi, ctx.fname)
         if b["model"] is None:
-            guide.render(kind, [chk_model_a(ctx), (False, T("g_chk_model", n=b["name"]),
-                                                    (T("g_btn_model"), guide.goto, (bi, "model")))], None)
+            guide.render(kind, [app_guides.apc_need_loop(rec_a(ctx))[0]] + app_guides.apc_no_model(b["name"], bi), None)
             return
         (decouple_render if kind == "decouple" else override_render)(ctx, bi, b)
 

@@ -49,12 +49,17 @@ def tab_markdown(key, state, extra=()):
         parts.append((f"### {head}\n\n" if head else "") + body)
     chk = guides.checks(key, state)
     if chk:
-        lines = [f"### {T('g_checklist')}", ""]
-        for ok, txt, act in chk:
-            link = f" — [{T('dk_help_go')}](action:{act})" if act and ok is not True else ""
-            lines.append(f"- {guides.icon(ok)} {txt}{link}")
-        parts.append("\n".join(lines))
+        parts.append(checklist_markdown(chk))
     return "\n\n".join(parts)
+
+
+def checklist_markdown(chk, title=None):
+    """Kontrolní seznam [(stav, text, akce)] jako markdown s odkazy action:<akce>."""
+    lines = [f"### {title or T('g_checklist')}", ""]
+    for ok, txt, act in chk:
+        link = f" — [{T('dk_help_go')}](action:{act})" if act and ok is not True else ""
+        lines.append(f"- {guides.icon(ok)} {txt}{link}")
+    return "\n".join(lines)
 
 
 def general_markdown():

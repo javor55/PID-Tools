@@ -12,7 +12,8 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET1, C_SET2, C_SP
 from ...widgets import seg, sld
 from . import guide
-from .recommend import chk_model_a, nl_spread
+from ....app import guides as app_guides
+from .recommend import nl_spread, rec_a
 from ....app.apc import gainsched as app_gs
 from .common import C_PTS, clean, gs_frame, gs_sim_c, tchar, ss
 from .gainsched_er import gs_er_render, gs_er_tab
@@ -92,7 +93,7 @@ def gainsched_render(ctx):
     code = ctx.model[0]
     E, M_ = ctx.EP, ctx.EM
     if MODELS[code]["integ"]:
-        guide.render("gainsched", [chk_model_a(ctx), (False, T("g_chk_gs_integ"), None)], None)
+        guide.render("gainsched", app_guides.apc_gainsched(rec_a(ctx), True), None)
         st.info(T("gs_integ"), icon=":material/info:")
         return
     if (seg(st, T("gs_x"), ["pv", "er"], "pv", "gs_x", format_func=lambda x: T("gs_x_" + x), help=T("h_gs_x"))
@@ -148,14 +149,7 @@ def gainsched_render(ctx):
 
     pts = pts_now
     issues = gs_issues(pts) if len(pts) >= 2 else []
-    fits_ok = all(q["fit"] >= 70 for q in pts) if pts else None
-    checks = [chk_model_a(ctx),
-              (True if spread and spread > 1.5 else None,
-               T("g_chk_gs_nl", s=f"{spread:.1f}") if spread else T("g_chk_gs_nl_unknown"), None),
-              (bool(pts) and not stale, T("g_chk_gs_pts"), None),
-              (fits_ok if pts else None, T("g_chk_gs_fit"), None),
-              (not issues if pts else None, T("g_chk_gs_mono"), None),
-              (None, T("g_chk_gs_x"), None)]
+    checks = app_guides.apc_gainsched(rec_a(ctx), False, spread, pts, stale, issues)
     vals = gs_values(ctx) if len(pts) >= 2 else None
     impl = None
     if vals:
