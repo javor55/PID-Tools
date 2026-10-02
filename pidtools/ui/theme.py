@@ -28,7 +28,15 @@ def _c_edit():
 # ── CSS vlastních prvků (nezávislé na tématu) ─────────────────────────
 _CSS = """
 <style>
-.block-container {padding-top: 1.6rem; padding-bottom: 3rem; max-width: 1500px;}
+.block-container {padding-top: 1.2rem; padding-bottom: 2rem; padding-left: 1.2rem; padding-right: 1.2rem;
+    max-width: 100%;}
+[data-testid="stExpander"] details {border-radius: 6px; border-color: rgba(128,128,128,0.25);}
+[data-testid="stExpander"] summary {background: rgba(128,128,128,0.10); border-radius: 6px; padding-top: 0.35rem;
+    padding-bottom: 0.35rem; font-weight: 600;}
+[data-testid="stExpander"] details[open] summary {border-radius: 6px 6px 0 0;}
+[data-testid="stExpanderDetails"] {padding-top: 0.5rem;}
+[data-testid="stColumn"] [data-testid="stExpander"] p, [data-testid="stColumn"] [data-testid="stExpander"] label
+    {font-size: 0.9rem;}
 h1 {font-weight: 650; letter-spacing: -0.01em; margin-bottom: 0.1rem;}
 h4 {margin-top: 0.4rem; font-weight: 600;}
 [data-testid="stMetric"] {background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.22);

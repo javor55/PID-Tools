@@ -93,3 +93,62 @@ def style(fig, height, ytitles=(), xtitle=None, rev="keep"):
     elif xtitle:
         fig.update_xaxes(title_text=xtitle)
     return fig
+
+
+C_SUG = "#9333ea"
+
+
+def freq_figs(res, sets, height=620):
+    """
+    Frekvenční analýza (web, protokol): (Bode – |L| a ∠L, Nyquist s kružnicí Ms, citlivost |S| a |T|).
+    res = app.frequency.compare(...), sets = [(název, barva, čárkovaně)].
+    """
+    from . import frequency as fq
+    from ..i18n import T
+    bode = mkfig(2, [0.5, 0.5])
+    nyq = go.Figure()
+    sens = go.Figure()
+    cx, cy = fq.ms_circle()
+    nyq.add_trace(go.Scatter(x=cx, y=cy, mode="lines", name=f"Ms = {fq.MS_TARGET}",
+                             line=dict(color="#f59e0b", dash="dash", width=1.2)))
+    ux, uy = fq.ms_circle(1.0)
+    nyq.add_trace(go.Scatter(x=ux, y=uy, mode="lines", showlegend=False, line=dict(color="#d1d5db", width=1)))
+    nyq.add_trace(go.Scatter(x=[-1], y=[0], mode="markers", showlegend=False,
+                             marker=dict(symbol="cross-thin", size=14, line=dict(color="#dc2626", width=2))))
+    for name, col, dash in sets:
+        r = res[name]
+        d = "dot" if dash else None
+        bode.add_trace(go.Scatter(x=r["w"], y=r["mag_db"], name=name, legendgroup=name, line=dict(color=col, dash=d)), 1, 1)
+        bode.add_trace(go.Scatter(x=r["w"], y=r["phase_deg"], name=name, legendgroup=name, showlegend=False,
+                                  line=dict(color=col, dash=d)), 2, 1)
+        L = r["L"]
+        k = np.abs(L) < 6
+        nyq.add_trace(go.Scatter(x=L.real[k], y=L.imag[k], name=name, line=dict(color=col, dash=d)))
+        sens.add_trace(go.Scatter(x=r["w"], y=fq.db(r["S"]), name=f"|S| {name}", legendgroup=name,
+                                  line=dict(color=col, dash=d, width=2)))
+        sens.add_trace(go.Scatter(x=r["w"], y=fq.db(r["T"]), name=f"|T| {name}", legendgroup=name,
+                                  line=dict(color=col, dash="dash", width=1)))
+    bode.add_hline(y=0, line=dict(color="#9ca3af", dash="dash", width=1), row=1, col=1)
+    bode.add_hline(y=-180, line=dict(color="#9ca3af", dash="dash", width=1), row=2, col=1)
+    bode.update_xaxes(type="log")
+    style(bode, height, [T("fq_mag"), T("fq_phase")], T("fq_w"), rev="bode")
+    bode.update_layout(hovermode="x unified")
+    bode.update_yaxes(range=[fq.phase_floor(res), 30], row=2, col=1)
+    nyq.update_layout(height=height * 0.62, uirevision="nyq", hovermode="closest",
+                      xaxis=dict(range=[-2.5, 1.0], title="Re L"),
+                      yaxis=dict(range=[-2.0, 1.5], title="Im L", scaleanchor="x", scaleratio=1))
+    sens.update_xaxes(type="log", title=T("fq_w"))
+    sens.update_layout(height=height * 0.62, yaxis_title="dB", uirevision="sens",
+                       hovermode="x unified")
+    return bode, nyq, sens
+
+
+def freq_table(res, names):
+    """Tabulka rezerv: [(název, Ms, GM, PM, ωc, ω180, šířka pásma, 2π/ω_bw, stabilní)]."""
+    from . import frequency as fq
+    rows = []
+    for n in names:
+        r = res[n]
+        bw = fq.bandwidth(r)
+        rows.append((n, r["Ms"], r["GM"], r["PM"], r["wc"], r["w180"], bw, 2 * np.pi / bw if bw else None, r["stable"]))
+    return rows

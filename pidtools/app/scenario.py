@@ -65,6 +65,25 @@ def preset_rows(kind, sp_amp, d_in, d_pv, d_meas, T_end):
     return [row("SP", "step", round(sp_amp, 6), t0)]
 
 
+def meas_amps(d_id):
+    """Výchozí amplitudy skoků měřených poruch: polovina jejich rozsahu v úseku identifikace (jinak 1)."""
+    out = []
+    for x in d_id or []:
+        x = np.asarray(x, float)
+        r = float(np.nanmax(x) - np.nanmin(x)) if np.isfinite(x).any() else 0.0
+        out.append(float(f"{0.5 * r:.3g}") if r > 0 else 1.0)
+    return out
+
+
+def preset_kind(stored, scen2, has_rows, has_dists):
+    """Druh scénáře z uloženého nastavení (i starší projekty a projekty z webu bez „scen_kind“)."""
+    if stored in PRESETS and (stored not in ("meas", "replay") or has_dists):
+        return stored
+    if stored is None and scen2 == "replay" and has_dists:
+        return "replay"
+    return "custom" if has_rows else "sp"
+
+
 def rescale_times(rows, f):
     """Časy událostí (začátek, konec) × f – při změně délky simulace zůstanou události na stejném místě."""
     out = [list(r) for r in rows]

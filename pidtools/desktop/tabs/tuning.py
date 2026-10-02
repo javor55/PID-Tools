@@ -8,16 +8,17 @@ import time
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QGridLayout, QLabel, QPushButton, QTableWidget,
-                               QTableWidgetItem, QVBoxLayout)
+                               QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from ...core import default_tc
 from ...i18n import T
 from .. import widgets as w
 from ..layout import Workspace, caption
+from .frequency import FrequencyView
 
 CRITS = ["MIGO", "IAE", "ISE", "ITAE", "OVS"]
 TARGETS = ["scen", "dist", "sp", "both"]
-C_SUG = "#16a34a"
+C_SUG = "#9333ea"
 
 
 class TuningTab(Workspace):
@@ -29,11 +30,19 @@ class TuningTab(Workspace):
         self._result = None        # poslední simulace
 
         # ---- hlavní plocha: graf a ukazatele
+        self.views = QTabWidget()
+        page = QWidget()
+        pl = QVBoxLayout(page)
+        pl.setContentsMargins(0, 0, 0, 0)
         self.chart, self.plots = w.stack(3, ["PV", "MV", T("dists")], T("time_s"), heights=(0.55, 0.25, 0.2))
-        self.main.addWidget(self.chart, 1)
+        pl.addWidget(self.chart, 1)
         self.kpi = w.table([], [])
         self.kpi.setMaximumHeight(118)
-        self.main.addWidget(self.kpi)
+        pl.addWidget(self.kpi)
+        self.views.addTab(page, T("dk_view_time"))
+        self.freq = FrequencyView()
+        self.views.addTab(self.freq, T("fq_title"))
+        self.main.addWidget(self.views, 1)
 
         # ---- pevný pruh: výpočet a stav
         self.b_calc = QPushButton("▶  " + T("dk_calc") + "  (F5)")
@@ -262,6 +271,7 @@ class TuningTab(Workspace):
         if self._result is None or self._result.get("model") != s.model:
             self._result = None
             self.chart.clear()
+            self.freq.clear()
             self.kpi.setRowCount(0)
             self.status.setText("ℹ️ " + T("dk_calc_hint"))
             self.status.setObjectName("")
@@ -557,6 +567,10 @@ class TuningTab(Workspace):
             has_d = True
         self.chart.set_row_visible(2, has_d)
         self.chart.full_range()
+        sets = [(T("set_1"), s.set_ctrl(1), w.C_SET1, True), (T("set_2"), s.set_ctrl(2), w.C_SET2, False)]
+        if self._last is not None:
+            sets.append((T("dk_sug_curve"), s.ctrl_of(self._last), C_SUG, False))
+        self.freq.update(s.model[0], s.model[1], sets)
         lo, hi = s.EP(-25.0), s.EP(125.0)            # mimo rozsah NormPV ± 25 % jen ujíždějící (nestabilní) průběh
         self.chart.fit_y(0, min(lo, hi), max(lo, hi))
         u_pv, u_mv = s.get("u_pv") or "PV", s.get("u_mv") or "MV"

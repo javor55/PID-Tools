@@ -229,3 +229,19 @@ def test_apc_decouple_and_override():
     tt, o, o0 = override.simulate(a, b2, step, lim, "min")
     k = override.kpis(a, b2, o, o0, "min")
     assert 0 <= k["share"] <= 1 and isinstance(override.active_spans(o["ACT"]), list)
+
+
+def test_frequency_analysis():
+    """Rezervy z Bodeho diagramu odpovídají core.robustness; fáze bez skoků i při velkém zpoždění."""
+    from pidtools.app import frequency as fq
+    from pidtools.core import robustness
+    c = dict(SampleTime=1.0, Gain=2.0, TI=30.0, TD=0.0, DiffGain=5.0, PVFilt=0.0)
+    r = fq.response("P1D", [1.0, 30.0, 5.0], c)
+    rb = robustness("P1D", [1.0, 30.0, 5.0], c)
+    assert r["Ms"] == pytest.approx(rb["Ms"]) and r["stable"]
+    assert np.max(np.abs(r["S"])) == pytest.approx(rb["Ms"], rel=0.02)
+    i = np.argmin(np.abs(np.abs(r["L"]) - 1))                  # fáze v řezu → PM
+    assert 180 + r["phase_deg"][i] == pytest.approx(rb["PM"], abs=2)
+    slow = fq.response("P2D", [256, 2297, 2297, 658], dict(c, Gain=0.002, TI=3000.0))
+    assert np.all(np.diff(slow["phase_deg"]) <= 1e-9)           # monotónní (zpoždění odečteno analyticky)
+    assert fq.bandwidth(r) and fq.phase_floor({"a": slow}) >= -740

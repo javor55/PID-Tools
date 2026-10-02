@@ -103,6 +103,16 @@ class ChartBox(QWidget):
             p.clear = self._keeping(p, p.clear)
         self._proxy = pg.SignalProxy(self.lw.scene().sigMouseMoved, rateLimit=30, slot=self._moved)
         self._dlg = None
+        self.logx, self.xname = False, "t"
+
+    def set_logx(self, name="ω"):
+        """Logaritmická osa x (kmitočet); kurzory a odečet hodnot pracují ve skutečných jednotkách."""
+        self.logx, self.xname = True, name
+        for p in self.plots:
+            p.setLogMode(x=True, y=False)
+
+    def _x(self, v):
+        return 10 ** v if self.logx else v
 
     # ---- jako PlotWidget (jeden graf)
     def __getattr__(self, name):
@@ -176,10 +186,10 @@ class ChartBox(QWidget):
             ln.setPos(t)
             ln.setVisible(True)
         if not self.b_meas.isChecked():
-            self.readout.setText(self._values(t))
+            self.readout.setText(self._values(self._x(t)))
 
     def _values(self, t):
-        parts = [f"t = {t:.4g}"]
+        parts = [f"{self.xname} = {t:.4g}"]
         for p in self.plots:
             for name, x, y in _curves(p):
                 v = _at(x, y, t)
@@ -222,7 +232,7 @@ class ChartBox(QWidget):
         """(t1, t2, [(křivka, y1, y2)]) měřicích kurzorů, nebo None."""
         if len(self.meas) != 2:
             return None
-        t1, t2 = self.meas[0][0].value(), self.meas[1][0].value()
+        t1, t2 = self._x(self.meas[0][0].value()), self._x(self.meas[1][0].value())
         rows = []
         for p in self.plots:
             for name, x, y in _curves(p):
@@ -234,7 +244,9 @@ class ChartBox(QWidget):
         if m is None:
             return
         t1, t2, rows = m
-        parts = [f"t₁ = {t1:.4g}", f"t₂ = {t2:.4g}", f"Δt = {t2 - t1:.4g}"]
+        x = self.xname
+        parts = [f"{x}₁ = {t1:.4g}", f"{x}₂ = {t2:.4g}"] + ([f"{x}₂/{x}₁ = {t2 / t1:.4g}"] if self.logx and t1
+                                                         else [f"Δ{x} = {t2 - t1:.4g}"])
         for name, a, b in rows:
             if a is not None and b is not None:
                 parts.append(f"Δ{name} = {_f(b - a)}")

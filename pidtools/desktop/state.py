@@ -410,12 +410,8 @@ class LoopState(Scaling):
     @property
     def scen_kind(self):
         """Druh scénáře (scenario.PRESETS); bez volby: vlastní události, jsou-li uložené (projekt z webu), jinak skok SP."""
-        k = self.get("scen_kind")
-        if k in scn.PRESETS and (k not in ("meas", "replay") or self.c_d):
-            return k
-        if k is None and self.get("scen2") == "replay" and self.c_d:
-            return "replay"
-        return "custom" if self.settings.get(self.scen_key) else "sp"
+        return scn.preset_kind(self.get("scen_kind"), self.get("scen2"), bool(self.settings.get(self.scen_key)),
+                               bool(self.c_d))
 
     def set_scen_kind(self, kind):
         self.set(scen_kind=kind, scen2="replay" if kind == "replay" else "custom")
@@ -424,13 +420,7 @@ class LoopState(Scaling):
         """Amplitudy poruch předvoleb: (vstup [MV], výstup [PV], [měřené poruchy])."""
         d_in = float(self.get("scen_d_in") or round(0.05 * self.MR, 4))
         d_pv = float(self.get("scen_d_pv") or round(0.05 * self.PR, 4))
-        meas = []
-        if self.c_d and self.has_data:
-            _, _, _, d = self.segment()
-            for x in d:
-                x = np.asarray(x, float)
-                r = np.nanmax(x) - np.nanmin(x) if np.isfinite(x).any() else 0.0
-                meas.append(float(f"{0.5 * r:.3g}") if r > 0 else 1.0)
+        meas = scn.meas_amps(self.segment()[3]) if self.c_d and self.has_data else []
         return d_in, d_pv, meas
 
     def scen_rows(self, T_end):

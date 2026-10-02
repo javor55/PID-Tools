@@ -11,6 +11,11 @@ WRAPPER = os.path.join(os.path.dirname(__file__), "_app_wrapper.py")
 TIMEOUT = 900
 
 
+def _main(at):
+    """Hlavní záložky aplikace (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
+    return [t for t in at.tabs if t.label[:1].isdigit()]
+
+
 def _ok(at):
     exc = [x.message for x in at.exception]
     errs = [e.value for e in at.error if "Set 1" not in e.value]
@@ -79,14 +84,14 @@ def test_cascade_inner_from_other_loop(two_loops):
 
 def test_project_roundtrip_two_loops(two_loops):
     at, mcode1 = two_loops
-    at.session_state["main_tab"] = [t.label for t in at.tabs][5]
+    at.session_state["main_tab"] = [t.label for t in _main(at)][5]
     at.run()
     proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
     _button(at, "Create report").click().run()
     _ok(at)
     rep = at.session_state["report_html"]
     assert "LIC101" in rep and "FIC100" in rep                       # report pokrývá všechny smyčky
-    at.session_state["main_tab"] = [t.label for t in at.tabs][0]
+    at.session_state["main_tab"] = [t.label for t in _main(at)][0]
     at.run()
     assert len(proj["loops"]) == 2 and proj["active"] == 1
     assert [r["tag"] for r in proj["loops"]] == ["LIC101", "FIC100"]
