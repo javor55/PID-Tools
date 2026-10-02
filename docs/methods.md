@@ -83,8 +83,11 @@ Ideal (parallel) form, identical to PIDConL:
   MV = Gain · ( e + 1/TI · ∫e dt + TD · de/dt )
 
 - The D action is filtered with the time constant TD / DiffGain.
-- Optional **P on feedback** and **D on feedback** (acting on PV only, not on SP steps) – a smaller MV kick on SP
-  changes.
+- **PropFacSP** – setpoint weight of the P action as in PIDConL: P = Gain · (PropFacSP · e − (1 − PropFacSP) · PV).
+  1 = P on the error (standard), 0 = P from PV only (no MV kick on SP steps), values in between are a compromise.
+  It does not change disturbance rejection or stability.
+- Optional **D on feedback** (DiffToFbk = 1, D from PV only) – no derivative kick on SP steps.
+- The D action takes the control error after the deadband (DiffToFbk = 0), as in the block diagram.
 - Deadband (continuous or step), MV limits with anti-windup, MV rate limit, SP ramp, PV filter, control zone
   (ConZone), feedforward (FFwd) and bumpless switching.
 - **SampleTime**: a discrete controller adds roughly half a period to the dead time – the proposals take this into
@@ -139,7 +142,7 @@ second time constant. D amplifies noise – the app shows the MV noise.
 ## Optimization
 
 Numerical search for Gain, TI (and TD) directly on the model, **taking the actual block into account** (SampleTime,
-DiffGain, P/D on feedback, PV filter, MV rate) and always with the robustness constraint **Ms ≤ target** (plus
+DiffGain, PropFacSP, D on feedback, PV filter, MV rate) and always with the robustness constraint **Ms ≤ target** (plus
 Mt ≤ target, for PID TD ≤ TI/4, optionally an MV noise limit).
 
 | Criterion | What it minimizes | When |

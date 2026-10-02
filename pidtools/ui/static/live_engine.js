@@ -45,7 +45,9 @@
     this.Tc = this.m * h;
     this.lo = num(ctrl.MV_Lo, -Infinity); this.hi = num(ctrl.MV_Hi, Infinity);
     this.db = num(ctrl.DeadBand, 0); this.dbm = num(ctrl.DbMode, "spojité");
-    this.pfb = !!ctrl.PropFbk; this.dfb = !!ctrl.DiffFbk;
+    this.b = (ctrl.PropFacSP === undefined || ctrl.PropFacSP === null) ? (ctrl.PropFbk ? 0 : 1)
+      : Math.min(Math.max(ctrl.PropFacSP, 0), 1);
+    this.dfb = !!ctrl.DiffFbk;
     this.Tpv = num(ctrl.PVFilt, 0) || 0;
     this.apv = this.Tpv > 0 ? Math.exp(-h / this.Tpv) : 0;
     this.rate = num(ctrl.MVRate, 0) || 0; this.sprate = num(ctrl.SPRate, 0) || 0;
@@ -58,7 +60,7 @@
     this.useI = Ti !== null && isFinite(Ti) && Ti > 0;
     this.Tf = Td > 0 ? Td / this.N : 0;
   };
-  PIDConL.prototype.pTerm = function (e) { return this.pfb ? this.Kc * (-this.yf) : this.Kc * e; };
+  PIDConL.prototype.pTerm = function (e) { return this.Kc * (this.b * e - (1 - this.b) * this.yf); };
   PIDConL.prototype.init = function (sp, y, u0) {
     this.yf = y; this.spr = sp;
     var e = deadband(this.spr - this.yf, this.db, this.dbm);

@@ -26,3 +26,4 @@ from .diagnostics import (oscillation, stiction_ccf, valve_hysteresis, harris_in
                           data_quality, find_segments, local_gains, step_plan)
 from .gainsched import gs_table, gs_er_table, gs_interp, gs_issues, SchedPlant, gs_sim, settled, best_conzone
 from .demo import demo_data
+from .util import propfac

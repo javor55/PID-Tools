@@ -95,7 +95,7 @@ def render_body(ctx):
                         si = cache.opt_migo(ci_, tuple(p_i), "PI", samp_i, diffgain, 1.6, None, ((r0["Kc"], r0["Ti"], 0.0),))
                     st.caption(T("mdesc_" + im) + (f" {T('cdesc_MIGO')}" if im == "OPT" else ""))
                     ictrl = dict(Gain=si["Kc"], TI=si["Ti"], TD=0.0, DiffGain=diffgain, SampleTime=samp_i, MV_Lo=0.0,
-                                 MV_Hi=100.0, PropFbk=False, DiffFbk=True)
+                                 MV_Hi=100.0, PropFacSP=1.0, DiffFbk=True)
                     # efektivní časová konstanta uzavřené vnitřní smyčky ze simulace skoku SP
                     Tsim = 30 * (p_i[-1] + sum(p_i[1:-1]) + samp_i)
                     hi_ = samp_i / max(1, min(10, int(6000 * samp_i / Tsim)))

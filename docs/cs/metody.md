@@ -80,8 +80,11 @@ Ideální (paralelní) tvar shodný s PIDConL:
   MV = Gain · ( e + 1/TI · ∫e dt + TD · de/dt )
 
 - D složka je filtrovaná časovou konstantou TD / DiffGain.
-- Volitelně **P ze zpětné vazby** a **D ze zpětné vazby** (působí jen na PV, ne na skok SP) – menší ráz MV
-  při změně SP.
+- **PropFacSP** – váha žádané hodnoty v P složce jako v PIDConL: P = Gain · (PropFacSP · e − (1 − PropFacSP) · PV).
+  1 = P z odchylky (standard), 0 = P jen z PV (bez rázu MV při skoku SP), mezihodnoty jsou kompromis.
+  Na potlačení poruch ani stabilitu vliv nemá.
+- Volitelně **D ze zpětné vazby** (DiffToFbk = 1, D jen z PV) – bez derivačního rázu při skoku SP.
+- D složka bere regulační odchylku za deadbandem (DiffToFbk = 0), jako v blokovém schématu.
 - Deadband (spojitý nebo skokový), limity MV s anti-windupem, omezení rychlosti MV, rampa SP, filtr PV, řídicí
   pásmo (ConZone), dopředná vazba (FFwd) a bezrázové přepínání.
 - **SampleTime**: diskrétní regulátor přidává zhruba polovinu periody k dopravnímu zpoždění – návrhy s tím počítají
@@ -133,7 +136,7 @@ kompenzuje druhou časovou konstantu. D zesiluje šum – aplikace ukazuje šum 
 ## Optimalizace
 
 Numerické hledání Gain, TI (a TD) přímo na modelu se **zohledněním skutečného bloku** (SampleTime, DiffGain,
-P/D ze zpětné vazby, filtr PV, rychlost MV) a vždy s podmínkou robustnosti **Ms ≤ cíl** (a Mt ≤ cíl, u PID
+PropFacSP, D ze zpětné vazby, filtr PV, rychlost MV) a vždy s podmínkou robustnosti **Ms ≤ cíl** (a Mt ≤ cíl, u PID
 TD ≤ TI/4, volitelně limit šumu MV).
 
 | Kritérium | Co minimalizuje | Kdy |

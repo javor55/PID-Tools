@@ -36,7 +36,10 @@ def render_block(ctx):
             q = st.columns(4, vertical_alignment="bottom")
             ctx.mvl_lo = num("MV_LoLim", "mvl_lo", ctx.mv_lo, q[0], help=T("h_mvlim"))
             ctx.mvl_hi = num("MV_HiLim", "mvl_hi", ctx.mv_hi, q[1], help=T("h_mvlim"))
-            ctx.pfb = q[2].toggle(T("pfb"), key="pfb", help=T("pfb_help"))
+            if "propfac" not in ss:      # starší projekty: přepínač „P ve zpětné vazbě“ → PropFacSP 0 / 1
+                ss["propfac"] = 0.0 if ss.get("pfb") else 1.0
+            ctx.propfac = num("PropFacSP", "propfac", 1.0, q[2], min_value=0.0, max_value=1.0, step=0.1,
+                              format="%.2g", help=T("pfb_help"))
             if "dfb" not in ss:
                 ss["dfb"] = True
             ctx.dfb = q[3].toggle(T("dfb"), key="dfb", help=T("h_dfb"))
@@ -47,11 +50,11 @@ def render_block(ctx):
                            help=T("h_mvrate"))
             sprate_e = num(T("sprate", u=ctx.u_pv or "PV"), "sprate", 0.0, q[2], min_value=0.0, format="%.4g",
                            help=T("h_sprate"))
-    ctx.base_ctrl = dict(SampleTime=ctx.samp, DiffGain=ctx.diffgain, PropFbk=ctx.pfb, DiffFbk=ctx.dfb,
+    ctx.base_ctrl = dict(SampleTime=ctx.samp, DiffGain=ctx.diffgain, PropFacSP=ctx.propfac, DiffFbk=ctx.dfb,
                          DeadBand=db_e / ctx.PR * 100, DbMode="spojité" if db_mode == "cont" else "skokové",
                          MV_Lo=float(ctx.M(ctx.mvl_lo)), MV_Hi=float(ctx.M(ctx.mvl_hi)), PVFilt=ctx.pvfilt,
                          MVRate=mvrate_e / ctx.MR * 100, SPRate=sprate_e / ctx.PR * 100)
-    ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p="✓" if ctx.pfb else "✗",
+    ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p=f"{ctx.propfac:g}",
                           d="✓" if ctx.dfb else "✗", g=f"{ss.get('set1_gain', 1.0):.4g}",
                           ti=f"{ss.get('set1_ti', 100.0):.4g}", td=f"{ss.get('set1_td', 0.0):.4g}")
 
@@ -109,7 +112,7 @@ def _norm_section(ctx):
 
 def render(ctx):
     """Záložka Ladění: doporučení D, metody, sady parametrů, porovnání metod, dopředná vazba, scénář a simulace."""
-    H, base_ctrl, c_d, d_id, dfb, diffgain, dists, has_sp, model, model_stic, mv_hi, mv_id, mv_lo, pfb, plant, pv_hi, pv_id, pv_lo, pvfilt, samp, sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, ts_id, u_mv, u_pv, unc_models = ctx.H, ctx.base_ctrl, ctx.c_d, ctx.d_id, ctx.dfb, ctx.diffgain, ctx.dists, ctx.has_sp, ctx.model, ctx.model_stic, ctx.mv_hi, ctx.mv_id, ctx.mv_lo, ctx.pfb, ctx.plant, ctx.pv_hi, ctx.pv_id, ctx.pv_lo, ctx.pvfilt, ctx.samp, ctx.sel_mask, ctx.set1_ctrl, ctx.set2_ctrl, ctx.sigma_pv, ctx.sp, ctx.ts_id, ctx.u_mv, ctx.u_pv, ctx.unc_models
+    H, base_ctrl, c_d, d_id, dfb, diffgain, dists, has_sp, model, model_stic, mv_hi, mv_id, mv_lo, propfac, plant, pv_hi, pv_id, pv_lo, pvfilt, samp, sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, ts_id, u_mv, u_pv, unc_models = ctx.H, ctx.base_ctrl, ctx.c_d, ctx.d_id, ctx.dfb, ctx.diffgain, ctx.dists, ctx.has_sp, ctx.model, ctx.model_stic, ctx.mv_hi, ctx.mv_id, ctx.mv_lo, ctx.propfac, ctx.plant, ctx.pv_hi, ctx.pv_id, ctx.pv_lo, ctx.pvfilt, ctx.samp, ctx.sel_mask, ctx.set1_ctrl, ctx.set2_ctrl, ctx.sigma_pv, ctx.sp, ctx.ts_id, ctx.u_mv, ctx.u_pv, ctx.unc_models
     EM, EP, MR, PR, lab_mv, lab_pv, lab_t = ctx.EM, ctx.EP, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv, ctx.lab_t
     with ctx.tabs["tuning"]:
         if model is None:
@@ -172,7 +175,7 @@ def render(ctx):
                     sp_amp, d_amp = (sb["sp_amp"], sb["d_amp"]) if sb else (5.0, 5.0)
                     tg_lin = "both" if tgt_ == "scen" else tgt_
                     lin = cache.opt_time(mcode, tuple(p), ct, samp, diffgain, crit_, tg_lin, ms_, hf_, tuple(starts), robust_set,
-                                      ovs_, pfb, dfb, pvfilt, base_ctrl["MVRate"], sp_amp, d_amp)
+                                      ovs_, propfac, dfb, pvfilt, base_ctrl["MVRate"], sp_amp, d_amp)
                     if tgt_ != "scen":
                         return lin
                     if sb is None:

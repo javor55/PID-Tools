@@ -15,7 +15,8 @@ a guide with concrete values for your loop – this is an overview.
 | Controller range **NormPV / NormMV** | scaling ranges of PV and MV of the block | must match the block – Gain is scaled by them |
 | **Gain, TI, TD** (Set 2) | Gain, TI, TD | ideal form, Gain dimensionless; negative Gain = reverse action |
 | **DiffGain** | DiffGain (faceplate *Derivative gain*) | D filter TD/DiffGain |
-| **P / D on feedback** | PropFacSP = 0 / DiffToFbk = 1 (otherwise PropFacSP = 1, DiffToFbk = 0) | P or D from PV only – smaller MV kick on SP changes |
+| **PropFacSP** | PropFacSP | setpoint weight of the P action 0–1 (1 = P on error, 0 = P from PV only) – same value |
+| **D on feedback** | DiffToFbk = 1 (otherwise 0) | D from PV only – no derivative kick on SP changes |
 | **SampleTime** | cycle of the OB the block runs in | the proposals take it into account |
 | **MV_LoLim / MV_HiLim** | MV_LoLim / MV_HiLim | in MV units |
 | **Deadband** | DeadBand | in PV units |

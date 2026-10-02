@@ -13,7 +13,7 @@ import numpy as np
 import streamlit as st
 
 from .. import __version__
-from ..core import MODELS, iae, pidconl_sim_full, predict, robustness
+from ..core import MODELS, iae, pidconl_sim_full, predict, propfac, robustness
 from ..i18n import T
 from . import loops
 from .charts import mkfig, tr
@@ -114,7 +114,7 @@ def _param_rows(r):
     mv = lambda x: r["mv_rng"][0] + x * MR / 100  # noqa: E731
     rows = [("Gain", c1["Gain"], c2["Gain"], ""), ("TI", _ti(c1), _ti(c2), "s"), ("TD", c1.get("TD", 0.0), c2.get("TD", 0.0), "s")]
     blk = [("DiffGain", c2.get("DiffGain"), ""), ("SampleTime", c2.get("SampleTime"), "s"),
-           (T("rp_pfb"), 0.0 if c2.get("PropFbk") else 1.0, ""), (T("rp_dfb"), 1 if c2.get("DiffFbk") else 0, ""),
+           ("PropFacSP", propfac(c2), ""), ("DiffToFbk", 1 if c2.get("DiffFbk") else 0, ""),
            ("DeadBand", c2.get("DeadBand", 0.0) * PR / 100 if c2.get("DeadBand") is not None else None, r["u_pv"] or "PV"),
            ("MV_LoLim", mv(c2["MV_Lo"]) if c2.get("MV_Lo") is not None else None, r["u_mv"]),
            ("MV_HiLim", mv(c2["MV_Hi"]) if c2.get("MV_Hi") is not None else None, r["u_mv"]),

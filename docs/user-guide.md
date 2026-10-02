@@ -99,7 +99,8 @@ is needed. A change of the controller range only rescales the model.
 1. **PIDConL block** – configure exactly as in PCS 7:
    - **Controller range NormPV / NormMV** – the range of the block, not of the data (e.g. 0–300 °C). Gain is
      dimensionless (error in % of NormPV, MV in % of NormMV), so it depends directly on the range;
-   - SampleTime (OB cycle), DiffGain, P and D on feedback (from PV only), deadband, MV limits;
+   - SampleTime (OB cycle), DiffGain, PropFacSP (setpoint weight of P, 0–1), D on feedback (DiffToFbk), deadband,
+     MV limits;
    - loop elements: PV filter, MV rate, SP ramp.
 2. **D-action recommendation** – from the ratio of dead time and time constants (PI vs. PID).
 3. **Method** – SIMC, iSIMC, Lambda, AMIGO, averaging, optimization (see [Methods](methods.md)).

@@ -163,3 +163,20 @@ def test_pidconl_d_action_after_deadband():
     rng = np.random.default_rng(0)
     u = [c.step(50.0, 50.0 + rng.uniform(-0.9, 0.9)) for _ in range(50)]
     assert np.allclose(u, 40.0)
+
+
+def test_propfacsp_setpoint_weight():
+    """PropFacSP jako v PIDConL: skok MV při skoku SP = Gain·PropFacSP·ΔSP; odezva na poruchu na PropFacSP nezávisí;
+    lineární polynomy odpovídají simulaci krok po kroku."""
+    from pidtools.core.simulation import PIDConL
+    for b in (0.0, 0.4, 1.0):
+        c = PIDConL(dict(Gain=2.0, TI=np.inf, TD=0.0, DiffGain=5.0, SampleTime=1.0, PropFacSP=b), 1.0)
+        c.init(50.0, 50.0, 40.0)
+        assert c.step(55.0, 50.0) == pytest.approx(40.0 + 2.0 * b * 5.0)
+    p = [1.5, 30.0, 4.0]
+    ctrl = dict(Gain=1.2, TI=35.0, TD=0.0, DiffGain=5.0, SampleTime=1.0)
+    e_d = [core.closed_loop_steps("P1D", p, dict(ctrl, PropFacSP=b), 1.0, 300)[1] for b in (0.0, 0.5, 1.0)]
+    assert np.allclose(e_d[0], e_d[1]) and np.allclose(e_d[1], e_d[2])
+    e_sp = [core.closed_loop_steps("P1D", p, dict(ctrl, PropFacSP=b), 1.0, 300)[0] for b in (0.0, 0.5, 1.0)]
+    assert e_sp[0][5] > e_sp[1][5] > e_sp[2][5]        # menší váha SP → pomalejší náběh PV, větší odchylka
+    assert core.propfac(dict(PropFbk=True)) == 0.0 and core.propfac({}) == 1.0

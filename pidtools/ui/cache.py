@@ -26,10 +26,10 @@ def opt_migo(code, p, ctype, samp, dg, ms, hf, starts, extra=(), pvf=0.0):
 
 
 @st.cache_data(show_spinner=False, max_entries=128)
-def opt_time(code, p, ctype, samp, dg, crit, target, ms, hf, starts, extra=(), ovs=0.02, pfb=False, dfb=True,
+def opt_time(code, p, ctype, samp, dg, crit, target, ms, hf, starts, extra=(), ovs=0.02, pfac=1.0, dfb=True,
              pvf=0.0, rate=0.0, sp_amp=1.0, d_amp=1.0):
     return core.optimize_time(code, list(p), ctype, samp, dg, crit, target, ms, hf, starts, [list(e) for e in extra],
-                              ovs, pfb, dfb, pvf, rate, sp_amp, d_amp)
+                              ovs, pfac, dfb, pvf, rate, sp_amp, d_amp)
 
 
 @st.cache_data(show_spinner=False, max_entries=32)

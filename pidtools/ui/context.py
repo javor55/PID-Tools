@@ -63,7 +63,7 @@ class Ctx:
     # ---- blok PIDConL
     samp: float = 1.0
     diffgain: float = 5.0
-    pfb: bool = False
+    propfac: float = 1.0
     dfb: bool = True
     pvfilt: float = 0.0
     mvl_lo: float = 0.0

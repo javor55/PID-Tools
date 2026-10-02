@@ -26,7 +26,7 @@ _LV_KEYS = ("compare", "advanced", "sec_tune", "apply", "revert", "tune_hint", "
 
 def _ctrl_js(c):
     """Parametry regulátoru pro JS (nekonečno → null, jen potřebné klíče)."""
-    keys = ("Gain", "TI", "TD", "DiffGain", "SampleTime", "PropFbk", "DiffFbk", "DeadBand", "DbMode", "MV_Lo",
+    keys = ("Gain", "TI", "TD", "DiffGain", "SampleTime", "PropFacSP", "PropFbk", "DiffFbk", "DeadBand", "DbMode", "MV_Lo",
             "MV_Hi", "PVFilt", "MVRate", "SPRate")
     out = {}
     for k in keys:

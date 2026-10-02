@@ -5,7 +5,7 @@ from scipy.signal import lfilter
 from .models import MODELS
 from .robustness import loop_tf, is_stable, _freq_grid, hf_gain
 from .simulation import pidconl_sim_full
-from .util import padd as _padd
+from .util import padd as _padd, propfac
 
 def _series_to_ideal(Kc, Ti, Td):
     if Td <= 0:
@@ -289,7 +289,7 @@ def _ctrl_poly(ctrl, h):
     cf = Tf / (Tf + h) if Td > 0 else 0.0
     Ki = Kc * h / Ti if (Ti and np.isfinite(Ti) and Ti > 0) else 0.0
     Kd = Kc * Td / (Tf + h) if Td > 0 else 0.0
-    beta = 0.0 if ctrl.get("PropFbk") else 1.0
+    beta = propfac(ctrl)
     gam = 0.0 if ctrl.get("DiffFbk") else 1.0
     d1 = np.convolve([1.0, -1.0], [1.0, -cf])
     d2 = np.convolve([1.0, -1.0], [1.0, -1.0])
@@ -348,7 +348,7 @@ def overshoot_ratio(e):
 
 
 def optimize_time(code, p, ctype, Ts_ctrl, diffgain=5.0, crit="IAE", target="both", Ms_max=1.6, hf_max=None,
-                  starts=(), extra_ps=(), ovs_lim=0.02, pfb=False, dfb=True, pvf=0.0, rate=0.0, sp_amp=1.0, d_amp=1.0):
+                  starts=(), extra_ps=(), ovs_lim=0.02, pfac=1.0, dfb=True, pvf=0.0, rate=0.0, sp_amp=1.0, d_amp=1.0):
     """
     Optimalizace parametrů podle časového kritéria odezvy (IAE, ISE, ITAE nebo IAE s limitem překmitu „OVS“)
     na skok SP, skok poruchy na vstupu procesu nebo obojí. Vždy s podmínkou robustnosti Ms (a Mt) ≤ Ms_max,
@@ -364,7 +364,7 @@ def optimize_time(code, p, ctype, Ts_ctrl, diffgain=5.0, crit="IAE", target="bot
     Th = max(40 * (th + Tsum + Ts_ctrl), 8 * Ti_s, 200 * Ts_ctrl)
     h = max(Ts_ctrl, Th / 8000)
     n = int(Th / h) + 1
-    base = dict(DiffGain=diffgain, SampleTime=Ts_ctrl, PropFbk=pfb, DiffFbk=dfb, PVFilt=pvf)
+    base = dict(DiffGain=diffgain, SampleTime=Ts_ctrl, PropFacSP=pfac, DiffFbk=dfb, PVFilt=pvf)
     w = _freq_grid(code, p, dict(base, TI=1.0), n=1200)
     rate_state = {"du": 0.0}
 

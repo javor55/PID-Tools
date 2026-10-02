@@ -95,7 +95,8 @@ Změna rozsahu regulátoru model jen přepočítá.
 1. **Blok PIDConL** – nastavte přesně jako v PCS 7:
    - **Rozsah regulátoru NormPV / NormMV** – rozsah bloku, ne rozsah dat (např. 0–300 °C). Gain je bezrozměrný
      (odchylka v % NormPV, MV v % NormMV), takže na rozsahu přímo závisí;
-   - SampleTime (cyklus OB), DiffGain, P a D ze zpětné vazby (jen z PV), deadband, limity MV;
+   - SampleTime (cyklus OB), DiffGain, PropFacSP (váha SP v P složce, 0–1), D ze zpětné vazby (DiffToFbk),
+     deadband, limity MV;
    - prvky smyčky: filtr PV, rychlost MV, rampa SP.
 2. **Doporučení D složky** – podle poměru zpoždění a časových konstant (PI vs. PID).
 3. **Metoda** – SIMC, iSIMC, Lambda, AMIGO, průměrovací, optimalizace (viz [Metody](metody.md)).

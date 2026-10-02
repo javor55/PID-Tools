@@ -15,7 +15,8 @@ s konkrétními hodnotami pro vaši smyčku – tady je přehled.
 | Rozsah regulátoru **NormPV / NormMV** | normovací rozsahy PV a MV bloku | musí odpovídat bloku – podle nich se přepočítává Gain |
 | **Gain, TI, TD** (Set 2) | Gain, TI, TD | ideální tvar, Gain bezrozměrný; záporný Gain = opačný smysl působení |
 | **DiffGain** | DiffGain (faceplate *Derivative gain*) | filtr D složky TD/DiffGain |
-| **P / D ze zpětné vazby** | PropFacSP = 0 / DiffToFbk = 1 (jinak PropFacSP = 1, DiffToFbk = 0) | P nebo D jen z PV – menší ráz MV při změně SP |
+| **PropFacSP** | PropFacSP | váha SP v P složce 0–1 (1 = P z odchylky, 0 = P jen z PV) – stejná hodnota |
+| **D ze zpětné vazby** | DiffToFbk = 1 (jinak 0) | D jen z PV – bez derivačního rázu při změně SP |
 | **SampleTime** | cyklus OB, ve kterém blok běží | návrhy s ním počítají |
 | **MV_LoLim / MV_HiLim** | MV_LoLim / MV_HiLim | v jednotkách MV |
 | **Deadband** | DeadBand | v jednotkách PV |
