@@ -8,27 +8,30 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SP
 from ...widgets import num, seg
 from . import guide
+from ...layout import section
 from ....app.apc import override as aov
 from ....app import guides as app_guides
 from .common import C_B, C_REF, active_model, eng, lab, override_sim_c
 
 
 # ---------------------------------------------------------------- override
-def override_render(ctx, bi, b):
+def override_render(ctx, bi, b, ws):
     a = active_model(ctx)
     same = b["c_mv"] == a["c_mv"]
     checks = app_guides.apc_override(a, b, bi)
-    guide_ph = st.container()   # průvodce nahoře, vyplní se až se známou mezí
+    guide_ph = ws.main.container()   # průvodce nahoře, vyplní se až se známou mezí
     if not same:
-        st.warning(T("ov_mv_differs", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]), icon=":material/warning:")
-    c1, c2, c3 = st.columns([1.2, 1, 1], vertical_alignment="bottom")
-    sel = seg(c1, T("ov_select"), ["min", "max"], "min", "apc_ov_sel", format_func=lambda x: T("ov_" + x),
-              help=T("h_ov_select")) or "min"
-    step_def, lim_def = aov.defaults(a, b, sel)
-    step_a = num(T("ov_step", n=a["name"], u=a["u_pv"] or "PV"), f"apc_ov_step|{sel}", step_def, c2, format="%.4g",
-                 help=T("h_ov_step"))
-    lim = num(T("ov_limit", n=b["name"], u=b["u_pv"] or "PV"), f"apc_ov_lim|{b['name']}|{sel}", lim_def, c3,
-              format="%.4g", help=T("h_ov_limit"))
+        ws.main.warning(T("ov_mv_differs", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]),
+                        icon=":material/warning:")
+    with section(ws.side, T("ov_select"), "apc_ov_set", icon=":material/tune:"):
+        sel = seg(st, T("ov_select"), ["min", "max"], "min", "apc_ov_sel", format_func=lambda x: T("ov_" + x),
+                  help=T("h_ov_select")) or "min"
+        step_def, lim_def = aov.defaults(a, b, sel)
+        step_a = num(T("ov_step", n=a["name"], u=a["u_pv"] or "PV"), f"apc_ov_step|{sel}", step_def, format="%.4g",
+                     help=T("h_ov_step"))
+        lim = num(T("ov_limit", n=b["name"], u=b["u_pv"] or "PV"), f"apc_ov_lim|{b['name']}|{sel}", lim_def,
+                  format="%.4g", help=T("h_ov_limit"))
+        kbox = st.container()
     with guide_ph:
         guide.render("override", checks, T("g_impl_override", a=a["name"], b=b["name"], s=T("ov_" + sel),
                                            lim=f"{lim:.4g}", u=b["u_pv"] or ""))
@@ -36,7 +39,7 @@ def override_render(ctx, bi, b):
     n = len(tt)
     EA, EB, M = eng(a["pv_rng"]), eng(b["pv_rng"]), eng(a["mv_rng"])
 
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3 = kbox, kbox, kbox
     k_ = aov.kpis(a, b, o, o0, sel)
     m1.metric(T("ov_peak", n=b["name"]), f"{k_['peak']:.4g}",
               delta=f"{k_['peak_without'] - lim:+.3g} {T('ov_without')}", delta_color="off")
@@ -56,6 +59,7 @@ def override_render(ctx, bi, b):
     for s_, e_ in aov.active_spans(o["ACT"]):  # úseky, kdy řídí omezující regulátor
         for r in (1, 2, 3):
             f.add_vrect(x0=tt[s_], x1=tt[min(e_, n - 1)], fillcolor=C_B, opacity=0.08, line_width=0, row=r, col=1)
-    show(style(f, ctx.H + 120, [lab(a["name"], a["u_pv"]), lab(b["name"], b["u_pv"]), lab("MV", a["u_mv"])],
-               ctx.lab_t, rev="apc_ov"), key="chart_apc_ov", fname="override", report=T("apc_override"))
-    st.caption(T("ov_sim_help", b=b["name"]))
+    with ws.main:
+        show(style(f, ctx.H + 120, [lab(a["name"], a["u_pv"]), lab(b["name"], b["u_pv"]), lab("MV", a["u_mv"])],
+                   ctx.lab_t, rev="apc_ov"), key="chart_apc_ov", fname="override", report=T("apc_override"))
+        st.caption(T("ov_sim_help", b=b["name"]))

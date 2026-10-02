@@ -25,7 +25,7 @@ at.run()
 next(b for b in at.button if b.label == "Identify").click().run()
 errors = [x.message for x in at.exception]
 assert not errors, errors
-assert len(at.tabs) == 6 and "fit" in at.session_state
+assert len([t for t in at.tabs if t.label[:1].isdigit()]) == 7 and "fit" in at.session_state
 print("app ok:", at.session_state["mcode"])
 
 # ---- desktop application (if the package contains it): windows without a display, demo data

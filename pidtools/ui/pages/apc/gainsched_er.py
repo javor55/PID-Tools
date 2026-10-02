@@ -11,6 +11,7 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
 from ...widgets import num, sld
 from . import guide
+from ...layout import section
 from ....app import guides as app_guides
 from .recommend import rec_a
 from ....app.apc import gainsched as app_gs
@@ -32,17 +33,17 @@ def _k_max(code, p, ctrl, ms_lim=2.0):
     return app_gs.k_max(code, p, ctrl, ms_lim, cache.robustness)
 
 
-def gs_er_render(ctx):
+def gs_er_render(ctx, ws, g_ph):
     code, p = ctx.model[0], list(ctx.model[1])
     E, M_ = ctx.EP, ctx.EM
     set2 = clean(ctx.set2_ctrl)
     PR = ctx.PR
     kmax = _k_max(code, p, set2)
-    st.markdown(T("gs_er_intro"))
+    with section(ws.side, T("dk_sec_about"), "apc_gser_about", expanded=False):
+        st.markdown(T("gs_er_intro"))
 
-    with st.container(border=True):
-        st.markdown(f"**{T('gs_er_s1')}**")
-        c1, c2, c3 = st.columns(3)
+    with section(ws.side, T("gs_er_s1"), "apc_gser_s1", icon=":material/tune:"):
+        c1 = c2 = c3 = st
         e_u = num(T("gs_er_E", u=ctx.u_pv or "PV"), "gs_er_E", round(0.05 * PR, 6), c1, min_value=1e-9,
                   format="%.4g", help=T("h_gs_er_E"))
         k = sld(c2, T("gs_er_k"), 1.0, 6.0, float(min(2.0, max(kmax, 1.0))), "gs_er_k", step=0.25, help=T("h_gs_er_k"))
@@ -57,14 +58,15 @@ def gs_er_render(ctx):
             st.error(T("gs_er_unstable", k=f"{k:.2f}", m=f"{kmax:.2f}"), icon=":material/warning:")
 
     checks = app_guides.apc_gs_er(rec_a(ctx), ms_k)
-    guide.render("gs_er", checks, T("g_impl_gs_er", u=ctx.u_pv or "PV"))
+    with g_ph:
+        guide.render("gs_er", checks, T("g_impl_gs_er", u=ctx.u_pv or "PV"))
 
-    st.markdown(f"#### {T('gs_tab_title')}", help=T("h_gs_er_tab"))
-    st.dataframe(gs_frame(gs_er_tab(ctx)), hide_index=True)
+    with section(ws.side, T("gs_tab_title"), "apc_gser_tab", icon=":material/table:"):
+        st.dataframe(gs_frame(gs_er_tab(ctx)), hide_index=True)
 
     # ---- simulace: jedna sada / scheduling podle ER / řídicí pásmo
-    st.markdown(f"#### {T('gs_er_sim')}", help=T("h_gs_er_sim"))
-    s1, s2 = st.columns(2)
+    sec_sim = section(ws.side, T("gs_er_sim"), "apc_gser_sim", icon=":material/timeline:")
+    s1 = s2 = sec_sim
     sp_step = num(T("gs_er_spstep", u=ctx.u_pv or "PV"), "gs_er_spstep", round(0.2 * PR, 6), s1, format="%.4g",
                   help=T("h_gs_er_spstep"))
     d_mv = num(T("gs_er_d"), "gs_er_d", 10.0, s2, format="%.3g", help=T("h_gs_er_d"))
@@ -85,8 +87,9 @@ def gs_er_render(ctx):
         f.add_trace(tr(t, M_(oz["MV"]), T("gs_er_cz"), C_B, 1.4, "dashdot", show=False), 2, 1)
     f.add_trace(tr(tf, of["Gain"], T("gs_fixed"), C_SET1, 1.4, "dot", show=False), 3, 1)
     f.add_trace(tr(te, oe["Gain"], T("gs_er_sched"), C_SET2, 1.6, show=False), 3, 1)
-    show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gser"), key="chart_apc_gser",
-         fname="gainsched_er", report=T("gs_x_er"))
+    with ws.main:
+        show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gser"), key="chart_apc_gser",
+             fname="gainsched_er", report=T("gs_x_er"))
     PRf = PR / 100
 
     def kpi(name, o):
@@ -95,14 +98,14 @@ def gs_er_render(ctx):
                 T("gs_er_maxdev"): float(f"{q['maxdev']:.4g}"), T("gs_er_sat"): f"{100 * q['sat']:.0f} %",
                 T("gs_er_settled"): "✓" if q["settled"] else "✗"}
     kp = [kpi(T("gs_fixed"), of), kpi(T("gs_er_sched"), oe)] + ([kpi(T("gs_er_cz"), oz)] if oz is not None else [])
-    st.dataframe(pd.DataFrame(kp), hide_index=True)
+    ws.main.dataframe(pd.DataFrame(kp), hide_index=True)
     if cz:
-        st.caption(T("gs_er_cz_best", w=f"{cz * PRf:.4g}", u=ctx.u_pv or "PV"))
+        ws.main.caption(T("gs_er_cz_best", w=f"{cz * PRf:.4g}", u=ctx.u_pv or "PV"))
     else:
-        st.info(T("gs_er_cz_none"), icon=":material/info:")
-    with st.expander(T("gs_er_cz_scan"), icon=":material/table_rows:"):
+        ws.main.info(T("gs_er_cz_none"), icon=":material/info:")
+    with ws.main.expander(T("gs_er_cz_scan"), icon=":material/table_rows:"):
         st.dataframe(pd.DataFrame([{f"ConZone [{ctx.u_pv or 'PV'}]": float(f"{w * PRf:.4g}"),
                                     T("iae_sp") + " + " + T("iae_load"): round(v * PRf, 4),
                                     T("gs_er_settled"): "✓" if ok else "✗"} for w, v, ok in scan]), hide_index=True)
         st.caption(T("gs_er_cz_help"))
-    st.caption(T("gs_er_sim_help"))
+    ws.main.caption(T("gs_er_sim_help"))

@@ -33,7 +33,14 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 Streamlit reruns the script on every interaction. `ui/context.py` (`Ctx`) carries the data of one run between the
 tabs; widget state lives in the session state, several loops are snapshots of it (`ui/loops.py`). Pages read
 widgets, call `app` and draw the results. The live simulation runs in the browser (`ui/static/live_engine.js`, a
-port of `core/simulation.py`, checked against it by `tests/test_live_js.py`).
+port of `core/simulation.py`, checked against it by `tests/test_live_js.py`). Every tab uses the same layout as
+the desktop: `ui/layout.workspace()` splits it into the main area and the settings panel, `ui/layout.section()`
+adds a collapsible section whose state Streamlit keeps by key.
+
+Shared modules added for both frontends: `app.frequency` (Bode, Nyquist, sensitivity), `app.closedloop`
+(identification with the loop in AUTO), `app.audit` (loop overview), `app.apc.splitrange`, `app.apc.vpc`,
+`app.apc.ratio`, `app.apc.rgan` and `app.opc` (OPC UA, read only; optional dependency `asyncua`, part of
+`requirements-desktop.txt`, so the cloud deployment is unchanged).
 
 ## Desktop frontend (`pidtools/desktop`)
 

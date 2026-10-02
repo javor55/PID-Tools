@@ -12,6 +12,7 @@ from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET1, C_SET2, C_SP
 from ...widgets import seg, sld
 from . import guide
+from ...layout import section, workspace
 from ....app import guides as app_guides
 from .recommend import nl_spread, rec_a
 from ....app.apc import gainsched as app_gs
@@ -96,25 +97,28 @@ def gainsched_render(ctx):
         guide.render("gainsched", app_guides.apc_gainsched(rec_a(ctx), True), None)
         st.info(T("gs_integ"), icon=":material/info:")
         return
-    if (seg(st, T("gs_x"), ["pv", "er"], "pv", "gs_x", format_func=lambda x: T("gs_x_" + x), help=T("h_gs_x"))
-            or "pv") == "er":
-        gs_er_render(ctx)
+    ws = workspace()
+    with ws.main:
+        g_ph = st.container()
+    with section(ws.side, T("gs_x"), "apc_gs_x", icon=":material/swap_horiz:"):
+        x_mode = seg(st, T("gs_x"), ["pv", "er"], "pv", "gs_x", format_func=lambda x: T("gs_x_" + x),
+                     help=T("h_gs_x")) or "pv"
+    if x_mode == "er":
+        gs_er_render(ctx, ws, g_ph)
         return
     spread = nl_spread(ctx)
     pts_now = _gs_points()
 
     # ---- 1. pracovní body: úseky dat
-    with st.container(border=True):
-        st.markdown(f"**{T('gs_s1')}**")
+    with section(ws.side, T("gs_s1"), "apc_gs_s1", icon=":material/scatter_plot:"):
         st.caption(T("gs_s1_help"))
-        a1, a2 = st.columns([1, 3], vertical_alignment="bottom")
-        n = int(seg(a1, T("gs_n"), [2, 3], 3, "gs_n", help=T("h_gs_n")) or 3)
-        if a2.button(T("gs_auto"), icon=":material/auto_fix_high:", help=T("h_gs_auto")):
+        n = int(seg(st, T("gs_n"), [2, 3], 3, "gs_n", help=T("h_gs_n")) or 3)
+        if st.button(T("gs_auto"), icon=":material/auto_fix_high:", help=T("h_gs_auto")):
             for i, r in enumerate(_gs_auto(ctx, n)):
                 ss[f"gs_r{i + 1}"] = r
         ranges = _gs_ranges(ctx, n)
         step = float(ctx.Ts)
-        cols = st.columns(n)
+        cols = [st] * n
         for i in range(n):
             cols[i].slider(T("gs_point", i=i + 1), float(ctx.t[0]), float(ctx.t[-1]), key=f"gs_r{i + 1}", step=step,
                            format="%.0f s")
@@ -127,12 +131,13 @@ def gainsched_render(ctx):
                 f.add_vrect(x0=a, x1=b, fillcolor=C_PTS[i], opacity=0.12, line_width=0, row=r, col=1)
             f.add_annotation(x=(a + b) / 2, y=1.0, yref="paper", text=str(i + 1), showarrow=False,
                              font=dict(color=C_PTS[i], size=14))
-        show(style(f, max(ctx.H - 60, 320), [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_gs_seg"),
-             key="chart_apc_gs_seg", fname="gs_segments")
+        with ws.main:
+            show(style(f, max(ctx.H - 60, 320), [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_gs_seg"),
+                 key="chart_apc_gs_seg", fname="gs_segments")
         key = _gs_key(ctx, code, ranges)
         _gs_rescale(ss.get("gs_key"), key)
         pts_now = _gs_points()
-        b1, b2 = st.columns([1, 3], vertical_alignment="center")
+        b1 = b2 = st
         if b1.button(T("gs_fit"), type="primary", icon=":material/play_arrow:", width="stretch"):
             with st.spinner(T("gs_fitting")):
                 pts, err = _gs_fit(ctx, code, ranges)
@@ -155,18 +160,18 @@ def gainsched_render(ctx):
     if vals:
         _, tab, _ = vals
         impl = T("g_impl_gainsched", u=ctx.u_pv or "PV")
-    guide.render("gainsched", checks, impl)
-    if spread is not None:
-        (st.warning if spread > 1.5 else st.caption)(T("gs_spread", s=f"{spread:.1f}"))
+    with g_ph:
+        guide.render("gainsched", checks, impl)
+        if spread is not None:
+            (st.warning if spread > 1.5 else st.caption)(T("gs_spread", s=f"{spread:.1f}"))
     if len(pts) < 2:
         return
     for it in issues:
-        st.warning(T("gs_issue_" + it), icon=":material/warning:")
+        ws.main.warning(T("gs_issue_" + it), icon=":material/warning:")
 
     # ---- 2. modely a ladění v bodech
-    with st.container(border=True):
-        st.markdown(f"**{T('gs_s2')}**")
-        c1, c2, c3 = st.columns([1.3, 0.8, 2], vertical_alignment="bottom")
+    with section(ws.side, T("gs_s2"), "apc_gs_s2", icon=":material/tune:"):
+        c1 = c2 = c3 = st
         m = seg(c1, T("method"), ["SIMC", "AMIGO", "OPT"], "SIMC", "gs_m", format_func=lambda x: T("m_" + x)) or "SIMC"
         seg(c2, T("ctrl_type"), ["PI", "PID"], "PI", "gs_ct")
         if m == "SIMC":
@@ -189,17 +194,19 @@ def gainsched_render(ctx):
                          "Fit %": round(q["fit"], 1), "Gain": float(f"{q['gain']:.4g}"),
                          "TI": float(f"{q['ti']:.4g}"), "TD": float(f"{q['td']:.3g}"),
                          T("gs_ms_s"): ms(rb_s), T("gs_ms_2"): ms(rb_2)})
+    with ws.main:
+        st.markdown(f"**{T('gs_s2')}**")
         st.dataframe(pd.DataFrame(rows), hide_index=True)
         st.caption(T("gs_pts_help"))
 
     # ---- 3. hodnoty do bloku GainSched
-    st.markdown(f"#### {T('gs_tab_title')}", help=T("h_gs_tab"))
-    st.dataframe(gs_frame(tab), hide_index=True)
-    if filled:
-        st.caption(T("gs_filled"))
+    with section(ws.side, T("gs_tab_title"), "apc_gs_tab", icon=":material/table:"):
+        st.dataframe(gs_frame(tab), hide_index=True)
+        if filled:
+            st.caption(T("gs_filled"))
 
     # ---- 4. simulace: jedna sada vs. gain scheduling na nelineárním procesu
-    st.markdown(f"#### {T('gs_sim_title')}", help=T("h_gs_sim"))
+    ws.main.markdown(f"**{T('gs_sim_title')}**", help=T("h_gs_sim"))
     sim = app_gs.simulate_pv(code, pts, ctx.base_ctrl, set2, ctx.samp, gs_sim_c)
     t, sp = sim["t"], sim["sp"]
     tf, of = sim["fixed"]
@@ -212,11 +219,12 @@ def gainsched_render(ctx):
     f.add_trace(tr(ts_, M_(os_["MV"]), T("gs_sched"), C_SET2, 1.6, show=False), 2, 1)
     f.add_trace(tr(tf, of["Gain"], T("gs_fixed"), C_SET1, 1.4, "dot", show=False), 3, 1)
     f.add_trace(tr(ts_, os_["Gain"], T("gs_sched"), C_SET2, 1.6, show=False), 3, 1)
-    show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gs"), key="chart_apc_gs",
-         fname="gainsched", report=T("apc_gainsched"))
+    with ws.main:
+        show(style(f, ctx.H + 120, [ctx.lab_pv, ctx.lab_mv, "Gain"], ctx.lab_t, rev="apc_gs"), key="chart_apc_gs",
+             fname="gainsched", report=T("apc_gainsched"))
     PR = ctx.PR / 100
     kp = [{T("gs_step"): f"{E(x0):.4g} → {E(x):.4g}", T("gs_iae_fixed"): round(i_f * PR, 4),
            T("gs_iae_sched"): round(i_s * PR, 4), T("gs_ms_fixed"): ms_at.get(x, ("—",))[0],
            T("gs_ms_sched"): ms_at.get(x, ("—", "—"))[1]} for x0, x, i_f, i_s in sim["iae"]]
-    st.dataframe(pd.DataFrame(kp), hide_index=True)
-    st.caption(T("gs_sim_help"))
+    ws.main.dataframe(pd.DataFrame(kp), hide_index=True)
+    ws.main.caption(T("gs_sim_help"))

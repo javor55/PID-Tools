@@ -36,28 +36,33 @@ def render_setup(ctx):
     df = ctx.df
     with ctx.tabs["data"]:
         ctx.gph["data"] = st.container()
-        cols_exp = st.expander(T("cols_title"), expanded="fit" not in ss, icon=":material/table_chart:")
-        mc1, mc2 = cols_exp.columns([2.2, 1], gap="large")
+        ws = workspace()
+        with ws.main:
+            ws.m_top, ws.m_chart, ws.m_prev, ws.m_diag = st.container(), st.container(), st.container(), st.container()
+        sec_sig = section(ws.side, T("dk_sec_signals"), "data_sig", icon=":material/sensors:")
+        sec_units = section(ws.side, T("sb_units"), "data_units", icon=":material/straighten:")
+        sec_file = section(ws.side, T("dk_sec_file"), "data_file", expanded=False, icon=":material/table_chart:")
+        ws.diag = section(ws.side, T("dk_diag_tab").split("·")[-1].strip(), "data_diag", icon=":material/monitor_heart:")
+        ctx.dws = ws
     cols = list(df.columns)
     tcols = time_columns_cached(ctx.ckey, df)
 
-    with mc1:
-        st.markdown(f"**{T('cols_signals')}**")
-        r1 = st.columns([2.4, 1.3, 1], vertical_alignment="bottom")
+    with sec_file:
         layouts = ["wide", "pairs", "long"]
-        layout = seg(r1[0], T("layout"), layouts, default_layout(df), f"layout|{ctx.fname}",
+        layout = seg(st, T("layout"), layouts, default_layout(df), f"layout|{ctx.fname}",
                      format_func=lambda x: T("layout_" + x), help=T("h_layout")) or "wide"
         ctx.long_fmt = layout == "long"
-        time_fmt = sel(r1[1], T("time_fmt"), TIME_FORMATS, 0, "time_fmt", format_func=lambda x: T("tf_" + x),
+        r1 = st.columns(2, vertical_alignment="bottom")
+        time_fmt = sel(r1[0], T("time_fmt"), TIME_FORMATS, 0, "time_fmt", format_func=lambda x: T("tf_" + x),
                        help=T("h_time_fmt"))
-        time_unit = r1[2].selectbox(T("time_unit"), ["s", "ms", "min", "h"], help=T("time_unit_help"), key="time_unit")
+        time_unit = r1[1].selectbox(T("time_unit"), ["s", "ms", "min", "h"], help=T("time_unit_help"), key="time_unit")
         unit_mult = {"s": 1, "ms": 1e-3, "min": 60, "h": 3600}[time_unit]
-        r1b = st.columns([1.6, 1, 1.7], vertical_alignment="bottom")
+        r1b = st.columns(2, vertical_alignment="bottom")
         ts_manual = r1b[0].toggle(T("ts_manual"), key="ts_manual", help=T("h_ts_manual"))
         Ts_user = num(T("ts_data"), "ts_user", 1.0, r1b[1], min_value=0.001) if ts_manual else None
         try:
             if layout == "long":
-                r2 = st.columns(3)
+                r2 = st.columns(1) * 3
                 c_tag = sel(r2[0], T("col_tag"), cols, _guess(cols, ["tag", "name", "název", "variable"]), key="c_tag")
                 c_tim = sel(r2[1], T("col_time"), cols, _guess(cols, ["time", "čas", "cas", "timestamp"], 1),
                             key="c_tim_l")
@@ -88,18 +93,19 @@ def render_setup(ctx):
         except Exception as ex:
             st.error(T("err_data", ex=ex))
             st.stop()
+    with sec_sig:
         sigs, fname = ctx.sigs, ctx.fname
         if not sigs:
             st.error(T("err_data", ex=T("err_no_signals")))
             st.stop()
         g = guess_roles(sigs, ctx.get, loops.other_pvs())
-        r3 = st.columns(3)
+        r3 = st.columns(1) * 3
         ctx.c_pv = sel(r3[0], "PV", sigs, sigs.index(g["pv"]), key=f"c_pv|{fname}", help=T("h_pv"))
         ctx.c_mv = sel(r3[1], "MV", sigs, sigs.index(g["mv"]), key=f"c_mv|{fname}", help=T("h_mv"))
         sp_opts = ["—"] + sigs
         ctx.c_sp = sel(r3[2], T("col_sp"), sp_opts, sp_opts.index(g["sp"]) if g["sp"] else 0, key=f"c_sp|{fname}",
                        help=T("h_sp"))
-        r4 = st.columns([2, 1])
+        r4 = st.columns(1) * 2
         d_opts = [s_ for s_ in sigs if s_ not in (ctx.c_pv, ctx.c_mv, ctx.c_sp)]
         ctx.c_d = r4[0].multiselect(T("col_dist"), d_opts, help=T("col_dist_help"), key=f"c_d|{fname}",
                                     placeholder=T("ms_placeholder"))
@@ -135,8 +141,7 @@ def render_setup(ctx):
     ctx.norm_ok = rng_[1] > rng_[0] and rng_[3] > rng_[2]
     # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
     ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi = rng_ if ctx.norm_ok else (0.0, 100.0, 0.0, 100.0)
-    with mc2:
-        st.markdown(f"**{T('sb_units')}**")
+    with sec_units:
         n1, n2 = st.columns(2)
         if "u_mv" not in ss:
             ss["u_mv"] = "%"
@@ -147,7 +152,7 @@ def render_setup(ctx):
         with ctx.tabs["data"]:
             st.error(T("err_range_blk"), icon=":material/error:")
     ctx.pv, ctx.mv, ctx.sp = ctx.P(ctx.pv_e), ctx.M(ctx.mv_e), ctx.P(ctx.sp_e)
-    with ctx.tabs["data"]:
+    with ctx.tabs["data"], ctx.dws.m_prev:
         _preview(ctx, df, tcols)
 
 
@@ -203,10 +208,10 @@ def render(ctx):
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp
     with ctx.tabs["data"]:
         for w in compression_warnings(ctx.t_all, ctx.pv_raw, "PV"):
-            st.warning(w, icon=":material/compress:")
-        st.markdown(f"**{T('data_chart')}**")
-        show(ctx.data_fig(t), key=f"chart_data_all|{ctx.fname}", fname="data_all")
-        st.caption(T("data_chart_help"))
+            ctx.dws.m_top.warning(w, icon=":material/compress:")
+        with ctx.dws.m_chart:
+            show(ctx.data_fig(t), key=f"chart_data_all|{ctx.fname}", fname="data_all")
+            st.caption(T("data_chart_help"))
     with ctx.tabs["model"]:
         ctx.gph["model"] = st.container()      # průvodce záložky Model nahoře (vyplní se na konci běhu)
         ws = workspace()

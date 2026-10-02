@@ -30,18 +30,28 @@ a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **A
 - **Data** – CSV / Excel z historianu nebo PCS 7: společný časový sloupec, vlastní čas u každé veličiny i „dlouhý“
   formát (tag, čas, hodnota); čas jako číslo nebo datum v českém, ISO, US či evropském formátu; kódování UTF-8,
   UTF-16 i windows-1250. Sloupce PV / MV / SP se předvyplní podle názvů tagů. Kontrola kvality dat (komprese
-  historianu, počet a velikost skoků, šum) a automatické hledání úseků vhodných pro identifikaci.
+  historianu, počet a velikost skoků, šum) a automatické hledání úseků vhodných pro identifikaci. **OPC UA**
+  (jen čtení, lokální / desktopová verze): procházení serveru, historie vybraných tagů nebo záznam živých hodnot.
 - **Identifikace** – modely 0., 1. a 2. řádu a integrační, vždy s dopravním zpožděním a s modely měřených poruch;
   potlačení neměřených poruch, vynucení znaménka zesílení, odhad stikce ventilu, zafixování známých parametrů,
-  nejistota modelu (bootstrap), ověření na jiném úseku a detailní hodnocení (FIT, rezidua).
+  nejistota modelu (bootstrap), ověření na jiném úseku a detailní hodnocení (FIT, rezidua). **Identifikace
+  v uzavřené smyčce** z běžného provozu se smyčkou v AUTO (změny SP, nepřímá metoda s regulátorem ze záznamu).
 - **Ladění PIDConL** – SIMC, iSIMC, Lambda, AMIGO, průměrovací ladění hladiny a numerická optimalizace (MIGO,
   IAE, ISE, ITAE, limit překmitu, celý scénář) vždy s podmínkou robustnosti Ms. Konfigurace bloku jako v PCS 7
   (NormPV/NormMV, SampleTime, DiffGain, PropFacSP, D ze zpětné vazby, deadband, limity a rychlost MV, filtr PV, rampa SP).
-  Dvě sady parametrů (současná / nová), porovnání všech metod, simulace scénářů s ventilem, stikcí a šumem.
+  Dvě sady parametrů (současná / nová), porovnání všech metod, simulace scénářů s ventilem, stikcí a šumem
+  (nejdřív scénář – skok SP, porucha na vstupu či výstupu, měřené poruchy, vlastní události – návrh se počítá na
+  požádání a ukáže se vedle obou sad), **frekvenční analýza** (Bode, Nyquist s kružnicí Ms, citlivost |S| a |T|,
+  šířka pásma) a historie ladění.
 - **Živá simulace** v prohlížeči – plynulá, okamžitá reakce na SP, ruční MV, poruchy a šum, zrychlení až 500×.
 - **APC** – kaskáda, dopředná vazba (statická i lead-lag), rozvazbení 2×2 (RGA, decouplery), override (výběr
-  MIN/MAX s externí zpětnou vazbou), Smithův prediktor, gain scheduling podle PV nebo regulační odchylky; každá
-  struktura s průvodcem, simulací přínosu a hodnotami pro šablony APL.
+  MIN/MAX s externí zpětnou vazbou), Smithův prediktor, gain scheduling podle PV nebo regulační odchylky,
+  **split range** (vyvážený bod rozdělení), **regulace polohy ventilu** (malý a velký akční člen), **poměrová
+  regulace s křížovým omezením** (palivo / vzduch) a **interakce N×N** (RGA, Niederlinskiho index, párování); každá
+  struktura s průvodcem, simulací přínosu a hodnotami pro implementaci.
+- **Přehled smyček** – mnoho smyček z jednoho souboru: označte PV / MV / SP každé smyčky (návrh z názvů tagů),
+  smyčky se seřadí podle problémů (oscilace, stikce, saturace, Harrisův index, opotřebení ventilu, ruční režim)
+  a společné oscilace se seskupí s pravděpodobným zdrojem.
 - **Více smyček v jednom projektu** (např. vnitřní a vnější smyčka kaskády z jednoho exportu).
 - **Projekt** (JSON) s modely, laděním a volitelně daty; **automatické ukládání** rozpracované práce v prohlížeči.
 - **Protokol z ladění** (HTML, tisk do PDF) pro všechny smyčky projektu.
@@ -128,6 +138,7 @@ Vysvětlení všech metod, kritérií a ukazatelů: [metody.md](metody.md).
 - Nahraná data se zpracují na serveru, kde aplikace běží, **jen po dobu relace** a nikam se neukládají (žádné
   zápisy na disk, žádná volání externích služeb, telemetrie Streamlitu je vypnutá).
 - Rozpracovaná práce se automaticky ukládá **jen v prohlížeči uživatele** (lze vypnout v záložce Projekt a report).
+- Přístup přes OPC UA je **jen pro čtení** – aplikace do serveru nikdy nezapisuje.
 - Veřejná instance běží na Streamlit Community Cloud. Pokud provozní data nesmíte nahrávat na cizí server,
   spusťte aplikaci **lokálně nebo na interním serveru** ([nasazeni.md](nasazeni.md)).
 

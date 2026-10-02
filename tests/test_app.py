@@ -211,7 +211,7 @@ def test_guides(app):
     """Každá záložka má průvodce; tlačítko v kontrolním seznamu přepne na správnou záložku."""
     app.run()
     heads = [m.value for m in app.markdown if m.value == "##### Purpose and steps"]
-    assert len(heads) == 6
+    assert len(heads) == 7                  # 7 záložek včetně přehledu smyček
     assert any("**Which model when**" in m.value for m in app.markdown)
     assert any("**Which method when**" in m.value for m in app.markdown)
     btn = next(b for b in app.button if b.label == "Go to Live simulation")

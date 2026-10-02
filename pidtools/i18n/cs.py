@@ -1554,4 +1554,5 @@ TEXTS = {
     'opc_web_browse': 'Procházet server',
     'opc_web_hours': 'Posledních hodin',
     'opc_web_loaded': 'Načteno z OPC UA: {n} hodnot z {k} tagů.',
+    'rp_preview_hint': 'Vyplňte vpravo hlavičku protokolu a stiskněte Vytvořit protokol – náhled se zobrazí zde.',
 }

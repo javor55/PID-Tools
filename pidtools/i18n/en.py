@@ -1554,4 +1554,5 @@ TEXTS = {
     'opc_web_browse': 'Browse the server',
     'opc_web_hours': 'Last hours',
     'opc_web_loaded': 'Loaded from OPC UA: {n} values of {k} tags.',
+    'rp_preview_hint': 'Fill in the header of the protocol on the right and press Create report – the preview appears here.',
 }

@@ -8,6 +8,7 @@ from ... import cache, loops
 from ...cache import cascade_sim, fit_model, pidconl_sim
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET2, C_SP
+from ...layout import section, workspace
 from ...widgets import model_name, num, seg, sld
 from ....app.apc import cascade as acas
 
@@ -17,13 +18,14 @@ def render_body(ctx):
     """Kaskáda (v záložce APC)."""
     H, Ts, base_ctrl, diffgain, fname, model, samp, sel_mask, sigs, ts_id = ctx.H, ctx.Ts, ctx.base_ctrl, ctx.diffgain, ctx.fname, ctx.model, ctx.samp, ctx.sel_mask, ctx.sigs, ctx.ts_id
     EP, M, lab_pv, lab_t = ctx.EP, ctx.M, ctx.lab_pv, ctx.lab_t
-    with st.container():
+    ws = workspace()
+    with section(ws.side, T("dk_sec_about"), "apc_cas_about", expanded=False):
         st.markdown(T("cas_intro"))
+    with ws.main:
         if model is None:
             st.info(T("need_model"), icon=":material/arrow_back:")
         else:
-            with st.container(border=True):
-                st.markdown(f"**{T('cas_inner')}**")
+            with section(ws.side, T("cas_inner"), "apc_cas_inner", icon=":material/input:"):
                 other = [i for i in loops.ids() if i != loops.active()]
                 src_opts = (["loop"] if other else []) + ["data", "manual"]
                 isrc = seg(st, T("cas_src"), src_opts, src_opts[0] if other else "manual", "cas_src",
@@ -41,7 +43,8 @@ def render_body(ctx):
                         st.caption(T("cas_loop_model", n=loops.name(li), m=model_name(inner[0]),
                                      p=", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[inner[0]]["params"], inner[1]))))
                 elif isrc == "data":
-                    i1, i2, i3, i4 = st.columns(4)
+                    i1, i2 = st.columns(2)
+                    i3, i4 = st.columns(2)
                     c_ipv = i1.selectbox(T("cas_ipv"), sigs, key=f"cas_ipv|{fname}", help=T("h_cas_ipv"))
                     c_imv = i2.selectbox(T("cas_imv"), sigs, key=f"cas_imv|{fname}", help=T("h_cas_imv"))
                     ipv_raw = ctx.on_grid(c_ipv)
@@ -60,19 +63,19 @@ def render_body(ctx):
                         st.caption(T("cas_inner_fit", m=model_name(inner[0]), f=f"{ss.inner_fit['fit']:.1f}",
                                      p=", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[inner[0]]["params"], inner[1]))))
                 else:
-                    i1, i2, i3, i4 = st.columns(4)
+                    i1, i2 = st.columns(2)
+                    i3, i4 = st.columns(2)
                     k_i = num("K", "cas_k", 1.0, i1, format="%.4g", help=T("h_cas_k"))
                     t1_i = num("T1 [s]", "cas_t1", 5.0, i2, min_value=1e-3, help=T("help_T"))
                     t2_i = num("T2 [s]", "cas_t2", 0.0, i3, min_value=0.0, help=T("help_T"))
                     th_i = num("θ [s]", "cas_th", 1.0, i4, min_value=0.0, help=T("help_theta"))
                     inner = acas.manual_inner(k_i, t1_i, t2_i, th_i)
             if inner is None:
-                st.info(T("cas_need_inner"))
+                ws.side.info(T("cas_need_inner"))
             else:
                 ci_, p_i = inner
-                with st.container(border=True):
-                    st.markdown(f"**{T('cas_inner_tune')}**")
-                    j1, j2, j3 = st.columns([1.3, 1, 2])
+                with section(ws.side, T("cas_inner_tune"), "apc_cas_itune", icon=":material/tune:"):
+                    j1 = j2 = j3 = st
                     im = seg(j1, T("method"), ["SIMC", "AMIGO", "OPT"], "SIMC", "cas_im",
                                               format_func=lambda x: T("m_" + x)) or "SIMC"
                     samp_i = num(T("cas_samp"), "cas_samp", samp, j2, min_value=0.001, help=T("sampletime_help"))
@@ -90,12 +93,11 @@ def render_body(ctx):
                     k1.metric("Gain", f"{si['Kc']:.4g}")
                     k2.metric("TI [s]", f"{si['Ti']:.4g}")
                     k3.metric(T("cas_t63"), f"{t63:.3g} s", help=T("h_cas_t63"))
-                with st.container(border=True):
-                    st.markdown(f"**{T('cas_outer_tune')}**")
+                with section(ws.side, T("cas_outer_tune"), "apc_cas_otune", icon=":material/tune:"):
                     co_, p_o = acas.outer_model(model, tci_eff, p_i[-1])
                     st.caption(T("cas_outer_model", m=model_name(co_),
                                  p=", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[co_]["params"], p_o))))
-                    l1, l2, l3 = st.columns([1.3, 0.8, 2])
+                    l1 = l2 = l3 = st
                     om = seg(l1, T("method"), ["SIMC", "AMIGO", "OPT"], "SIMC", "cas_om",
                                               format_func=lambda x: T("m_" + x)) or "SIMC"
                     oct_ = seg(l2, T("ctrl_type"), ["PI", "PID"], "PI", "cas_oct") or "PI"
@@ -107,7 +109,8 @@ def render_body(ctx):
                     so = acas.tune_loop(co_, p_o, om, oct_, samp, diffgain, tco, cache.opt_migo)
                     st.caption(T("mdesc_" + om) + (f" {T('cdesc_MIGO')}" if om == "OPT" else ""))
                     octrl = dict(base_ctrl, Gain=so["Kc"], TI=so["Ti"], TD=so["Td"], MV_Lo=0.0, MV_Hi=100.0)
-                    o1, o2, o3, o4 = st.columns(4)
+                    o1, o2 = st.columns(2)
+                    o3, o4 = st.columns(2)
                     o1.metric("Gain", f"{so['Kc']:.4g}")
                     o2.metric("TI [s]", f"{so['Ti']:.4g}")
                     o3.metric("TD [s]", f"{so['Td']:.4g}")

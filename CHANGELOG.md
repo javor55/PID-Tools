@@ -21,6 +21,17 @@
   export, copy to clipboard, separate window (second monitor), hiding curves via the legend.
 - Desktop: recent files, drag and drop of data and project files, Ctrl+1…7 tab shortcuts, remembered window size,
   keyboard shortcut overview in Help.
+- Frequency analysis (Bode, Nyquist with the Ms circle, |S| and |T|, bandwidth) of set 1, set 2 and the suggestion –
+  web and desktop.
+- Closed-loop identification from data with the loop in AUTO (SP changes): indirect method simulating the whole
+  loop with the controller from the record; the open-loop model is shown for comparison.
+- Loop overview (tab 7): several loops from one file, ranking by problems, common oscillations and their source,
+  opening a loop as a project loop.
+- APC: split range, valve position control, ratio with cross-limiting, N×N interaction (RGA, Niederlinski index,
+  recommended pairing).
+- OPC UA (read only): browsing, history and live recording in the desktop; OPC UA data source in the local web.
+- Web interface in the desktop layout: charts on the left, settings in collapsible sections on the right on every
+  tab; tuning with scenario presets and Calculate; Model, Data with diagnostics, APC, live simulation and project.
 - Application layer `pidtools/app` shared by all frontends (workflow, project format, protocol) – preparation for a
   desktop version for engineering stations; the web app is unchanged.
 - APC page split into one module per structure.

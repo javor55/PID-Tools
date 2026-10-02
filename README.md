@@ -29,20 +29,30 @@ controller structure and implementation steps follow the **PIDConL** block and t
 - **Data** – CSV / Excel from a historian or PCS 7: common time column, a time column per variable, or long format
   (tag, time, value); time as a number or a date in ISO, Czech, US or European format; UTF-8, UTF-16 and
   windows-1250 encodings. PV / MV / SP are pre-filled from tag names. Data-quality check (historian compression,
-  number and size of steps, noise) and automatic search for segments suitable for identification.
+  number and size of steps, noise) and automatic search for segments suitable for identification. **OPC UA**
+  (read only, local / desktop version): browse the server, read the history of chosen tags or record live values.
 - **Identification** – zero-, first-, second-order and integrating models, all with dead time and with models of
   measured disturbances; suppression of unmeasured disturbances, forced gain sign, valve stiction estimation, fixing
   of known parameters, model uncertainty (bootstrap), validation on another segment and detailed evaluation
-  (FIT, residuals).
+  (FIT, residuals). **Closed-loop identification** from normal operation with the loop in AUTO (SP changes,
+  indirect method with the controller from the record).
 - **PIDConL tuning** – SIMC, iSIMC, Lambda, AMIGO, averaging level control and numerical optimization (MIGO, IAE,
   ISE, ITAE, overshoot limit, the whole scenario), always with a robustness constraint (Ms). Block configuration as
   in PCS 7 (NormPV/NormMV, SampleTime, DiffGain, PropFacSP, D on feedback, deadband, MV limits and rate, PV filter, SP ramp).
-  Two parameter sets (current / new), comparison of all methods, scenario simulation with valve, stiction and noise.
+  Two parameter sets (current / new), comparison of all methods, scenario simulation with valve, stiction and noise
+  (scenario first – setpoint step, load or output disturbance, measured disturbances, custom events – the suggestion
+  is calculated on request and shown next to both sets), **frequency analysis** (Bode, Nyquist with the Ms circle,
+  sensitivity |S| and |T|, bandwidth) and a tuning history.
 - **Live simulation** in the browser – smooth, instant response to SP, manual MV, disturbances and noise, up to 500×
   speed.
 - **APC** – cascade, feedforward (static and lead-lag), 2×2 decoupling (RGA, decouplers), override (MIN/MAX
-  selector with external reset), Smith predictor, gain scheduling by PV or by control error; each with a guide,
-  a simulation of the benefit and values for the APL templates.
+  selector with external reset), Smith predictor, gain scheduling by PV or by control error, **split range**
+  (balanced breakpoint), **valve position control** (small and large actuator), **ratio with cross-limiting**
+  (fuel / air) and **N×N interaction** (RGA, Niederlinski index, pairing); each with a guide, a simulation of the
+  benefit and values for the implementation.
+- **Loop overview** – many loops from one file: mark PV / MV / SP of each loop (proposed from the tag names), the
+  loops are ranked by their problems (oscillation, stiction, saturation, Harris index, valve wear, manual mode) and
+  common oscillations are grouped with their likely source.
 - **Several loops in one project** (e.g. the inner and outer loop of a cascade from one export).
 - **Project file** (JSON) with models, tuning and optionally data; **autosave** of work in progress in the browser.
 - **Tuning protocol** (HTML, print to PDF) for all loops of the project.
@@ -136,6 +146,7 @@ All methods, criteria and indicators explained: [docs/methods.md](docs/methods.m
 - Uploaded data are processed on the server running the app **only for the session** and are not stored (no writes
   to disk, no calls to external services, Streamlit telemetry is switched off).
 - Work in progress is autosaved **only in the user's browser** (can be switched off in the Project & report tab).
+- OPC UA access is **read only** – the application never writes to the server.
 - The public instance runs on Streamlit Community Cloud. If you may not upload plant data to a third-party server,
   run the app **locally or on an internal server** ([docs/deployment.md](docs/deployment.md)).
 

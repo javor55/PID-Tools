@@ -21,6 +21,16 @@
   kopie do schránky, samostatné okno (druhý monitor), skrytí křivky kliknutím na legendu.
 - Desktop: nedávné soubory, přetažení dat a projektů do okna, zkratky Ctrl+1…7 pro záložky, zapamatovaná velikost
   okna, přehled klávesových zkratek v Nápovědě.
+- Frekvenční analýza (Bode, Nyquist s kružnicí Ms, |S| a |T|, šířka pásma) sady 1, sady 2 a návrhu – web i desktop.
+- Identifikace v uzavřené smyčce z dat se smyčkou v AUTO (změny SP): nepřímá metoda se simulací celé smyčky
+  s regulátorem ze záznamu; pro srovnání se ukáže model z otevřené smyčky.
+- Přehled smyček (záložka 7): více smyček z jednoho souboru, pořadí podle problémů, společné oscilace a jejich
+  zdroj, otevření smyčky jako smyčky projektu.
+- APC: split range, regulace polohy ventilu, poměrová regulace s křížovým omezením, interakce N×N (RGA,
+  Niederlinskiho index, doporučené párování).
+- OPC UA (jen čtení): procházení, historie a záznam živých hodnot v desktopu; zdroj dat OPC UA v lokálním webu.
+- Webové rozhraní v rozložení desktopu: grafy vlevo, nastavení ve sbalitelných sekcích vpravo na všech záložkách;
+  ladění s předvolbami scénáře a tlačítkem Vypočítat; Model, Data s diagnostikou, APC, živá simulace a projekt.
 - Aplikační vrstva `pidtools/app` sdílená všemi frontendy (pracovní postup, formát projektu, protokol) – příprava
   desktopové verze pro inženýrské stanice; webová aplikace beze změny.
 - Stránka APC rozdělená na moduly po strukturách.

@@ -19,6 +19,7 @@ from ....app import guides as app_guides
 from .recommend import checks_cascade, rec_a, recommend
 from .smith import smith_render, smith_values  # noqa: F401 (protokol)
 from .more import ratio_render, rga_render, split_render, vpc_render
+from ...layout import section, workspace
 
 MORE = {"split": split_render, "vpc": vpc_render, "ratio": ratio_render, "rga": rga_render}
 
@@ -60,13 +61,17 @@ def render(ctx):
         if ss.get(f"apc_{kind}_b") not in other:  # výchozí druhá smyčka = ta, kterou doporučení navrhuje
             pref = [it[2] for it in (recommend(ctx)) if it[0] == kind and it[2] in other]
             ss[f"apc_{kind}_b"] = pref[0] if pref else other[0]
-        bi = st.selectbox(T(f"apc_{kind}_b"), other, format_func=names.get, key=f"apc_{kind}_b",
-                          help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
+        ws = workspace()
+        with section(ws.side, T(f"apc_{kind}_b"), f"apc_{kind}_b_sec", icon=":material/link:"):
+            bi = st.selectbox(T(f"apc_{kind}_b"), other, format_func=names.get, key=f"apc_{kind}_b",
+                              help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
         b = loops.loop_data(bi, ctx.fname)
         if b["model"] is None:
-            guide.render(kind, [app_guides.apc_need_loop(rec_a(ctx))[0]] + app_guides.apc_no_model(b["name"], bi), None)
+            with ws.main:
+                guide.render(kind, [app_guides.apc_need_loop(rec_a(ctx))[0]] + app_guides.apc_no_model(b["name"], bi),
+                             None)
             return
-        (decouple_render if kind == "decouple" else override_render)(ctx, bi, b)
+        (decouple_render if kind == "decouple" else override_render)(ctx, bi, b, ws)
 
 
 def tuning_hint(ctx):

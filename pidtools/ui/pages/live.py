@@ -39,7 +39,11 @@ def _ctrl_js(c):
 _CSS = """
 .pidlive { font-family:%(font)s; font-size:13px; color:inherit; --acc:#1f5fa8; }
 .pidlive * { box-sizing:border-box; }
-.pidlive .row { display:flex; flex-wrap:wrap; gap:12px 22px; align-items:flex-end; margin-bottom:10px; }
+.pidlive .lvg { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:14px; align-items:start; }
+.pidlive .lvm { min-width:0; }
+.pidlive .lvs { display:flex; flex-direction:column; gap:8px; }
+.pidlive .row { display:flex; flex-direction:column; gap:10px; padding:10px 12px; border:1px solid rgba(128,128,128,.3);
+                border-radius:10px; }
 .pidlive .grp { display:flex; flex-direction:column; gap:4px; }
 .pidlive .lab { font-size:12px; opacity:.7; }
 .pidlive .btns { display:flex; gap:8px; flex-wrap:wrap; }
@@ -53,8 +57,7 @@ _CSS = """
 .pidlive .segs button.on { background:rgba(128,128,128,.14); border-color:var(--acc); color:var(--acc); font-weight:600; }
 .pidlive .chk { display:flex; align-items:center; gap:6px; padding:5px 0; cursor:pointer; }
 .pidlive .chk input { accent-color:var(--acc); width:16px; height:16px; }
-.pidlive .sliders { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px 24px; padding:10px 12px;
-                    border:1px solid rgba(128,128,128,.3); border-radius:10px; margin-bottom:8px; }
+.pidlive .sliders { display:grid; grid-template-columns:1fr; gap:10px; padding:4px 12px 12px; }
 .pidlive .sl { display:flex; flex-direction:column; gap:2px; }
 .pidlive .sl .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .pidlive .val { font-variant-numeric:tabular-nums; font-weight:600; }
@@ -62,8 +65,10 @@ _CSS = """
 .pidlive input[type=range] { width:100%%; accent-color:var(--acc); }
 .pidlive input.num { width:90px; font:inherit; color:inherit; background:transparent; text-align:right;
                      border:1px solid rgba(128,128,128,.35); border-radius:6px; padding:1px 6px; }
-.pidlive details { border:1px solid rgba(128,128,128,.3); border-radius:10px; margin-bottom:8px; }
-.pidlive summary { cursor:pointer; padding:8px 12px; font-weight:600; }
+.pidlive details { border:1px solid rgba(128,128,128,.3); border-radius:8px; }
+.pidlive summary { cursor:pointer; padding:7px 12px; font-weight:600; background:rgba(128,128,128,.10); border-radius:8px; }
+.pidlive details[open] summary { border-radius:8px 8px 0 0; }
+.pidlive details > section { padding:8px 12px 12px; }
 .pidlive .adv { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px 22px; padding:4px 12px 12px; }
 .pidlive section { display:flex; flex-direction:column; gap:6px; }
 .pidlive h4 { margin:4px 0 2px; font-size:13px; }
@@ -78,7 +83,7 @@ _CSS = """
 .pidlive #tip { position:absolute; display:none; pointer-events:none; font-size:11.5px; line-height:1.45; padding:6px 9px;
                 border-radius:8px; border:1px solid rgba(128,128,128,.35); background:rgba(127,127,127,.12);
                 backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); white-space:nowrap; }
-@media (max-width:700px) { .pidlive .sliders { grid-template-columns:1fr; } }
+@media (max-width:900px) { .pidlive .lvg { grid-template-columns:1fr; } }
 """
 
 def _component():
