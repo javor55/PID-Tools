@@ -13,11 +13,12 @@ from ..app import feedforward as ffm
 from ..app import model as mdl
 from ..app import project as prj
 from ..app import scenario as scn
+from ..app import segments as sg
 from ..app import tuning as tun
 from ..app.dataio import read_table
 from ..app.guess import guess_roles
 from ..app.loop import Scaling, block_ctrl, set_ctrl
-from ..core import MODELS, data_quality, pidconl_sim_full
+from ..core import MODELS, pidconl_sim_full
 
 DEFAULTS = dict(
     lang="en", loop_tag="", u_pv="", u_mv="%", pv_lo=0.0, pv_hi=100.0, mv_lo=0.0, mv_hi=100.0,
@@ -36,6 +37,8 @@ class LoopState(Scaling):
         self.df = None
         self.fname = ""
         self.layout, self.time_fmt, self.unit = "wide", "auto", "s"
+        self.c_time = self.c_tag = self.c_val = None    # sloupec času (wide) / tag, čas, hodnota (long); None = odhad
+        self.ts_user = None                             # ruční perioda převzorkování [s]; None = automaticky
         self.sig = None
         self.grid = None
         self.c_pv = self.c_mv = None
@@ -44,6 +47,7 @@ class LoopState(Scaling):
         self.fit = None              # {"res": {kód: výsledek}, "dnames": [...], "key": ...}
         self.ff_state = []
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
+        self.val_status = None       # výsledek validace pro průvodce: 0 dobrá, 1 stejný úsek, 2 špatná
         self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
 
     # ---- nastavení a rozsahy
@@ -68,7 +72,8 @@ class LoopState(Scaling):
         """Nová tabulka: rozložení, signály, odhad sloupců, celý záznam jako úsek identifikace."""
         self.df, self.fname = df, name
         self.layout = layout or ds.default_layout(df)
-        self.sig = ds.signals(df, self.layout, self.time_fmt, self.unit)
+        self.c_time = self.c_tag = self.c_val = None
+        self.sig = self._signals()
         g = guess_roles(self.sig.sigs, self.sig.get)
         self.c_pv, self.c_mv = g["pv"], g["mv"]
         self.c_sp = g["sp"] or "—"
@@ -89,9 +94,15 @@ class LoopState(Scaling):
             self.set(set1_gain=g, set1_ti=ti, set1_td=td)
         self.update_grid()
 
-    def set_layout(self, layout, time_fmt=None, unit=None):
+    def _signals(self):
+        return ds.signals(self.df, self.layout, self.time_fmt, self.unit, self.c_time, self.c_tag, self.c_val)
+
+    def set_layout(self, layout, time_fmt=None, unit=None, c_time=None, c_tag=None, c_val=None):
+        if layout != self.layout:
+            c_time = c_tag = c_val = None
         self.layout, self.time_fmt, self.unit = layout, time_fmt or self.time_fmt, unit or self.unit
-        self.sig = ds.signals(self.df, self.layout, self.time_fmt, self.unit)
+        self.c_time, self.c_tag, self.c_val = c_time, c_tag, c_val
+        self.sig = self._signals()
         for c in ("c_pv", "c_mv"):
             if getattr(self, c) not in self.sig.sigs:
                 g = guess_roles(self.sig.sigs, self.sig.get)
@@ -105,7 +116,7 @@ class LoopState(Scaling):
         self.update_grid()
 
     def update_grid(self, reset_range=False):
-        self.grid = ds.to_grid(self.sig, self.c_pv, self.c_mv, self.c_sp, self.c_d)
+        self.grid = ds.to_grid(self.sig, self.c_pv, self.c_mv, self.c_sp, self.c_d, self.ts_user)
         if reset_range or not (0 <= self.rng[0] < self.rng[1] <= self.grid.t[-1]):
             self.rng = (0.0, float(self.grid.t[-1]))
         if self.get("thmax") is None:
@@ -142,18 +153,53 @@ class LoopState(Scaling):
         ts = self.t[m] - self.t[m][0]
         return ts, self.pv[m], self.mv[m], [d[m] for d in self.grid.dists]
 
-    def quality(self):
-        """Kvalita dat úseku pro identifikaci (core.data_quality)."""
-        m = self.sel_mask
-        if m.sum() < 20:
-            return dict(level=2, checks=[("q_short", 2, {})], snr=0.0, sigma=0.0, n_steps=0)
-        sp = self.sp[m] if self.grid.has_sp else np.zeros(m.sum())
+    def quality(self, a=None, b=None):
+        """Kvalita dat úseku (výchozí: úsek identifikace) včetně stopy komprese historianu."""
+        a, b = (self.rng if a is None else (a, b))
         try:
-            return data_quality(self.t[m], self.pv[m], self.mv[m], sp, self.grid.Ts, self.grid.has_sp,
-                                float(self.M(self.get("mvl_lo", self.mv_lo))), float(self.M(self.get("mvl_hi", self.mv_hi))),
-                                None, self.model[:2] if self.model else None)
+            return sg.quality(self.t, self.pv, self.mv, self.sp, self.grid.Ts, self.grid.has_sp,
+                              float(self.M(self.get("mvl_lo", self.mv_lo))), float(self.M(self.get("mvl_hi", self.mv_hi))),
+                              a, b, sg.rep_frac(self.sig.t_all, self.sig.get(self.c_pv), self.grid.T0, a, b),
+                              self.model[:2] if self.model else None)
         except Exception:
             return None
+
+    def auto_segments(self, gap=None):
+        """Automaticky nalezené úseky se skoky, každý s hodnocením kvality."""
+        segs = sg.auto(self.t, self.mv, self.sp, self.grid.Ts, self.grid.has_sp, self.model[:2] if self.model else None,
+                       gap)
+        return [dict(q, quality=self.quality(q["start"], q["end"])) for q in segs]
+
+    def compression(self):
+        """Upozornění na kompresi historianu a nepravidelné vzorkování PV."""
+        from ..app.dataio import compression_warnings
+        return compression_warnings(self.sig.t_all, self.sig.get(self.c_pv), "PV")
+
+    def preview(self):
+        """Náhled: (převzorkovaná tabulka, statistika, typy sloupců původního souboru)."""
+        from ..app.dataio import TIME_FORMATS, detect_time_format, time_columns, to_num
+        g = self.grid
+        out = {"t [s]": g.t}
+        if self.sig.origin is not None:
+            out["datetime"] = self.sig.origin + pd.to_timedelta(g.t + g.T0, unit="s")
+        out[f"PV · {self.c_pv}"] = g.pv_e
+        out[f"MV · {self.c_mv}"] = g.mv_e
+        if g.has_sp:
+            out[f"SP · {self.c_sp}"] = g.sp_e
+        for nm, d in zip(self.c_d, g.dists):
+            out[str(nm)] = d
+        res = pd.DataFrame(out)
+        num_ = res.drop(columns=["datetime"], errors="ignore")
+        stats = pd.DataFrame({"min": num_.min(), "max": num_.max(), "mean": num_.mean(), "NaN": num_.isna().sum()})
+        tcols = time_columns(self.df)
+        kinds = {}
+        for c in self.df.columns:
+            if c in tcols:
+                k = detect_time_format(self.df[c])[0]
+                kinds[c] = ("time", k if k in TIME_FORMATS else str(k))
+            else:
+                kinds[c] = ("num" if np.isfinite(to_num(self.df[c])).mean() > 0.5 else "text", "")
+        return res, stats, kinds
 
     # ---- identifikace
     def id_settings(self):
@@ -174,6 +220,20 @@ class LoopState(Scaling):
             for c in res:
                 self.reset_edits(c)
         return errs
+
+    def refit(self, code, fixed, stic_fixed=None):
+        """Dofitování modelu se zafixovanými parametry ({"p<i>": v, "d<j>_<i>": v}); ruční úpravy se srovnají."""
+        ts, pv, mv, d = self.segment()
+        self.fit["res"][code] = mdl.identify(code, ts, pv, mv, self.grid.Ts, d, self.id_settings(), fixed, stic_fixed)
+        self.reset_edits(code)
+
+    def fixed_from_settings(self, code):
+        """Zafixované parametry podle zaškrtnutí (klíče fx|… jako ve webu) a aktuálních hodnot."""
+        m = self.model
+        p, pdl = m[1], m[2]
+        n_d = len(pdl)
+        return mdl.fixed_params(p, [bool(self.get(f"fx|{code}|{i}")) for i in range(len(p))], pdl,
+                                [[bool(self.get(f"fx|{code}|d{j}|{i}")) for i in range(3)] for j in range(n_d)])
 
     def reset_edits(self, code):
         r = self.fit["res"][code]
@@ -281,13 +341,24 @@ class LoopState(Scaling):
         if m == "AVG":      # změna PV a MV pro průměrování (výchozí 10 % rozsahů, jako ve webu)
             avg = (float(self.get("avg_dpv", 0.1 * self.PR)) / self.PR * 100,
                    float(self.get("avg_dmv", 0.1 * self.MR)) / self.MR * 100)
-        return tun.Request(m, self.get("ctype"), tc, avg, float(self.get("opt_ms")), None, self.get("opt_crit"),
+        hf = None
+        if self.get("ctype") == "PID":           # limit šumu MV [jednotky MV] → limit VF zesílení
+            hf = tun.hf_max(float(self.get("opt_noise", 0.01 * self.MR)), self.MR, self.sigma_pv())
+        return tun.Request(m, self.get("ctype"), tc, avg, float(self.get("opt_ms")), hf, self.get("opt_crit"),
                            self.get("opt_target"), float(self.get("opt_ovs")) / 100)
 
     def suggest(self, method=None, tc=None, solvers=tun.SOLVERS):
         code, p, pdl = self.model
         robust = tun.robust_models(p, self.unc_models(), bool(self.get("opt_robust")))
-        return tun.suggest(code, p, pdl, self.base_ctrl(), self.request(method, tc), robust, None, solvers)
+        req = self.request(method, tc)
+        scen = self.scen_built() if (req.method == "OPT" and req.target == "scen") else None
+        return tun.suggest(code, p, pdl, self.base_ctrl(), req, robust, scen, solvers)
+
+    def d_advice(self):
+        """Doporučení D složky (PI / PID) podle poměru zpoždění a časových konstant."""
+        from ..core import d_advice
+        code, p, _ = self.model
+        return d_advice(code, tun.p_eff(p, float(self.get("samp"))))
 
     def write_set(self, n, s):
         self.set(**{f"set{n}_gain": float(s["Kc"]), f"set{n}_ti": float(s["Ti"]), f"set{n}_td": float(s["Td"])})
@@ -355,26 +426,66 @@ class LoopState(Scaling):
         return scn.plant(float(self.get(self.stic_key, st0)), float(self.get("sim_J", 100.0)),
                          float(self.get("sim_noise", 0.0)), self.get("vchar_last") or [1.0] * 10, self.PR, self.MR)
 
-    def simulate(self, T_end=None):
-        """Scénář pro obě sady: dict(t, sp, runs = {1: výsledek, 2: výsledek}, kpis, T_end, src)."""
-        code, p, pdl = self.model
+    def _scenario_inputs(self, T_end=None):
+        """Průběhy scénáře: vlastní události, nebo přehrání naměřených poruch (scen2 = „replay“, jako ve webu)."""
         samp = float(self.get("samp"))
         src = "manual"
-        if T_end is None:
+        replay = self.get("scen2") == "replay" and bool(self.c_d)
+        ts_id, _, mv_id, d_id = self.segment()
+        if replay:
+            T_end, src = float(ts_id[-1]), "data"
+        elif T_end is None:
             T_end, src = self.sim_length()
         sp0, _ = self.sp_from_to()
-        rows = self.scen_rows(T_end)
+        pv0 = float(self.P(sp0))
         h, ts = scn.grid(samp, T_end)
-        sig = scn.signals(rows, ts, h, T_end, self.PR, self.MR, float(self.P(sp0)), len(self.c_d))
-        _, _, mv_id, _ = self.segment()
+        rows = [] if replay else self.scen_rows(T_end)
+        sig = scn.signals(rows, ts, h, T_end, self.PR, self.MR, pv0, len(self.c_d))
+        if replay:
+            sig["dmeas"] = scn.replay_dists(ts, ts_id, d_id)
+        return dict(h=h, ts=ts, T_end=T_end, src=src, rows=rows, sig=sig, pv0=pv0, mv0=float(mv_id[0]))
+
+    def scen_built(self):
+        """Scénář pro optimalizaci „na scénáři“ (stejný tvar jako ve webu)."""
+        x = self._scenario_inputs()
+        g = x["sig"]
+        return dict(mcode=self.get("mcode"), h=x["h"], sp=g["sp"], pv0=x["pv0"], mv0=x["mv0"], dmeas=g["dmeas"],
+                    dmv=g["dmv"], dpv=g["dpv"], plant=self.plant(), sp_amp=g["sp_amp"] or 5.0, d_amp=g["d_amp"] or 5.0)
+
+    def simulate(self, T_end=None, robust=False, spread=False, ff_cmp=False):
+        """
+        Scénář pro obě sady: dict(t, sp, runs = {1, 2: výsledek}, kpis, T_end, src, rows, extra = [(klíč, výsledek)]).
+        robust: sada 2 na procesu s chybou modelu (K × 1,3, θ × 1,5); spread: sada 2 na variantách z nejistoty;
+        ff_cmp: sada 2 bez dopředné vazby.
+        """
+        code, p, pdl = self.model
+        x = self._scenario_inputs(T_end)
+        sig, h = x["sig"], x["h"]
         plant = self.plant()
+
+        def run(ctrl, pp=p):
+            return pidconl_sim_full(code, pp, pdl, h, sig["sp"], x["pv0"], x["mv0"], dict(ctrl, **plant), sig["dmeas"],
+                                    sig["dmv"], sig["dpv"])
         runs, kp = {}, {}
         for n in (1, 2):
-            r = pidconl_sim_full(code, p, pdl, h, sig["sp"], float(self.P(sp0)), float(mv_id[0]),
-                                 dict(self.set_ctrl(n), **plant), sig["dmeas"], sig["dmv"], sig["dpv"])
-            runs[n] = r
-            kp[n] = scn.kpis(r, self.PR, self.MR) if scn.stable(r) else None
-        return dict(t=ts, sp=sig["sp"], runs=runs, kpis=kp, T_end=T_end, src=src, rows=rows)
+            runs[n] = run(self.set_ctrl(n))
+            kp[n] = scn.kpis(runs[n], self.PR, self.MR) if scn.stable(runs[n]) else None
+        extra = []
+        if robust:
+            pp = list(p)
+            pp[0] *= 1.3
+            pp[-1] *= 1.5
+            extra.append(("new_err", run(self.set_ctrl(2), pp)))
+        c2 = self.set_ctrl(2)
+        if ff_cmp and any(c2["FF"]) and any(np.any(d != 0) for d in sig["dmeas"]):
+            extra.append(("set2_noff", run(dict(c2, FF=[0.0] * len(c2["FF"]), FF_LL=[(0.0, 0.0, 0.0)] * len(c2["FF"])))))
+        if spread:
+            for q in self.unc_models()[:10]:
+                r = run(c2, list(q))
+                if scn.stable(r):
+                    extra.append(("unc_variants", r))
+        return dict(t=x["ts"], sp=sig["sp"], runs=runs, kpis=kp, T_end=x["T_end"], src=x["src"], rows=x["rows"],
+                    extra=extra)
 
     # ---- projekt
     def to_project(self, include_data=False):

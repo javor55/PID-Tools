@@ -2,6 +2,7 @@
 Záložka Model: úsek identifikace (tažením v grafu), kvalita dat, nastavení a spuštění identifikace (na pozadí),
 srovnání modelů, výběr modelu pro ladění, úprava parametrů a graf model vs. data.
 """
+import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSplitter,
@@ -42,6 +43,19 @@ class ModelTab(QWidget):
         side.addWidget(w.note(T("dk_segment_help")))
         self.quality = w.note("")
         side.addWidget(w.group(T("q_title"), w.form([("", self.quality)])))
+        self.auto_tab = w.table([], [], stretch=False)
+        self.auto_tab.setSelectionBehavior(QTableWidget.SelectRows)
+        self.auto_tab.setSelectionMode(QTableWidget.SingleSelection)
+        self.auto_tab.setMinimumHeight(120)
+        self.gap = w.spin(0.0, 0.0, 1e9, 1)
+        w.tip(self.gap, "h_auto_gap")
+        self.gap.valueChanged.connect(self._auto_segments)
+        b_id, b_val = QPushButton(T("auto_use_id")), QPushButton(T("auto_use_val"))
+        b_id.clicked.connect(lambda: self._use_segment(False))
+        b_val.clicked.connect(lambda: self._use_segment(True))
+        self.auto_grp = w.group(T("auto_title", n=0), w.form([("", self.auto_tab), (T("auto_gap"), self.gap),
+                                                              ("", w.hbox(b_id, b_val))]))
+        side.addWidget(self.auto_grp)
         side.addStretch(1)
         tl.addLayout(side, 1)
         split.addWidget(top)
@@ -83,13 +97,18 @@ class ModelTab(QWidget):
         self.mcode = w.combo([])
         self.mcode.currentIndexChanged.connect(self._model_chosen)
         self.params = QTableWidget(0, 0)
-        self.params.setMaximumHeight(110)
+        self.params.setMinimumHeight(112)
+        self.params.setMaximumHeight(130)
+        self.params.setToolTip(T("fix_help"))
         self.params.itemChanged.connect(self._param_edited)
         b_reset = QPushButton(T("dk_reset"))
         b_reset.clicked.connect(self._reset)
+        self.b_refit = QPushButton(T("refit"))
+        w.tip(self.b_refit, "h_refit")
+        self.b_refit.clicked.connect(self._refit)
         self.fit_lab = w.note("")
         left.addWidget(w.group(T("model_for_tuning"), w.form([("", self.mcode)])))
-        left.addWidget(w.group(T("dk_params"), w.form([("", self.params), ("", b_reset)])))
+        left.addWidget(w.group(T("dk_params"), w.form([("", self.params), ("", w.hbox(self.b_refit, b_reset))])))
         left.addWidget(self.fit_lab)
         self.unc_n = w.spin(15, 5, 50, 0, 1)
         self.b_unc = QPushButton(T("unc_run"))
@@ -100,11 +119,30 @@ class ModelTab(QWidget):
                                                       ("", self.unc_tab)])))
         left.addStretch(1)
         bl.addLayout(left, 1)
-        self.fit_chart, self.fit_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.65, 0.35))
+        self.fit_chart, self.fit_plots = w.stack(3, ["PV", T("resid"), "MV"], T("time_s"), heights=(0.5, 0.2, 0.3))
         self.sub = QTabWidget()
         self.sub.addTab(self.fit_chart, T("dk_model_vs_data"))
-        self.sub.addTab(self._validation_page(), T("val_title"))
-        self.sub.currentChanged.connect(lambda i: self._validate() if i == 1 else None)
+        self.step_plot = w.plot(T("step_title"), "ΔPV", T("time_s"))
+        self.sub.addTab(self.step_plot, T("step_title"))
+        self.all_chart, self.all_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.7, 0.3))
+        self.sub.addTab(self.all_chart, T("compare_all"))
+        tests = QWidget()
+        tlay = QVBoxLayout(tests)
+        self.eval_tab = w.table([], [])
+        self.eval_tab.setMaximumHeight(200)
+        self.eval_msg = w.note("")
+        tlay.addWidget(self.eval_tab)
+        tlay.addWidget(self.eval_msg)
+        th = QHBoxLayout()
+        self.acf_plot, self.ccf_plot = w.plot(T("eval_acf_t"), "", T("lag_s")), w.plot(T("eval_ccf_t"), "", T("lag_s"))
+        th.addWidget(self.acf_plot)
+        th.addWidget(self.ccf_plot)
+        tlay.addLayout(th, 1)
+        self.sub.addTab(tests, T("eval_title"))
+        self.dist_plot = w.plot("", "ΔPV", T("time_s"))
+        self.sub.addTab(self.dist_plot, T("dk_unmeasured"))
+        self.val_index = self.sub.addTab(self._validation_page(), T("val_title"))
+        self.sub.currentChanged.connect(lambda i: self._validate() if i == self.val_index else None)
         bl.addWidget(self.sub, 2)
         split.addWidget(bot)
         split.setSizes([300, 260, 320])
@@ -161,6 +199,7 @@ class ModelTab(QWidget):
             return {k: ((f"{v:.0f}" if abs(v) >= 100 else f"{v:.3g}") if isinstance(v, float) else v) for k, v in ar.items()}
         lines += [f"{LEVEL_ICON[lv]} {T(k, **fa(a))}" for k, lv, a in sorted(q["checks"], key=lambda c: -c[1])]
         self.quality.setText("  \n".join(lines))
+        self._auto_segments()
 
     def _results(self):
         s = self.s
@@ -202,10 +241,18 @@ class ModelTab(QWidget):
             cols = names + [f"{n} ({dn})" for dn in s.c_d for n in DIST_PARAMS]
             vals = list(p) + [v for d in pdl for v in d]
             self.params.setColumnCount(len(cols))
-            self.params.setRowCount(1)
+            self.params.setRowCount(2)
             self.params.setHorizontalHeaderLabels(cols)
-            for j, v in enumerate(vals):
+            self.params.setVerticalHeaderLabels(["", T("fix")])
+            keys = [f"fx|{code}|{i}" for i in range(len(names))] + [
+                f"fx|{code}|d{j}|{i}" for j in range(len(pdl)) for i in range(len(DIST_PARAMS))]
+            for j, (v, k) in enumerate(zip(vals, keys)):
                 self.params.setItem(0, j, QTableWidgetItem(f"{v:.5g}"))
+                it = QTableWidgetItem()
+                it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                it.setCheckState(Qt.Checked if s.get(k) else Qt.Unchecked)
+                it.setData(Qt.UserRole, k)
+                self.params.setItem(1, j, it)
         finally:
             self._busy = False
 
@@ -246,12 +293,86 @@ class ModelTab(QWidget):
         ev = s.evaluate()
         m = s.sel_mask
         t = s.t[m]
-        w.line(self.fit_plots[0], t, s.EP(ev["y_plot"]), T("model_" + s.model[0]), "#ea580c", 2.4)
+        code, p, pdl = s.model
+        r = s.fit["res"][code]
+        w.line(self.fit_plots[0], t, s.EP(ev["y_plot"]), T("model_" + code), "#ea580c", 2.4)
         w.line(self.fit_plots[0], t, s.grid.pv_e[m], "PV", w.C_PV, 1.0)
-        w.line(self.fit_plots[1], t, s.grid.mv_e[m], "MV", w.C_MV, 1.4)
+        w.line(self.fit_plots[1], t, (s.pv[m] - ev["y_plot"]) * s.PR / 100, T("resid"), "#64748b", 1.0)
+        w.line(self.fit_plots[2], t, s.grid.mv_e[m], "MV", w.C_MV, 1.4)
         mm = ev["metrics"]
+        edited = mdl.is_edited(p, pdl, r.get("stic", 0.0) or 0.0, r)
+        f_fit = s.fit["res"][code]["fit"]
         self.fit_lab.setText(f"**{T('fit_edit')}: {ev['fit']:.1f} %** · NRMSE {mm['NRMSE']:.2f} % · "
-                             f"{T('col_status')}: {T('st_' + str(mm['status']))}")
+                             f"{T('col_status')}: {T('st_' + str(mm['status']))}"
+                             + (f"  \n{T('fit_fit')}: {f_fit:.1f} %" if edited else ""))
+        # přechodová charakteristika (nafitovaná a upravená)
+        from ...core import predict, step_response
+        self.step_plot.clear()
+        ta, ya = step_response(code, r["p"])
+        w.line(self.step_plot, ta, ya * s.PR / 100, T("fit"), "#ea580c", 2.2)
+        if edited:
+            tb, yb = step_response(code, p, horizon=ta[-1])
+            w.line(self.step_plot, tb, yb * s.PR / 100, T("edited"), "#0891b2", 2.0, dash=True)
+        self.step_plot.addItem(pg.InfiniteLine(pos=p[-1], angle=90, pen=pg.mkPen("#94a3b8", style=Qt.DotLine)))
+        # všechny modely
+        for pl in self.all_plots:
+            pl.clear()
+        ts, pv, mv, d = s.segment()
+        w.line(self.all_plots[0], t, s.grid.pv_e[m], "PV", w.C_PV, 1.0)
+        from ...app.plots import C_MODEL
+        for c, rr in s.fit["res"].items():
+            y = predict(c, rr["p"], rr["pdl"], ts, pv, mv, d, s.grid.Ts, rr.get("stic", 0.0))[0]
+            w.line(self.all_plots[0], t, s.EP(y), f"{c} ({rr['fit']:.1f} %)", C_MODEL.get(c, "#888"), 1.8)
+        w.line(self.all_plots[1], t, s.grid.mv_e[m], "MV", w.C_MV, 1.4)
+        # testy reziduí
+        segs = [(T("eval_id"), mm)]
+        self._eval(segs)
+        # neměřené poruchy
+        self.dist_plot.clear()
+        lvl = r.get("level", "none")
+        pf = ev["pf"]
+        if lvl == "high" and pf.get("dist") is not None:
+            w.line(self.dist_plot, t, pf["dist"] * s.PR / 100, T("dl_est"), "#7c3aed", 2.0)
+            self.dist_plot.setTitle(T("dl_view", th=f"{(r.get('Th') or 0):.0f}"))
+        elif lvl == "medium":
+            w.line(self.dist_plot, t, pf["pv"] * s.PR / 100, T("dl_filtered_pv"), w.C_PV, 1.3)
+            w.line(self.dist_plot, t, pf["yhat"] * s.PR / 100, T("dl_filtered_model"), "#ea580c", 2.0)
+            self.dist_plot.setTitle(T("dl_view", th=f"{(r.get('Th') or 0):.0f}"))
+        else:
+            self.dist_plot.setTitle(T("dl_desc_none"))
+
+    def _eval(self, segs):
+        """Tabulka hodnocení modelu (úsek identifikace, případně validační) a grafy ACF / CCF reziduí."""
+        s = self.s
+        u_pv = s.get("u_pv") or "PV"
+        heads = [""] + [nm for nm, _ in segs]
+        labels = ["FIT [%]", "NRMSE [%]", T("eval_iae", u=u_pv), "R²", T("eval_white"), T("eval_ccf"), T("col_status")]
+        rows = []
+        for i, lab in enumerate(labels):
+            row = [lab]
+            for _, q in segs:
+                row.append([round(q["FIT"], 1), round(q["NRMSE"], 2), q["IAE"] * s.PR / 100, round(q["R2"], 3),
+                            f"{100 * q['frac_acf']:.0f} %", f"{100 * q['frac_ccf']:.0f} %", T(f"st_{q['status']}")][i])
+            rows.append(row)
+        w.fill(self.eval_tab, heads, rows)
+        mm = segs[0][1]
+        msgs = [T("eval_st_" + str(mm["status"]))]
+        msgs.append(T("eval_ccf_bad") if mm["frac_ccf"] > 0.2 else (T("eval_acf_bad") if mm["frac_acf"] > 0.5
+                                                                    else T("eval_res_ok")))
+        if len(segs) == 1:
+            msgs.append(T("eval_no_val"))
+        self.eval_msg.setText("  \n".join(msgs))
+        import numpy as np
+        for plot, key, start in ((self.acf_plot, "acf", 1), (self.ccf_plot, "ccf", 0)):
+            plot.clear()
+            vals = np.asarray(mm[key])
+            lags = (np.arange(len(vals)) + start) * mm["lag_step"]
+            bad = np.abs(vals) > mm["bound"]
+            width = mm["lag_step"] * 0.8
+            plot.addItem(pg.BarGraphItem(x=lags[~bad], height=vals[~bad], width=width, brush="#1f5fa8"))
+            plot.addItem(pg.BarGraphItem(x=lags[bad], height=vals[bad], width=width, brush="#dc2626"))
+            for sg_ in (1, -1):
+                plot.addItem(pg.InfiniteLine(pos=sg_ * mm["bound"], angle=0, pen=pg.mkPen("#94a3b8", style=Qt.DotLine)))
 
     # ---- validace na jiném úseku
     def _validation_page(self):
@@ -274,7 +395,7 @@ class ModelTab(QWidget):
 
     def _validate(self, *_):
         s = self.s
-        if self._busy or s.model is None or self.sub.currentIndex() != 1:
+        if self._busy or s.model is None or self.sub.currentIndex() != self.val_index:
             return
         t = s.t
         if self.v_to.value() <= self.v_from.value():          # výchozí: celý záznam
@@ -303,6 +424,11 @@ class ModelTab(QWidget):
             yv, fv = predict(code, p, pdl, tv, s.pv[sv], s.mv[sv], [d[sv] for d in g.dists], g.Ts, stic)
             w.line(self.v_plots[0], tt, s.EP(yv), T("prediction"), "#ea580c", 2.0)
             same = mdl.overlap(rv, s.rng) > 0.5
+            if not same and sv.sum() > 50:            # hodnocení i na validačním úseku (jako ve webu)
+                ev_v = mdl.evaluate(code, p, pdl, stic, r.get("level", "none"), r.get("Th"), tv, s.pv[sv], s.mv[sv],
+                                    [d[sv] for d in g.dists], g.Ts)
+                self._eval([(T("eval_id"), s.evaluate()["metrics"]), (T("eval_val"), ev_v["metrics"])])
+            s.val_status = 1 if same else (0 if fv >= 70 else 2)
             self.v_res.setText(f"**{T('fit_pred')}: {fv:.1f} %**" + ("  \n" + T("dk_val_same") if same else ""))
             return
         if not g.has_sp:
@@ -315,12 +441,70 @@ class ModelTab(QWidget):
         if not vr["stable"]:
             self.v_res.setText(T("err_sim_unstable", n=T("val_" + which)))
             return
+        if which == "cur":
+            s.val_status = 0 if vr["fit_pv"] >= 60 else 2
         col = w.C_SET2 if which == "new" else w.C_SET1
         w.line(self.v_plots[0], tt, g.sp_e[sv], "SP", w.C_SP, 1.2, dash=True)
         w.line(self.v_plots[0], tt[0] + vr["t"], s.EP(vr["PV"]), T("simulated"), col, 2.0)
         w.line(self.v_plots[1], tt[0] + vr["t"], s.EM(vr["MV"]), f"MV {T('simulated')}", col, 1.8)
         self.v_res.setText(f"**{T('fit_pv')}: {vr['fit_pv']:.1f} %** · {T('fit_mv')}: {vr['fit_mv']:.1f} %  \n"
                            + T("val_cl_help") if which == "cur" else T("val_cl_help"))
+
+    # ---- automaticky nalezené úseky
+    def _auto_segments(self, *_):
+        s = self.s
+        if self._busy or not s.has_data:
+            return
+        segs = s.auto_segments(self.gap.value() or None)
+        self._segs = segs
+        rows = [[i + 1, f"{q['start']:.0f}", f"{q['end']:.0f}", f"{(q['end'] - q['start']) / 60:.1f}",
+                 f"{q['n_mv']} / {q['n_sp']}", f"{q['up']}↑ {q['down']}↓",
+                 f"{q['quality']['snr']:.0f}" if q["quality"] and np.isfinite(q["quality"]["snr"]) else "∞",
+                 (["✓ ", "⚠ ", "✗ "][q["quality"]["level"]] + T(f"q_level{q['quality']['level']}")) if q["quality"] else "—"]
+                for i, q in enumerate(segs)]
+        w.fill(self.auto_tab, ["#", T("auto_from"), T("auto_to"), T("auto_len"), T("auto_steps"), T("auto_dirs"), "SNR",
+                               T("auto_quality")], rows)
+        self.auto_tab.resizeColumnsToContents()
+        self.auto_grp.setTitle(T("auto_title", n=len(segs)))
+        for it in getattr(self, "_seg_items", []):
+            self.seg_plots[0].removeItem(it)
+        self._seg_items = []
+        for q in segs:
+            it = pg.LinearRegionItem((q["start"], q["end"]), movable=False, brush=(191, 219, 254, 60),
+                                     pen=pg.mkPen(None))
+            it.setZValue(-20)
+            self.seg_plots[0].addItem(it)
+            self._seg_items.append(it)
+
+    def _use_segment(self, validation):
+        i = self.auto_tab.currentRow()
+        if i < 0 or i >= len(getattr(self, "_segs", [])):
+            return
+        q = self._segs[i]
+        if validation:
+            self.v_from.setValue(q["start"])
+            self.v_to.setValue(q["end"])
+            self.sub.setCurrentIndex(self.val_index)
+            self._validate()
+        else:
+            self.s.rng = (float(q["start"]), float(q["end"]))
+            self.win.refresh()
+
+    def _refit(self):
+        s = self.s
+        if s.model is None:
+            return
+        code = s.model[0]
+        fixed = s.fixed_from_settings(code)
+        self.b_refit.setEnabled(False)
+        self.win.status(T("fitting"))
+
+        def done(_):
+            self.b_refit.setEnabled(True)
+            self.win.status(T("refit_done", n=len(fixed)))
+            self.win.refresh()
+        w.run_task(lambda _p: s.refit(code, fixed), done,
+                   lambda e: (self.b_refit.setEnabled(True), self.win.error(f"{T('model_' + code)}: {T(e)}")))
 
     # ---- akce
     def _region_moved(self):
@@ -386,6 +570,9 @@ class ModelTab(QWidget):
 
     def _param_edited(self, item):
         if self._busy or self.s.model is None:
+            return
+        if item.row() == 1:                      # zaškrtnutí „zafixovat“
+            self.s.settings[item.data(Qt.UserRole)] = item.checkState() == Qt.Checked
             return
         code = self.s.model[0]
         n = len(MODELS[code]["params"])

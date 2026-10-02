@@ -197,3 +197,47 @@ def run_task(fn, on_done, on_failed=None, on_progress=None):
         t.signals.progress.connect(on_progress)
     QThreadPool.globalInstance().start(t)
     return t
+
+
+# ---- tabulka nad pandas.DataFrame (rychlá i pro desítky tisíc řádků)
+from PySide6.QtCore import QAbstractTableModel, QModelIndex  # noqa: E402
+from PySide6.QtWidgets import QTableView  # noqa: E402
+
+
+class FrameModel(QAbstractTableModel):
+    def __init__(self, df, index=False, parent=None):
+        super().__init__(parent)
+        self.df, self.show_index = df, index      # ne „index“ – to je metoda QAbstractTableModel
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.df)
+
+    def columnCount(self, parent=QModelIndex()):
+        return len(self.df.columns)
+
+    def data(self, idx, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return fmt(self.df.iat[idx.row(), idx.column()], 6)
+        return None
+
+    def headerData(self, i, orient, role=Qt.DisplayRole):
+        if role != Qt.DisplayRole:
+            return None
+        if orient == Qt.Horizontal:
+            return str(self.df.columns[i])
+        return str(self.df.index[i]) if self.show_index else str(i + 1)
+
+
+def frame_view(df, index=False):
+    v = QTableView()
+    v.setModel(FrameModel(df, index, v))      # rodič = pohled, jinak by model uvolnil Python a Qt by spadlo
+    v.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+    return v
+
+
+def tip(widget, key):
+    """Nápověda k poli (stejné texty jako ve webu)."""
+    from ..i18n import TEXTS, T
+    if key in TEXTS["en"]:
+        widget.setToolTip(T(key))
+    return widget

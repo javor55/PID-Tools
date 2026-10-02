@@ -274,7 +274,7 @@ def test_window_validation_and_diagnostics(win):
     w.refresh()
     mt = w.pages[1]
     w.tabs.setCurrentIndex(1)
-    mt.sub.setCurrentIndex(1)
+    mt.sub.setCurrentIndex(mt.val_index)
     mt.v_from.setValue(1800.0)
     mt.v_to.setValue(3599.0)
     app.processEvents()

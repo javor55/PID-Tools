@@ -8,11 +8,12 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ...core import data_quality, find_segments
 from ...i18n import T
 from .. import loops
 from ..charts import show
 from ...app.dataio import TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, to_num
+from ...app import segments as segs_mod
+from ...app.dataset import default_layout
 from ...app.guess import guess_roles
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..widgets import num, sel, seg
@@ -43,7 +44,7 @@ def render_setup(ctx):
         st.markdown(f"**{T('cols_signals')}**")
         r1 = st.columns([2.4, 1.3, 1], vertical_alignment="bottom")
         layouts = ["wide", "pairs", "long"]
-        layout = seg(r1[0], T("layout"), layouts, "pairs" if len(tcols) >= 2 else "wide", f"layout|{ctx.fname}",
+        layout = seg(r1[0], T("layout"), layouts, default_layout(df), f"layout|{ctx.fname}",
                      format_func=lambda x: T("layout_" + x), help=T("h_layout")) or "wide"
         ctx.long_fmt = layout == "long"
         time_fmt = sel(r1[1], T("time_fmt"), TIME_FORMATS, 0, "time_fmt", format_func=lambda x: T("tf_" + x),
@@ -231,26 +232,12 @@ def render(ctx):
             mc_ = ss.mcode
             qmodel = (mc_, [float(ss.get(f"ed|{mc_}|{i}", v)) for i, v in enumerate(ss.fit["res"][mc_]["p"])])
 
-        def rep_frac(a, b):
-            m_ = (ctx.t_all >= a + ctx.T0) & (ctx.t_all <= b + ctx.T0) & np.isfinite(ctx.pv_raw)
-            v_ = ctx.pv_raw[m_]
-            return float(np.mean(np.diff(v_) == 0)) if len(v_) > 20 else None
-
         def quality(a, b):
-            m_ = (t >= a) & (t <= b)
-            if m_.sum() < 20:
-                return dict(level=2, checks=[("q_short", 2, {})], snr=0.0, sigma=0.0, n_steps=0)
-            return data_quality(t[m_], pv[m_], mv[m_], sp[m_] if has_sp else np.zeros(m_.sum()), Ts, has_sp,
-                                float(ctx.M(ctx.mvl_lo)), float(ctx.M(ctx.mvl_hi)), rep_frac(a, b), qmodel)
+            return segs_mod.quality(t, pv, mv, sp, Ts, has_sp, float(ctx.M(ctx.mvl_lo)), float(ctx.M(ctx.mvl_hi)), a, b,
+                                    segs_mod.rep_frac(ctx.t_all, ctx.pv_raw, ctx.T0, a, b), qmodel)
 
         # ---- automaticky nalezené úseky
-        settle = None
-        if qmodel:
-            pq = qmodel[1]
-            settle = pq[-1] + 4 * ((pq[1] if qmodel[0] in ("P1D", "P2D", "I1D") else 0) +
-                                   (pq[2] if qmodel[0] == "P2D" else 0))
-        segs = find_segments(t, mv, sp if has_sp else np.zeros_like(mv), Ts, has_sp,
-                             max_gap=ss.get("seg_gap") or None, settle=settle)
+        segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"))
         with st.expander(T("auto_title", n=len(segs)), expanded=bool(segs) and rng == (0.0, float(t[-1])),
                          icon=":material/auto_awesome:"):
             if not segs:
@@ -319,9 +306,7 @@ def render(ctx):
         icons = ["✓", "⚠", "✗"]
         lv_ = dq["level"]
         box_fn = [st.success, st.warning, st.error][lv_]
-        fmt_a = lambda ar: {a_: ((f"{v_:.0f}" if abs(v_) >= 100 else f"{v_:.3g}") if isinstance(v_, float) else v_)
-                            for a_, v_ in ar.items()}
-        lines = "  \n".join(f"{icons[lv]} {T(k_, **fmt_a(ar))}"
+        lines = "  \n".join(f"{icons[lv]} {T(k_, **segs_mod.format_args(ar))}"
                             for k_, lv, ar in sorted(dq["checks"], key=lambda c_: -c_[1]))
         box_fn(f"**{T('q_title')}: {T('q_level' + str(lv_))}**  \n{lines}",
                icon=[":material/verified:", ":material/rule:", ":material/block:"][lv_])

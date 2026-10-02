@@ -1285,4 +1285,5 @@ TEXTS = {
     'tg_name_diag': 'Diagnostika',
     'tg_diag_what': '**K čemu:** posoudit, jak smyčka běží na provozních datech před přeladěním a po něm – bez testu.\n\n**Postup**\n1. V grafu vyberte provozní úsek (a případně druhý pro srovnání, např. před / po přeladění).\n2. Zkontrolujte **výkon smyčky**: směrodatnou odchylku a IAE regulační odchylky, pohyb a změny směru MV za hodinu, čas na limitu, Harrisův index (1 = daleko od minimálního rozptylu, blízko 0 = blízko).\n3. **Oscilace a ventil:** pravidelná oscilace s trojúhelníkovou MV a „hranatou“ PV (nízký poměr křížové korelace) ukazuje na stikci ventilu – ventil opravte dřív než ladění.\n4. **Nelinearita:** lokální zesílení pro každý skok MV; liší-li se víc než 1,5×, zvažte gain scheduling.',
     'tg_diag_tips': '- Porovnávejte úseky s podobným zatížením a žádanou hodnotou – jinak se ukazatele liší z jiných důvodů.\n- Integrační proces (hladina) se posuzuje přes derivaci PV – zaškrtněte *Integrační proces*.\n- Oscilace způsobená stikcí přeladěním nezmizí – nižší Gain ji jen zpomalí.',
+    'dk_unmeasured': 'Neměřené poruchy',
 }

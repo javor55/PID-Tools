@@ -27,8 +27,21 @@ def guess_col(cols, keys, default=0):
     return min(default, len(cols) - 1)
 
 
+def is_long(df):
+    """Dlouhý formát z historianu: sloupec s opakujícími se názvy tagů (text) a jediný sloupec s čísly mimo čas."""
+    tcols = time_columns(df)
+    other = [c for c in df.columns if c not in tcols]
+    if len(df) < 20 or not other:
+        return False
+    texts = [c for c in other if np.isfinite(to_num(df[c])).mean() < 0.5]
+    nums = [c for c in other if c not in texts]
+    return len(nums) == 1 and any(1 < df[c].nunique() <= max(50, len(df) // 20) for c in texts)
+
+
 def default_layout(df):
-    """Výchozí rozložení: víc sloupců času → „pairs“, jinak „wide“."""
+    """Výchozí rozložení: dlouhý formát (tag, čas, hodnota), víc sloupců času → „pairs“, jinak „wide“."""
+    if is_long(df):
+        return "long"
     return "pairs" if len(time_columns(df)) >= 2 else "wide"
 
 

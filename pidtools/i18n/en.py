@@ -1285,4 +1285,5 @@ TEXTS = {
     'tg_name_diag': 'Diagnostics',
     'tg_diag_what': '**Purpose:** assess how the loop runs on operating data before and after retuning – without a test.\n\n**Steps**\n1. Select the operating segment in the chart (and optionally a second one to compare, e.g. before / after retuning).\n2. Check the **loop performance**: standard deviation and IAE of the control error, MV travel and reversals per hour, time at a limit, Harris index (1 = far from minimum variance, near 0 = close).\n3. **Oscillation and valve:** a regular oscillation with a triangular MV and a square-ish PV (low cross-correlation ratio) points to valve stiction – fix the valve before retuning.\n4. **Nonlinearity:** local gains for each MV step; if they differ by more than 1.5×, consider gain scheduling.',
     'tg_diag_tips': '- Compare segments with similar load and setpoint – otherwise the indicators differ for other reasons.\n- An integrating process (level) is assessed via the PV derivative – tick *Integrating process*.\n- Oscillation caused by stiction does not go away by tuning – lower Gain only makes it slower.',
+    'dk_unmeasured': 'Unmeasured disturbances',
 }
