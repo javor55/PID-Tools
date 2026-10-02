@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pidtools.ui.dataio import detect_time_format, pair_time_columns, pairs_to_wide, parse_time, time_columns
-from pidtools.ui.guess import guess_roles
+from pidtools.app.dataio import detect_time_format, pair_time_columns, pairs_to_wide, parse_time, time_columns
+from pidtools.app.guess import guess_roles
 
 
 @pytest.mark.parametrize("values, kind, step", [
@@ -69,7 +69,7 @@ def test_guess_roles_valve_position():
 
 def test_csv_encodings():
     """Exporty z českých Windows (windows-1250), Excel / WinCC „Unicode text“ (UTF-16 s BOM) a UTF-8 s BOM."""
-    from pidtools.ui.dataio import read_table
+    from pidtools.app.dataio import read_table
     text = "Čas;Teplota °C;Ventil %\n0;51,5;40\n1;51,7;41\n"
     for enc, bom in (("cp1250", b""), ("utf-16-le", b"\xff\xfe"), ("utf-8", b"\xef\xbb\xbf"), ("utf-8", b"")):
         df = read_table("export.csv", bom + text.encode(enc))

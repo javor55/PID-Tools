@@ -10,13 +10,14 @@ from typing import Any, Callable
 
 import numpy as np
 
+from ..app.loop import Scaling, set_ctrl
 from ..i18n import T
 from .charts import mkfig, style, tr
 from .theme import C_MV, C_PV, C_SP, _c_dist
 
 
 @dataclass
-class Ctx:
+class Ctx(Scaling):
     # ---- horní panel
     df: Any = None                 # načtená tabulka
     fname: str = ""                # identita souboru (klíče widgetů)
@@ -89,27 +90,6 @@ class Ctx:
     set2_ctrl: Any = None
     plant: dict = field(default_factory=dict)
 
-    # ---- převody jednotek
-    @property
-    def PR(self):
-        return self.pv_hi - self.pv_lo
-
-    @property
-    def MR(self):
-        return self.mv_hi - self.mv_lo
-
-    def P(self, x):
-        return (np.asarray(x, float) - self.pv_lo) / self.PR * 100
-
-    def M(self, x):
-        return (np.asarray(x, float) - self.mv_lo) / self.MR * 100
-
-    def EP(self, x):
-        return self.pv_lo + np.asarray(x, float) * self.PR / 100
-
-    def EM(self, x):
-        return self.mv_lo + np.asarray(x, float) * self.MR / 100
-
     @property
     def lab_pv(self):
         return f"PV [{self.u_pv}]" if self.u_pv else "PV"
@@ -172,4 +152,4 @@ class Ctx:
         g = ss.get(f"set{n}_gain", 1.0)
         ti = ss.get(f"set{n}_ti", 100.0)
         td = ss.get(f"set{n}_td", 0.0)
-        return dict(self.base_ctrl, Gain=g, TI=ti if ti > 0 else np.inf, TD=td, FF=list(ff), FF_LL=list(ffll))
+        return set_ctrl(self.base_ctrl, g, ti, td, ff, ffll)

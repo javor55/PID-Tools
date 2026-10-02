@@ -1,5 +1,6 @@
 """
-Dopředná vazba (feedforward) z měřených poruch – stav sdílený záložkami Ladění a APC.
+Dopředná vazba (feedforward) z měřených poruch – stav widgetů sdílený záložkami Ladění a APC (výpočty v
+pidtools.app.feedforward).
 
 Nastavení se edituje v APC › Dopředná vazba (klíče widgetů ffuse|j, ffg|j|…, ffdyn|j, fftl|j|…, fftg|j|…, ffdl|j|…);
 Ladění z nich jen čte zesílení a lead-lag pro simulace a scénáře. Výchozí návrh: FF = −Kd/K · (T·s + 1)/(Td·s + 1)
@@ -9,16 +10,9 @@ Zesílení je v % rozsahu MV na jednotku poruchy (vstup FFwd v PIDConL chce jedn
 """
 import streamlit as st
 
-from ..core import ff_gain
-from ..core.apc import ff_design
+from ..app.feedforward import defaults, eng_gain, lead_lag, state, to_ctrl  # noqa: F401
 
 ss = st.session_state
-
-
-def defaults(code, p, pd):
-    """Výchozí návrh pro jednu poruchu: (zesílení, lead, lag, zpoždění) – stejný návrh jako decouplery (ff_design)."""
-    d = ff_design(code, p, pd)
-    return float(ff_gain(code, p, pd)), float(d["lead"]), float(d["lag"]), float(d["delay"])
 
 
 def keys(j, code, p, pd):
@@ -58,35 +52,6 @@ def design(code, p, pdl):
     return out
 
 
-def lead_lag(d):
-    """(lead, lag, zpoždění) pro simulaci; statická FF = (0, 0, 0). Lag aspoň lead/20 (realizovatelný člen),
-    bez leadu i lagu zůstane jen zpoždění."""
-    if not d["dyn"]:
-        return 0.0, 0.0, 0.0
-    lag = max(d["lag"], d["lead"] / 20) if d["lead"] > 0 else d["lag"]
-    return (d["lead"], lag, d["delay"]) if lag > 0 else (0.0, 0.0, d["delay"])
-
-
-def to_ctrl(des, only=None, dyn=None):
-    """
-    Seznamy FF a FF_LL pro simulaci. only = index jediné použité poruchy (None = podle zapnutí),
-    dyn = vynutit statickou (False) / dynamickou (True) variantu (None = podle nastavení).
-    """
-    ff, ffll = [], []
-    for j, d in enumerate(des):
-        on = d["use"] if only is None else j == only
-        dd = d if dyn is None else dict(d, dyn=dyn)
-        ff.append(d["gain"] if on else 0.0)
-        ffll.append(lead_lag(dd) if on else (0.0, 0.0, 0.0))
-    return ff, ffll
-
-
 def save_state(des):
     """Stav pro projekt (ss.ff_state)."""
-    ss.ff_state = [dict(use=d["use"], gain=d["gain"], dyn=d["dyn"], lead=d["lead"], lag=d["lag"], delay=d["delay"])
-                   for d in des]
-
-
-def eng_gain(gain_pct, mv_range):
-    """Zesílení v jednotkách MV na jednotku poruchy (pro vstup FFwd v PIDConL)."""
-    return gain_pct * mv_range / 100.0
+    ss.ff_state = state(des)

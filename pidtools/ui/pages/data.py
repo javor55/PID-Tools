@@ -12,9 +12,9 @@ from ...core import data_quality, find_segments
 from ...i18n import T
 from .. import loops
 from ..charts import show
-from ..dataio import (TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, pairs_cached,
-                      pivot_cached, resample_cached, time_cached, time_columns_cached, to_num)
-from ..guess import guess_roles
+from ...app.dataio import TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, to_num
+from ...app.guess import guess_roles
+from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..widgets import num, sel, seg
 
 ss = st.session_state

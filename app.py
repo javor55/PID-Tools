@@ -7,13 +7,16 @@ import streamlit as st
 st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon="🎛️", layout="wide")
 
 from pidtools.i18n import DEFAULT_LANG, TEXTS, T  # noqa: E402
+from pidtools.i18n import set_lang_provider  # noqa: E402
 from pidtools.ui import autosave, charts, loops  # noqa: E402
-from pidtools.ui.guess import loop_tag  # noqa: E402
+from pidtools.app.guess import loop_tag  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (apc, data, diagnostics, guides, header, live, model, project,  # noqa: E402
                                tuning)
 from pidtools.ui.theme import apply_theme  # noqa: E402
 from pidtools.ui.widgets import keep_widget_state  # noqa: E402
+
+set_lang_provider(lambda: st.session_state.get("lang", DEFAULT_LANG))
 
 TABS = [("data", "tab1"), ("model", "tab2"), ("tuning", "tab3"), ("live", "tab4_live"),
         ("cascade", "tab5"), ("project", "tab6")]

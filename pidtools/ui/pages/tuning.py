@@ -6,8 +6,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ...core import (DIST_PARAMS, MODELS, closed_loop_steps, d_advice, default_tc, iae, integ_gain, mv_noise, overshoot_ratio, tune)
-from ...core.util import lag
+from ...core import (DIST_PARAMS, MODELS, closed_loop_steps, d_advice, default_tc, integ_gain, mv_noise, overshoot_ratio, tune)
+from ...app import scenario
+from ...app.loop import block_ctrl, rule_ctrl
 from ...i18n import T, TEXTS
 from .. import cache
 from .. import ff as ffmod
@@ -50,39 +51,17 @@ def render_block(ctx):
                            help=T("h_mvrate"))
             sprate_e = num(T("sprate", u=ctx.u_pv or "PV"), "sprate", 0.0, q[2], min_value=0.0, format="%.4g",
                            help=T("h_sprate"))
-    ctx.base_ctrl = dict(SampleTime=ctx.samp, DiffGain=ctx.diffgain, PropFacSP=ctx.propfac, DiffFbk=ctx.dfb,
-                         DeadBand=db_e / ctx.PR * 100, DbMode="spojité" if db_mode == "cont" else "skokové",
-                         MV_Lo=float(ctx.M(ctx.mvl_lo)), MV_Hi=float(ctx.M(ctx.mvl_hi)), PVFilt=ctx.pvfilt,
-                         MVRate=mvrate_e / ctx.MR * 100, SPRate=sprate_e / ctx.PR * 100)
+    ctx.base_ctrl = block_ctrl(ctx, ctx.samp, ctx.diffgain, ctx.propfac, ctx.dfb, db_e, db_mode, ctx.mvl_lo, ctx.mvl_hi,
+                               ctx.pvfilt, mvrate_e, sprate_e)
     ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p=f"{ctx.propfac:g}",
                           d="✓" if ctx.dfb else "✗", g=f"{ss.get('set1_gain', 1.0):.4g}",
                           ti=f"{ss.get('set1_ti', 100.0):.4g}", td=f"{ss.get('set1_td', 0.0):.4g}")
 
 
-def _nice(x):
-    """Zaokrouhlení nahoru na „hezké“ číslo (1, 1,5, 2, 3, 5, 7,5 × 10^n)."""
-    if not np.isfinite(x) or x <= 0:
-        return x
-    e = 10 ** np.floor(np.log10(x))
-    return float(next(m * e for m in (1, 1.5, 2, 3, 5, 7.5, 10) if m * e >= x * 0.999))
-
-
-def auto_sim_length(mcode, p, ctrls, T_char, samp, ts_id):
-    """
-    Délka simulace scénáře podle dynamiky: 4× nejdelší doba ustálení uzavřené smyčky (sada 1 a 2; skok SP i porucha),
-    aby se mezi událostmi (5 %, 40 %, 70 % délky) smyčka vždy ustálila. Když se žádná sada neustálí (nestabilní),
-    podle modelu procesu (20× charakteristický čas), nejméně délka úseku identifikace. Vrací (délka [s], zdroj).
-    """
-    st_ = [cache.settling_time(mcode, tuple(p), {k: v for k, v in c.items() if k not in ("FF", "FF_LL")})
-           for c in ctrls if c is not None]
-    st_ = [x for x in st_ if x]
-    if st_:
-        return _nice(max(4 * max(st_), 50 * samp)), "cl"
-    t_data = float(ts_id[-1]) if ts_id is not None and len(ts_id) else 0.0
-    t_mod = max(20 * T_char, 50 * samp)
-    if t_data > 0:      # nevěrohodně pomalý model (časová konstanta ≫ záznam) nesmí dát simulaci na dny
-        t_mod = min(t_mod, 20 * t_data)
-    return _nice(max(t_mod, t_data)), ("data" if t_data >= t_mod else "model")
+def _reset_editor(sdf_key, edkey):
+    """Po přepsání událostí scénáře (ss[sdf_key]) zahodit stav editoru, aby převzal nové řádky."""
+    for k_ in (edkey, f"{edkey}|init", f"{sdf_key}|last"):
+        ss.pop(k_, None)
 
 
 def _norm_section(ctx):
@@ -384,7 +363,7 @@ def render(ctx):
                 scen_opts = ["custom"] + (["replay"] if dists else [])
                 scen = seg(st, T("scenario"), scen_opts, "custom", "scen2",
                            format_func=lambda x: T("scen_" + x), help=T("h_scenario")) or "custom"
-                T_char = p[-1] + (p[1] if mcode in ("P1D", "P2D", "I1D") else 0) + (tc or 0) + samp
+                T_char = scenario.t_char(mcode, p, tc, samp)
                 if scen == "custom":
                     sim_l1, sim_l2, sim_l3 = st.columns([2, 1, 1], vertical_alignment="bottom")
                     T_end_unit = sel(sim_l2, T("time_unit"), ["s", "min", "h"], 0, "sim_len_u")
@@ -395,8 +374,9 @@ def render(ctx):
                     # i návrh (sady mohou mít ještě výchozí hodnoty) – SIMC, ne zvolená metoda: optimalizace na scénáři
                     # závisí na délce simulace a délka na jejím výsledku by se navzájem posouvaly (optimalizace stále znovu)
                     r_ = tune(mcode, p, "SIMC", default_tc(mcode, p, samp, "SIMC", ctype, diffgain), ctype, samp)
-                    prop_ctrl = dict(base_ctrl, Gain=r_["Kc"], TI=r_["Ti"] if r_["Ti"] > 0 else np.inf, TD=r_["Td"])
-                    t_auto, auto_src = auto_sim_length(mcode, p, (set1_ctrl, set2_ctrl, prop_ctrl), T_char, samp, ts_id)
+                    prop_ctrl = rule_ctrl(base_ctrl, r_)
+                    t_auto, auto_src = scenario.auto_length(mcode, p, (set1_ctrl, set2_ctrl, prop_ctrl), T_char, samp, ts_id,
+                                                             settling=cache.settling_time)
                     tend_key = f"tend_r|{mcode}"
                     if auto_len or tend_key not in ss:
                         ss[tend_key] = float(f"{t_auto / mult:.4g}")
@@ -412,13 +392,7 @@ def render(ctx):
                     t_prev = ss.get(tk_)
                     ss[tk_] = T_end
                     if sdf_key in ss and t_prev and abs(T_end / t_prev - 1) > 0.02:
-                        f_ = T_end / t_prev
-                        rows_ = [list(r_) for r_ in ss.get(f"{sdf_key}|last", ss[sdf_key])]
-                        for r_ in rows_:
-                            for i_ in (4, 5):
-                                if r_[i_] is not None:
-                                    r_[i_] = round(float(r_[i_]) * f_, 6)
-                        ss[sdf_key] = rows_
+                        ss[sdf_key] = scenario.rescale_times(ss.get(f"{sdf_key}|last", ss[sdf_key]), T_end / t_prev)
                         for k_ in (edkey, f"{edkey}|init", f"{sdf_key}|last"):
                             ss.pop(k_, None)
                         st.rerun()
@@ -434,11 +408,7 @@ def render(ctx):
                     ft_key = f"{sdf_key}|spft"
                     if sdf_key in ss and ss.get(ft_key) not in (None, (sp_from, sp_to)):
                         # změna „z → na“: přepsat skoky SP v tabulce scénáře (amplituda = na − z)
-                        rows_ = [list(r_) for r_ in ss.get(f"{sdf_key}|last", ss[sdf_key])]
-                        hit = False
-                        for r_ in rows_:
-                            if r_[1] == "SP" and r_[2] == "step" and not hit:
-                                r_[3], hit = round(sp_amp_e, 6), True
+                        rows_, hit = scenario.set_sp_step(ss.get(f"{sdf_key}|last", ss[sdf_key]), sp_amp_e)
                         if hit:
                             ss[ft_key] = (sp_from, sp_to)
                             ss[sdf_key] = rows_
@@ -449,18 +419,16 @@ def render(ctx):
                     st.markdown(f"**{T('quick_scen')}**")
                     ps1, ps2, ps3 = st.columns(3)
                     if ps1.button(T("sp_step_base"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None]]
-                        ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
+                        ss[sdf_key] = scenario.quick_rows("sp", sp_amp_e, MR, T_end)
+                        _reset_editor(sdf_key, edkey)
                         st.rerun()
                     if ps2.button(T("sp_step_dist"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
-                                       [True, "IN", "step", round(0.05 * MR, 4), round(0.4 * T_end), None, None, None]]
-                        ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
+                        ss[sdf_key] = scenario.quick_rows("sp_dist", sp_amp_e, MR, T_end)
+                        _reset_editor(sdf_key, edkey)
                         st.rerun()
                     if ps3.button(T("pv_noise_real"), width="stretch"):
-                        ss[sdf_key] = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
-                                       [True, "PV", "noise", round(sigma_pv * PR / 100, 4), 0.0, None, None, None]]
-                        ss.pop(edkey, None); ss.pop(f"{edkey}|init", None); ss.pop(f"{sdf_key}|last", None)
+                        ss[sdf_key] = scenario.quick_rows("noise", sp_amp_e, MR, T_end, sigma_pv * PR / 100)
+                        _reset_editor(sdf_key, edkey)
                         st.rerun()
                 else:
                     T_end = float(ts_id[-1])
@@ -474,8 +442,8 @@ def render(ctx):
                 ff_cmp = s3_.toggle(T("ff_cmp"), key="ff_cmp", help=T("h_ff_cmp"), disabled=not any(ff)) and any(ff)
 
             # ---- definice scénáře (tabulka událostí)
-            tg_codes = ["SP", "IN", "PV"] + [f"M{j}" for j in range(len(c_d))]
-            ty_codes = ["step", "ramp", "sine", "pulse", "rpulse", "noise"]
+            tg_codes = scenario.targets(len(c_d))
+            ty_codes = scenario.TYPES
 
             def tg_label(c_, lang=None):
                 tx = TEXTS[lang or ss.lang]
@@ -487,11 +455,7 @@ def render(ctx):
                 with st.expander(T("scen_title"), expanded=True, icon=":material/timeline:"):
                     sdf_key = f"scen_df|{mcode}|{len(c_d)}"
                     if sdf_key not in ss:
-                        rows_ = [[True, "SP", "step", round(sp_amp_e, 6), round(0.05 * T_end), None, None, None],
-                                 [True, "IN", "step", round(0.05 * MR, 4), round(0.4 * T_end), None, None, None]]
-                        rows_ += [[True, f"M{j}", "step", 1.0, round((0.7 + 0.05 * j) * T_end), None, None, None]
-                                  for j in range(len(c_d))]
-                        ss[sdf_key] = rows_
+                        ss[sdf_key] = scenario.default_rows(sp_amp_e, MR, len(c_d), T_end)
                     edkey = f"scen_ed|{sdf_key}|{ss.lang}"
                     if f"{edkey}|init" not in ss:  # výchozí data editoru (při změně jazyka převezme poslední stav)
                         ss[f"{edkey}|init"] = ss.get(f"{sdf_key}|last", ss[sdf_key])
@@ -547,23 +511,15 @@ def render(ctx):
                 except Exception:
                     vgains = [1.0] * 10
                 ss["vchar_last"] = vgains
-                xs_ = np.linspace(0, 100, 101)
-                cum_ = np.r_[0.0, np.cumsum(np.array(vgains) * 10.0)]
-                ys_ = [cum_[min(int(x_ // 10), 9)] + vgains[min(int(x_ // 10), 9)] * (x_ - 10 * min(int(x_ // 10), 9))
-                       for x_ in xs_]
+                xs_, ys_ = scenario.valve_curve(vgains)
                 fvc = go.Figure(go.Scatter(x=xs_, y=ys_, mode="lines", line=dict(color=C_MV, width=2)))
                 fvc.add_trace(go.Scatter(x=[0, 100], y=[0, 100], mode="lines", line=dict(color="#94a3b8", dash="dot")))
                 style(fvc, 260, rev="vchar")
                 fvc.update_layout(showlegend=False, xaxis_title=T("vchar_x"), yaxis_title=T("vchar_y"), hovermode="closest")
                 with vc2:
                     show(fvc, key="chart_vchar", fname="valve_characteristic")
-            plant = dict(Stic=S_e / MR * 100, SticJ=S_e / MR * 100 * J_pct / 100, Noise=noise_e / PR * 100,
-                         ValveChar=vgains, Seed=7)
-
-            m_sub = max(1, min(10, int(20000 * samp / T_end)))
-            h = samp / m_sub
-            n = int(T_end / h) + 1
-            ts_sim = np.arange(n) * h
+            plant = scenario.plant(S_e, J_pct, noise_e, vgains, PR, MR)
+            h, ts_sim = scenario.grid(samp, T_end)
             pv0 = float(np.nanmedian(sp[sel_mask])) if has_sp else float(pv_id[0])
             if scen == "custom":
                 pv0 = float(ctx.P(ctx.sim_sp0))     # počáteční SP (a PV) simulace = „SP z“
@@ -571,59 +527,13 @@ def render(ctx):
             if not (base_ctrl["MV_Lo"] - 1e-9 <= mv0 <= base_ctrl["MV_Hi"] + 1e-9):
                 st.warning(T("sim_mv0_out", m=f"{EM(mv0):.4g}", lo=f"{ctx.mvl_lo:g}", hi=f"{ctx.mvl_hi:g}",
                              u=u_mv or "MV"), icon=":material/warning:")
-            spv = np.full(n, pv0)
-            dmv_arr, dpv_arr = np.zeros(n), np.zeros(n)
-            dmeas = [np.zeros(n) for _ in c_d]
-            sp_amp = d_amp = 0.0
             if scen == "custom":
-                for ri, row in sdf.iterrows():
-                    if not bool(row.get("on", True)) or pd.isna(row.get("amp")):
-                        continue
-                    tgc = tg_map.get(str(row.get("target")))
-                    tyc = ty_map.get(str(row.get("type")))
-                    if tgc is None or tyc is None:
-                        continue
-                    amp = float(row["amp"])
-                    t0_ = float(row["start"]) if not pd.isna(row.get("start")) else 0.0
-                    t1_ = float(row["end"]) if not pd.isna(row.get("end")) and float(row["end"]) > t0_ else np.inf
-                    per = float(row["period"]) if not pd.isna(row.get("period")) and float(row["period"]) > 0 else \
-                        max((min(t1_, T_end) - t0_) / 4, 10 * h)
-                    tau = float(row["tau"]) if not pd.isna(row.get("tau")) else 0.0
-                    act = (ts_sim >= t0_) & (ts_sim < t1_)
-                    sig_ = np.zeros(n)
-                    if tyc == "step":
-                        sig_[act] = amp
-                    elif tyc == "ramp":
-                        dur = (t1_ - t0_) if np.isfinite(t1_) else per
-                        sig_ = amp * np.clip((ts_sim - t0_) / max(dur, h), 0, 1)
-                    elif tyc == "sine":
-                        sig_[act] = amp * np.sin(2 * np.pi * (ts_sim[act] - t0_) / per)
-                    elif tyc == "pulse":
-                        sig_[act] = amp * (((ts_sim[act] - t0_) % per) < per / 2)
-                    elif tyc == "rpulse":
-                        rg = np.random.default_rng(100 + ri)
-                        tp = t0_
-                        while tp < min(t1_, T_end):
-                            tp += rg.exponential(per)
-                            w_ = (ts_sim >= tp) & (ts_sim < tp + per / 2) & act
-                            sig_[w_] = amp * rg.choice([-1.0, 1.0])
-                            tp += per / 2
-                    elif tyc == "noise":
-                        sig_[act] = np.random.default_rng(200 + ri).normal(0, abs(amp), act.sum())
-                    if tau > 0:
-                        sig_ = lag(sig_, tau, h)
-                    if tgc == "SP":
-                        spv = spv + sig_ / PR * 100
-                        sp_amp = max(sp_amp, abs(amp) / PR * 100)
-                    elif tgc == "IN":
-                        dmv_arr = dmv_arr + sig_ / MR * 100
-                        d_amp = max(d_amp, abs(amp) / MR * 100)
-                    elif tgc == "PV":
-                        dpv_arr = dpv_arr + sig_ / PR * 100
-                    else:
-                        dmeas[int(tgc[1:])] = dmeas[int(tgc[1:])] + sig_
+                sig = scenario.signals(ss.get(f"{sdf_key}|last", []), ts_sim, h, T_end, PR, MR, pv0, len(c_d))
             else:
-                dmeas = [np.interp(ts_sim, ts_id, d - d[0]) for d in d_id]
+                sig = scenario.signals([], ts_sim, h, T_end, PR, MR, pv0, len(c_d))
+                sig["dmeas"] = scenario.replay_dists(ts_sim, ts_id, d_id)
+            spv, dmv_arr, dpv_arr, dmeas = sig["sp"], sig["dmv"], sig["dpv"], sig["dmeas"]
+            sp_amp, d_amp = sig["sp_amp"], sig["d_amp"]
             ss["scen_built"] = dict(mcode=mcode, h=h, sp=spv, pv0=pv0, mv0=mv0, dmeas=dmeas, dmv=dmv_arr, dpv=dpv_arr,
                                     plant=plant, sp_amp=sp_amp or 5.0, d_amp=d_amp or 5.0)
 
@@ -649,7 +559,7 @@ def render(ctx):
             if spread_on:
                 for i_, q in enumerate(unc_models[:10]):
                     rq = run(set2_ctrl, list(q))
-                    if np.all(np.isfinite(rq["PV"])) and np.abs(rq["PV"]).max() < 1e5:
+                    if scenario.stable(rq):
                         fig.add_trace(tr(rq["t"], EP(rq["PV"]), T("unc_variants"), "#86efac", 1.0, show=i_ == 0, group="spread",
                                          opacity=0.7), 1, 1)
                         fig.add_trace(tr(rq["t"], EM(rq["MV"]), T("unc_variants"), "#86efac", 1.0, show=False, group="spread",
@@ -657,8 +567,8 @@ def render(ctx):
             fig.add_trace(tr(ts_sim, EP(spv), "SP", C_SP, 1.4, "dash", "hv"), 1, 1)
             kp = []
             for nm, (rs_, col, dash) in sims.items():
-                Pv, Mv, S_ = rs_["PV"], rs_["MV"], rs_["SPr"]
-                if not (np.all(np.isfinite(Pv)) and np.abs(Pv).max() < 1e5):
+                Pv, Mv = rs_["PV"], rs_["MV"]
+                if not scenario.stable(rs_):
                     st.error(T("err_sim_unstable", n=nm), icon=":material/error:")
                     continue
                 fig.add_trace(tr(rs_["t"], EP(Pv), f"{nm}", col, 2.0, dash, group=nm), 1, 1)
@@ -666,11 +576,12 @@ def render(ctx):
                 if plant["Stic"] > 0:
                     fig.add_trace(tr(rs_["t"], EM(rs_["V"]), f"{T('valve_pos')} {nm}", col, 1.0, "dot", shape="hv",
                                      show=False, group=nm, opacity=0.8), 2, 1)
-                kp.append({T("setting"): nm, "IAE [%·s]": f"{iae(rs_['t'], S_, Pv):.4g}",
-                           T("kpi_maxdev", u=u_pv or "PV"): f"{np.abs(Pv - S_).max() * PR / 100:.4g}",
-                           T("kpi_mvrange", u=u_mv or "MV"): f"{(Mv.max() - Mv.min()) * MR / 100:.4g}",
-                           T("kpi_mvtravel", u=u_mv or "MV"): f"{np.abs(np.diff(Mv)).sum() * MR / 100:.4g}",
-                           T("kpi_rev"): int(np.sum(np.diff(np.sign(np.diff(rs_["V"])[np.abs(np.diff(rs_["V"])) > 1e-9])) != 0))})
+                k_ = scenario.kpis(rs_, PR, MR)
+                kp.append({T("setting"): nm, "IAE [%·s]": f"{k_['iae']:.4g}",
+                           T("kpi_maxdev", u=u_pv or "PV"): f"{k_['maxdev']:.4g}",
+                           T("kpi_mvrange", u=u_mv or "MV"): f"{k_['mv_range']:.4g}",
+                           T("kpi_mvtravel", u=u_mv or "MV"): f"{k_['mv_travel']:.4g}",
+                           T("kpi_rev"): k_["reversals"]})
             ytit = [lab_pv, lab_mv]
             if nr == 3:
                 for i, (nm, d) in enumerate(zip(c_d, dmeas)):
