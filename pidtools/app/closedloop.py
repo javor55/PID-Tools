@@ -10,7 +10,7 @@ odhadu, potřebné buzení dodávají změny SP (nebo měřené poruchy).
 Vše v % rozsahů (NormPV / NormMV); časy v s od začátku úseku.
 """
 import numpy as np
-from scipy.optimize import least_squares
+from ..core.identification import least_squares
 
 from .. import core
 from ..core import MODELS

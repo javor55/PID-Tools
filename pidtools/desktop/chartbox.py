@@ -7,8 +7,8 @@ datům; dvojklik = celý rozsah. Kliknutí na položku legendy křivku skryje / 
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, QLabel, QToolButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, QLabel, QSizePolicy, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from ..i18n import T
 
@@ -89,6 +89,9 @@ class ChartBox(QWidget):
         self.readout = QLabel("")
         self.readout.setObjectName("readout")
         self.readout.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        # délka odečtu se mění s pohybem kurzoru – nesmí měnit šířku grafů (rozložení okna by „skákalo“)
+        self.readout.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.readout.setMinimumWidth(0)
         self.b_full = self._tool(T("dk_chb_full"), "dk_ch_full")
         self.b_full.clicked.connect(self.full_range)
         self.b_cur = self._tool(T("dk_chb_cursor"), "dk_ch_cursor", checkable=True, checked=True)

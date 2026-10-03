@@ -1,6 +1,12 @@
 """Pomocné numerické funkce sdílené jádrem."""
 import numpy as np
-from scipy.signal import lfilter
+
+
+def lfilter(b, a, x):
+    """scipy.signal.lfilter načtený až při prvním použití (scipy.signal se načítá ~2 s – rychlejší start)."""
+    from scipy.signal import lfilter as _lf
+    return _lf(b, a, x)
+
 
 __all__ = ["lag", "acf", "padd", "propfac"]
 

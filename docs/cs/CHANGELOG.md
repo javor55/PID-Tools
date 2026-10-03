@@ -1,5 +1,11 @@
 # Změny
 
+## Nevydáno
+
+- Desktop startuje rychleji: SciPy a Plotly se načtou až při prvním použití a hned se ukáže úvodní obrazovka
+  s ikonou.
+- Grafy v desktopu: odečet kurzoru už nemění velikost grafů (např. ve frekvenční analýze).
+
 ## 3.2.0 beta 1 – aplikace pro Windows (instalátor), připomínky k ovládání, načítání dat
 
 **Beta:** první sestavení instalátoru pro Windows a samostatného webového offline balíčku – problémy prosím hlaste.

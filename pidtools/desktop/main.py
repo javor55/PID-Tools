@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBo
                                QLineEdit, QMainWindow, QMessageBox, QPlainTextEdit, QTabWidget, QToolBar)
 
 from .. import __version__, i18n
-from ..app.report import SECTIONS, STATUSES
 from ..i18n import T
 from ..app import guides
 from . import layout
@@ -411,6 +410,7 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getSaveFileName(self, T("dk_export_report"), str(Path(self._dir()) / name), "HTML (*.html)")
         if path:
             self._remember(path)
+            from ..app.report import SECTIONS
             html = self.project.report_html(dlg.meta(), SECTIONS, "inline")
             Path(path).write_text(html, encoding="utf-8")
             self.status(T("dk_saved", f=path))
@@ -426,6 +426,7 @@ class ReportDialog(QDialog):
         f = QFormLayout(self)
         self.plant, self.author = QLineEdit(state.get("rep_plant", "")), QLineEdit(state.get("rep_author", ""))
         self.st = QComboBox()
+        from ..app.report import STATUSES
         for k in STATUSES:
             self.st.addItem(T("rp_st_" + k), k)
         self.st.setCurrentIndex(max(self.st.findData(state.get("rep_status", "draft")), 0))
@@ -447,8 +448,8 @@ class ReportDialog(QDialog):
         return m
 
 
-def run(argv=None):
-    """Spuštění aplikace; volitelně s cestou k datům nebo projektu (.json)."""
+def run(argv=None, splash=None):
+    """Spuštění aplikace; volitelně s cestou k datům nebo projektu (.json). splash = úvodní obrazovka (zavře se)."""
     argv = sys.argv if argv is None else argv
     app = QApplication.instance() or QApplication(argv)
     app.setOrganizationName(ORG)
@@ -462,6 +463,8 @@ def run(argv=None):
     data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
     win = MainWindow(autosave=Path(data_dir) / "autosave.json" if data_dir else None)
     win.show()
+    if splash is not None:
+        splash.finish(win)
     if len(argv) <= 1:
         win.offer_restore()
     else:

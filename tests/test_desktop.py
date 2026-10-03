@@ -648,3 +648,22 @@ def test_set_edit_updates_chart(win):
     pv2 = t.plots[0].listDataItems()
     assert w.state.get("set2_ti") == pytest.approx(w.state.get("set1_ti")) and pv2
     assert t.sets[(1, "td")].minimum() == 0.0 and t.sets[(1, "ti")].minimum() == 0.0
+
+
+def test_readout_does_not_resize_charts(win):
+    """Odečet kurzoru (měnící se délka textu) nemění šířku grafů ve frekvenční analýze."""
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    w.tabs.setCurrentIndex(2)
+    t = w.pages[2]
+    t.views.setCurrentIndex(1)
+    app.processEvents()
+    fv = t.freq
+    s0 = [c.width() for c in (fv.bode, fv.nyq, fv.sens)]
+    fv.bode.readout.setText("ω = 1   " + "PV = 123.456   " * 30)
+    app.processEvents()
+    assert [c.width() for c in (fv.bode, fv.nyq, fv.sens)] == s0
+    t.views.setCurrentIndex(0)

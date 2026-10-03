@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Desktop starts faster: SciPy and Plotly are loaded only when first needed, and a splash screen with the icon
+  appears at once.
+- Desktop charts: the cursor readout no longer resizes the charts (e.g. in the frequency analysis).
+
 ## 3.2.0 beta 1 – Windows application (installer), UI feedback, data loading
 
 **Beta:** first build of the Windows installer and the separate web offline package – please report problems.

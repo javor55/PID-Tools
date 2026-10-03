@@ -1,6 +1,6 @@
 """Návrh ladění: pravidla (SIMC, iSIMC, Lambda, AMIGO, průměrovací) a optimalizace (MIGO, IAE/ISE/ITAE/překmit, scénář)."""
 import numpy as np
-from scipy.signal import lfilter
+from .util import lfilter
 
 from .models import MODELS
 from .robustness import loop_tf, is_stable, _freq_grid, hf_gain

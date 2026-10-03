@@ -1,6 +1,6 @@
 """python -m pidtools.desktop [data.csv | projekt.json]"""
 import sys
 
-from .main import run
+from . import launch
 
-sys.exit(run())
+sys.exit(launch())

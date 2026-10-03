@@ -354,7 +354,7 @@ class ModelTab(Workspace):
             pl.clear()
         ts, pv, mv, d = s.segment()
         w.line(self.all_plots[0], t, s.grid.pv_e[m], "PV", w.C_PV, 1.0)
-        from ...app.plots import C_MODEL
+        from ...app.colors import C_MODEL
         for c, rr in s.fit["res"].items():
             y = predict(c, rr["p"], rr["pdl"], ts, pv, mv, d, s.grid.Ts, rr.get("stic", 0.0))[0]
             w.line(self.all_plots[0], t, s.EP(y), f"{c} ({rr['fit']:.1f} %)", C_MODEL.get(c, "#888"), 1.8)

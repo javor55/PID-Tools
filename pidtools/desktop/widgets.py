@@ -6,7 +6,7 @@ from PySide6.QtGui import QValidator
 from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout,
                                QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QWidget)
 
-from ..app.plots import C_DIST, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: F401 (barvy pro okna)
+from ..app.colors import C_DIST, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: F401 (barvy pro okna)
 
 pg.setConfigOptions(background="w", foreground="#1f2933", antialias=True)
 
