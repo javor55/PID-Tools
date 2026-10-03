@@ -488,8 +488,10 @@ def test_scenario_sp_from_to():
     assert rows[0][1] == "SP" and rows[0][3] == pytest.approx(20.0)
     sb = at.session_state["scen_built"]
     assert sb["sp"][0] * 4 == pytest.approx(360.0) and sb["sp"][-1] * 4 == pytest.approx(380.0)
-    # pracovní bod MV 130 % mimo limity 0–100 → varování
-    assert any("lies outside the controller limits" in w.value for w in at.warning)
+    # rozsah MV (data 125–135) nebyl zadán → odhad z dat místo výchozích 0–100; zadaný NormPV 0–400 zůstal
+    assert (at.session_state["mv_lo"], at.session_state["mv_hi"]) == (0.0, 200.0)
+    assert (at.session_state["pv_lo"], at.session_state["pv_hi"]) == (0.0, 400.0)
+    assert not any("lies outside the controller limits" in w.value for w in at.warning)
 
 
 def test_opc_source_web():

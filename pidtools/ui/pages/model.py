@@ -58,6 +58,7 @@ def render(ctx):
     model = None
     sigma_pv = 0.0
     model_stic, model_level, model_Th = 0.0, "none", None
+    seg_extra, seg_resid = [], None
     with ctx.tabs["model"]:
         # ---- 2 · identifikace (panel)
         with ws.ident:
@@ -200,25 +201,24 @@ def render(ctx):
                 if any(k not in ss for k in need):
                     reset_edits(mcode)
                 st.caption(T("fix_help"))
-                cc = st.columns(2)
                 p_ed = []
-                for i, n in enumerate(names):
-                    with cc[i % 2]:
-                        p_ed.append(st.number_input(n, key=f"ed|{mcode}|{i}", min_value=None if i == 0 else 0.0,
-                                                    format="%.5g", help=T("help_" + ("gain" if i == 0 else "theta" if i == len(names) - 1 else "T")),
-                                                    step=max(abs(ss[f"ed|{mcode}|{i}"]) * 0.05, 1e-6)))
-                        st.checkbox(T("fix"), key=f"fx|{mcode}|{i}", help=T("h_fix"))
+                for i, n in enumerate(names):           # parametry pod sebou: hodnota | zafixovat
+                    c1_, c2_ = st.columns([3, 1], vertical_alignment="bottom")
+                    p_ed.append(c1_.number_input(n, key=f"ed|{mcode}|{i}", min_value=None if i == 0 else 0.0,
+                                                 format="%.5g", help=T("help_" + ("gain" if i == 0 else "theta" if i == len(names) - 1 else "T")),
+                                                 step=max(abs(ss[f"ed|{mcode}|{i}"]) * 0.05, 1e-6)))
+                    c2_.checkbox(T("fix"), key=f"fx|{mcode}|{i}", help=T("h_fix"))
                 pdl_ed = []
                 for j, dn in enumerate(c_d):
                     st.markdown(f"<span class='pid-big'>{T('dist_model')}: <b>{html.escape(str(dn))}</b></span>",
                                 unsafe_allow_html=True)
-                    cc = st.columns(len(DIST_PARAMS))
                     row_ = []
                     for i, n in enumerate(DIST_PARAMS):
-                        row_.append(cc[i].number_input(n, key=f"ed|{mcode}|d{j}|{i}", min_value=None if i == 0 else 0.0,
-                                                       format="%.5g", help=T("h_dist_" + str(i)),
-                                                       step=max(abs(ss[f"ed|{mcode}|d{j}|{i}"]) * 0.05, 1e-6)))
-                        cc[i].checkbox(T("fix"), key=f"fx|{mcode}|d{j}|{i}", help=T("h_fix"))
+                        c1_, c2_ = st.columns([3, 1], vertical_alignment="bottom")
+                        row_.append(c1_.number_input(n, key=f"ed|{mcode}|d{j}|{i}", min_value=None if i == 0 else 0.0,
+                                                     format="%.5g", help=T("h_dist_" + str(i)),
+                                                     step=max(abs(ss[f"ed|{mcode}|d{j}|{i}"]) * 0.05, 1e-6)))
+                        c2_.checkbox(T("fix"), key=f"fx|{mcode}|d{j}|{i}", help=T("h_fix"))
                     pdl_ed.append(row_)
                 if id_stic or res[mcode].get("stic"):
                     sc1, sc2 = st.columns([2, 1], vertical_alignment="bottom")
@@ -257,22 +257,21 @@ def render(ctx):
             m2.metric(T("fit_edit"), f"{f_ed:.1f} %", delta=f"{f_ed - f_fit:+.1f} %" if edited else None)
 
             # ---- grafy modelu (pod-záložky jako v desktopu)
-            labels = [T("dk_model_vs_data"), T("step_title"), T("compare_all"), T("eval_title"), T("val_title")]
+            # model vs. data se kreslí do hlavního grafu záznamu (ctx.seg_chart na konci) – jedna sada grafů
+            with ws.model:
+                show_res = st.toggle(T("show_resid"), key="show_resid", value=True, help=T("h_resid"))
+            seg_extra = [(f"{mcode} {T('fit')}", y_fit, C_MODEL[mcode], None)]
+            if edited:
+                seg_extra.append((f"{mcode} {T('edited')}", y_ed, _c_edit(), "dash"))
+            if model_level == "high" and pf_ed.get("raw") is not None:
+                seg_extra.append((T("model_wo_dist"), pf_ed["raw"], "#94a3b8", "dot"))
+            seg_resid = True if show_res else None
+            labels = [T("step_title"), T("compare_all"), T("eval_title"), T("val_title")]
             if model_level != "none":
                 labels.append(T("dk_unmeasured"))
             with ws.m_tabs:
-                tabs_ = st.tabs(labels, key="mod_view", on_change="rerun")
-            t_fit, t_step, t_all, t_eval, t_val = tabs_[:5]
-
-            with t_fit:
-                show_res = st.toggle(T("show_resid"), key="show_resid", help=T("h_resid"))
-                extra = [(f"{mcode} {T('fit')}", y_fit, C_MODEL[mcode], None)]
-                if edited:
-                    extra.append((f"{mcode} {T('edited')}", y_ed, _c_edit(), "dash"))
-                if model_level == "high" and pf_ed.get("raw") is not None:
-                    extra.append((T("model_wo_dist"), pf_ed["raw"], "#94a3b8", "dot"))
-                show(ctx.data_fig(ts_id, sel_mask, extra, resid=True if show_res else None), key="chart_model",
-                     fname="model", report=T("rep_fig_model"))
+                tabs_ = st.tabs(labels, key="mod_view2", on_change="rerun")
+            t_step, t_all, t_eval, t_val = tabs_[:4]
             REPORT["tables"].append((T("rep_tab_models"), pd.DataFrame(rows).set_index(T("col_model"))))
 
             with t_step:
@@ -298,7 +297,7 @@ def render(ctx):
 
             # ---- neměřené poruchy: co s daty udělalo potlačení
             if model_level != "none":
-                with tabs_[5]:
+                with tabs_[4]:
                     fd = mkfig(1)
                     if model_level == "high":
                         fd.add_trace(tr(ts_id, pf_ed["dist"] * PR / 100, T("dl_est"), "#7c3aed", 2.0), 1, 1)
@@ -394,6 +393,7 @@ def render(ctx):
                     show(fu, key="chart_unc", fname="uncertainty", report=T("unc_title"))
                     st.caption(T("unc_after"))
 
+        ctx.seg_chart(seg_extra, seg_resid)     # záznam s úsekem (+ model, rezidua, poruchy) – jedna sada grafů
     unc_models = (ss.unc["ps"] if (model is not None and ss.get("unc") and ss.unc["code"] == model[0]) else [])
     ctx.model = model
     ctx.model_Th = model_Th

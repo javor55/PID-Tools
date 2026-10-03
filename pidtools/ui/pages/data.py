@@ -15,6 +15,7 @@ from ...app.dataio import TIME_FORMATS, compression_warnings, detect_time_format
 from ...app import segments as segs_mod
 from ...app.dataset import DEMO_DISTS, default_layout
 from ...app.guess import guess_roles
+from ...app.loop import DEFAULT_RANGE, range_for
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
 from ..widgets import num, sel, seg
@@ -136,9 +137,12 @@ def render_setup(ctx):
     ctx.pos_e = ctx.on_grid(ctx.c_pos) if ctx.c_pos != "—" else None
 
     # ---- jednotky; rozsah regulátoru (NormPV, NormMV) se zadává v Ladění › Blok PIDConL – tady se jen použije
-    for k_, d_ in (("pv_lo", 0.0), ("pv_hi", 100.0), ("mv_lo", 0.0), ("mv_hi", 100.0)):
-        if k_ not in ss:
-            ss[k_] = d_
+    for k_, x_ in (("pv", ctx.pv_e), ("mv", ctx.mv_e)):      # rozsah PIDConL podle dat, dokud ho nikdo nezadal
+        cur_ = (ss.get(f"{k_}_lo", 0.0), ss.get(f"{k_}_hi", 100.0))
+        try:
+            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = range_for(cur_, x_)
+        except (TypeError, ValueError):
+            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = DEFAULT_RANGE
     rng_ = [float(ss[k_]) for k_ in ("pv_lo", "pv_hi", "mv_lo", "mv_hi")]
     ctx.norm_ok = rng_[1] > rng_[0] and rng_[3] > rng_[2]
     # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
@@ -292,35 +296,45 @@ def render(ctx):
                 st.caption(T("auto_help"))
             num(T("auto_gap"), "seg_gap", 0.0, min_value=0.0, help=T("h_auto_gap"))
 
-        # ---- graf dat s úseky
-        fig = ctx.data_fig(t)
-        for i_, sg in enumerate(segs):
-            fig.add_vrect(x0=sg["start"], x1=sg["end"], fillcolor="#bfdbfe", opacity=0.22, line_width=0, row=1, col=1,
-                          annotation_text=f"#{i_ + 1}", annotation_position="top left",
-                          annotation_font=dict(size=11, color="#1e40af"))
-        for r in range(1, (3 if ctx.dists else 2) + 1):
-            fig.add_vrect(x0=rng[0], x1=rng[1], fillcolor="#fde68a", opacity=0.25, line_width=0, row=r, col=1)
-        fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
-        with ws.m_seg:
-            ev = show(fig, key=f"chart_data|{ctx.fname}", fname="data", select=True, report=T("rep_fig_data"))
-            st.caption(T("seg_tip"))
+        # ---- graf dat s úseky – kreslí ho záložka Model (ctx.seg_chart), aby v něm byl i model (jedna sada grafů)
+        def seg_chart(extra=(), resid=None):
+            """extra = [(název, y na úseku v %, barva, čára)] – model přes vybraný úsek; resid = řádek reziduí."""
+            full = []
+            for name_, y_, col_, dash_ in extra:
+                yy = np.full(len(t), np.nan)
+                yy[ctx.sel_mask] = y_
+                full.append((name_, yy, col_, dash_))
+            fig = ctx.data_fig(t, None, full, resid=resid)
+            for i_, sg in enumerate(segs):
+                fig.add_vrect(x0=sg["start"], x1=sg["end"], fillcolor="#bfdbfe", opacity=0.22, line_width=0, row=1,
+                              col=1, annotation_text=f"#{i_ + 1}", annotation_position="top left",
+                              annotation_font=dict(size=11, color="#1e40af"))
+            n_rows = 2 + (1 if ctx.dists else 0) + (1 if resid is not None else 0)
+            for r in range(1, n_rows + 1):
+                fig.add_vrect(x0=rng[0], x1=rng[1], fillcolor="#fde68a", opacity=0.25, line_width=0, row=r, col=1)
+            fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
+            with ws.m_seg:
+                ev = show(fig, key=f"chart_data|{ctx.fname}", fname="model" if extra else "data", select=True,
+                          report=T("rep_fig_model" if extra else "rep_fig_data"))
+                st.caption(T("seg_tip"))
 
-        # výběr úseku tažením v grafu
-        try:
-            box = ev.selection.box if ev and ev.selection else []
-            pts = ev.selection.points if ev and ev.selection else []
-            xr = None
-            if box:
-                xr = sorted(float(v) for v in box[0]["x"][:2])
-            elif pts:
-                xs = [float(p_["x"]) for p_ in pts if "x" in p_]
-                xr = [min(xs), max(xs)] if xs else None
-            if xr and xr[1] - xr[0] > step and tuple(xr) != ss.get("last_box"):
-                ss.last_box = tuple(xr)
-                ss.pending_rng = (snap(xr[0]), snap(xr[1]))
-                st.rerun()
-        except Exception:
-            pass
+            # výběr úseku tažením v grafu
+            try:
+                box = ev.selection.box if ev and ev.selection else []
+                pts = ev.selection.points if ev and ev.selection else []
+                xr = None
+                if box:
+                    xr = sorted(float(v) for v in box[0]["x"][:2])
+                elif pts:
+                    xs = [float(p_["x"]) for p_ in pts if "x" in p_]
+                    xr = [min(xs), max(xs)] if xs else None
+                if xr and xr[1] - xr[0] > step and tuple(xr) != ss.get("last_box"):
+                    ss.last_box = tuple(xr)
+                    ss.pending_rng = (snap(xr[0]), snap(xr[1]))
+                    st.rerun()
+            except Exception:
+                pass
+        ctx.seg_chart = seg_chart
 
         # ---- kontrola kvality vybraného úseku
         dq = quality(rng[0], rng[1])

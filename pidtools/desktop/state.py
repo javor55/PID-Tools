@@ -17,7 +17,7 @@ from ..app import segments as sg
 from ..app import tuning as tun
 from ..app.dataio import read_table
 from ..app.guess import guess_roles
-from ..app.loop import Scaling, block_ctrl, set_ctrl
+from ..app.loop import Scaling, block_ctrl, range_for, set_ctrl
 from ..core import MODELS, pidconl_sim_full
 
 DEFAULTS = dict(
@@ -25,7 +25,8 @@ DEFAULTS = dict(
     samp=1.0, diffgain=5.0, propfac=1.0, dfb=True, db=0.0, db_mode="cont", mvl_lo=None, mvl_hi=None, pvfilt=0.0,
     mvrate=0.0, sprate=0.0, set1_gain=1.0, set1_ti=100.0, set1_td=0.0, set2_gain=1.0, set2_ti=100.0, set2_td=0.0,
     thmax=None, chosen=list(MODELS), mcode=None, dist_level="none", dist_strength=4, gain_sign="auto", id_stic=False,
-    ctype="PI", opt_crit="MIGO", opt_target="scen", scen_kind=None, opt_ms=1.6, opt_robust=False, opt_ovs=2, sim_len_u="s",
+    ctype="PI", opt_crit=tun.DEFAULT_CRIT, opt_target=tun.DEFAULT_TARGET, scen_kind=None, opt_ms=1.6, opt_robust=False,
+    opt_ovs=2, sim_len_u="s",
 )
 
 
@@ -117,6 +118,9 @@ class LoopState(Scaling):
 
     def update_grid(self, reset_range=False):
         self.grid = ds.to_grid(self.sig, self.c_pv, self.c_mv, self.c_sp, self.c_d, self.ts_user)
+        for k, x in (("pv", self.grid.pv_e), ("mv", self.grid.mv_e)):      # rozsah PIDConL podle dat, dokud není zadán
+            lo, hi = range_for((self.get(f"{k}_lo", 0.0), self.get(f"{k}_hi", 100.0)), x)
+            self.settings[f"{k}_lo"], self.settings[f"{k}_hi"] = lo, hi
         if reset_range or not (0 <= self.rng[0] < self.rng[1] <= self.grid.t[-1]):
             self.rng = (0.0, float(self.grid.t[-1]))
         if self.get("thmax") is None:
@@ -353,7 +357,7 @@ class LoopState(Scaling):
         return tun.methods(code, p)
 
     def request(self, method=None, tc=None):
-        m = method or self.get(f"method|{self.get('mcode')}", "SIMC")
+        m = method or self.get(f"method|{self.get('mcode')}", tun.DEFAULT_METHOD)
         avg = None
         if m == "AVG":      # změna PV a MV pro průměrování (výchozí 10 % rozsahů, jako ve webu)
             avg = (float(self.get("avg_dpv", 0.1 * self.PR)) / self.PR * 100,

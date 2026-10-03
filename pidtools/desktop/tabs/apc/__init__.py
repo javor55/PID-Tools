@@ -29,6 +29,29 @@ from ...help import checklist_markdown
 from ...layout import Section
 
 
+class _LazyPanels:
+    """Seznam panelů APC, které vznikají až při prvním přístupu (panel se vloží do připravené stránky záložky)."""
+
+    def __init__(self, tabs, win, classes):
+        self.tabs, self.win, self.classes = tabs, win, classes
+        self.items = [None] * len(classes)
+
+    def __len__(self):
+        return len(self.classes)
+
+    def __getitem__(self, i):
+        if self.items[i] is None:
+            p = self.items[i] = self.classes[i](self.win)
+            self.tabs.widget(i).layout().addWidget(p)
+        return self.items[i]
+
+    def __iter__(self):
+        return (self[i] for i in range(len(self)))
+
+    def created(self):
+        return [p for p in self.items if p is not None]
+
+
 class ApcTab(QWidget):
     def __init__(self, win):
         super().__init__()
@@ -39,12 +62,15 @@ class ApcTab(QWidget):
         self.reco.linkActivated.connect(self._open)
         lay.addWidget(Section(T("dk_sec_reco"), self.reco, "apc/reco"))
         self.tabs = QTabWidget()
-        self.panels = [CascadePanel(win), FFPanel(win), DecouplePanel(win), OverridePanel(win), SmithPanel(win),
-                       GainSchedPanel(win), GainSchedErPanel(win), SplitRangePanel(win), VpcPanel(win), RatioPanel(win),
-                       RgaPanel(win)]
-        for p, key in zip(self.panels, ("apc_cascade", "apc_ff", "apc_decouple", "apc_override", "apc_smith",
-                                        "apc_gainsched", "gs_x_er", "apc_split", "apc_vpc", "apc_ratio", "apc_rga")):
-            self.tabs.addTab(p, T(key))
+        # panely se vytvoří až při prvním otevření (rychlejší start aplikace)
+        self.panels = _LazyPanels(self.tabs, win, (CascadePanel, FFPanel, DecouplePanel, OverridePanel, SmithPanel,
+                                                   GainSchedPanel, GainSchedErPanel, SplitRangePanel, VpcPanel,
+                                                   RatioPanel, RgaPanel))
+        for key in ("apc_cascade", "apc_ff", "apc_decouple", "apc_override", "apc_smith", "apc_gainsched", "gs_x_er",
+                    "apc_split", "apc_vpc", "apc_ratio", "apc_rga"):
+            page = QWidget()
+            QVBoxLayout(page).setContentsMargins(0, 0, 0, 0)
+            self.tabs.addTab(page, T(key))
         self.tabs.currentChanged.connect(lambda i: self.panels[i].refresh())
         lay.addWidget(self.tabs, 1)
 

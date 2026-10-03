@@ -5,11 +5,14 @@ sekcích. Počítá se až tlačítkem Vypočítat (F5); po změně nastavení s
 """
 import time
 
+import numpy as np
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QGridLayout, QLabel, QPushButton, QTableWidget,
                                QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
+from ...app.tuning import DEFAULT_METHOD
 from ...core import default_tc
 from ...i18n import T
 from .. import widgets as w
@@ -52,10 +55,45 @@ class TuningTab(Workspace):
         QShortcut(QKeySequence("F5"), self, activated=self.calculate, context=Qt.WidgetWithChildrenShortcut)
         self.status = QLabel("")
         self.status.setWordWrap(True)
+        self.status.setTextFormat(Qt.MarkdownText)
         self.top_bar(self.b_calc)
         self.top.addWidget(self.status)
 
-        # ---- 1 · scénář
+        # ---- blok PIDConL
+        self.f = {}
+        rows = [("pv_lo", "NormPV Low"), ("pv_hi", "NormPV High"), ("mv_lo", "NormMV Low"), ("mv_hi", "NormMV High"),
+                ("samp", T("sampletime")), ("diffgain", "DiffGain"), ("propfac", "PropFacSP"), ("db", T("deadband")),
+                ("mvl_lo", "MV_LoLim"), ("mvl_hi", "MV_HiLim"), ("pvfilt", T("pvfilt")),
+                ("mvrate", T("mvrate", u="MV")), ("sprate", T("sprate", u="PV"))]
+        frm = []
+        for k, lab in rows:
+            sp = w.spin(0.0, -1e12, 1e12, 6)
+            if k == "propfac":
+                sp.setRange(0.0, 1.0)
+                sp.setSingleStep(0.1)
+            if k in ("samp", "diffgain"):
+                sp.setMinimum(0.001)
+            self.f[k] = sp
+            frm.append((lab, sp))
+            sp.valueChanged.connect(self._block_changed)
+        self.db_mode = w.combo(["cont", "step"], labels=[T("db_cont"), T("db_step")])
+        w.tip(self.db_mode, "db_mode_help")
+        self.db_mode.currentIndexChanged.connect(self._block_changed)
+        frm.insert(8, (T("db_mode"), self.db_mode))
+        self.dfb = QCheckBox("DiffToFbk (" + T("dfb") + ")")
+        w.tip(self.dfb, "h_dfb")
+        self.dfb.toggled.connect(self._block_changed)
+        frm.append(("", self.dfb))
+        for k, key in (("pv_lo", "h_normpv"), ("pv_hi", "h_normpv"), ("mv_lo", "h_normmv"), ("mv_hi", "h_normmv"),
+                       ("samp", "sampletime_help"), ("diffgain", "diffgain_help"), ("propfac", "pfb_help"),
+                       ("db", "h_deadband"), ("mvl_lo", "h_mvlim"), ("mvl_hi", "h_mvlim"), ("pvfilt", "h_pvfilt"),
+                       ("mvrate", "h_mvrate"), ("sprate", "h_sprate")):
+            w.tip(self.f[k], key)
+        self.block_note = caption("")
+        sec = self.section(T("dk_sec_block"), w.form(frm), "block", expanded=True)
+        sec.add(self.block_note)
+
+        # ---- 2 · scénář
         self.kind = w.combo([])
         w.tip(self.kind, "dk_sc_kind_help")
         self.kind.currentIndexChanged.connect(self._kind_changed)
@@ -77,7 +115,7 @@ class TuningTab(Workspace):
         sec.add(self.len_src)
         sec.add(self.scen_note)
 
-        # ---- 2 · návrh
+        # ---- 3 · návrh
         self.method = w.combo([])
         self.ctype = w.combo(["PI", "PID"])
         self.tc = w.spin(1.0, 0.0, 1e9, 4)
@@ -119,7 +157,7 @@ class TuningTab(Workspace):
         self.tc.valueChanged.connect(self._tc_changed)
         self.robust.toggled.connect(self._robust_toggled)
 
-        # ---- 3 · sady a robustnost
+        # ---- 4 · sady a robustnost
         sg = QGridLayout()
         self.sets = {}
         for n in (1, 2):
@@ -163,37 +201,6 @@ class TuningTab(Workspace):
         self.dadv = w.note("")
         self.section(T("d_title"), self.dadv, "dadv", expanded=False)
 
-        # ---- blok PIDConL
-        self.f = {}
-        rows = [("pv_lo", "NormPV Low"), ("pv_hi", "NormPV High"), ("mv_lo", "NormMV Low"), ("mv_hi", "NormMV High"),
-                ("samp", T("sampletime")), ("diffgain", "DiffGain"), ("propfac", "PropFacSP"), ("db", T("deadband")),
-                ("mvl_lo", "MV_LoLim"), ("mvl_hi", "MV_HiLim"), ("pvfilt", T("pvfilt")),
-                ("mvrate", T("mvrate", u="MV")), ("sprate", T("sprate", u="PV"))]
-        frm = []
-        for k, lab in rows:
-            sp = w.spin(0.0, -1e12, 1e12, 6)
-            if k == "propfac":
-                sp.setRange(0.0, 1.0)
-                sp.setSingleStep(0.1)
-            if k in ("samp", "diffgain"):
-                sp.setMinimum(0.001)
-            self.f[k] = sp
-            frm.append((lab, sp))
-            sp.valueChanged.connect(self._block_changed)
-        self.db_mode = w.combo(["cont", "step"], labels=[T("db_cont"), T("db_step")])
-        w.tip(self.db_mode, "db_mode_help")
-        self.db_mode.currentIndexChanged.connect(self._block_changed)
-        frm.insert(8, (T("db_mode"), self.db_mode))
-        self.dfb = QCheckBox("DiffToFbk (" + T("dfb") + ")")
-        w.tip(self.dfb, "h_dfb")
-        self.dfb.toggled.connect(self._block_changed)
-        frm.append(("", self.dfb))
-        for k, key in (("pv_lo", "h_normpv"), ("pv_hi", "h_normpv"), ("mv_lo", "h_normmv"), ("mv_hi", "h_normmv"),
-                       ("samp", "sampletime_help"), ("diffgain", "diffgain_help"), ("propfac", "pfb_help"),
-                       ("db", "h_deadband"), ("mvl_lo", "h_mvlim"), ("mvl_hi", "h_mvlim"), ("pvfilt", "h_pvfilt"),
-                       ("mvrate", "h_mvrate"), ("sprate", "h_sprate")):
-            w.tip(self.f[k], key)
-        self.section(T("dk_sec_block"), w.form(frm), "block", expanded=False)
 
         for sp in (self.sp0, self.sp1, self.t_end, self.d_in, self.d_pv):
             sp.valueChanged.connect(self._scenario_changed)
@@ -213,6 +220,9 @@ class TuningTab(Workspace):
                     v = s.mv_lo if k == "mvl_lo" else s.mv_hi
                 sp.setValue(float(v))
             self.dfb.setChecked(bool(s.get("dfb")))
+            g = s.grid
+            self.block_note.setText(T("blk_data_note", pv=f"{np.nanmin(g.pv_e):.4g}–{np.nanmax(g.pv_e):.4g}",
+                                      mv=f"{np.nanmin(g.mv_e):.4g}–{np.nanmax(g.mv_e):.4g}"))
             self.db_mode.setCurrentIndex(max(self.db_mode.findData(s.get("db_mode")), 0))
             self.robust.setChecked(bool(s.get("opt_robust")))
             for (n, k), sp in self.sets.items():
@@ -227,7 +237,7 @@ class TuningTab(Workspace):
                 self.method.clear()
                 for m in ms:
                     self.method.addItem(T("m_" + m), m)
-                cur = s.get(f"method|{s.model[0]}", "SIMC")
+                cur = s.get(f"method|{s.model[0]}", DEFAULT_METHOD)
                 self.method.setCurrentIndex(max(self.method.findData(cur), 0))
                 self.ctype.setCurrentIndex(self.ctype.findData(s.get("ctype")))
                 self.crit.setCurrentIndex(max(self.crit.findData(s.get("opt_crit")), 0))
@@ -270,11 +280,16 @@ class TuningTab(Workspace):
         self._history()
         if self._result is None or self._result.get("model") != s.model:
             self._result = None
-            self.chart.clear()
-            self.freq.clear()
-            self.kpi.setRowCount(0)
+            self._last = None
+            try:                      # hned je vidět výchozí scénář se současnými sadami (bez návrhu – ten až Vypočítat)
+                self._simulate()
+            except Exception:
+                self.chart.clear()
+                self.freq.clear()
+                self.kpi.setRowCount(0)
+            self._result = None
+            self.status.setStyleSheet("")
             self.status.setText("ℹ️ " + T("dk_calc_hint"))
-            self.status.setObjectName("")
         else:
             self._dirty()
 

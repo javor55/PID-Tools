@@ -114,8 +114,8 @@ def test_window_full_flow(win):
     _wait(app)
     assert w.state.model is not None and w.pages[1].res.rowCount() == 5
     t = w.pages[2]
-    assert t.kpi.rowCount() == 0                       # bez výpočtu – počítá se až tlačítkem
-    t.method.setCurrentIndex(t.method.findData("OPT"))
+    assert t.kpi.rowCount() == 2 and "Gain" not in t.sug.text()   # hned scénář se sadami 1, 2; návrh až tlačítkem
+    assert t.method.currentData() == "OPT" and t.crit.currentData() == "OVS" and t.target.currentData() == "both"
     t.calculate()
     _wait(app)
     assert "Gain" in t.sug.text() and t.kpi.rowCount() == 3     # sady 1, 2 a návrh
@@ -440,7 +440,7 @@ def test_history_recent_and_sections(tmp_path):
     assert not w.open_path(tmp_path / "missing.csv") and errs
     sec = t.hist_sec
     sec.expand(True)                                   # stav sekce se pamatuje v nastavení
-    assert prefs.value("sec/tuning/hist") == "true"
+    assert prefs.value("sec2/tuning/hist") == "true"
     assert layout.Section("x", key="tuning/hist").is_expanded()
     w.close()
     _wait(app)

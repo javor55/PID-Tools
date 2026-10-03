@@ -38,6 +38,10 @@ SOLVERS = SimpleNamespace(opt_migo=opt_migo, opt_time=opt_time, opt_scenario=opt
 
 
 # ---- metody a nastavení
+# výchozí návrh: optimalizace PI na IAE s omezením překmitu, skok SP i porucha
+DEFAULT_METHOD, DEFAULT_CRIT, DEFAULT_TARGET = "OPT", "OVS", "both"
+
+
 def methods(code, p):
     """Metody ladění dostupné pro model (iSIMC jen pro P1D/P2D, průměrování jen s integračním zesílením)."""
     return (["SIMC"] + (["iSIMC"] if code in ("P1D", "P2D") else []) + ["Lambda", "AMIGO", "OPT"]

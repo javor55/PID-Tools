@@ -16,7 +16,7 @@ def workspace(gap="medium"):
     return SimpleNamespace(main=main, side=side)
 
 
-def section(parent, title, key, expanded=True, icon=None):
-    """Sbalitelná sekce panelu nastavení (expander s pamětí stavu)."""
+def section(parent, title, key, expanded=False, icon=None):
+    """Sbalitelná sekce panelu nastavení (expander s pamětí stavu; výchozí sbalená – jsou vidět všechny možnosti)."""
     with parent:
         return st.expander(title, expanded=expanded, key=f"sec|{key}", icon=icon)

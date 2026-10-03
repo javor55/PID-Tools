@@ -109,6 +109,9 @@ def build(out_dir: Path, make_zip: bool, desktop: bool = True):
             shutil.copytree(src, app_dir / name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         elif src.exists():
             shutil.copy2(src, app_dir / name)
+    if sys.version_info[:2] == (3, 11):   # bytecode předem → rychlejší první start (stejná verze jako embedded Python)
+        import compileall
+        compileall.compile_dir(str(app_dir), quiet=1)
 
     v = version()
     (pkg / "PID-Tools.bat").write_text(LAUNCHER.replace("\n", "\r\n"), encoding="ascii")

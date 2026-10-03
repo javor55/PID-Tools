@@ -27,9 +27,9 @@ class Section(QWidget):
 
     toggled = Signal(bool)
 
-    def __init__(self, title, content=None, key=None, expanded=True):
+    def __init__(self, title, content=None, key=None, expanded=False):
         super().__init__()
-        self.key = f"sec/{key}" if key else None
+        self.key = f"sec2/{key}" if key else None          # sec2: výchozí stav změněn na sbalené
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
@@ -126,8 +126,8 @@ class Workspace(QWidget):
         self.split.setSizes([1400 - w, w])
         self.split.splitterMoved.connect(lambda *_: _set_pref(f"split/{key}", self.split.sizes()[1]))
 
-    def section(self, title, content=None, key=None, expanded=True):
-        """Přidá sbalitelnou sekci do panelu nastavení."""
+    def section(self, title, content=None, key=None, expanded=False):
+        """Přidá sbalitelnou sekci do panelu nastavení (výchozí sbalená – na první pohled jsou vidět všechny možnosti)."""
         s = Section(title, content, f"{self.key}/{key}" if key else None, expanded)
         self.side.insertWidget(self.side.count() - 1, s)
         return s
