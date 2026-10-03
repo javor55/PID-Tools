@@ -37,7 +37,7 @@ def inner_ctrl(s, diffgain, samp):
 def inner_response(code, p, ictrl, samp, sim=core.pidconl_sim):
     """Skok SP uzavřené vnitřní smyčky: (čas dosažení 63,2 % [s], efektivní časová konstanta bez zpoždění [s])."""
     T_sim = 30 * (p[-1] + sum(p[1:-1]) + samp)
-    h = samp / max(1, min(10, int(6000 * samp / T_sim)))
+    h = max(samp / max(1, min(10, int(6000 * samp / T_sim))), T_sim / 30000)   # nejvýš ~30 000 kroků
     n = int(T_sim / h) + 1
     sp = np.ones(n)
     sp[0] = 0
@@ -67,6 +67,7 @@ def simulate(inner, ictrl, outer, octrl, samp, samp_i, p_o, co, tc_outer=None, s
     """
     Tc_sim = max(15 * (p_o[-1] + (p_o[1] if co in ("P1D", "P2D", "I1D") else 0) + (tc_outer or 0)), 50 * samp)
     hc = min(samp, samp_i) / max(1, min(5, int(15000 * min(samp, samp_i) / Tc_sim)))
+    hc = max(hc, Tc_sim / 30000)          # velmi pomalý vnější proces: nejvýš ~30 000 kroků (jinak výpočet trvá sekundy)
     nc = int(Tc_sim / hc) + 1
     ts = np.arange(nc) * hc
     sp_o = np.full(nc, 50.0)

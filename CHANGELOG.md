@@ -19,6 +19,10 @@
 - Loop overview: a list of loops with the selected loop's settings one per row (instead of a wide table) on the web
   and in the desktop; loops are found also with suffixes after the role (".PV IP_ANALOGMAP") and, without tags,
   one loop is proposed from the column roles (CV / MV / SP); loop names keep the original tag spelling.
+- Desktop: switching to APC no longer freezes the window – simulations of very slow processes are limited to a
+  bounded number of steps (feedforward, gain scheduling, cascade, split range, VPC, ratio and the report).
+- Live simulation (desktop and web): in AUTO the MV field is greyed out and shows the live MV, in MAN the SP field
+  is greyed out; switching to MAN keeps the current MV (bumpless).
 
 ## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 

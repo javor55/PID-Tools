@@ -192,6 +192,15 @@ def test_window_live_and_apc(win):
     for _ in range(5):
         lv.tick()
     assert lv.sess.t > 0 and lv.kpi.rowCount() >= 1
+    # Auto: MV zašedlé s živou hodnotou; ruční režim bez rázu: MV zůstane, SP zašedlá
+    assert lv.sp.isEnabled() and not lv.man.isEnabled()
+    mv_live = float(lv.sess.series(2)["MV"][-1])
+    assert lv.man.value() == pytest.approx(mv_live, rel=1e-6)
+    lv.auto.setChecked(False)
+    assert lv.man.isEnabled() and not lv.sp.isEnabled() and lv.man.value() == pytest.approx(mv_live, rel=1e-6)
+    lv.tick()
+    assert float(lv.sess.series(2)["MV"][-1]) == pytest.approx(mv_live, rel=1e-3)
+    lv.auto.setChecked(True)
     w.tabs.setCurrentIndex(4)
     app.processEvents()
     apc = w.pages[4]

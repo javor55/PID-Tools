@@ -17,6 +17,10 @@
 - Přehled smyček: seznam smyček a pod ním nastavení vybrané smyčky pod sebou (místo široké tabulky) na webu
   i v desktopu; smyčky se najdou i s příponou za rolí („.PV IP_ANALOGMAP“) a bez tagů se navrhne jedna smyčka
   z rolí sloupců (CV / MV / SP); názvy smyček zůstávají v původním zápisu tagu.
+- Desktop: přepnutí na APC už okno nezamrazí – simulace velmi pomalých procesů mají omezený počet kroků
+  (dopředná vazba, gain scheduling, kaskáda, split range, VPC, poměr i protokol).
+- Živá simulace (desktop i web): v AUTO je pole MV zašedlé a ukazuje živou hodnotu MV, v MAN je zašedlá SP;
+  přepnutí do MAN ponechá současné MV (bez rázu).
 
 ## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 

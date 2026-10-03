@@ -39,6 +39,7 @@ def _response(r):
     samp = r["ctrl"].get("SampleTime", 1.0)
     t_end = 30 * _tchar(code, p) + 200 * samp
     h = float(min(samp, max(t_end / 6000, samp / 10)))
+    h = max(h, t_end / 30000)              # velmi pomalý proces: nejvýš ~30 000 kroků
     n = int(t_end / h) + 1
     t = np.arange(n) * h
     sp = np.where(t >= 0.05 * t_end, 55.0, 50.0)
