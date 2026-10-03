@@ -149,3 +149,16 @@ def demo_frame():
     from ..core import demo_data
     t, sp, pv, mv, q = demo_data()
     return pd.DataFrame({"Cas": t, "LIC101.SP": sp, "LIC101.PV": pv, "LIC101.MV": mv, "FI100.Pritok": q})
+
+
+def stats(grid, c_d=()):
+    """Statistika veličin smyčky na mřížce (inženýrské jednotky): [(název, min, max, průměr, směr. odchylka)]."""
+    rows = [("PV", grid.pv_e), ("MV", grid.mv_e)] + ([("SP", grid.sp_e)] if grid.has_sp else [])
+    rows += [(str(n), d) for n, d in zip(c_d, grid.dists)]
+    out = []
+    for name, x in rows:
+        x = np.asarray(x, float)
+        x = x[np.isfinite(x)]
+        out.append((name,) + ((float(x.min()), float(x.max()), float(x.mean()), float(x.std())) if len(x)
+                              else (np.nan,) * 4))
+    return out

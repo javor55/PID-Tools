@@ -1328,6 +1328,8 @@ TEXTS = {
     'time_rows_auto': 'Čas v souboru nebyl rozpoznán (nebo se nemění), proto se bere co řádek, to vzorek po {dt} {u}. Skutečnou periodu nastavte v Data › Rozložení souboru a čas.',
     'tf_mon': 'název měsíce (Aug-04-07 …)',
     'err_time_const': 'Sloupec času se nemění (ve všech řádcích stejný čas).',
+    'dk_sec_stats': 'Statistika',
+    'stat_mean': 'Průměr',
     'dk_sec_block': '1 · Blok PIDConL – rozsahy a vzorkování',
     'dk_sc_kind': 'Scénář',
     'dk_sc_kind_help': 'Na čem se smyčka ladí a ověřuje: změna žádané hodnoty, porucha, nebo vlastní sled událostí. Optimalizace s cílem „scénář“ použije právě tento scénář.',

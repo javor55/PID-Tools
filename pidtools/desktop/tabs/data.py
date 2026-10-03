@@ -36,6 +36,9 @@ class DataTab(Workspace):
                                                         (T("col_pos"), self.c_pos)]), "signals")
         sec.add(QLabel(T("col_dist")))
         sec.add(self.c_d)
+        # statistika (min / max …) veličin smyčky
+        self.stats = w.table([], [])
+        self.section(T("dk_sec_stats"), self.stats, "stats", expanded=True)
         # jednotky a tag
         self.u_pv, self.u_mv = QLineEdit(), QLineEdit()
         self.tag = QLineEdit()
@@ -137,6 +140,12 @@ class DataTab(Workspace):
         else:
             self.tdet.setText(T("time_detected", f=", ".join(T("tf_" + k) if k in TIME_FORMATS else str(k)
                                                               for k in sorted(kinds, key=str))))
+        from ...app.dataset import stats
+        st_ = stats(g, s.c_d)
+        w.fill(self.stats, ["", "Min", "Max", T("stat_mean"), "σ"], [[n] + [w.fmt(v, 5) for v in r] for n, *r in st_])
+        self.stats.resizeColumnsToContents()
+        self.stats.setFixedHeight(self.stats.horizontalHeader().height() + 4
+                                  + sum(self.stats.rowHeight(i) for i in range(len(st_))))
         warns = s.compression()
         if s.sig.time_note == "rows_auto":
             warns = [T("time_rows_auto", dt=f"{s.row_dt:g}", u=s.unit)] + list(warns)

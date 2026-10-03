@@ -14,6 +14,8 @@
   0–100 default; the scenario with the current sets is shown immediately; the default suggestion is optimisation,
   PI, IAE + overshoot limit, set-point step and disturbance.
 - Side panel sections start collapsed; feedforward parameters one per row.
+- Data: statistics of the loop signals (min, max, mean, σ) in the side panel (desktop and web).
+- Desktop: the mouse wheel no longer changes number fields and drop-down lists (the panel scrolls instead).
 
 ## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 

@@ -4,6 +4,8 @@ Záložka Data.
 `render_setup` – výběr sloupců, převzorkování a normování (horní rozbalovací sekce záložky; běží před ostatními
 záložkami, protože data potřebují všechny). `render` – výběr úseku, automaticky nalezené úseky a kontrola kvality.
 """
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -14,7 +16,7 @@ from ..charts import show
 from ...app.dataio import (ROWS, TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns,
                            row_time, to_num)
 from ...app import segments as segs_mod
-from ...app.dataset import DEMO_DISTS, default_layout
+from ...app.dataset import DEMO_DISTS, default_layout, stats
 from ...app.guess import guess_roles
 from ...app.loop import DEFAULT_RANGE, range_for
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
@@ -42,6 +44,7 @@ def render_setup(ctx):
         with ws.main:
             ws.m_top, ws.m_chart, ws.m_prev, ws.m_diag = st.container(), st.container(), st.container(), st.container()
         sec_sig = section(ws.side, T("dk_sec_signals"), "data_sig", icon=":material/sensors:")
+        sec_stats = section(ws.side, T("dk_sec_stats"), "data_stats", expanded=True, icon=":material/functions:")
         sec_units = section(ws.side, T("sb_units"), "data_units", icon=":material/straighten:")
         sec_file = section(ws.side, T("dk_sec_file"), "data_file", expanded=False, icon=":material/table_chart:")
         ws.diag = section(ws.side, T("dk_diag_tab").split("·")[-1].strip(), "data_diag", icon=":material/monitor_heart:")
@@ -169,6 +172,12 @@ def render_setup(ctx):
     ctx.norm_ok = rng_[1] > rng_[0] and rng_[3] > rng_[2]
     # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
     ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi = rng_ if ctx.norm_ok else (0.0, 100.0, 0.0, 100.0)
+    with sec_stats:                      # min / max … veličin smyčky (jednotky PV / MV)
+        st.dataframe(pd.DataFrame([dict(zip(("", "Min", "Max", T("stat_mean"), "σ"),
+                                            (n, *(float(f"{v:.5g}") for v in r)))) for n, *r in
+                                   stats(SimpleNamespace(pv_e=ctx.pv_e, mv_e=ctx.mv_e, sp_e=ctx.sp_e, has_sp=ctx.has_sp,
+                                                         dists=ctx.dists), ctx.c_d)]).set_index(""),
+                     width="stretch")
     with sec_units:
         n1, n2 = st.columns(2)
         if "u_mv" not in ss:

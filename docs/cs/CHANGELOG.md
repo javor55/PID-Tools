@@ -12,6 +12,8 @@
 - Ladění: blok PIDConL je sekce 1 a NormPV / NormMV se odhadnou z dat, dokud jsou na výchozích 0–100; scénář se
   současnými sadami je vidět hned; výchozí návrh je optimalizace, PI, IAE s omezením překmitu, skok SP i porucha.
 - Sekce panelu nastavení jsou na začátku sbalené; parametry dopředné vazby pod sebou.
+- Data: statistika veličin smyčky (min, max, průměr, σ) v pravém panelu (desktop i web).
+- Desktop: kolečko myši už nemění číselná pole ani výběry (posune se panel).
 
 ## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 

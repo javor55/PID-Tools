@@ -1328,6 +1328,8 @@ TEXTS = {
     'time_rows_auto': 'The time in the file was not recognised (or it does not change), so each row is taken as one sample {dt} {u} apart. Set the real sample period under Data › File layout and time.',
     'tf_mon': 'month name (Aug-04-07 …)',
     'err_time_const': 'The time column does not change (the same time in every row).',
+    'dk_sec_stats': 'Statistics',
+    'stat_mean': 'Mean',
     'dk_sec_block': '1 · PIDConL block – ranges and sample time',
     'dk_sc_kind': 'Scenario',
     'dk_sc_kind_help': 'What the loop is tuned and verified on: a setpoint change, a disturbance, or your own sequence of events. The optimisation with the target “scenario” uses exactly this scenario.',

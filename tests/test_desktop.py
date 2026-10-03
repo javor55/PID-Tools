@@ -589,3 +589,18 @@ def test_rows_as_samples_desktop(win, tmp_path):
     d.row_dt.setValue(500)
     _wait(app)
     assert s.grid.Ts == pytest.approx(0.5) and s.sig.t_all[-1] == pytest.approx(0.5 * (n - 1))
+
+
+def test_wheel_does_not_change_fields(win):
+    """Kolečko myši nemění hodnotu číselného pole ani výběru (ani když mají kurzor)."""
+    from PySide6.QtCore import QPoint, QPointF, Qt
+    from PySide6.QtGui import QWheelEvent
+    from pidtools.desktop import widgets as w
+    app, _ = win
+    sp, cb = w.spin(1.0), w.combo(["a", "b", "c"], "b")
+    for wd in (sp, cb):
+        wd.setFocus()
+        ev = QWheelEvent(QPointF(5, 5), QPointF(5, 5), QPoint(0, 0), QPoint(0, 120), Qt.NoButton, Qt.NoModifier,
+                         Qt.NoScrollPhase, False)
+        app.sendEvent(wd, ev)
+    assert sp.value() == 1.0 and cb.currentData() == "b"
