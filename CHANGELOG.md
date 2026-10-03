@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
+
+**Beta:** for testing; please report problems.
+
+- Closed-loop identification (loop in AUTO, web and desktop): warning when set 1 does not match the controller in
+  the record (the loop simulated with the model and set 1 fits PV < 50 % or is unstable), and the button
+  **Estimate set 1 from the record** (PI controller from the MV moves against the error, least squares).
+- Desktop starts faster: SciPy and Plotly are loaded only when first needed, and a splash screen with the icon
+  appears at once.
+- Desktop charts: the cursor readout no longer resizes the charts (e.g. in the frequency analysis).
+
 ## 3.2.0 beta 1 – Windows application (installer), UI feedback, data loading
 
 **Beta:** first build of the Windows installer and the separate web offline package – please report problems.

@@ -124,8 +124,12 @@ class ModelTab(Workspace):
         self.mode = w.combo(["open", "cl"], labels=[T("idm_open"), T("idm_cl")])
         w.tip(self.mode, "h_idm")
         self.mode_note = caption("")
+        self.b_est = QPushButton(T("idm_est_btn"))
+        w.tip(self.b_est, "h_idm_est")
+        self.b_est.clicked.connect(self._estimate_set1)
         sec = self.section(T("dk_sec_ident"), w.form([(T("idm"), self.mode)]), "ident")
         sec.add(self.mode_note)
+        sec.add(self.b_est)
         sec.add(g)
         sec.add(w.form([(T("thmax"), self.thmax), (T("dist_level"), self.level), (T("dist_strength"), self.strength),
                         (T("gain_sign"), self.sign), ("", self.stic)]))
@@ -354,7 +358,7 @@ class ModelTab(Workspace):
             pl.clear()
         ts, pv, mv, d = s.segment()
         w.line(self.all_plots[0], t, s.grid.pv_e[m], "PV", w.C_PV, 1.0)
-        from ...app.plots import C_MODEL
+        from ...app.colors import C_MODEL
         for c, rr in s.fit["res"].items():
             y = predict(c, rr["p"], rr["pdl"], ts, pv, mv, d, s.grid.Ts, rr.get("stic", 0.0))[0]
             w.line(self.all_plots[0], t, s.EP(y), f"{c} ({rr['fit']:.1f} %)", C_MODEL.get(c, "#888"), 1.8)
@@ -569,6 +573,7 @@ class ModelTab(Workspace):
 
     def _mode_note(self):
         s = self.s
+        self.b_est.setVisible(self.mode.currentData() == "cl" and s.has_data and s.grid.has_sp)
         if self.mode.currentData() != "cl":
             self.mode_note.setText(T("idm_open_note"))
             return
@@ -578,8 +583,38 @@ class ModelTab(Workspace):
         from ...app import closedloop as cl
         ex = cl.excitation(s.sp[s.sel_mask], s.pv[s.sel_mask], s.mv[s.sel_mask])
         g = [float(s.get(f"set1_{k}")) for k in ("gain", "ti", "td")]
-        self.mode_note.setText(T("idm_cl_note", g=f"{g[0]:.4g}", ti=f"{g[1]:.4g}", td=f"{g[2]:.4g}")
-                               + ("" if ex["ok"] else "  \n⚠️ " + T("idm_low_exc")))
+        lines = [T("idm_cl_note", g=f"{g[0]:.4g}", ti=f"{g[1]:.4g}", td=f"{g[2]:.4g}")]
+        if not ex["ok"]:
+            lines.append("⚠️ " + T("idm_low_exc"))
+        if s.model is not None:              # sedí Set 1 s regulátorem v záznamu? (simulace smyčky s modelem)
+            code, p, pdl = s.model
+            ts, pv, mv, d = s.segment()
+            chk = cl.check_set1(code, p, pdl, ts, s.sp[s.sel_mask], pv, mv, d, s.grid.Ts, s.set_ctrl_plain(1))
+            if not chk["ok"]:
+                lines.append("⚠️ " + (T("idm_set1_bad", f=f"{chk['fit_pv']:.0f}") if chk["stable"]
+                                      else T("idm_set1_unstable")))
+            else:
+                lines.append("✅ " + T("idm_set1_ok", f=f"{chk['fit_pv']:.0f}"))
+        if getattr(self, "_est_msg", ""):
+            lines.append(self._est_msg)
+        self.mode_note.setText("  \n".join(lines))
+
+    def _estimate_set1(self):
+        """Set 1 = parametry PI regulátoru odhadnuté ze záznamu (úsek identifikace)."""
+        s = self.s
+        if not s.has_data or not s.grid.has_sp:
+            return
+        from ...app import closedloop as cl
+        m = s.sel_mask
+        est = cl.estimate_ctrl(s.sp[m], s.pv[m], s.mv[m], s.grid.Ts)
+        if not est["ok"]:
+            self._est_msg = "⚠️ " + T("idm_est_fail")
+        else:
+            s.set(set1_gain=est["gain"], set1_ti=est["ti"] if np.isfinite(est["ti"]) else 1e9, set1_td=0.0)
+            self._est_msg = "ℹ️ " + T("idm_est_done", g=f"{est['gain']:.4g}", ti=f"{est['ti']:.4g}",
+                                      r=f"{est['r2']:.2f}")
+        self.win.refresh()
+        self._mode_note()
 
     def _settings_changed(self, *_):
         if self._busy:

@@ -17,6 +17,7 @@ from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..widgets import model_name, num, seg, sld
 from ...app import closedloop as cl_mod
 from ...app import model as mdl
+from ...app.loop import set_ctrl
 
 ss = st.session_state
 
@@ -38,6 +39,38 @@ def _rescale_fit_state(old_key, new_key, c_d):
     unc = ss.get("unc")
     if unc and unc.get("key") == old_key:
         ss.unc = dict(unc, key=new_key, ps=[[q[0] * fK] + list(q[1:]) for q in unc["ps"]])
+
+
+def _estimate_set1(sp, pv, mv, h):
+    """Callback: Set 1 = PI regulátor odhadnutý ze záznamu (úsek identifikace)."""
+    est = cl_mod.estimate_ctrl(sp, pv, mv, h)
+    if not est["ok"]:
+        ss["idm_est_msg"] = ("warning", T("idm_est_fail"))
+        return
+    ss["set1_gain"], ss["set1_td"] = float(est["gain"]), 0.0
+    ss["set1_ti"] = float(est["ti"]) if np.isfinite(est["ti"]) else 1e9
+    ss["idm_est_msg"] = ("info", T("idm_est_done", g=f"{est['gain']:.4g}", ti=f"{est['ti']:.4g}", r=f"{est['r2']:.2f}"))
+
+
+def _set1_check(ctx, ts_id, pv_id, mv_id, d_id, Ts, sel_mask):
+    """Režim „smyčka v AUTO“: sedí Set 1 s regulátorem v záznamu? + tlačítko odhadu Set 1 ze záznamu."""
+    sp_id = ctx.sp[sel_mask]
+    fit = ss.get("fit") or {}
+    mc = ss.get("mcode")
+    if mc in fit.get("res", {}):
+        r = fit["res"][mc]
+        ctrl = set_ctrl(ctx.base_ctrl, ss.get("set1_gain", 1.0), ss.get("set1_ti", 100.0), ss.get("set1_td", 0.0))
+        chk = cl_mod.check_set1(mc, r["p"], r["pdl"], ts_id, sp_id, pv_id, mv_id, d_id, Ts, ctrl, pidconl_sim)
+        if not chk["ok"]:
+            st.warning(T("idm_set1_bad", f=f"{chk['fit_pv']:.0f}") if chk["stable"] else T("idm_set1_unstable"),
+                       icon=":material/rule:")
+        else:
+            st.caption("✅ " + T("idm_set1_ok", f=f"{chk['fit_pv']:.0f}"))
+    st.button(T("idm_est_btn"), key="g_idm_est", icon=":material/auto_fix_high:", help=T("h_idm_est"),
+              width="stretch", on_click=_estimate_set1, args=(sp_id, pv_id, mv_id, Ts))
+    msg = ss.pop("idm_est_msg", None)
+    if msg:
+        (st.info if msg[0] == "info" else st.warning)(msg[1])
 
 
 def render(ctx):
@@ -76,6 +109,7 @@ def render(ctx):
                                  td=f"{ss.get('set1_td', 0.0):.4g}"))
                     if not ex_["ok"]:
                         st.warning(T("idm_low_exc"), icon=":material/warning:")
+                    _set1_check(ctx, ts_id, pv_id, mv_id, d_id, Ts, sel_mask)
             chosen = st.multiselect(T("models"), list(MODELS), format_func=model_name, key="chosen",
                                     placeholder=T("ms_placeholder"), help=T("h_models"))
             th_max = num(T("thmax"), "thmax", round(0.4 * ts_id[-1], 1), min_value=0.0, help=T("thmax_help"))

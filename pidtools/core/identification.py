@@ -1,10 +1,16 @@
 """Identifikace modelů z dat, hodnocení modelu a nejistota parametrů."""
 import numpy as np
-from scipy.optimize import least_squares
 
 from .models import (MODELS, n_free, model_dev, predict, predict_full, stiction_valve,
                      high_pass, spline_projector)
 from .util import acf as _acf
+
+
+def least_squares(*args, **kw):
+    """scipy.optimize.least_squares načtený až při prvním použití (rychlejší start aplikace)."""
+    from scipy.optimize import least_squares as _ls
+    return _ls(*args, **kw)
+
 
 def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=None, level="none", Th=None,
               strength=4.0, stic=0.0, sign=0):

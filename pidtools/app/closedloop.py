@@ -10,7 +10,7 @@ odhadu, potřebné buzení dodávají změny SP (nebo měřené poruchy).
 Vše v % rozsahů (NormPV / NormMV); časy v s od začátku úseku.
 """
 import numpy as np
-from scipy.optimize import least_squares
+from ..core.identification import least_squares
 
 from .. import core
 from ..core import MODELS
@@ -149,3 +149,48 @@ def as_result(r_open, r_cl, predict_fit):
     r.update(p=list(r_cl["p"]), pdl=[list(x) for x in r_cl["pdl"]], fit=float(predict_fit), method="cl",
              fit_cl_pv=r_cl["fit_pv"], fit_cl_mv=r_cl["fit_mv"], p_open=list(r_open["p"]))
     return r
+
+
+def estimate_ctrl(sp, pv, mv, h):
+    """
+    Parametry PI regulátoru, který běžel v záznamu (vše v % rozsahů jako PIDConL): přírůstkový tvar
+    ΔMV = Gain · (Δe + h / TI · e), e = SP − PV, metodou nejmenších čtverců. Vrací dict(gain, ti, td, r2, ok);
+    ok = odhad dává smysl (TI > 0, MV se v úseku hýbe). Šum MV a ruční zásahy shodu (r2) snižují – odhad je výchozí
+    bod, ne náhrada parametrů z bloku.
+    """
+    sp, pv, mv = (np.asarray(x, float) for x in (sp, pv, mv))
+    m = np.isfinite(sp) & np.isfinite(pv) & np.isfinite(mv)
+    sp, pv, mv = sp[m], pv[m], mv[m]
+    if len(mv) < 30 or np.ptp(mv) < 1e-6:
+        return dict(gain=None, ti=None, td=0.0, r2=0.0, ok=False)
+    e = sp - pv
+    du, de, ek = np.diff(mv), np.diff(e), e[1:]
+    X = np.c_[de, ek * h]
+    coef, *_ = np.linalg.lstsq(X, du, rcond=None)
+    a, b = float(coef[0]), float(coef[1])
+    res = du - X @ coef
+    r2 = float(1 - np.sum(res ** 2) / max(np.sum((du - du.mean()) ** 2), 1e-12))
+    if abs(b) < 1e-12:                       # bez I složky
+        return dict(gain=a, ti=float("inf"), td=0.0, r2=r2, ok=abs(a) > 0)
+    if abs(a) < 1e-9 or np.sign(a) != np.sign(b):
+        # P složka neurčitelná (šum) nebo opačné znaménko: převážně integrační regulátor – Gain malý se znaménkem I
+        gain = float(np.sign(b) * max(abs(a), 1e-3 * abs(b)))
+    else:
+        gain = a
+    ti = gain / b
+    return dict(gain=float(gain), ti=float(ti), td=0.0, r2=r2, ok=bool(ti > 0 and np.isfinite(ti)))
+
+
+def check_set1(code, p, pdl, ts, sp, pv, mv, d, Ts, ctrl, sim=core.pidconl_sim):
+    """
+    Odpovídá Set 1 regulátoru v záznamu? Simulace smyčky s modelem a Set 1 na naměřené SP a poruchy:
+    dict(fit_pv, fit_mv, stable, ok) – ok = shoda PV ≥ 50 % (jinak je Set 1 pravděpodobně jiný než v záznamu).
+    """
+    ctrl = {k: v for k, v in ctrl.items() if k not in ("FF", "FF_LL")}
+    s = simulate(code, p, pdl, np.asarray(ts, float), np.asarray(sp, float), np.asarray(pv, float),
+                 np.asarray(mv, float), d, Ts, ctrl, sim)
+    if s is None:
+        return dict(fit_pv=None, fit_mv=None, stable=False, ok=False)
+    tt, P, M = s
+    fp, fm = _nfit(np.asarray(pv, float), np.interp(ts, tt, P)), _nfit(np.asarray(mv, float), np.interp(ts, tt, M))
+    return dict(fit_pv=fp, fit_mv=fm, stable=True, ok=fp >= 50.0)

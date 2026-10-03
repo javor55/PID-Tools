@@ -550,3 +550,17 @@ def test_rows_as_samples_web():
     at.run()
     assert not at.exception
     assert any("2 min" in c.value for c in at.caption)
+
+
+def test_set1_check_and_estimate_web():
+    """Smyčka v AUTO: Set 1 nesedí se záznamem → upozornění; odhad Set 1 ze záznamu dá záporný Gain a kladné TI."""
+    at = _ff_example_app()
+    at.session_state["main_tab"] = [t.label for t in _main(at)][1]
+    at.session_state["id_mode"] = "cl"
+    at.run()
+    assert not _errors(at)
+    assert any("probably does not match" in w.value for w in at.warning)
+    _button(at, "Estimate set 1 from the record").click().run()
+    assert not _errors(at)
+    assert at.session_state["set1_gain"] < 0 < at.session_state["set1_ti"] < 100
+    assert any("estimated from the record" in i.value for i in at.info)
