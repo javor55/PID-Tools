@@ -667,3 +667,24 @@ def test_readout_does_not_resize_charts(win):
     app.processEvents()
     assert [c.width() for c in (fv.bode, fv.nyq, fv.sens)] == s0
     t.views.setCurrentIndex(0)
+
+
+def test_set1_check_and_estimate_desktop(win):
+    """Smyčka v AUTO: upozornění, když Set 1 nesedí se záznamem, a odhad Set 1 ze záznamu."""
+    app, w = win
+    from pidtools.desktop.project import Project
+    w.project = Project()
+    assert w.open_path(os.path.join(os.path.dirname(__file__), "data", "ff_example.csv"))
+    _wait(app)
+    w.state.set_columns("CV", "MV", "SP", ["DV"])
+    assert not w.state.identify()
+    w.refresh()
+    mt = w.pages[1]
+    mt.mode.setCurrentIndex(mt.mode.findData("cl"))
+    app.processEvents()
+    assert not mt.b_est.isHidden()                      # tlačítko odhadu jen v režimu „smyčka v AUTO“
+    assert "probably does not match" in mt.mode_note.text()
+    mt._estimate_set1()
+    assert w.state.get("set1_gain") < 0 < w.state.get("set1_ti") < 100
+    assert "estimated from the record" in mt.mode_note.text()
+    mt.mode.setCurrentIndex(mt.mode.findData("open"))

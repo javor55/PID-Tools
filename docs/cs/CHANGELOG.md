@@ -1,7 +1,10 @@
 # Změny
 
-## Nevydáno
+## 3.2.1 – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 
+- Identifikace se smyčkou v AUTO (web i desktop): upozornění, když Set 1 neodpovídá regulátoru v záznamu (simulace
+  smyčky s modelem a Set 1 sedí na PV pod 50 % nebo je nestabilní), a tlačítko **Odhadnout Set 1 ze záznamu**
+  (PI regulátor z pohybů MV proti odchylce, metoda nejmenších čtverců).
 - Desktop startuje rychleji: SciPy a Plotly se načtou až při prvním použití a hned se ukáže úvodní obrazovka
   s ikonou.
 - Grafy v desktopu: odečet kurzoru už nemění velikost grafů (např. ve frekvenční analýze).
