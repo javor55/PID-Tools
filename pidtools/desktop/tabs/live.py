@@ -128,6 +128,12 @@ class LiveTab(Workspace):
         self._curves = {}
         self.draw()
 
+    def hideEvent(self, e):
+        """Jiná záložka (nebo minimalizované okno): simulace se pozastaví – zbytečně by běžela na pozadí."""
+        if self.b_run.isChecked():
+            self.b_run.setChecked(False)
+        super().hideEvent(e)
+
     def _run_toggled(self, on):
         self.b_run.setText("⏸" if on else "▶")
         if on and self.sess is None:

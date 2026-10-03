@@ -201,7 +201,11 @@ def test_window_live_and_apc(win):
     lv.tick()
     assert float(lv.sess.series(2)["MV"][-1]) == pytest.approx(mv_live, rel=1e-3)
     lv.auto.setChecked(True)
-    w.tabs.setCurrentIndex(4)
+    lv.b_run.setChecked(True)
+    assert lv.timer.isActive()
+    w.tabs.setCurrentIndex(4)                          # jiná záložka → živá simulace se pozastaví
+    app.processEvents()
+    assert not lv.timer.isActive() and not lv.b_run.isChecked()
     app.processEvents()
     apc = w.pages[4]
     for i in range(len(apc.panels)):

@@ -514,6 +514,9 @@ export default function (component) {
 
   function frame(ts) {
     if (!theme || ts - themeAt > 1000) { readTheme(); themeAt = ts; }
+    if (S.run && (document.hidden || cv.offsetParent === null || cv.clientWidth === 0)) {   // jiná záložka aplikace / prohlížeče: pauza
+      S.run = false; last = null; labels();
+    }
     if (S.run) {
       if (last !== null) { advance(Math.min((ts - last) / 1000, 0.25)); if (S.view) S.view = null; }
       last = ts;
