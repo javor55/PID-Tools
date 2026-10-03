@@ -16,6 +16,9 @@
 - Side panel sections start collapsed; feedforward parameters one per row.
 - Data: statistics of the loop signals (min, max, mean, σ) in the side panel (desktop and web).
 - Desktop: the mouse wheel no longer changes number fields and drop-down lists (the panel scrolls instead).
+- Loop overview: a list of loops with the selected loop's settings one per row (instead of a wide table) on the web
+  and in the desktop; loops are found also with suffixes after the role (".PV IP_ANALOGMAP") and, without tags,
+  one loop is proposed from the column roles (CV / MV / SP); loop names keep the original tag spelling.
 
 ## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 

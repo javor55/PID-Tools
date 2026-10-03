@@ -14,6 +14,9 @@
 - Sekce panelu nastavení jsou na začátku sbalené; parametry dopředné vazby pod sebou.
 - Data: statistika veličin smyčky (min, max, průměr, σ) v pravém panelu (desktop i web).
 - Desktop: kolečko myši už nemění číselná pole ani výběry (posune se panel).
+- Přehled smyček: seznam smyček a pod ním nastavení vybrané smyčky pod sebou (místo široké tabulky) na webu
+  i v desktopu; smyčky se najdou i s příponou za rolí („.PV IP_ANALOGMAP“) a bez tagů se navrhne jedna smyčka
+  z rolí sloupců (CV / MV / SP); názvy smyček zůstávají v původním zápisu tagu.
 
 ## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 

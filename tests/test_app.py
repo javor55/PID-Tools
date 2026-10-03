@@ -124,6 +124,17 @@ def test_loop_overview_web(app):
     res = app.session_state["au_res"]["res"]
     assert res and res[0]["ok"] and res[0]["name"] == "LIC101"
     assert app.session_state["audit_loops"][0]["pv"] == "LIC101.PV"
+    # seznam smyček: přidat, upravit (pole pod sebou), odebrat
+    dkey = next(k for k in app.session_state if str(k).startswith("au_defs|"))
+    n0 = len(app.session_state[dkey])
+    _button(app, "Add").click().run()
+    assert not _errors(app) and len(app.session_state[dkey]) == n0 + 1
+    fk = next(k for k in app.session_state if str(k).startswith("au_f|") and str(k).endswith(f"|{n0}|integ"))
+    app.session_state[fk] = True
+    app.run()
+    assert app.session_state[dkey][n0]["integ"] is True
+    _button(app, "Remove").click().run()
+    assert not _errors(app) and len(app.session_state[dkey]) == n0
     app.session_state["main_tab"] = [t.label for t in _main(app)][0]
     app.run()
 

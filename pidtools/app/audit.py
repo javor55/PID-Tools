@@ -10,12 +10,14 @@ Rozsahy pro % (NormPV / NormMV): zadané, jinak PV z rozsahu dat (s rezervou) a 
 """
 from dataclasses import dataclass, field
 
+import re
+
 import numpy as np
 
 from ..core import harris_index, oscillation
 from .dataset import to_grid
 from .diagnostics import valve
-from .guess import guess_roles, loop_tag
+from .guess import ROLE_WORDS, guess_roles, loop_tag, tokens
 
 SEVERITY = {"osc": 3, "stic": 3, "sat": 2, "sat_hi": 3, "harris": 1, "harris_hi": 2, "travel": 1, "frozen": 1,
             "noise": 1}
@@ -35,11 +37,33 @@ class LoopDef:
     extra: dict = field(default_factory=dict)
 
 
+def _tag(name):
+    """Tag smyčky: části názvu před poslední částí s rolí (LT14.PV IP_ANALOGMAP → lt14), jinak bez poslední části."""
+    t = tokens(name)
+    words = set().union(*ROLE_WORDS.values())
+    idx = [i for i, x in enumerate(t) if x in words and i > 0]
+    return " ".join(t[:idx[-1]]) if idx else loop_tag(name)
+
+
+def display_name(col):
+    """Název smyčky v původním zápisu tagu: „LISO_TDG_LT14T14-02.PV IP_ANALOGMAP“ → „LISO_TDG_LT14T14-02“."""
+    words = ROLE_WORDS["pv"] | ROLE_WORDS["mv"] | ROLE_WORDS["sp"] | ROLE_WORDS["pos"]
+    best = ""
+    for w in words:            # nejdelší začátek před částí s rolí (TANK_IN_LEVEL.PV → TANK_IN_LEVEL, ne TANK)
+        m = re.match(rf"^(.+)[\W_]+{re.escape(w)}(?:[\W_]|$)", str(col), flags=re.IGNORECASE)
+        if m and len(m.group(1)) > len(best):
+            best = m.group(1)
+    return best or str(col)
+
+
 def propose(sigs, get=None):
-    """Návrh smyček podle tagů v názvech: skupiny se stejným tagem smyčky, v nich role PV / MV / SP / poloha."""
+    """
+    Návrh smyček podle tagů v názvech: skupiny se stejným tagem smyčky, v nich role PV / MV / SP / poloha.
+    Když se skupiny nenajdou (např. CV, MV, SP bez tagu), navrhne se jedna smyčka z rolí všech sloupců.
+    """
     groups = {}
     for c in sigs:
-        tag = loop_tag(c)
+        tag = _tag(c)
         if tag:
             groups.setdefault(tag, []).append(c)
     out = []
@@ -48,7 +72,11 @@ def propose(sigs, get=None):
             continue
         r = guess_roles(cols, get)
         if r["pv"] and r["mv"] and r["pv"] != r["mv"]:
-            out.append(LoopDef(name=tag.upper(), pv=r["pv"], mv=r["mv"], sp=r["sp"], pos=r["pos"]))
+            out.append(LoopDef(name=display_name(r["pv"]), pv=r["pv"], mv=r["mv"], sp=r["sp"], pos=r["pos"]))
+    if not out and len(sigs) >= 2:
+        r = guess_roles(list(sigs), get)
+        if r["pv"] and r["mv"] and r["pv"] != r["mv"]:
+            out.append(LoopDef(name=display_name(r["pv"]), pv=r["pv"], mv=r["mv"], sp=r["sp"], pos=r["pos"]))
     return out
 
 

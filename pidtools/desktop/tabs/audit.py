@@ -3,16 +3,12 @@ Záložka Přehled smyček: více smyček z jednoho souboru. Vpravo tabulka smy�
 z názvů tagů, uživatel jen opraví), vlevo pořadí smyček podle problémů, společné oscilace a graf vybrané smyčky.
 Výpočty v pidtools.app.audit; definice smyček se ukládají do projektu (audit_loops).
 """
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QLabel, QPushButton, QTableWidget, QTableWidgetItem
+from PySide6.QtWidgets import QCheckBox, QLabel, QLineEdit, QListWidget, QPushButton, QTableWidget
 
 from ...app import audit
 from ...i18n import T
 from .. import widgets as w
 from ..layout import Workspace, caption
-
-COLS = ("name", "pv", "mv", "sp", "pos", "theta", "integ")
-
 
 class AuditTab(Workspace):
     def __init__(self, win):
@@ -34,23 +30,41 @@ class AuditTab(Workspace):
         b_run = QPushButton("▶  " + T("au_run"))
         b_run.setObjectName("primary")
         b_run.clicked.connect(self.analyse)
-        b_prop = QPushButton(T("au_propose"))
-        b_prop.clicked.connect(self.propose)
-        self.top_bar(b_run, b_prop)
+        self.top_bar(b_run)
         self.status = caption("")
         self.top.addWidget(self.status)
-        # ---- smyčky
-        self.tab = QTableWidget(0, len(COLS))
-        self.tab.setHorizontalHeaderLabels([T("au_c_" + c) for c in COLS])
-        self.tab.setMinimumHeight(260)
-        sec = self.section(T("au_sec_loops"), caption(T("au_loops_help")), "loops")
-        sec.add(self.tab)
-        b_add, b_del, b_open = QPushButton("+"), QPushButton("−"), QPushButton(T("au_open_loop"))
-        b_add.clicked.connect(lambda: self._add_row(audit.LoopDef("", "", "")))
-        b_del.clicked.connect(lambda: self.tab.removeRow(self.tab.currentRow()))
+        # ---- smyčky: seznam a pod ním nastavení vybrané smyčky (pole pod sebou – do panelu se vejdou)
+        self.recs = []
+        self.list = QListWidget()
+        self.list.setMinimumHeight(90)
+        self.list.setMaximumHeight(180)
+        self.list.currentRowChanged.connect(self._load_form)
+        sec = self.section(T("au_sec_loops"), caption(T("au_loops_help")), "loops", expanded=True)
+        sec.add(self.list)
+        b_add, b_del, b_prop = QPushButton(T("au_add")), QPushButton(T("au_del")), QPushButton(T("au_propose"))
+        b_add.clicked.connect(self._add)
+        b_del.clicked.connect(self._delete)
+        b_prop.clicked.connect(self.propose)
+        sec.add(w.hbox(b_add, b_del, b_prop))
+        self.f_name = QLineEdit()
+        self.f_pv, self.f_mv, self.f_sp, self.f_pos = w.combo([]), w.combo([]), w.combo([]), w.combo([])
+        self.f_theta = w.spin(0.0, 0.0, 1e9, 4)
+        w.tip(self.f_theta, "au_theta_help")
+        self.f_integ = QCheckBox(T("au_c_integ"))
+        self.form = w.form([(T("au_c_name"), self.f_name), (T("au_c_pv"), self.f_pv), (T("au_c_mv"), self.f_mv),
+                            (T("au_c_sp"), self.f_sp), (T("au_c_pos"), self.f_pos), (T("au_c_theta"), self.f_theta),
+                            ("", self.f_integ)])
+        sec.add(self.form)
+        b_open = QPushButton(T("au_open_loop"))
         b_open.clicked.connect(self.open_as_loop)
         w.tip(b_open, "au_open_help")
-        sec.add(w.hbox(b_add, b_del, b_open))
+        sec.add(b_open)
+        self.f_name.editingFinished.connect(self._store)
+        for c in (self.f_pv, self.f_mv, self.f_sp, self.f_pos):
+            c.currentIndexChanged.connect(self._store)
+        self.f_theta.valueChanged.connect(self._store)
+        self.f_integ.toggled.connect(self._store)
+        self._busy = False
         # ---- rozsah
         self.a, self.b = w.spin(0.0, 0, 1e9, 1), w.spin(0.0, 0, 1e9, 1)
         self.whole = QCheckBox(T("au_whole"))
@@ -63,51 +77,68 @@ class AuditTab(Workspace):
         sec = self.section(T("au_sec_help"), w.note(T("au_help")), "help", expanded=False)
         sec.add(QLabel(""))
 
-    # ---- tabulka smyček
+    # ---- seznam smyček
     def _sigs(self):
         s = self.s
         return list(s.sig.sigs) if s.has_data else []
 
-    def _combo(self, value, optional):
-        items = (["—"] if optional else []) + self._sigs()
-        c = w.combo(items, value if value in items else ("—" if optional else None))
-        return c
+    def _fill(self, loops):
+        self.recs = audit.to_records(loops)
+        self._fill_list(0)
 
-    def _add_row(self, d):
-        i = self.tab.rowCount()
-        self.tab.insertRow(i)
-        self.tab.setItem(i, 0, QTableWidgetItem(d.name))
-        for j, (k, opt) in enumerate((("pv", False), ("mv", False), ("sp", True), ("pos", True)), start=1):
-            self.tab.setCellWidget(i, j, self._combo(getattr(d, k), opt))
-        th = d.extra.get("theta")
-        self.tab.setItem(i, 5, QTableWidgetItem("" if th is None else f"{th:g}"))
-        it = QTableWidgetItem()
-        it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-        it.setCheckState(Qt.Checked if d.integ else Qt.Unchecked)
-        self.tab.setItem(i, 6, it)
+    def _fill_list(self, cur=0):
+        self._busy = True
+        self.list.clear()
+        for r in self.recs:
+            self.list.addItem(str(r["name"] or r["pv"]))
+        sigs = self._sigs()
+        for c, opt in ((self.f_pv, False), (self.f_mv, False), (self.f_sp, True), (self.f_pos, True)):
+            c.clear()
+            for it in (["—"] if opt else []) + sigs:
+                c.addItem(str(it), it)
+        self._busy = False
+        if self.recs:
+            self.list.setCurrentRow(min(max(cur, 0), len(self.recs) - 1))
+            self._load_form(self.list.currentRow())
+
+    def _load_form(self, i):
+        if self._busy or not (0 <= i < len(self.recs)):
+            return
+        r = self.recs[i]
+        self._busy = True
+        self.f_name.setText(str(r["name"] or ""))
+        for c, v in ((self.f_pv, r["pv"]), (self.f_mv, r["mv"]), (self.f_sp, r["sp"] or "—"), (self.f_pos, r["pos"] or "—")):
+            c.setCurrentIndex(max(c.findData(v), 0))
+        self.f_theta.setValue(float(r["theta"] or 0.0))
+        self.f_integ.setChecked(bool(r["integ"]))
+        self._busy = False
+
+    def _store(self, *_):
+        i = self.list.currentRow()
+        if self._busy or not (0 <= i < len(self.recs)):
+            return
+        sp, pos = self.f_sp.currentData(), self.f_pos.currentData()
+        self.recs[i].update(name=self.f_name.text().strip(), pv=self.f_pv.currentData(), mv=self.f_mv.currentData(),
+                            sp=None if sp in (None, "—") else sp, pos=None if pos in (None, "—") else pos,
+                            theta=self.f_theta.value() or None, integ=self.f_integ.isChecked())
+        self.list.item(i).setText(str(self.recs[i]["name"] or self.recs[i]["pv"]))
+
+    def _add(self):
+        sigs = self._sigs()
+        if not sigs:
+            return
+        self.recs.append(dict(name=f"{T('au_c_name')} {len(self.recs) + 1}", pv=sigs[0], mv=sigs[min(1, len(sigs) - 1)],
+                              sp=None, pos=None, theta=None, integ=False))
+        self._fill_list(len(self.recs) - 1)
+
+    def _delete(self):
+        i = self.list.currentRow()
+        if 0 <= i < len(self.recs):
+            self.recs.pop(i)
+            self._fill_list(i - 1)
 
     def loops(self):
-        out = []
-        for i in range(self.tab.rowCount()):
-            cell = [self.tab.cellWidget(i, j).currentData() for j in range(1, 5)]
-            pv, mv, sp, pos = [None if v in (None, "—") else v for v in cell]
-            if not pv or not mv:
-                continue
-            name = (self.tab.item(i, 0).text() if self.tab.item(i, 0) else "") or str(pv)
-            th_t = self.tab.item(i, 5).text().replace(",", ".").strip() if self.tab.item(i, 5) else ""
-            try:
-                extra = {"theta": float(th_t)} if th_t else {}
-            except ValueError:
-                extra = {}
-            integ = self.tab.item(i, 6).checkState() == Qt.Checked if self.tab.item(i, 6) else False
-            out.append(audit.LoopDef(name=name, pv=pv, mv=mv, sp=sp, pos=pos, integ=integ, extra=extra))
-        return out
-
-    def _fill(self, loops):
-        self.tab.setRowCount(0)
-        for d in loops:
-            self._add_row(d)
-        self.tab.resizeColumnsToContents()
+        return audit.from_records(self.recs, self._sigs())
 
     def propose(self):
         s = self.s
@@ -119,7 +150,7 @@ class AuditTab(Workspace):
         s = self.s
         if not s.has_data:
             return
-        if self.tab.rowCount() == 0:
+        if not self.recs:
             saved = audit.from_records(s.get("audit_loops"), self._sigs())
             self._fill(saved or audit.propose(s.sig.sigs, s.sig.get))
         T_ = float(s.grid.t[-1])
@@ -180,12 +211,10 @@ class AuditTab(Workspace):
 
     def open_as_loop(self):
         """Vybraná smyčka se otevře jako smyčka projektu (identifikace, ladění …)."""
-        i = self.tab.currentRow()
-        loops = self.loops()
-        names = [self.tab.item(k, 0).text() if self.tab.item(k, 0) else "" for k in range(self.tab.rowCount())]
-        if not (0 <= i < self.tab.rowCount()):
+        i = self.list.currentRow()
+        if not (0 <= i < len(self.recs)):
             return
-        d = next((x for x in loops if x.name == (names[i] or x.pv)), None)
+        d = next(iter(audit.from_records([self.recs[i]], self._sigs())), None)
         if d is None:
             return
         self.win.project.add_loop_with(d.name, d.pv, d.mv, d.sp, d.pos)

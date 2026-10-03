@@ -502,12 +502,20 @@ def test_window_audit(win):
     a = w.pages[6]
     w.tabs.setCurrentIndex(6)
     app.processEvents()
-    assert a.tab.rowCount() == 3                         # návrh smyček z názvů tagů
+    assert a.list.count() == 3                           # návrh smyček z názvů tagů
     a.analyse()
     _wait(app)
     assert a.rank.rowCount() == 3 and "FIC101" in a.common.text()
     assert w.state.get("audit_loops")[0]["pv"] == "FIC101.PV"
-    a.tab.selectRow(1)
+    a.list.setCurrentRow(1)                              # nastavení vybrané smyčky pod sebou
+    assert a.f_pv.currentData() == "TIC200.PV"
+    a.f_integ.setChecked(True)
+    assert a.recs[1]["integ"] is True
+    a._add()
+    assert a.list.count() == 4 and a.list.currentRow() == 3
+    a._delete()
+    assert a.list.count() == 3
+    a.list.setCurrentRow(1)
     a.open_as_loop()
     assert len(w.project.loops) == 2 and w.state.c_pv == "TIC200.PV" and w.state.c_mv == "TIC200.OP"
 

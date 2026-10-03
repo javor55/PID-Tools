@@ -15,25 +15,10 @@ from ..layout import section, workspace
 from ..theme import C_MV, C_PV, C_SP
 
 ss = st.session_state
-COLS = ("name", "pv", "mv", "sp", "pos", "theta", "integ")
 
 
 def _sig(ctx):
     return Signals(t_all=ctx.t_all, sigs=list(ctx.sigs), get=ctx.get)
-
-
-def _frame(defs):
-    return pd.DataFrame([{"name": d.name, "pv": d.pv, "mv": d.mv, "sp": d.sp or "—", "pos": d.pos or "—",
-                          "theta": d.extra.get("theta"), "integ": d.integ} for d in defs], columns=list(COLS))
-
-
-def _defs(df):
-    recs = []
-    for _, r in df.iterrows():
-        th = r.get("theta")
-        recs.append(dict(name=str(r.get("name") or ""), pv=r.get("pv"), mv=r.get("mv"), sp=r.get("sp"), pos=r.get("pos"),
-                         theta=None if th is None or pd.isna(th) else float(th), integ=bool(r.get("integ"))))
-    return recs
 
 
 def _open_loop(fname, rec):
@@ -51,39 +36,78 @@ def render(ctx):
         ctx.gph["audit"] = st.container()
         ws = workspace()
         sig = _sig(ctx)
-        ekey = f"au_ed|{ctx.fname}"
+        dkey = f"au_defs|{ctx.fname}"
+        fkey = f"au_f|{ctx.fname}|"           # klíče polí vybrané smyčky
         with ws.side:
             top = st.container()
-        with section(ws.side, T("au_sec_loops"), "au_loops", icon=":material/list:"):
+        with section(ws.side, T("au_sec_loops"), "au_loops", expanded=True, icon=":material/list:"):
             st.caption(T("au_loops_help"))
-            if ss.get("au_propose_req") or f"{ekey}|init" not in ss:
-                ss.pop("au_propose_req", None)
-                saved = audit.from_records(ss.get("audit_loops"), sig.sigs)
-                ss[f"{ekey}|init"] = _frame(saved or audit.propose(sig.sigs, sig.get))
-                ss.pop(ekey, None)
+            if ss.get("au_propose_req") or dkey not in ss:
+                prop = ss.pop("au_propose_req", None)
+                saved = None if prop else audit.from_records(ss.get("audit_loops"), sig.sigs)
+                ss[dkey] = audit.to_records(saved or audit.propose(sig.sigs, sig.get))
+                for k_ in [k_ for k_ in ss if str(k_).startswith(fkey)]:
+                    del ss[k_]
+            recs = ss[dkey]
             opts = list(sig.sigs)
-            df = st.data_editor(
-                ss[f"{ekey}|init"], key=ekey, num_rows="dynamic", hide_index=True, width="stretch",
-                column_config={
-                    "name": st.column_config.TextColumn(T("au_c_name")),
-                    "pv": st.column_config.SelectboxColumn(T("au_c_pv"), options=opts, required=True),
-                    "mv": st.column_config.SelectboxColumn(T("au_c_mv"), options=opts, required=True),
-                    "sp": st.column_config.SelectboxColumn(T("au_c_sp"), options=["—"] + opts),
-                    "pos": st.column_config.SelectboxColumn(T("au_c_pos"), options=["—"] + opts),
-                    "theta": st.column_config.NumberColumn(T("au_c_theta"), min_value=0.0, format="%.4g"),
-                    "integ": st.column_config.CheckboxColumn(T("au_c_integ"))})
-            recs = _defs(df)
-            defs = audit.from_records(recs, sig.sigs)
-            if st.button(T("au_propose"), key="g_au_propose", width="stretch"):
+            skey = f"au_sel|{ctx.fname}"
+            if "au_del_req" in ss:                 # odebrání smyčky (výběr se mění před vytvořením widgetu)
+                j_ = ss.pop("au_del_req")
+                if 0 <= j_ < len(recs):
+                    recs.pop(j_)
+                for k_ in [k_ for k_ in ss if str(k_).startswith(fkey)]:
+                    del ss[k_]
+                ss[skey] = max(0, j_ - 1)
+            b1, b2, b3 = st.columns(3)
+            if b1.button(T("au_add"), key="g_au_add", icon=":material/add:", width="stretch"):
+                recs.append(dict(name=f"{T('au_c_name')} {len(recs) + 1}", pv=opts[0], mv=opts[min(1, len(opts) - 1)],
+                                 sp=None, pos=None, theta=None, integ=False))
+                ss[skey] = len(recs) - 1
+            if b3.button(T("au_propose"), key="g_au_propose", icon=":material/auto_awesome:", width="stretch"):
                 ss["au_propose_req"] = True
                 st.rerun()
-        with section(ws.side, T("au_sec_window"), "au_window", expanded=False, icon=":material/date_range:"):
+            if recs:
+                if not (0 <= ss.get(skey, 0) < len(recs)):
+                    ss[skey] = 0
+                i = st.selectbox(T("au_c_name"), list(range(len(recs))), key=skey,
+                                 format_func=lambda j: f"{j + 1} · {recs[j]['name'] or recs[j]['pv']}")
+                if b2.button(T("au_del"), key="g_au_del", icon=":material/remove:", width="stretch"):
+                    ss["au_del_req"] = i
+                    st.rerun()
+                r_ = recs[i]
+                k_ = f"{fkey}{i}|"
+                for f_, v_ in (("name", r_["name"] or ""), ("pv", r_["pv"]), ("mv", r_["mv"]), ("sp", r_["sp"] or "—"),
+                               ("pos", r_["pos"] or "—"), ("theta", float(r_["theta"] or 0.0)),
+                               ("integ", bool(r_["integ"]))):
+                    if k_ + f_ not in ss:
+                        ss[k_ + f_] = v_
+                for f_ in ("pv", "mv"):
+                    if ss[k_ + f_] not in opts:
+                        ss[k_ + f_] = opts[0]
+                for f_ in ("sp", "pos"):
+                    if ss[k_ + f_] not in ["—"] + opts:
+                        ss[k_ + f_] = "—"
+                r_["name"] = st.text_input(T("au_c_name"), key=k_ + "name")
+                r_["pv"] = st.selectbox(T("au_c_pv"), opts, key=k_ + "pv")
+                r_["mv"] = st.selectbox(T("au_c_mv"), opts, key=k_ + "mv")
+                sp_ = st.selectbox(T("au_c_sp"), ["—"] + opts, key=k_ + "sp")
+                pos_ = st.selectbox(T("au_c_pos"), ["—"] + opts, key=k_ + "pos")
+                r_["sp"], r_["pos"] = (None if sp_ == "—" else sp_), (None if pos_ == "—" else pos_)
+                th_ = st.number_input(T("au_c_theta"), min_value=0.0, key=k_ + "theta", format="%.4g",
+                                      help=T("au_theta_help"))
+                r_["theta"] = float(th_) if th_ > 0 else None
+                r_["integ"] = st.toggle(T("au_c_integ"), key=k_ + "integ")
+                st.caption(" · ".join(f"{j + 1}. {x['name'] or x['pv']}" for j, x in enumerate(recs)))
+            else:
+                st.info(T("au_none"), icon=":material/info:")
+            defs = audit.from_records(recs, sig.sigs)
+        with section(ws.side, T("au_sec_window"), "au_window", icon=":material/date_range:"):
             T_ = float(ctx.t[-1])
             wkey = f"au_win|{ctx.fname}"
             if wkey not in ss or not (0.0 <= ss[wkey][0] < ss[wkey][1] <= T_ + 1e-9):
                 ss[wkey] = (0.0, T_)
             win = st.slider(T("seg_diag"), 0.0, T_, step=float(max(ctx.Ts, T_ / 1000)), key=wkey)
-        with section(ws.side, T("au_sec_help"), "au_help", expanded=False, icon=":material/help:"):
+        with section(ws.side, T("au_sec_help"), "au_help", icon=":material/help:"):
             st.markdown(T("au_help"))
         with top:
             run = st.button(T("au_run"), key="g_au_run", type="primary", icon=":material/play_arrow:", width="stretch")
