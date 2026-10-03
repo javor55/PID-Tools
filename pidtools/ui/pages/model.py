@@ -259,7 +259,9 @@ def render(ctx):
             # ---- grafy modelu (pod-záložky jako v desktopu)
             # model vs. data se kreslí do hlavního grafu záznamu (ctx.seg_chart na konci) – jedna sada grafů
             with ws.model:
-                show_res = st.toggle(T("show_resid"), key="show_resid", value=True, help=T("h_resid"))
+                if "show_resid" not in ss:
+                    ss["show_resid"] = True
+                show_res = st.toggle(T("show_resid"), key="show_resid", help=T("h_resid"))
             seg_extra = [(f"{mcode} {T('fit')}", y_fit, C_MODEL[mcode], None)]
             if edited:
                 seg_extra.append((f"{mcode} {T('edited')}", y_ed, _c_edit(), "dash"))

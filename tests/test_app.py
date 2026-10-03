@@ -516,3 +516,26 @@ def test_opc_source_web():
         assert at.session_state[next(k for k in at.session_state if str(k).startswith("c_pv|opc|"))] == "TIC200.PV"
     finally:
         stop()
+
+
+def test_rows_as_samples_web():
+    """Čas, který se nemění → co řádek, to vzorek s varováním; perioda řádku se dá nastavit (i v minutách)."""
+    import numpy as np
+    n = 300
+    mv = np.where((np.arange(n) // 60) % 2, 60.0, 50.0)
+    pv = 40 + np.convolve(mv - 50, np.ones(10) / 10, "same")
+    proj = dict(version=2, fname="const_time.csv", tag="", state={},
+                map={"c_pv": "CV", "c_mv": "MV1", "c_sp": "—", "c_d": [], "c_pos": "—"}, ranges={"id": None, "val": None},
+                data={"cols": {"t_s": [0.0] * n, "CV": pv.tolist(), "MV1": mv.tolist()}})
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["test_inject"] = json.dumps(proj)
+    at.run()
+    assert not at.exception and len(_main(at)) == 7
+    assert at.session_state["c_tim"] == "#row"
+    assert any("not recognised" in w.value for w in at.warning)
+    at.session_state["row_dt"] = 2.0
+    at.session_state["time_unit"] = "min"
+    at.run()
+    assert not at.exception
+    assert any("2 min" in c.value for c in at.caption)

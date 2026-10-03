@@ -1,5 +1,18 @@
 # Změny
 
+## Nevydáno
+
+- Data: soubor, u kterého se nepodaří rozpoznat čas (nebo se čas nemění), se otevře po řádcích – co řádek, to
+  vzorek; periodu řádku nastavíte v Rozložení souboru a čas (s, ms, min, h). Rozpozná se čas s názvem měsíce
+  (Aug-04-07 20:47:20), CSV s celými řádky v uvozovkách (IP.21 přes Excel) a přeskočí se prázdné řádky.
+- Desktop startuje zhruba dvakrát rychleji (panely APC vznikají až při otevření, offline balíček obsahuje bytecode).
+- Grafy v desktopu: tlačítka s textem (Celý rozsah, Kurzor, Měření, PNG, CSV, Kopírovat, Okno); Celý rozsah
+  zobrazí celý záznam najednou; zoom a posun jen v čase, osa y se přizpůsobí viditelným datům; dvojklik = celý rozsah.
+- Model (desktop i web): jedna sada grafů – záznam s úsekem, model, rezidua a měřené poruchy; parametry pod sebou.
+- Ladění: blok PIDConL je sekce 1 a NormPV / NormMV se odhadnou z dat, dokud jsou na výchozích 0–100; scénář se
+  současnými sadami je vidět hned; výchozí návrh je optimalizace, PI, IAE s omezením překmitu, skok SP i porucha.
+- Sekce panelu nastavení jsou na začátku sbalené; parametry dopředné vazby pod sebou.
+
 ## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 
 **Vývoj**

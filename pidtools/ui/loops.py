@@ -19,6 +19,7 @@ ss = st.session_state
 GLOBAL_KEYS = {
     "lang", "src", "up_file", "proj_up", "proj", "proj_hash", "proj_err", "proj_json", "proj_saved", "report_html",
     "rep_author", "rep_comment", "plot_h", "time_fmt", "time_unit", "ts_manual", "ts_user", "c_tim", "c_tim_l",
+    "c_tim_for", "row_dt", "rows_auto",
     "c_tag", "c_val", "main_tab", "prev_open", "drag", "inner_fit", "test_inject", "proj_inc", "loops", "loop_sel",
     "_up_keep", "_up_seen", "_src_prev", "_src_now",
 }

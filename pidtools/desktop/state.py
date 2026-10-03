@@ -40,6 +40,7 @@ class LoopState(Scaling):
         self.layout, self.time_fmt, self.unit = "wide", "auto", "s"
         self.c_time = self.c_tag = self.c_val = None    # sloupec času (wide) / tag, čas, hodnota (long); None = odhad
         self.ts_user = None                             # ruční perioda převzorkování [s]; None = automaticky
+        self.row_dt = 1.0                               # bez času (co řádek, to vzorek): perioda v jednotkách unit
         self.sig = None
         self.grid = None
         self.c_pv = self.c_mv = None
@@ -96,11 +97,14 @@ class LoopState(Scaling):
         self.update_grid()
 
     def _signals(self):
-        return ds.signals(self.df, self.layout, self.time_fmt, self.unit, self.c_time, self.c_tag, self.c_val)
+        return ds.signals(self.df, self.layout, self.time_fmt, self.unit, self.c_time, self.c_tag, self.c_val,
+                          self.row_dt)
 
-    def set_layout(self, layout, time_fmt=None, unit=None, c_time=None, c_tag=None, c_val=None):
+    def set_layout(self, layout, time_fmt=None, unit=None, c_time=None, c_tag=None, c_val=None, row_dt=None):
         if layout != self.layout:
             c_time = c_tag = c_val = None
+        if row_dt:
+            self.row_dt = float(row_dt)
         self.layout, self.time_fmt, self.unit = layout, time_fmt or self.time_fmt, unit or self.unit
         self.c_time, self.c_tag, self.c_val = c_time, c_tag, c_val
         self.sig = self._signals()

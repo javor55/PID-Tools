@@ -11,7 +11,8 @@ import streamlit as st
 from ...i18n import T
 from .. import loops
 from ..charts import show
-from ...app.dataio import TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, to_num
+from ...app.dataio import (ROWS, TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns,
+                           row_time, to_num)
 from ...app import segments as segs_mod
 from ...app.dataset import DEMO_DISTS, default_layout
 from ...app.guess import guess_roles
@@ -78,19 +79,40 @@ def render_setup(ctx):
                 st.caption(T("pairs_caption", p=" · ".join(f"{c} ← {tc}" for c, tc in pairs.items())))
                 time_src = list(tcols)
             else:
-                c_tim = sel(st, T("col_time"), cols, cols.index(tcols[0]) if tcols else
-                            _guess(cols, ["cas", "čas", "time", "datum", "date"]), key="c_tim")
-                ctx.t_all, ctx.t_origin = time_cached(ctx.ckey, c_tim, unit_mult, time_fmt, df[c_tim])
-                ctx.sigs = [s_ for s_ in cols if s_ != c_tim and s_ not in tcols]
+                opts_t = [ROWS] + cols          # ROWS = bez času: co řádek, to vzorek s ručně zadanou periodou
+                auto_rows = False
+                if ss.get("c_tim") not in opts_t or ss.get("c_tim_for") != ctx.ckey:   # nový soubor → odhad
+                    ss["c_tim_for"] = ctx.ckey
+                    d_ = tcols[0] if tcols else cols[_guess(cols, ["cas", "čas", "time", "datum", "date"])]
+                    try:
+                        time_cached(ctx.ckey, d_, unit_mult, time_fmt, df[d_])
+                    except ValueError:
+                        d_, auto_rows = ROWS, True
+                    ss["c_tim"] = d_
+                    ss["rows_auto"] = auto_rows
+                c_tim = st.selectbox(T("col_time"), opts_t, key="c_tim",
+                                     format_func=lambda c_: T("time_rows") if c_ == ROWS else str(c_))
+                if c_tim == ROWS:
+                    row_dt = num(T("row_dt"), "row_dt", 1.0, min_value=1e-6, format="%.6g", help=T("h_row_dt"))
+                    ctx.t_all, ctx.t_origin = row_time(len(df), row_dt, unit_mult), None
+                    ctx.sigs = [s_ for s_ in cols if s_ not in tcols and np.isfinite(to_num(df[s_])).mean() > 0.5]
+                    st.caption(T("time_rows_note", dt=f"{row_dt:g}", u=time_unit))
+                    if ss.get("rows_auto"):
+                        ws.m_top.warning(T("time_rows_auto", dt=f"{row_dt:g}", u=time_unit), icon=":material/schedule:")
+                else:
+                    ss["rows_auto"] = False
+                    ctx.t_all, ctx.t_origin = time_cached(ctx.ckey, c_tim, unit_mult, time_fmt, df[c_tim])
+                    ctx.sigs = [s_ for s_ in cols if s_ != c_tim and s_ not in tcols]
                 ctx.get = lambda s_: to_num(df[s_])
                 time_src = [c_tim]
             if layout != "wide":
                 ctx.t_all = wide["t"].to_numpy(float)
                 ctx.sigs = [s_ for s_ in wide.columns if s_ != "t"]
                 ctx.get = lambda s_: wide[s_].to_numpy(float)
-            kinds = {detect_time_format(df[c_])[0] for c_ in time_src}
-            st.caption(T("time_detected", f=", ".join(T("tf_" + k_) if k_ in TIME_FORMATS else str(k_)
-                                                      for k_ in sorted(kinds, key=str))))
+            if time_src != [ROWS]:
+                kinds = {detect_time_format(df[c_])[0] for c_ in time_src}
+                st.caption(T("time_detected", f=", ".join(T("tf_" + k_) if k_ in TIME_FORMATS else str(k_)
+                                                          for k_ in sorted(kinds, key=str))))
         except Exception as ex:
             st.error(T("err_data", ex=ex))
             st.stop()

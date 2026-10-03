@@ -570,3 +570,22 @@ def test_opc_dialog(win):
         dlg.done(0)
     finally:
         stop()
+
+
+def test_rows_as_samples_desktop(win, tmp_path):
+    """Soubor s neměnným časem: co řádek, to vzorek; perioda řádku z panelu Data (i v ms)."""
+    from pidtools.app.dataio import ROWS
+    app, win = win
+    n = 200
+    p = tmp_path / "const_time.csv"
+    p.write_text("Time,CV,MV1\n" + "\n".join(f"Aug-04-07 20:47:20,{50 + 0.01 * i},{10 + (i // 50) % 2}"
+                                             for i in range(n)), encoding="utf-8")
+    assert win.open_path(p)
+    _wait(app)
+    s, d = win.state, win.pages[0]
+    assert s.sig.time_src == [ROWS] and s.sig.time_note == "rows_auto" and s.grid.Ts == pytest.approx(1.0)
+    assert d.c_time.currentData() == ROWS and "not recognised" in d.warn.text()
+    d.tunit.setCurrentIndex(d.tunit.findData("ms"))
+    d.row_dt.setValue(500)
+    _wait(app)
+    assert s.grid.Ts == pytest.approx(0.5) and s.sig.t_all[-1] == pytest.approx(0.5 * (n - 1))

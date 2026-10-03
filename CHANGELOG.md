@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Data: files whose time is not recognised (or does not change) open with one row = one sample; the sample period
+  per row is set under File layout and time (s, ms, min, h). Times with month names (Aug-04-07 20:47:20) are
+  recognised; CSV exports with whole lines in quotes (IP.21 via Excel) are unwrapped; empty rows are skipped.
+- Desktop starts about twice as fast (APC panels are created on first use; the offline package ships bytecode).
+- Desktop charts: text buttons (Full range, Cursor, Measure, PNG, CSV, Copy, Window); Full range shows the whole
+  record at once; zoom and pan in time only with the y axis following the visible data; double-click = full range.
+- Model (desktop and web): one chart set – record with the segment, model, residuals and measured disturbances;
+  editable parameters one per row.
+- Tuning: the PIDConL block is section 1 and NormPV / NormMV are estimated from the data while still at the
+  0–100 default; the scenario with the current sets is shown immediately; the default suggestion is optimisation,
+  PI, IAE + overshoot limit, set-point step and disturbance.
+- Side panel sections start collapsed; feedforward parameters one per row.
+
 ## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 
 **Development**
