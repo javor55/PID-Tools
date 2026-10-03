@@ -19,6 +19,7 @@ ss = st.session_state
 GLOBAL_KEYS = {
     "lang", "src", "up_file", "proj_up", "proj", "proj_hash", "proj_err", "proj_json", "proj_saved", "report_html",
     "rep_author", "rep_comment", "plot_h", "time_fmt", "time_unit", "ts_manual", "ts_user", "c_tim", "c_tim_l",
+    "c_tim_for", "row_dt", "rows_auto", "loop_name_edit", "loop_added",
     "c_tag", "c_val", "main_tab", "prev_open", "drag", "inner_fit", "test_inject", "proj_inc", "loops", "loop_sel",
     "_up_keep", "_up_seen", "_src_prev", "_src_now",
 }
@@ -116,6 +117,14 @@ def add():
     clear()
     s["active"] = new
     ss["loop_sel"] = new
+    ss["loop_tag"] = T("loop_n", n=len(s["ids"]))     # vlastní název, dokud ho uživatel nepřejmenuje
+    ss["main_tab"] = T("tab1")                         # nová smyčka: nejdřív vybrat její signály (PV, MV …)
+    ss["loop_added"] = True
+
+
+def rename():
+    """Callback pole „Název smyčky“ v menu smyček → tag aktivní smyčky."""
+    ss["loop_tag"] = (ss.get("loop_name_edit") or "").strip()
 
 
 def remove(i):

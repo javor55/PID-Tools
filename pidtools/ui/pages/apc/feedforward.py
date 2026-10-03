@@ -49,10 +49,9 @@ def ff_render(ctx):
                       help=T("h_ff_gain_eng"))
             dyn = st.toggle(T("ff_dyn"), key=k_["dyn"], help=T("h_ff_dyn"))
             if dyn:
-                l1, l2, l3 = st.columns(3)
-                num(T("ff_lead"), k_["lead"], tl0, l1, min_value=0.0, format="%.4g", help=T("h_ff_lead"))
-                num(T("ff_lag"), k_["lag"], tg0, l2, min_value=0.0, format="%.4g", help=T("h_ff_lag"))
-                num(T("ff_delay"), k_["delay"], dl0, l3, min_value=0.0, format="%.4g", help=T("h_ff_delay"))
+                num(T("ff_lead"), k_["lead"], tl0, min_value=0.0, format="%.4g", help=T("h_ff_lead"))
+                num(T("ff_lag"), k_["lag"], tg0, min_value=0.0, format="%.4g", help=T("h_ff_lag"))
+                num(T("ff_delay"), k_["delay"], dl0, min_value=0.0, format="%.4g", help=T("h_ff_delay"))
             if use and pdm[2] < p[-1]:
                 st.caption(T("ff_faster", d=dn, td=f"{pdm[2]:.3g}", t=f"{p[-1]:.3g}"))
     des = ffmod.design(code, p, pdl)

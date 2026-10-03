@@ -5,7 +5,7 @@ srovnání modelů, výběr modelu pro ladění, úprava parametrů a graf model
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSplitter,
+from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QProgressBar, QPushButton, QSplitter,
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from ...app import model as mdl
@@ -22,27 +22,29 @@ class ModelTab(Workspace):
         super().__init__("model")
         self.win, self.s = win, win.state
 
-        # ---- hlavní plocha: záznam s úsekem, výsledky identifikace, grafy modelu
+        # ---- hlavní plocha: jedna sada grafů (celý záznam s úsekem, model, MV, poruchy, rezidua),
+        #      výsledky identifikace a doplňkové pohledy
         split = QSplitter(Qt.Vertical)
         split.setChildrenCollapsible(False)
         self.main.addWidget(split, 1)
-        self.seg_chart, self.seg_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.6, 0.4))
+        self.chart, self.plots = w.stack(4, ["PV", "MV", T("dk_dist_axis"), T("resid")], T("time_s"),
+                                         heights=(0.42, 0.24, 0.18, 0.16))
+        self.seg_chart, self.seg_plots = self.chart, self.plots       # úsek se vybírá přímo v grafu
+        self.fit_chart, self.fit_plots = self.chart, self.plots
         self.region = pg.LinearRegionItem(brush=(31, 95, 168, 40))
-        self.seg_plots[0].addItem(self.region)
+        self.plots[0].addItem(self.region)
         self.region.sigRegionChangeFinished.connect(self._region_moved)
-        split.addWidget(self.seg_chart)
+        split.addWidget(self.chart)
         mid = QWidget()
         ml = QVBoxLayout(mid)
         ml.setContentsMargins(0, 0, 0, 0)
         self.stale = w.note("")
         ml.addWidget(self.stale)
         self.res = w.table(["", "FIT [%]", "NRMSE [%]", T("col_status"), ""], [])
-        self.res.setMinimumHeight(110)
+        self.res.setMinimumHeight(90)
         ml.addWidget(self.res, 1)
         split.addWidget(mid)
-        self.fit_chart, self.fit_plots = w.stack(3, ["PV", T("resid"), "MV"], T("time_s"), heights=(0.5, 0.2, 0.3))
         self.sub = QTabWidget()
-        self.sub.addTab(self.fit_chart, T("dk_model_vs_data"))
         self.step_plot = w.plot(T("step_title"), "ΔPV", T("time_s"))
         self.sub.addTab(self.step_plot, T("step_title"))
         self.all_chart, self.all_plots = w.stack(2, ["PV", "MV"], T("time_s"), heights=(0.7, 0.3))
@@ -65,10 +67,10 @@ class ModelTab(Workspace):
         self.val_index = self.sub.addTab(self._validation_page(), T("val_title"))
         self.sub.currentChanged.connect(lambda i: self._validate() if i == self.val_index else None)
         split.addWidget(self.sub)
-        split.setStretchFactor(0, 3)
+        split.setStretchFactor(0, 6)
         split.setStretchFactor(1, 1)
-        split.setStretchFactor(2, 5)
-        split.setSizes([300, 150, 450])
+        split.setStretchFactor(2, 3)
+        split.setSizes([560, 120, 300])
 
         # ---- pevný pruh: identifikace
         self.run = QPushButton("▶  " + T("run_fit"))
@@ -131,9 +133,8 @@ class ModelTab(Workspace):
         # ---- 3 · model pro ladění
         self.mcode = w.combo([])
         self.mcode.currentIndexChanged.connect(self._model_chosen)
-        self.params = QTableWidget(0, 0)
-        self.params.setMinimumHeight(112)
-        self.params.setMaximumHeight(130)
+        self.params = QTableWidget(0, 2)
+        self.params.setMinimumHeight(120)
         self.params.setToolTip(T("fix_help"))
         self.params.itemChanged.connect(self._param_edited)
         b_reset = QPushButton(T("dk_reset"))
@@ -176,13 +177,6 @@ class ModelTab(Workspace):
         self._busy = True
         try:
             g = s.grid
-            for p in self.seg_plots:
-                p.clear()
-            self.seg_plots[0].addItem(self.region)
-            if g.has_sp:
-                w.line(self.seg_plots[0], g.t, g.sp_e, "SP", w.C_SP, 1.2, dash=True)
-            w.line(self.seg_plots[0], g.t, g.pv_e, "PV", w.C_PV, 1.2)
-            w.line(self.seg_plots[1], g.t, g.mv_e, "MV", w.C_MV, 1.4)
             self.region.setBounds((0, float(g.t[-1])))
             self.region.setRegion(s.rng)
             for sp in (self.r_from, self.r_to):
@@ -257,21 +251,24 @@ class ModelTab(Workspace):
                 return
             code, p, pdl = m
             names = list(MODELS[code]["params"])
-            cols = names + [f"{n} ({dn})" for dn in s.c_d for n in DIST_PARAMS]
+            rows = names + [f"{n} ({dn})" for dn in s.c_d for n in DIST_PARAMS]
             vals = list(p) + [v for d in pdl for v in d]
-            self.params.setColumnCount(len(cols))
-            self.params.setRowCount(2)
-            self.params.setHorizontalHeaderLabels(cols)
-            self.params.setVerticalHeaderLabels(["", T("fix")])
+            self.params.setRowCount(len(rows))         # parametry pod sebou: hodnota, zafixovat
+            self.params.setVerticalHeaderLabels(rows)
+            self.params.setHorizontalHeaderLabels([T("dk_value"), T("fix")])
             keys = [f"fx|{code}|{i}" for i in range(len(names))] + [
                 f"fx|{code}|d{j}|{i}" for j in range(len(pdl)) for i in range(len(DIST_PARAMS))]
             for j, (v, k) in enumerate(zip(vals, keys)):
-                self.params.setItem(0, j, QTableWidgetItem(f"{v:.5g}"))
+                self.params.setItem(j, 0, QTableWidgetItem(f"{v:.5g}"))
                 it = QTableWidgetItem()
                 it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
                 it.setCheckState(Qt.Checked if s.get(k) else Qt.Unchecked)
                 it.setData(Qt.UserRole, k)
-                self.params.setItem(1, j, it)
+                self.params.setItem(j, 1, it)
+            self.params.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            self.params.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+            hh = self.params.horizontalHeader().height() + 4
+            self.params.setFixedHeight(hh + sum(self.params.rowHeight(i) for i in range(len(rows))))
         finally:
             self._busy = False
 
@@ -302,10 +299,31 @@ class ModelTab(Workspace):
                [[n, p[i], un["p05"][i], un["p95"][i], f"± {un['rel'][i]:.0f} %"]
                 for i, n in enumerate(MODELS[code]["params"])])
 
-    def _draw_fit(self):
-        for p in self.fit_plots:
-            p.clear()
+    def _draw_record(self):
+        """Celý záznam (PV, SP, MV, měřené poruchy) s vybraným úsekem; model se kreslí přes něj."""
         s = self.s
+        self.chart.clear()
+        g = s.grid
+        self.plots[0].addItem(self.region)
+        if g.has_sp:
+            w.line(self.plots[0], g.t, g.sp_e, "SP", w.C_SP, 1.2, dash=True)
+        w.line(self.plots[0], g.t, g.pv_e, "PV", w.C_PV, 1.1)
+        w.line(self.plots[1], g.t, g.mv_e, "MV", w.C_MV, 1.4)
+        for i, (nm, d) in enumerate(zip(s.c_d, g.dists)):
+            w.line(self.plots[2], g.t, d, str(nm), w.C_DIST[i % 4], 1.4)
+        self.chart.set_row_visible(2, bool(s.c_d))
+        for it in getattr(self, "_seg_items", []):
+            self.plots[0].addItem(it)
+
+    def _draw_fit(self):
+        s = self.s
+        if not s.has_data:
+            return
+        self._draw_record()
+        self.chart.set_row_visible(3, s.model is not None)
+        if getattr(self, "_view_of", None) is not s.grid:        # nová data → celý záznam, jinak zoom zůstane
+            self._view_of = s.grid
+            self.chart.full_range()
         if s.model is None:
             self.fit_lab.setText("")
             return
@@ -314,10 +332,8 @@ class ModelTab(Workspace):
         t = s.t[m]
         code, p, pdl = s.model
         r = s.fit["res"][code]
-        w.line(self.fit_plots[0], t, s.EP(ev["y_plot"]), T("model_" + code), "#ea580c", 2.4)
-        w.line(self.fit_plots[0], t, s.grid.pv_e[m], "PV", w.C_PV, 1.0)
-        w.line(self.fit_plots[1], t, (s.pv[m] - ev["y_plot"]) * s.PR / 100, T("resid"), "#64748b", 1.0)
-        w.line(self.fit_plots[2], t, s.grid.mv_e[m], "MV", w.C_MV, 1.4)
+        w.line(self.plots[0], t, s.EP(ev["y_plot"]), T("model_" + code), "#ea580c", 2.2).setZValue(-1)   # PV navrchu
+        w.line(self.plots[3], t, (s.pv[m] - ev["y_plot"]) * s.PR / 100, T("resid"), "#64748b", 1.0)
         mm = ev["metrics"]
         edited = mdl.is_edited(p, pdl, r.get("stic", 0.0) or 0.0, r)
         f_fit = s.fit["res"][code]["fit"]
@@ -610,12 +626,12 @@ class ModelTab(Workspace):
     def _param_edited(self, item):
         if self._busy or self.s.model is None:
             return
-        if item.row() == 1:                      # zaškrtnutí „zafixovat“
+        if item.column() == 1:                   # zaškrtnutí „zafixovat“
             self.s.settings[item.data(Qt.UserRole)] = item.checkState() == Qt.Checked
             return
         code = self.s.model[0]
         n = len(MODELS[code]["params"])
-        j = item.column()
+        j = item.row()
         try:
             v = float(item.text().replace(",", "."))
         except ValueError:

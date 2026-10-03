@@ -1,15 +1,18 @@
 """
-Build a portable offline package of PID Tools for Windows (x64).
+Build the portable offline package of the PID Tools web app for Windows (x64).
 
 The result is a folder / ZIP with an embedded Python, all libraries and the application. On the target PC it is
-just unzipped (e.g. from a USB stick) and started with PID-Tools-desktop.bat (window application) or PID-Tools.bat
-(web app in the browser) – no installation, no admin rights, no internet.
+just unzipped (e.g. from a USB stick) and started with PID-Tools.bat (web app in the browser on this PC) – no
+installation, no admin rights, no internet. The OPC UA data source is included (asyncua).
+
+The desktop application is a separate Windows application (PID Tools.exe, installer and portable ZIP) built by
+tools/build_desktop.py. --with-desktop adds the desktop app to this package as before (PID-Tools-desktop.bat).
 
 Run on a Windows PC with internet access and Python 3.11 (the same minor version as the embedded one):
 
-    python tools/build_offline.py            # -> dist/PID-Tools-<version>-win64-offline.zip
-    python tools/build_offline.py --no-zip   # folder only (dist/PID-Tools)
-    python tools/build_offline.py --no-desktop   # web app only (smaller, without Qt)
+    python tools/build_offline.py                 # -> dist/PID-Tools-<version>-web-win64-offline.zip
+    python tools/build_offline.py --no-zip        # folder only (dist/PID-Tools-web)
+    python tools/build_offline.py --with-desktop  # + desktop app started through the embedded Python
 
 The GitHub workflow .github/workflows/offline-package.yml runs this script on windows-latest.
 """
@@ -49,13 +52,13 @@ set PYTHONNOUSERSITE=1
 start "" "%~dp0python\pythonw.exe" -m pidtools.desktop %*
 """
 
-README_TXT = """PID Tools {version} – offline package for Windows (x64)
+README_TXT = """PID Tools {version} – web app, offline package for Windows (x64)
 
-1. Copy the whole folder to the target PC (e.g. C:\\Tools\\PID-Tools). The path should not be too long.
-2. Desktop application: double-click PID-Tools-desktop.bat – a window opens (no browser, no network port).
-   A data file or a project (.json) can be dropped on the .bat file to open it directly.
-3. Web app (same functions in the browser): double-click PID-Tools.bat. A console window starts the app and
-   the browser opens http://localhost:8501 (if not, open the address manually). Close the console to stop it.
+1. Copy the whole folder to the target PC (e.g. C:\\Tools\\PID-Tools-web). The path should not be too long.
+2. Double-click PID-Tools.bat. A console window starts the app and the browser opens http://localhost:8501
+   (if not, open the address manually). Close the console to stop it.
+3. The desktop application (window, no browser) is a separate download: PID-Tools-{version}-setup.exe
+   (installer) or PID-Tools-{version}-desktop-win64-portable.zip.
 
 No installation, no admin rights and no internet are needed. To uninstall, delete the folder.
 Projects (JSON) are interchangeable between the desktop and the web app.
@@ -69,8 +72,8 @@ def version():
     return ns["__version__"]
 
 
-def build(out_dir: Path, make_zip: bool, desktop: bool = True):
-    pkg = out_dir / "PID-Tools"
+def build(out_dir: Path, make_zip: bool, desktop: bool = False):
+    pkg = out_dir / ("PID-Tools" if desktop else "PID-Tools-web")
     if pkg.exists():
         shutil.rmtree(pkg)
     py_dir, app_dir = pkg / "python", pkg / "app"
@@ -92,6 +95,8 @@ def build(out_dir: Path, make_zip: bool, desktop: bool = True):
            "--target", str(site), "-r", str(ROOT / "requirements.txt")]
     if desktop:
         cmd += ["-r", str(ROOT / "requirements-desktop.txt")]
+    else:
+        cmd += ["asyncua"]                 # zdroj dat OPC UA v lokální webové aplikaci
     if os.name != "nt":   # cross-build from Linux/macOS: Windows wheels only (+ Windows-only dependencies)
         cmd += ["--platform", "win_amd64", "--python-version", "3.11", "--implementation", "cp",
                 "--only-binary=:all:", "colorama"]
@@ -109,6 +114,9 @@ def build(out_dir: Path, make_zip: bool, desktop: bool = True):
             shutil.copytree(src, app_dir / name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         elif src.exists():
             shutil.copy2(src, app_dir / name)
+    if sys.version_info[:2] == (3, 11):   # bytecode předem → rychlejší první start (stejná verze jako embedded Python)
+        import compileall
+        compileall.compile_dir(str(app_dir), quiet=1)
 
     v = version()
     (pkg / "PID-Tools.bat").write_text(LAUNCHER.replace("\n", "\r\n"), encoding="ascii")
@@ -117,7 +125,7 @@ def build(out_dir: Path, make_zip: bool, desktop: bool = True):
     (pkg / "README.txt").write_text(README_TXT.format(version=v).replace("\n", "\r\n"), encoding="utf-8")
 
     if make_zip:
-        zip_path = out_dir / f"PID-Tools-{v}-win64-offline.zip"
+        zip_path = out_dir / f"PID-Tools-{v}-{'' if desktop else 'web-'}win64-offline.zip"
         print(f"Creating {zip_path.name} ...")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
             for f in sorted(pkg.rglob("*")):
@@ -134,6 +142,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(ROOT / "dist"), help="output directory (default: dist)")
     ap.add_argument("--no-zip", action="store_true", help="build the folder only")
-    ap.add_argument("--no-desktop", action="store_true", help="web app only (without Qt)")
+    ap.add_argument("--with-desktop", action="store_true", help="add the desktop app (Qt) started by a .bat")
     a = ap.parse_args()
-    build(Path(a.out), not a.no_zip, not a.no_desktop)
+    build(Path(a.out), not a.no_zip, a.with_desktop)

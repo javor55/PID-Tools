@@ -60,6 +60,10 @@ class Num(QDoubleSpinBox):
         except ValueError:
             return QValidator.Intermediate, text, pos
 
+    def wheelEvent(self, e):
+        """Kolečko myši hodnotu nemění (ani v poli s kurzorem) – posune se panel."""
+        e.ignore()
+
     def sizeHint(self):
         h = super().sizeHint()
         return QSize(min(h.width(), 110), h.height())
@@ -83,9 +87,16 @@ def spin(value=0.0, lo=-1e12, hi=1e12, decimals=6, step=None, suffix=""):
     return s
 
 
+class Combo(QComboBox):
+    """Výběr, který nereaguje na kolečko myši (při posouvání panelu se nechtěně neměnil)."""
+
+    def wheelEvent(self, e):
+        e.ignore()
+
+
 def combo(items, current=None, labels=None):
     """Výběr; items = hodnoty, labels = zobrazované texty (výchozí = hodnoty)."""
-    c = QComboBox()
+    c = Combo()
     for i, it in enumerate(items):
         c.addItem(str(labels[i]) if labels else str(it), it)
     if current in items:

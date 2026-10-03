@@ -151,6 +151,10 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self.add_loop)
         a.setEnabled(self.state.has_data)
         bar.addAction(a)
+        rn = QAction(T("dk_loop_rename"), self)
+        rn.triggered.connect(self.rename_loop)
+        rn.setEnabled(self.state.has_data)
+        bar.addAction(rn)
         r = QAction(T("dk_loop_remove"), self)
         r.triggered.connect(self.remove_loop)
         r.setEnabled(len(self.project.loops) > 1)
@@ -197,8 +201,20 @@ class MainWindow(QMainWindow):
 
     def add_loop(self):
         if self.project.add_loop() is not None:
-            self.tabs.setCurrentIndex(0)
+            self.state.set(loop_tag=T("loop_n", n=len(self.project.loops)))
             self.build()
+            self.tabs.setCurrentIndex(0)
+            self.pages[0].sig_sec.expand(True)       # nová smyčka: nejdřív vybrat její signály
+            self.status(T("loop_added_dk"))
+
+    def rename_loop(self):
+        """Název (tag) aktivní smyčky."""
+        from PySide6.QtWidgets import QInputDialog
+        name, ok = QInputDialog.getText(self, T("dk_loop_rename"), T("loop_name"),
+                                        text=self.state.get("loop_tag") or "")
+        if ok:
+            self.state.set(loop_tag=name.strip())
+            self._build_loopbar()
 
     def remove_loop(self):
         self.project.remove_loop(self.project.active)
@@ -437,6 +453,12 @@ def run(argv=None):
     app = QApplication.instance() or QApplication(argv)
     app.setOrganizationName(ORG)
     app.setApplicationName(APP)
+    icon = Path(__file__).resolve().parents[1] / "assets" / "icon.png"
+    if icon.exists():
+        from PySide6.QtGui import QIcon
+        app.setWindowIcon(QIcon(str(icon)))
+    if "--smoke" in argv:                     # kontrola balíčku (CI): okno, ukázka, identifikace, ladění, APC
+        return _smoke(app)
     data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
     win = MainWindow(autosave=Path(data_dir) / "autosave.json" if data_dir else None)
     win.show()
@@ -445,3 +467,24 @@ def run(argv=None):
     else:
         win.open_path(argv[1])
     return app.exec()
+
+
+def _smoke(app):
+    """Rychlá kontrola sestaveného balíčku bez obsluhy: vrací 0, když prošly hlavní kroky."""
+    import tempfile
+    prefs = QSettings(str(Path(tempfile.gettempdir()) / "pidtools_smoke.ini"), QSettings.IniFormat)
+    win = MainWindow(prefs=prefs)
+    win.show()
+    win.open_demo()
+    errs = win.state.identify()
+    win.refresh()
+    for i in range(len(win.pages)):
+        win.tabs.setCurrentIndex(i)
+        app.processEvents()
+    win.pages[2].calculate()
+    QThreadPool.globalInstance().waitForDone(120000)
+    app.processEvents()
+    ok = not errs and win.state.model is not None and win.pages[2]._result is not None
+    print("PID Tools smoke test:", "OK" if ok else f"FAILED {errs}", flush=True)
+    win.close()
+    return 0 if ok else 1

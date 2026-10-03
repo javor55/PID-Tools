@@ -121,11 +121,18 @@ class LiveTab(Workspace):
             sp.setValue(v)
             sp.blockSignals(False)
         self.sess.set_mode(self.auto.isChecked(), self.man.value())
+        self._mode_fields()
         self.sess.set_dist(self.d_in.value(), self.d_out.value(), self.shape.currentData(), self.period.value())
         self.sess.events = []
         self.chart.clear()
         self._curves = {}
         self.draw()
+
+    def hideEvent(self, e):
+        """Jiná záložka (nebo minimalizované okno): simulace se pozastaví – zbytečně by běžela na pozadí."""
+        if self.b_run.isChecked():
+            self.b_run.setChecked(False)
+        super().hideEvent(e)
 
     def _run_toggled(self, on):
         self.b_run.setText("⏸" if on else "▶")
@@ -146,12 +153,36 @@ class LiveTab(Workspace):
         if self.sess is None:
             return
         self.sess.advance(self._speed() * TICK_MS / 1000)
+        self._show_live()
         self.draw()
 
     # ---- vstupy
     def _mode(self, *_):
         if self.sess:
+            if self.sender() is self.auto and not self.auto.isChecked():
+                self._show_live()                  # přepnutí do ručního režimu bez rázu: MV zůstane na živé hodnotě
             self.sess.set_mode(self.auto.isChecked(), self.man.value())
+        self._mode_fields()
+
+    def _mode_fields(self):
+        """Auto: SP se zadává, MV je zašedlé (ukazuje živou hodnotu); ruční režim naopak."""
+        auto = self.auto.isChecked()
+        self.sp.setEnabled(auto)
+        self.man.setEnabled(not auto)
+
+    def _show_live(self):
+        """Zašedlé pole ukazuje živou hodnotu ze simulace (MV v Auto, SP v ručním režimu)."""
+        if self.sess is None:
+            return
+        n = 2 if 2 in self.sess.loops else next(iter(self.sess.loops))
+        d = self.sess.series(n)
+        if not len(d["t"]):
+            return
+        for fld, val in ((self.man, d["MV"][-1]), (self.sp, d["SP"][-1])):
+            if not fld.isEnabled() or fld is self.man and self.auto.isChecked():
+                fld.blockSignals(True)
+                fld.setValue(float(val))
+                fld.blockSignals(False)
 
     def _dist(self, *_):
         if self.sess:

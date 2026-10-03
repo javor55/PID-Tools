@@ -124,6 +124,17 @@ def test_loop_overview_web(app):
     res = app.session_state["au_res"]["res"]
     assert res and res[0]["ok"] and res[0]["name"] == "LIC101"
     assert app.session_state["audit_loops"][0]["pv"] == "LIC101.PV"
+    # seznam smyček: přidat, upravit (pole pod sebou), odebrat
+    dkey = next(k for k in app.session_state if str(k).startswith("au_defs|"))
+    n0 = len(app.session_state[dkey])
+    _button(app, "Add").click().run()
+    assert not _errors(app) and len(app.session_state[dkey]) == n0 + 1
+    fk = next(k for k in app.session_state if str(k).startswith("au_f|") and str(k).endswith(f"|{n0}|integ"))
+    app.session_state[fk] = True
+    app.run()
+    assert app.session_state[dkey][n0]["integ"] is True
+    _button(app, "Remove").click().run()
+    assert not _errors(app) and len(app.session_state[dkey]) == n0
     app.session_state["main_tab"] = [t.label for t in _main(app)][0]
     app.run()
 
@@ -488,8 +499,10 @@ def test_scenario_sp_from_to():
     assert rows[0][1] == "SP" and rows[0][3] == pytest.approx(20.0)
     sb = at.session_state["scen_built"]
     assert sb["sp"][0] * 4 == pytest.approx(360.0) and sb["sp"][-1] * 4 == pytest.approx(380.0)
-    # pracovní bod MV 130 % mimo limity 0–100 → varování
-    assert any("lies outside the controller limits" in w.value for w in at.warning)
+    # rozsah MV (data 125–135) nebyl zadán → odhad z dat místo výchozích 0–100; zadaný NormPV 0–400 zůstal
+    assert (at.session_state["mv_lo"], at.session_state["mv_hi"]) == (0.0, 200.0)
+    assert (at.session_state["pv_lo"], at.session_state["pv_hi"]) == (0.0, 400.0)
+    assert not any("lies outside the controller limits" in w.value for w in at.warning)
 
 
 def test_opc_source_web():
@@ -514,3 +527,26 @@ def test_opc_source_web():
         assert at.session_state[next(k for k in at.session_state if str(k).startswith("c_pv|opc|"))] == "TIC200.PV"
     finally:
         stop()
+
+
+def test_rows_as_samples_web():
+    """Čas, který se nemění → co řádek, to vzorek s varováním; perioda řádku se dá nastavit (i v minutách)."""
+    import numpy as np
+    n = 300
+    mv = np.where((np.arange(n) // 60) % 2, 60.0, 50.0)
+    pv = 40 + np.convolve(mv - 50, np.ones(10) / 10, "same")
+    proj = dict(version=2, fname="const_time.csv", tag="", state={},
+                map={"c_pv": "CV", "c_mv": "MV1", "c_sp": "—", "c_d": [], "c_pos": "—"}, ranges={"id": None, "val": None},
+                data={"cols": {"t_s": [0.0] * n, "CV": pv.tolist(), "MV1": mv.tolist()}})
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["test_inject"] = json.dumps(proj)
+    at.run()
+    assert not at.exception and len(_main(at)) == 7
+    assert at.session_state["c_tim"] == "#row"
+    assert any("not recognised" in w.value for w in at.warning)
+    at.session_state["row_dt"] = 2.0
+    at.session_state["time_unit"] = "min"
+    at.run()
+    assert not at.exception
+    assert any("2 min" in c.value for c in at.caption)

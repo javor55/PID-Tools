@@ -23,10 +23,25 @@ def decode_text(raw_bytes):
         return raw_bytes.decode("cp1250", errors="replace")
 
 
+def _unwrap_quoted_lines(raw):
+    """
+    Export, kde je celý řádek v uvozovkách a vnitřní uvozovky zdvojené (řádek začíná "Time,""A"",… – např.
+    Aspen IP.21 přes Excel): sloupce by se načetly jako jediný. Vrátí rozbalený text, nebo None, když to není ten případ.
+    """
+    lines = [ln for ln in raw.splitlines() if ln.strip()]
+    if len(lines) < 2 or not all(ln.strip().startswith('"') and ln.strip().endswith('"') for ln in lines[:20]):
+        return None
+    out = [ln.strip()[1:-1].replace('""', '"') for ln in lines]
+    return "\n".join(out) if any(d in out[0] for d in (",", ";", "\t")) else None
+
+
 def read_table(name, raw_bytes):
     if name.lower().endswith((".xlsx", ".xls")):
-        return pd.read_excel(io.BytesIO(raw_bytes))
+        df = pd.read_excel(io.BytesIO(raw_bytes))
+        return df.dropna(how="all").reset_index(drop=True)      # prázdné řádky pod hlavičkou (exporty z Excelu)
     raw = decode_text(raw_bytes)
+    if raw.startswith("\ufeff"):
+        raw = raw[1:]
 
     def n_num(d):
         return sum(pd.api.types.is_numeric_dtype(d[c]) for c in d.columns)
@@ -37,14 +52,20 @@ def read_table(name, raw_bytes):
             df = df2
     except Exception:
         pass
-    return df
+    if df.shape[1] == 1:
+        inner = _unwrap_quoted_lines(raw)
+        if inner is not None:
+            return read_table(name, inner.encode("utf-8"))
+    return df.dropna(how="all").reset_index(drop=True)
 
 
 # ---- čas: číslo, nebo datum/čas v různých národních formátech
 _DATE_FMTS = {"iso": ["%Y-%m-%d", "%Y/%m/%d"], "cz": ["%d.%m.%Y", "%d.%m.%y"], "us": ["%m/%d/%Y", "%m/%d/%y"],
-              "eu": ["%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y"]}
+              "eu": ["%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y"],
+              "mon": ["%b-%d-%y", "%b-%d-%Y", "%d-%b-%y", "%d-%b-%Y", "%b %d %Y", "%d %b %Y", "%b/%d/%Y", "%d/%b/%Y"]}
 _TIME_FMTS = ["%H:%M:%S.%f", "%H:%M:%S", "%H:%M", "%I:%M:%S %p", "%I:%M:%S.%f %p", "%I:%M %p"]
-TIME_FORMATS = ["auto", "num", "iso", "cz", "us", "eu", "clock"]
+TIME_FORMATS = ["auto", "num", "iso", "cz", "us", "eu", "mon", "clock"]
+ROWS = "#row"          # „sloupec času“: bez času – co řádek, to vzorek s periodou zadanou uživatelem
 
 
 def _clean_time_text(col):
@@ -97,7 +118,7 @@ def detect_time_format(col):
     if pd.to_numeric(sample.str.replace(",", ".", regex=False), errors="coerce").notna().mean() > 0.9:
         return "num", None
     best = ((0.0, 0.0, 0.0), None, None)
-    for kind in ("iso", "cz", "us", "eu", "clock"):
+    for kind in ("iso", "cz", "us", "eu", "mon", "clock"):
         for f in _formats(kind):
             sc = _score(pd.to_datetime(sample, format=f, errors="coerce"))
             if sc > best[0]:
@@ -127,6 +148,8 @@ def parse_time(col, unit_mult=1.0, fmt="auto"):
         v = to_num(col) * unit_mult
         if np.isfinite(v[filled]).mean() < 0.5:
             raise ValueError(T("err_time"))
+        if np.nanmax(v) <= np.nanmin(v):
+            raise ValueError(T("err_time_const"))
         return v, None
     if kind == "dt":
         ts = pd.to_datetime(col, errors="coerce")
@@ -136,6 +159,8 @@ def parse_time(col, unit_mult=1.0, fmt="auto"):
         ts = pd.to_datetime(_clean_time_text(col).where(filled), format=f, errors="coerce")
     if ts[filled].isna().mean() > 0.5:
         raise ValueError(T("err_time"))
+    if ts.nunique() < 2:                 # čas se nemění (export s jedním časem pro všechny řádky) → nepoužitelný
+        raise ValueError(T("err_time_const"))
     if getattr(ts.dt, "tz", None) is not None:
         ts = ts.dt.tz_localize(None)
     sec = (ts - pd.Timestamp("1970-01-01")).dt.total_seconds().to_numpy(float)
@@ -144,6 +169,11 @@ def parse_time(col, unit_mult=1.0, fmt="auto"):
         sec = sec + 86400.0 * np.r_[0, np.cumsum(d < -43200)]
         return sec, None
     return sec, pd.Timestamp("1970-01-01")
+
+
+def row_time(n, scan=1.0, unit_mult=1.0):
+    """Čas „co řádek, to vzorek“: 0, scan, 2·scan … [s] (scan v jednotkách unit_mult)."""
+    return np.arange(n, dtype=float) * float(scan) * unit_mult
 
 
 def to_seconds(col, unit_mult=1.0, fmt="auto"):
@@ -162,7 +192,7 @@ def time_columns(df):
         toks = _tokens(c)
         named = any(w in toks for w in _TIME_WORDS) or any(str(c).lower().startswith(w) for w in _TIME_WORDS[:6])
         kind, _ = detect_time_format(df[c])
-        if kind in ("dt", "iso", "cz", "us", "eu", "clock"):
+        if kind in ("dt", "iso", "cz", "us", "eu", "mon", "clock"):
             out.append(c)
         elif named and kind == "num":  # číselný čas jen s „časovým“ názvem a (skoro) rostoucí
             v = to_num(df[c])

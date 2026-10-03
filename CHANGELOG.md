@@ -1,5 +1,41 @@
 # Changelog
 
+## 3.2.0 beta 1 – Windows application (installer), UI feedback, data loading
+
+**Beta:** first build of the Windows installer and the separate web offline package – please report problems.
+
+- Data: files whose time is not recognised (or does not change) open with one row = one sample; the sample period
+  per row is set under File layout and time (s, ms, min, h). Times with month names (Aug-04-07 20:47:20) are
+  recognised; CSV exports with whole lines in quotes (IP.21 via Excel) are unwrapped; empty rows are skipped.
+- Desktop starts about twice as fast (APC panels are created on first use; the offline package ships bytecode).
+- Desktop charts: text buttons (Full range, Cursor, Measure, PNG, CSV, Copy, Window); Full range shows the whole
+  record at once; zoom and pan in time only with the y axis following the visible data; double-click = full range.
+- Model (desktop and web): one chart set – record with the segment, model, residuals and measured disturbances;
+  editable parameters one per row.
+- Tuning: the PIDConL block is section 1 and NormPV / NormMV are estimated from the data while still at the
+  0–100 default; the scenario with the current sets is shown immediately; the default suggestion is optimisation,
+  PI, IAE + overshoot limit, set-point step and disturbance.
+- Side panel sections start collapsed; feedforward parameters one per row.
+- Data: statistics of the loop signals (min, max, mean, σ) in the side panel (desktop and web).
+- Desktop: the mouse wheel no longer changes number fields and drop-down lists (the panel scrolls instead).
+- Loop overview: a list of loops with the selected loop's settings one per row (instead of a wide table) on the web
+  and in the desktop; loops are found also with suffixes after the role (".PV IP_ANALOGMAP") and, without tags,
+  one loop is proposed from the column roles (CV / MV / SP); loop names keep the original tag spelling.
+- Desktop: switching to APC no longer freezes the window – simulations of very slow processes are limited to a
+  bounded number of steps (feedforward, gain scheduling, cascade, split range, VPC, ratio and the report).
+- Live simulation (desktop and web): in AUTO the MV field is greyed out and shows the live MV, in MAN the SP field
+  is greyed out; switching to MAN keeps the current MV (bumpless).
+- Windows: the desktop application is a classic Windows application with its own icon – installer
+  `PID-Tools-<version>-setup.exe` (current user, no admin rights, Start menu, uninstall in Settings) and portable
+  ZIP with `PID Tools.exe`; the web app has its own offline package (`PID-Tools-<version>-web-win64-offline.zip`,
+  with the OPC UA source). Application icon in the desktop window and the browser tab.
+- Tuning: explanation of where SP, process input and PV (output) events act, in the scenario and the event editor.
+- Live simulation pauses when another tab (or browser tab) is shown or the window is minimised.
+- Several loops (web and desktop): a new loop gets its own name (Loop n) and opens on the Data tab to choose its
+  signals; the loop can be renamed directly (web: ⋮ menu next to the loop switch, desktop: Rename loop).
+- Desktop tuning: editing set 1 / 2 updates the scenario chart at once; TI and TD cannot be negative.
+- Desktop diagnostics: nonlinearity chart (local gain vs. MV), verdict and a link to gain scheduling, as on the web.
+
 ## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 
 **Development**

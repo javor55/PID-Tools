@@ -15,6 +15,8 @@ from pidtools.app.guess import guess_roles
     (["2024-02-13T13:00:00Z", "2024-02-13T13:00:01Z", "2024-02-13T13:00:02Z"], "iso", 1.0),
     (["01/02/2024 10:00", "02/02/2024 10:00", "03/02/2024 10:00", "04/02/2024 10:00"], "eu", 86400.0),
     (["23:59:58", "23:59:59", "00:00:00", "00:00:01"], "clock", 1.0),
+    (["Aug-04-07 20:47:20", "Aug-04-07 20:47:21", "Aug-04-07 20:47:22"], "mon", 1.0),
+    (["04-Aug-2007 20:47:20", "04-Aug-2007 20:47:30", "04-Aug-2007 20:47:40"], "mon", 10.0),
     (["0,0", "0,5", "1,0"], "num", 0.5),
 ])
 def test_time_formats(values, kind, step):
@@ -75,3 +77,32 @@ def test_csv_encodings():
         df = read_table("export.csv", bom + text.encode(enc))
         assert list(df.columns) == ["Čas", "Teplota °C", "Ventil %"], enc
         assert df.iloc[1, 1] == 51.7
+
+
+def test_quoted_lines_csv():
+    """Export, kde je celý řádek v uvozovkách a vnitřní uvozovky zdvojené (IP.21 přes Excel) → normální sloupce."""
+    from pidtools.app.dataio import read_table
+    rows = ['"Sample Time,""LT1.PV IP"",""LT1.MV IP"""'] + [
+        f'"2026-09-29T09:06:{i:02d}.230000Z,""{16 + 0.1 * i:.4f}"",""{99 - i:.4f}"""' for i in range(30)]
+    df = read_table("x.csv", ("\ufeff" + "\n".join(rows)).encode("utf-8"))
+    assert list(df.columns) == ["Sample Time", "LT1.PV IP", "LT1.MV IP"] and len(df) == 30
+    from pidtools.app import dataset as ds
+    sg = ds.signals(df)
+    assert sg.time_src == ["Sample Time"] and np.allclose(np.diff(sg.t_all), 1.0)
+
+
+def test_rows_as_samples():
+    """Čas nerozpoznaný nebo konstantní → co řádek, to vzorek (perioda zadaná ručně, i v ms / min)."""
+    from pidtools.app import dataset as ds
+    from pidtools.app.dataio import ROWS
+    n = 50
+    df = pd.DataFrame({"Time": ["Aug-04-07 20:47:20"] * n, "CV": np.linspace(50, 60, n), "MV1": np.ones(n)})
+    sg = ds.signals(df)
+    assert sg.time_src == [ROWS] and sg.time_note == "rows_auto" and sg.sigs == ["CV", "MV1"]
+    assert sg.t_all[1] == 1.0 and sg.t_all[-1] == n - 1
+    sg = ds.signals(df, unit="ms", c_time=ROWS, row_dt=500)
+    assert sg.t_all[1] == pytest.approx(0.5) and sg.time_note == ""
+    sg = ds.signals(df, unit="min", c_time=ROWS, row_dt=2)
+    assert sg.t_all[1] == pytest.approx(120.0)
+    with pytest.raises(ValueError):
+        parse_time(df["Time"])

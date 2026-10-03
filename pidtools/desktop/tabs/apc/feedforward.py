@@ -1,6 +1,6 @@
 """APC › Dopředná vazba: nastavení pro každou měřenou poruchu, ověření skokem poruchy, hodnoty pro PIDConL (FFwd)."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QTableWidget, QTableWidgetItem
+from PySide6.QtWidgets import QHeaderView, QLabel, QTableWidget, QTableWidgetItem
 
 from ....app import feedforward as ffm
 from ....app.apc import feedforward as aff
@@ -14,7 +14,7 @@ COLS = ("use", "dyn", "gain", "lead", "lag", "delay")
 class FFPanel(Panel):
     def __init__(self, win):
         super().__init__(win, "apc_intro_ff")
-        self.tab = QTableWidget(0, len(COLS))
+        self.tab = QTableWidget(len(COLS), 0)          # parametry pod sebou, sloupec = měřená porucha
         self.tab.itemChanged.connect(self._edited)
         self.left.addWidget(w.group(T("dk_ff_setup"), w.form([("", self.tab)])))
         self.jsel = w.combo([])
@@ -36,15 +36,16 @@ class FFPanel(Panel):
     def refresh(self):
         s = self.s
         if s.model is None or not s.model[2]:
-            self.tab.setRowCount(0)
+            self.tab.setColumnCount(0)
             self.vals.setText(T("ff_need_dist"))
             return
         des = self._design()
         self._busy = True
         try:
-            self.tab.setRowCount(len(des))
-            self.tab.setHorizontalHeaderLabels([T("ff_col_" + c) for c in COLS])
-            self.tab.setVerticalHeaderLabels([str(x) for x in s.c_d])
+            self.tab.setColumnCount(len(des))
+            self.tab.setVerticalHeaderLabels([T("ff_col_" + c) for c in COLS])
+            self.tab.setHorizontalHeaderLabels([str(x) for x in s.c_d])
+            self.tab.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
             for i, d in enumerate(des):
                 for j, c in enumerate(COLS):
                     it = QTableWidgetItem()
@@ -53,7 +54,9 @@ class FFPanel(Panel):
                         it.setCheckState(Qt.Checked if d[c] else Qt.Unchecked)
                     else:
                         it.setText(f"{d[c]:.5g}")
-                    self.tab.setItem(i, j, it)
+                    self.tab.setItem(j, i, it)
+            self.tab.setFixedHeight(self.tab.horizontalHeader().height() + 4
+                                    + sum(self.tab.rowHeight(r) for r in range(len(COLS))))
             cur = self.jsel.currentIndex()
             self.jsel.clear()
             for i, dn in enumerate(s.c_d):
@@ -69,7 +72,7 @@ class FFPanel(Panel):
         des = self._design()
         for i, d in enumerate(des):
             for j, c in enumerate(COLS):
-                it = self.tab.item(i, j)
+                it = self.tab.item(j, i)
                 if it is None:
                     continue
                 if c in ("use", "dyn"):

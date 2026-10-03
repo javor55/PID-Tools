@@ -171,7 +171,7 @@ export default function (component) {
   </div>
   <details open><summary>${L.lsp.split("[")[0].trim()} · ${L.lmv.split("[")[0].trim()}</summary>
   <div class="sliders">
-    <div class="sl"><div class="top"><span class="lab">${L.lsp}</span><span class="val" id="spv"></span></div><input type="range" id="sps"></div>
+    <div class="sl" id="spbox"><div class="top"><span class="lab">${L.lsp}</span><span class="val" id="spv"></span></div><input type="range" id="sps"></div>
     <div class="sl" id="mvbox"><div class="top"><span class="lab">${L.lmv}</span><span class="val" id="mvv"></span></div><input type="range" id="mvs"></div>
     <div class="sl"><div class="top"><span class="lab" id="ldist"></span><span><span class="val" id="dv"></span> <button class="mini" id="d0" title="${L.d0}">0</button></span></div><input type="range" id="ds"></div>
   </div></details>
@@ -224,6 +224,8 @@ export default function (component) {
     $("ldist").textContent = (S.dist.type === "random" ? L.dist_sigma : L.dist_amp) + " · " + (S.dist.loc === "in" ? L.loc_in : L.loc_out);
     $("dv").textContent = (S.dist.A >= 0 ? "+" : "") + fmt(S.dist.A) + " " + du;
     $("mvs").disabled = S.auto; $("mvbox").classList.toggle("dis", S.auto);
+    $("sps").disabled = !S.auto; $("spbox").classList.toggle("dis", !S.auto);   // MAN: SP zašedlá, AUTO: MV zašedlá
+    liveFields();
     $("lpp").textContent = L["pp_" + S.dist.type] || L.pp_step;
     $("ppv").textContent = fmt(S.dist.Pp) + " s";
     $("pps").disabled = S.dist.type === "step"; $("pulse").style.display = S.dist.type === "pulse" ? "" : "none";
@@ -237,6 +239,14 @@ export default function (component) {
     $("run").className = S.run ? "" : "primary";
     $("setgrp").style.display = S.compare ? "none" : "";
     $("cmp").checked = S.compare;
+  }
+  function liveFields() {
+    // zašedlý posuvník ukazuje živou hodnotu: v AUTO MV ze simulace, v MAN žádanou hodnotu
+    const nm = Object.keys(S.bufs)[0], b = nm && S.bufs[nm];
+    if (S.auto && b && b.n) {
+      const mv = EM(b.MV[at(b, b.n - 1)]);
+      $("mvs").value = mv; $("mvv").textContent = fmt(mv) + " " + CFG.u_mv;
+    }
   }
   function distSlider() {
     const span = S.dist.loc === "in" ? MR / 2 : PR / 2;
@@ -504,11 +514,15 @@ export default function (component) {
 
   function frame(ts) {
     if (!theme || ts - themeAt > 1000) { readTheme(); themeAt = ts; }
+    if (S.run && (document.hidden || cv.offsetParent === null || cv.clientWidth === 0)) {   // jiná záložka aplikace / prohlížeče: pauza
+      S.run = false; last = null; labels();
+    }
     if (S.run) {
       if (last !== null) { advance(Math.min((ts - last) / 1000, 0.25)); if (S.view) S.view = null; }
       last = ts;
     }
     draw();
+    if (S.run) liveFields();
     raf = requestAnimationFrame(frame);
   }
   labels();

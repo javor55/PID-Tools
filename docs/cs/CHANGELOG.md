@@ -1,5 +1,39 @@
 # Změny
 
+## 3.2.0 beta 1 – aplikace pro Windows (instalátor), připomínky k ovládání, načítání dat
+
+**Beta:** první sestavení instalátoru pro Windows a samostatného webového offline balíčku – problémy prosím hlaste.
+
+- Data: soubor, u kterého se nepodaří rozpoznat čas (nebo se čas nemění), se otevře po řádcích – co řádek, to
+  vzorek; periodu řádku nastavíte v Rozložení souboru a čas (s, ms, min, h). Rozpozná se čas s názvem měsíce
+  (Aug-04-07 20:47:20), CSV s celými řádky v uvozovkách (IP.21 přes Excel) a přeskočí se prázdné řádky.
+- Desktop startuje zhruba dvakrát rychleji (panely APC vznikají až při otevření, offline balíček obsahuje bytecode).
+- Grafy v desktopu: tlačítka s textem (Celý rozsah, Kurzor, Měření, PNG, CSV, Kopírovat, Okno); Celý rozsah
+  zobrazí celý záznam najednou; zoom a posun jen v čase, osa y se přizpůsobí viditelným datům; dvojklik = celý rozsah.
+- Model (desktop i web): jedna sada grafů – záznam s úsekem, model, rezidua a měřené poruchy; parametry pod sebou.
+- Ladění: blok PIDConL je sekce 1 a NormPV / NormMV se odhadnou z dat, dokud jsou na výchozích 0–100; scénář se
+  současnými sadami je vidět hned; výchozí návrh je optimalizace, PI, IAE s omezením překmitu, skok SP i porucha.
+- Sekce panelu nastavení jsou na začátku sbalené; parametry dopředné vazby pod sebou.
+- Data: statistika veličin smyčky (min, max, průměr, σ) v pravém panelu (desktop i web).
+- Desktop: kolečko myši už nemění číselná pole ani výběry (posune se panel).
+- Přehled smyček: seznam smyček a pod ním nastavení vybrané smyčky pod sebou (místo široké tabulky) na webu
+  i v desktopu; smyčky se najdou i s příponou za rolí („.PV IP_ANALOGMAP“) a bez tagů se navrhne jedna smyčka
+  z rolí sloupců (CV / MV / SP); názvy smyček zůstávají v původním zápisu tagu.
+- Desktop: přepnutí na APC už okno nezamrazí – simulace velmi pomalých procesů mají omezený počet kroků
+  (dopředná vazba, gain scheduling, kaskáda, split range, VPC, poměr i protokol).
+- Živá simulace (desktop i web): v AUTO je pole MV zašedlé a ukazuje živou hodnotu MV, v MAN je zašedlá SP;
+  přepnutí do MAN ponechá současné MV (bez rázu).
+- Windows: desktopová aplikace je klasická aplikace pro Windows s vlastní ikonou – instalátor
+  `PID-Tools-<verze>-setup.exe` (pro uživatele, bez práv správce, nabídka Start, odinstalace v Nastavení) a přenosný
+  ZIP s `PID Tools.exe`; webová aplikace má vlastní offline balíček (`PID-Tools-<verze>-web-win64-offline.zip`,
+  se zdrojem OPC UA). Ikona aplikace v okně desktopu i na kartě prohlížeče.
+- Ladění: vysvětlení, kam působí události SP, vstup procesu a PV (výstup) – u scénáře i v editoru událostí.
+- Živá simulace se pozastaví, když se přepne na jinou záložku (nebo kartu prohlížeče) či okno minimalizuje.
+- Více smyček (web i desktop): nová smyčka dostane vlastní název (Smyčka n) a otevře se na záložce Data pro výběr
+  signálů; smyčku lze přímo přejmenovat (web: menu ⋮ vedle přepínače smyček, desktop: Přejmenovat smyčku).
+- Ladění v desktopu: přepsání sady 1 / 2 hned přepočítá graf scénáře; TI a TD nemohou být záporné.
+- Diagnostika v desktopu: graf nelinearity (lokální zesílení podle MV), hodnocení a odkaz na gain scheduling jako na webu.
+
 ## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 
 **Vývoj**

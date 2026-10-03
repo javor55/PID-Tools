@@ -114,8 +114,8 @@ def test_window_full_flow(win):
     _wait(app)
     assert w.state.model is not None and w.pages[1].res.rowCount() == 5
     t = w.pages[2]
-    assert t.kpi.rowCount() == 0                       # bez výpočtu – počítá se až tlačítkem
-    t.method.setCurrentIndex(t.method.findData("OPT"))
+    assert t.kpi.rowCount() == 2 and "Gain" not in t.sug.text()   # hned scénář se sadami 1, 2; návrh až tlačítkem
+    assert t.method.currentData() == "OPT" and t.crit.currentData() == "OVS" and t.target.currentData() == "both"
     t.calculate()
     _wait(app)
     assert "Gain" in t.sug.text() and t.kpi.rowCount() == 3     # sady 1, 2 a návrh
@@ -192,7 +192,20 @@ def test_window_live_and_apc(win):
     for _ in range(5):
         lv.tick()
     assert lv.sess.t > 0 and lv.kpi.rowCount() >= 1
-    w.tabs.setCurrentIndex(4)
+    # Auto: MV zašedlé s živou hodnotou; ruční režim bez rázu: MV zůstane, SP zašedlá
+    assert lv.sp.isEnabled() and not lv.man.isEnabled()
+    mv_live = float(lv.sess.series(2)["MV"][-1])
+    assert lv.man.value() == pytest.approx(mv_live, rel=1e-6)
+    lv.auto.setChecked(False)
+    assert lv.man.isEnabled() and not lv.sp.isEnabled() and lv.man.value() == pytest.approx(mv_live, rel=1e-6)
+    lv.tick()
+    assert float(lv.sess.series(2)["MV"][-1]) == pytest.approx(mv_live, rel=1e-3)
+    lv.auto.setChecked(True)
+    lv.b_run.setChecked(True)
+    assert lv.timer.isActive()
+    w.tabs.setCurrentIndex(4)                          # jiná záložka → živá simulace se pozastaví
+    app.processEvents()
+    assert not lv.timer.isActive() and not lv.b_run.isChecked()
     app.processEvents()
     apc = w.pages[4]
     for i in range(len(apc.panels)):
@@ -252,6 +265,11 @@ def test_window_two_loops(win):
     w.build()
     w.add_loop()
     assert w.loop_combo.count() == 2 and w.project.active == 1
+    assert w.state.get("loop_tag") == "Loop 2" and w.tabs.currentIndex() == 0 and w.pages[0].sig_sec.is_expanded()
+    from unittest import mock
+    with mock.patch("PySide6.QtWidgets.QInputDialog.getText", return_value=("FIC2", True)):
+        w.rename_loop()
+    assert w.loop_combo.itemText(1) == "FIC2"
     w.state.set_columns("FIC2.PV", "FIC2.MV", "—", ["FIC1.MV"])
     w.state.identify()
     w.switch_loop(0)
@@ -440,7 +458,7 @@ def test_history_recent_and_sections(tmp_path):
     assert not w.open_path(tmp_path / "missing.csv") and errs
     sec = t.hist_sec
     sec.expand(True)                                   # stav sekce se pamatuje v nastavení
-    assert prefs.value("sec/tuning/hist") == "true"
+    assert prefs.value("sec2/tuning/hist") == "true"
     assert layout.Section("x", key="tuning/hist").is_expanded()
     w.close()
     _wait(app)
@@ -502,12 +520,20 @@ def test_window_audit(win):
     a = w.pages[6]
     w.tabs.setCurrentIndex(6)
     app.processEvents()
-    assert a.tab.rowCount() == 3                         # návrh smyček z názvů tagů
+    assert a.list.count() == 3                           # návrh smyček z názvů tagů
     a.analyse()
     _wait(app)
     assert a.rank.rowCount() == 3 and "FIC101" in a.common.text()
     assert w.state.get("audit_loops")[0]["pv"] == "FIC101.PV"
-    a.tab.selectRow(1)
+    a.list.setCurrentRow(1)                              # nastavení vybrané smyčky pod sebou
+    assert a.f_pv.currentData() == "TIC200.PV"
+    a.f_integ.setChecked(True)
+    assert a.recs[1]["integ"] is True
+    a._add()
+    assert a.list.count() == 4 and a.list.currentRow() == 3
+    a._delete()
+    assert a.list.count() == 3
+    a.list.setCurrentRow(1)
     a.open_as_loop()
     assert len(w.project.loops) == 2 and w.state.c_pv == "TIC200.PV" and w.state.c_mv == "TIC200.OP"
 
@@ -570,3 +596,55 @@ def test_opc_dialog(win):
         dlg.done(0)
     finally:
         stop()
+
+
+def test_rows_as_samples_desktop(win, tmp_path):
+    """Soubor s neměnným časem: co řádek, to vzorek; perioda řádku z panelu Data (i v ms)."""
+    from pidtools.app.dataio import ROWS
+    app, win = win
+    n = 200
+    p = tmp_path / "const_time.csv"
+    p.write_text("Time,CV,MV1\n" + "\n".join(f"Aug-04-07 20:47:20,{50 + 0.01 * i},{10 + (i // 50) % 2}"
+                                             for i in range(n)), encoding="utf-8")
+    assert win.open_path(p)
+    _wait(app)
+    s, d = win.state, win.pages[0]
+    assert s.sig.time_src == [ROWS] and s.sig.time_note == "rows_auto" and s.grid.Ts == pytest.approx(1.0)
+    assert d.c_time.currentData() == ROWS and "not recognised" in d.warn.text()
+    d.tunit.setCurrentIndex(d.tunit.findData("ms"))
+    d.row_dt.setValue(500)
+    _wait(app)
+    assert s.grid.Ts == pytest.approx(0.5) and s.sig.t_all[-1] == pytest.approx(0.5 * (n - 1))
+
+
+def test_wheel_does_not_change_fields(win):
+    """Kolečko myši nemění hodnotu číselného pole ani výběru (ani když mají kurzor)."""
+    from PySide6.QtCore import QPoint, QPointF, Qt
+    from PySide6.QtGui import QWheelEvent
+    from pidtools.desktop import widgets as w
+    app, _ = win
+    sp, cb = w.spin(1.0), w.combo(["a", "b", "c"], "b")
+    for wd in (sp, cb):
+        wd.setFocus()
+        ev = QWheelEvent(QPointF(5, 5), QPointF(5, 5), QPoint(0, 0), QPoint(0, 120), Qt.NoButton, Qt.NoModifier,
+                         Qt.NoScrollPhase, False)
+        app.sendEvent(wd, ev)
+    assert sp.value() == 1.0 and cb.currentData() == "b"
+
+
+def test_set_edit_updates_chart(win):
+    """Přepsání parametrů sady: graf scénáře se hned přepočítá, TI a TD nemohou být záporné."""
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    t = w.pages[2]
+    w.tabs.setCurrentIndex(2)
+    app.processEvents()
+    t.sets[(2, "gain")].setValue(w.state.get("set1_gain") * 0.5)
+    t.sets[(2, "ti")].setValue(w.state.get("set1_ti"))
+    app.processEvents()
+    pv2 = t.plots[0].listDataItems()
+    assert w.state.get("set2_ti") == pytest.approx(w.state.get("set1_ti")) and pv2
+    assert t.sets[(1, "td")].minimum() == 0.0 and t.sets[(1, "ti")].minimum() == 0.0

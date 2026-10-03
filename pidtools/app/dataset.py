@@ -12,7 +12,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-from .dataio import pair_time_columns, pairs_to_wide, parse_time, resample, time_columns, to_num
+from .dataio import ROWS, pair_time_columns, pairs_to_wide, parse_time, resample, row_time, time_columns, to_num
 
 LAYOUTS = ("wide", "pairs", "long")
 UNITS = {"s": 1.0, "ms": 1e-3, "min": 60.0, "h": 3600.0}
@@ -53,10 +53,15 @@ class Signals:
     get: Callable
     origin: object = None          # pd.Timestamp času 0 (čas zadaný datem), jinak None
     time_src: list = field(default_factory=list)
+    time_note: str = ""            # "rows_auto": čas nerozpoznán → co řádek, to vzorek
 
 
-def signals(df, layout="wide", time_fmt="auto", unit="s", c_time=None, c_tag=None, c_val=None):
-    """Tabulka → Signals podle rozložení. Sloupce času, tagu a hodnoty se doplní odhadem, nejsou-li zadané."""
+def signals(df, layout="wide", time_fmt="auto", unit="s", c_time=None, c_tag=None, c_val=None, row_dt=1.0):
+    """
+    Tabulka → Signals podle rozložení. Sloupce času, tagu a hodnoty se doplní odhadem, nejsou-li zadané.
+    c_time = ROWS: bez času – co řádek, to vzorek s periodou row_dt (v jednotkách unit). Když se čas při odhadu
+    nepodaří rozpoznat (nebo se nemění), použije se totéž automaticky (Signals.time_note = "rows_auto").
+    """
     um = UNITS[unit]
     cols = list(df.columns)
     tcols = time_columns(df)
@@ -75,7 +80,16 @@ def signals(df, layout="wide", time_fmt="auto", unit="s", c_time=None, c_tag=Non
         wide, origin = pairs_to_wide(df, pair_time_columns(df, tcols), um, time_fmt)
         src = list(tcols)
     else:
-        c_time = c_time or (tcols[0] if tcols else cols[guess_col(cols, ["cas", "čas", "time", "datum", "date"])])
+        note = ""
+        if c_time is None:
+            c_time = tcols[0] if tcols else cols[guess_col(cols, ["cas", "čas", "time", "datum", "date"])]
+            try:
+                parse_time(df[c_time], um, time_fmt)
+            except ValueError:
+                c_time, note = ROWS, "rows_auto"
+        if c_time == ROWS:
+            sigs = [c for c in cols if c not in tcols and np.isfinite(to_num(df[c])).mean() > 0.5]
+            return Signals(row_time(len(df), row_dt, um), sigs, lambda c: to_num(df[c]), None, [ROWS], note)
         v, origin = parse_time(df[c_time], um, time_fmt)
         t0 = float(np.nanmin(v))
         sigs = [c for c in cols if c != c_time and c not in tcols]
@@ -135,3 +149,16 @@ def demo_frame():
     from ..core import demo_data
     t, sp, pv, mv, q = demo_data()
     return pd.DataFrame({"Cas": t, "LIC101.SP": sp, "LIC101.PV": pv, "LIC101.MV": mv, "FI100.Pritok": q})
+
+
+def stats(grid, c_d=()):
+    """Statistika veličin smyčky na mřížce (inženýrské jednotky): [(název, min, max, průměr, směr. odchylka)]."""
+    rows = [("PV", grid.pv_e), ("MV", grid.mv_e)] + ([("SP", grid.sp_e)] if grid.has_sp else [])
+    rows += [(str(n), d) for n, d in zip(c_d, grid.dists)]
+    out = []
+    for name, x in rows:
+        x = np.asarray(x, float)
+        x = x[np.isfinite(x)]
+        out.append((name,) + ((float(x.min()), float(x.max()), float(x.mean()), float(x.std())) if len(x)
+                              else (np.nan,) * 4))
+    return out

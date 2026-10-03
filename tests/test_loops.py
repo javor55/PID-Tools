@@ -48,6 +48,7 @@ def two_loops():
     _ok(at)
     assert at.session_state["loops"]["ids"] == [1, 2] and at.session_state["loops"]["active"] == 2
     assert "fit" not in at.session_state and "set1_gain" not in at.session_state
+    assert at.session_state["loop_tag"] == "Loop 2" and at.session_state["main_tab"].startswith("1")
     at.session_state["loop_tag"] = "FIC100"
     at.session_state["chosen"] = ["P1D"]
     at.session_state["set1_gain"] = 0.5
@@ -153,3 +154,15 @@ def test_remove_loop(two_loops):
     assert at.session_state["loops"]["ids"] == [1] and at.session_state["loops"]["active"] == 1
     assert at.session_state["loop_tag"] == "LIC101"
     assert any(b.label == "Another loop" for b in at.button)
+
+
+def test_rename_loop_from_menu(two_loops):
+    """Název smyčky z menu smyček (pole „Loop name“) přejmenuje aktivní smyčku v přepínači."""
+    at, _ = two_loops
+    if len(at.session_state["loops"]["ids"]) == 1:     # menu smyček je vidět od dvou smyček
+        _button(at, "Another loop").click().run()
+    fld = next(x for x in at.text_input if x.label == "Loop name")
+    fld.set_value("TIC300").run()
+    _ok(at)
+    lp = at.session_state["loops"]
+    assert at.session_state["loop_tag"] == "TIC300" and lp["info"][lp["active"]]["name"] == "TIC300"

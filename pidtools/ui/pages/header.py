@@ -213,7 +213,12 @@ def _loop_switcher(cont):
     c1.segmented_control(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
                          label_visibility="collapsed", help=T("h_loop_sel"), width="stretch")
     with c2.popover("", icon=":material/more_vert:", help=T("h_loop_menu")):
+        ss["loop_name_edit"] = ss.get("loop_tag") or ""
+        st.text_input(T("loop_name"), key="loop_name_edit", on_change=loops.rename, placeholder="LIC101",
+                      help=T("h_loop_tag"))
         st.button(T("loop_add"), icon=":material/add:", on_click=loops.add, width="stretch")
         st.button(T("loop_del", n=loops.name(loops.active())), icon=":material/delete:", width="stretch",
                   on_click=loops.remove, args=(loops.active(),))
         st.caption(T("loop_rename_hint"))
+    if ss.pop("loop_added", False):
+        st.toast(T("loop_added_toast"), icon=":material/add_circle:")

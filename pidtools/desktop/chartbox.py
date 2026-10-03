@@ -1,7 +1,8 @@
 """
 Graf (jeden nebo několik pod sebou se společnou osou x) s nástroji: kurzor s odečtem hodnot všech křivek,
 dva měřicí kurzory (Δt, ΔY), celý rozsah, export PNG / CSV, kopie do schránky, odpojení do samostatného okna.
-Kliknutí na položku legendy křivku skryje / zobrazí; kolečko a tažení zoomují, pravé tlačítko = menu pyqtgraph.
+Ovládání je klidné: kolečko zoomuje a tažení posouvá jen čas (osa x), osa y se sama přizpůsobí viditelným
+datům; dvojklik = celý rozsah. Kliknutí na položku legendy křivku skryje / zobrazí.
 """
 import numpy as np
 import pyqtgraph as pg
@@ -20,6 +21,13 @@ def _setup(p):
     p.showGrid(x=True, y=True, alpha=0.25)
     p.setDownsampling(auto=True, mode="peak")
     p.setClipToView(True)
+    p.setMenuEnabled(False)
+    for ax in ("left", "bottom"):
+        p.getAxis(ax).enableAutoSIPrefix(False)   # žádné „(x0.001)“ u popisku osy
+    p.hideButtons()
+    p.setMouseEnabled(x=True, y=False)            # zoom a posun jen v čase
+    p.vb.setAutoVisible(y=True)                   # osa y podle viditelného úseku
+    p.enableAutoRange(axis="y")
     if p.legend is None:
         p.addLegend(offset=(8, 8), labelTextSize="8pt")
 
@@ -81,12 +89,14 @@ class ChartBox(QWidget):
         self.readout = QLabel("")
         self.readout.setObjectName("readout")
         self.readout.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.b_cur = self._tool("⌖", "dk_ch_cursor", checkable=True, checked=True)
-        self.b_meas = self._tool("↔", "dk_ch_measure", checkable=True)
+        self.b_full = self._tool(T("dk_chb_full"), "dk_ch_full")
+        self.b_full.clicked.connect(self.full_range)
+        self.b_cur = self._tool(T("dk_chb_cursor"), "dk_ch_cursor", checkable=True, checked=True)
+        self.b_meas = self._tool(T("dk_chb_measure"), "dk_ch_measure", checkable=True)
         self.b_meas.toggled.connect(self._measure)
-        for txt, key, fn in (("⤢", "dk_ch_full", self.full_range), ("PNG", "dk_ch_png", self.save_png),
-                             ("CSV", "dk_ch_csv", self.save_csv), ("⧉", "dk_ch_copy", self.copy),
-                             ("⇱", "dk_ch_detach", self.detach)):
+        for txt, key, fn in ((T("dk_chb_png"), "dk_ch_png", self.save_png), (T("dk_chb_csv"), "dk_ch_csv", self.save_csv),
+                             (T("dk_chb_copy"), "dk_ch_copy", self.copy), (T("dk_chb_detach"), "dk_ch_detach",
+                                                                           self.detach)):
             self._tool(txt, key).clicked.connect(fn)
         self.bar.addWidget(self.readout, 1)
         if tools:
@@ -104,6 +114,19 @@ class ChartBox(QWidget):
         self._proxy = pg.SignalProxy(self.lw.scene().sigMouseMoved, rateLimit=30, slot=self._moved)
         self._dlg = None
         self.logx, self.xname = False, "t"
+        self._ylim = {}                   # omezení osy y z fit_y (platí i pro Celý rozsah)
+        for p in self.plots:
+            p.vb.sigRangeChangedManually.connect(self._manual)
+            p.scene().sigMouseClicked.connect(self._dbl)
+
+    def _manual(self, *_):
+        """Ruční zoom / posun: osa y dál sleduje viditelná data (i u grafů s omezením z fit_y)."""
+        for p in self.plots:
+            p.enableAutoRange(axis="y")
+
+    def _dbl(self, ev):
+        if ev.double():
+            self.full_range()
 
     def set_logx(self, name="ω"):
         """Logaritmická osa x (kmitočet); kurzory a odečet hodnot pracují ve skutečných jednotkách."""
@@ -140,6 +163,7 @@ class ChartBox(QWidget):
         if b <= a:
             return
         d = (b - a) * margin
+        self._ylim[i] = (lo, hi, margin)
         self.plots[i].setYRange(a - d, b + d, padding=0)
 
     def getPlotItem(self):
@@ -155,6 +179,7 @@ class ChartBox(QWidget):
 
     def clear(self):
         """Smaže křivky všech grafů (pomocné čáry kurzorů zůstanou)."""
+        self._ylim = {}
         for p in self.plots:
             p.clear()
 
@@ -254,9 +279,28 @@ class ChartBox(QWidget):
 
     # ---- rozsah, export
     def full_range(self):
-        for p in self.plots:
-            p.enableAutoRange()
-            p.autoRange()
+        """Celý rozsah hned (meze z dat všech křivek, ne z ořezu na viditelný úsek)."""
+        xs = [x[np.isfinite(x)] for p in self.plots for _, x, _ in _curves(p)]
+        xs = [x[x > 0] if self.logx else x for x in xs]
+        xs = [x for x in xs if len(x)]
+        if xs:
+            a, b = min(float(x.min()) for x in xs), max(float(x.max()) for x in xs)
+            if self.logx:
+                a, b = np.log10(a), np.log10(b)
+            if b > a:
+                self.plots[0].setXRange(a, b, padding=0.01)
+        for i, p in enumerate(self.plots):
+            if i in self._ylim:
+                self.fit_y(i, *self._ylim[i])
+                continue
+            vals = [y[np.isfinite(y)] for _, _, y in _curves(p)]
+            vals = [v for v in vals if len(v)]
+            p.enableAutoRange(axis="y")
+            if vals:
+                lo, hi = min(float(v.min()) for v in vals), max(float(v.max()) for v in vals)
+                d = (hi - lo) * 0.05 or max(abs(hi) * 0.05, 1e-6)
+                p.setYRange(lo - d, hi + d, padding=0)
+                p.enableAutoRange(axis="y")
 
     def save_png(self, path=None):
         if not path:

@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QLabel, QLineEdi
                                QPushButton, QTabWidget, QVBoxLayout, QWidget)
 from PySide6.QtCore import Qt
 
-from ...app.dataio import TIME_FORMATS
+from ...app.dataio import ROWS, TIME_FORMATS
 from ...app.dataset import LAYOUTS, UNITS
 from ...i18n import T
 from .. import widgets as w
@@ -32,10 +32,13 @@ class DataTab(Workspace):
         self.c_d = QListWidget()
         self.c_d.setMinimumHeight(80)
         self.c_d.setMaximumHeight(160)
-        sec = self.section(T("dk_sec_signals"), w.form([("PV", self.c_pv), ("MV", self.c_mv), (T("col_sp"), self.c_sp),
+        sec = self.sig_sec = self.section(T("dk_sec_signals"), w.form([("PV", self.c_pv), ("MV", self.c_mv), (T("col_sp"), self.c_sp),
                                                         (T("col_pos"), self.c_pos)]), "signals")
         sec.add(QLabel(T("col_dist")))
         sec.add(self.c_d)
+        # statistika (min / max …) veličin smyčky
+        self.stats = w.table([], [])
+        self.section(T("dk_sec_stats"), self.stats, "stats", expanded=True)
         # jednotky a tag
         self.u_pv, self.u_mv = QLineEdit(), QLineEdit()
         self.tag = QLineEdit()
@@ -46,18 +49,21 @@ class DataTab(Workspace):
         self.tfmt = w.combo(TIME_FORMATS, labels=[T("tf_" + x) for x in TIME_FORMATS])
         self.tunit = w.combo(list(UNITS))
         self.c_time, self.c_tag, self.c_val = w.combo([]), w.combo([]), w.combo([])
+        self.row_dt = w.spin(1.0, 1e-6, 1e9, 6)
+        w.tip(self.row_dt, "h_row_dt")
         self.ts_man = QCheckBox(T("ts_manual"))
         self.ts_val = w.spin(1.0, 0.001, 1e6, 4)
         self.tdet = caption("")
         w.tip(self.layout_c, "h_layout"), w.tip(self.tfmt, "h_time_fmt"), w.tip(self.tunit, "time_unit_help")
         w.tip(self.ts_man, "h_ts_manual")
         self.tf = w.form([(T("layout"), self.layout_c), (T("col_time"), self.c_time), (T("col_tag"), self.c_tag),
-                          (T("col_value"), self.c_val), (T("time_fmt"), self.tfmt), (T("time_unit"), self.tunit),
-                          (self.ts_man, self.ts_val)])
-        sec = self.section(T("dk_sec_file"), self.tf, "file", expanded=False)
+                          (T("col_value"), self.c_val), (T("row_dt"), self.row_dt), (T("time_fmt"), self.tfmt),
+                          (T("time_unit"), self.tunit), (self.ts_man, self.ts_val)])
+        sec = self.file_sec = self.section(T("dk_sec_file"), self.tf, "file", expanded=False)
         sec.add(self.tdet)
         for c in (self.layout_c, self.tfmt, self.tunit, self.c_time, self.c_tag, self.c_val):
             c.currentIndexChanged.connect(self._layout_changed)
+        self.row_dt.valueChanged.connect(self._layout_changed)
         self.ts_man.toggled.connect(self._ts_changed)
         self.ts_val.valueChanged.connect(self._ts_changed)
         w.tip(self.c_pv, "h_pv"), w.tip(self.c_mv, "h_mv"), w.tip(self.c_sp, "h_sp"), w.tip(self.c_pos, "h_pos")
@@ -83,15 +89,21 @@ class DataTab(Workspace):
             for c, cur, vis in ((self.c_time, src[0] if s.layout == "wide" and src else None, s.layout == "wide"),
                                 (self.c_tag, s.c_tag, s.layout == "long"), (self.c_val, s.c_val, s.layout == "long")):
                 c.clear()
+                if c is self.c_time and s.layout == "wide":     # bez času: co řádek, to vzorek
+                    c.addItem(T("time_rows"), ROWS)
                 for col in cols:
                     c.addItem(str(col), col)
-                if cur in cols:
-                    c.setCurrentIndex(cols.index(cur))
+                if c.findData(cur) >= 0:
+                    c.setCurrentIndex(c.findData(cur))
                 self.tf.setRowVisible(c, vis)
+            rows_ = s.layout == "wide" and bool(src) and src[0] == ROWS
+            self.tf.setRowVisible(self.row_dt, rows_)
+            self.tf.setRowVisible(self.tfmt, not rows_)
+            self.row_dt.setValue(float(s.row_dt))
             if s.layout == "long":
                 self.tf.setRowVisible(self.c_time, True)
                 if src and src[0] in cols:
-                    self.c_time.setCurrentIndex(cols.index(src[0]))
+                    self.c_time.setCurrentIndex(self.c_time.findData(src[0]))
                 if s.c_tag is None or s.c_val is None:          # odhad pro zobrazení
                     from ...app.dataset import guess_col
                     self.c_tag.setCurrentIndex(guess_col(cols, ["tag", "name", "název", "variable"]))
@@ -123,9 +135,21 @@ class DataTab(Workspace):
         g = s.grid
         from ...app.dataio import TIME_FORMATS, detect_time_format
         kinds = {detect_time_format(s.df[c])[0] for c in s.sig.time_src if c in s.df.columns}
-        self.tdet.setText(T("time_detected", f=", ".join(T("tf_" + k) if k in TIME_FORMATS else str(k)
-                                                          for k in sorted(kinds, key=str))))
+        if s.sig.time_src == [ROWS]:
+            self.tdet.setText(T("time_rows_note", dt=f"{s.row_dt:g}", u=s.unit))
+        else:
+            self.tdet.setText(T("time_detected", f=", ".join(T("tf_" + k) if k in TIME_FORMATS else str(k)
+                                                              for k in sorted(kinds, key=str))))
+        from ...app.dataset import stats
+        st_ = stats(g, s.c_d)
+        w.fill(self.stats, ["", "Min", "Max", T("stat_mean"), "σ"], [[n] + [w.fmt(v, 5) for v in r] for n, *r in st_])
+        self.stats.resizeColumnsToContents()
+        self.stats.setFixedHeight(self.stats.horizontalHeader().height() + 4
+                                  + sum(self.stats.rowHeight(i) for i in range(len(st_))))
         warns = s.compression()
+        if s.sig.time_note == "rows_auto":
+            warns = [T("time_rows_auto", dt=f"{s.row_dt:g}", u=s.unit)] + list(warns)
+            self.file_sec.expand(True)
         self.warn.setText("  \n".join("⚠️ " + x for x in warns))
         self.info.setText(T("dk_loaded", f=s.fname, n=len(g.t), ts=g.Ts,
                             d=f"{g.t[-1]:.0f} s" + (f" ({s.sig.origin:%d.%m.%Y %H:%M})" if s.sig.origin is not None else "")))
@@ -163,7 +187,7 @@ class DataTab(Workspace):
             self.s.set_layout(lay, self.tfmt.currentData(), self.tunit.currentData(),
                               self.c_time.currentData() if same and lay in ("wide", "long") else None,
                               self.c_tag.currentData() if same and lay == "long" else None,
-                              self.c_val.currentData() if same and lay == "long" else None)
+                              self.c_val.currentData() if same and lay == "long" else None, self.row_dt.value())
         except Exception as ex:
             self.win.error(T("err_data", ex=T(str(ex))))
         self.win.refresh()

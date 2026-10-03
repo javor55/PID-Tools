@@ -6,6 +6,43 @@ zadává uživatel, jsou v inženýrských jednotkách.
 """
 import numpy as np
 
+DEFAULT_RANGE = (0.0, 100.0)
+
+
+def _nice(x):
+    """Zaokrouhlení nahoru na „hezké“ číslo (1, 2, 2,5, 5 × 10^n)."""
+    if not np.isfinite(x) or x <= 0:
+        return 0.0
+    e = 10 ** np.floor(np.log10(x))
+    return float(next(m * e for m in (1, 2, 2.5, 5, 10) if m * e >= x * (1 - 1e-9)))
+
+
+def guess_range(x):
+    """
+    Odhad rozsahu regulátoru (NormPV / NormMV) z dat, když skutečný rozsah bloku zatím nikdo nezadal: data v 0–100
+    → 0–100 (procenta); jinak od nuly (u kladných dat) do „hezkého“ čísla nad maximem s rezervou. Je to jen výchozí
+    hodnota – skutečný rozsah je ten z bloku PIDConL v PCS 7.
+    """
+    x = np.asarray(x, float)
+    x = x[np.isfinite(x)]
+    if not len(x):
+        return DEFAULT_RANGE
+    lo, hi = float(x.min()), float(x.max())
+    if lo >= 0 and hi <= 100:
+        return DEFAULT_RANGE
+    span = max(hi - lo, abs(hi), abs(lo)) * 0.1
+    a = 0.0 if lo >= 0 else -_nice(-(lo - span))
+    b = _nice(hi + span) if hi + span > 0 else 0.0
+    return (a, b) if b > a else (lo - 1.0, hi + 1.0)
+
+
+def range_for(cur, x):
+    """Rozsah, který se má použít: zadaný (cur), pokud to není nedotčený výchozí 0–100 s daty mimo něj."""
+    cur = (float(cur[0]), float(cur[1]))
+    if cur != DEFAULT_RANGE:
+        return cur
+    return guess_range(x)
+
 
 class Scaling:
     """Převody mezi inženýrskými jednotkami a % rozsahu regulátoru. Třída potřebuje atributy pv_lo, pv_hi,

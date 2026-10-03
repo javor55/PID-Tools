@@ -4,6 +4,8 @@ Záložka Data.
 `render_setup` – výběr sloupců, převzorkování a normování (horní rozbalovací sekce záložky; běží před ostatními
 záložkami, protože data potřebují všechny). `render` – výběr úseku, automaticky nalezené úseky a kontrola kvality.
 """
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -11,10 +13,12 @@ import streamlit as st
 from ...i18n import T
 from .. import loops
 from ..charts import show
-from ...app.dataio import TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns, to_num
+from ...app.dataio import (ROWS, TIME_FORMATS, compression_warnings, detect_time_format, pair_time_columns,
+                           row_time, to_num)
 from ...app import segments as segs_mod
-from ...app.dataset import DEMO_DISTS, default_layout
+from ...app.dataset import DEMO_DISTS, default_layout, stats
 from ...app.guess import guess_roles
+from ...app.loop import DEFAULT_RANGE, range_for
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
 from ..widgets import num, sel, seg
@@ -40,6 +44,7 @@ def render_setup(ctx):
         with ws.main:
             ws.m_top, ws.m_chart, ws.m_prev, ws.m_diag = st.container(), st.container(), st.container(), st.container()
         sec_sig = section(ws.side, T("dk_sec_signals"), "data_sig", icon=":material/sensors:")
+        sec_stats = section(ws.side, T("dk_sec_stats"), "data_stats", expanded=True, icon=":material/functions:")
         sec_units = section(ws.side, T("sb_units"), "data_units", icon=":material/straighten:")
         sec_file = section(ws.side, T("dk_sec_file"), "data_file", expanded=False, icon=":material/table_chart:")
         ws.diag = section(ws.side, T("dk_diag_tab").split("·")[-1].strip(), "data_diag", icon=":material/monitor_heart:")
@@ -77,19 +82,40 @@ def render_setup(ctx):
                 st.caption(T("pairs_caption", p=" · ".join(f"{c} ← {tc}" for c, tc in pairs.items())))
                 time_src = list(tcols)
             else:
-                c_tim = sel(st, T("col_time"), cols, cols.index(tcols[0]) if tcols else
-                            _guess(cols, ["cas", "čas", "time", "datum", "date"]), key="c_tim")
-                ctx.t_all, ctx.t_origin = time_cached(ctx.ckey, c_tim, unit_mult, time_fmt, df[c_tim])
-                ctx.sigs = [s_ for s_ in cols if s_ != c_tim and s_ not in tcols]
+                opts_t = [ROWS] + cols          # ROWS = bez času: co řádek, to vzorek s ručně zadanou periodou
+                auto_rows = False
+                if ss.get("c_tim") not in opts_t or ss.get("c_tim_for") != ctx.ckey:   # nový soubor → odhad
+                    ss["c_tim_for"] = ctx.ckey
+                    d_ = tcols[0] if tcols else cols[_guess(cols, ["cas", "čas", "time", "datum", "date"])]
+                    try:
+                        time_cached(ctx.ckey, d_, unit_mult, time_fmt, df[d_])
+                    except ValueError:
+                        d_, auto_rows = ROWS, True
+                    ss["c_tim"] = d_
+                    ss["rows_auto"] = auto_rows
+                c_tim = st.selectbox(T("col_time"), opts_t, key="c_tim",
+                                     format_func=lambda c_: T("time_rows") if c_ == ROWS else str(c_))
+                if c_tim == ROWS:
+                    row_dt = num(T("row_dt"), "row_dt", 1.0, min_value=1e-6, format="%.6g", help=T("h_row_dt"))
+                    ctx.t_all, ctx.t_origin = row_time(len(df), row_dt, unit_mult), None
+                    ctx.sigs = [s_ for s_ in cols if s_ not in tcols and np.isfinite(to_num(df[s_])).mean() > 0.5]
+                    st.caption(T("time_rows_note", dt=f"{row_dt:g}", u=time_unit))
+                    if ss.get("rows_auto"):
+                        ws.m_top.warning(T("time_rows_auto", dt=f"{row_dt:g}", u=time_unit), icon=":material/schedule:")
+                else:
+                    ss["rows_auto"] = False
+                    ctx.t_all, ctx.t_origin = time_cached(ctx.ckey, c_tim, unit_mult, time_fmt, df[c_tim])
+                    ctx.sigs = [s_ for s_ in cols if s_ != c_tim and s_ not in tcols]
                 ctx.get = lambda s_: to_num(df[s_])
                 time_src = [c_tim]
             if layout != "wide":
                 ctx.t_all = wide["t"].to_numpy(float)
                 ctx.sigs = [s_ for s_ in wide.columns if s_ != "t"]
                 ctx.get = lambda s_: wide[s_].to_numpy(float)
-            kinds = {detect_time_format(df[c_])[0] for c_ in time_src}
-            st.caption(T("time_detected", f=", ".join(T("tf_" + k_) if k_ in TIME_FORMATS else str(k_)
-                                                      for k_ in sorted(kinds, key=str))))
+            if time_src != [ROWS]:
+                kinds = {detect_time_format(df[c_])[0] for c_ in time_src}
+                st.caption(T("time_detected", f=", ".join(T("tf_" + k_) if k_ in TIME_FORMATS else str(k_)
+                                                          for k_ in sorted(kinds, key=str))))
         except Exception as ex:
             st.error(T("err_data", ex=ex))
             st.stop()
@@ -136,13 +162,22 @@ def render_setup(ctx):
     ctx.pos_e = ctx.on_grid(ctx.c_pos) if ctx.c_pos != "—" else None
 
     # ---- jednotky; rozsah regulátoru (NormPV, NormMV) se zadává v Ladění › Blok PIDConL – tady se jen použije
-    for k_, d_ in (("pv_lo", 0.0), ("pv_hi", 100.0), ("mv_lo", 0.0), ("mv_hi", 100.0)):
-        if k_ not in ss:
-            ss[k_] = d_
+    for k_, x_ in (("pv", ctx.pv_e), ("mv", ctx.mv_e)):      # rozsah PIDConL podle dat, dokud ho nikdo nezadal
+        cur_ = (ss.get(f"{k_}_lo", 0.0), ss.get(f"{k_}_hi", 100.0))
+        try:
+            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = range_for(cur_, x_)
+        except (TypeError, ValueError):
+            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = DEFAULT_RANGE
     rng_ = [float(ss[k_]) for k_ in ("pv_lo", "pv_hi", "mv_lo", "mv_hi")]
     ctx.norm_ok = rng_[1] > rng_[0] and rng_[3] > rng_[2]
     # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
     ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi = rng_ if ctx.norm_ok else (0.0, 100.0, 0.0, 100.0)
+    with sec_stats:                      # min / max … veličin smyčky (jednotky PV / MV)
+        st.dataframe(pd.DataFrame([dict(zip(("", "Min", "Max", T("stat_mean"), "σ"),
+                                            (n, *(float(f"{v:.5g}") for v in r)))) for n, *r in
+                                   stats(SimpleNamespace(pv_e=ctx.pv_e, mv_e=ctx.mv_e, sp_e=ctx.sp_e, has_sp=ctx.has_sp,
+                                                         dists=ctx.dists), ctx.c_d)]).set_index(""),
+                     width="stretch")
     with sec_units:
         n1, n2 = st.columns(2)
         if "u_mv" not in ss:
@@ -292,35 +327,45 @@ def render(ctx):
                 st.caption(T("auto_help"))
             num(T("auto_gap"), "seg_gap", 0.0, min_value=0.0, help=T("h_auto_gap"))
 
-        # ---- graf dat s úseky
-        fig = ctx.data_fig(t)
-        for i_, sg in enumerate(segs):
-            fig.add_vrect(x0=sg["start"], x1=sg["end"], fillcolor="#bfdbfe", opacity=0.22, line_width=0, row=1, col=1,
-                          annotation_text=f"#{i_ + 1}", annotation_position="top left",
-                          annotation_font=dict(size=11, color="#1e40af"))
-        for r in range(1, (3 if ctx.dists else 2) + 1):
-            fig.add_vrect(x0=rng[0], x1=rng[1], fillcolor="#fde68a", opacity=0.25, line_width=0, row=r, col=1)
-        fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
-        with ws.m_seg:
-            ev = show(fig, key=f"chart_data|{ctx.fname}", fname="data", select=True, report=T("rep_fig_data"))
-            st.caption(T("seg_tip"))
+        # ---- graf dat s úseky – kreslí ho záložka Model (ctx.seg_chart), aby v něm byl i model (jedna sada grafů)
+        def seg_chart(extra=(), resid=None):
+            """extra = [(název, y na úseku v %, barva, čára)] – model přes vybraný úsek; resid = řádek reziduí."""
+            full = []
+            for name_, y_, col_, dash_ in extra:
+                yy = np.full(len(t), np.nan)
+                yy[ctx.sel_mask] = y_
+                full.append((name_, yy, col_, dash_))
+            fig = ctx.data_fig(t, None, full, resid=resid)
+            for i_, sg in enumerate(segs):
+                fig.add_vrect(x0=sg["start"], x1=sg["end"], fillcolor="#bfdbfe", opacity=0.22, line_width=0, row=1,
+                              col=1, annotation_text=f"#{i_ + 1}", annotation_position="top left",
+                              annotation_font=dict(size=11, color="#1e40af"))
+            n_rows = 2 + (1 if ctx.dists else 0) + (1 if resid is not None else 0)
+            for r in range(1, n_rows + 1):
+                fig.add_vrect(x0=rng[0], x1=rng[1], fillcolor="#fde68a", opacity=0.25, line_width=0, row=r, col=1)
+            fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
+            with ws.m_seg:
+                ev = show(fig, key=f"chart_data|{ctx.fname}", fname="model" if extra else "data", select=True,
+                          report=T("rep_fig_model" if extra else "rep_fig_data"))
+                st.caption(T("seg_tip"))
 
-        # výběr úseku tažením v grafu
-        try:
-            box = ev.selection.box if ev and ev.selection else []
-            pts = ev.selection.points if ev and ev.selection else []
-            xr = None
-            if box:
-                xr = sorted(float(v) for v in box[0]["x"][:2])
-            elif pts:
-                xs = [float(p_["x"]) for p_ in pts if "x" in p_]
-                xr = [min(xs), max(xs)] if xs else None
-            if xr and xr[1] - xr[0] > step and tuple(xr) != ss.get("last_box"):
-                ss.last_box = tuple(xr)
-                ss.pending_rng = (snap(xr[0]), snap(xr[1]))
-                st.rerun()
-        except Exception:
-            pass
+            # výběr úseku tažením v grafu
+            try:
+                box = ev.selection.box if ev and ev.selection else []
+                pts = ev.selection.points if ev and ev.selection else []
+                xr = None
+                if box:
+                    xr = sorted(float(v) for v in box[0]["x"][:2])
+                elif pts:
+                    xs = [float(p_["x"]) for p_ in pts if "x" in p_]
+                    xr = [min(xs), max(xs)] if xs else None
+                if xr and xr[1] - xr[0] > step and tuple(xr) != ss.get("last_box"):
+                    ss.last_box = tuple(xr)
+                    ss.pending_rng = (snap(xr[0]), snap(xr[1]))
+                    st.rerun()
+            except Exception:
+                pass
+        ctx.seg_chart = seg_chart
 
         # ---- kontrola kvality vybraného úseku
         dq = quality(rng[0], rng[1])

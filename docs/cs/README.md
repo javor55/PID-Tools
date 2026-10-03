@@ -80,8 +80,8 @@ python -m pidtools.desktop                 # volitelně: python -m pidtools.desk
 Data, Model (validace, nejistota), Ladění (srovnání metod, simulace scénáře), živá simulace, APC (kaskáda, dopředná
 vazba, rozvazbení, override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika
 provozu, více smyček v projektu, projekty (stejné soubory JSON jako webová aplikace) a protokol z ladění.
-Offline balíček pro Windows obsahuje desktop i webovou aplikaci (`PID-Tools-desktop.bat`, `PID-Tools.bat`)
-– viz [Nasazení](nasazeni.md).
+Pro Windows je jako instalátor (`PID-Tools-<verze>-setup.exe`, nabídka Start, bez práv správce) i jako přenosný ZIP
+(`PID Tools.exe`); webová aplikace offline je samostatný ZIP (`PID-Tools.bat`) – viz [Nasazení](nasazeni.md).
 
 ### Lokálně (Linux / macOS)
 ```bash

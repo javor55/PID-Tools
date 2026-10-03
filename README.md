@@ -69,10 +69,11 @@ Open <https://pidtools.streamlit.app/>, choose **Demo** and go through tabs 1–
 2. Download the repository (*Code › Download ZIP*) and unzip it.
 3. Run **`start.bat`** – it installs the libraries and opens the app in the browser (<http://localhost:8501>).
 
-### Offline PC (USB)
-Download the portable package `PID-Tools-<version>-win64-offline.zip` (Releases / Actions artifacts), copy it to the
-PC, unzip and run **`PID-Tools-desktop.bat`** (window application) or **`PID-Tools.bat`** (browser) – no installation,
-no internet. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
+### Windows application and offline PC (USB)
+From Releases / Actions artifacts: **`PID-Tools-<version>-setup.exe`** installs the desktop application for the current
+user (Start menu, no admin rights), **`PID-Tools-<version>-desktop-win64-portable.zip`** runs it without installing
+(`PID Tools.exe`), and **`PID-Tools-<version>-web-win64-offline.zip`** runs the web app in the browser on the PC
+(`PID-Tools.bat`) – no internet needed. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
 
 ### Desktop application (preview)
 
@@ -86,8 +87,8 @@ python -m pidtools.desktop                 # optionally: python -m pidtools.desk
 Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,
 feedforward, decoupling, override, Smith predictor, gain scheduling by PV and by control error), operating
 diagnostics, several loops in one project, projects (the same JSON files as the web app) and the tuning protocol.
-The offline package for Windows contains both the desktop and the web app (`PID-Tools-desktop.bat`,
-`PID-Tools.bat`) – see [Deployment](docs/deployment.md).
+For Windows it is available as an installer and as a portable ZIP (`PID Tools.exe`) – see
+[Deployment](docs/deployment.md).
 
 ### Locally (Linux / macOS)
 ```bash

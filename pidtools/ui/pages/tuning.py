@@ -38,15 +38,16 @@ def render_block(ctx):
         ws = workspace()
         with ws.side:
             ws.top = st.container()
-        ws.scen = section(ws.side, T("dk_sec_scen"), "tun_scen", icon=":material/timeline:")
+        ctx.tun = ws
+        blk = section(ws.side, T("blk_title"), "tun_block", expanded=True, icon=":material/settings:")   # 1. – bez něj
+        ws.scen = section(ws.side, T("dk_sec_scen"), "tun_scen", icon=":material/timeline:")       # výpočty nedávají smysl
         ws.sug = section(ws.side, T("dk_sec_sug"), "tun_sug", icon=":material/calculate:")
         ws.sets = section(ws.side, T("dk_sec_sets"), "tun_sets", icon=":material/tune:")
-        ws.hist = section(ws.side, T("dk_sec_hist"), "tun_hist", expanded=False, icon=":material/history:")
-        ws.verify = section(ws.side, T("dk_sec_verify"), "tun_verify", expanded=False, icon=":material/shield:")
-        ws.dadv = section(ws.side, T("d_title"), "tun_d", expanded=False, icon=":material/help:")
-        ws.plant = section(ws.side, T("plant_title"), "tun_plant", expanded=False, icon=":material/water_drop:")
-        ctx.tun = ws
-        with section(ws.side, T("blk_title"), "tun_block", expanded=False, icon=":material/settings:"):
+        ws.hist = section(ws.side, T("dk_sec_hist"), "tun_hist", icon=":material/history:")
+        ws.verify = section(ws.side, T("dk_sec_verify"), "tun_verify", icon=":material/shield:")
+        ws.dadv = section(ws.side, T("d_title"), "tun_d", icon=":material/help:")
+        ws.plant = section(ws.side, T("plant_title"), "tun_plant", icon=":material/water_drop:")
+        with blk:
             _norm_section(ctx)
             st.markdown(f"**{T('sb_block')}**")
             q = st.columns(2)
@@ -96,7 +97,7 @@ def _norm_section(ctx):
     (přečetla je ze session state), tady jsou pole a kontroly.
     """
     st.markdown(f"**{T('sb_norm')}**", help=T("h_norm"))
-    n = st.columns(4)
+    n = st.columns(2) + st.columns(2)            # 2 × 2 – do úzkého panelu se čtyři pole vedle sebe nevejdou
     num("NormPV Low", "pv_lo", 0.0, n[0], help=T("h_normpv"))
     num("NormPV High", "pv_hi", 100.0, n[1], help=T("h_normpv"))
     num("NormMV Low", "mv_lo", 0.0, n[2], help=T("h_normmv"))
@@ -109,10 +110,8 @@ def _norm_section(ctx):
     top = ctx.tun.top            # upozornění i při sbaleném bloku
     if pmin < ctx.pv_lo or pmax > ctx.pv_hi or mmin < ctx.mv_lo or mmax > ctx.mv_hi:
         top.warning(T("norm_out", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"), icon=":material/warning:")
-    elif (ctx.pv_lo, ctx.pv_hi) == (0.0, 100.0):
-        top.info(T("norm_pv_default", pv=f"{pmin:.4g}–{pmax:.4g}"), icon=":material/straighten:")
     else:
-        st.caption(T("norm_help"))
+        st.caption(T("blk_data_note", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"))
 
 
 def _sig(*parts):
@@ -177,11 +176,11 @@ def render(ctx):
 
             # ---- 2 · návrh (počítá se na tlačítko Vypočítat)
             with ws.sug:
-                method = seg(st, T("method"), methods, "SIMC", mkey, format_func=lambda x: T("m_" + x),
-                             help=T("method_help")) or "SIMC"
+                method = seg(st, T("method"), methods, tun.DEFAULT_METHOD, mkey, format_func=lambda x: T("m_" + x),
+                             help=T("method_help")) or tun.DEFAULT_METHOD
                 ctype = seg(st, T("ctrl_type"), ["PI", "PID"], "PI", "ctype", help=T("h_ctype")) or "PI"
                 avg, tc, ms_max = None, None, 1.6
-                crit, tgt = ss.get("opt_crit") or "MIGO", ss.get("opt_target") or "scen"
+                crit, tgt = ss.get("opt_crit") or tun.DEFAULT_CRIT, ss.get("opt_target") or tun.DEFAULT_TARGET
                 ovs_lim = (ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100
                 st.caption(T("mdesc_" + method))
                 if method == "AVG":
@@ -192,12 +191,12 @@ def render(ctx):
                               help=T("avg_dmv_help"))
                     avg = (dpv / PR * 100, dmv / MR * 100)
                 elif method == "OPT":
-                    crit = seg(st, T("opt_crit"), ["MIGO", "IAE", "ISE", "ITAE", "OVS"], "MIGO", "opt_crit",
-                               format_func=lambda x: T("crit_" + x), help=T("h_opt_crit")) or "MIGO"
+                    crit = seg(st, T("opt_crit"), ["MIGO", "IAE", "ISE", "ITAE", "OVS"], tun.DEFAULT_CRIT, "opt_crit",
+                               format_func=lambda x: T("crit_" + x), help=T("h_opt_crit")) or tun.DEFAULT_CRIT
                     st.caption(T("cdesc_" + crit))
                     if crit != "MIGO":
-                        tgt = seg(st, T("opt_target"), ["scen", "dist", "sp", "both"], "scen", "opt_target",
-                                  format_func=lambda x: T("tgt_" + x), help=T("h_opt_target")) or "scen"
+                        tgt = seg(st, T("opt_target"), ["scen", "dist", "sp", "both"], tun.DEFAULT_TARGET, "opt_target",
+                                  format_func=lambda x: T("tgt_" + x), help=T("h_opt_target")) or tun.DEFAULT_TARGET
                         if crit == "OVS":
                             ovs_lim = (seg(st, T("opt_ovs"), [0, 2, 5, 10], 2, "opt_ovs", format_func=lambda x: f"{x} %",
                                            help=T("h_opt_ovs")) or 0) / 100
@@ -385,6 +384,8 @@ def render(ctx):
                            help=T("dk_sc_kind_help")) or kind0
                 ss["scen2"] = "replay" if kind == "replay" else "custom"
                 st.caption(T("dk_sc_note_" + kind))
+                with st.popover(T("sc_where_btn"), icon=":material/help:", width="stretch"):
+                    st.markdown(T("sc_where_help"))
                 T_char = scenario.t_char(mcode, p, tc, samp)
                 sp_data = float(EP(np.nanmedian(sp[sel_mask]) if has_sp else pv_id[0]))
                 if kind != "replay":
@@ -487,6 +488,7 @@ def render(ctx):
                             "tau": st.column_config.NumberColumn(T("sc_tau"), min_value=0.0, format="%.4g",
                                                                  help=T("h_sc_tau"))})
                     st.caption(T("scen_help"))
+                    st.caption(T("sc_where_help"))
                     last_ = []
                     for _, row in sdf.iterrows():
                         tgc_, tyc_ = tg_map.get(str(row.get("target"))), ty_map.get(str(row.get("type")))
