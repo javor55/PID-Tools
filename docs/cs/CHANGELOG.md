@@ -1,6 +1,8 @@
 # Změny
 
-## Nevydáno
+## 3.2.0 beta 1 – aplikace pro Windows (instalátor), připomínky k ovládání, načítání dat
+
+**Beta:** první sestavení instalátoru pro Windows a samostatného webového offline balíčku – problémy prosím hlaste.
 
 - Data: soubor, u kterého se nepodaří rozpoznat čas (nebo se čas nemění), se otevře po řádcích – co řádek, to
   vzorek; periodu řádku nastavíte v Rozložení souboru a čas (s, ms, min, h). Rozpozná se čas s názvem měsíce

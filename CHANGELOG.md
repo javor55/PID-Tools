@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 3.2.0 beta 1 – Windows application (installer), UI feedback, data loading
+
+**Beta:** first build of the Windows installer and the separate web offline package – please report problems.
 
 - Data: files whose time is not recognised (or does not change) open with one row = one sample; the sample period
   per row is set under File layout and time (s, ms, min, h). Times with month names (Aug-04-07 20:47:20) are

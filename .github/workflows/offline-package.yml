@@ -8,13 +8,6 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
-    paths:
-      - "tools/build_offline.py"
-      - "tools/build_desktop.py"
-      - "tools/smoke_test.py"
-      - ".github/workflows/offline-package.yml"
-      - "requirements.txt"
-      - "requirements-desktop.txt"
 
 permissions:
   contents: write
@@ -62,9 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --title "PID Tools $GITHUB_REF_NAME" \
-              --notes "Windows (x64): PID-Tools-*-setup.exe installs the desktop application (no admin rights); the portable ZIP runs without installation; the web offline ZIP runs the web app in the browser (PID-Tools.bat). See docs/deployment.md." || true
+          bash .github/release.sh
           gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-setup.exe dist/PID-Tools-*-desktop-win64-portable.zip --clobber
 
   web:
@@ -112,7 +103,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --title "PID Tools $GITHUB_REF_NAME" \
-              --notes "Windows (x64): PID-Tools-*-setup.exe installs the desktop application (no admin rights); the portable ZIP runs without installation; the web offline ZIP runs the web app in the browser (PID-Tools.bat). See docs/deployment.md." || true
+          bash .github/release.sh
           gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-web-win64-offline.zip --clobber
