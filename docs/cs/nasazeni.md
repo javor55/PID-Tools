@@ -40,29 +40,37 @@ streamlit run app.py
 
 ## Offline PC a inženýrská stanice (USB)
 
-Pro PC bez internetu je **přenosný balíček pro Windows (x64)**: složka s vlastním Pythonem, všemi knihovnami
-a aplikací. Nic se neinstaluje, nejsou potřeba práva správce.
+Pro PC bez internetu jsou dva soubory ke stažení pro **Windows (x64)**. Oba obsahují vše potřebné (Python, knihovny,
+aplikaci); není potřeba internet ani práva správce. Stáhněte je na PC s internetem z **Releases** repozitáře na
+GitHubu nebo z posledního běhu workflow *Offline package (Windows)* (záložka *Actions* › běh › *Artifacts*;
+artefakt je ZIP, ve kterém jsou soubory balíčku).
 
-1. Na PC s internetem stáhněte `PID-Tools-<verze>-win64-offline.zip` (asi 300 MB) z **Releases** repozitáře na
-   GitHubu nebo z posledního běhu workflow *Offline package (Windows)* (záložka *Actions* › běh › *Artifacts*;
-   artefakt je ZIP, ve kterém je ZIP balíčku).
-2. Přeneste ho na offline PC (USB) a rozbalte, např. do `C:\Tools\PID-Tools` (ne do příliš dlouhé cesty).
-3. **Desktopová aplikace:** dvojklik na **`PID-Tools-desktop.bat`** – otevře se okno (bez prohlížeče, bez síťového
-   portu, nic neběží na pozadí). Datový soubor nebo projekt lze na `.bat` přetáhnout a rovnou otevřít.
-4. **Webová aplikace** (stejné funkce v prohlížeči): dvojklik na **`PID-Tools.bat`**. Konzolové okno spustí aplikaci
-   a prohlížeč otevře <http://localhost:8501>. Zavřením konzole se aplikace ukončí.
+**Desktopová aplikace** (okno, bez prohlížeče, bez síťového portu) – klasická aplikace pro Windows s vlastní ikonou:
 
-Balíček vyžaduje Windows 10 nebo 11 (x64). Odinstalace = smazání složky, aktualizace = nahrazení složky novějším
-balíčkem (projekty v JSON zůstávají kompatibilní).
+- `PID-Tools-<verze>-setup.exe` – instalátor pro přihlášeného uživatele (bez práv správce): nainstaluje do
+  `%LOCALAPPDATA%\Programs\PID Tools`, přidá PID Tools do nabídky Start (volitelně na plochu) a do *Nastavení ›
+  Aplikace* pro odinstalaci. Spuštění: **PID Tools** v nabídce Start.
+- `PID-Tools-<verze>-desktop-win64-portable.zip` – totéž bez instalace: rozbalte (např. na USB nebo do `C:\Tools`)
+  a spusťte **`PID Tools.exe`**. Datový soubor nebo projekt lze na exe přetáhnout a rovnou otevřít.
 
-**Sestavení balíčku** (PC s Windows, internetem a Pythonem 3.11):
+**Webová aplikace offline** (stejné funkce v prohlížeči na tomto PC):
+
+- `PID-Tools-<verze>-web-win64-offline.zip` – rozbalte, např. do `C:\Tools\PID-Tools-web` (ne do příliš dlouhé
+  cesty), a dvakrát klikněte na **`PID-Tools.bat`**. Konzolové okno spustí aplikaci a prohlížeč otevře
+  <http://localhost:8501>. Zavřením konzole se aplikace ukončí. Obsahuje i zdroj dat OPC UA.
+
+Windows 10 nebo 11 (x64). Přenosné verze odstraníte smazáním složky, aktualizujete nahrazením složky (nebo novějším
+instalátorem). Projekty v JSON zůstávají kompatibilní a jsou zaměnitelné mezi desktopem a webem.
+
+**Sestavení balíčků** (PC s Windows, internetem a Pythonem 3.11):
 ```bash
-python tools/build_offline.py               # -> dist/PID-Tools-<verze>-win64-offline.zip
-python tools/build_offline.py --no-desktop  # jen webová aplikace, bez Qt (menší)
+pip install -r requirements.txt -r requirements-desktop.txt pyinstaller
+python tools/build_desktop.py   # -> dist/PID Tools/PID Tools.exe, přenosný ZIP, instalátor (potřebuje Inno Setup 6)
+python tools/build_offline.py   # -> dist/PID-Tools-<verze>-web-win64-offline.zip
 ```
-Totéž dělá na GitHubu workflow `.github/workflows/offline-package.yml`: sestaví balíček na Windows, otestuje ho jeho
-vlastním Pythonem (jádro, celá webová aplikace i okna desktopu na ukázkových datech, start serveru) a zveřejní ho
-jako artefakt; u tagu verze (`v*`) ho přiloží k release.
+Totéž dělá na GitHubu workflow `.github/workflows/offline-package.yml`: obojí sestaví na Windows, otestuje (exe
+desktopu spustí vlastní kontrolu `--smoke`, webový balíček projde jádro i celou aplikaci vlastním Pythonem a spustí
+server) a zveřejní jako artefakty; u tagu verze (`v*`) je přiloží k release.
 
 ## Interní server
 

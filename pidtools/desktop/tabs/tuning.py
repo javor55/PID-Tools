@@ -114,6 +114,7 @@ class TuningTab(Workspace):
         sec = self.section(T("dk_sec_scen"), self.scen_form, "scen")
         sec.add(self.len_src)
         sec.add(self.scen_note)
+        sec.add(caption(T("sc_where_help")))          # co znamená SP / vstup procesu / PV
 
         # ---- 3 · návrh
         self.method = w.combo([])
@@ -163,7 +164,8 @@ class TuningTab(Workspace):
         for n in (1, 2):
             sg.addWidget(QLabel(T("set_" + str(n))), 0, n)
             for i, k in enumerate(("gain", "ti", "td")):
-                sp = w.spin(0.0, -1e12, 1e12, 6)
+                sp = w.spin(0.0, {"gain": -1e12, "ti": 0.0, "td": 0.0}[k], 1e12, 6)     # TI, TD nezáporné
+                sp.setToolTip(T("dk_set_edit_help"))
                 sp.valueChanged.connect(self._sets_changed)
                 self.sets[(n, k)] = sp
                 sg.addWidget(sp, i + 1, n)
@@ -172,6 +174,7 @@ class TuningTab(Workspace):
         self.rob = w.table(["", T("set_1"), T("set_2")], [])
         self.rob.setMinimumHeight(150)
         sec = self.section(T("dk_sec_sets"), sg, "sets")
+        sec.add(caption(T("dk_set_edit_help")))
         sec.add(self.rob)
 
         # ---- historie ladění
@@ -452,7 +455,14 @@ class TuningTab(Workspace):
             return
         self.s.set(**{f"set{n}_{k}": sp.value() for (n, k), sp in self.sets.items()})
         self._robustness()
-        self._dirty()
+        if self.s.model is not None:          # sady se simulují hned (rychlé) – graf a ukazatele odpovídají polím
+            stale = self._result is None
+            try:
+                self._simulate()
+            except Exception:
+                pass
+            if stale:
+                self._result = None
 
     def _robustness(self):
         s = self.s
@@ -648,7 +658,7 @@ class ScenarioDialog(QDialog):
         self.tab = QTableWidget(0, len(self.COLS))
         self.tab.setHorizontalHeaderLabels([T("sc_" + c) for c in self.COLS])
         lay.addWidget(self.tab, 1)
-        lay.addWidget(w.note(T("scen_help")))
+        lay.addWidget(w.note(T("scen_help") + "  \n" + T("sc_where_help")))
         b_add, b_del, b_def = QPushButton("+"), QPushButton("−"), QPushButton(T("dk_scen_default"))
         b_add.clicked.connect(lambda: self._add(scn.row("SP", "step", 0.0, 0.0)))
         b_del.clicked.connect(lambda: self.tab.removeRow(self.tab.currentRow()))

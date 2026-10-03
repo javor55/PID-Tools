@@ -21,6 +21,13 @@
   (dopředná vazba, gain scheduling, kaskáda, split range, VPC, poměr i protokol).
 - Živá simulace (desktop i web): v AUTO je pole MV zašedlé a ukazuje živou hodnotu MV, v MAN je zašedlá SP;
   přepnutí do MAN ponechá současné MV (bez rázu).
+- Windows: desktopová aplikace je klasická aplikace pro Windows s vlastní ikonou – instalátor
+  `PID-Tools-<verze>-setup.exe` (pro uživatele, bez práv správce, nabídka Start, odinstalace v Nastavení) a přenosný
+  ZIP s `PID Tools.exe`; webová aplikace má vlastní offline balíček (`PID-Tools-<verze>-web-win64-offline.zip`,
+  se zdrojem OPC UA). Ikona aplikace v okně desktopu i na kartě prohlížeče.
+- Ladění: vysvětlení, kam působí události SP, vstup procesu a PV (výstup) – u scénáře i v editoru událostí.
+- Ladění v desktopu: přepsání sady 1 / 2 hned přepočítá graf scénáře; TI a TD nemohou být záporné.
+- Diagnostika v desktopu: graf nelinearity (lokální zesílení podle MV), hodnocení a odkaz na gain scheduling jako na webu.
 
 ## 3.1.0 – frekvenční analýza, přehled smyček, OPC UA, rozšíření APC
 

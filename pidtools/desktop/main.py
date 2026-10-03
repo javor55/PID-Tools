@@ -437,6 +437,12 @@ def run(argv=None):
     app = QApplication.instance() or QApplication(argv)
     app.setOrganizationName(ORG)
     app.setApplicationName(APP)
+    icon = Path(__file__).resolve().parents[1] / "assets" / "icon.png"
+    if icon.exists():
+        from PySide6.QtGui import QIcon
+        app.setWindowIcon(QIcon(str(icon)))
+    if "--smoke" in argv:                     # kontrola balíčku (CI): okno, ukázka, identifikace, ladění, APC
+        return _smoke(app)
     data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
     win = MainWindow(autosave=Path(data_dir) / "autosave.json" if data_dir else None)
     win.show()
@@ -445,3 +451,24 @@ def run(argv=None):
     else:
         win.open_path(argv[1])
     return app.exec()
+
+
+def _smoke(app):
+    """Rychlá kontrola sestaveného balíčku bez obsluhy: vrací 0, když prošly hlavní kroky."""
+    import tempfile
+    prefs = QSettings(str(Path(tempfile.gettempdir()) / "pidtools_smoke.ini"), QSettings.IniFormat)
+    win = MainWindow(prefs=prefs)
+    win.show()
+    win.open_demo()
+    errs = win.state.identify()
+    win.refresh()
+    for i in range(len(win.pages)):
+        win.tabs.setCurrentIndex(i)
+        app.processEvents()
+    win.pages[2].calculate()
+    QThreadPool.globalInstance().waitForDone(120000)
+    app.processEvents()
+    ok = not errs and win.state.model is not None and win.pages[2]._result is not None
+    print("PID Tools smoke test:", "OK" if ok else f"FAILED {errs}", flush=True)
+    win.close()
+    return 0 if ok else 1

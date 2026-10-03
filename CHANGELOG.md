@@ -23,6 +23,13 @@
   bounded number of steps (feedforward, gain scheduling, cascade, split range, VPC, ratio and the report).
 - Live simulation (desktop and web): in AUTO the MV field is greyed out and shows the live MV, in MAN the SP field
   is greyed out; switching to MAN keeps the current MV (bumpless).
+- Windows: the desktop application is a classic Windows application with its own icon – installer
+  `PID-Tools-<version>-setup.exe` (current user, no admin rights, Start menu, uninstall in Settings) and portable
+  ZIP with `PID Tools.exe`; the web app has its own offline package (`PID-Tools-<version>-web-win64-offline.zip`,
+  with the OPC UA source). Application icon in the desktop window and the browser tab.
+- Tuning: explanation of where SP, process input and PV (output) events act, in the scenario and the event editor.
+- Desktop tuning: editing set 1 / 2 updates the scenario chart at once; TI and TD cannot be negative.
+- Desktop diagnostics: nonlinearity chart (local gain vs. MV), verdict and a link to gain scheduling, as on the web.
 
 ## 3.1.0 – frequency analysis, loop overview, OPC UA, APC extensions
 

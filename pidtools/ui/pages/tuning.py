@@ -384,6 +384,8 @@ def render(ctx):
                            help=T("dk_sc_kind_help")) or kind0
                 ss["scen2"] = "replay" if kind == "replay" else "custom"
                 st.caption(T("dk_sc_note_" + kind))
+                with st.popover(T("sc_where_btn"), icon=":material/help:", width="stretch"):
+                    st.markdown(T("sc_where_help"))
                 T_char = scenario.t_char(mcode, p, tc, samp)
                 sp_data = float(EP(np.nanmedian(sp[sel_mask]) if has_sp else pv_id[0]))
                 if kind != "replay":
@@ -486,6 +488,7 @@ def render(ctx):
                             "tau": st.column_config.NumberColumn(T("sc_tau"), min_value=0.0, format="%.4g",
                                                                  help=T("h_sc_tau"))})
                     st.caption(T("scen_help"))
+                    st.caption(T("sc_where_help"))
                     last_ = []
                     for _, row in sdf.iterrows():
                         tgc_, tyc_ = tg_map.get(str(row.get("target"))), ty_map.get(str(row.get("type")))

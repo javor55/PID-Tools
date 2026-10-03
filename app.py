@@ -2,9 +2,13 @@
 PID Tools – identifikace procesu a ladění regulátoru PIDConL (SIMATIC PCS 7 APL).
 Spuštění:  streamlit run app.py
 """
+from pathlib import Path
+
 import streamlit as st
 
-st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon="🎛️", layout="wide")
+_ICON = Path(__file__).with_name("pidtools") / "assets" / "icon.png"
+st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon=str(_ICON) if _ICON.exists() else "🎛️",
+                   layout="wide")
 
 from pidtools.i18n import DEFAULT_LANG, TEXTS, T  # noqa: E402
 from pidtools.i18n import set_lang_provider  # noqa: E402

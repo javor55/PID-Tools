@@ -24,3 +24,14 @@ def test_readme_and_app_files():
     b = _builder()
     b.README_TXT.format(version=b.version()).encode("utf-8")
     assert all((ROOT / f).exists() for f in b.APP_FILES)
+
+
+def test_desktop_build_script():
+    """Desktopová aplikace jako exe: ikona existuje, šablona instalátoru Inno Setup se dá vyplnit."""
+    spec = importlib.util.spec_from_file_location("build_desktop", ROOT / "tools" / "build_desktop.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert (ROOT / "pidtools" / "assets" / "icon.ico").exists() and (ROOT / "pidtools" / "assets" / "icon.png").exists()
+    iss = mod.ISS.format(version=mod.version(), out="dist", icon="icon.ico", src="dist\\PID Tools")
+    assert "PrivilegesRequired=lowest" in iss and "{app}\\PID Tools.exe" in iss and "{#AppVersion}" in iss
+    assert "streamlit" in mod.EXCLUDE and "pyarrow" in mod.EXCLUDE

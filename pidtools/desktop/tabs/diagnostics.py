@@ -5,7 +5,7 @@ Záložka Diagnostika: úsek provozních dat (tažením v grafu), výkon smyčky
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QSplitter, QTabWidget, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QPushButton, QSplitter, QTabWidget, QVBoxLayout, QWidget
 
 from ...app import diagnostics as dg
 from ...core import MODELS
@@ -35,6 +35,14 @@ class DiagnosticsTab(Workspace):
         self.sub.addTab(self.ccf, T("ccf_title"))
         self.sub.addTab(self.phase, T("phase_title"))
         self.pos_index = self.sub.addTab(self.pos, T("pos_title"))
+        nl_page = QWidget()                       # nelinearita: lokální zesílení podle MV (graf + tabulka)
+        nll = QHBoxLayout(nl_page)
+        nll.setContentsMargins(0, 0, 0, 0)
+        self.nl_plot = w.plot(T("nl_title"), "K", "MV")
+        self.nl = w.table([], [])
+        nll.addWidget(self.nl_plot, 3)
+        nll.addWidget(self.nl, 2)
+        self.sub.addTab(nl_page, T("nl_title"))
         split.addWidget(self.sub)
         split.setSizes([420, 380])
         # ---- panel
@@ -52,9 +60,12 @@ class DiagnosticsTab(Workspace):
         self.section(T("perf_title"), self.kpi, "perf")
         self.verdict = w.note("")
         self.section(T("dk_diag_valve"), self.verdict, "valve")
-        self.nl = w.table([], [])
-        self.nl.setMinimumHeight(180)
-        self.section(T("nl_title"), self.nl, "nl", expanded=False)
+        self.nl_note = w.note("")
+        self.b_gs = QPushButton(T("nl_to_gs"))
+        self.b_gs.clicked.connect(self._to_gs)
+        sec = self.section(T("nl_title"), self.nl_note, "nl")
+        sec.add(self.b_gs)
+        sec.add(caption(T("nl_help")))
         self._busy = False
 
     def refresh(self):
@@ -143,13 +154,45 @@ class DiagnosticsTab(Workspace):
         self.phase.plot(s.EM(s.mv[m]), yy, pen=pg.mkPen("#cbd5e1", width=0.6), symbol="o", symbolSize=3,
                         symbolBrush=w.C_PV, symbolPen=None)
         self.phase.setLabel("left", "dPV/dt" if integ else "PV")
+        self.nl_plot.clear()
+        self.b_gs.setVisible(False)
         if s.model is None:
             w.fill(self.nl, [""], [[T("need_model")]])
+            self.nl_note.setText(T("need_model"))
             return
         ts, pv, mv, d = s.segment()
         lg, spread = dg.nonlinearity(s.model, ts, pv, mv, d, g.Ts)
         rows = [[f"{q['t']:.0f}", float(s.EM(q["mv_from"])), float(s.EM(q["mv_to"])), "↑" if q["dmv"] > 0 else "↓",
                  q["gain"], q["ratio"]] for q in lg]
         w.fill(self.nl, [T("nl_time"), T("nl_from"), T("nl_to"), T("nl_dir"), T("nl_gain"), T("nl_ratio")], rows)
+        if len(lg) < 2:
+            self.nl_note.setText(T("nl_few"))
+            return
+        for dsign, col in ((1, "#1f5fa8"), (-1, "#c2410c")):
+            xs = [float(s.EM((q["mv_from"] + q["mv_to"]) / 2)) for q in lg if np.sign(q["dmv"]) == dsign]
+            ys = [q["gain"] for q in lg if np.sign(q["dmv"]) == dsign]
+            if xs:
+                self.nl_plot.plot(xs, ys, pen=None, symbol="o", symbolSize=9, symbolBrush=col,
+                                  name="↑" if dsign > 0 else "↓")
+        self.nl_plot.addItem(pg.InfiniteLine(pos=s.model[1][0], angle=0, pen=pg.mkPen("#94a3b8", style=Qt.DotLine)))
+        self.nl_plot.setLabel("left", MODELS[s.model[0]]["params"][0])
+        self.nl_plot.setLabel("bottom", s.get("u_mv") and f"MV [{s.get('u_mv')}]" or "MV")
+        lines = []
         if spread and spread > 1.5:
+            lines.append("⚠️ " + T("nl_warn", s=f"{spread:.1f}"))
+            self.b_gs.setVisible(not MODELS[s.model[0]]["integ"])
             self.verdict.setText(self.verdict.text() + "  \n⚠️ " + T("nl_warn", s=f"{spread:.1f}"))
+        else:
+            lines.append("✅ " + T("nl_ok", s=f"{spread:.2f}"))
+        ups = [q["gain"] for q in lg if q["dmv"] > 0]
+        dns = [q["gain"] for q in lg if q["dmv"] < 0]
+        if ups and dns and abs(np.mean(ups) / np.mean(dns) - 1) > 0.3:
+            lines.append("↕️ " + T("nl_dir_warn", r=f"{np.mean(ups) / np.mean(dns):.2f}"))
+        self.nl_note.setText("  \n".join(lines))
+
+    def _to_gs(self):
+        """Nelinearita → APC › gain scheduling podle PV."""
+        win = self.win
+        win.tabs.setCurrentIndex(4)
+        apc = win.pages[4]
+        apc.tabs.setCurrentIndex(5)

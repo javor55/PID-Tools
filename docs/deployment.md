@@ -40,32 +40,38 @@ streamlit run app.py
 
 ## Offline PC (USB)
 
-For a PC without internet there is a **portable package for Windows (x64)**: a folder with its own Python, all
-libraries and the application. Nothing is installed, no admin rights are needed.
+For a PC without internet there are two **Windows (x64)** downloads. Both contain everything they need (Python,
+libraries, the application); no internet and no admin rights are needed. Download them on a PC with internet from
+the repository's GitHub **Releases** or from the latest run of the *Offline package (Windows)* workflow (*Actions*
+tab › run › *Artifacts*; an artifact is a ZIP that contains the package files).
 
-1. On a PC with internet download `PID-Tools-<version>-win64-offline.zip` (about 300 MB) from the repository's
-   GitHub **Releases** or from the latest run of the *Offline package (Windows)* workflow (*Actions* tab ›
-   run › *Artifacts*; the artifact is a ZIP that contains the package ZIP).
-2. Copy it to the offline PC (USB stick) and unzip it, e.g. to `C:\Tools\PID-Tools` (avoid very long paths).
-3. **Desktop application:** double-click **`PID-Tools-desktop.bat`** – a window opens (no browser, no network port,
-   nothing running in the background). A data file or a project can be dropped on the `.bat` file to open it.
-4. **Web app** (the same functions in the browser): double-click **`PID-Tools.bat`**. A console window starts the
-   app and the browser opens <http://localhost:8501>. Close the console window to stop the app.
+**Desktop application** (window, no browser, no network port) – a classic Windows application with its icon:
 
-The package needs Windows 10 or 11 (x64).
+- `PID-Tools-<version>-setup.exe` – installer for the current user (no admin rights): installs to
+  `%LOCALAPPDATA%\Programs\PID Tools`, adds PID Tools to the Start menu (optionally to the desktop) and to
+  *Settings › Apps* for uninstalling. Start **PID Tools** from the Start menu.
+- `PID-Tools-<version>-desktop-win64-portable.zip` – the same without installing: unzip (e.g. to a USB stick or
+  `C:\Tools`) and run **`PID Tools.exe`**. A data file or a project can be dropped on the exe to open it.
 
-To uninstall, delete the folder. To update, replace the folder with a newer package (projects saved in JSON stay
-compatible).
+**Web app offline** (the same functions in the browser on this PC):
 
-**Building the package yourself** (Windows PC with internet and Python 3.11):
+- `PID-Tools-<version>-web-win64-offline.zip` – unzip, e.g. to `C:\Tools\PID-Tools-web` (avoid very long paths),
+  and double-click **`PID-Tools.bat`**. A console window starts the app and the browser opens
+  <http://localhost:8501>. Close the console window to stop the app. The OPC UA data source is included.
+
+Windows 10 or 11 (x64). To remove the portable versions delete the folder; to update replace it (or run a newer
+installer). Projects saved in JSON stay compatible and are interchangeable between the desktop and the web app.
+
+**Building the packages yourself** (Windows PC with internet and Python 3.11):
 ```bash
-python tools/build_offline.py        # -> dist/PID-Tools-<version>-win64-offline.zip
-python tools/build_offline.py --no-desktop   # web app only, without Qt (smaller)
+pip install -r requirements.txt -r requirements-desktop.txt pyinstaller
+python tools/build_desktop.py   # -> dist/PID Tools/PID Tools.exe, portable ZIP, installer (needs Inno Setup 6)
+python tools/build_offline.py   # -> dist/PID-Tools-<version>-web-win64-offline.zip
 ```
-The workflow `.github/workflows/offline-package.yml` does the same on GitHub: it builds the package on Windows,
-tests it with its own embedded Python (core, the whole web app and the desktop windows on demo data, server start)
-and publishes it as an
-artifact; for a version tag (`v*`) it attaches it to a release.
+The workflow `.github/workflows/offline-package.yml` does the same on GitHub: it builds both on Windows, tests them
+(the desktop exe runs a self-test with `--smoke`; the web package runs the core and the whole app with its own
+embedded Python and starts the server) and publishes them as artifacts; for a version tag (`v*`) it attaches them
+to a release.
 
 ## Internal server
 

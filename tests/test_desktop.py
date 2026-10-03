@@ -621,3 +621,21 @@ def test_wheel_does_not_change_fields(win):
                          Qt.NoScrollPhase, False)
         app.sendEvent(wd, ev)
     assert sp.value() == 1.0 and cb.currentData() == "b"
+
+
+def test_set_edit_updates_chart(win):
+    """Přepsání parametrů sady: graf scénáře se hned přepočítá, TI a TD nemohou být záporné."""
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    t = w.pages[2]
+    w.tabs.setCurrentIndex(2)
+    app.processEvents()
+    t.sets[(2, "gain")].setValue(w.state.get("set1_gain") * 0.5)
+    t.sets[(2, "ti")].setValue(w.state.get("set1_ti"))
+    app.processEvents()
+    pv2 = t.plots[0].listDataItems()
+    assert w.state.get("set2_ti") == pytest.approx(w.state.get("set1_ti")) and pv2
+    assert t.sets[(1, "td")].minimum() == 0.0 and t.sets[(1, "ti")].minimum() == 0.0

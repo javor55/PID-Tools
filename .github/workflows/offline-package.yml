@@ -1,5 +1,7 @@
-# Builds the portable offline package for Windows (x64), tests it with its own embedded Python and
-# uploads it as an artifact; on a version tag (v*) it is also attached to a GitHub release.
+# Windows (x64) packages, built and tested on windows-latest and uploaded as artifacts; on a version tag (v*) they
+# are also attached to a GitHub release:
+#   - desktop: "PID Tools.exe" as an installer (PID-Tools-<v>-setup.exe) and a portable ZIP (tools/build_desktop.py)
+#   - web: offline package with an embedded Python, started by PID-Tools.bat (tools/build_offline.py)
 name: Offline package (Windows)
 
 on:
@@ -8,6 +10,7 @@ on:
     tags: ["v*"]
     paths:
       - "tools/build_offline.py"
+      - "tools/build_desktop.py"
       - "tools/smoke_test.py"
       - ".github/workflows/offline-package.yml"
       - "requirements.txt"
@@ -17,13 +20,60 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  desktop:
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-desktop.txt pyinstaller
+
+      - name: Build exe, installer and portable ZIP
+        run: python tools/build_desktop.py
+
+      - name: Test the built application
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\PID Tools\PID Tools.exe" -ArgumentList "--smoke" -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Smoke test failed ($($p.ExitCode))" }
+          Write-Host "Desktop smoke test: ok"
+
+      - name: Check the installer
+        shell: pwsh
+        run: if (-not (Test-Path dist\PID-Tools-*-setup.exe)) { throw "Installer missing" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PID-Tools-desktop-win64
+          path: |
+            dist/PID-Tools-*-setup.exe
+            dist/PID-Tools-*-desktop-win64-portable.zip
+          compression-level: 0
+          retention-days: 30
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "PID Tools $GITHUB_REF_NAME" \
+              --notes "Windows (x64): PID-Tools-*-setup.exe installs the desktop application (no admin rights); the portable ZIP runs without installation; the web offline ZIP runs the web app in the browser (PID-Tools.bat). See docs/deployment.md." || true
+          gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-setup.exe dist/PID-Tools-*-desktop-win64-portable.zip --clobber
+
+  web:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -31,17 +81,13 @@ jobs:
         run: python tools/build_offline.py
 
       - name: Test with the embedded Python
-        working-directory: dist/PID-Tools/app
+        working-directory: dist/PID-Tools-web/app
         run: ..\python\python.exe ..\..\..\tools\smoke_test.py
-
-      - name: Desktop launcher path (pidtools importable outside the app folder)
-        working-directory: dist
-        run: PID-Tools\python\python.exe -c "import pidtools.desktop.main, PySide6, pyqtgraph; print('desktop import ok')"
 
       - name: Start the server and check health
         shell: pwsh
         run: |
-          $pkg = Resolve-Path "dist\PID-Tools"
+          $pkg = Resolve-Path "dist\PID-Tools-web"
           $p = Start-Process -FilePath "$pkg\python\python.exe" -WorkingDirectory "$pkg\app" -PassThru `
                -ArgumentList "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", "8599"
           $ok = $false
@@ -55,8 +101,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PID-Tools-win64-offline
-          path: dist/PID-Tools-*-win64-offline.zip
+          name: PID-Tools-web-win64-offline
+          path: dist/PID-Tools-*-web-win64-offline.zip
           compression-level: 0
           retention-days: 30
 
@@ -68,5 +114,5 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "PID Tools $GITHUB_REF_NAME" \
-              --notes "Offline package for Windows (x64): unzip and run PID-Tools-desktop.bat (window) or PID-Tools.bat (browser). See docs/deployment.md."
-          gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-win64-offline.zip --clobber
+              --notes "Windows (x64): PID-Tools-*-setup.exe installs the desktop application (no admin rights); the portable ZIP runs without installation; the web offline ZIP runs the web app in the browser (PID-Tools.bat). See docs/deployment.md." || true
+          gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-web-win64-offline.zip --clobber
