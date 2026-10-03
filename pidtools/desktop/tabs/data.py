@@ -32,7 +32,7 @@ class DataTab(Workspace):
         self.c_d = QListWidget()
         self.c_d.setMinimumHeight(80)
         self.c_d.setMaximumHeight(160)
-        sec = self.section(T("dk_sec_signals"), w.form([("PV", self.c_pv), ("MV", self.c_mv), (T("col_sp"), self.c_sp),
+        sec = self.sig_sec = self.section(T("dk_sec_signals"), w.form([("PV", self.c_pv), ("MV", self.c_mv), (T("col_sp"), self.c_sp),
                                                         (T("col_pos"), self.c_pos)]), "signals")
         sec.add(QLabel(T("col_dist")))
         sec.add(self.c_d)

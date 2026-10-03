@@ -28,6 +28,8 @@
   ZIP with `PID Tools.exe`; the web app has its own offline package (`PID-Tools-<version>-web-win64-offline.zip`,
   with the OPC UA source). Application icon in the desktop window and the browser tab.
 - Tuning: explanation of where SP, process input and PV (output) events act, in the scenario and the event editor.
+- Several loops (web and desktop): a new loop gets its own name (Loop n) and opens on the Data tab to choose its
+  signals; the loop can be renamed directly (web: ⋮ menu next to the loop switch, desktop: Rename loop).
 - Desktop tuning: editing set 1 / 2 updates the scenario chart at once; TI and TD cannot be negative.
 - Desktop diagnostics: nonlinearity chart (local gain vs. MV), verdict and a link to gain scheduling, as on the web.
 

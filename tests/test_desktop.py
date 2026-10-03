@@ -261,6 +261,11 @@ def test_window_two_loops(win):
     w.build()
     w.add_loop()
     assert w.loop_combo.count() == 2 and w.project.active == 1
+    assert w.state.get("loop_tag") == "Loop 2" and w.tabs.currentIndex() == 0 and w.pages[0].sig_sec.is_expanded()
+    from unittest import mock
+    with mock.patch("PySide6.QtWidgets.QInputDialog.getText", return_value=("FIC2", True)):
+        w.rename_loop()
+    assert w.loop_combo.itemText(1) == "FIC2"
     w.state.set_columns("FIC2.PV", "FIC2.MV", "—", ["FIC1.MV"])
     w.state.identify()
     w.switch_loop(0)

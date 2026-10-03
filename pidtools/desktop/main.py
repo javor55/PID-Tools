@@ -151,6 +151,10 @@ class MainWindow(QMainWindow):
         a.triggered.connect(self.add_loop)
         a.setEnabled(self.state.has_data)
         bar.addAction(a)
+        rn = QAction(T("dk_loop_rename"), self)
+        rn.triggered.connect(self.rename_loop)
+        rn.setEnabled(self.state.has_data)
+        bar.addAction(rn)
         r = QAction(T("dk_loop_remove"), self)
         r.triggered.connect(self.remove_loop)
         r.setEnabled(len(self.project.loops) > 1)
@@ -197,8 +201,20 @@ class MainWindow(QMainWindow):
 
     def add_loop(self):
         if self.project.add_loop() is not None:
-            self.tabs.setCurrentIndex(0)
+            self.state.set(loop_tag=T("loop_n", n=len(self.project.loops)))
             self.build()
+            self.tabs.setCurrentIndex(0)
+            self.pages[0].sig_sec.expand(True)       # nová smyčka: nejdřív vybrat její signály
+            self.status(T("loop_added_dk"))
+
+    def rename_loop(self):
+        """Název (tag) aktivní smyčky."""
+        from PySide6.QtWidgets import QInputDialog
+        name, ok = QInputDialog.getText(self, T("dk_loop_rename"), T("loop_name"),
+                                        text=self.state.get("loop_tag") or "")
+        if ok:
+            self.state.set(loop_tag=name.strip())
+            self._build_loopbar()
 
     def remove_loop(self):
         self.project.remove_loop(self.project.active)

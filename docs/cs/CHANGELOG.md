@@ -26,6 +26,8 @@
   ZIP s `PID Tools.exe`; webová aplikace má vlastní offline balíček (`PID-Tools-<verze>-web-win64-offline.zip`,
   se zdrojem OPC UA). Ikona aplikace v okně desktopu i na kartě prohlížeče.
 - Ladění: vysvětlení, kam působí události SP, vstup procesu a PV (výstup) – u scénáře i v editoru událostí.
+- Více smyček (web i desktop): nová smyčka dostane vlastní název (Smyčka n) a otevře se na záložce Data pro výběr
+  signálů; smyčku lze přímo přejmenovat (web: menu ⋮ vedle přepínače smyček, desktop: Přejmenovat smyčku).
 - Ladění v desktopu: přepsání sady 1 / 2 hned přepočítá graf scénáře; TI a TD nemohou být záporné.
 - Diagnostika v desktopu: graf nelinearity (lokální zesílení podle MV), hodnocení a odkaz na gain scheduling jako na webu.
 
