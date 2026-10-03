@@ -1,6 +1,8 @@
 # Changelog
 
-## 3.2.1 – faster desktop start, set 1 check for closed-loop identification
+## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
+
+**Beta:** for testing; please report problems.
 
 - Closed-loop identification (loop in AUTO, web and desktop): warning when set 1 does not match the controller in
   the record (the loop simulated with the model and set 1 fits PV < 50 % or is unstable), and the button
