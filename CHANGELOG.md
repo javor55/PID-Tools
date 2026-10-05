@@ -13,6 +13,8 @@
 - Automatically found segments: without a model a segment now continues until PV has clearly responded to the step
   (2.5× the time to the response); with a long dead time it used to end before PV moved. The warning "T1 longer than
   the segment" also points to segments dominated by disturbances and control in AUTO.
+- Data quality: MV saturated at a limit in historian data (0.00 … 0.2 %, not exactly 0) is counted as MV at the
+  limit, so a segment with a long saturation gets the warning.
 
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 

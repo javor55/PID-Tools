@@ -202,3 +202,13 @@ def test_propfacsp_setpoint_weight():
     e_sp = [core.closed_loop_steps("P1D", p, dict(ctrl, PropFacSP=b), 1.0, 300)[0] for b in (0.0, 0.5, 1.0)]
     assert e_sp[0][5] > e_sp[1][5] > e_sp[2][5]        # menší váha SP → pomalejší náběh PV, větší odchylka
     assert core.propfac(dict(PropFbk=True)) == 0.0 and core.propfac({}) == 1.0
+
+
+def test_quality_mv_near_limit():
+    """MV saturovaná na 0 z historianu (0,00 … 0,2 %) se počítá jako MV na limitu."""
+    h = 15.0
+    t = np.arange(0, 4 * 3600, h)
+    mv = np.where(t < 3600, 30.0, np.where(t < 2.5 * 3600, 0.1 + 0.08 * np.sin(t / 300), 20.0))
+    pv = 50 + 0.01 * np.cumsum(mv - 20) / 100
+    q = core.data_quality(t, pv, mv, np.zeros_like(mv), h, False, 0.0, 100.0)
+    assert any(c[0] in ("q_lim_warn", "q_lim_bad") for c in q["checks"])

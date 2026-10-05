@@ -13,6 +13,8 @@
 - Automaticky nalezené úseky: bez modelu úsek pokračuje, dokud PV na skok zřetelně nezareaguje (2,5× doba do odezvy);
   při velkém zpoždění dřív skončil dřív, než se PV pohnulo. Varování „T1 delší než úsek“ upozorní i na úsek tvořený
   hlavně poruchami a regulací v AUTO.
+- Kvalita dat: MV saturovaná na limitu v datech z historianu (0,00 … 0,2 %, ne přesně 0) se počítá jako MV na
+  limitu, takže úsek s dlouhou saturací dostane varování.
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 
