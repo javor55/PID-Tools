@@ -15,6 +15,12 @@
   the segment" also points to segments dominated by disturbances and control in AUTO.
 - Data quality: MV saturated at a limit in historian data (0.00 … 0.2 %, not exactly 0) is counted as MV at the
   limit, so a segment with a long saturation gets the warning.
+- APC › Smith predictor: **Based on** line (model and its parameters, PIDConL ranges, operating point, SampleTime),
+  a table of the general predictor values (model without dead time, θ, operating point and offset, controller –
+  usable in any system, not only the PCS 7 template) with the formulas, and a choice of the controller design
+  method: SIMC (τc), Lambda / IMC (λ), robust optimisation (smallest IAE over the nominal model and models with
+  dead-time and gain errors) or manual Gain / TI / TD. Default SIMC τc = θ/2 instead of θ (with the predictor the
+  controller can be faster than a normal PID).
 
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 

@@ -115,7 +115,8 @@ def test_apc_smith_gainsched_ff():
     sc = _Loop()
     v, r, rows = smith.values("P1D", [1.0, 20.0, 40.0], sc, 50.0, 40.0, "PI", None, 1.0, "°C", "%")
     assert v["theta"] == pytest.approx(40.0) and r["Kc"] > 0 and rows[0][0].startswith("SmithModelTimLag")
-    assert smith.tc0([1.0, 20.0, 40.0], 1.0) == 40.0
+    assert smith.tc0([1.0, 20.0, 40.0], 1.0) == 20.0                # θ/2: prediktor smí být rychlejší než PID
+    assert smith.tc_default([1.0, 20.0, 40.0], 1.0, "Lambda") == 20.0  # λ = součet časových konstant
     old = gainsched.key("P1D", [(0.0, 10.0)], (0.0, 100.0, 0.0, 100.0))
     new = gainsched.key("P1D", [(0.0, 10.0)], (0.0, 200.0, 0.0, 100.0))
     pts = gainsched.rescale(old, new, [[50.0, 40.0, 95.0, 2.0, 10.0, 1.0]])

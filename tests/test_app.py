@@ -324,6 +324,19 @@ def test_smith_template_values():
     assert vals["SmithModelGain (Mul04).In2"] == pytest.approx(k * 2.0, rel=1e-3)
     assert {"SmithModelTimLag (Lag).LagTime", "SmithModelDeadti (DeadTime).DeadTime", "PV0 (Add04).In2",
             "PIDConL.Gain", "PIDConL.TI"} <= set(vals)
+    assert any("Based on:" in c.value for c in app.caption)                  # z čeho výpočet vychází
+    gen = next(d.value for d in app.dataframe if len(d.value) and "Dead time θ" in d.value.iloc[:, 0].values)
+    assert len(gen) >= 9
+    app.session_state["apc_sm_method"] = "manual"         # ruční regulátor → přímo do šablony
+    app.session_state["apc_sm_mg"], app.session_state["apc_sm_mti"] = 0.7, 33.0
+    app.run()
+    assert not _errors(app)
+    tab = next(d.value for d in app.dataframe if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
+    vals = dict(zip(tab.iloc[:, 0] + "." + tab.iloc[:, 1], tab.iloc[:, 2]))
+    assert vals["PIDConL.Gain"] == pytest.approx(0.7) and vals["PIDConL.TI"] == pytest.approx(33.0)
+    app.session_state["apc_sm_method"] = "OPT"
+    app.run()
+    assert not _errors(app)
 
 
 def _nonlinear_data():

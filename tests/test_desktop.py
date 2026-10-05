@@ -213,6 +213,16 @@ def test_window_live_and_apc(win):
         app.processEvents()
     _wait(app)
     assert apc.panels[4].kpi.rowCount() == 2          # Smith: PID a prediktor
+    sm = apc.panels[4]
+    if not sm.vals.rowCount():                         # demo je hladina (integrační) – tabulky jen u P1D
+        w.state.set(mcode="P1D")
+        sm.refresh()
+    assert sm.gen.rowCount() >= 9 and "Based on" in sm.basis.text()
+    for m in ("Lambda", "manual", "OPT", "SIMC"):
+        sm.method.setCurrentIndex(sm.method.findData(m))
+        app.processEvents()
+        assert sm.kpi.rowCount() == 2 and sm.vals.rowCount() >= 6
+        assert sm.tc.isHidden() != (m in ("SIMC", "Lambda")) and sm.mg.isHidden() != (m == "manual")
     assert apc.panels[1].kpi.rowCount() == 3          # dopředná vazba: bez, statická, dynamická
 
 

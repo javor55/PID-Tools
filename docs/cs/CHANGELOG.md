@@ -15,6 +15,11 @@
   hlavně poruchami a regulací v AUTO.
 - Kvalita dat: MV saturovaná na limitu v datech z historianu (0,00 … 0,2 %, ne přesně 0) se počítá jako MV na
   limitu, takže úsek s dlouhou saturací dostane varování.
+- APC › Smithův prediktor: řádek **Vychází z** (model a jeho parametry, rozsahy PIDConL, pracovní bod, SampleTime),
+  tabulka obecných hodnot prediktoru (model bez zpoždění, θ, pracovní bod a offset, regulátor – použitelné v
+  jakémkoli systému, nejen v šabloně PCS 7) se vzorci a volba metody návrhu regulátoru: SIMC (τc), Lambda / IMC (λ),
+  robustní optimalizace (nejmenší IAE přes nominální model a modely s chybou zpoždění a zesílení) nebo ruční
+  Gain / TI / TD. Výchozí SIMC τc = θ/2 místo θ (s prediktorem smí být regulátor rychlejší než běžné PID).
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 
