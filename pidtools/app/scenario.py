@@ -227,11 +227,37 @@ def stable(r):
     return bool(np.all(np.isfinite(r["PV"])) and np.abs(r["PV"]).max() < 1e5)
 
 
+def step_response(t, sp, pv, band=0.05):
+    """
+    Odezva na první změnu SP (cíl, ne rampu): doba do 90 % změny (t90, od změny SP), překmit [% změny] a doba
+    ustálení do ±band změny – vše jen do další změny SP. Bez změny SP / bez dosažení → None.
+    """
+    sp, pv, t = np.asarray(sp, float), np.asarray(pv, float), np.asarray(t, float)
+    ch = np.nonzero(np.abs(np.diff(sp)) > 1e-9)[0]
+    if not len(ch):
+        return None
+    i0 = ch[0] + 1
+    i1 = ch[1] + 1 if len(ch) > 1 else len(t)
+    s0, s1 = sp[i0 - 1], sp[i0]
+    d = s1 - s0
+    y = (pv[i0:i1] - s0) / d                          # 0 → 1 při dosažení nové hodnoty
+    tt = t[i0:i1] - t[i0 - 1]
+    if len(y) < 3 or not np.all(np.isfinite(y)):
+        return None
+    k90 = np.nonzero(y >= 0.9)[0]
+    out = np.nonzero(np.abs(y - 1) > band)[0]
+    settled = len(out) == 0 or out[-1] < len(y) - 1
+    return dict(t90=float(tt[k90[0]]) if len(k90) else None, over=float(max(0.0, (y.max() - 1) * 100)),
+                settle=(float(tt[out[-1] + 1]) if len(out) else 0.0) if settled else None, dsp=float(d))
+
+
 def kpis(r, pv_range, mv_range):
-    """Ukazatele odezvy: IAE [%·s], max. odchylka [PV], rozsah a dráha MV [MV], počet obratů ventilu."""
+    """Ukazatele odezvy: IAE [%·s], max. odchylka [PV], rozsah a dráha MV [MV], počet obratů ventilu; u změny SP
+    i doba do 90 % změny, překmit a ustálení (step_response)."""
     Pv, Mv, S_, V = r["PV"], r["MV"], r["SPr"], r["V"]
     dv = np.diff(V)
     return dict(iae=float(core.iae(r["t"], S_, Pv)), maxdev=float(np.abs(Pv - S_).max() * pv_range / 100),
                 mv_range=float((Mv.max() - Mv.min()) * mv_range / 100),
                 mv_travel=float(np.abs(np.diff(Mv)).sum() * mv_range / 100),
-                reversals=int(np.sum(np.diff(np.sign(dv[np.abs(dv) > 1e-9])) != 0)))
+                reversals=int(np.sum(np.diff(np.sign(dv[np.abs(dv) > 1e-9])) != 0)),
+                step=step_response(r["t"], r.get("SP", S_), Pv))

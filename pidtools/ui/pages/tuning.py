@@ -14,6 +14,7 @@ from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
 from ...app import tuning as tun
 from ...app.loop import block_ctrl, rule_ctrl, set_ctrl
+from ...app.timefmt import dur
 from ...i18n import T, TEXTS
 from .. import cache
 from .. import ff as ffmod
@@ -93,6 +94,13 @@ def _reset_editor(sdf_key, edkey):
 def _range_set(k):
     """Rozsah zadal uživatel (i 0–100 podle bloku v PLC) – odhad z dat ho už nepřepíše."""
     ss[f"{k}_rng_user"] = True
+
+
+def _step_cols(st_):
+    """Sloupce odezvy na změnu SP (doba do 90 %, překmit, ustálení) – prázdné bez změny SP ve scénáři."""
+    if not st_:
+        return {}
+    return {T("kpi_t90"): dur(st_["t90"]), T("kpi_over"): f"{st_['over']:.3g}", T("kpi_settle"): dur(st_["settle"])}
 
 
 def _norm_section(ctx):
@@ -610,7 +618,7 @@ def render(ctx):
                            T("kpi_maxdev", u=u_pv or "PV"): f"{k_['maxdev']:.4g}",
                            T("kpi_mvrange", u=u_mv or "MV"): f"{k_['mv_range']:.4g}",
                            T("kpi_mvtravel", u=u_mv or "MV"): f"{k_['mv_travel']:.4g}",
-                           T("kpi_rev"): k_["reversals"]})
+                           T("kpi_rev"): k_["reversals"], **_step_cols(k_.get("step"))})
             if ylo:            # ujíždějící průběh nepřebije osu (NormPV ± 25 %)
                 lo_, hi_ = sorted((float(EP(-25.0)), float(EP(125.0))))
                 a_, b_ = max(min(ylo + [float(np.nanmin(EP(spv)))]), lo_), min(max(yhi + [float(np.nanmax(EP(spv)))]), hi_)

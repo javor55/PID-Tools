@@ -20,6 +20,8 @@
   jakémkoli systému, nejen v šabloně PCS 7) se vzorci a volba metody návrhu regulátoru: SIMC (τc), Lambda / IMC (λ),
   robustní optimalizace (nejmenší IAE přes nominální model a modely s chybou zpoždění a zesílení) nebo ruční
   Gain / TI / TD. Výchozí SIMC τc = θ/2 místo θ (s prediktorem smí být regulátor rychlejší než běžné PID).
+- Ladění: tabulka ukazatelů ukazuje odezvu na změnu SP – dobu, než PV ujde 90 % změny, překmit a dobu ustálení
+  (±5 %), doby v s / min / h.
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 

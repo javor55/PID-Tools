@@ -12,6 +12,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QGridLayout, QLabel, QPushButton, QTableWidget,
                                QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
+from ...app.timefmt import dur
 from ...app.tuning import DEFAULT_METHOD
 from ...core import default_tc
 from ...i18n import T
@@ -566,13 +567,15 @@ class TuningTab(Workspace):
                 continue
             o, k = r["runs"][n], r["kpis"][n]
             if k is None:
-                rows.append([name, T("dk_unstable"), "", "", "", ""])
+                rows.append([name, T("dk_unstable"), "", "", "", "", "", "", ""])
                 continue
             dash = n == 1
             wd = 1.6 if n == "sug" else 2.0
             w.line(self.plots[0], o["t"], s.EP(o["PV"]), name, col, wd, dash=dash)
             w.line(self.plots[1], o["t"], s.EM(o["MV"]), f"MV {name}", col, wd - 0.4, dash=dash)
-            rows.append([name, k["iae"], k["maxdev"], k["mv_range"], k["mv_travel"], k["reversals"]])
+            st_ = k.get("step")
+            rows.append([name, k["iae"], k["maxdev"], k["mv_range"], k["mv_travel"], k["reversals"]] +
+                        ([dur(st_["t90"]), f"{st_['over']:.3g}", dur(st_["settle"])] if st_ else ["", "", ""]))
         shown = set()
         for k, o in r["extra"]:                  # citlivost, bez FF, varianty z nejistoty
             col, dash, name = {"new_err": (w.C_SET2, True, T("new_err")), "set2_noff": ("#9aa5b1", True, T("set2_noff")),
@@ -603,7 +606,8 @@ class TuningTab(Workspace):
         self.chart.fit_y(0, min(lo, hi), max(lo, hi))
         u_pv, u_mv = s.get("u_pv") or "PV", s.get("u_mv") or "MV"
         w.fill(self.kpi, [T("setting"), "IAE [%·s]", T("kpi_maxdev", u=u_pv), T("kpi_mvrange", u=u_mv),
-                          T("kpi_mvtravel", u=u_mv), T("kpi_rev")], rows)
+                          T("kpi_mvtravel", u=u_mv), T("kpi_rev"), T("kpi_t90"), T("kpi_over"), T("kpi_settle")], rows)
+        self.kpi.setToolTip(T("kpi_help"))
 
 
 class CompareDialog(QDialog):

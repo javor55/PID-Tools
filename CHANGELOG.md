@@ -21,6 +21,8 @@
   method: SIMC (τc), Lambda / IMC (λ), robust optimisation (smallest IAE over the nominal model and models with
   dead-time and gain errors) or manual Gain / TI / TD. Default SIMC τc = θ/2 instead of θ (with the predictor the
   controller can be faster than a normal PID).
+- Tuning: the KPI table shows the response to the SP change – time until PV covers 90 % of the change, overshoot
+  and settling time (±5 %), with durations in s / min / h.
 
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 

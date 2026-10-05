@@ -119,6 +119,7 @@ def test_window_full_flow(win):
     t.calculate()
     _wait(app)
     assert "Gain" in t.sug.text() and t.kpi.rowCount() == 3     # sady 1, 2 a návrh
+    assert t.kpi.columnCount() == 9 and t.kpi.item(0, 6).text().endswith(("s", "min", "–"))   # do 90 % změny SP
     assert t.freq.tab.rowCount() == 3                  # frekvenční analýza sad i návrhu
     t._write(2)
     _wait(app)
