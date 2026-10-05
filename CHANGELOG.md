@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Data: WinCC trend exports (UTF-16, `;`, pairs `X Time` / `X ValueY`) load; empty columns (unused trend curves)
+  are skipped and the signals are named after the curve (`PV_Out`, not `PV_Out ValueY`). Loading long records is
+  faster (time format detected on a sample, fast CSV parser when the separator is clear).
+- Web: long records (e.g. 24 h at 1 s) no longer make every interaction take 15+ s – the automatically found
+  segments are drawn into the chart at once (at most 40 shaded); charts thin out curves with gaps too.
+
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 
 **Beta:** for testing; please report problems.

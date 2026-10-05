@@ -1,5 +1,13 @@
 # Změny
 
+## Nevydáno
+
+- Data: načte se export trendu z WinCC (UTF-16, `;`, dvojice `X Time` / `X ValueY`); prázdné sloupce (nepoužité
+  křivky) se vynechají a veličiny se jmenují podle křivky (`PV_Out`, ne `PV_Out ValueY`). Dlouhé záznamy se načítají
+  rychleji (formát času se rozpozná na vzorku, rychlý parser CSV při jednoznačném oddělovači).
+- Web: u dlouhých záznamů (např. 24 h po 1 s) už každé kliknutí netrvá 15+ s – automaticky nalezené úseky se
+  do grafu vloží najednou (vyznačí se nejvýš 40); grafy zřeďují i průběhy s mezerami.
+
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 
 **Beta:** k testování; problémy prosím hlaste.
