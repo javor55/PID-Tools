@@ -31,10 +31,11 @@ def settle_time(model):
     return p[-1] + 4 * ((p[1] if code in ("P1D", "P2D", "I1D") else 0) + (p[2] if code == "P2D" else 0))
 
 
-def auto(t, mv, sp, Ts, has_sp, model=None, gap=None):
-    """Automaticky nalezené úseky (shluky skoků MV / SP): [{start, end, n_mv, n_sp, up, down}]."""
+def auto(t, mv, sp, Ts, has_sp, model=None, gap=None, pv=None):
+    """Automaticky nalezené úseky (shluky skoků MV / SP): [{start, end, n_mv, n_sp, up, down}]; pv = délka úseku
+    bez modelu podle odezvy PV."""
     return find_segments(t, mv, sp if has_sp else np.zeros_like(mv), Ts, has_sp, max_gap=gap or None,
-                         settle=settle_time(model))
+                         settle=settle_time(model), pv=pv)
 
 
 def format_args(ar):

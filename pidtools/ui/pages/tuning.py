@@ -90,6 +90,11 @@ def _reset_editor(sdf_key, edkey):
         ss.pop(k_, None)
 
 
+def _range_set(k):
+    """Rozsah zadal uživatel (i 0–100 podle bloku v PLC) – odhad z dat ho už nepřepíše."""
+    ss[f"{k}_rng_user"] = True
+
+
 def _norm_section(ctx):
     """
     Rozsah regulátoru NormPV / NormMV – nastavení bloku PIDConL (Gain je bezrozměrný: odchylka v % NormPV, MV v % NormMV).
@@ -98,10 +103,10 @@ def _norm_section(ctx):
     """
     st.markdown(f"**{T('sb_norm')}**", help=T("h_norm"))
     n = st.columns(2) + st.columns(2)            # 2 × 2 – do úzkého panelu se čtyři pole vedle sebe nevejdou
-    num("NormPV Low", "pv_lo", 0.0, n[0], help=T("h_normpv"))
-    num("NormPV High", "pv_hi", 100.0, n[1], help=T("h_normpv"))
-    num("NormMV Low", "mv_lo", 0.0, n[2], help=T("h_normmv"))
-    num("NormMV High", "mv_hi", 100.0, n[3], help=T("h_normmv"))
+    num("NormPV Low", "pv_lo", 0.0, n[0], help=T("h_normpv"), on_change=_range_set, args=("pv",))
+    num("NormPV High", "pv_hi", 100.0, n[1], help=T("h_normpv"), on_change=_range_set, args=("pv",))
+    num("NormMV Low", "mv_lo", 0.0, n[2], help=T("h_normmv"), on_change=_range_set, args=("mv",))
+    num("NormMV High", "mv_hi", 100.0, n[3], help=T("h_normmv"), on_change=_range_set, args=("mv",))
     if not ctx.norm_ok:
         st.error(T("err_range"), icon=":material/error:")
         return

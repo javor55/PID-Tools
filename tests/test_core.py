@@ -129,6 +129,27 @@ def test_diagnostics():
     assert len(segs) == 1 and segs[0]["n_mv"] == 6
 
 
+def test_segment_covers_delayed_response():
+    """Bez modelu úsek po skoku pokračuje, dokud PV nezareaguje (velké zpoždění), ne jen pár minut."""
+    h = 15.0
+    t = np.arange(0, 10 * 3600, h)
+    mv = 20.0 + 10 * (t >= 3600) + 5 * (t >= 3720) + 5 * (t >= 3840) - 20 * (t >= 7 * 3600)   # shluk skoků, pak zpět
+    pv = 50 + 0.5 * 20 * np.clip(1 - np.exp(-(t - 3600 - 4800) / 2000), 0, None) * (t >= 3600 + 4800)
+    pv = pv + np.random.default_rng(0).normal(0, 0.02, len(t))
+    short = core.find_segments(t, mv, np.zeros_like(mv), h, False)
+    segs = core.find_segments(t, mv, np.zeros_like(mv), h, False, pv=pv)
+    assert short[0]["end"] - 3600 < 4800                   # dřív: konec dřív, než PV vůbec zareaguje
+    assert segs[0]["end"] - 3600 > 4800 + 2000
+
+
+def test_range_guess_and_user_range():
+    from pidtools.app.loop import guess_range, range_for
+    assert guess_range([-0.004, 55.0]) == (0.0, 100.0)    # drobný přesah pod nulu je pořád 0–100 %
+    assert guess_range([125.0, 135.0]) == (0.0, 200.0)
+    assert range_for((0.0, 100.0), [125.0, 135.0]) == (0.0, 200.0)
+    assert range_for((0.0, 100.0), [125.0, 135.0], user=True) == (0.0, 100.0)
+
+
 def test_models_table_consistent():
     for code, m in MODELS.items():
         assert core.n_free(code) == len(m["params"]) - 1

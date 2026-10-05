@@ -166,7 +166,7 @@ def render_setup(ctx):
     for k_, x_ in (("pv", ctx.pv_e), ("mv", ctx.mv_e)):      # rozsah PIDConL podle dat, dokud ho nikdo nezadal
         cur_ = (ss.get(f"{k_}_lo", 0.0), ss.get(f"{k_}_hi", 100.0))
         try:
-            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = range_for(cur_, x_)
+            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = range_for(cur_, x_, bool(ss.get(f"{k_}_rng_user")))
         except (TypeError, ValueError):
             ss[f"{k_}_lo"], ss[f"{k_}_hi"] = DEFAULT_RANGE
     rng_ = [float(ss[k_]) for k_ in ("pv_lo", "pv_hi", "mv_lo", "mv_hi")]
@@ -280,7 +280,7 @@ def render(ctx):
             return segs_mod.quality(t, pv, mv, sp, Ts, has_sp, float(ctx.M(ctx.mvl_lo)), float(ctx.M(ctx.mvl_hi)), a, b,
                                     segs_mod.rep_frac(ctx.t_all, ctx.pv_raw, ctx.T0, a, b), qmodel)
 
-        segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"))
+        segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"), pv)
         sec_seg = section(ws.side, T("dk_sec_segment"), "mod_seg", icon=":material/straighten:")
         sec_auto = section(ws.side, T("auto_title", n=len(segs)), "mod_auto", expanded=False,
                            icon=":material/auto_awesome:")

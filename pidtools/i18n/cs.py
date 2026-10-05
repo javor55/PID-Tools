@@ -606,7 +606,7 @@ TEXTS = {
     'col_model': 'Model',
     'col_fit': 'Shoda',
     'units_note': 'Veličiny v % normovacích rozsahů: K v %/%, Ki v %/(%·s), Kd v % PV na jednotku poruchy (u integračních za sekundu). T1, T2, Tp, θ v sekundách. U integračních modelů se fituje i počáteční drift.',
-    'warn_long_T': '{m}: T1 je delší než celý úsek dat – proces se v tomto rozsahu chová prakticky jako integrační.',
+    'warn_long_T': '{m}: T1 je delší než celý úsek dat – proces se v tomto rozsahu chová prakticky jako integrační, nebo úsek tvoří hlavně poruchy a regulace v AUTO a model proces nepopisuje. Zkus kratší úsek kolem jednoho skoku SP nebo MV (automaticky nalezené úseky).',
     'warn_theta_max': '{m}: θ je na horní mezi – zvyš limit nebo zkontroluj data.',
     'edit_title': 'Model pro ladění',
     'model_for_tuning': 'Model',

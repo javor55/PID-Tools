@@ -7,6 +7,12 @@
   rychleji (formát času se rozpozná na vzorku, rychlý parser CSV při jednoznačném oddělovači).
 - Web: u dlouhých záznamů (např. 24 h po 1 s) už každé kliknutí netrvá 15+ s – automaticky nalezené úseky se
   do grafu vloží najednou (vyznačí se nejvýš 40); grafy zřeďují i průběhy s mezerami.
+- Rozsah regulátoru (NormPV / NormMV) zadaný v bloku PIDConL zůstane, i jako 0–100 při datech mimo něj (např. pro
+  srovnání s blokem v PLC); dřív ho odhad z dat přepsal. Data těsně mimo 0–100 (MV −0,004 %) už odhad nezmění
+  na −10–100.
+- Automaticky nalezené úseky: bez modelu úsek pokračuje, dokud PV na skok zřetelně nezareaguje (2,5× doba do odezvy);
+  při velkém zpoždění dřív skončil dřív, než se PV pohnulo. Varování „T1 delší než úsek“ upozorní i na úsek tvořený
+  hlavně poruchami a regulací v AUTO.
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 

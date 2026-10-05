@@ -688,3 +688,18 @@ def test_set1_check_and_estimate_desktop(win):
     assert w.state.get("set1_gain") < 0 < w.state.get("set1_ti") < 100
     assert "estimated from the record" in mt.mode_note.text()
     mt.mode.setCurrentIndex(mt.mode.findData("open"))
+
+
+def test_range_typed_by_user_is_kept_desktop(win):
+    """Rozsah zadaný v bloku PIDConL platí i jako 0–100 při datech mimo něj; dřív ho přepsal odhad z dat."""
+    app, w = win
+    from pidtools.desktop.project import Project
+    w.project = Project()
+    assert w.open_path(os.path.join(os.path.dirname(__file__), "data", "ff_example.csv"))
+    _wait(app)
+    s, f = w.state, w.pages[2].f
+    assert (s.mv_lo, s.mv_hi) == (0.0, 200.0)
+    f["mv_hi"].setValue(100.0)
+    _wait(app)
+    s.update_grid()
+    assert (s.mv_lo, s.mv_hi) == (0.0, 100.0) and s.get("mv_rng_user")

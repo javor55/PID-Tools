@@ -7,6 +7,12 @@
   faster (time format detected on a sample, fast CSV parser when the separator is clear).
 - Web: long records (e.g. 24 h at 1 s) no longer make every interaction take 15+ s – the automatically found
   segments are drawn into the chart at once (at most 40 shaded); charts thin out curves with gaps too.
+- Controller range (NormPV / NormMV) typed in the PIDConL block is kept, also 0–100 with data outside it (e.g. to
+  compare with the block in the PLC); before, an untouched-looking 0–100 was replaced by the guess from the data.
+  Data a hair outside 0–100 (MV −0.004 %) no longer turn the guess into −10–100.
+- Automatically found segments: without a model a segment now continues until PV has clearly responded to the step
+  (2.5× the time to the response); with a long dead time it used to end before PV moved. The warning "T1 longer than
+  the segment" also points to segments dominated by disturbances and control in AUTO.
 
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 

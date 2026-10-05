@@ -505,6 +505,17 @@ def test_scenario_sp_from_to():
     assert not any("lies outside the controller limits" in w.value for w in at.warning)
 
 
+def test_range_typed_by_user_is_kept():
+    """Rozsah zadaný v bloku (i 0–100 při datech mimo něj, např. podle PLC) odhad z dat nepřepíše."""
+    at = _ff_example_app()
+    assert (at.session_state["mv_lo"], at.session_state["mv_hi"]) == (0.0, 200.0)
+    at.number_input(key="mv_hi").set_value(100.0).run()
+    at.run()
+    assert not _errors(at)
+    assert (at.session_state["mv_lo"], at.session_state["mv_hi"]) == (0.0, 100.0)
+    assert at.session_state["mv_rng_user"]
+
+
 def test_opc_source_web():
     """Zdroj OPC UA (jen čtení): hledání tagů na testovacím serveru, historie → data aplikace."""
     pytest.importorskip("asyncua")

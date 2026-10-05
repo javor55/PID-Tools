@@ -12,7 +12,7 @@ import numpy as np
 
 PROJECT_VERSION = 2
 STATE_KEYS = [
-    "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h",
+    "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "pv_rng_user", "mv_rng_user", "plot_h",
     # blok PIDConL a sady parametrů
     "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
     "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",

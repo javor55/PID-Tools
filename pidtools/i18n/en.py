@@ -606,7 +606,7 @@ TEXTS = {
     'col_model': 'Model',
     'col_fit': 'Fit',
     'units_note': 'Values in % of the scaling ranges: K in %/%, Ki in %/(%·s), Kd in % PV per disturbance unit (per second for integrating models). T1, T2, Tp, θ in seconds. Integrating models also fit an initial drift.',
-    'warn_long_T': '{m}: T1 is longer than the whole data segment – in this range the process behaves practically as integrating.',
+    'warn_long_T': '{m}: T1 is longer than the whole data segment – in this range the process behaves practically as integrating, or the segment is mostly disturbances and control in AUTO and the model does not describe the process. Try a shorter segment around one SP or MV step (automatically found segments).',
     'warn_theta_max': '{m}: θ is at the upper limit – raise the limit or check the data.',
     'edit_title': 'Model for tuning',
     'model_for_tuning': 'Model',

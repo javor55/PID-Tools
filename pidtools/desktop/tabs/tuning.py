@@ -445,6 +445,9 @@ class TuningTab(Workspace):
         if self._busy:
             return
         s = self.s
+        for k in ("pv", "mv"):           # ručně zadaný rozsah (i 0–100) už odhad z dat nepřepíše
+            if any(self.f[f"{k}_{e}"].value() != s.get(f"{k}_{e}") for e in ("lo", "hi")):
+                s.settings[f"{k}_rng_user"] = True
         s.set(**{k: sp.value() for k, sp in self.f.items()}, dfb=self.dfb.isChecked(), db_mode=self.db_mode.currentData())
         if s.rescale_if_needed():
             self.win.status(T("norm_rescaled"))
