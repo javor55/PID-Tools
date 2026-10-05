@@ -7,6 +7,7 @@ zadává uživatel, jsou v inženýrských jednotkách.
 import numpy as np
 
 DEFAULT_RANGE = (0.0, 100.0)
+RANGE_TOL = 0.5          # přesah dat přes 0–100, který ještě nevede na jiný odhad rozsahu
 
 
 def _nice(x):
@@ -28,7 +29,7 @@ def guess_range(x):
     if not len(x):
         return DEFAULT_RANGE
     lo, hi = float(x.min()), float(x.max())
-    if lo >= 0 and hi <= 100:
+    if lo >= -RANGE_TOL and hi <= 100 + RANGE_TOL:      # drobné přesahy (MV −0,004 %) jsou pořád procenta
         return DEFAULT_RANGE
     span = max(hi - lo, abs(hi), abs(lo)) * 0.1
     a = 0.0 if lo >= 0 else -_nice(-(lo - span))
@@ -36,10 +37,13 @@ def guess_range(x):
     return (a, b) if b > a else (lo - 1.0, hi + 1.0)
 
 
-def range_for(cur, x):
-    """Rozsah, který se má použít: zadaný (cur), pokud to není nedotčený výchozí 0–100 s daty mimo něj."""
+def range_for(cur, x, user=False):
+    """
+    Rozsah, který se má použít: zadaný (cur), pokud to není nedotčený výchozí 0–100 s daty mimo něj. user = rozsah
+    zadal uživatel (i 0–100, např. podle bloku v PLC) – pak platí vždy, i když data leží mimo něj.
+    """
     cur = (float(cur[0]), float(cur[1]))
-    if cur != DEFAULT_RANGE:
+    if user or cur != DEFAULT_RANGE:
         return cur
     return guess_range(x)
 

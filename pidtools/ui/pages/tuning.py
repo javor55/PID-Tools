@@ -14,6 +14,7 @@ from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
 from ...app import tuning as tun
 from ...app.loop import block_ctrl, rule_ctrl, set_ctrl
+from ...app.timefmt import auto_unit, dur
 from ...i18n import T, TEXTS
 from .. import cache
 from .. import ff as ffmod
@@ -90,6 +91,23 @@ def _reset_editor(sdf_key, edkey):
         ss.pop(k_, None)
 
 
+def _range_set(k):
+    """Rozsah zadal uživatel (i 0–100 podle bloku v PLC) – odhad z dat ho už nepřepíše."""
+    ss[f"{k}_rng_user"] = True
+
+
+def _sim_unit_set():
+    """Jednotku délky simulace zvolil uživatel – dál se nemění podle délky."""
+    ss["sim_len_u_set"] = True
+
+
+def _step_cols(st_):
+    """Sloupce odezvy na změnu SP (doba do 90 %, překmit, ustálení) – prázdné bez změny SP ve scénáři."""
+    if not st_:
+        return {}
+    return {T("kpi_t90"): dur(st_["t90"]), T("kpi_over"): f"{st_['over']:.3g}", T("kpi_settle"): dur(st_["settle"])}
+
+
 def _norm_section(ctx):
     """
     Rozsah regulátoru NormPV / NormMV – nastavení bloku PIDConL (Gain je bezrozměrný: odchylka v % NormPV, MV v % NormMV).
@@ -98,17 +116,18 @@ def _norm_section(ctx):
     """
     st.markdown(f"**{T('sb_norm')}**", help=T("h_norm"))
     n = st.columns(2) + st.columns(2)            # 2 × 2 – do úzkého panelu se čtyři pole vedle sebe nevejdou
-    num("NormPV Low", "pv_lo", 0.0, n[0], help=T("h_normpv"))
-    num("NormPV High", "pv_hi", 100.0, n[1], help=T("h_normpv"))
-    num("NormMV Low", "mv_lo", 0.0, n[2], help=T("h_normmv"))
-    num("NormMV High", "mv_hi", 100.0, n[3], help=T("h_normmv"))
+    num("NormPV Low", "pv_lo", 0.0, n[0], help=T("h_normpv"), on_change=_range_set, args=("pv",))
+    num("NormPV High", "pv_hi", 100.0, n[1], help=T("h_normpv"), on_change=_range_set, args=("pv",))
+    num("NormMV Low", "mv_lo", 0.0, n[2], help=T("h_normmv"), on_change=_range_set, args=("mv",))
+    num("NormMV High", "mv_hi", 100.0, n[3], help=T("h_normmv"), on_change=_range_set, args=("mv",))
     if not ctx.norm_ok:
         st.error(T("err_range"), icon=":material/error:")
         return
     pmin, pmax = float(np.nanmin(ctx.pv_e)), float(np.nanmax(ctx.pv_e))
     mmin, mmax = float(np.nanmin(ctx.mv_e)), float(np.nanmax(ctx.mv_e))
     top = ctx.tun.top            # upozornění i při sbaleném bloku
-    if pmin < ctx.pv_lo or pmax > ctx.pv_hi or mmin < ctx.mv_lo or mmax > ctx.mv_hi:
+    tp, tm = 0.005 * ctx.PR, 0.005 * ctx.MR    # drobný přesah (MV −0,004 %) není chyba rozsahu
+    if pmin < ctx.pv_lo - tp or pmax > ctx.pv_hi + tp or mmin < ctx.mv_lo - tm or mmax > ctx.mv_hi + tm:
         top.warning(T("norm_out", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"), icon=":material/warning:")
     else:
         st.caption(T("blk_data_note", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"))
@@ -390,17 +409,19 @@ def render(ctx):
                 sp_data = float(EP(np.nanmedian(sp[sel_mask]) if has_sp else pv_id[0]))
                 if kind != "replay":
                     sim_l1, sim_l2 = st.columns([1.4, 1], vertical_alignment="bottom")
-                    T_end_unit = sel(sim_l2, T("time_unit"), ["s", "min", "h"], 0, "sim_len_u")
-                    mult = {"s": 1.0, "min": 60.0, "h": 3600.0}[T_end_unit]
-                    if "sim_len_auto" not in ss:
-                        ss["sim_len_auto"] = True
-                    auto_len = st.toggle(T("sim_len_auto"), key="sim_len_auto", help=T("h_sim_len_auto"))
                     # i návrh (sady mohou mít ještě výchozí hodnoty) – SIMC, ne zvolená metoda: optimalizace na scénáři
                     # závisí na délce simulace a délka na jejím výsledku by se navzájem posouvaly (optimalizace stále znovu)
                     r_ = tune(mcode, p, "SIMC", default_tc(mcode, p, samp, "SIMC", ctype, diffgain), ctype, samp)
                     prop_ctrl = rule_ctrl(base_ctrl, r_)
                     t_auto, auto_src = scenario.auto_length(mcode, p, (set1_ctrl, set2_ctrl, prop_ctrl), T_char, samp, ts_id,
                                                              settling=cache.settling_time)
+                    if not ss.get("sim_len_u_set"):   # dokud ji uživatel nezvolí: s u rychlých procesů, min / h u pomalých
+                        ss["sim_len_u"] = auto_unit(t_auto)
+                    T_end_unit = sel(sim_l2, T("time_unit"), ["s", "min", "h"], 0, "sim_len_u", on_change=_sim_unit_set)
+                    mult = {"s": 1.0, "min": 60.0, "h": 3600.0}[T_end_unit]
+                    if "sim_len_auto" not in ss:
+                        ss["sim_len_auto"] = True
+                    auto_len = st.toggle(T("sim_len_auto"), key="sim_len_auto", help=T("h_sim_len_auto"))
                     tend_key = f"tend_r|{mcode}"
                     if auto_len or tend_key not in ss:
                         ss[tend_key] = float(f"{t_auto / mult:.4g}")
@@ -605,7 +626,7 @@ def render(ctx):
                            T("kpi_maxdev", u=u_pv or "PV"): f"{k_['maxdev']:.4g}",
                            T("kpi_mvrange", u=u_mv or "MV"): f"{k_['mv_range']:.4g}",
                            T("kpi_mvtravel", u=u_mv or "MV"): f"{k_['mv_travel']:.4g}",
-                           T("kpi_rev"): k_["reversals"]})
+                           T("kpi_rev"): k_["reversals"], **_step_cols(k_.get("step"))})
             if ylo:            # ujíždějící průběh nepřebije osu (NormPV ± 25 %)
                 lo_, hi_ = sorted((float(EP(-25.0)), float(EP(125.0))))
                 a_, b_ = max(min(ylo + [float(np.nanmin(EP(spv)))]), lo_), min(max(yhi + [float(np.nanmax(EP(spv)))]), hi_)

@@ -119,6 +119,7 @@ def test_window_full_flow(win):
     t.calculate()
     _wait(app)
     assert "Gain" in t.sug.text() and t.kpi.rowCount() == 3     # sady 1, 2 a návrh
+    assert t.kpi.columnCount() == 9 and t.kpi.item(0, 6).text().endswith(("s", "min", "–"))   # do 90 % změny SP
     assert t.freq.tab.rowCount() == 3                  # frekvenční analýza sad i návrhu
     t._write(2)
     _wait(app)
@@ -213,6 +214,16 @@ def test_window_live_and_apc(win):
         app.processEvents()
     _wait(app)
     assert apc.panels[4].kpi.rowCount() == 2          # Smith: PID a prediktor
+    sm = apc.panels[4]
+    if not sm.vals.rowCount():                         # demo je hladina (integrační) – tabulky jen u P1D
+        w.state.set(mcode="P1D")
+        sm.refresh()
+    assert sm.gen.rowCount() >= 9 and "Based on" in sm.basis.text()
+    for m in ("Lambda", "manual", "OPT", "SIMC"):
+        sm.method.setCurrentIndex(sm.method.findData(m))
+        app.processEvents()
+        assert sm.kpi.rowCount() == 2 and sm.vals.rowCount() >= 6
+        assert sm.tc.isHidden() != (m in ("SIMC", "Lambda")) and sm.mg.isHidden() != (m == "manual")
     assert apc.panels[1].kpi.rowCount() == 3          # dopředná vazba: bez, statická, dynamická
 
 
@@ -688,3 +699,64 @@ def test_set1_check_and_estimate_desktop(win):
     assert w.state.get("set1_gain") < 0 < w.state.get("set1_ti") < 100
     assert "estimated from the record" in mt.mode_note.text()
     mt.mode.setCurrentIndex(mt.mode.findData("open"))
+
+
+def test_range_typed_by_user_is_kept_desktop(win):
+    """Rozsah zadaný v bloku PIDConL platí i jako 0–100 při datech mimo něj; dřív ho přepsal odhad z dat."""
+    app, w = win
+    from pidtools.desktop.project import Project
+    w.project = Project()
+    assert w.open_path(os.path.join(os.path.dirname(__file__), "data", "ff_example.csv"))
+    _wait(app)
+    s, f = w.state, w.pages[2].f
+    assert (s.mv_lo, s.mv_hi) == (0.0, 200.0)
+    f["mv_hi"].setValue(100.0)
+    _wait(app)
+    s.update_grid()
+    assert (s.mv_lo, s.mv_hi) == (0.0, 100.0) and s.get("mv_rng_user")
+
+
+def test_chart_time_axis_and_measure(win):
+    """Časová osa grafů v s / min / h (auto podle úseku, volba platí pro všechny grafy) a Δt měřicích kurzorů."""
+    app, _ = win
+    from pidtools.desktop import chartbox
+    from pidtools.desktop import widgets as w
+    from pidtools.i18n import T
+    box, pl = w.stack(2, ["PV", "MV"], T("time_s"))
+    t = np.arange(0, 84000, 15.0)
+    w.line(pl[0], t, np.sin(t / 5000), "PV")
+    box.resize(900, 500)
+    box.show()
+    box.full_range()
+    app.processEvents()
+    ax = pl[1].getAxis("bottom")
+    assert ax.unit() == "h" and ax.labelText.endswith("[h]")
+    box.b_meas.setChecked(True)
+    assert " h" in box.readout.text() and "Δt = " in box.readout.text()
+    chartbox.set_time_unit("min")
+    app.processEvents()
+    assert ax.labelText.endswith("[min]") and box.tunit.currentData() == "min"
+    chartbox.set_time_unit("auto")
+    box.close()
+
+
+def test_sim_length_units_desktop(win):
+    """Délka simulace v s / min / h jako ve webu: přepnutí jednotky zachová délku, ruční délka se použije."""
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    t = w.pages[2]
+    t.calculate()
+    _wait(app)
+    sec = t._t_end_s()
+    t.t_unit.setCurrentIndex(t.t_unit.findData("min"))
+    assert t._t_end_s() == pytest.approx(sec, rel=1e-3) and w.state.get("sim_len_u") == "min"
+    t.auto_len.setChecked(False)
+    t.t_end.setValue(30.0)                               # 30 min
+    t.calculate()
+    _wait(app)
+    assert t._result["T_end"] == pytest.approx(1800.0)
+    t.auto_len.setChecked(True)
+    t.t_unit.setCurrentIndex(t.t_unit.findData("s"))

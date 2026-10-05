@@ -115,7 +115,8 @@ def test_apc_smith_gainsched_ff():
     sc = _Loop()
     v, r, rows = smith.values("P1D", [1.0, 20.0, 40.0], sc, 50.0, 40.0, "PI", None, 1.0, "°C", "%")
     assert v["theta"] == pytest.approx(40.0) and r["Kc"] > 0 and rows[0][0].startswith("SmithModelTimLag")
-    assert smith.tc0([1.0, 20.0, 40.0], 1.0) == 40.0
+    assert smith.tc0([1.0, 20.0, 40.0], 1.0) == 20.0                # θ/2: prediktor smí být rychlejší než PID
+    assert smith.tc_default([1.0, 20.0, 40.0], 1.0, "Lambda") == 20.0  # λ = součet časových konstant
     old = gainsched.key("P1D", [(0.0, 10.0)], (0.0, 100.0, 0.0, 100.0))
     new = gainsched.key("P1D", [(0.0, 10.0)], (0.0, 200.0, 0.0, 100.0))
     pts = gainsched.rescale(old, new, [[50.0, 40.0, 95.0, 2.0, 10.0, 1.0]])
@@ -269,3 +270,20 @@ def test_closed_loop_identification():
     rc = cl.identify("P1D", [r0["p"][0] * 0.7, r0["p"][1] * 1.4, r0["p"][2]], [], t, sp, pv, mv, [], 1.0, ctrl)
     assert rc["p"][0] == pytest.approx(1.5, rel=0.03) and rc["p"][1] == pytest.approx(40, rel=0.05)
     assert rc["fit_pv"] > 98 and rc["fit_mv"] > 97
+
+
+def test_step_response_and_durations():
+    """Ukazatele odezvy na změnu SP (do 90 %, překmit, ustálení) a čitelné doby."""
+    from pidtools.app import scenario
+    from pidtools.app.timefmt import auto_unit, dur
+    t = np.arange(0, 2000.0)
+    sp = np.where(t >= 100, 60.0, 50.0)
+    y = np.where(t >= 300, 1 - np.exp(-(t - 300) / 100) * (1 - 0.2 * np.sin((t - 300) / 60)), 0.0)
+    r = scenario.step_response(t, sp, 50 + 10 * y)
+    assert r["t90"] == pytest.approx(200 + 100 * np.log(10), abs=60) and r["over"] >= 0
+    assert r["settle"] is not None and r["settle"] > r["t90"]
+    assert scenario.step_response(t, np.full_like(t, 50.0), t) is None
+    slow = scenario.step_response(t, sp, 50 + 0.5 * (t >= 100))            # nedosáhne 90 % → None
+    assert slow["t90"] is None and slow["settle"] is None
+    assert dur(45) == "45 s" and dur(750) == "12.5 min" and dur(9000) == "2 h 30 min" and dur(None) == "–"
+    assert (auto_unit(600), auto_unit(5 * 3600), auto_unit(3 * 86400)) == ("s", "min", "h")

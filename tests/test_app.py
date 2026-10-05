@@ -324,6 +324,19 @@ def test_smith_template_values():
     assert vals["SmithModelGain (Mul04).In2"] == pytest.approx(k * 2.0, rel=1e-3)
     assert {"SmithModelTimLag (Lag).LagTime", "SmithModelDeadti (DeadTime).DeadTime", "PV0 (Add04).In2",
             "PIDConL.Gain", "PIDConL.TI"} <= set(vals)
+    assert any("Based on:" in c.value for c in app.caption)                  # z čeho výpočet vychází
+    gen = next(d.value for d in app.dataframe if len(d.value) and "Dead time θ" in d.value.iloc[:, 0].values)
+    assert len(gen) >= 9
+    app.session_state["apc_sm_method"] = "manual"         # ruční regulátor → přímo do šablony
+    app.session_state["apc_sm_mg"], app.session_state["apc_sm_mti"] = 0.7, 33.0
+    app.run()
+    assert not _errors(app)
+    tab = next(d.value for d in app.dataframe if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
+    vals = dict(zip(tab.iloc[:, 0] + "." + tab.iloc[:, 1], tab.iloc[:, 2]))
+    assert vals["PIDConL.Gain"] == pytest.approx(0.7) and vals["PIDConL.TI"] == pytest.approx(33.0)
+    app.session_state["apc_sm_method"] = "OPT"
+    app.run()
+    assert not _errors(app)
 
 
 def _nonlinear_data():
@@ -505,6 +518,17 @@ def test_scenario_sp_from_to():
     assert not any("lies outside the controller limits" in w.value for w in at.warning)
 
 
+def test_range_typed_by_user_is_kept():
+    """Rozsah zadaný v bloku (i 0–100 při datech mimo něj, např. podle PLC) odhad z dat nepřepíše."""
+    at = _ff_example_app()
+    assert (at.session_state["mv_lo"], at.session_state["mv_hi"]) == (0.0, 200.0)
+    at.number_input(key="mv_hi").set_value(100.0).run()
+    at.run()
+    assert not _errors(at)
+    assert (at.session_state["mv_lo"], at.session_state["mv_hi"]) == (0.0, 100.0)
+    assert at.session_state["mv_rng_user"]
+
+
 def test_opc_source_web():
     """Zdroj OPC UA (jen čtení): hledání tagů na testovacím serveru, historie → data aplikace."""
     pytest.importorskip("asyncua")
@@ -564,3 +588,31 @@ def test_set1_check_and_estimate_web():
     assert not _errors(at)
     assert at.session_state["set1_gain"] < 0 < at.session_state["set1_ti"] < 100
     assert any("estimated from the record" in i.value for i in at.info)
+
+
+def test_time_charts_marked_for_chart_tools():
+    """Grafy s časem na ose x dostanou značku pro chart_tools.js (popisky v min / h, měření)."""
+    import plotly.graph_objects as go
+    from pidtools.i18n import T
+    from pidtools.ui.charts import _mark_time
+    f = go.Figure(go.Scatter(x=[0, 1], y=[0, 1]))
+    f.update_xaxes(title_text=T("time_s"))
+    _mark_time(f)
+    assert f.layout.meta["pt"]["time"]
+    g = go.Figure(go.Scatter(x=[0, 1], y=[0, 1]))
+    g.update_xaxes(title_text="MV [%]")
+    _mark_time(g)
+    assert g.layout.meta is None
+
+
+def test_sim_length_unit_follows_process_speed():
+    """Jednotka délky simulace: dokud ji uživatel nezvolí, podle délky (rychlý proces → s); zvolená zůstane."""
+    at = _ff_example_app()
+    assert not _errors(at)
+    from pidtools.app.timefmt import auto_unit
+    tend = next(at.session_state[k] for k in at.session_state if str(k).startswith("tend_r|"))
+    u = at.session_state["sim_len_u"]
+    assert u == auto_unit(tend * {"s": 1, "min": 60, "h": 3600}[u])
+    at.selectbox(key="sim_len_u").set_value("h").run()
+    at.run()
+    assert at.session_state["sim_len_u"] == "h" and at.session_state["sim_len_u_set"]

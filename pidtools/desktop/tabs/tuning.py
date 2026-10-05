@@ -12,6 +12,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QGridLayout, QLabel, QPushButton, QTableWidget,
                                QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
+from ...app.timefmt import dur
 from ...app.tuning import DEFAULT_METHOD
 from ...core import default_tc
 from ...i18n import T
@@ -101,13 +102,16 @@ class TuningTab(Workspace):
         self.d_in, self.d_pv = w.spin(1.0, -1e12, 1e12, 4), w.spin(1.0, -1e12, 1e12, 4)
         self.auto_len = QCheckBox(T("dk_sim_auto"))
         self.auto_len.setChecked(True)
-        self.t_end = w.spin(1000.0, 1.0, 1e9, 1)
+        self.t_end = w.spin(1000.0, 1e-3, 1e9, 4)
+        w.tip(self.t_end, "h_sim_len")
+        self.t_unit = w.combo(["s", "min", "h"])           # jednotka délky simulace (jako ve webu)
+        self.t_unit.currentIndexChanged.connect(self._t_unit_changed)
         b_ev = QPushButton(T("dk_scen_edit"))
         b_ev.clicked.connect(self._edit_scenario)
         self.lab_sp0, self.lab_sp1 = QLabel(T("sim_sp_from", u="PV")), QLabel(T("sim_sp_to", u="PV"))
         self.lab_din, self.lab_dpv = QLabel(T("dk_sc_d_in", u="MV")), QLabel(T("dk_sc_d_pv", u="PV"))
         self.scen_form = w.form([(T("dk_sc_kind"), self.kind), (self.lab_sp0, self.sp0), (self.lab_sp1, self.sp1),
-                                 (self.lab_din, self.d_in), (self.lab_dpv, self.d_pv), (T("sim_len"), self.t_end),
+                                 (self.lab_din, self.d_in), (self.lab_dpv, self.d_pv), (T("sim_len"), w.hbox(self.t_end, self.t_unit, stretch=False)),
                                  ("", self.auto_len), ("", b_ev)])
         self.scen_note = caption("")
         self.len_src = caption("")
@@ -223,6 +227,13 @@ class TuningTab(Workspace):
                     v = s.mv_lo if k == "mvl_lo" else s.mv_hi
                 sp.setValue(float(v))
             self.dfb.setChecked(bool(s.get("dfb")))
+            u = s.get("sim_len_u", "s")
+            if self.t_unit.currentData() != u and self.t_unit.findData(u) >= 0:
+                sec = self._t_end_s()
+                self.t_unit.blockSignals(True)
+                self.t_unit.setCurrentIndex(self.t_unit.findData(u))
+                self.t_unit.blockSignals(False)
+                self._set_t_end(sec)
             g = s.grid
             self.block_note.setText(T("blk_data_note", pv=f"{np.nanmin(g.pv_e):.4g}–{np.nanmax(g.pv_e):.4g}",
                                       mv=f"{np.nanmin(g.mv_e):.4g}–{np.nanmax(g.mv_e):.4g}"))
@@ -445,6 +456,9 @@ class TuningTab(Workspace):
         if self._busy:
             return
         s = self.s
+        for k in ("pv", "mv"):           # ručně zadaný rozsah (i 0–100) už odhad z dat nepřepíše
+            if any(self.f[f"{k}_{e}"].value() != s.get(f"{k}_{e}") for e in ("lo", "hi")):
+                s.settings[f"{k}_rng_user"] = True
         s.set(**{k: sp.value() for k, sp in self.f.items()}, dfb=self.dfb.isChecked(), db_mode=self.db_mode.currentData())
         if s.rescale_if_needed():
             self.win.status(T("norm_rescaled"))
@@ -516,7 +530,7 @@ class TuningTab(Workspace):
         s = self.s
         if s.model is None:
             return
-        T_end = self.t_end.value()
+        T_end = self._t_end_s()
         dlg = ScenarioDialog(self, s, s.scen_rows(T_end), T_end)
         if dlg.exec() == QDialog.Accepted:
             s.set_scen_rows(dlg.rows(), T_end)
@@ -527,6 +541,25 @@ class TuningTab(Workspace):
             self._busy = False
             self._scen_fields()
             self._dirty()
+
+    # ---- délka simulace v s / min / h (v nastavení „sim_len_u“ jako ve webu)
+    _MULT = {"s": 1.0, "min": 60.0, "h": 3600.0}
+
+    def _t_mult(self):
+        return self._MULT.get(self.t_unit.currentData(), 1.0)
+
+    def _t_end_s(self):
+        return self.t_end.value() * self._t_mult()
+
+    def _set_t_end(self, sec):
+        self.t_end.setValue(float(f"{sec / self._t_mult():.4g}"))
+
+    def _t_unit_changed(self, *_):
+        sec = self.t_end.value() * self._MULT.get(self.s.get("sim_len_u", "s"), 1.0)
+        self.s.set(sim_len_u=self.t_unit.currentData(), sim_len_u_set=True)   # zvolil uživatel → dál pevně
+        busy, self._busy = self._busy, True
+        self._set_t_end(sec)
+        self._busy = busy
 
     def _scenario_changed(self, *_):
         if self._busy:
@@ -547,12 +580,19 @@ class TuningTab(Workspace):
         s = self.s
         if s.model is None:
             return
-        r = s.simulate(None if self.auto_len.isChecked() else self.t_end.value(), self.c_robust.isChecked(),
+        r = s.simulate(None if self.auto_len.isChecked() else self._t_end_s(), self.c_robust.isChecked(),
                        self.c_spread.isChecked(), self.c_ffcmp.isChecked(), preview=self._last)
         r["model"] = s.model
         self._result = r
         self._busy = True
-        self.t_end.setValue(r["T_end"])
+        if not s.get("sim_len_u_set"):           # jednotka podle délky: s u rychlých procesů, min / h u pomalých
+            from ...app.timefmt import auto_unit
+            u = auto_unit(r["T_end"])
+            s.set(sim_len_u=u)
+            self.t_unit.blockSignals(True)
+            self.t_unit.setCurrentIndex(self.t_unit.findData(u))
+            self.t_unit.blockSignals(False)
+        self._set_t_end(r["T_end"])
         self._busy = False
         self.len_src.setText(T("sim_len_src_" + r["src"]) if r["src"] != "manual" else "")
         self.chart.clear()
@@ -563,13 +603,15 @@ class TuningTab(Workspace):
                 continue
             o, k = r["runs"][n], r["kpis"][n]
             if k is None:
-                rows.append([name, T("dk_unstable"), "", "", "", ""])
+                rows.append([name, T("dk_unstable"), "", "", "", "", "", "", ""])
                 continue
             dash = n == 1
             wd = 1.6 if n == "sug" else 2.0
             w.line(self.plots[0], o["t"], s.EP(o["PV"]), name, col, wd, dash=dash)
             w.line(self.plots[1], o["t"], s.EM(o["MV"]), f"MV {name}", col, wd - 0.4, dash=dash)
-            rows.append([name, k["iae"], k["maxdev"], k["mv_range"], k["mv_travel"], k["reversals"]])
+            st_ = k.get("step")
+            rows.append([name, k["iae"], k["maxdev"], k["mv_range"], k["mv_travel"], k["reversals"]] +
+                        ([dur(st_["t90"]), f"{st_['over']:.3g}", dur(st_["settle"])] if st_ else ["", "", ""]))
         shown = set()
         for k, o in r["extra"]:                  # citlivost, bez FF, varianty z nejistoty
             col, dash, name = {"new_err": (w.C_SET2, True, T("new_err")), "set2_noff": ("#9aa5b1", True, T("set2_noff")),
@@ -600,7 +642,8 @@ class TuningTab(Workspace):
         self.chart.fit_y(0, min(lo, hi), max(lo, hi))
         u_pv, u_mv = s.get("u_pv") or "PV", s.get("u_mv") or "MV"
         w.fill(self.kpi, [T("setting"), "IAE [%·s]", T("kpi_maxdev", u=u_pv), T("kpi_mvrange", u=u_mv),
-                          T("kpi_mvtravel", u=u_mv), T("kpi_rev")], rows)
+                          T("kpi_mvtravel", u=u_mv), T("kpi_rev"), T("kpi_t90"), T("kpi_over"), T("kpi_settle")], rows)
+        self.kpi.setToolTip(T("kpi_help"))
 
 
 class CompareDialog(QDialog):

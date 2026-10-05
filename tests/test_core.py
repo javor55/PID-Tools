@@ -129,6 +129,27 @@ def test_diagnostics():
     assert len(segs) == 1 and segs[0]["n_mv"] == 6
 
 
+def test_segment_covers_delayed_response():
+    """Bez modelu úsek po skoku pokračuje, dokud PV nezareaguje (velké zpoždění), ne jen pár minut."""
+    h = 15.0
+    t = np.arange(0, 10 * 3600, h)
+    mv = 20.0 + 10 * (t >= 3600) + 5 * (t >= 3720) + 5 * (t >= 3840) - 20 * (t >= 7 * 3600)   # shluk skoků, pak zpět
+    pv = 50 + 0.5 * 20 * np.clip(1 - np.exp(-(t - 3600 - 4800) / 2000), 0, None) * (t >= 3600 + 4800)
+    pv = pv + np.random.default_rng(0).normal(0, 0.02, len(t))
+    short = core.find_segments(t, mv, np.zeros_like(mv), h, False)
+    segs = core.find_segments(t, mv, np.zeros_like(mv), h, False, pv=pv)
+    assert short[0]["end"] - 3600 < 4800                   # dřív: konec dřív, než PV vůbec zareaguje
+    assert segs[0]["end"] - 3600 > 4800 + 2000
+
+
+def test_range_guess_and_user_range():
+    from pidtools.app.loop import guess_range, range_for
+    assert guess_range([-0.004, 55.0]) == (0.0, 100.0)    # drobný přesah pod nulu je pořád 0–100 %
+    assert guess_range([125.0, 135.0]) == (0.0, 200.0)
+    assert range_for((0.0, 100.0), [125.0, 135.0]) == (0.0, 200.0)
+    assert range_for((0.0, 100.0), [125.0, 135.0], user=True) == (0.0, 100.0)
+
+
 def test_models_table_consistent():
     for code, m in MODELS.items():
         assert core.n_free(code) == len(m["params"]) - 1
@@ -181,3 +202,13 @@ def test_propfacsp_setpoint_weight():
     e_sp = [core.closed_loop_steps("P1D", p, dict(ctrl, PropFacSP=b), 1.0, 300)[0] for b in (0.0, 0.5, 1.0)]
     assert e_sp[0][5] > e_sp[1][5] > e_sp[2][5]        # menší váha SP → pomalejší náběh PV, větší odchylka
     assert core.propfac(dict(PropFbk=True)) == 0.0 and core.propfac({}) == 1.0
+
+
+def test_quality_mv_near_limit():
+    """MV saturovaná na 0 z historianu (0,00 … 0,2 %) se počítá jako MV na limitu."""
+    h = 15.0
+    t = np.arange(0, 4 * 3600, h)
+    mv = np.where(t < 3600, 30.0, np.where(t < 2.5 * 3600, 0.1 + 0.08 * np.sin(t / 300), 20.0))
+    pv = 50 + 0.01 * np.cumsum(mv - 20) / 100
+    q = core.data_quality(t, pv, mv, np.zeros_like(mv), h, False, 0.0, 100.0)
+    assert any(c[0] in ("q_lim_warn", "q_lim_bad") for c in q["checks"])

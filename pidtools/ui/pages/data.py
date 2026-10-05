@@ -19,6 +19,7 @@ from ...app import segments as segs_mod
 from ...app.dataset import DEMO_DISTS, default_layout, stats
 from ...app.guess import guess_roles
 from ...app.loop import DEFAULT_RANGE, range_for
+from ...app.timefmt import dur, fmt_t, unit_for
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
 from ..widgets import num, sel, seg
@@ -166,7 +167,7 @@ def render_setup(ctx):
     for k_, x_ in (("pv", ctx.pv_e), ("mv", ctx.mv_e)):      # rozsah PIDConL podle dat, dokud ho nikdo nezadal
         cur_ = (ss.get(f"{k_}_lo", 0.0), ss.get(f"{k_}_hi", 100.0))
         try:
-            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = range_for(cur_, x_)
+            ss[f"{k_}_lo"], ss[f"{k_}_hi"] = range_for(cur_, x_, bool(ss.get(f"{k_}_rng_user")))
         except (TypeError, ValueError):
             ss[f"{k_}_lo"], ss[f"{k_}_hi"] = DEFAULT_RANGE
     rng_ = [float(ss[k_]) for k_ in ("pv_lo", "pv_hi", "mv_lo", "mv_hi")]
@@ -280,7 +281,7 @@ def render(ctx):
             return segs_mod.quality(t, pv, mv, sp, Ts, has_sp, float(ctx.M(ctx.mvl_lo)), float(ctx.M(ctx.mvl_hi)), a, b,
                                     segs_mod.rep_frac(ctx.t_all, ctx.pv_raw, ctx.T0, a, b), qmodel)
 
-        segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"))
+        segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"), pv)
         sec_seg = section(ws.side, T("dk_sec_segment"), "mod_seg", icon=":material/straighten:")
         sec_auto = section(ws.side, T("auto_title", n=len(segs)), "mod_auto", expanded=False,
                            icon=":material/auto_awesome:")
@@ -291,6 +292,8 @@ def render(ctx):
         with sec_seg:
             st.caption(T("seg_intro"))
             rng = st.slider(T("seg_id"), 0.0, float(t[-1]), step=step, key=rng_key, help=T("h_seg_id"))
+            tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
+            st.caption(T("seg_span", a=fmt_t(rng[0], tu_), b=fmt_t(rng[1], tu_), d=dur(rng[1] - rng[0])))
             drag = seg(st, T("mouse"), ["zoom", "select"], "zoom", "drag",
                        format_func=lambda x: T("mouse_" + x), help=T("h_mouse")) or "zoom"
             q_box = st.container()
@@ -305,7 +308,8 @@ def render(ctx):
                 rows_s = []
                 for i_, sg in enumerate(segs):
                     q_ = quality(sg["start"], sg["end"])
-                    rows_s.append({"#": i_ + 1, T("auto_from"): f"{sg['start']:.0f}", T("auto_to"): f"{sg['end']:.0f}",
+                    tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
+                    rows_s.append({"#": i_ + 1, T("auto_from"): fmt_t(sg["start"], tu_), T("auto_to"): fmt_t(sg["end"], tu_),
                                    T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
                                    T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
                 ev_s = st.dataframe(pd.DataFrame(rows_s), hide_index=True, width="stretch", on_select="rerun",

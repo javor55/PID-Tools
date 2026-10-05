@@ -173,7 +173,8 @@ def data_quality(t, pv, mv, sp, h, has_sp, mv_lo, mv_hi, rep_frac=None, model=No
         checks.append(("q_snr_bad", 2, dict(s=snr)))
     tol = 0.005 * max(mv_hi - mv_lo, 1e-9)
     out_lim = float(np.mean((mv < mv_lo - tol) | (mv > mv_hi + tol)) * 100)
-    at_lim = float(np.mean(((mv <= mv_lo + 1e-6) & (mv >= mv_lo - tol)) | ((mv >= mv_hi - 1e-6) & (mv <= mv_hi + tol))) * 100)
+    # u limitu: ±0,5 % rozsahu – saturovaná MV z historianu kolísá kolem limitu (0,00 … 0,2 %), nesedí přesně na něm
+    at_lim = float(np.mean(((mv <= mv_lo + tol) & (mv >= mv_lo - tol)) | ((mv >= mv_hi - tol) & (mv <= mv_hi + tol))) * 100)
     if out_lim >= 5:
         # MV za limity: nesouhlasí rozsah NormMV / limity MV s daty, ne kvalita dat
         checks.append(("q_lim_out", 1, dict(p=out_lim)))
@@ -202,10 +203,35 @@ def data_quality(t, pv, mv, sp, h, has_sp, mv_lo, mv_hi, rep_frac=None, model=No
     return dict(level=level, checks=checks, snr=float(snr), sigma=sigma, n_steps=n_eff)
 
 
-def find_segments(t, mv, sp, h, has_sp, max_gap=None, settle=None):
+def _response_time(t, pv, t0, t1):
+    """
+    Doba od skoku v t0 do zřetelné odezvy PV (čtvrtina největší odchylky v okně do t1, nad šumem); None bez odezvy.
+    Zahrnuje zpoždění i začátek náběhu – bez modelu je to odhad, jak dlouho po skoku musí úsek pokračovat.
+    """
+    i0 = int(np.searchsorted(t, t0))
+    i1 = int(np.searchsorted(t, t1))
+    if i0 < 1 or i1 - i0 < 5:
+        return None
+    seg = pv[i0:i1]
+    base = float(np.nanmean(pv[max(0, i0 - 3):i0 + 1]))
+    dev = np.abs(seg - base)
+    d = np.diff(pv[max(0, i0 - 200):i1])
+    d = d[np.isfinite(d)]
+    noise = 1.4826 * np.median(np.abs(d - np.median(d))) if len(d) else 0.0
+    peak = float(np.nanmax(dev)) if np.any(np.isfinite(dev)) else 0.0
+    thr = max(0.25 * peak, 5 * noise)
+    if not peak > thr or not thr > 0:
+        return None
+    k = int(np.argmax(dev > thr))
+    return float(t[i0 + k] - t0)
+
+
+def find_segments(t, mv, sp, h, has_sp, max_gap=None, settle=None, pv=None):
     """
     Automatické nalezení úseků vhodných pro identifikaci: shluky skoků MV (ruční režim) nebo SP (automat).
     max_gap: skoky dál od sebe tvoří samostatné úseky. settle: doba ustálení procesu (θ + 4T), je-li známa.
+    pv: bez známého settle se konec úseku odhadne z odezvy PV – úsek pokračuje aspoň 2,5× dobu do zřetelné odezvy
+    (u velkého zpoždění by jinak skončil dřív, než PV vůbec zareaguje).
     """
     ev = [(t[s["i"]], "mv", s["size"]) for s in detect_steps(mv, h)]
     if has_sp and np.nanmax(sp) - np.nanmin(sp) > 1e-6:
@@ -232,6 +258,10 @@ def find_segments(t, mv, sp, h, has_sp, max_gap=None, settle=None):
         prev_end = groups[gi - 1][-1][0] if gi > 0 else t[0]
         next_start = groups[gi + 1][0][0] if gi + 1 < len(groups) else t[-1]
         tail = max(settle or 0, min(max_gap, 0.6 * (next_start - last)) if gi + 1 < len(groups) else max_gap)
+        if settle is None and pv is not None:
+            tr = _response_time(t, np.asarray(pv, float), last, next_start if gi + 1 < len(groups) else t[-1])
+            if tr:
+                tail = max(tail, 2.5 * tr)
         start = max(t[0], first - min(0.3 * max_gap, 0.5 * (first - prev_end)) if gi > 0 else first - min(0.3 * max_gap, first - t[0]))
         end = min(t[-1], last + min(tail, next_start - last - h) if gi + 1 < len(groups) else last + tail)
         out.append(dict(start=float(start), end=float(end), n_mv=sum(1 for e in g if e[1] == "mv"),

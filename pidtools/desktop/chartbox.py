@@ -4,12 +4,15 @@ dva měřicí kurzory (Δt, ΔY), celý rozsah, export PNG / CSV, kopie do schr�
 Ovládání je klidné: kolečko zoomuje a tažení posouvá jen čas (osa x), osa y se sama přizpůsobí viditelným
 datům; dvojklik = celý rozsah. Kliknutí na položku legendy křivku skryje / zobrazí.
 """
+import weakref
+
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, QLabel, QSizePolicy, QToolButton,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QSizePolicy,
+                               QToolButton, QVBoxLayout, QWidget)
 
+from ..app.timefmt import UNITS, dur, unit_for
 from ..i18n import T
 
 _CUR = pg.mkPen("#6b7280", width=1, style=Qt.DashLine)
@@ -59,6 +62,44 @@ def _f(v):
     return "—" if v is None or not np.isfinite(v) else f"{v:.4g}"
 
 
+_BOXES = weakref.WeakSet()           # grafy s časovou osou – změna jednotky platí pro všechny
+
+
+def time_unit():
+    """Jednotka časové osy grafů (auto / s / min / h) – uložená v nastavení aplikace."""
+    from . import layout
+    v = layout.PREFS.value("chart_tunit", "auto") if layout.PREFS is not None else "auto"
+    return v if v in ("auto", *UNITS) else "auto"
+
+
+def set_time_unit(u):
+    from . import layout
+    if layout.PREFS is not None:
+        layout.PREFS.setValue("chart_tunit", u)
+    for b in list(_BOXES):
+        b.unit_changed()
+
+
+class TimeAxis(pg.AxisItem):
+    """Osa x v sekundách s popisky v s / min / h (auto podle zobrazeného úseku) a „hezkými“ dílky v té jednotce."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.enableAutoSIPrefix(False)
+
+    def unit(self):
+        a, b = self.range
+        return unit_for(time_unit(), b - a)
+
+    def tickSpacing(self, minVal, maxVal, size):
+        u = UNITS[self.unit()]
+        return [(sp * u, off * u) for sp, off in super().tickSpacing(minVal / u, maxVal / u, size)]
+
+    def tickStrings(self, values, scale, spacing):
+        u = UNITS[self.unit()]
+        return super().tickStrings([v / u for v in values], scale, spacing / u)
+
+
 class ChartBox(QWidget):
     """n grafů pod sebou; self.plots = [PlotItem]. U jednoho grafu se atributy předávají grafu (jako PlotWidget)."""
 
@@ -69,8 +110,10 @@ class ChartBox(QWidget):
         lay.setSpacing(1)
         self.lw = pg.GraphicsLayoutWidget()
         self.plots = []
+        self.time = xlabel in (T("time_s"), T("lag_s"))      # osa x je čas → popisky v s / min / h
+        self._xlabel = xlabel
         for i in range(n):
-            p = self.lw.addPlot(row=i, col=0)
+            p = self.lw.addPlot(row=i, col=0, axisItems={"bottom": TimeAxis("bottom")} if self.time else None)
             _setup(p)
             if i < len(ylabels) and ylabels[i]:
                 p.setLabel("left", ylabels[i])
@@ -101,6 +144,16 @@ class ChartBox(QWidget):
                              (T("dk_chb_copy"), "dk_ch_copy", self.copy), (T("dk_chb_detach"), "dk_ch_detach",
                                                                            self.detach)):
             self._tool(txt, key).clicked.connect(fn)
+        if self.time:
+            self.tunit = QComboBox()
+            self.tunit.setObjectName("chartTool")
+            for u in ("auto", *UNITS):
+                self.tunit.addItem(T("chart_tunit_auto") if u == "auto" else u, u)
+            self.tunit.setToolTip(T("h_chart_tunit"))
+            self.tunit.setCurrentIndex(max(self.tunit.findData(time_unit()), 0))
+            self.tunit.currentIndexChanged.connect(lambda _: set_time_unit(self.tunit.currentData()))
+            self.bar.addWidget(self.tunit)
+            _BOXES.add(self)
         self.bar.addWidget(self.readout, 1)
         if tools:
             lay.addLayout(self.bar)
@@ -121,6 +174,41 @@ class ChartBox(QWidget):
         for p in self.plots:
             p.vb.sigRangeChangedManually.connect(self._manual)
             p.scene().sigMouseClicked.connect(self._dbl)
+        if self.time:
+            self.plots[0].vb.sigXRangeChanged.connect(lambda *_: self._time_label())
+            self._time_label()
+
+    # ---- časová osa
+    def _unit(self):
+        a, b = self.plots[0].vb.viewRange()[0]
+        return unit_for(time_unit(), b - a)
+
+    def _time_label(self):
+        if self._xlabel:
+            lab = self._xlabel.replace("[s]", f"[{self._unit()}]")
+            ax = self.plots[-1].getAxis("bottom")
+            if ax.labelText != lab:
+                self.plots[-1].setLabel("bottom", lab)
+
+    def unit_changed(self):
+        """Jiná jednotka času: popisky os a odečet znovu (combo v ostatních grafech se srovná)."""
+        u = time_unit()
+        if self.tunit.currentData() != u:
+            self.tunit.blockSignals(True)
+            self.tunit.setCurrentIndex(max(self.tunit.findData(u), 0))
+            self.tunit.blockSignals(False)
+        for p in self.plots:
+            p.getAxis("bottom").picture = None
+            p.getAxis("bottom").update()
+        self._time_label()
+        self._meas_text()
+
+    def _tfmt(self, t):
+        """Čas pro odečet ve zvolené jednotce."""
+        if not self.time:
+            return f"{t:.4g}"
+        u = self._unit()
+        return f"{t / UNITS[u]:.4g} {u}"
 
     def _manual(self, *_):
         """Ruční zoom / posun: osa y dál sleduje viditelná data (i u grafů s omezením z fit_y)."""
@@ -217,7 +305,7 @@ class ChartBox(QWidget):
             self.readout.setText(self._values(self._x(t)))
 
     def _values(self, t):
-        parts = [f"{self.xname} = {t:.4g}"]
+        parts = [f"{self.xname} = {self._tfmt(t)}"]
         for p in self.plots:
             for name, x, y in _curves(p):
                 v = _at(x, y, t)
@@ -273,8 +361,9 @@ class ChartBox(QWidget):
             return
         t1, t2, rows = m
         x = self.xname
-        parts = [f"{x}₁ = {t1:.4g}", f"{x}₂ = {t2:.4g}"] + ([f"{x}₂/{x}₁ = {t2 / t1:.4g}"] if self.logx and t1
-                                                         else [f"Δ{x} = {t2 - t1:.4g}"])
+        dt = dur(t2 - t1) if self.time else f"{t2 - t1:.4g}"
+        parts = [f"{x}₁ = {self._tfmt(t1)}", f"{x}₂ = {self._tfmt(t2)}"] + ([f"{x}₂/{x}₁ = {t2 / t1:.4g}"]
+                                                                       if self.logx and t1 else [f"Δ{x} = {dt}"])
         for name, a, b in rows:
             if a is not None and b is not None:
                 parts.append(f"Δ{name} = {_f(b - a)}")

@@ -7,6 +7,27 @@
   rychleji (formát času se rozpozná na vzorku, rychlý parser CSV při jednoznačném oddělovači).
 - Web: u dlouhých záznamů (např. 24 h po 1 s) už každé kliknutí netrvá 15+ s – automaticky nalezené úseky se
   do grafu vloží najednou (vyznačí se nejvýš 40); grafy zřeďují i průběhy s mezerami.
+- Rozsah regulátoru (NormPV / NormMV) zadaný v bloku PIDConL zůstane, i jako 0–100 při datech mimo něj (např. pro
+  srovnání s blokem v PLC); dřív ho odhad z dat přepsal. Data těsně mimo 0–100 (MV −0,004 %) už odhad nezmění
+  na −10–100.
+- Automaticky nalezené úseky: bez modelu úsek pokračuje, dokud PV na skok zřetelně nezareaguje (2,5× doba do odezvy);
+  při velkém zpoždění dřív skončil dřív, než se PV pohnulo. Varování „T1 delší než úsek“ upozorní i na úsek tvořený
+  hlavně poruchami a regulací v AUTO.
+- Kvalita dat: MV saturovaná na limitu v datech z historianu (0,00 … 0,2 %, ne přesně 0) se počítá jako MV na
+  limitu, takže úsek s dlouhou saturací dostane varování.
+- APC › Smithův prediktor: řádek **Vychází z** (model a jeho parametry, rozsahy PIDConL, pracovní bod, SampleTime),
+  tabulka obecných hodnot prediktoru (model bez zpoždění, θ, pracovní bod a offset, regulátor – použitelné v
+  jakémkoli systému, nejen v šabloně PCS 7) se vzorci a volba metody návrhu regulátoru: SIMC (τc), Lambda / IMC (λ),
+  robustní optimalizace (nejmenší IAE přes nominální model a modely s chybou zpoždění a zesílení) nebo ruční
+  Gain / TI / TD. Výchozí SIMC τc = θ/2 místo θ (s prediktorem smí být regulátor rychlejší než běžné PID).
+- Ladění: tabulka ukazatelů ukazuje odezvu na změnu SP – dobu, než PV ujde 90 % změny, překmit a dobu ustálení
+  (±5 %), doby v s / min / h.
+- Grafy (web i desktop): časová osa v s, min nebo h – automaticky podle zobrazeného úseku nebo pevně (na webu
+  Nastavení › Čas v grafech, v desktopu výběr v liště grafu), s kulatými dílky i po přiblížení. Každý graf má
+  měřicí kurzory (web: tlačítko **Měření** vlevo nahoře v grafu): dvě přetahovatelné čáry s t₁, t₂, Δt v čitelných
+  jednotkách a změnou každé křivky.
+- Ladění: délka simulace v s / min / h i v desktopu (jako ve webu); dokud jednotku nezvolíš, řídí se délkou
+  (sekundy u rychlých procesů, min / h u pomalých).
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 

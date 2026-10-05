@@ -7,6 +7,28 @@
   faster (time format detected on a sample, fast CSV parser when the separator is clear).
 - Web: long records (e.g. 24 h at 1 s) no longer make every interaction take 15+ s – the automatically found
   segments are drawn into the chart at once (at most 40 shaded); charts thin out curves with gaps too.
+- Controller range (NormPV / NormMV) typed in the PIDConL block is kept, also 0–100 with data outside it (e.g. to
+  compare with the block in the PLC); before, an untouched-looking 0–100 was replaced by the guess from the data.
+  Data a hair outside 0–100 (MV −0.004 %) no longer turn the guess into −10–100.
+- Automatically found segments: without a model a segment now continues until PV has clearly responded to the step
+  (2.5× the time to the response); with a long dead time it used to end before PV moved. The warning "T1 longer than
+  the segment" also points to segments dominated by disturbances and control in AUTO.
+- Data quality: MV saturated at a limit in historian data (0.00 … 0.2 %, not exactly 0) is counted as MV at the
+  limit, so a segment with a long saturation gets the warning.
+- APC › Smith predictor: **Based on** line (model and its parameters, PIDConL ranges, operating point, SampleTime),
+  a table of the general predictor values (model without dead time, θ, operating point and offset, controller –
+  usable in any system, not only the PCS 7 template) with the formulas, and a choice of the controller design
+  method: SIMC (τc), Lambda / IMC (λ), robust optimisation (smallest IAE over the nominal model and models with
+  dead-time and gain errors) or manual Gain / TI / TD. Default SIMC τc = θ/2 instead of θ (with the predictor the
+  controller can be faster than a normal PID).
+- Tuning: the KPI table shows the response to the SP change – time until PV covers 90 % of the change, overshoot
+  and settling time (±5 %), with durations in s / min / h.
+- Charts (web and desktop): the time axis is shown in s, min or h – automatically by the visible span or fixed
+  (Settings › Time in charts on the web, the selector in the chart toolbar in the desktop app), with round tick
+  steps also after zooming. Every chart has measuring cursors (web: the **Measure** button in the chart's top
+  left corner): two draggable lines with t₁, t₂, Δt in readable units and the change of each curve.
+- Tuning: simulation length in s / min / h in the desktop app too (as on the web); until the unit is chosen it
+  follows the length (seconds for fast processes, min / h for slow ones).
 
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 

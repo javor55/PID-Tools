@@ -123,7 +123,7 @@ class LoopState(Scaling):
     def update_grid(self, reset_range=False):
         self.grid = ds.to_grid(self.sig, self.c_pv, self.c_mv, self.c_sp, self.c_d, self.ts_user)
         for k, x in (("pv", self.grid.pv_e), ("mv", self.grid.mv_e)):      # rozsah PIDConL podle dat, dokud není zadán
-            lo, hi = range_for((self.get(f"{k}_lo", 0.0), self.get(f"{k}_hi", 100.0)), x)
+            lo, hi = range_for((self.get(f"{k}_lo", 0.0), self.get(f"{k}_hi", 100.0)), x, bool(self.get(f"{k}_rng_user")))
             self.settings[f"{k}_lo"], self.settings[f"{k}_hi"] = lo, hi
         if reset_range or not (0 <= self.rng[0] < self.rng[1] <= self.grid.t[-1]):
             self.rng = (0.0, float(self.grid.t[-1]))
@@ -175,7 +175,7 @@ class LoopState(Scaling):
     def auto_segments(self, gap=None):
         """Automaticky nalezené úseky se skoky, každý s hodnocením kvality."""
         segs = sg.auto(self.t, self.mv, self.sp, self.grid.Ts, self.grid.has_sp, self.model[:2] if self.model else None,
-                       gap)
+                       gap, self.pv)
         return [dict(q, quality=self.quality(q["start"], q["end"])) for q in segs]
 
     def compression(self):

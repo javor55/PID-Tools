@@ -12,7 +12,7 @@ import numpy as np
 
 PROJECT_VERSION = 2
 STATE_KEYS = [
-    "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h",
+    "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "pv_rng_user", "mv_rng_user", "plot_h", "chart_tunit",
     # blok PIDConL a sady parametrů
     "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
     "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
@@ -21,14 +21,14 @@ STATE_KEYS = [
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
     "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist", "id_mode", "audit_loops",
-    "scen2", "sim_len_u", "sim_J", "sim_noise", "vchar_last",
+    "scen2", "sim_len_u", "sim_len_u_set", "sim_J", "sim_noise", "vchar_last",
     # plán testu, kaskáda, diagnostika
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
     "cas_samp", "cas_tci", "cas_tco", "diag_integ",
     # hlavička reportu
     "rep_plant", "rep_author", "rep_status", "rep_comment",
 ]
-STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|", "gs_")
+STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|", "gs_", "apc_sm_")
 
 
 def is_state_key(k):

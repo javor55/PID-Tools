@@ -496,7 +496,10 @@ class ModelTab(Workspace):
             return
         segs = s.auto_segments(self.gap.value() or None)
         self._segs = segs
-        rows = [[i + 1, f"{q['start']:.0f}", f"{q['end']:.0f}", f"{(q['end'] - q['start']) / 60:.1f}",
+        from ...app.timefmt import fmt_t, unit_for
+        from ..chartbox import time_unit
+        tu = unit_for(time_unit(), float(s.t[-1]))
+        rows = [[i + 1, fmt_t(q["start"], tu), fmt_t(q["end"], tu), f"{(q['end'] - q['start']) / 60:.1f}",
                  f"{q['n_mv']} / {q['n_sp']}", f"{q['up']}↑ {q['down']}↓",
                  f"{q['quality']['snr']:.0f}" if q["quality"] and np.isfinite(q["quality"]["snr"]) else "∞",
                  (["✓ ", "⚠ ", "✗ "][q["quality"]["level"]] + T(f"q_level{q['quality']['level']}")) if q["quality"] else "—"]
