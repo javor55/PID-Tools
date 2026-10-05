@@ -21,7 +21,7 @@ STATE_KEYS = [
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
     "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist", "id_mode", "audit_loops",
-    "scen2", "sim_len_u", "sim_J", "sim_noise", "vchar_last",
+    "scen2", "sim_len_u", "sim_len_u_set", "sim_J", "sim_noise", "vchar_last",
     # plán testu, kaskáda, diagnostika
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
     "cas_samp", "cas_tci", "cas_tco", "diag_integ",

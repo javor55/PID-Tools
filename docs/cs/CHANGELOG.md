@@ -26,6 +26,8 @@
   Nastavení › Čas v grafech, v desktopu výběr v liště grafu), s kulatými dílky i po přiblížení. Každý graf má
   měřicí kurzory (web: tlačítko **Měření** vlevo nahoře v grafu): dvě přetahovatelné čáry s t₁, t₂, Δt v čitelných
   jednotkách a změnou každé křivky.
+- Ladění: délka simulace v s / min / h i v desktopu (jako ve webu); dokud jednotku nezvolíš, řídí se délkou
+  (sekundy u rychlých procesů, min / h u pomalých).
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 

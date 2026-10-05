@@ -603,3 +603,16 @@ def test_time_charts_marked_for_chart_tools():
     g.update_xaxes(title_text="MV [%]")
     _mark_time(g)
     assert g.layout.meta is None
+
+
+def test_sim_length_unit_follows_process_speed():
+    """Jednotka délky simulace: dokud ji uživatel nezvolí, podle délky (rychlý proces → s); zvolená zůstane."""
+    at = _ff_example_app()
+    assert not _errors(at)
+    from pidtools.app.timefmt import auto_unit
+    tend = next(at.session_state[k] for k in at.session_state if str(k).startswith("tend_r|"))
+    u = at.session_state["sim_len_u"]
+    assert u == auto_unit(tend * {"s": 1, "min": 60, "h": 3600}[u])
+    at.selectbox(key="sim_len_u").set_value("h").run()
+    at.run()
+    assert at.session_state["sim_len_u"] == "h" and at.session_state["sim_len_u_set"]

@@ -738,3 +738,25 @@ def test_chart_time_axis_and_measure(win):
     assert ax.labelText.endswith("[min]") and box.tunit.currentData() == "min"
     chartbox.set_time_unit("auto")
     box.close()
+
+
+def test_sim_length_units_desktop(win):
+    """Délka simulace v s / min / h jako ve webu: přepnutí jednotky zachová délku, ruční délka se použije."""
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    t = w.pages[2]
+    t.calculate()
+    _wait(app)
+    sec = t._t_end_s()
+    t.t_unit.setCurrentIndex(t.t_unit.findData("min"))
+    assert t._t_end_s() == pytest.approx(sec, rel=1e-3) and w.state.get("sim_len_u") == "min"
+    t.auto_len.setChecked(False)
+    t.t_end.setValue(30.0)                               # 30 min
+    t.calculate()
+    _wait(app)
+    assert t._result["T_end"] == pytest.approx(1800.0)
+    t.auto_len.setChecked(True)
+    t.t_unit.setCurrentIndex(t.t_unit.findData("s"))

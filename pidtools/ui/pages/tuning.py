@@ -14,7 +14,7 @@ from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
 from ...app import tuning as tun
 from ...app.loop import block_ctrl, rule_ctrl, set_ctrl
-from ...app.timefmt import dur
+from ...app.timefmt import auto_unit, dur
 from ...i18n import T, TEXTS
 from .. import cache
 from .. import ff as ffmod
@@ -94,6 +94,11 @@ def _reset_editor(sdf_key, edkey):
 def _range_set(k):
     """Rozsah zadal uživatel (i 0–100 podle bloku v PLC) – odhad z dat ho už nepřepíše."""
     ss[f"{k}_rng_user"] = True
+
+
+def _sim_unit_set():
+    """Jednotku délky simulace zvolil uživatel – dál se nemění podle délky."""
+    ss["sim_len_u_set"] = True
 
 
 def _step_cols(st_):
@@ -404,17 +409,19 @@ def render(ctx):
                 sp_data = float(EP(np.nanmedian(sp[sel_mask]) if has_sp else pv_id[0]))
                 if kind != "replay":
                     sim_l1, sim_l2 = st.columns([1.4, 1], vertical_alignment="bottom")
-                    T_end_unit = sel(sim_l2, T("time_unit"), ["s", "min", "h"], 0, "sim_len_u")
-                    mult = {"s": 1.0, "min": 60.0, "h": 3600.0}[T_end_unit]
-                    if "sim_len_auto" not in ss:
-                        ss["sim_len_auto"] = True
-                    auto_len = st.toggle(T("sim_len_auto"), key="sim_len_auto", help=T("h_sim_len_auto"))
                     # i návrh (sady mohou mít ještě výchozí hodnoty) – SIMC, ne zvolená metoda: optimalizace na scénáři
                     # závisí na délce simulace a délka na jejím výsledku by se navzájem posouvaly (optimalizace stále znovu)
                     r_ = tune(mcode, p, "SIMC", default_tc(mcode, p, samp, "SIMC", ctype, diffgain), ctype, samp)
                     prop_ctrl = rule_ctrl(base_ctrl, r_)
                     t_auto, auto_src = scenario.auto_length(mcode, p, (set1_ctrl, set2_ctrl, prop_ctrl), T_char, samp, ts_id,
                                                              settling=cache.settling_time)
+                    if not ss.get("sim_len_u_set"):   # dokud ji uživatel nezvolí: s u rychlých procesů, min / h u pomalých
+                        ss["sim_len_u"] = auto_unit(t_auto)
+                    T_end_unit = sel(sim_l2, T("time_unit"), ["s", "min", "h"], 0, "sim_len_u", on_change=_sim_unit_set)
+                    mult = {"s": 1.0, "min": 60.0, "h": 3600.0}[T_end_unit]
+                    if "sim_len_auto" not in ss:
+                        ss["sim_len_auto"] = True
+                    auto_len = st.toggle(T("sim_len_auto"), key="sim_len_auto", help=T("h_sim_len_auto"))
                     tend_key = f"tend_r|{mcode}"
                     if auto_len or tend_key not in ss:
                         ss[tend_key] = float(f"{t_auto / mult:.4g}")
