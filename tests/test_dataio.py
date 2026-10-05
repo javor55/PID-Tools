@@ -106,3 +106,28 @@ def test_rows_as_samples():
     assert sg.t_all[1] == pytest.approx(120.0)
     with pytest.raises(ValueError):
         parse_time(df["Time"])
+
+
+def test_wincc_trend_export():
+    """Export trendu WinCC: UTF-16, středníky, dvojice „X Time“ / „X ValueY“ s US časem, nepoužité křivky prázdné."""
+    from pidtools.app import dataset as ds
+    from pidtools.app.dataio import read_table
+    head = '"PV_Out Time";"PV_Out ValueY";"SP Time";"SP ValueY";"Tol Time";"Tol ValueY";"MV Time";"MV ValueY"'
+    rows = [f"10/4/2026 2:19:{i:02d} PM;{0.1 * i:.2f};10/4/2026 2:19:{i:02d} PM;15;;;10/4/2026 2:19:{i:02d} PM;{40 + i}"
+            for i in range(60)]
+    raw = ("﻿" + "\r\n".join([head] + rows) + "\r\n").encode("utf-16-le")
+    df = read_table("trend.csv", b"\xff\xfe" + raw[2:])
+    assert "Tol Time" not in df.columns and len(df) == 60
+    sg = ds.signals(df, ds.default_layout(df))
+    assert sg.sigs == ["PV_Out", "SP", "MV"] and sg.t_all[-1] == pytest.approx(59.0)
+
+
+def test_decimate_keeps_gaps():
+    """Zředění pro graf funguje i s mezerami (NaN): špičky zůstanou, prázdné bloky zůstanou prázdné."""
+    from pidtools.app.plots import decimate
+    x = np.arange(100000.0)
+    y = np.sin(x / 1000)
+    y[:30000] = np.nan
+    y[50000] = 5.0
+    xs, ys = decimate(x, y)
+    assert len(xs) <= 2100 and np.nanmax(ys) == 5.0 and np.isnan(ys[:100]).all()

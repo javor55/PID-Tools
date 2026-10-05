@@ -57,13 +57,15 @@ def _short(a):
 def decimate(x, y, n=2000):
     """Min-max zředění pro vykreslení: max. ~n bodů, špičky zůstanou zachované."""
     x, y = np.asarray(x), np.asarray(y, float)
-    if len(x) <= n or not np.all(np.isfinite(y)):
+    if len(x) <= n:
         return x, y
     k = int(np.ceil(len(x) / (n / 2)))
     m = len(x) // k * k
     xr, yr = x[:m].reshape(-1, k), y[:m].reshape(-1, k)
     rows = np.arange(len(xr))
-    i1, i2 = np.argmin(yr, 1), np.argmax(yr, 1)
+    fin = np.isfinite(yr)              # mezery (NaN) zůstanou mezerami: blok bez hodnot dá NaN, jinak min/max hodnot
+    i1 = np.argmin(np.where(fin, yr, np.inf), 1)
+    i2 = np.argmax(np.where(fin, yr, -np.inf), 1)
     a, b = np.minimum(i1, i2), np.maximum(i1, i2)
     xs = np.column_stack([xr[rows, a], xr[rows, b]]).ravel()
     ys = np.column_stack([yr[rows, a], yr[rows, b]]).ravel()

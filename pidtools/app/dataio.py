@@ -35,19 +35,40 @@ def _unwrap_quoted_lines(raw):
     return "\n".join(out) if any(d in out[0] for d in (",", ";", "\t")) else None
 
 
+def _drop_empty(df):
+    """Bez prázdných řádků (pod hlavičkou exportů z Excelu) a úplně prázdných sloupců (nepoužité křivky trendu)."""
+    return df.dropna(how="all").dropna(axis=1, how="all").reset_index(drop=True)
+
+
+def _sniff_sep(raw):
+    """Oddělovač sloupců z prvních řádků (; , tabulátor |), nebo None, když není jednoznačný."""
+    import csv
+    head = "\n".join(raw.splitlines()[:30])
+    try:
+        return csv.Sniffer().sniff(head, delimiters=";,\t|").delimiter
+    except csv.Error:
+        return None
+
+
 def read_table(name, raw_bytes):
     if name.lower().endswith((".xlsx", ".xls")):
         df = pd.read_excel(io.BytesIO(raw_bytes))
-        return df.dropna(how="all").reset_index(drop=True)      # prázdné řádky pod hlavičkou (exporty z Excelu)
+        return _drop_empty(df)
     raw = decode_text(raw_bytes)
     if raw.startswith("\ufeff"):
         raw = raw[1:]
 
     def n_num(d):
         return sum(pd.api.types.is_numeric_dtype(d[c]) for c in d.columns)
-    df = pd.read_csv(io.StringIO(raw), sep=None, engine="python")
+    sep = _sniff_sep(raw)
+    kw = dict(sep=sep) if sep else dict(sep=None, engine="python")   # známý oddělovač → rychlý parser C
     try:
-        df2 = pd.read_csv(io.StringIO(raw), sep=None, engine="python", decimal=",")
+        df = pd.read_csv(io.StringIO(raw), **kw)
+    except Exception:
+        kw = dict(sep=None, engine="python")
+        df = pd.read_csv(io.StringIO(raw), **kw)
+    try:
+        df2 = pd.read_csv(io.StringIO(raw), decimal=",", **kw)
         if n_num(df2) > n_num(df):
             df = df2
     except Exception:
@@ -56,7 +77,7 @@ def read_table(name, raw_bytes):
         inner = _unwrap_quoted_lines(raw)
         if inner is not None:
             return read_table(name, inner.encode("utf-8"))
-    return df.dropna(how="all").reset_index(drop=True)
+    return _drop_empty(df)
 
 
 # ---- čas: číslo, nebo datum/čas v různých národních formátech
@@ -111,10 +132,10 @@ def detect_time_format(col):
         return "dt", None
     if pd.api.types.is_numeric_dtype(col):
         return "num", None
-    s = _clean_time_text(col.dropna())
+    s = col.dropna()
     if not len(s):
         return None, None
-    sample = s.iloc[:: max(1, len(s) // 300)][:300]
+    sample = _clean_time_text(s.iloc[:: max(1, len(s) // 300)][:300])      # rozpozná se na vzorku (rychle)
     if pd.to_numeric(sample.str.replace(",", ".", regex=False), errors="coerce").notna().mean() > 0.9:
         return "num", None
     best = ((0.0, 0.0, 0.0), None, None)
@@ -218,12 +239,27 @@ def pair_time_columns(df, tcols):
 def pairs_to_wide(df, pairs, unit_mult=1.0, fmt="auto"):
     """Veličiny s vlastními časy → jedna tabulka: sjednocené časy (sloupec „t“, absolutní s) a hodnoty (NaN mezi)."""
     parsed = {tc: parse_time(df[tc], unit_mult, fmt) for tc in set(pairs.values())}
-    parts = [pd.DataFrame({"t": parsed[tc][0], "tag": str(c), "v": to_num(df[c])}) for c, tc in pairs.items()]
-    long = pd.concat(parts, ignore_index=True).dropna(subset=["t"])
+    names = {c: pair_name(c, tc) for c, tc in pairs.items()}
+    parts = [pd.DataFrame({"t": parsed[tc][0], "tag": names[c], "v": to_num(df[c])}) for c, tc in pairs.items()]
+    long = pd.concat(parts, ignore_index=True).dropna(subset=["t", "v"])
     wide = long.pivot_table(index="t", columns="tag", values="v", aggfunc="mean").reset_index()
     wide.columns.name = None
     origin = next((o for _, o in parsed.values() if o is not None), None)
-    return wide[["t"] + [str(c) for c in pairs]], origin
+    cols = [n for n in dict.fromkeys(names.values()) if n in wide.columns]   # veličiny bez jediné hodnoty vypadnou
+    return wide[["t"] + cols], origin
+
+
+def pair_name(value_col, time_col):
+    """
+    Název veličiny ze dvojice sloupců exportu trendu: „PV_Out ValueY“ + „PV_Out Time“ → „PV_Out“ (WinCC, Excel);
+    jinak název sloupce hodnot beze změny.
+    """
+    v, t = str(value_col), str(time_col)
+    m_v = re.match(r"^(.*?)[\s_.-]*(valuey|value|val|wert|hodnota)$", v, flags=re.IGNORECASE)
+    m_t = re.match(r"^(.*?)[\s_.-]*(time|zeit|čas|cas|timestamp|date)$", t, flags=re.IGNORECASE)
+    if m_v and m_t and m_v.group(1) and m_v.group(1) == m_t.group(1):
+        return m_v.group(1)
+    return v
 
 
 def _tokens(name):

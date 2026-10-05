@@ -24,6 +24,7 @@ from ..layout import section, workspace
 from ..widgets import num, sel, seg
 
 ss = st.session_state
+MAX_SEG_SHADES = 40            # automaticky nalezené úseky vyznačené v grafu (tabulka ukáže všechny)
 
 
 def _guess(cols, keys, default=0):
@@ -336,13 +337,20 @@ def render(ctx):
                 yy[ctx.sel_mask] = y_
                 full.append((name_, yy, col_, dash_))
             fig = ctx.data_fig(t, None, full, resid=resid)
-            for i_, sg in enumerate(segs):
-                fig.add_vrect(x0=sg["start"], x1=sg["end"], fillcolor="#bfdbfe", opacity=0.22, line_width=0, row=1,
-                              col=1, annotation_text=f"#{i_ + 1}", annotation_position="top left",
-                              annotation_font=dict(size=11, color="#1e40af"))
+            # úseky jako tvary vložené najednou: add_vrect po jednom prochází celý graf (u dlouhých záznamů se
+            # stovkami úseků trvalo překreslení desítky sekund)
             n_rows = 2 + (1 if ctx.dists else 0) + (1 if resid is not None else 0)
+            shapes, notes = list(fig.layout.shapes or ()), list(fig.layout.annotations or ())
+            for i_, sg in enumerate(segs[:MAX_SEG_SHADES]):
+                shapes.append(dict(type="rect", xref="x", yref="y domain", x0=sg["start"], x1=sg["end"], y0=0, y1=1,
+                                   fillcolor="#bfdbfe", opacity=0.22, line_width=0, layer="below"))
+                notes.append(dict(xref="x", yref="y domain", x=sg["start"], y=1, text=f"#{i_ + 1}", showarrow=False,
+                                  xanchor="left", yanchor="top", font=dict(size=11, color="#1e40af")))
             for r in range(1, n_rows + 1):
-                fig.add_vrect(x0=rng[0], x1=rng[1], fillcolor="#fde68a", opacity=0.25, line_width=0, row=r, col=1)
+                sfx = "" if r == 1 else str(r)
+                shapes.append(dict(type="rect", xref=f"x{sfx}", yref=f"y{sfx} domain", x0=rng[0], x1=rng[1], y0=0,
+                                   y1=1, fillcolor="#fde68a", opacity=0.25, line_width=0, layer="below"))
+            fig.update_layout(shapes=shapes, annotations=notes)
             fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
             with ws.m_seg:
                 ev = show(fig, key=f"chart_data|{ctx.fname}", fname="model" if extra else "data", select=True,

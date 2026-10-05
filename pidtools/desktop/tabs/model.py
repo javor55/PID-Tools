@@ -508,7 +508,7 @@ class ModelTab(Workspace):
         for it in getattr(self, "_seg_items", []):
             self.seg_plots[0].removeItem(it)
         self._seg_items = []
-        for q in segs:
+        for q in segs[:40]:                       # vyznačí se nejvýš 40 úseků (tabulka ukáže všechny)
             it = pg.LinearRegionItem((q["start"], q["end"]), movable=False, brush=(191, 219, 254, 60),
                                      pen=pg.mkPen(None))
             it.setZValue(-20)
