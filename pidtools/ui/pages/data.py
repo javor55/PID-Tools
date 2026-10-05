@@ -19,6 +19,7 @@ from ...app import segments as segs_mod
 from ...app.dataset import DEMO_DISTS, default_layout, stats
 from ...app.guess import guess_roles
 from ...app.loop import DEFAULT_RANGE, range_for
+from ...app.timefmt import dur, fmt_t, unit_for
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
 from ..widgets import num, sel, seg
@@ -291,6 +292,8 @@ def render(ctx):
         with sec_seg:
             st.caption(T("seg_intro"))
             rng = st.slider(T("seg_id"), 0.0, float(t[-1]), step=step, key=rng_key, help=T("h_seg_id"))
+            tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
+            st.caption(T("seg_span", a=fmt_t(rng[0], tu_), b=fmt_t(rng[1], tu_), d=dur(rng[1] - rng[0])))
             drag = seg(st, T("mouse"), ["zoom", "select"], "zoom", "drag",
                        format_func=lambda x: T("mouse_" + x), help=T("h_mouse")) or "zoom"
             q_box = st.container()
@@ -305,7 +308,8 @@ def render(ctx):
                 rows_s = []
                 for i_, sg in enumerate(segs):
                     q_ = quality(sg["start"], sg["end"])
-                    rows_s.append({"#": i_ + 1, T("auto_from"): f"{sg['start']:.0f}", T("auto_to"): f"{sg['end']:.0f}",
+                    tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
+                    rows_s.append({"#": i_ + 1, T("auto_from"): fmt_t(sg["start"], tu_), T("auto_to"): fmt_t(sg["end"], tu_),
                                    T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
                                    T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
                 ev_s = st.dataframe(pd.DataFrame(rows_s), hide_index=True, width="stretch", on_select="rerun",

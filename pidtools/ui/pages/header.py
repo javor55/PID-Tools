@@ -9,7 +9,7 @@ from ... import __version__
 from ...app import opc
 from ...app.dataset import DEMO_SET1, demo_frame
 from ...i18n import T
-from .. import autosave, loops
+from .. import autosave, charts, loops
 from ..dataio import load_table
 from ..project import load_project_file
 from ..widgets import num, seg, sld
@@ -44,6 +44,8 @@ def render(ctx):
                      format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
             st.caption(T("theme_hint"))
             ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
+            seg(st, T("chart_tunit"), list(charts.TIME_UNITS), "auto", "chart_tunit",
+                format_func=lambda u: T("chart_tunit_auto") if u == "auto" else u, help=T("h_chart_tunit"))
 
     with st.container(border=True):
         n_loops = len(loops.ids())  # od tří smyček má přepínač vlastní řádek pod zdrojem dat

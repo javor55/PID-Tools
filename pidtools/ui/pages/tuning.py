@@ -121,7 +121,8 @@ def _norm_section(ctx):
     pmin, pmax = float(np.nanmin(ctx.pv_e)), float(np.nanmax(ctx.pv_e))
     mmin, mmax = float(np.nanmin(ctx.mv_e)), float(np.nanmax(ctx.mv_e))
     top = ctx.tun.top            # upozornění i při sbaleném bloku
-    if pmin < ctx.pv_lo or pmax > ctx.pv_hi or mmin < ctx.mv_lo or mmax > ctx.mv_hi:
+    tp, tm = 0.005 * ctx.PR, 0.005 * ctx.MR    # drobný přesah (MV −0,004 %) není chyba rozsahu
+    if pmin < ctx.pv_lo - tp or pmax > ctx.pv_hi + tp or mmin < ctx.mv_lo - tm or mmax > ctx.mv_hi + tm:
         top.warning(T("norm_out", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"), icon=":material/warning:")
     else:
         st.caption(T("blk_data_note", pv=f"{pmin:.4g}–{pmax:.4g}", mv=f"{mmin:.4g}–{mmax:.4g}"))

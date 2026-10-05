@@ -23,6 +23,10 @@
   controller can be faster than a normal PID).
 - Tuning: the KPI table shows the response to the SP change – time until PV covers 90 % of the change, overshoot
   and settling time (±5 %), with durations in s / min / h.
+- Charts (web and desktop): the time axis is shown in s, min or h – automatically by the visible span or fixed
+  (Settings › Time in charts on the web, the selector in the chart toolbar in the desktop app), with round tick
+  steps also after zooming. Every chart has measuring cursors (web: the **Measure** button in the chart's top
+  left corner): two draggable lines with t₁, t₂, Δt in readable units and the change of each curve.
 
 ## 3.2.1 beta – faster desktop start, set 1 check for closed-loop identification
 

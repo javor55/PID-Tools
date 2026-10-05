@@ -27,3 +27,10 @@ def auto_unit(span):
 def unit_for(choice, span):
     """Zvolená jednotka (s / min / h) nebo automaticky podle délky (choice „auto“ nebo None)."""
     return choice if choice in UNITS else auto_unit(span)
+
+
+def fmt_t(t, unit):
+    """Časový okamžik [s] ve zvolené jednotce: „6.22 h“, „373 min“, „22390 s“."""
+    if t is None or not np.isfinite(t):
+        return "–"
+    return f"{t:.0f} s" if unit == "s" else f"{t / UNITS[unit]:.4g} {unit}"

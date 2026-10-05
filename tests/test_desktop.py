@@ -714,3 +714,27 @@ def test_range_typed_by_user_is_kept_desktop(win):
     _wait(app)
     s.update_grid()
     assert (s.mv_lo, s.mv_hi) == (0.0, 100.0) and s.get("mv_rng_user")
+
+
+def test_chart_time_axis_and_measure(win):
+    """Časová osa grafů v s / min / h (auto podle úseku, volba platí pro všechny grafy) a Δt měřicích kurzorů."""
+    app, _ = win
+    from pidtools.desktop import chartbox
+    from pidtools.desktop import widgets as w
+    from pidtools.i18n import T
+    box, pl = w.stack(2, ["PV", "MV"], T("time_s"))
+    t = np.arange(0, 84000, 15.0)
+    w.line(pl[0], t, np.sin(t / 5000), "PV")
+    box.resize(900, 500)
+    box.show()
+    box.full_range()
+    app.processEvents()
+    ax = pl[1].getAxis("bottom")
+    assert ax.unit() == "h" and ax.labelText.endswith("[h]")
+    box.b_meas.setChecked(True)
+    assert " h" in box.readout.text() and "Δt = " in box.readout.text()
+    chartbox.set_time_unit("min")
+    app.processEvents()
+    assert ax.labelText.endswith("[min]") and box.tunit.currentData() == "min"
+    chartbox.set_time_unit("auto")
+    box.close()

@@ -35,6 +35,7 @@ def main():
     ctx = Ctx()
 
     header.render(ctx)                       # nadpis, projekt, nápověda, nastavení, zdroj dat
+    charts.tools()                           # časová osa v min / h a měřicí kurzory u všech grafů
     # výběr záložky je uložený jako popisek → po přepnutí jazyka ho převést na popisek v novém jazyce
     cur = st.session_state.get("main_tab")
     for _, lbl in TABS:

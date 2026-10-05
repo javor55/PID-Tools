@@ -22,6 +22,10 @@
   Gain / TI / TD. Výchozí SIMC τc = θ/2 místo θ (s prediktorem smí být regulátor rychlejší než běžné PID).
 - Ladění: tabulka ukazatelů ukazuje odezvu na změnu SP – dobu, než PV ujde 90 % změny, překmit a dobu ustálení
   (±5 %), doby v s / min / h.
+- Grafy (web i desktop): časová osa v s, min nebo h – automaticky podle zobrazeného úseku nebo pevně (na webu
+  Nastavení › Čas v grafech, v desktopu výběr v liště grafu), s kulatými dílky i po přiblížení. Každý graf má
+  měřicí kurzory (web: tlačítko **Měření** vlevo nahoře v grafu): dvě přetahovatelné čáry s t₁, t₂, Δt v čitelných
+  jednotkách a změnou každé křivky.
 
 ## 3.2.1 beta – rychlejší start desktopu, kontrola Set 1 u identifikace v uzavřené smyčce
 

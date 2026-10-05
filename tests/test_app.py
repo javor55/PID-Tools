@@ -588,3 +588,18 @@ def test_set1_check_and_estimate_web():
     assert not _errors(at)
     assert at.session_state["set1_gain"] < 0 < at.session_state["set1_ti"] < 100
     assert any("estimated from the record" in i.value for i in at.info)
+
+
+def test_time_charts_marked_for_chart_tools():
+    """Grafy s časem na ose x dostanou značku pro chart_tools.js (popisky v min / h, měření)."""
+    import plotly.graph_objects as go
+    from pidtools.i18n import T
+    from pidtools.ui.charts import _mark_time
+    f = go.Figure(go.Scatter(x=[0, 1], y=[0, 1]))
+    f.update_xaxes(title_text=T("time_s"))
+    _mark_time(f)
+    assert f.layout.meta["pt"]["time"]
+    g = go.Figure(go.Scatter(x=[0, 1], y=[0, 1]))
+    g.update_xaxes(title_text="MV [%]")
+    _mark_time(g)
+    assert g.layout.meta is None
