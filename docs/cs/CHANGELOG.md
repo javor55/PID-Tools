@@ -2,6 +2,8 @@
 
 ## Nevydáno
 
+- Desktop: PySide6 omezeno na < 6.12 – verze 6.12.0 při zavření aplikace shodí Python (chyba počítání referencí
+  v shiboken6, „Fatal Python error: bool_dealloc“).
 - Grafy na webu a v reportu: velké hodnoty s malými změnami (např. tlak 101 325 Pa ± 0,5) se v grafu zaokrouhlily
   na celá čísla; přesnost grafu se teď řídí rozpětím průběhu. Identifikace a ladění vždy počítaly s plnou přesností.
 - APC › Dopředná vazba: **Znovu spočítat z modelu** vrátí po ručních úpravách zesílení, lead, lag a zpoždění na návrh

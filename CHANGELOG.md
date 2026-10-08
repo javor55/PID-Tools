@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Desktop: PySide6 limited to < 6.12 – 6.12.0 aborts Python when the application closes (refcount bug in shiboken6,
+  "Fatal Python error: bool_dealloc").
 - Web charts and report: values with a large magnitude and small changes (e.g. pressure 101 325 Pa ± 0.5) were
   rounded to whole numbers in the chart; the chart precision now follows the span of the curve. Identification and
   tuning always used the full precision.
