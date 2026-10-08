@@ -18,7 +18,7 @@ from ... import loops
 from ...charts import mkfig, show, style, tr
 from ...layout import section, workspace
 from ...theme import C_MV, C_SET1, C_SET2, C_SP
-from ...widgets import num, seg
+from ...widgets import num, reset_button, seg
 from . import guide
 from .common import active_model
 from .recommend import rec_a
@@ -30,10 +30,12 @@ def _model_inputs(key, code, p0):
     """Parametry modelu druhého akčního členu (klíče podle modelu smyčky – změna modelu = nové výchozí hodnoty)."""
     names = MODELS[code]["params"]
     cc = st.columns(len(names))
-    out = []
+    out, items = [], []
     for i, (n, v) in enumerate(zip(names, p0)):
         k = f"{key}|{code}|{p0[0]:.4g}|{i}"
         out.append(num(n, k, float(v), cc[i], min_value=None if i == 0 else 0.0, format="%.4g"))
+        items.append((k, float(v)))
+    reset_button(st, key, items)
     return code, out
 
 
@@ -49,6 +51,7 @@ def split_render(ctx):
                    format_func=lambda x: T("sr_" + x)) or "opposite"
         b0 = num(T("sr_b0"), "apc_sr_b0", 50.0, min_value=1.0, max_value=99.0, help=T("h_sr_b0"))
         gap = num(T("sr_gap"), "apc_sr_gap", 0.0, min_value=-20.0, max_value=20.0, help=T("h_sr_gap"))
+        reset_button(st, "apc_sr", [("apc_sr_b0", 50.0), ("apc_sr_gap", 0.0)])
     gb = asr.valve_b(ctx.model, b0)
     with section(ws.side, T("sr_valve_a"), "apc_sr_a"):
         ga = _model_inputs(f"apc_sr_a|{mode}", *asr.default_a(gb, mode))
@@ -95,6 +98,7 @@ def vpc_render(ctx):
         sp_vpc = num(T("vpc_sp"), "apc_vpc_sp", 50.0, min_value=5.0, max_value=95.0, help=T("h_vpc_sp"))
         factor = num(T("vpc_factor"), "apc_vpc_f", 5.0, min_value=1.0, max_value=30.0, help=T("h_vpc_factor"))
         d = num(T("vpc_d"), "apc_vpc_d", 35.0, min_value=-100.0, max_value=100.0, help=T("h_vpc_d"))
+        reset_button(st, "apc_vpc", [("apc_vpc_sp", 50.0), ("apc_vpc_f", 5.0), ("apc_vpc_d", 35.0)])
     with section(ws.side, T("dk_sec_about"), "apc_vpc_about", expanded=False):
         st.markdown(T("apc_intro_vpc"))
     ctrl1 = ctx.set2_ctrl
@@ -140,6 +144,7 @@ def ratio_render(ctx):
     with section(ws.side, T("ra_setup"), "apc_ra_setup"):
         R = num(T("ra_R"), "apc_ra_R", 1.2, min_value=0.01, max_value=100.0, format="%.4g", help=T("h_ra_R"))
         step = num(T("ra_step"), "apc_ra_step", 15.0, min_value=-50.0, max_value=50.0, help=T("h_ra_step"))
+        reset_button(st, "apc_ra", [("apc_ra_R", 1.2), ("apc_ra_step", 15.0)])
     with section(ws.side, T("dk_sec_about"), "apc_ra_about", expanded=False):
         st.markdown(T("apc_intro_ratio"))
     runs = aratio.simulate(gf, ga, ctx.set2_ctrl, ctrl_a, R, step, ctx.samp)

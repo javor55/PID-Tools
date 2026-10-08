@@ -16,8 +16,9 @@ class DecouplePanel(TwoLoopPanel):
         self.dtype.currentIndexChanged.connect(self._changed)
         for sp in (self.amp_a, self.amp_b):
             sp.valueChanged.connect(self._changed)
+        b_reset = self.reset_button((self.amp_a, self.amp_b), lambda: (5.0, 5.0), self._changed)
         self.left.addWidget(w.group(T("dec_type"), w.form([(T("dec_type"), self.dtype), ("SP A [%]", self.amp_a),
-                                                           ("SP B [%]", self.amp_b)])))
+                                                           ("SP B [%]", self.amp_b), ("", b_reset)])))
         self.rga = w.note("")
         self.left.addWidget(self.rga)
         self.prm = w.table([], [], stretch=False)

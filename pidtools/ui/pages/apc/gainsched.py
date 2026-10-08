@@ -10,7 +10,7 @@ from ....i18n import T
 from ... import cache
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET1, C_SET2, C_SP
-from ...widgets import seg, sld
+from ...widgets import reset_button, seg, sld
 from . import guide
 from ...layout import section, workspace
 from ....app import guides as app_guides
@@ -176,6 +176,7 @@ def gainsched_render(ctx):
         seg(c2, T("ctrl_type"), ["PI", "PID"], "PI", "gs_ct")
         if m == "SIMC":
             sld(c3, T("gs_tcf"), 0.3, 5.0, 1.0, "gs_tcf", step=0.1, help=T("h_gs_tcf"))
+            reset_button(st, "apc_gs", [("gs_tcf", 1.0)])
         elif m == "OPT":
             seg(c3, T("gs_ms"), [1.4, 1.6, 1.8], 1.6, "gs_ms", help=T("h_gs_ms"))
         st.caption(T("mdesc_" + m) + (f" {T('cdesc_MIGO')}" if m == "OPT" else ""))

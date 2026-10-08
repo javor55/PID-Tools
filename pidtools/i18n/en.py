@@ -670,6 +670,8 @@ TEXTS = {
     'ff_gain': 'FF gain [% MV per 1 unit of {d}]',
     'ff_proposal': 'Design from the model: gain {g}, lead {tl} s, lag {tg} s, delay {dl} s',
     'h_ff_reset': 'Sets the gain, lead, lag and delay back to the design calculated from the model (manual edits are discarded). FF on/off and dynamics stay.',
+    'h_apc_reset': 'Sets the values in this part back to what the app calculates (design from the model, default scenario). Manual edits are discarded.',
+    'apc_reset': 'Restore defaults',
     'ff_reset': 'Recalculate from the model',
     'ff_faster': '{d}: the disturbance acts faster (θd = {td} s) than the MV (θ = {t} s) – static FF will not fully compensate it, but will reduce it significantly.',
     'ff_help': 'A noisy disturbance measurement passes straight into MV through FF – consider a filter (lag in LeadLag or a measurement filter).',

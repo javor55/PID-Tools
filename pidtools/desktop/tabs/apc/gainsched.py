@@ -38,8 +38,9 @@ class GainSchedPanel(Panel):
             c.currentIndexChanged.connect(self._retune)
         for sp in (self.tcf, self.ms):
             sp.valueChanged.connect(self._retune)
+        b_reset = self.reset_button((self.tcf, self.ms), lambda: (1.0, 1.6), self._retune)
         self.left.addWidget(w.group(T("method"), w.form([(T("method"), self.method), (T("ctrl_type"), self.ctype),
-                                                         (T("dk_gs_tcf"), self.tcf), ("Ms", self.ms)])))
+                                                         (T("dk_gs_tcf"), self.tcf), ("Ms", self.ms), ("", b_reset)])))
         self.vals = w.table([], [], stretch=False)
         self.vals.setMinimumHeight(150)
         self.left.addWidget(w.group(T("dk_gs_table"), w.form([("", self.vals)])))

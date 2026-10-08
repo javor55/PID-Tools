@@ -36,6 +36,27 @@ def seg(cont, label, opts, default, key, **kw):
     return cont.segmented_control(label, opts, key=key, **kw)
 
 
+def _same(a, b):
+    try:
+        return abs(float(a) - float(b)) <= 1e-9 * max(1.0, abs(float(b)))
+    except (TypeError, ValueError):
+        return a == b
+
+
+def reset_button(cont, key, items, label=None):
+    """
+    Tlačítko „Původní hodnoty“ sekce: items = [(klíč widgetu, vypočtená / výchozí hodnota)]. Klik vrátí hodnoty
+    (callback před dalším během, takže widgety je převezmou); bez ručních úprav je tlačítko neaktivní.
+    """
+    items = [(k, v) for k, v in items if k is not None]
+
+    def cb():
+        for k, v in items:
+            ss[k] = v
+    return cont.button(label or T("apc_reset"), key=f"g_reset|{key}", icon=":material/restart_alt:",
+                       help=T("h_apc_reset"), on_click=cb, disabled=all(_same(ss.get(k, v), v) for k, v in items))
+
+
 def sld(cont, label, lo, hi, default, key, **kw):
     """slider; hodnota mimo nový rozsah se vrátí na výchozí."""
     v = ss.get(key)

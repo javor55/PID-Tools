@@ -670,6 +670,8 @@ TEXTS = {
     'ff_gain': 'Zesílení FF [% MV na 1 j. {d}]',
     'ff_proposal': 'Návrh z modelu: zesílení {g}, lead {tl} s, lag {tg} s, zpoždění {dl} s',
     'h_ff_reset': 'Vrátí zesílení, lead, lag a zpoždění na návrh vypočtený z modelu (ruční úpravy se zahodí). Zapnutí FF a dynamika zůstanou.',
+    'h_apc_reset': 'Vrátí hodnoty v této části na výpočet aplikace (návrh z modelu, výchozí scénář). Ruční úpravy se zahodí.',
+    'apc_reset': 'Původní hodnoty',
     'ff_reset': 'Znovu spočítat z modelu',
     'ff_faster': '{d}: porucha působí rychleji (θd = {td} s) než MV (θ = {t} s) – statická FF ji úplně nevykompenzuje, ale výrazně zmenší.',
     'ff_help': 'Zašuměné měření poruchy se přes FF přenáší přímo do MV – zvažte filtr (lag v LeadLag nebo filtr měření).',

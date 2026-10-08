@@ -8,7 +8,7 @@ from ....core import (MODELS, pidconl_sim)
 from ....i18n import T
 from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
-from ...widgets import model_name, num, seg, sel, sld
+from ...widgets import model_name, num, reset_button, seg, sel, sld
 from . import guide
 from ...layout import section, workspace
 from ....app import guides as app_guides
@@ -84,6 +84,7 @@ def smith_render(ctx):
             tc0 = app_smith.tc_default(p, samp, method)
             sld(st, T("sm_tc"), float(max(0.05 * tc0, 1e-3)), float(10 * tc0), tc0, _sm_tc_key(code, p, method),
                 help=T("h_sm_tc"))
+            reset_button(st, "apc_sm_tc", [(_sm_tc_key(code, p, method), tc0)])
         elif method == "manual":
             if "apc_sm_mg" not in ss:          # výchozí ruční hodnoty = sada 2
                 ss["apc_sm_mg"], ss["apc_sm_mti"], ss["apc_sm_mtd"] = (float(ss.get(f"set2_{k}", d))
@@ -94,6 +95,8 @@ def smith_render(ctx):
             num("TI [s]", "apc_sm_mti", 100.0, m2, min_value=0.0, format="%.4g")
             if ctype == "PID":
                 num("TD [s]", "apc_sm_mtd", 0.0, m3, min_value=0.0, format="%.4g")
+            reset_button(st, "apc_sm_man", [(f"apc_sm_m{k}", float(ss.get(f"set2_{n}", d)))
+                                             for k, n, d in (("g", "gain", 1.0), ("ti", "ti", 100.0), ("td", "td", 0.0))])
         method, ctype, tc, r = smith_ctrl(ctx)
         mbox = st.container()
     with section(ws.side, T("sm_err"), "apc_sm_err", icon=":material/difference:"):
@@ -101,6 +104,7 @@ def smith_render(ctx):
         ek = sld(st, T("sm_err_k"), -50, 50, 0, "apc_sm_ek", format="%d %%")
         et = sld(st, T("sm_err_t"), -50, 50, 0, "apc_sm_et", format="%d %%")
         eth = sld(st, T("sm_err_th"), -50, 50, 0, "apc_sm_eth", format="%d %%")
+        reset_button(st, "apc_sm_err", [("apc_sm_ek", 0), ("apc_sm_et", 0), ("apc_sm_eth", 0)])
     plant = app_smith.plant_error(p, ek, et, eth)
     sm = app_smith.simulate(code, p, plant, ctx.base_ctrl, ctx.set2_ctrl, ctype, tc, samp, smith_sim_c, pidconl_sim,
                             r=r)

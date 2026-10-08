@@ -6,7 +6,7 @@ import streamlit as st
 from ....i18n import T
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SP
-from ...widgets import num, seg
+from ...widgets import num, reset_button, seg
 from . import guide
 from ...layout import section
 from ....app.apc import override as aov
@@ -31,6 +31,7 @@ def override_render(ctx, bi, b, ws):
                      help=T("h_ov_step"))
         lim = num(T("ov_limit", n=b["name"], u=b["u_pv"] or "PV"), f"apc_ov_lim|{b['name']}|{sel}", lim_def,
                   format="%.4g", help=T("h_ov_limit"))
+        reset_button(st, "apc_ov", [(f"apc_ov_step|{sel}", step_def), (f"apc_ov_lim|{b['name']}|{sel}", lim_def)])
         kbox = st.container()
     with guide_ph:
         guide.render("override", checks, T("g_impl_override", a=a["name"], b=b["name"], s=T("ov_" + sel),

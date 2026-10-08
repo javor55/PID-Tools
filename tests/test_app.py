@@ -625,3 +625,23 @@ def test_sim_length_unit_follows_process_speed():
     at.selectbox(key="sim_len_u").set_value("h").run()
     at.run()
     assert at.session_state["sim_len_u"] == "h" and at.session_state["sim_len_u_set"]
+
+
+def test_apc_reset_buttons_web(app):
+    """„Původní hodnoty“ v APC: po ruční úpravě vrátí výchozí / vypočtené hodnoty a zase zešedne."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
+    cases = (("vpc", "apc_vpc", "apc_vpc_f", 5.0), ("ratio", "apc_ra", "apc_ra_R", 1.2),
+             ("split", "apc_sr", "apc_sr_gap", 0.0), ("smith", "apc_sm_err", "apc_sm_eth", 0))
+    for kind, bkey, vkey, v0 in cases:
+        app.session_state["apc_kind"] = kind
+        if kind == "smith":
+            app.session_state["mcode"] = "P1D"
+        app.run()
+        assert not _errors(app), kind
+        assert app.button(key=f"g_reset|{bkey}").disabled, kind
+        app.session_state[vkey] = v0 + 7
+        app.run()
+        assert not app.button(key=f"g_reset|{bkey}").disabled, kind
+        app.button(key=f"g_reset|{bkey}").click().run()
+        assert not _errors(app), kind
+        assert app.session_state[vkey] == pytest.approx(v0) and app.button(key=f"g_reset|{bkey}").disabled, kind

@@ -28,28 +28,35 @@ class CascadePanel(Panel):
         man = QWidget()
         self.k, self.t1, self.t2, self.th = (w.spin(v, lo, 1e9, 4) for v, lo in ((1.0, -1e9), (5.0, 1e-3), (0.0, 0.0),
                                                                                 (1.0, 0.0)))
-        man.setLayout(w.form([("K", self.k), ("T1 [s]", self.t1), ("T2 [s]", self.t2), ("θ [s]", self.th)]))
+        self.b_man = self.reset_button((self.k, self.t1, self.t2, self.th), lambda: (1.0, 5.0, 0.0, 1.0), self._update)
+        man.setLayout(w.form([("K", self.k), ("T1 [s]", self.t1), ("T2 [s]", self.t2), ("θ [s]", self.th),
+                              ("", self.b_man)]))
         dat = QWidget()
         self.ipv, self.imv = w.combo([]), w.combo([])
         self.ilo, self.ihi = w.spin(0.0, -1e12, 1e12, 4), w.spin(100.0, -1e12, 1e12, 4)
         b_fit = QPushButton(T("cas_fit"))
         b_fit.clicked.connect(self._fit_inner)
         self.fit_lab = w.note("")
+        self.b_rng = self.reset_button((self.ilo, self.ihi), self._irange, lambda: None)
         dat.setLayout(w.form([(T("cas_ipv"), self.ipv), (T("cas_imv"), self.imv), (T("cas_ilo"), self.ilo),
-                              (T("cas_ihi"), self.ihi), ("", b_fit), ("", self.fit_lab)]))
+                              (T("cas_ihi"), self.ihi), ("", self.b_rng), ("", b_fit), ("", self.fit_lab)]))
         self.stack.addWidget(man)
         self.stack.addWidget(dat)
         self.left.addWidget(w.group(T("cas_inner"), w.form([(T("cas_src"), self.src), ("", self.stack)])))
         self.im = w.combo(METHODS, labels=[T("m_" + m) for m in METHODS])
         self.samp_i = w.spin(1.0, 0.001, 1e6, 3)
         self.tci = w.spin(1.0, 0.001, 1e9, 4)
+        self._tc0 = (None, None)                         # výchozí τc vnitřní a vnější smyčky z posledního výpočtu
+        self.b_itune = self.reset_button((self.samp_i, self.tci), lambda: (float(self.s.get("samp")), self._tc0[0]),
+                                         self._update)
         self.left.addWidget(w.group(T("cas_inner_tune"), w.form([(T("method"), self.im), (T("cas_samp"), self.samp_i),
-                                                                  (T("tc"), self.tci)])))
+                                                                  (T("tc"), self.tci), ("", self.b_itune)])))
         self.om = w.combo(METHODS, labels=[T("m_" + m) for m in METHODS])
         self.oct = w.combo(["PI", "PID"])
         self.tco = w.spin(1.0, 0.001, 1e9, 4)
+        self.b_otune = self.reset_button((self.tco,), lambda: (self._tc0[1],), self._update)
         self.left.addWidget(w.group(T("cas_outer_tune"), w.form([(T("method"), self.om), (T("ctrl_type"), self.oct),
-                                                                  (T("tc"), self.tco)])))
+                                                                  (T("tc"), self.tco), ("", self.b_otune)])))
         self.res = w.note("")
         self.left.addWidget(self.res)
         self.left.addStretch(1)
@@ -86,6 +93,13 @@ class CascadePanel(Panel):
         self.samp_i.setValue(float(s.get("cas_samp", s.get("samp"))))
         self._busy = False
         self._update()
+
+    def _irange(self):
+        """Rozsah vnitřní PV z dat (zaokrouhlené minimum a maximum)."""
+        import numpy as np
+        from ....app.dataset import on_grid
+        x = on_grid(self.s.sig, self.s.grid, self.ipv.currentData())
+        return float(np.floor(np.nanmin(x))), float(np.ceil(np.nanmax(x)))
 
     def _src_changed(self):
         self.stack.setCurrentIndex(self.src.currentIndex())
@@ -136,8 +150,9 @@ class CascadePanel(Panel):
         samp_i = self.samp_i.value()
         s.settings["cas_samp"] = samp_i
         self._busy = True
+        tci0 = default_tc(ci, pi, samp_i)
         if self.im.currentData() == "SIMC" and self.sender() is not self.tci:
-            self.tci.setValue(default_tc(ci, pi, samp_i))
+            self.tci.setValue(tci0)
         self._busy = False
         si = acas.tune_loop(ci, pi, self.im.currentData(), "PI", samp_i, dg,
                             self.tci.value() if self.im.currentData() == "SIMC" else None)
@@ -146,9 +161,12 @@ class CascadePanel(Panel):
         co, po = acas.outer_model(s.model, tc_eff, pi[-1])
         oct_ = self.oct.currentData()
         self._busy = True
+        tco0 = default_tc(co, po, samp, "SIMC", oct_, dg)
         if self.om.currentData() == "SIMC" and self.sender() is not self.tco:
-            self.tco.setValue(default_tc(co, po, samp, "SIMC", oct_, dg))
+            self.tco.setValue(tco0)
         self._busy = False
+        self._tc0 = (tci0, tco0)
+        self.sync_resets()
         tco = self.tco.value() if self.om.currentData() == "SIMC" else None
         so = acas.tune_loop(co, po, self.om.currentData(), oct_, samp, dg, tco)
         octrl = dict(s.base_ctrl(), Gain=so["Kc"], TI=so["Ti"], TD=so["Td"], MV_Lo=0.0, MV_Hi=100.0)

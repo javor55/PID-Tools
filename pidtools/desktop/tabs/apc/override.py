@@ -20,13 +20,18 @@ class OverridePanel(TwoLoopPanel):
         self.sel.currentIndexChanged.connect(self._defaults)
         for sp in (self.step, self.lim):
             sp.valueChanged.connect(self._changed)
+        b_reset = self.reset_button((self.step, self.lim), self._defaults_vals, self._changed)
         self.left.addWidget(w.group(T("ov_select"), w.form([(T("ov_select"), self.sel), (T("dk_ov_step"), self.step),
-                                                            (T("dk_ov_limit"), self.lim)])))
+                                                            (T("dk_ov_limit"), self.lim), ("", b_reset)])))
         self.res = w.note("")
         self.left.addWidget(self.res)
         self.left.addStretch(1)
         self.plots = self.chart(3, ("PV A", "PV B", "MV"), (0.36, 0.36, 0.28))
         self._pair_key = None
+
+    def _defaults_vals(self):
+        p = self.pair()
+        return aov.defaults(p[0], p[1], self.sel.currentData())
 
     def _defaults(self, *_):
         p = self.pair()
