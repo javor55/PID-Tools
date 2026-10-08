@@ -4,7 +4,6 @@
 
 - APC › Feedforward: **Recalculate from the model** sets the gain, lead, lag and delay back to the design from the
   model after manual edits (FF on/off and dynamics stay); the design values are shown under each disturbance.
-
 - Data: WinCC trend exports (UTF-16, `;`, pairs `X Time` / `X ValueY`) load; empty columns (unused trend curves)
   are skipped and the signals are named after the curve (`PV_Out`, not `PV_Out ValueY`). Loading long records is
   faster (time format detected on a sample, fast CSV parser when the separator is clear).
