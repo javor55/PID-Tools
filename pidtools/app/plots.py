@@ -44,14 +44,21 @@ def mkfig(n_rows, heights=None):
 
 
 def _short(a):
-    """Zaokrouhlení na ~6 platných číslic (vůči maximu) – kratší JSON pro prohlížeč, na grafu nepoznatelné."""
+    """
+    Zaokrouhlení pro kratší JSON do prohlížeče, na grafu nepoznatelné: krok 10⁻⁶ rozpětí průběhu (0,5–99,5 %
+    percentil, odlehlé body nerozhodují). Rozpětí, ne velikost hodnot – tlak 101 325 Pa ± 0,5 si zachová desetiny.
+    """
     a = np.asarray(a)
     if a.dtype.kind != "f" or not len(a):
         return a
-    m = np.nanmax(np.abs(a)) if np.any(np.isfinite(a)) else 0.0
-    if not np.isfinite(m) or m == 0:
+    fin = a[np.isfinite(a)]
+    if not len(fin):
         return a
-    return np.round(a, int(np.clip(5 - np.floor(np.log10(m)), 0, 15)))
+    lo, hi = np.percentile(fin, [0.5, 99.5])
+    span = hi - lo
+    if not span > 0:                      # konstantní průběh: beze změny
+        return a
+    return np.round(a, int(np.clip(6 - np.floor(np.log10(span)), 0, 15)))
 
 
 def decimate(x, y, n=2000):

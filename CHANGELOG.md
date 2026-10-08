@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Web charts and report: values with a large magnitude and small changes (e.g. pressure 101 325 Pa ± 0.5) were
+  rounded to whole numbers in the chart; the chart precision now follows the span of the curve. Identification and
+  tuning always used the full precision.
 - APC › Feedforward: **Recalculate from the model** sets the gain, lead, lag and delay back to the design from the
   model after manual edits (FF on/off and dynamics stay); the design values are shown under each disturbance.
 - APC: every technique has **Restore defaults** for its settings – cascade (inner model, inner range, inner and

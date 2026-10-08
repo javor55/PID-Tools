@@ -2,6 +2,8 @@
 
 ## Nevydáno
 
+- Grafy na webu a v reportu: velké hodnoty s malými změnami (např. tlak 101 325 Pa ± 0,5) se v grafu zaokrouhlily
+  na celá čísla; přesnost grafu se teď řídí rozpětím průběhu. Identifikace a ladění vždy počítaly s plnou přesností.
 - APC › Dopředná vazba: **Znovu spočítat z modelu** vrátí po ručních úpravách zesílení, lead, lag a zpoždění na návrh
   z modelu (zapnutí FF a dynamika zůstanou); návrh z modelu je vidět u každé poruchy.
 - APC: každá technika má u nastavení **Původní hodnoty** – kaskáda (vnitřní model, rozsah vnitřní PV, ladění

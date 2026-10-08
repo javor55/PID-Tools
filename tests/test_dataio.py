@@ -131,3 +131,16 @@ def test_decimate_keeps_gaps():
     y[50000] = 5.0
     xs, ys = decimate(x, y)
     assert len(xs) <= 2100 and np.nanmax(ys) == 5.0 and np.isnan(ys[:100]).all()
+
+
+def test_chart_values_keep_decimals():
+    """Graf na webu: velké hodnoty s malými změnami (tlak 101 325 Pa ± 0,5) si zachovají desetiny."""
+    from pidtools.app.plots import _short, tr
+    p = 101325 + 0.37 * np.arange(10)
+    assert np.allclose(_short(p), p)
+    y = np.r_[50 + 0.37 * np.arange(9), 99999.0]               # odlehlý bod nerozhoduje
+    assert np.allclose(_short(y), y)
+    t = tr(np.arange(10.0), p, "PV", "#000")
+    assert np.allclose(np.asarray(t.y, float), p)
+    c = np.full(5, 101325.25)
+    assert np.array_equal(_short(c), c)
