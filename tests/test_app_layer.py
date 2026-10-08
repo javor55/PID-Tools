@@ -191,6 +191,14 @@ def test_report_without_ui():
     html_ = report.build_report([rec], dict(plant="Test", status="draft"), report.SECTIONS, "cdn", lambda r: md,
                                 dict(items=[("smith", "Smith?", None)], smith=[("PIDConL", "Gain", 0.5, "–")]))
     assert html_.startswith("<!doctype html>") and "TIC1" in html_ and "PIDConL" in html_ and "plotly" in html_
+    assert "APC in use" in html_ and "None – set 2" in html_
+    # měřená porucha: v grafu modelu jako DV; zapnutá dopředná vazba v „Použité APC“ a ve shrnutí
+    rec2 = dict(rec, model=("P1D", [1.5, 30.0, 4.0], [[0.5, 20.0, 2.0]]), c_d=["FI1"],
+                ctrl=dict(rec["ctrl"], FF=[-0.4], FF_LL=[(10.0, 5.0, 0.0)]))
+    md2 = (t, 100 + 0 * t, 50 + 0 * t, [10 + 0 * t], 1.0)
+    h2 = report.build_report([rec2], dict(plant="Test"), report.SECTIONS, "cdn", lambda r: md2, {})
+    assert '"name":"FI1"' in h2 and "FF FI1" in h2 and "dynamic" in h2
+    assert report.ff_used(rec2) == [("FI1", pytest.approx(-0.4), (10.0, 5.0, 0.0))]
 
 
 def test_apc_cascade():
