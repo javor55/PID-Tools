@@ -30,6 +30,28 @@ def design(code, p, pdl, settings=None):
     return out
 
 
+def reset(code, p, pdl, des, only=None):
+    """Hodnoty (zesílení, lead, lag, zpoždění) znovu z návrhu podle modelu; zapnutí a dynamika zůstanou.
+    only = index jediné poruchy (None = všechny)."""
+    out = []
+    for j, (pd, d) in enumerate(zip(pdl, des)):
+        if only is None or j == only:
+            g0, tl0, tg0, dl0 = defaults(code, p, pd)
+            d = dict(d, gain=g0, lead=tl0, lag=tg0, delay=dl0)
+        out.append(d)
+    return out
+
+
+def edited(code, p, pdl, des):
+    """Indexy poruch, jejichž hodnoty se liší od návrhu podle modelu (ručně upravené)."""
+    out = []
+    for j, (pd, d) in enumerate(zip(pdl, des)):
+        ref = defaults(code, p, pd)
+        if any(abs(d[k] - r) > 1e-9 * max(1.0, abs(r)) for k, r in zip(("gain", "lead", "lag", "delay"), ref)):
+            out.append(j)
+    return out
+
+
 def state(des):
     """Nastavení pro projekt (seznam slovníků)."""
     return [dict(use=d["use"], gain=d["gain"], dyn=d["dyn"], lead=d["lead"], lag=d["lag"], delay=d["delay"]) for d in des]

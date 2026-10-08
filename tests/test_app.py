@@ -435,6 +435,15 @@ def test_feedforward_in_apc(app):
     assert not _errors(app)
     assert app.session_state["ff_state"][0]["use"]
     assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
+    g0 = app.session_state["ff_state"][0]["gain"]                  # ruční úprava → „znovu z modelu“ vrátí návrh
+    kg = next(k for k in app.session_state if str(k).startswith("ffg|0|"))
+    assert app.button(key="g_ffreset|0").disabled
+    app.session_state[kg] = 2 * g0 + 1.0
+    app.run()
+    assert app.session_state["ff_state"][0]["gain"] == pytest.approx(2 * g0 + 1.0)
+    app.button(key="g_ffreset|0").click().run()
+    assert not _errors(app)
+    assert app.session_state["ff_state"][0]["gain"] == pytest.approx(g0) and app.session_state["ff_state"][0]["use"]
     assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
     # simulace v Ladění: stejná sada 2 bez FF pro porovnání (scénář se skokem měřené poruchy)
     app.session_state["scen_kind"] = "meas"

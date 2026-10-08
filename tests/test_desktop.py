@@ -225,6 +225,14 @@ def test_window_live_and_apc(win):
         assert sm.kpi.rowCount() == 2 and sm.vals.rowCount() >= 6
         assert sm.tc.isHidden() != (m in ("SIMC", "Lambda")) and sm.mg.isHidden() != (m == "manual")
     assert apc.panels[1].kpi.rowCount() == 3          # dopředná vazba: bez, statická, dynamická
+    ffp = apc.panels[1]
+    if ffp.tab.columnCount():                          # ruční úprava zesílení → „znovu z modelu“ vrátí návrh
+        g0 = ffp._design()[0]["gain"]
+        assert not ffp.b_reset.isEnabled()
+        ffp.tab.item(2, 0).setText(f"{2 * g0 + 1:.5g}")
+        assert ffp._design()[0]["gain"] == pytest.approx(2 * g0 + 1, rel=1e-4) and ffp.b_reset.isEnabled()
+        ffp.b_reset.click()
+        assert ffp._design()[0]["gain"] == pytest.approx(g0) and not ffp.b_reset.isEnabled()
 
 
 def _two_loops():

@@ -19,7 +19,16 @@ from ....app.apc import feedforward as app_ff
 from .common import C_REF
 
 
+ss = st.session_state
+
+
 # ---------------------------------------------------------------- dopředná vazba z měřených poruch
+def _reset(k_, vals):
+    """Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou)."""
+    for k, v in zip(("gain", "lead", "lag", "delay"), vals):
+        ss[k_[k]] = float(v)
+
+
 def ff_rows(ctx, des):
     """Hodnoty do PCS 7 pro zapnuté poruchy: [(porucha, [(parametr, hodnota, jednotka)])] v jednotkách MV."""
     return app_ff.rows(ctx.c_d, ctx.dists, des, ctx.MR, ctx.u_mv or "MV")
@@ -54,6 +63,11 @@ def ff_render(ctx):
                 num(T("ff_delay"), k_["delay"], dl0, min_value=0.0, format="%.4g", help=T("h_ff_delay"))
             if use and pdm[2] < p[-1]:
                 st.caption(T("ff_faster", d=dn, td=f"{pdm[2]:.3g}", t=f"{p[-1]:.3g}"))
+            st.caption(T("ff_proposal", g=f"{g0:.4g}", tl=f"{tl0:.4g}", tg=f"{tg0:.4g}", dl=f"{dl0:.4g}"))
+            vals = [ss.get(k_[k], v) for k, v in (("gain", g0), ("lead", tl0), ("lag", tg0), ("delay", dl0))]
+            st.button(T("ff_reset"), key=f"g_ffreset|{j}", icon=":material/restart_alt:", help=T("h_ff_reset"),
+                      on_click=_reset, args=(k_, (g0, tl0, tg0, dl0)),
+                      disabled=all(abs(float(a) - b) <= 1e-9 * max(1.0, abs(b)) for a, b in zip(vals, (g0, tl0, tg0, dl0))))
     des = ffmod.design(code, p, pdl)
     ffmod.save_state(des)
 

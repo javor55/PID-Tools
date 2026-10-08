@@ -2,6 +2,9 @@
 
 ## Nevydáno
 
+- APC › Dopředná vazba: **Znovu spočítat z modelu** vrátí po ručních úpravách zesílení, lead, lag a zpoždění na návrh
+  z modelu (zapnutí FF a dynamika zůstanou); návrh z modelu je vidět u každé poruchy.
+
 - Data: načte se export trendu z WinCC (UTF-16, `;`, dvojice `X Time` / `X ValueY`); prázdné sloupce (nepoužité
   křivky) se vynechají a veličiny se jmenují podle křivky (`PV_Out`, ne `PV_Out ValueY`). Dlouhé záznamy se načítají
   rychleji (formát času se rozpozná na vzorku, rychlý parser CSV při jednoznačném oddělovači).
