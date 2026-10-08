@@ -2,6 +2,19 @@
 
 ## Nevydáno
 
+- Desktop: PySide6 omezeno na < 6.12 – verze 6.12.0 při zavření aplikace shodí Python (chyba počítání referencí
+  v shiboken6, „Fatal Python error: bool_dealloc“).
+- Grafy na webu a v reportu: velké hodnoty s malými změnami (např. tlak 101 325 Pa ± 0,5) se v grafu zaokrouhlily
+  na celá čísla; přesnost grafu se teď řídí rozpětím průběhu. Identifikace a ladění vždy počítaly s plnou přesností.
+- APC › Dopředná vazba: **Znovu spočítat z modelu** vrátí po ručních úpravách zesílení, lead, lag a zpoždění na návrh
+  z modelu (zapnutí FF a dynamika zůstanou); návrh z modelu je vidět u každé poruchy.
+- APC: každá technika má u nastavení **Původní hodnoty** – kaskáda (vnitřní model, rozsah vnitřní PV, ladění
+  vnitřní a vnější smyčky), decoupling, override, Smithův prediktor (τc, ruční regulátor, chyba modelu), plánování
+  zesílení (i podle ER), split range, VPC a poměrová regulace (i modely druhého akčního členu / vzduchu). Tlačítko
+  je aktivní jen po ručních úpravách.
+- Report: graf modelu ukazuje měřené poruchy (DV) ve vlastním řádku a každá smyčka má **Použité APC** – dopřednou
+  vazbu zapnutou v sadě 2 s hodnotami pro FFwd (zesílení v jednotkách MV, statická / dynamická, lead, lag, zpoždění),
+  nebo poznámku, že sada 2 je čistý PIDConL. Tabulka shrnutí má sloupec APC.
 - Data: načte se export trendu z WinCC (UTF-16, `;`, dvojice `X Time` / `X ValueY`); prázdné sloupce (nepoužité
   křivky) se vynechají a veličiny se jmenují podle křivky (`PV_Out`, ne `PV_Out ValueY`). Dlouhé záznamy se načítají
   rychleji (formát času se rozpozná na vzorku, rychlý parser CSV při jednoznačném oddělovači).

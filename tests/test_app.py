@@ -435,6 +435,15 @@ def test_feedforward_in_apc(app):
     assert not _errors(app)
     assert app.session_state["ff_state"][0]["use"]
     assert app.session_state["set2_ctrl"]["FF"][0] == pytest.approx(app.session_state["ff_state"][0]["gain"])
+    g0 = app.session_state["ff_state"][0]["gain"]                  # ruční úprava → „znovu z modelu“ vrátí návrh
+    kg = next(k for k in app.session_state if str(k).startswith("ffg|0|"))
+    assert app.button(key="g_ffreset|0").disabled
+    app.session_state[kg] = 2 * g0 + 1.0
+    app.run()
+    assert app.session_state["ff_state"][0]["gain"] == pytest.approx(2 * g0 + 1.0)
+    app.button(key="g_ffreset|0").click().run()
+    assert not _errors(app)
+    assert app.session_state["ff_state"][0]["gain"] == pytest.approx(g0) and app.session_state["ff_state"][0]["use"]
     assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
     # simulace v Ladění: stejná sada 2 bez FF pro porovnání (scénář se skokem měřené poruchy)
     app.session_state["scen_kind"] = "meas"
@@ -616,3 +625,21 @@ def test_sim_length_unit_follows_process_speed():
     at.selectbox(key="sim_len_u").set_value("h").run()
     at.run()
     assert at.session_state["sim_len_u"] == "h" and at.session_state["sim_len_u_set"]
+
+
+def test_apc_reset_buttons_web(app):
+    """„Původní hodnoty“ v APC: po ruční úpravě vrátí výchozí / vypočtené hodnoty a zase zešedne."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
+    cases = (("vpc", "apc_vpc", "apc_vpc_f", 5.0), ("ratio", "apc_ra", "apc_ra_R", 1.2),
+             ("split", "apc_sr", "apc_sr_gap", 0.0), ("smith", "apc_sm_err", "apc_sm_eth", 0))
+    for kind, bkey, vkey, v0 in cases:
+        app.session_state["apc_kind"] = kind
+        app.run()
+        assert not _errors(app), kind
+        assert app.button(key=f"g_reset|{bkey}").disabled, kind
+        app.session_state[vkey] = v0 + 7
+        app.run()
+        assert not app.button(key=f"g_reset|{bkey}").disabled, kind
+        app.button(key=f"g_reset|{bkey}").click().run()
+        assert not _errors(app), kind
+        assert app.session_state[vkey] == pytest.approx(v0) and app.button(key=f"g_reset|{bkey}").disabled, kind

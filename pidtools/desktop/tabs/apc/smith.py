@@ -36,9 +36,17 @@ class SmithPanel(Panel):
             c.currentIndexChanged.connect(self._changed)
         for sp in (self.tc, self.mg, self.mti, self.mtd, self.ek, self.et, self.eth):
             sp.valueChanged.connect(self._changed)
+        self.b_tc = self.reset_button((self.tc,), lambda: (asm.tc_default(self.s.model[1], float(self.s.get("samp")),
+                                                                           self.method.currentData()),), self._changed)
+        self.b_man = self.reset_button((self.mg, self.mti, self.mtd),
+                                       lambda: tuple(float(self.s.get(f"set2_{k}", d))
+                                                     for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
+                                       self._changed)
+        self.b_err = self.reset_button((self.ek, self.et, self.eth), lambda: (0.0, 0.0, 0.0), self._changed)
         self.frm = w.form([(T("sm_method"), self.method), (T("ctrl_type"), self.ctype), (T("sm_tc"), self.tc),
-                           ("Gain", self.mg), ("TI [s]", self.mti), ("TD [s]", self.mtd),
-                           (T("sm_err_k"), self.ek), (T("sm_err_t"), self.et), (T("sm_err_th"), self.eth)])
+                           ("", self.b_tc), ("Gain", self.mg), ("TI [s]", self.mti), ("TD [s]", self.mtd),
+                           ("", self.b_man), (T("sm_err_k"), self.ek), (T("sm_err_t"), self.et),
+                           (T("sm_err_th"), self.eth), ("", self.b_err)])
         self.left.addWidget(w.group(T("apc_smith"), self.frm))
         self.ratio = w.note("")
         self.left.addWidget(self.ratio)
@@ -79,7 +87,8 @@ class SmithPanel(Panel):
     def _rows_visible(self, method, ctype):
         f = self.frm
         f.setRowVisible(self.tc, method in ("SIMC", "Lambda"))
-        for sp in (self.mg, self.mti):
+        f.setRowVisible(self.b_tc, method in ("SIMC", "Lambda"))
+        for sp in (self.mg, self.mti, self.b_man):
             f.setRowVisible(sp, method == "manual")
         f.setRowVisible(self.mtd, method == "manual" and ctype == "PID")
 

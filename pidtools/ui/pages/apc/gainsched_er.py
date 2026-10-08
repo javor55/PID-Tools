@@ -9,7 +9,7 @@ from ....i18n import T
 from ... import cache
 from ...charts import mkfig, show, style, tr
 from ...theme import C_SET1, C_SET2, C_SP
-from ...widgets import num, sld
+from ...widgets import num, reset_button, sld
 from . import guide
 from ...layout import section
 from ....app import guides as app_guides
@@ -52,6 +52,7 @@ def gs_er_render(ctx, ws, g_ph):
         c3.metric(T("gs_er_ms"), "∞" if not np.isfinite(ms_k) else f"{ms_k:.2f}",
                   help=T("h_gs_er_ms", k=f"{kmax:.2f}"))
         st.caption(T("gs_er_kmax", k=f"{kmax:.2f}", g=f"{set2['Gain']:.4g}", ti=f"{set2['TI']:.4g}"))
+        reset_button(st, "apc_gser", [("gs_er_E", round(0.05 * PR, 6)), ("gs_er_k", float(min(2.0, max(kmax, 1.0))))])
         if kmax < 1.0:
             st.error(T("gs_er_base_bad"), icon=":material/warning:")
         elif not np.isfinite(ms_k) or ms_k > 2.0:
@@ -70,6 +71,7 @@ def gs_er_render(ctx, ws, g_ph):
     sp_step = num(T("gs_er_spstep", u=ctx.u_pv or "PV"), "gs_er_spstep", round(0.2 * PR, 6), s1, format="%.4g",
                   help=T("h_gs_er_spstep"))
     d_mv = num(T("gs_er_d"), "gs_er_d", 10.0, s2, format="%.3g", help=T("h_gs_er_d"))
+    reset_button(sec_sim, "apc_gser_sim", [("gs_er_spstep", round(0.2 * PR, 6)), ("gs_er_d", 10.0)])
     step_pct = float(np.clip(sp_step / PR * 100, -45, 45))
     sim = app_gs.simulate_er(code, p, set2, float(e_u) / PR * 100, k, step_pct, d_mv, ctx.samp, gs_sim_c, best_cz)
     t, sp, tp, cz, scan, oz = sim["t"], sim["sp"], sim["tp"], sim["cz"], sim["scan"], sim["zone"]

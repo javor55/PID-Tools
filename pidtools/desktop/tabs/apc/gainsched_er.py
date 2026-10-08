@@ -21,7 +21,10 @@ class GainSchedErPanel(Panel):
         self.kmax = w.note("")
         self.left.addWidget(w.group(T("gs_x_er"), w.form([
             (T("dk_gser_E", u="PV"), self.E), (T("dk_gser_k"), self.k), (T("dk_gser_sp", u="PV"), self.spstep),
-            (T("dk_gser_d"), self.d)])))
+            (T("dk_gser_d"), self.d),
+            ("", self.reset_button((self.E, self.k, self.spstep, self.d),
+                                   lambda: (round(0.05 * self.s.PR, 6), 2.0, round(0.2 * self.s.PR, 6), 10.0),
+                                   self._simulate))])))
         self.left.addWidget(self.kmax)
         self.vals = w.table([], [], stretch=False)
         self.vals.setMinimumHeight(150)

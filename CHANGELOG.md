@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Desktop: PySide6 limited to < 6.12 – 6.12.0 aborts Python when the application closes (refcount bug in shiboken6,
+  "Fatal Python error: bool_dealloc").
+- Web charts and report: values with a large magnitude and small changes (e.g. pressure 101 325 Pa ± 0.5) were
+  rounded to whole numbers in the chart; the chart precision now follows the span of the curve. Identification and
+  tuning always used the full precision.
+- APC › Feedforward: **Recalculate from the model** sets the gain, lead, lag and delay back to the design from the
+  model after manual edits (FF on/off and dynamics stay); the design values are shown under each disturbance.
+- APC: every technique has **Restore defaults** for its settings – cascade (inner model, inner range, inner and
+  outer tuning), decoupling, override, Smith predictor (τc, manual controller, model error), gain scheduling (incl.
+  error-ratio), split range, VPC and ratio control (also the models of the second actuator / air). The button is
+  active only after manual edits.
+- Report: the model chart shows the measured disturbances (DV) in their own row, and every loop has **APC in use** –
+  feedforward switched on in set 2 with the FFwd values (gain in MV units, static / dynamic, lead, lag, delay), or a
+  note that set 2 is a plain PIDConL. The summary table has an APC column.
 - Data: WinCC trend exports (UTF-16, `;`, pairs `X Time` / `X ValueY`) load; empty columns (unused trend curves)
   are skipped and the signals are named after the curve (`PV_Out`, not `PV_Out ValueY`). Loading long records is
   faster (time format detected on a sample, fast CSV parser when the separator is clear).

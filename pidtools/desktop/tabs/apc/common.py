@@ -1,5 +1,5 @@
 """Společné prvky panelů APC v desktopu: stejné rozložení jako ostatní záložky (graf vlevo, nastavení vpravo)."""
-from PySide6.QtWidgets import QGroupBox
+from PySide6.QtWidgets import QGroupBox, QPushButton
 
 from .... import i18n
 from ....i18n import T
@@ -48,6 +48,48 @@ class Panel(Workspace):
         self.left = _Side(self, f"apc/{kind}/")
         self.right = self.main
         self._busy = False
+
+    def reset_button(self, widgets, defaults, after):
+        """
+        Tlačítko „Původní hodnoty“: widgets = číselná pole, defaults() = jejich vypočtené / výchozí hodnoty,
+        after() přepočítá panel. Bez ručních úprav je tlačítko neaktivní.
+        """
+        b = QPushButton(T("apc_reset"))
+        b.setToolTip(T("h_apc_reset"))
+        widgets = list(widgets)
+
+        def click():
+            vals = self._defaults_of(defaults)
+            if vals is None:
+                return
+            busy, self._busy = self._busy, True
+            try:
+                for wd, v in zip(widgets, vals):
+                    wd.setValue(float(v))
+            finally:
+                self._busy = busy
+            after()
+            self.sync_resets()
+        b.clicked.connect(click)
+        for wd in widgets:
+            wd.valueChanged.connect(lambda *_: self.sync_resets())
+        self.__dict__.setdefault("_resets", []).append((b, widgets, defaults))
+        return b
+
+    @staticmethod
+    def _defaults_of(defaults):
+        try:
+            return list(defaults())
+        except Exception:                    # bez modelu / dat: nic k obnovení
+            return None
+
+    def sync_resets(self):
+        """Tlačítka „Původní hodnoty“ aktivní jen u sekcí s ručně změněnými hodnotami."""
+        for b, widgets, defaults in self.__dict__.get("_resets", []):
+            vals = self._defaults_of(defaults)
+            b.setEnabled(vals is not None and any(
+                abs(wd.value() - round(float(v), wd.decimals())) > 0.6 * 10 ** -wd.decimals() + 1e-9 * abs(float(v))
+                for wd, v in zip(widgets, vals)))
 
     def chart(self, n=2, labels=("PV", "MV"), heights=(0.62, 0.38)):
         c, plots = w.stack(n, list(labels), T("time_s"), heights=heights)

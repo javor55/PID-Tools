@@ -3,7 +3,7 @@ APC › další struktury v desktopu: split range, regulace polohy ventilu (VPC)
 omezením a interakce N×N (RGA). Výpočty v pidtools.app.apc (splitrange, vpc, ratio, rgan).
 """
 import numpy as np
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from ....app.apc import ratio as aratio
 from ....app.apc import rgan
@@ -20,9 +20,15 @@ class ModelFields(QWidget):
 
     def __init__(self, on_change):
         super().__init__()
-        self.code, self.sp = None, []
+        self.code, self.sp, self.p0 = None, [], []
         self.lay = w.form([])
-        self.setLayout(self.lay)
+        self.reset = QPushButton(T("apc_reset"))           # zpět na výchozí model (z modelu smyčky)
+        self.reset.setToolTip(T("h_apc_reset"))
+        self.reset.clicked.connect(self._reset)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addLayout(self.lay)
+        outer.addWidget(self.reset)
         self.on_change = on_change
 
     def set_model(self, code, p):
@@ -33,13 +39,28 @@ class ModelFields(QWidget):
             for n in MODELS[code]["params"]:
                 s = w.spin(0.0, -1e9, 1e9, 6)
                 s.valueChanged.connect(self.on_change)
+                s.valueChanged.connect(self._sync)
                 self.lay.addRow(n, s)
                 self.sp.append(s)
             self.code = code
+        self.p0 = [float(v) for v in p]
         for s, v in zip(self.sp, p):
             s.blockSignals(True)
             s.setValue(float(v))
             s.blockSignals(False)
+        self._sync()
+
+    def _sync(self, *_):
+        self.reset.setEnabled(any(abs(s.value() - round(v, s.decimals())) > 10 ** -s.decimals()
+                                  for s, v in zip(self.sp, self.p0)))
+
+    def _reset(self):
+        for s, v in zip(self.sp, self.p0):
+            s.blockSignals(True)
+            s.setValue(v)
+            s.blockSignals(False)
+        self._sync()
+        self.on_change()
 
     def model(self):
         p = [s.value() for s in self.sp]
@@ -69,8 +90,9 @@ class SplitRangePanel(Panel):
             sp.valueChanged.connect(self._changed)
         w.tip(self.b0, "h_sr_b0")
         w.tip(self.gap, "h_sr_gap")
+        b_reset = self.reset_button((self.b0, self.gap), lambda: (50.0, 0.0), self._changed)
         self.left.addWidget(w.group(T("sr_setup"), w.form([(T("sr_mode"), self.mode), (T("sr_b0"), self.b0),
-                                                           (T("sr_gap"), self.gap)])))
+                                                           (T("sr_gap"), self.gap), ("", b_reset)])))
         self.va = ModelFields(self._changed)
         self.left.addWidget(w.group(T("sr_valve_a"), w.form([("", self.va)])))
         self.res = w.note("")
@@ -155,8 +177,9 @@ class VpcPanel(Panel):
         for sp, k in ((self.sp_vpc, "h_vpc_sp"), (self.factor, "h_vpc_factor"), (self.d, "h_vpc_d")):
             sp.valueChanged.connect(self._changed)
             w.tip(sp, k)
+        b_reset = self.reset_button((self.sp_vpc, self.factor, self.d), lambda: (50.0, 5.0, 35.0), self._changed)
         self.left.addWidget(w.group(T("vpc_setup"), w.form([(T("vpc_sp"), self.sp_vpc), (T("vpc_factor"), self.factor),
-                                                            (T("vpc_d"), self.d)])))
+                                                            (T("vpc_d"), self.d), ("", b_reset)])))
         self.res = w.note("")
         self.left.addWidget(self.res)
         self.plots = self.chart(3, ("PV", "MV1", "MV2"), (0.4, 0.3, 0.3))
@@ -218,7 +241,9 @@ class RatioPanel(Panel):
         for sp, k in ((self.R, "h_ra_R"), (self.step, "h_ra_step")):
             sp.valueChanged.connect(self._changed)
             w.tip(sp, k)
-        self.left.addWidget(w.group(T("ra_setup"), w.form([(T("ra_R"), self.R), (T("ra_step"), self.step)])))
+        b_reset = self.reset_button((self.R, self.step), lambda: (1.2, 15.0), self._changed)
+        self.left.addWidget(w.group(T("ra_setup"), w.form([(T("ra_R"), self.R), (T("ra_step"), self.step),
+                                                           ("", b_reset)])))
         self.res = w.note("")
         self.left.addWidget(self.res)
         self.plots = self.chart(2, (T("ra_flows"), "λ"), (0.62, 0.38))

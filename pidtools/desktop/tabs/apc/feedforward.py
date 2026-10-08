@@ -1,6 +1,6 @@
 """APC › Dopředná vazba: nastavení pro každou měřenou poruchu, ověření skokem poruchy, hodnoty pro PIDConL (FFwd)."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHeaderView, QLabel, QTableWidget, QTableWidgetItem
+from PySide6.QtWidgets import QHeaderView, QLabel, QPushButton, QTableWidget, QTableWidgetItem
 
 from ....app import feedforward as ffm
 from ....app.apc import feedforward as aff
@@ -16,7 +16,12 @@ class FFPanel(Panel):
         super().__init__(win, "apc_intro_ff")
         self.tab = QTableWidget(len(COLS), 0)          # parametry pod sebou, sloupec = měřená porucha
         self.tab.itemChanged.connect(self._edited)
-        self.left.addWidget(w.group(T("dk_ff_setup"), w.form([("", self.tab)])))
+        self.b_reset = QPushButton(T("ff_reset"))
+        self.b_reset.setToolTip(T("h_ff_reset"))
+        self.b_reset.clicked.connect(self._reset)
+        self.proposal = w.note("")
+        self.left.addWidget(w.group(T("dk_ff_setup"), w.form([("", self.tab), ("", self.b_reset),
+                                                             ("", self.proposal)])))
         self.jsel = w.combo([])
         self.step = w.spin(1.0, -1e12, 1e12, 4)
         self.jsel.currentIndexChanged.connect(self._default_step)
@@ -55,6 +60,7 @@ class FFPanel(Panel):
                     else:
                         it.setText(f"{d[c]:.5g}")
                     self.tab.setItem(j, i, it)
+            self._update_reset(des)
             self.tab.setFixedHeight(self.tab.horizontalHeader().height() + 4
                                     + sum(self.tab.rowHeight(r) for r in range(len(COLS))))
             cur = self.jsel.currentIndex()
@@ -83,7 +89,25 @@ class FFPanel(Panel):
                     except ValueError:
                         pass
         self.s.ff_state = ffm.state(des)
+        self._update_reset(des)
         self._simulate()
+
+    def _update_reset(self, des):
+        """Tlačítko „znovu z modelu“ jen při ručně upravených hodnotách; pod tabulkou návrh podle modelu."""
+        code, p, pdl = self.s.model
+        self.b_reset.setEnabled(bool(ffm.edited(code, p, pdl, des)))
+        self.proposal.setText("  \n".join(
+            f"**{dn}** – " + T("ff_proposal", g=f"{g:.4g}", tl=f"{tl:.4g}", tg=f"{tg:.4g}", dl=f"{dl:.4g}")
+            for dn, (g, tl, tg, dl) in zip(self.s.c_d, (ffm.defaults(code, p, pd) for pd in pdl))))
+
+    def _reset(self):
+        """Zesílení, lead, lag a zpoždění všech poruch znovu z návrhu podle modelu (zapnutí a dynamika zůstanou)."""
+        s = self.s
+        if s.model is None or not s.model[2]:
+            return
+        code, p, pdl = s.model
+        s.ff_state = ffm.state(ffm.reset(code, p, pdl, self._design()))
+        self.refresh()
 
     def _default_step(self, *_):
         s = self.s

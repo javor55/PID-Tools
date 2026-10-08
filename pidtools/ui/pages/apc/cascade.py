@@ -9,7 +9,7 @@ from ...cache import cascade_sim, fit_model, pidconl_sim
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET2, C_SP
 from ...layout import section, workspace
-from ...widgets import model_name, num, seg, sld
+from ...widgets import model_name, num, reset_button, seg, sld
 from ....app.apc import cascade as acas
 
 ss = st.session_state
@@ -50,6 +50,8 @@ def render_body(ctx):
                     ipv_raw = ctx.on_grid(c_ipv)
                     ilo = num(T("cas_ilo"), f"cas_ilo|{c_ipv}", float(np.floor(np.nanmin(ipv_raw))), i3, help=T("h_cas_irange"))
                     ihi = num(T("cas_ihi"), f"cas_ihi|{c_ipv}", float(np.ceil(np.nanmax(ipv_raw))), i4, help=T("h_cas_irange"))
+                    reset_button(st, "cas_irange", [(f"cas_ilo|{c_ipv}", float(np.floor(np.nanmin(ipv_raw)))),
+                                                    (f"cas_ihi|{c_ipv}", float(np.ceil(np.nanmax(ipv_raw))))])
                     if st.button(T("cas_fit"), icon=":material/play_arrow:"):
                         ipv = (ipv_raw[sel_mask] - ilo) / max(ihi - ilo, 1e-9) * 100
                         imv = M(ctx.on_grid(c_imv, zoh=True)[sel_mask])
@@ -69,6 +71,7 @@ def render_body(ctx):
                     t1_i = num("T1 [s]", "cas_t1", 5.0, i2, min_value=1e-3, help=T("help_T"))
                     t2_i = num("T2 [s]", "cas_t2", 0.0, i3, min_value=0.0, help=T("help_T"))
                     th_i = num("θ [s]", "cas_th", 1.0, i4, min_value=0.0, help=T("help_theta"))
+                    reset_button(st, "cas_man", [("cas_k", 1.0), ("cas_t1", 5.0), ("cas_t2", 0.0), ("cas_th", 1.0)])
                     inner = acas.manual_inner(k_i, t1_i, t2_i, th_i)
             if inner is None:
                 ws.side.info(T("cas_need_inner"))
@@ -84,6 +87,7 @@ def render_body(ctx):
                         tci0 = default_tc(ci_, p_i, samp_i)
                         tci = sld(j3, T("tc"), float(max(0.05 * tci0, 1e-3)), float(10 * tci0), float(tci0), "cas_tci",
                                   help=T("tc_help"))
+                    reset_button(st, "cas_itune", [("cas_samp", samp)] + ([("cas_tci", float(tci0))] if im == "SIMC" else []))
                     si = acas.tune_loop(ci_, p_i, im, "PI", samp_i, diffgain, tci, cache.opt_migo)
                     st.caption(T("mdesc_" + im) + (f" {T('cdesc_MIGO')}" if im == "OPT" else ""))
                     ictrl = acas.inner_ctrl(si, diffgain, samp_i)
@@ -106,6 +110,8 @@ def render_body(ctx):
                         tco0 = default_tc(co_, p_o, samp, "SIMC", oct_, diffgain)
                         tco = sld(l3, T("tc"), float(max(0.05 * tco0, 1e-3)), float(10 * tco0), float(tco0), "cas_tco",
                                   help=T("tc_help"))
+                    if om == "SIMC":
+                        reset_button(st, "cas_otune", [("cas_tco", float(tco0))])
                     so = acas.tune_loop(co_, p_o, om, oct_, samp, diffgain, tco, cache.opt_migo)
                     st.caption(T("mdesc_" + om) + (f" {T('cdesc_MIGO')}" if om == "OPT" else ""))
                     octrl = dict(base_ctrl, Gain=so["Kc"], TI=so["Ti"], TD=so["Td"], MV_Lo=0.0, MV_Hi=100.0)

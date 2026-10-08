@@ -10,7 +10,7 @@ from ....i18n import T
 from ... import loops
 from ...charts import mkfig, show, style, tr
 from ...theme import C_MV, C_PV, C_SET2, C_SP
-from ...widgets import num, seg
+from ...widgets import num, reset_button, seg
 from . import guide
 from ...layout import section
 from ....app import guides as app_guides
@@ -55,6 +55,7 @@ def decouple_render(ctx, bi, b, ws):
                     help=T("h_dec_type")) or "dyn"
         amp_a = num(T("dec_step", n=a["name"]), "apc_dec_spa", 5.0, format="%.4g", help=T("h_dec_step"))
         amp_b = num(T("dec_step", n=b["name"]), "apc_dec_spb", 5.0, format="%.4g", help=T("h_dec_step"))
+        reset_button(st, "apc_dec", [("apc_dec_spa", 5.0), ("apc_dec_spb", 5.0)])
     ctrl_a, ctrl_b = clean(a["ctrl"]), clean(b["ctrl"])
     runs = adec.simulate(dz, ctrl_a, ctrl_b, amp_a, amp_b, mimo_sim)
     EA, EB = eng(a["pv_rng"]), eng(b["pv_rng"])

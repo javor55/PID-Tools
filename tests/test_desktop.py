@@ -225,6 +225,14 @@ def test_window_live_and_apc(win):
         assert sm.kpi.rowCount() == 2 and sm.vals.rowCount() >= 6
         assert sm.tc.isHidden() != (m in ("SIMC", "Lambda")) and sm.mg.isHidden() != (m == "manual")
     assert apc.panels[1].kpi.rowCount() == 3          # dopředná vazba: bez, statická, dynamická
+    ffp = apc.panels[1]
+    if ffp.tab.columnCount():                          # ruční úprava zesílení → „znovu z modelu“ vrátí návrh
+        g0 = ffp._design()[0]["gain"]
+        assert not ffp.b_reset.isEnabled()
+        ffp.tab.item(2, 0).setText(f"{2 * g0 + 1:.5g}")
+        assert ffp._design()[0]["gain"] == pytest.approx(2 * g0 + 1, rel=1e-4) and ffp.b_reset.isEnabled()
+        ffp.b_reset.click()
+        assert ffp._design()[0]["gain"] == pytest.approx(g0) and not ffp.b_reset.isEnabled()
 
 
 def _two_loops():
@@ -760,3 +768,35 @@ def test_sim_length_units_desktop(win):
     assert t._result["T_end"] == pytest.approx(1800.0)
     t.auto_len.setChecked(True)
     t.t_unit.setCurrentIndex(t.t_unit.findData("s"))
+
+
+def test_apc_reset_buttons_desktop(win):
+    """Každá technika APC má „Původní hodnoty“: po ruční úpravě vrátí vypočtené / výchozí hodnoty."""
+    app, w = win
+    if w.state.model is None:
+        w.open_demo()
+        w.state.identify()
+        w.refresh()
+    w.state.set(mcode="P1D")
+    apc = w.pages[4]
+    w.tabs.setCurrentIndex(4)
+    for i in range(len(apc.panels)):
+        apc.tabs.setCurrentIndex(i)
+        app.processEvents()
+    _wait(app)
+    checked = 0
+    for i in range(len(apc.panels)):
+        p = apc.panels[i]
+        for b, widgets, defaults in getattr(p, "_resets", []):
+            vals = p._defaults_of(defaults)
+            if vals is None or not widgets[0].isEnabled():
+                continue
+            p.sync_resets()
+            wd = widgets[0]
+            wd.setValue(wd.value() + max(abs(wd.value()) * 0.3, 1.0) if wd.value() + 1 <= wd.maximum() else wd.minimum())
+            assert b.isEnabled(), (type(p).__name__, b.text())
+            b.click()
+            assert wd.value() == pytest.approx(round(float(vals[0]), wd.decimals()), abs=10 ** -wd.decimals())
+            assert not b.isEnabled()
+            checked += 1
+    assert checked >= 8

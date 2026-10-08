@@ -17,6 +17,7 @@ import numpy as np
 from .. import __version__
 from ..core import MODELS, iae, pidconl_sim_full, predict, propfac, robustness
 from ..i18n import T, lang
+from .colors import C_DIST
 from .plots import C_MV, C_PV, C_SET1, C_SET2, C_SP, mkfig, report_template, tr
 
 SECTIONS = ["model", "tuning", "response", "apc", "signoff"]
@@ -119,6 +120,36 @@ def _param_rows(r):
 
 
 # ---------------------------------------------------------------- grafy
+def ff_used(r):
+    """Dopředná vazba zapnutá v sadě 2: [(porucha, zesílení [jedn. MV / jedn. poruchy], (lead, lag, zpoždění))]."""
+    c = r.get("ctrl") or {}
+    ffs, ll = list(c.get("FF") or []), list(c.get("FF_LL") or [])
+    mr = r["mv_rng"][1] - r["mv_rng"][0]
+    out = []
+    for j, g in enumerate(ffs):
+        if g and np.isfinite(g) and j < len(r.get("c_d") or []):
+            lead, lag, dl = (list(ll[j]) + [0.0, 0.0, 0.0])[:3] if j < len(ll) and ll[j] is not None else (0.0, 0.0, 0.0)
+            out.append((str(r["c_d"][j]), float(g) * mr / 100, (float(lead), float(lag), float(dl))))
+    return out
+
+
+def _apc_used_html(r):
+    """Použité APC: dopředná vazba v sadě 2 (hodnoty pro FFwd), jinak informace, že žádná struktura v sadě není."""
+    ff = ff_used(r)
+    if not ff:
+        return f"<p>{E(T('rp_apc_none'))}</p>"
+    u = r["u_mv"] or "MV"
+    rows = "".join(
+        f"<tr><td>{E(dn)}</td><td class='num'>{_f(g)}</td><td>{E(u)}/{E(dn)}</td>"
+        f"<td>{E(T('rp_ff_dyn') if any(x > 0 for x in ll) else T('rp_ff_static'))}</td>"
+        f"<td class='num'>{_f(ll[0])}</td><td class='num'>{_f(ll[1])}</td><td class='num'>{_f(ll[2])}</td></tr>"
+        for dn, g, ll in ff)
+    head = "".join(f"<th>{E(h)}</th>" for h in (T("rp_dv"), T("rp_ff_gain"), T("rp_unit"), T("rp_ff_kind"),
+                                                 "lead [s]", "lag [s]", T("ff_delay")))
+    return (f"<p>{E(T('rp_apc_ff'))}</p><table><tr>{head}</tr>{rows}</table>"
+            f"<p class='muted'>{E(T('rp_apc_ff_note'))}</p>")
+
+
 def _fig_html(fig, first, mode):
     fig.layout.template = report_template()
     inc = ("cdn" if mode == "cdn" else True) if first else False
@@ -159,12 +190,20 @@ def _fig_model(r, md):
         mv = (mv_e[sel] - r["mv_rng"][0]) / MR * 100
         dd = [d[sel] for d in dl][:len(pdl)]
         yhat, fit = predict(code, list(p), [list(x) for x in pdl][:len(dd)], ts, pv, mv, dd, Ts)
-        f = mkfig(2, [0.65, 0.35])
+        dv = [(str(n), d[sel]) for n, d in zip(r.get("c_d") or [], dl)]       # měřené poruchy (DV) v jejich jednotkách
+        f = mkfig(3, [0.5, 0.25, 0.25]) if dv else mkfig(2, [0.65, 0.35])
         f.add_trace(tr(ts, pv_e[sel], "PV", C_PV, 1.3), 1, 1)
         f.add_trace(tr(ts, r["pv_rng"][0] + yhat * PR / 100, T("rp_model"), "#ea580c", 2.0), 1, 1)
         f.add_trace(tr(ts, mv_e[sel], "MV", C_MV, 1.4, shape="hv"), 2, 1)
-        f.update_layout(height=380, margin=dict(l=60, r=20, t=30, b=40))
-        f.update_xaxes(title_text=T("time_s"), row=2, col=1)
+        for i, (n, d) in enumerate(dv):
+            f.add_trace(tr(ts, d, n, C_DIST[i % len(C_DIST)], 1.4), 3, 1)
+        u = lambda n, x: f"{n} [{x}]" if x else n  # noqa: E731
+        f.update_layout(height=460 if dv else 380, margin=dict(l=60, r=20, t=30, b=40))
+        f.update_yaxes(title_text=u("PV", r["u_pv"]), row=1, col=1)
+        f.update_yaxes(title_text=u("MV", r["u_mv"]), row=2, col=1)
+        if dv:
+            f.update_yaxes(title_text="DV", row=3, col=1)
+        f.update_xaxes(title_text=T("time_s"), row=3 if dv else 2, col=1)
         return f, fit
     except Exception:
         return None, None
@@ -222,7 +261,7 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
     if recs:
         parts.append(f"<h2>{E(T('rp_summary'))}</h2><p class='muted'>{E(T('rp_summary_help'))}</p>")
         head = "".join(f"<th>{E(h)}</th>" for h in (T("rp_loop"), T("rp_model"), "FIT", "Gain", "TI [s]", "TD [s]", "Ms",
-                                                     T("rp_iae_sp"), T("rp_iae_d")))
+                                                     T("rp_iae_sp"), T("rp_iae_d"), "APC"))
         rows = []
         for r in recs:
             d = data[r["id"]]
@@ -240,7 +279,8 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
                         + chg(c1["Gain"], c2["Gain"]) + chg(_ti(c1), _ti(c2)) + chg(c1.get("TD", 0), c2.get("TD", 0))
                         + ms_cell(d["rob"]["1"]["Ms"], d["rob"]["2"]["Ms"])
                         + chg(d["resp"]["1"]["iae_sp"], d["resp"]["2"]["iae_sp"], True, lambda v: _f(v, 3))
-                        + chg(d["resp"]["1"]["iae_d"], d["resp"]["2"]["iae_d"], True, lambda v: _f(v, 3)) + "</tr>")
+                        + chg(d["resp"]["1"]["iae_d"], d["resp"]["2"]["iae_d"], True, lambda v: _f(v, 3))
+                        + f"<td>{E(', '.join('FF ' + dn for dn, _, _ in ff_used(r)) or '—')}</td></tr>")
         parts.append(f"<table><tr>{head}</tr>{''.join(rows)}</table>")
 
     first_fig = True
@@ -252,7 +292,7 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
                      f"<tr><td>PV</td><td>{E(str(r['c_pv']))} ({_rng(r['pv_rng'], r['u_pv'])})</td></tr>"
                      f"<tr><td>MV</td><td>{E(str(r['c_mv']))} ({_rng(r['mv_rng'], r['u_mv'])})</td></tr>"
                      f"<tr><td>SP</td><td>{E(str(r.get('c_sp') or '—'))}</td></tr>"
-                     f"<tr><td>{E(T('col_dist'))}</td><td>{E(', '.join(map(str, r['c_d'])) or '—')}</td></tr></table>")
+                     f"<tr><td>{E(T('rp_dv'))}</td><td>{E(', '.join(map(str, r['c_d'])) or '—')}</td></tr></table>")
         if "tuning" in sections:
             rows, blk, _ = _param_rows(r)
             parts.append(f"<h3>{E(T('rp_params'))}</h3><div class='key'><table><tr><th>{E(T('rp_param'))}</th>"
@@ -291,6 +331,8 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
             if fm is not None:
                 parts.append(_fig_html(fm, first_fig, chart_mode))
                 first_fig = False
+        if "apc" in sections:
+            parts.append(f"<h3>{E(T('rp_apc_used'))}</h3>" + _apc_used_html(r))
         if "apc" in sections and r["active"]:
             items = apc.get("items") or []
             if items:
