@@ -100,7 +100,7 @@ a gain scheduling krátce vytíží jedno jádro CPU. Pro malý tým by měla st
 |---|---|---|
 | `browser.gatherUsageStats` | `false` | žádná telemetrie Streamlitu |
 | `client.toolbarMode` | `viewer` | uživatelé nevidí vývojářské volby |
-| `server.maxUploadSize` | `200` (MB) | velikost nahrávaného exportu |
+| `server.maxUploadSize` | `100` (MB) | velikost nahrávaného exportu |
 | `[theme.light]`, `[theme.dark]` | barvy | světlý a tmavý vzhled (přepíná uživatel v menu ⋮) |
 
 ## Data a soukromí

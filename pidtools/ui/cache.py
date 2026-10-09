@@ -8,7 +8,8 @@ from .. import core
 from ..app import closedloop as app_cl
 from ..app import tuning as app_tuning
 
-_cache = st.cache_data(show_spinner=False, max_entries=256)
+# Limity drží paměť serveru (cache je společná pro všechny relace): 64 výsledků na funkci, nejdéle hodinu.
+_cache = st.cache_data(show_spinner=False, max_entries=64, ttl="1h")
 
 pidconl_sim = _cache(core.pidconl_sim)
 pidconl_sim_full = _cache(core.pidconl_sim_full)
@@ -25,7 +26,7 @@ settling_time = _cache(core.settling_time)
 
 
 # optimalizace ladění (pidtools.app.tuning) – hashovatelné argumenty
-opt_migo = st.cache_data(show_spinner=False, max_entries=64)(app_tuning.opt_migo)
-opt_time = st.cache_data(show_spinner=False, max_entries=128)(app_tuning.opt_time)
-opt_scenario = st.cache_data(show_spinner=False, max_entries=32)(app_tuning.opt_scenario)
-identify_cl = st.cache_data(show_spinner=False, max_entries=32)(app_cl.identify)
+opt_migo = st.cache_data(show_spinner=False, max_entries=32, ttl="1h")(app_tuning.opt_migo)
+opt_time = st.cache_data(show_spinner=False, max_entries=64, ttl="1h")(app_tuning.opt_time)
+opt_scenario = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(app_tuning.opt_scenario)
+identify_cl = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(app_cl.identify)

@@ -102,7 +102,7 @@ team.
 |---|---|---|
 | `browser.gatherUsageStats` | `false` | no Streamlit telemetry |
 | `client.toolbarMode` | `viewer` | users do not see developer options |
-| `server.maxUploadSize` | `200` (MB) | size of an uploaded export |
+| `server.maxUploadSize` | `100` (MB) | size of an uploaded export |
 | `[theme.light]`, `[theme.dark]` | colours | light and dark theme (switched by the user in the ⋮ menu) |
 
 ## Data and privacy

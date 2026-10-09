@@ -18,11 +18,11 @@ KINDS = ["cascade", "ff", "decouple", "override", "smith", "gainsched", "split",
 C_B = "#7c3aed"          # druhá smyčka
 C_REF = "#9aa5b1"        # srovnání (bez struktury)
 
-mimo_sim = st.cache_data(show_spinner=False, max_entries=32)(mimo2_sim)
-override_sim_c = st.cache_data(show_spinner=False, max_entries=32)(override_sim)
-smith_sim_c = st.cache_data(show_spinner=False, max_entries=32)(smith_sim)
-gs_sim_c = st.cache_data(show_spinner=False, max_entries=16)(gs_sim)
-best_cz = st.cache_data(show_spinner=False, max_entries=16)(best_conzone)
+mimo_sim = st.cache_data(show_spinner=False, max_entries=32, ttl="1h")(mimo2_sim)
+override_sim_c = st.cache_data(show_spinner=False, max_entries=32, ttl="1h")(override_sim)
+smith_sim_c = st.cache_data(show_spinner=False, max_entries=32, ttl="1h")(smith_sim)
+gs_sim_c = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(gs_sim)
+best_cz = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(best_conzone)
 C_PTS = ["#0e7490", "#b45309", "#7c3aed"]   # pracovní body 1–3
 
 
