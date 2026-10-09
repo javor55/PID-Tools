@@ -13,7 +13,7 @@ TIMEOUT = 900
 
 def _main(at):
     """Hlavní záložky aplikace (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
-    return [t for t in at.tabs if t.label[:1].isdigit()]
+    return [t for t in at.tabs if t.label[:1].isdigit() or t.label in ("Project & report", "Projekt a report")]
 
 
 def _ok(at):
@@ -85,7 +85,7 @@ def test_cascade_inner_from_other_loop(two_loops):
 
 def test_project_roundtrip_two_loops(two_loops):
     at, mcode1 = two_loops
-    at.session_state["main_tab"] = [t.label for t in _main(at)][5]
+    at.session_state["main_tab"] = [t.label for t in _main(at)][7]
     at.run()
     proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
     _button(at, "Create report").click().run()

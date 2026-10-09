@@ -25,39 +25,96 @@ def _c_edit():
     return C_EDIT
 
 
-# ── CSS vlastních prvků (nezávislé na tématu) ─────────────────────────
+# ── CSS vlastních prvků ───────────────────────────────────────────────
+# Barvy návrhu (světlé / tmavé téma). Plochy jsou bílé karty na šedém pozadí, panel nastavení vpravo má vlastní
+# posuvník (roluje nezávisle na grafech).
+_PALETTE = {
+    "light": dict(bg="#eef1f5", card="#ffffff", side="#f6f8fa", line="#d7dde5", soft="#e5e9ef", text="#1f2933",
+                  muted="#52606d", accent="#1f5fa8", accent_bg="#eaf2fb"),
+    "dark": dict(bg="#0b1220", card="#111a2e", side="#0f172a", line="#26324a", soft="#1c2740", text="#e2e8f0",
+                 muted="#94a3b8", accent="#60a5fa", accent_bg="rgba(96,165,250,0.12)"),
+}
+
 _CSS = """
 <style>
-.block-container {padding-top: 1.2rem; padding-bottom: 2rem; padding-left: 1.2rem; padding-right: 1.2rem;
-    max-width: 100%;}
-[data-testid="stExpander"] details {border-radius: 6px; border-color: rgba(128,128,128,0.25);}
-[data-testid="stExpander"] summary {background: rgba(128,128,128,0.10); border-radius: 6px; padding-top: 0.35rem;
-    padding-bottom: 0.35rem; font-weight: 600;}
-[data-testid="stExpander"] details[open] summary {border-radius: 6px 6px 0 0;}
-[data-testid="stExpanderDetails"] {padding-top: 0.5rem;}
-[data-testid="stColumn"] [data-testid="stExpander"] p, [data-testid="stColumn"] [data-testid="stExpander"] label
-    {font-size: 0.9rem;}
-h1 {font-weight: 650; letter-spacing: -0.01em; margin-bottom: 0.1rem;}
+:root {--pid-bg: %(bg)s; --pid-card: %(card)s; --pid-side: %(side)s; --pid-line: %(line)s; --pid-soft: %(soft)s;
+    --pid-text: %(text)s; --pid-muted: %(muted)s; --pid-accent: %(accent)s; --pid-accent-bg: %(accent_bg)s;}
+[data-testid="stApp"] {background: var(--pid-bg);}
+[data-testid="stHeader"] {background: transparent;}
+.block-container {padding-top: 0.6rem; padding-bottom: 1rem; padding-left: 1.2rem; padding-right: 1.2rem;
+    max-width: 100%%;}
+code, [data-testid="stMetricValue"], [data-testid="stDataFrame"] {font-variant-numeric: tabular-nums;}
+h1 {font-weight: 600; letter-spacing: -0.01em; margin: 0; padding: 0 !important; font-size: 1.45rem !important;}
 h4 {margin-top: 0.4rem; font-weight: 600;}
-[data-testid="stMetric"] {background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.22);
-    border-radius: 10px; padding: 0.55rem 0.9rem;}
-[data-testid="stMetricLabel"] p {font-size: 0.82rem; opacity: 0.75;}
-[data-testid="stMetricValue"] {font-size: 1.45rem; font-variant-numeric: tabular-nums;}
-.stTabs [data-baseweb="tab-list"] {gap: 0.35rem; border-bottom: 2px solid rgba(128,128,128,0.22);}
-.stTabs [data-baseweb="tab"] {padding: 0.6rem 1.2rem; border-radius: 8px 8px 0 0; font-size: 0.95rem;
-    font-weight: 500; letter-spacing: 0.01em;}
-.stTabs [data-baseweb="tab"][aria-selected="true"] {font-weight: 650; background: rgba(128,128,128,0.08);}
-.pid-status {opacity: 0.75; font-size: 0.9rem; margin-bottom: 0.6rem;}
+
+/* hlavička */
+.st-key-pid_header {background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px;
+    padding: 0.5rem 0.9rem;}
+.pid-sub {color: var(--pid-muted); font-size: 0.82rem;}
+
+/* záložky: modré podtržení, „Projekt a report“ vpravo */
+.stTabs [role="tablist"] {gap: 0.2rem;}
+.stTabs [data-testid="stTab"] {padding: 0.6rem 0.85rem; color: var(--pid-muted);}
+.stTabs [data-testid="stTab"] p {font-size: 0.93rem; font-weight: 500;}
+.stTabs [data-testid="stTab"][aria-selected="true"] {color: var(--pid-accent);}
+.stTabs [data-testid="stTab"][aria-selected="true"] p {font-weight: 600;}
+.st-key-main_tab [role="tablist"]:first-of-type {background: var(--pid-card); border: 1px solid var(--pid-line);
+    border-radius: 10px; padding: 0 0.6rem; width: 100%%;}
+.st-key-main_tab [role="tablist"]:first-of-type > [data-testid="stTab"]:last-child {margin-left: auto;}
+
+/* karty: sekce panelu a ohraničené kontejnery */
+[data-testid="stExpander"] details {border-radius: 10px; border: 1px solid var(--pid-line); background: var(--pid-card);}
+[data-testid="stExpander"] summary {background: transparent; border-radius: 10px; padding-top: 0.45rem;
+    padding-bottom: 0.45rem; font-weight: 600;}
+[data-testid="stExpander"] details[open] summary {border-radius: 10px 10px 0 0;}
+[data-testid="stExpanderDetails"] {padding-top: 0.3rem;}
+[data-testid="stVerticalBlockBorderWrapper"], .stVerticalBlock[data-testid="stVerticalBlock"][class*="st-key-pid_card"]
+    {background: var(--pid-card); border-radius: 10px;}
+[class*="st-key-pidside_"] [data-testid="stExpander"] p, [class*="st-key-pidside_"] [data-testid="stExpander"] label
+    {font-size: 0.9rem;}
+
+/* panel nastavení vpravo: vlastní posuvník, rozbalit / sbalit vše */
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-pidside_"]) {position: sticky; top: 0.5rem; align-self: flex-start;
+    width: 100%%;}
+[class*="st-key-pidside_"] {max-height: calc(100vh - 1rem); overflow-y: auto; overflow-x: hidden;
+    padding: 0.2rem 0.45rem 1rem 0.2rem; background: var(--pid-side); border-left: 1px solid var(--pid-line);
+    border-radius: 0 10px 10px 0;}
+.pid-side-tools {display: flex; justify-content: flex-end; gap: 0.8rem; font-size: 0.78rem; margin: 0 0.1rem 0.1rem 0;}
+.pid-side-tools button {font: inherit; border: 0; background: transparent; color: var(--pid-accent); padding: 0;
+    cursor: pointer;}
+
+[data-testid="stMetric"] {background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px;
+    padding: 0.55rem 0.9rem;}
+[data-testid="stMetricLabel"] p {font-size: 0.82rem; color: var(--pid-muted);}
+[data-testid="stMetricValue"] {font-size: 1.45rem; font-family: 'IBM Plex Mono', monospace;}
+.pid-status {color: var(--pid-muted); font-size: 0.85rem; margin-bottom: 0.4rem;}
 .pid-big {font-size: 0.8rem; opacity: 0.75;}
 .pid-prog {display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0.2rem 0 0.3rem 0;}
-.pid-chip {border-radius: 999px; padding: 0.18rem 0.7rem; font-size: 0.85rem; border: 1px solid; white-space: nowrap;}
-.pid-chip.s0 {background: rgba(34,197,94,0.13); color: #16a34a; border-color: rgba(34,197,94,0.4);}
-.pid-chip.s1 {background: rgba(234,179,8,0.15); color: #ca8a04; border-color: rgba(234,179,8,0.45);}
-.pid-chip.s2 {background: rgba(239,68,68,0.13); color: #dc2626; border-color: rgba(239,68,68,0.4);}
-.pid-chip.sn {background: rgba(128,128,128,0.08); opacity: 0.75; border-color: rgba(128,128,128,0.3);}
+.pid-chip {border-radius: 999px; padding: 0.18rem 0.7rem; font-size: 0.82rem; border: 1px solid; white-space: nowrap;}
+.pid-chip.s0 {background: rgba(34,197,94,0.13); color: #2f6f3e; border-color: rgba(34,197,94,0.4);}
+.pid-chip.s1 {background: rgba(234,179,8,0.15); color: #8a4b00; border-color: rgba(234,179,8,0.45);}
+.pid-chip.s2 {background: rgba(239,68,68,0.13); color: #b91c1c; border-color: rgba(239,68,68,0.4);}
+.pid-chip.sn {background: rgba(128,128,128,0.08); color: var(--pid-muted); border-color: rgba(128,128,128,0.3);}
 .pid-arrow {opacity: 0.4;}
+.pid-dq {display: grid; grid-template-columns: 1.6rem minmax(9rem, 14rem) minmax(0, 1fr); gap: 0.2rem 0.8rem;
+    align-items: start; padding: 0.45rem 0; border-bottom: 1px solid var(--pid-soft); font-size: 0.88rem;}
+.pid-dq:last-child {border-bottom: 0;}
+.pid-dq-ic {width: 1.25rem; height: 1.25rem; border-radius: 50%%; border: 1px solid; font-size: 0.75rem; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;}
+.pid-dq-n {font-weight: 500;}
+.pid-dq-r {font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem;}
+.pid-dq-w {display: block; color: var(--pid-muted); font-size: 0.8rem; margin-top: 0.1rem;}
 .pid-next {opacity: 0.85; font-size: 0.9rem; margin-bottom: 0.4rem;}
 </style>"""
+
+
+def palette():
+    """Barvy návrhu pro aktuální téma Streamlitu (světlé / tmavé)."""
+    try:
+        kind = st.context.theme.type or "light"
+    except Exception:
+        kind = "light"
+    return _PALETTE.get(kind, _PALETTE["light"])
 
 
 # ── Šablony grafů ─────────────────────────────────────────────────────
@@ -70,5 +127,5 @@ def plotly_template():
 
 
 def apply_theme():
-    """CSS vlastních prvků do stránky."""
-    st.markdown(_CSS, unsafe_allow_html=True)
+    """CSS vlastních prvků do stránky (barvy podle tématu)."""
+    st.markdown(_CSS % palette(), unsafe_allow_html=True)

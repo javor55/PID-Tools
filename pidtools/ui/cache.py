@@ -18,6 +18,9 @@ loop_kpis = _cache(core.loop_kpis)
 local_gains = _cache(core.local_gains)
 fit_model = _cache(core.fit_model)
 identify = _cache(core.identify)
+fit_windows = _cache(core.fit_windows)
+predict_windows = _cache(core.predict_windows)
+cross_validate = _cache(core.cross_validate)
 settling_time = _cache(core.settling_time)
 
 

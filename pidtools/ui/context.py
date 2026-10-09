@@ -78,6 +78,12 @@ class Ctx(Scaling):
     pv_id: Any = None
     mv_id: Any = None
     d_id: list = field(default_factory=list)
+    # ---- úseky podle vstupů
+    win_mode: str = "common"       # "common" = jeden úsek pro všechny vstupy, "inputs" = úseky podle vstupů
+    win_idx: list = field(default_factory=list)      # [(i0, i1)] indexy úseků (všechny vstupy)
+    wins_s: dict = field(default_factory=dict)       # {vstup: [(od, do) s]}
+    valid: Any = None              # vzorky do fitu (vyřazení podle mezí)
+    excl_key: Any = None
     # ---- model
     model: Any = None              # (kód, parametry, parametry poruch)
     model_stic: float = 0.0

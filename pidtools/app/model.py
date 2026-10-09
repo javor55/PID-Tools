@@ -94,6 +94,67 @@ def identify_cl_all(res, ts, sp, pv, mv, Ts, d, ctrl, s, progress=None, fn=None)
     return out, errs
 
 
+# ---- identifikace z úseků podle vstupů (MV a každá porucha vlastní úseky, vyřazení dat podle mezí)
+DKIND = {"pv": 0, "self": 1, "integ": 2}          # typ přenosu poruchy; "auto" = vyzkoušet oba a vybrat lepší
+
+
+def valid_mask(n, signals, limits, tol):
+    """
+    Vzorky, které se počítají do fitu: signals [(pole, rozsah)] a limits [(zap, min, max)] ve stejném pořadí
+    (PV, MV, poruchy). Vyřadí se vzorky na mezi nebo za ní (tolerance tol % rozsahu).
+    """
+    m = np.ones(n, bool)
+    for (x, span), (on, lo, hi) in zip(signals, limits):
+        if not on:
+            continue
+        x = np.asarray(x, float)
+        e = tol / 100.0 * max(float(span), 1e-12)
+        if lo is not None and np.isfinite(lo):
+            m &= ~(x <= lo + e)
+        if hi is not None and np.isfinite(hi):
+            m &= ~(x >= hi - e)
+        m &= np.isfinite(x)
+    return m
+
+
+def identify_windows(code, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fixed=None, fn=core.fit_windows):
+    """
+    Identifikace jednoho modelu z úseků (indexy do celého záznamu). dkinds – typ přenosu každé poruchy
+    ("pv" / "self" / "integ" / "auto"); u „auto“ se vyzkouší samoregulační i integrační a vybere lepší shoda.
+    """
+    import itertools
+    auto = [j for j, k in enumerate(dkinds) if k == "auto"]
+    base = [DKIND.get(k, 0) for k in dkinds]
+    combos = [base]
+    if auto:
+        combos = []
+        for vals in itertools.product((1, 2), repeat=min(len(auto), 3)):
+            c = list(base)
+            for j, v in zip(auto, vals):
+                c[j] = v
+            combos.append(c)
+    best_ = None
+    for dk in combos:
+        r = fn(code, t, pv, mv, Ts, d, tuple(map(tuple, wins)), valid, s.th_max, fixed, SIGN[s.gain_sign],
+               tuple(dsigns), tuple(dk))
+        if best_ is None or r["fit"] > best_["fit"]:
+            best_ = r
+    return dict(best_, method="win", stic=0.0, fit_raw=best_["fit"])
+
+
+def identify_windows_all(t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=core.fit_windows, progress=None):
+    """Identifikace všech zvolených modelů z úseků. Vrací (výsledky {kód: výsledek}, chyby [(kód, text)])."""
+    res, errs = {}, []
+    for i, c in enumerate(s.chosen):
+        if progress:
+            progress(i, c)
+        try:
+            res[c] = identify_windows(c, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=fn)
+        except Exception as ex:
+            errs.append((c, str(ex)))
+    return res, errs
+
+
 def best(res):
     """Model s nejlepší shodou."""
     return max(res, key=lambda c: res[c]["fit"])
@@ -120,7 +181,9 @@ def clamp(p, pdl):
 
 def is_edited(p, pdl, stic, r):
     """Liší se upravený model od nafitovaného?"""
-    return (not np.allclose(p, r["p"]) or (bool(r["pdl"]) and not np.allclose(np.ravel(pdl), np.ravel(r["pdl"])))
+    a3 = np.ravel([list(d)[:3] for d in pdl])            # typ přenosu poruchy (4. prvek) se neupravuje
+    b3 = np.ravel([list(d)[:3] for d in r["pdl"]])
+    return (not np.allclose(p, r["p"]) or (bool(r["pdl"]) and (a3.shape != b3.shape or not np.allclose(a3, b3)))
             or abs(stic - (r.get("stic") or 0.0)) > 1e-9)
 
 

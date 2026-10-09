@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from ...core import (DIST_PARAMS, MODELS, bootstrap_models, predict,
+from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, predict,
                      step_response)
 from ...i18n import T
 from .. import cache
@@ -121,16 +121,51 @@ def render(ctx):
             gain_sign = seg(st, T("gain_sign"), ["auto", "pos", "neg"], "auto", "gain_sign",
                             format_func=lambda x: T("gsg_" + x), help=T("h_gain_sign")) or "auto"
             id_stic = st.toggle(T("id_stic"), key="id_stic", help=T("h_id_stic"))
+            win = ctx.win_mode == "inputs"
+            dkinds, dsigns = [], []
+            if win:                               # přenosy poruch: typ a znaménko zvlášť pro každou poruchu
+                for dn in c_d:
+                    st.markdown(f"<span class='pid-big'>{T('dist_model')}: <b>{html.escape(str(dn))}</b></span>",
+                                unsafe_allow_html=True)
+                    k1, k2 = st.columns(2)
+                    dkinds.append(k1.selectbox(T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}",
+                                               format_func=lambda x: T("dkind_" + x), help=T("h_dkind")))
+                    dsigns.append(mdl.SIGN[seg(k2, T("gain_sign"), ["auto", "pos", "neg"], "auto", f"dsign|{dn}",
+                                               format_func=lambda x: T("gsg_" + x), help=T("h_dsign")) or "auto"])
+                if closed:
+                    st.warning(T("win_no_cl"), icon=":material/warning:")
+                    closed = False
         with ws.top:
             run_fit = st.button(T("run_fit"), type="primary", icon=":material/play_arrow:", width="stretch")
         sets = mdl.IdSettings(tuple(chosen), th_max, dist_level, dist_strength, gain_sign, id_stic)
         fit_key = mdl.fit_key(fname, rng, sets, (pv_lo, pv_hi, mv_lo, mv_hi), Ts, c_pv, c_mv, c_d, long_fmt)
+        if win:
+            fit_key = fit_key + ("win", tuple(ctx.win_idx), ctx.excl_key, tuple(dkinds), tuple(dsigns))
 
         def do_fit(c, fixed=None, stic_fixed=None):
             """Fit jednoho modelu podle nastavení (neměřené poruchy, znaménko, stikce, zafixované parametry)."""
+            if win:
+                return mdl.identify_windows(c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns,
+                                            fixed, fn=cache.fit_windows)
             return mdl.identify(c, ts_id, pv_id, mv_id, Ts, d_id, sets, fixed, stic_fixed, fn=cache.identify)
 
-        if run_fit:
+        if run_fit and win:
+            if not ctx.win_idx:
+                ws.top.error(T("err_no_windows"))
+            else:
+                prog = ws.top.progress(0.0, text=T("fitting"))
+                res, errs = mdl.identify_windows_all(
+                    t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns, fn=cache.fit_windows,
+                    progress=lambda i, c: prog.progress(i / max(len(chosen), 1),
+                                                        text=f"{T('fitting')} {model_name(c)} ({i + 1}/{len(chosen)})"))
+                prog.empty()
+                for c, ex in errs:
+                    ws.top.error(f"{model_name(c)}: {T(ex)}")
+                if res:
+                    ss.fit = dict(key=fit_key, res=res, dnames=list(c_d))
+                    for c in res:
+                        reset_edits(c)
+        elif run_fit:
             if len(ts_id) < 20:
                 ws.top.error(T("err_short"))
             else:
@@ -209,6 +244,19 @@ def render(ctx):
                     row[T("col_stic", u=u_mv or "MV")] = float(f"{q['stic'] * MR / 100:.3g}")
                 if lvl_fit != "none":
                     row[T("col_rawfit")] = round(q["fit_raw"], 1)
+                if res[c].get("method") == "win":      # úseky podle vstupů: shoda přes úseky a v každém úseku
+                    yw_ = cache.predict_windows(c, res[c]["p"], res[c]["pdl"], t, pv, mv, Ts, dists, ctx.win_idx,
+                                                ctx.valid)[0]
+                    mw_ = np.isfinite(yw_) & (ctx.valid if ctx.valid is not None else True)
+                    if mw_.sum() > 20:
+                        mq_ = model_metrics(pv[mw_], yw_[mw_], mv[mw_], Ts, dyn_scale(c, res[c]["p"]))
+                        row["NRMSE [%]"], row[T("col_status")] = round(mq_["NRMSE"], 2), T(f"st_{mq_['status']}")
+                    row["FIT [%]"] = round(res[c]["fit"], 1)
+                    for k_, (lab_, f_) in enumerate(zip(_win_labels(ctx), res[c].get("fits", []))):
+                        row[lab_] = round(f_, 1)
+                    kinds_ = [T("dkind_short_" + ("integ" if mdl_integ_d(c, d_) else "self")) for d_ in res[c]["pdl"]]
+                    if kinds_:
+                        row[T("dkind")] = ", ".join(kinds_)
                 rows.append(row)
             with ws.m_res:
                 st.dataframe(pd.DataFrame(rows).set_index(T("col_model")), width="stretch",
@@ -271,8 +319,9 @@ def render(ctx):
                     st.caption(T("idm_open_model", p=", ".join(f"{n} = {v:.4g}" for n, v in
                                                                  zip(names, res[mcode]["p_open"]))))
                 fit_box = st.container()
-            model = (mcode, *mdl.clamp(p_ed, pdl_ed))
             rp = res[mcode]
+            p_c, pdl_c = mdl.clamp(p_ed, pdl_ed)
+            model = (mcode, p_c, [d + list(rp["pdl"][j][3:]) for j, d in enumerate(pdl_c)])   # + typ přenosu poruchy
             model_stic = float(ss.get(f"ed|{mcode}|stic", 0.0) or 0.0)
             model_level, model_Th = rp.get("level", "none"), rp.get("Th")
             edited = mdl.is_edited(model[1], model[2], model_stic, rp)
@@ -284,6 +333,16 @@ def render(ctx):
             y_fit, y_ed = ev_fit["y_plot"], ev_ed["y_plot"]
             sigma_pv = ev_ed["sigma_pv"]
             mm = ev_ed["metrics"]
+            if rp.get("method") == "win":             # shoda a průběh modelu jen v úsecích (každý s vlastním posunem)
+                yf_, _, f_fit = cache.predict_windows(mcode, rp["p"], rp["pdl"], t, pv, mv, Ts, dists, ctx.win_idx,
+                                                      ctx.valid)
+                ye_, _, f_ed = cache.predict_windows(mcode, model[1], model[2], t, pv, mv, Ts, dists, ctx.win_idx,
+                                                     ctx.valid)
+                y_fit, y_ed = yf_[sel_mask], ye_[sel_mask]
+                mw_ = np.isfinite(ye_) & (ctx.valid if ctx.valid is not None else True)
+                if mw_.sum() > 20:                       # hodnocení na vzorcích úseků (bez vyřazených)
+                    mm = model_metrics(pv[mw_], ye_[mw_], mv[mw_], Ts, dyn_scale(mcode, model[1]))
+                    sigma_pv = float(np.std(np.diff(pv[mw_] - ye_[mw_])) / np.sqrt(2))
             ctx.PROG["model"] = 1 if ss.fit["key"] != fit_key else (0 if mm["status"] <= 1 else 1 if mm["status"] <= 3 else 2)
             ctx.PROG["model_stale"] = ss.fit["key"] != fit_key
             m1, m2 = fit_box.columns(2)
@@ -327,8 +386,14 @@ def render(ctx):
                 show(f, key=f"step|{mcode}", fname="step_response", report=T("step_title"))
 
             with t_all:
-                ex = [(f"{c} ({r['fit']:.1f} %)", predict(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts,
-                                                           r.get("stic", 0.0))[0], C_MODEL[c], None) for c, r in res.items()]
+                if win:
+                    ex = [(f"{c} ({r['fit']:.1f} %)", cache.predict_windows(c, r["p"], r["pdl"], t, pv, mv, Ts, dists,
+                                                                             ctx.win_idx, ctx.valid)[0][sel_mask],
+                           C_MODEL[c], None) for c, r in res.items()]
+                else:
+                    ex = [(f"{c} ({r['fit']:.1f} %)", predict(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts,
+                                                               r.get("stic", 0.0))[0], C_MODEL[c], None)
+                          for c, r in res.items()]
                 show(ctx.data_fig(ts_id, sel_mask, ex), key="chart_all", fname="models")
 
             # ---- neměřené poruchy: co s daty udělalo potlačení
@@ -437,6 +502,26 @@ def render(ctx):
     ctx.model_stic = model_stic
     ctx.sigma_pv = sigma_pv
     ctx.unc_models = unc_models
+
+
+def mdl_integ_d(code, pd_):
+    """Je přenos poruchy integrační (podle typu poruchy, jinak podle modelu MV)?"""
+    from ...core import dist_integ
+    return dist_integ(MODELS[code]["integ"], pd_)
+
+
+def _win_labels(ctx):
+    """Popisky úseků ve stejném pořadí jako v identifikaci (úseky se sloučí, pokud se překrývají)."""
+    from ...core import merge_windows
+    owner = []
+    for x, ws_ in ctx.wins_s.items():
+        for a, b in ws_:
+            owner.append((int(np.searchsorted(ctx.t, a)), x))
+    out = []
+    for a, b in merge_windows(ctx.win_idx, len(ctx.t)):
+        names = sorted({x for i_, x in owner if a <= i_ < b})
+        out.append(T("win_col", n="+".join(names) or "?", a=f"{ctx.t[a] / 60:.0f}"))
+    return out
 
 
 def _validation(ctx, model, stic):

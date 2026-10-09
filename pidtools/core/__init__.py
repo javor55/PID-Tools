@@ -13,7 +13,7 @@ Moduly:
 """
 # veřejné rozhraní jádra (re-export)
 # flake8: noqa
-from .models import (MODELS, DIST_PARAMS, n_free, simulate, simulate_dist, model_dev, fit_percent, stiction_valve,
+from .models import (MODELS, DIST_PARAMS, n_free, simulate, simulate_dist, dist_integ, model_dev, fit_percent, stiction_valve,
                      high_pass, spline_projector, dyn_scale, predict, predict_full, step_response)
 from .identification import (fit_model, auto_th, fit_with_stiction, identify, model_metrics,
                              bootstrap_models, norm_factors, rescale_fit)
@@ -24,6 +24,7 @@ from .tuning import (integ_gain, default_tc, tune, ff_gain, d_advice, optimize_m
                      overshoot_ratio, settling_time, optimize_time, optimize_scenario, outer_with_inner)
 from .diagnostics import (oscillation, stiction_ccf, valve_hysteresis, harris_index, loop_kpis, detect_steps,
                           data_quality, find_segments, local_gains, step_plan)
+from .windows import merge_windows, fit_windows, predict_windows, window_fits, cross_validate
 from .gainsched import gs_table, gs_er_table, gs_interp, gs_issues, SchedPlant, gs_sim, settled, best_conzone
 from .demo import demo_data
 from .util import propfac

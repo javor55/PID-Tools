@@ -226,6 +226,23 @@ export default function (component) {
     W.lastUnit = W.unit;
     document.querySelectorAll(".js-plotly-plot").forEach((gd) => { gd.__ptKey = null; });
   }
+  // ---- panel nastavení: „Rozbalit vše / Sbalit vše“ (přepne sekce kliknutím na jejich nadpis, bez nového běhu)
+  if (!W.sideTools) {
+    W.sideTools = true;
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest(".pid-side-tools button[data-pid-all]");
+      if (!b) return;
+      const side = b.closest('[class*="st-key-pidside_"]');
+      if (!side) return;
+      const want = b.getAttribute("data-pid-all") === "1";
+      side.querySelectorAll('[data-testid="stExpander"] details').forEach((d) => {
+        if (d.open !== want) {
+          const s = d.querySelector("summary");
+          if (s) s.click();
+        }
+      });
+    });
+  }
   scan();
   if (!W.obs) {
     let pending = false;

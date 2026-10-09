@@ -8,6 +8,7 @@ from ...core import (MODELS, oscillation, stiction_ccf, valve_hysteresis)
 from ...i18n import T
 from ..cache import local_gains, loop_kpis
 from ..charts import REPORT, show, style, tr
+from ..layout import section, workspace
 from ..theme import C_MV, C_PV
 from ..widgets import num, tog
 from .apc import guide as apc_guide
@@ -15,13 +16,17 @@ from .apc import guide as apc_guide
 ss = st.session_state
 
 def render(ctx):
-    """Diagnostika provozu v záložce Data: nastavení a ukazatele vpravo, grafy (CCF, MV–PV, poloha, nelinearita) vlevo."""
+    """Záložka Diagnostika: úseky a nastavení vpravo; výkon smyčky, oscilace a grafy (CCF, MV–PV, poloha, nelinearita)
+    vlevo."""
     Ts, d_id, fname, has_sp, model, mv, mv_e, mv_id, mvl_hi, mvl_lo, pos_e, pv, pv_id, samp, sp, t, ts_id, u_mv, u_pv = ctx.Ts, ctx.d_id, ctx.fname, ctx.has_sp, ctx.model, ctx.mv, ctx.mv_e, ctx.mv_id, ctx.mvl_hi, ctx.mvl_lo, ctx.pos_e, ctx.pv, ctx.pv_id, ctx.samp, ctx.sp, ctx.t, ctx.ts_id, ctx.u_mv, ctx.u_pv
     EM, M, MR, PR, lab_mv, lab_pv = ctx.EM, ctx.M, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv
-    ws = ctx.dws
-    with ctx.tabs["data"]:
+    with ctx.tabs["diag"]:
+        ctx.gph["diag"] = st.container()
+        ws = workspace()
         integ_known = MODELS[model[0]]["integ"] if model is not None else None
-        side = ws.diag
+        side = section(ws.side, T("dk_sec_diag_seg"), "diag_seg", expanded=True, icon=":material/date_range:")
+        with ws.main:
+            m_perf, m_osc, m_diag = st.container(border=True), st.container(border=True), st.container()
         with side:
             st.caption(ctx.block_summary)
             st.caption(T("diag_intro"))
@@ -51,17 +56,19 @@ def render(ctx):
         if sd.sum() < 100:
             side.warning(T("err_short"))
             return
-        # ---- výkon smyčky (panel)
+        # ---- výkon smyčky
         with side:
-            st.markdown(f"**{T('perf_title')}**")
-            kA, rowA = kpi_row(sd)
             compare = st.toggle(T("perf_compare"), key="perf_compare", help=T("h_perf_compare"))
-            ptab = pd.DataFrame({T("seg_a"): rowA})
             if compare:
                 bkey = f"rng_diagB|{fname}|{t[-1]:.0f}"
                 if bkey not in ss:
                     ss[bkey] = (float(t[-1]) / 2, float(t[-1]))
                 rb2 = st.slider(T("seg_diag_b"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=bkey)
+        with m_perf:
+            st.markdown(f"**{T('perf_title')}**")
+            kA, rowA = kpi_row(sd)
+            ptab = pd.DataFrame({T("seg_a"): rowA})
+            if compare:
                 sB = (t >= rb2[0]) & (t <= rb2[1])
                 if sB.sum() >= 100:
                     kB, rowB = kpi_row(sB)
@@ -70,7 +77,8 @@ def render(ctx):
             REPORT["tables"].append((T("perf_title"), ptab))
             st.caption(T("perf_help"))
 
-            # ---- oscilace a ventil (verdikt)
+        # ---- oscilace a ventil (verdikt)
+        with m_osc:
             st.markdown(f"**{T('osc_title')}**")
             sig = (sp[sd] - pv[sd]) if has_sp else pv[sd]
             osc = oscillation(sig, Ts)
@@ -101,8 +109,7 @@ def render(ctx):
         # ---- grafy diagnostiky (pod záznamem)
         labels = [T("ccf_title_d") if integ_d else T("ccf_title"), T("phase_title")] + \
             ([T("pos_title")] if pos_e is not None else []) + [T("nl_title")]
-        with ws.m_diag:
-            st.markdown(f"**{T('dk_diag_tab').split('·')[-1].strip()}**")
+        with m_diag:
             tabs_ = st.tabs(labels, key="diag_view", on_change="rerun")
         with tabs_[0]:
             fcc = go.Figure()

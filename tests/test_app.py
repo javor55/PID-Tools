@@ -17,8 +17,8 @@ TIMEOUT = 900
 
 
 def _main(at):
-    """Hlavní záložky aplikace (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
-    return [t for t in at.tabs if t.label[:1].isdigit()]
+    """Hlavní záložky aplikace včetně „Projekt a report“ (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
+    return [t for t in at.tabs if t.label[:1].isdigit() or t.label in ("Project & report", "Projekt a report")]
 
 
 def _errors(at):
@@ -50,14 +50,17 @@ def test_start_without_data():
     at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
     at.run()
     assert not at.exception
-    assert len(at.tabs) == 0          # bez dat se záložky nezobrazí
+    tabs = _main(at)                  # záložky jsou vidět i bez dat; Data nabízí nahrání, ostatní odkazují na Data
+    assert len(tabs) == 8
+    assert len(at.get("file_uploader")) == 2      # data (hlavní plocha Dat) + projekt (hlavička)
+    assert any(i.value == "Load data in tab 1 · Data first." for i in at.info)
 
 
 def test_identification(app):
     assert app.session_state["mcode"] in MODELS
     fits = [float(m.value.rstrip(" %")) for m in app.metric if m.label.startswith("Fit – identified")]
     assert fits and fits[0] > 95
-    assert len(_main(app)) == 7
+    assert len(_main(app)) == 8
 
 
 @pytest.mark.parametrize("method", ["SIMC", "iSIMC", "Lambda", "AMIGO", "AVG", "OPT"])
@@ -205,7 +208,7 @@ def test_lazy_tabs_and_comparison(app):
         app.run()
         assert not _errors(app)
         n_charts[lbl] = len(app.get("plotly_chart"))
-    assert n_charts[labels[0]] > 0 and n_charts[labels[5]] == 0   # Data má grafy, Projekt žádné
+    assert n_charts[labels[0]] > 0 and n_charts[labels[-1]] == 0   # Data má grafy, Projekt žádné
     app.session_state["main_tab"] = labels[2]
     app.run()
     n_df = len(app.dataframe)
@@ -222,7 +225,7 @@ def test_guides(app):
     """Každá záložka má průvodce; tlačítko v kontrolním seznamu přepne na správnou záložku."""
     app.run()
     heads = [m.value for m in app.markdown if m.value == "##### Purpose and steps"]
-    assert len(heads) == 7                  # 7 záložek včetně přehledu smyček
+    assert len(heads) == 8                  # 7 záložek + Projekt a report
     assert any("**Which model when**" in m.value for m in app.markdown)
     assert any("**Which method when**" in m.value for m in app.markdown)
     btn = next(b for b in app.button if b.label == "Go to Live simulation")
@@ -241,7 +244,7 @@ def test_other_tabs(app):
 
 
 def test_report_project_roundtrip_and_language(app):
-    app.session_state["main_tab"] = [t.label for t in _main(app)][5]      # Projekt a report
+    app.session_state["main_tab"] = [t.label for t in _main(app)][7]      # Projekt a report
     app.session_state["rep_plant"], app.session_state["rep_comment"] = "Kotelna <K2>", "a & b"
     app.run()
     _button(app, "Create report").click().run()
@@ -556,7 +559,7 @@ def test_opc_source_web():
         at.run()
         _button(at, "Read history").click().run()
         assert not at.exception
-        assert at.session_state["opc_df"]["n"] == 3 and len(_main(at)) == 7
+        assert at.session_state["opc_df"]["n"] == 3 and len(_main(at)) == 8
         assert at.session_state[next(k for k in at.session_state if str(k).startswith("c_pv|opc|"))] == "TIC200.PV"
     finally:
         stop()
@@ -575,10 +578,11 @@ def test_rows_as_samples_web():
     at.run()
     at.session_state["test_inject"] = json.dumps(proj)
     at.run()
-    assert not at.exception and len(_main(at)) == 7
+    assert not at.exception and len(_main(at)) == 8
     assert at.session_state["c_tim"] == "#row"
     assert any("not recognised" in w.value for w in at.warning)
     at.session_state["row_dt"] = 2.0
+    at.session_state["read_manual"] = True        # jednotka času je v ručním nastavení čtení
     at.session_state["time_unit"] = "min"
     at.run()
     assert not at.exception
