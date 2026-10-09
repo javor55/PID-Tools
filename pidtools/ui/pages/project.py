@@ -28,7 +28,7 @@ def _base_name():
 
 def render(ctx):
     with ctx.tabs["project"]:
-        ctx.gph["project"] = st.container()
+        ctx.gph["project"] = True
         st.markdown(T("pj_intro"))
         if ctx.tabs["project"].open is False:   # sestavení projektu a reportu jen na otevřené záložce
             return

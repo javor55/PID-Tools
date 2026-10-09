@@ -24,6 +24,7 @@ from ..theme import C_MV, C_SET1, C_SET2, C_SP, _c_dist
 from ..layout import section, workspace
 from ..widgets import fmt, model_name, notes_text, num, seg, sel, sld
 from . import apc
+from ..table import table
 
 ss = st.session_state
 
@@ -35,7 +36,7 @@ def render_block(ctx):
     (ctx.base_ctrl potřebují i ostatní záložky), ostatní sekce vyplní render().
     """
     with ctx.tabs["tuning"]:
-        ctx.gph["tuning"] = st.container()
+        ctx.gph["tuning"] = True
         ws = workspace()
         with ws.side:
             ws.top = st.container()
@@ -302,7 +303,7 @@ def render(ctx):
                                                                       if q["noise"] is not None else None),
                                      T("use_col"): T("use_" + (q["crit"] or q["method"]))})
                     cdf = pd.DataFrame(rows)
-                    ev_c = st.dataframe(cdf, hide_index=True, width="stretch", on_select="rerun", selection_mode="single-row", key=f"cmp|{mcode}",
+                    ev_c = table(cdf, hide_index=True, width="stretch", select=True, selection_mode="single-row", key=f"cmp|{mcode}",
                                         column_config={"Ms": st.column_config.NumberColumn(format="%.2f"),
                                                        T("use_col"): st.column_config.TextColumn(width="large")})
                     try:
@@ -347,7 +348,7 @@ def render(ctx):
                     index=["Gain", "TI [s]", "TD [s]", T("ms"), T("gm"), T("pm"), T("noise_col", u=u_mv or "MV")])
                 if unc_models:
                     tbl.loc[T("ms_worst")] = [fmt(rc["Ms_worst"], 3), fmt(rn["Ms_worst"], 3)]
-                st.dataframe(tbl, width="stretch")
+                table(tbl, width="stretch")
                 REPORT["tables"].append((T("rep_tab_tuning"), tbl))
                 set1_placeholder = tun.is_placeholder(set1_ctrl["Gain"], set1_ctrl["TI"], set1_ctrl.get("TD", 0.0))
                 set2_placeholder = tun.is_placeholder(set2_ctrl["Gain"], set2_ctrl["TI"], set2_ctrl.get("TD", 0.0))
@@ -369,7 +370,7 @@ def render(ctx):
                     hdf = pd.DataFrame([{T("dk_hist_time"): e.get("time"), T("dk_hist_set"): e.get("set"),
                                          T("method"): e.get("method"), "Gain": e["Kc"], "TI": e["Ti"], "TD": e["Td"]}
                                         for e in hist])
-                    ev_h = st.dataframe(hdf, hide_index=True, width="stretch", on_select="rerun",
+                    ev_h = table(hdf, hide_index=True, width="stretch", select=True,
                                         selection_mode="single-row", key="hist_tab")
                     rows_h = getattr(getattr(ev_h, "selection", None), "rows", [])
                     if rows_h:
@@ -648,7 +649,7 @@ def render(ctx):
                 show(style(fig, H, ytit, lab_t, rev=f"sim|{kind}"), key="chart_sim", fname="simulation",
                      report=T("rep_fig_sim"))
                 if kp:
-                    st.dataframe(_best_styler(pd.DataFrame(kp).set_index(T("setting")),
+                    table(_best_styler(pd.DataFrame(kp).set_index(T("setting")),
                                               [c for c in kp[0] if c != T("setting") and c != T("kpi_mvrange", u=u_mv or "MV")]),
                                  width="stretch")
                     REPORT["tables"].append((T("rep_tab_kpi"), pd.DataFrame(kp).set_index(T("setting"))))
@@ -673,7 +674,7 @@ def render(ctx):
                                                    T("fq_tbw"), T("fq_stable")],
                                                   [r_[0], *[fmt(x, 4) for x in r_[1:8]], T("yes") if r_[8] else T("no")]))
                                          for r_ in freq_table(fres, [n_ for n_, _, _, _ in fsets])]).set_index("")
-                    st.dataframe(ftab, width="stretch")
+                    table(ftab, width="stretch")
                     st.caption(T("fq_help"))
             REPORT["tuning"] = dict(model=model_name(mcode), params=dict(zip(MODELS[mcode]["params"], p)),
                                     method=T("m_" + method) + (f" · {T('crit_' + crit)}" if method == "OPT" else ""),

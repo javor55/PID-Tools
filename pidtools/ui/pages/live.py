@@ -104,7 +104,7 @@ def _apply_tuning():
 
 def render(ctx):
     with ctx.tabs["live"]:
-        ctx.gph["live"] = st.container()
+        ctx.gph["live"] = True
         st.caption(ctx.block_summary)
         if ctx.model is None or ctx.set1_ctrl is None:
             st.info(T("need_model"), icon=":material/arrow_back:")

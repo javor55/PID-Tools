@@ -18,6 +18,7 @@ from ....app import guides as app_guides
 from .recommend import rec_a
 from ....app.apc import feedforward as app_ff
 from .common import C_REF
+from ...table import table
 
 
 ss = st.session_state
@@ -94,7 +95,7 @@ def ff_render(ctx):
     with ws.main:
         show(style(f, ctx.H, [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_ff"), key="chart_apc_ff",
              fname="feedforward", report=T("apc_ff"))
-        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        table(pd.DataFrame(rows), hide_index=True)
         st.caption(T("ff_sim_help"))
 
     # ---- 3. hodnoty do PCS 7
@@ -104,6 +105,6 @@ def ff_render(ctx):
             st.info(T("ff_none_on"), icon=":material/info:")
         for dn, rws in tab:
             st.markdown(f"**{dn}**")
-            st.dataframe(pd.DataFrame([{T("sm_apl_block"): a, T("sm_apl_value"): float(f"{v:.4g}"),
+            table(pd.DataFrame([{T("sm_apl_block"): a, T("sm_apl_value"): float(f"{v:.4g}"),
                                         T("sm_apl_unit"): u} for a, v, u in rws]), hide_index=True)
         st.caption(T("ff_help"))

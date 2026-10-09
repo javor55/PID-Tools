@@ -25,6 +25,7 @@ from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, t
 from ..layout import section, workspace
 from .. import wincharts
 from ..widgets import num, sel, seg
+from ..table import table
 
 ss = st.session_state
 MAX_SEG_SHADES = 40            # automaticky nalezené úseky vyznačené v grafu (tabulka ukáže všechny)
@@ -42,7 +43,7 @@ def _guess(cols, keys, default=0):
 def open_workspace(ctx):
     """Záložka Data: hlavní plocha (záznam, kvalita dat, náhled) a panel (zdroj dat, signály, statistika, jednotky)."""
     with ctx.tabs["data"]:
-        ctx.gph["data"] = st.container()
+        ctx.gph["data"] = True
         ws = workspace()
         with ws.main:
             ws.m_top, ws.m_chart, ws.m_dq, ws.m_prev = st.container(), st.container(), st.container(), st.container()
@@ -211,7 +212,7 @@ def render_setup(ctx):
     # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
     ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi = rng_ if ctx.norm_ok else (0.0, 100.0, 0.0, 100.0)
     with sec_stats:                      # min / max … veličin smyčky (jednotky PV / MV)
-        st.dataframe(pd.DataFrame([dict(zip(("", "Min", "Max", T("stat_mean"), "σ"),
+        table(pd.DataFrame([dict(zip(("", "Min", "Max", T("stat_mean"), "σ"),
                                             (n, *(float(f"{v:.5g}") for v in r)))) for n, *r in
                                    stats(SimpleNamespace(pv_e=ctx.pv_e, mv_e=ctx.mv_e, sp_e=ctx.sp_e, has_sp=ctx.has_sp,
                                                          dists=ctx.dists), ctx.c_d)]).set_index(""),
@@ -284,13 +285,13 @@ def _full_preview(ctx, checks):
                 i = int(np.searchsorted(view[T("time_s")].to_numpy(), go_t))
                 view = view.iloc[max(0, i - 20):i + 200]
             st.caption(T("prev_rows", a=len(view), n=len(res), ts=f"{ctx.Ts:.4g}"))
-            st.dataframe(view, height=420, hide_index=True,
+            table(view, height=420, hide_index=True,
                          column_config={T("prev_datetime"): st.column_config.DatetimeColumn(format="D.M.YYYY HH:mm:ss.SSS")})
             c3.download_button(T("prev_dl"), res.to_csv(index=False, sep=";", decimal=","), "data_resampled.csv",
                                "text/csv", icon=":material/download:", width="stretch")
         with t2:
             num_ = res.drop(columns=[T("prev_datetime"), T("prev_note")], errors="ignore")
-            st.dataframe(pd.DataFrame({T("prev_min"): num_.min(), T("prev_max"): num_.max(),
+            table(pd.DataFrame({T("prev_min"): num_.min(), T("prev_max"): num_.max(),
                                        T("prev_mean"): num_.mean(), T("prev_nan"): num_.isna().sum()}), width="stretch")
         with t3:
             df, tcols = ctx.df, ctx.tcols
@@ -302,10 +303,10 @@ def _full_preview(ctx, checks):
                 v = to_num(df[c])
                 return T("prev_k_num") if np.isfinite(v).mean() > 0.5 else T("prev_k_text")
             st.caption(T("prev_raw_help", n=len(df), c=len(df.columns)))
-            st.dataframe(pd.DataFrame({c: [kind(c), int(df[c].isna().sum())] for c in df.columns},
+            table(pd.DataFrame({c: [kind(c), int(df[c].isna().sum())] for c in df.columns},
                                       index=[T("prev_type"), T("prev_nan")]), width="stretch")
             obj = [c for c in df.columns if df[c].dtype == object]      # smíšené typy (čas jako text i číslo)
-            st.dataframe(df.astype({c: str for c in obj}) if obj else df, height=360)
+            table(df.astype({c: str for c in obj}) if obj else df, height=360)
     dlg()
 
 
@@ -427,7 +428,7 @@ def render(ctx):
         with ctx.dws.m_dq:
             _quality(ctx)
     with ctx.tabs["model"]:
-        ctx.gph["model"] = st.container()      # průvodce záložky Model nahoře (vyplní se na konci běhu)
+        ctx.gph["model"] = True      # průvodce záložky Model nahoře (vyplní se na konci běhu)
         ws = workspace()
         with ws.side:
             ws.top = st.container()            # tlačítko Identifikovat a průběh
@@ -496,7 +497,7 @@ def render(ctx):
                         rows_s.append({"#": i_ + 1, T("auto_from"): fmt_t(sg["start"], tu_), T("auto_to"): fmt_t(sg["end"], tu_),
                                        T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
                                        T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
-                    ev_s = st.dataframe(pd.DataFrame(rows_s), hide_index=True, width="stretch", on_select="rerun",
+                    ev_s = table(pd.DataFrame(rows_s), hide_index=True, width="stretch", select=True,
                                         selection_mode="single-row", key=f"segtab|{ctx.fname}")
                     chosen_s = None
                     try:

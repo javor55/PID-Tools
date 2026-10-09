@@ -23,9 +23,10 @@ def reset():
 
 def workspace(gap="medium"):
     """Rozdělí aktuální kontejner na (main, side). Volá se uvnitř záložky."""
-    main, col = st.columns([MAIN, SIDE], gap=gap)
+    mcol, col = st.columns([MAIN, SIDE], gap=gap)
     n = getattr(_run, "n", 0)
     _run.n = n + 1
+    main = mcol.container(key=f"pidmain_{n}")
     side = col.container(key=f"pidside_{n}")
     side.html(f'<div class="pid-side-tools"><button type="button" data-pid-all="1">{T("side_expand_all")}</button>'
               f'<button type="button" data-pid-all="0">{T("side_collapse_all")}</button></div>')
@@ -35,4 +36,4 @@ def workspace(gap="medium"):
 def section(parent, title, key, expanded=False, icon=None):
     """Sbalitelná sekce panelu nastavení (expander s pamětí stavu; výchozí sbalená – jsou vidět všechny možnosti)."""
     with parent:
-        return st.expander(title, expanded=expanded, key=f"sec|{key}", icon=icon)
+        return st.expander(title, expanded=expanded, key=f"sec|{key}")      # bez ikon – jako v návrhu

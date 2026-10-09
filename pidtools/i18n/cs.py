@@ -782,6 +782,7 @@ TEXTS = {
     'tab6': '6 · Projekt a report',
     'no': 'ne',
     'yes_period': 'ano, perioda {p} s',
+    'h_tb_help': 'Průvodce aktivní záložkou – k čemu je, postup, tipy; obecná nápověda a slovníček',
     'guide_title': 'Jak postupovat',
     'guide_body': '1. **Data** – nahrajte export z PCS 7 / historianu (CSV, Excel) nebo zkuste *Demo*. Zkontrolujte předvyplněné sloupce PV, MV, SP a měřené poruchy a vyberte **úsek pro identifikaci** (skoky MV v ručním režimu nebo skoky SP v automatu). Data zůstávají v reálných jednotkách.\n2. **Model** – spusťte identifikaci, vyberte model s dobrou shodou a zkontrolujte rezidua; model ověřte na jiném úseku.\n3. **Ladění** – nahoře nastavte blok PIDConL jako v PCS 7 (**rozsah NormPV / NormMV**, SampleTime, DiffGain, limity…), do Set 1 zadejte aktuální parametry z faceplatu. Zvolte metodu, převezměte návrh do Set 2 a porovnejte robustnost (Ms) a simulaci scénáře.\n4. **Živá simulace** – vyzkoušejte obě sady interaktivně (SP, ruční MV, poruchy, šum).\n5. **APC** – podle doporučení zvažte kaskádu, dopřednou vazbu, rozvazbení, override, Smithův prediktor nebo gain scheduling; každá struktura má průvodce a hodnoty pro šablony APL.\n6. **Projekt a report** – uložte projekt (JSON) a vytvořte protokol z ladění (HTML → PDF).\n\nVíc smyček z jednoho exportu přidáte tlačítkem **Další smyčka** v datové liště. Každá záložka má vlastního průvodce (📖) s postupem a kontrolním seznamem.',
     'gloss_title': 'Glosář',

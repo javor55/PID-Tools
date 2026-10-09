@@ -18,39 +18,39 @@ ss = st.session_state
 
 
 def render(ctx):
-    """Vykreslí horní panel a načte data do ctx.df (bez dat zastaví běh s výzvou k nahrání)."""
-    with st.container(key="pid_header"):
-        hc1, hc2, hc3 = st.columns([3.2, 1.8, 2.8], vertical_alignment="center")
-        hc1.markdown("<h1>PID Tools</h1>", unsafe_allow_html=True)
-        loop_cont = hc2.container()
-        with hc3:
-            b1, b2, b3 = st.columns(3)
-        with b1.popover(T("tb_project"), icon=":material/folder_open:", width="stretch"):
-            st.text_input(T("loop_tag"), key="loop_tag", placeholder="LIC101", help=T("h_loop_tag"))
-            st.file_uploader(T("proj_load"), type=["json"], key="proj_up", help=T("h_proj_load"),
-                             on_change=load_project_file)
-            if ss.get("proj_err"):
-                st.error(T("err_proj", ex=ss.pop("proj_err")))
-            st.caption(T("proj_help"))
-        with b2.popover(T("tb_settings"), icon=":material/settings:", width="stretch"):
-            st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,
-                     format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
-            st.caption(T("theme_hint"))
-            ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
-            seg(st, T("chart_tunit"), list(charts.TIME_UNITS), "auto", "chart_tunit",
-                format_func=lambda u: T("chart_tunit_auto") if u == "auto" else u, help=T("h_chart_tunit"))
-        with b3.popover(T("tb_help"), icon=":material/help:", width="stretch"):
-            st.markdown(f"**{T('guide_title')}**")
-            st.markdown(T("guide_body"))
-            st.divider()
-            st.markdown(f"**{T('gloss_title')}**")
-            st.markdown(T("gloss_body"))
-            st.divider()
-            st.markdown(f"**{T('about_title')}**")
-            st.markdown(T("about_body", v=__version__))
-
-    ctx.status_ph = hc1.empty()
-    _loop_switcher(loop_cont)
+    """
+    Hlavička jako v návrhu: bílý pruh přes celou šířku – název, smyčky, souhrn dat; vpravo Projekt, Nastavení
+    a nápověda „?“ (průvodce aktivní záložky se do ní doplní na konci běhu, ctx.help_ph). Záložky navazují pod ní.
+    """
+    with st.container(key="pid_header", horizontal=True, vertical_alignment="center", gap="medium"):
+        st.markdown("<h1>PID Tools</h1>", unsafe_allow_html=True, width="content")
+        _loop_switcher(st.container(horizontal=True, vertical_alignment="center", gap="small", width="content",
+                                    key="pid_loops"))
+        ctx.status_ph = st.empty()
+        with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content",
+                          horizontal_alignment="right", key="pid_hbtns"):
+            with st.popover(T("tb_project"), width="content"):
+                st.text_input(T("loop_tag"), key="loop_tag", placeholder="LIC101", help=T("h_loop_tag"))
+                st.file_uploader(T("proj_load"), type=["json"], key="proj_up", help=T("h_proj_load"),
+                                 on_change=load_project_file)
+                if ss.get("proj_err"):
+                    st.error(T("err_proj", ex=ss.pop("proj_err")))
+                st.caption(T("proj_help"))
+            with st.popover(T("tb_settings"), width="content"):
+                st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,
+                         format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
+                st.caption(T("theme_hint"))
+                ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
+                seg(st, T("chart_tunit"), list(charts.TIME_UNITS), "auto", "chart_tunit",
+                    format_func=lambda u: T("chart_tunit_auto") if u == "auto" else u, help=T("h_chart_tunit"))
+            with st.popover("?", width="content", help=T("h_tb_help"), key="pid_help"):
+                ctx.help_ph = st.container()          # průvodce aktivní záložky (pages.guides.render_all)
+                with st.expander(T("guide_title")):
+                    st.markdown(T("guide_body"))
+                with st.expander(T("gloss_title")):
+                    st.markdown(T("gloss_body"))
+                with st.expander(T("about_title")):
+                    st.markdown(T("about_body", v=__version__))
     if ss.pop("autosave_restored", False):
         st.toast(T("as_restored"), icon=":material/restore:")
 
@@ -209,27 +209,23 @@ def render_status(ctx):
 
 
 def _loop_switcher(cont):
-    """
-    Smyčky projektu. S jednou smyčkou jen nenápadné „+ smyčka“; s více přepínač (platí pro všechny záložky)
-    a menu pro přidání / odstranění.
-    """
+    """Smyčky projektu jako v návrhu: výběr aktivní smyčky (od dvou smyček), „+ Další smyčka“ a menu ⋮."""
     lids = loops.ids()
-    if len(lids) == 1:
-        cont.button(T("loop_add"), icon=":material/add:", type="tertiary", on_click=loops.add, help=T("h_loop_add"))
-        return
-    if ss.get("loop_sel") not in lids:
-        ss["loop_sel"] = loops.active()
-    c1, c2 = cont.columns([5, 1] if len(lids) <= 2 else [12, 1], vertical_alignment="center")
-    names = {i: loops.name(i) for i in lids}
-    c1.segmented_control(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
-                         label_visibility="collapsed", help=T("h_loop_sel"), width="stretch")
-    with c2.popover("", icon=":material/more_vert:", help=T("h_loop_menu")):
-        ss["loop_name_edit"] = ss.get("loop_tag") or ""
-        st.text_input(T("loop_name"), key="loop_name_edit", on_change=loops.rename, placeholder="LIC101",
-                      help=T("h_loop_tag"))
-        st.button(T("loop_add"), icon=":material/add:", on_click=loops.add, width="stretch")
-        st.button(T("loop_del", n=loops.name(loops.active())), icon=":material/delete:", width="stretch",
-                  on_click=loops.remove, args=(loops.active(),))
-        st.caption(T("loop_rename_hint"))
+    with cont:
+        if len(lids) > 1:
+            if ss.get("loop_sel") not in lids:
+                ss["loop_sel"] = loops.active()
+            names = {i: loops.name(i) for i in lids}
+            st.selectbox(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
+                         label_visibility="collapsed", help=T("h_loop_sel"), width=220)
+        st.button("+ " + T("loop_add"), on_click=loops.add, help=T("h_loop_add"))
+        if len(lids) > 1:
+            with st.popover("", icon=":material/more_vert:", help=T("h_loop_menu")):
+                ss["loop_name_edit"] = ss.get("loop_tag") or ""
+                st.text_input(T("loop_name"), key="loop_name_edit", on_change=loops.rename, placeholder="LIC101",
+                              help=T("h_loop_tag"))
+                st.button(T("loop_del", n=loops.name(loops.active())), icon=":material/delete:", width="stretch",
+                          on_click=loops.remove, args=(loops.active(),))
+                st.caption(T("loop_rename_hint"))
     if ss.pop("loop_added", False):
         st.toast(T("loop_added_toast"), icon=":material/add_circle:")

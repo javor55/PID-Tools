@@ -13,6 +13,7 @@ from .. import loops
 from ..charts import mkfig, show, style, tr
 from ..layout import section, workspace
 from ..theme import C_MV, C_PV, C_SP
+from ..table import table
 
 ss = st.session_state
 
@@ -33,7 +34,7 @@ def _open_loop(fname, rec):
 
 def render(ctx):
     with ctx.tabs["audit"]:
-        ctx.gph["audit"] = st.container()
+        ctx.gph["audit"] = True
         ws = workspace()
         sig = _sig(ctx)
         dkey = f"au_defs|{ctx.fname}"
@@ -138,7 +139,7 @@ def render(ctx):
                          T("au_stic"): T("stic_short_" + k["stic"]) if k["stic"] else "—",
                          T("kpi_harris"): None if k["harris"] is None else round(k["harris"], 2)})
         with ws.main:
-            ev = st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch", on_select="rerun",
+            ev = table(pd.DataFrame(rows), hide_index=True, width="stretch", select=True,
                               selection_mode="single-row", key=f"au_rank|{ctx.fname}")
             groups = audit.common_oscillations(res)
             if groups:

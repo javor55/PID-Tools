@@ -20,6 +20,7 @@ from ..widgets import model_name, num, seg, sld
 from ...app import closedloop as cl_mod
 from ...app import model as mdl
 from ...app.loop import set_ctrl
+from ..table import table
 
 ss = st.session_state
 
@@ -138,7 +139,7 @@ def render(ctx):
             fit_lbl = ""
             if mc_prev and res_prev[mc_prev].get("fit") is not None:
                 fs_ = _input_fit(ctx, res_prev[mc_prev], nm_)
-                fit_lbl = f" · FIT {fs_:.0f} %" if fs_ is not None else ""
+                fit_lbl = f" :gray[FIT {fs_:.0f} %]" if fs_ is not None else ""     # CSS ho odsune doprava
             title_ = T("ms_card", k=k_ + 1, n=nm_, c=col_) if str(col_) != nm_ else T("ms_card1", k=k_ + 1, n=nm_)
             ex_ = section(ws.cards, title_ + fit_lbl, f"card|{nm_}", expanded=True)
             with ex_:
@@ -165,8 +166,8 @@ def render(ctx):
         if closed and win:
             ws.ident.warning(T("win_no_cl"), icon=":material/warning:")
             closed = False
-        with ws.top:
-            run_fit = st.button(T("run_fit"), type="primary", icon=":material/play_arrow:", width="stretch")
+        with ws.top, st.container(key="pid_cta_fit"):
+            run_fit = st.button(T("run_fit"), type="primary", width="stretch")
             st.caption(T("ms_fit_note"))
         sets = mdl.IdSettings(tuple(chosen), th_max, dist_level, dist_strength, gain_sign, id_stic)
         fit_key = mdl.fit_key(fname, rng, sets, (pv_lo, pv_hi, mv_lo, mv_hi), Ts, c_pv, c_mv, c_d, long_fmt)
@@ -313,7 +314,7 @@ def render(ctx):
                                  T("ms_cmp_rate"): row[T("col_status")] + (f" · {T('ms_simplest')}" if c == simple else ""),
                                  "_c": c})
                 cdf = pd.DataFrame(crow)
-                ev_c = st.dataframe(cdf.drop(columns="_c"), hide_index=True, width="stretch", on_select="rerun",
+                ev_c = table(cdf.drop(columns="_c"), hide_index=True, width="stretch", select=True,
                                     selection_mode="single-row", key=f"cmp_mv|{fit_key[0]}",
                                     column_config={"FIT [%]": st.column_config.ProgressColumn(
                                         "FIT [%]", min_value=0, max_value=100, format="%.1f")})
@@ -514,7 +515,7 @@ def render(ctx):
                     T("col_status"): T(f"st_{m_['status']}")} for nm_, _, m_ in segs_eval})
                 e1, e2 = st.columns([1, 1.6], gap="large")
                 with e1:
-                    st.dataframe(etab, width="stretch")
+                    table(etab, width="stretch")
                     REPORT["tables"].append((T("eval_title"), etab))
                     msgs = [T("eval_st_" + str(mm["status"]))]
                     if mm["frac_ccf"] > 0.2:
@@ -565,7 +566,7 @@ def render(ctx):
                         T("unc_p95"): [float(f"{v:.4g}") for v in un["p95"]],
                         T("unc_rel"): [f"± {v:.0f} %" for v in un["rel"]]},
                         index=MODELS[mcode]["params"])
-                    st.dataframe(utab, width="stretch")
+                    table(utab, width="stretch")
                     REPORT["tables"].append((T("unc_title"), utab))
                     fu = go.Figure()
                     hz_ = step_response(mcode, model[1])[0][-1]
@@ -680,7 +681,7 @@ def _card_css(ctx):
     for nm, sty in [("MV", WIN_STYLE["MV"])] + [(str(d), DIST_STYLE[j % len(DIST_STYLE)]) for j, d in enumerate(ctx.c_d)]:
         k = re.sub(r"[^A-Za-z0-9_-]", "-", f"sec-card-{nm}")
         css.append(f".st-key-{k} details {{border-top: 4px solid {sty[0]} !important;}}"
-                   f".st-key-{k} summary p {{color: {sty[4]};}}")
+                   f".st-key-{k} summary p span {{color: {sty[4]} !important;}}")
     st.html("<style>" + "".join(css) + "</style>")
 
 
@@ -718,7 +719,7 @@ def _dist_window_table(ctx, code, r, j, name, dsigns, dkinds):
         except Exception:
             rows.append({T("ms_win"): f"{a:.0f} – {b:.0f} s", "Kd": None, "FIT [%]": None})
     st.caption(T("ms_win_tab"))
-    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    table(pd.DataFrame(rows), hide_index=True, width="stretch")
 
 
 def _model_curves(ctx, model, stic, sel_mask, y_ed, win):
@@ -761,7 +762,7 @@ def _whole_record(ctx, model, stic):
         except Exception:
             f = float("nan")
         out.append({T("ms_val_inputs"): lab, "FIT [%]": round(f, 1) if np.isfinite(f) else None})
-    st.dataframe(pd.DataFrame(out), hide_index=True, width="stretch")
+    table(pd.DataFrame(out), hide_index=True, width="stretch")
 
 
 def _dist_type_table(ctx, code, r, j, dsigns):
@@ -786,7 +787,7 @@ def _dist_type_table(ctx, code, r, j, dsigns):
         except Exception as ex:
             rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": None, T("ms_cmp_par"): T(str(ex))})
     st.caption(T("ms_cmp_dv_note"))
-    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch",
+    table(pd.DataFrame(rows), hide_index=True, width="stretch",
                  column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0, max_value=100,
                                                                           format="%.1f")})
 

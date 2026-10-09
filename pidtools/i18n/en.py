@@ -782,6 +782,7 @@ TEXTS = {
     'tab6': '6 · Project & report',
     'no': 'no',
     'yes_period': 'yes, period {p} s',
+    'h_tb_help': 'Guide to the active tab – what it is for, steps, tips; general help and glossary',
     'guide_title': 'How to proceed',
     'guide_body': '1. **Data** – upload an export from PCS 7 / a historian (CSV, Excel) or try *Demo*. Check the pre-filled PV, MV, SP and measured disturbance columns and select the **identification segment** (MV steps in manual or SP steps in auto). Data stay in real units.\n2. **Model** – run the identification, pick a model with a good fit and check the residuals; validate the model on another segment.\n3. **Tuning** – at the top set the PIDConL block as in PCS 7 (**range NormPV / NormMV**, SampleTime, DiffGain, limits…) and enter the current faceplate parameters into Set 1. Choose a method, take the proposal into Set 2 and compare robustness (Ms) and the scenario simulation.\n4. **Live simulation** – try both sets interactively (SP, manual MV, disturbances, noise).\n5. **APC** – following the recommendations consider cascade, feedforward, decoupling, override, Smith predictor or gain scheduling; every structure has a guide and values for the APL templates.\n6. **Project & report** – save the project (JSON) and create the tuning protocol (HTML → PDF).\n\nMore loops from one export are added with **Another loop** in the data bar. Every tab has its own guide (📖) with the procedure and a checklist.',
     'gloss_title': 'Glossary',

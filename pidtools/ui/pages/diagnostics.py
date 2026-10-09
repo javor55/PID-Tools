@@ -12,6 +12,7 @@ from ..layout import section, workspace
 from ..theme import C_MV, C_PV
 from ..widgets import num, tog
 from .apc import guide as apc_guide
+from ..table import table
 
 ss = st.session_state
 
@@ -21,7 +22,7 @@ def render(ctx):
     Ts, d_id, fname, has_sp, model, mv, mv_e, mv_id, mvl_hi, mvl_lo, pos_e, pv, pv_id, samp, sp, t, ts_id, u_mv, u_pv = ctx.Ts, ctx.d_id, ctx.fname, ctx.has_sp, ctx.model, ctx.mv, ctx.mv_e, ctx.mv_id, ctx.mvl_hi, ctx.mvl_lo, ctx.pos_e, ctx.pv, ctx.pv_id, ctx.samp, ctx.sp, ctx.t, ctx.ts_id, ctx.u_mv, ctx.u_pv
     EM, M, MR, PR, lab_mv, lab_pv = ctx.EM, ctx.M, ctx.MR, ctx.PR, ctx.lab_mv, ctx.lab_pv
     with ctx.tabs["diag"]:
-        ctx.gph["diag"] = st.container()
+        ctx.gph["diag"] = True
         ws = workspace()
         integ_known = MODELS[model[0]]["integ"] if model is not None else None
         side = section(ws.side, T("dk_sec_diag_seg"), "diag_seg", expanded=True, icon=":material/date_range:")
@@ -97,7 +98,7 @@ def render(ctx):
                 if sB.sum() >= 100:
                     kB, rowB = kpi_row(sB)
                     ptab = pd.DataFrame({T("seg_a"): rowA, T("seg_b"): rowB})
-            st.dataframe(ptab, width="stretch")
+            table(ptab, width="stretch")
             REPORT["tables"].append((T("perf_title"), ptab))
             st.caption(T("perf_help"))
 
@@ -173,7 +174,7 @@ def render(ctx):
                                         T("nl_to"): f"{EM(g['mv_to']):.4g}", T("nl_dir"): "↑" if g["dmv"] > 0 else "↓",
                                         T("nl_gain"): f"{g['gain']:.4g}", T("nl_ratio"): f"{g['ratio']:.2f}"} for g in lg])
                     n1_, n2_ = st.columns([1.2, 1])
-                    n1_.dataframe(gl, hide_index=True, width="stretch")
+                    table(where=n1_, data=gl, hide_index=True, width="stretch")
                     gains = np.array([g["gain"] for g in lg])
                     spread = np.max(np.abs(gains)) / max(np.min(np.abs(gains)), 1e-12)
                     fnl = go.Figure()

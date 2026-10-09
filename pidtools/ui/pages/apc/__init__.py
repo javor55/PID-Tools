@@ -26,7 +26,7 @@ MORE = {"split": split_render, "vpc": vpc_render, "ratio": ratio_render, "rga": 
 
 def render(ctx):
     with ctx.tabs["cascade"]:
-        ctx.gph["apc"] = st.container()
+        ctx.gph["apc"] = True
         st.caption(ctx.block_summary)
         if ctx.model is not None:              # nejdřív doporučení, pak výběr struktury (jako v návrhu)
             guide.recommendations(recommend(ctx))
