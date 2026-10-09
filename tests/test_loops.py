@@ -27,7 +27,7 @@ def _button(at, label):
 
 
 def _switcher(at):
-    return next(g for g in at.get("button_group") if g.label == "Loop")
+    return next(s for s in at.selectbox if s.label == "Loop")      # výběr smyčky v hlavičce
 
 
 @pytest.fixture(scope="module")
@@ -44,7 +44,7 @@ def two_loops():
     _ok(at)
     mcode1 = at.session_state["mcode"]
     # druhá smyčka: prázdný stav, vlastní identifikace a ladění
-    _button(at, "Another loop").click().run()
+    _button(at, "+ Another loop").click().run()
     _ok(at)
     assert at.session_state["loops"]["ids"] == [1, 2] and at.session_state["loops"]["active"] == 2
     assert "fit" not in at.session_state and "set1_gain" not in at.session_state
@@ -160,7 +160,7 @@ def test_rename_loop_from_menu(two_loops):
     """Název smyčky z menu smyček (pole „Loop name“) přejmenuje aktivní smyčku v přepínači."""
     at, _ = two_loops
     if len(at.session_state["loops"]["ids"]) == 1:     # menu smyček je vidět od dvou smyček
-        _button(at, "Another loop").click().run()
+        _button(at, "+ Another loop").click().run()
     fld = next(x for x in at.text_input if x.label == "Loop name")
     fld.set_value("TIC300").run()
     _ok(at)
