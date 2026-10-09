@@ -21,7 +21,7 @@ _LV_KEYS = ("compare", "advanced", "sec_tune", "apply", "revert", "tune_hint", "
             "dist_short", "pp_step", "pp_ramp", "pp_sine", "pp_random", "pp_pulse", "pulse_go", "sec_meas", "noise", "pvf",
             "meas_hint", "sec_plant", "pk", "pt", "pth", "stic", "plant_hint", "sec_view", "window", "win_auto",
             "view_hint", "zoomed", "kpi_since", "kpi_maxdev", "kpi_over", "kpi_settle", "kpi_travel", "ev_tune",
-            "ev_set", "ev_dist", "ev_applied")
+            "ev_set", "ev_dist", "ev_applied", "chart", "kpi_title", "kpi_note", "sec_mode", "both_run", "lcmp")
 
 
 def _ctrl_js(c):
@@ -37,53 +37,71 @@ def _ctrl_js(c):
 
 
 _CSS = """
-.pidlive { font-family:%(font)s; font-size:13px; color:inherit; --acc:#1f5fa8; }
+.pidlive { font-family:inherit; font-size:13px; color:var(--tx); --acc:#1f5fa8; --tx:#1f2933; --mut:#52606d;
+           --card:#ffffff; --ln:#d7dde5; --soft:#e5e9ef; --side:#f6f8fa; --ctl:#c3ccd6; }
+.pidlive.dark { --tx:#e2e8f0; --mut:#94a3b8; --card:#111a2e; --ln:#26324a; --soft:#1c2740; --side:#0f172a; --ctl:#3b4a63; }
 .pidlive * { box-sizing:border-box; }
-.pidlive .lvg { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:14px; align-items:start; }
-.pidlive .lvm { min-width:0; }
-.pidlive .lvs { display:flex; flex-direction:column; gap:8px; }
-.pidlive .row { display:flex; flex-direction:column; gap:10px; padding:10px 12px; border:1px solid rgba(128,128,128,.3);
-                border-radius:10px; }
+.pidlive .lvg { display:grid; grid-template-columns:minmax(0,2.7fr) minmax(0,1fr); gap:16px; align-items:stretch; }
+.pidlive .lvm { min-width:0; display:flex; flex-direction:column; gap:12px; padding:0 0 32px 0; }
+.pidlive .lvs { display:flex; flex-direction:column; gap:12px; background:var(--side); border-left:1px solid var(--ln);
+                padding:16px 24px 32px 14px; min-height:100vh; margin-top:-16px; }
+.pidlive .card { background:var(--card); border:1px solid var(--ln); border-radius:10px; padding:10px 14px; }
+.pidlive .bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+.pidlive .bar .sp { flex:1; }
+.pidlive .chead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+.pidlive .chead .t { font-size:15px; font-weight:600; }
+.pidlive .chead .n, .pidlive .hint, .pidlive .lab { font-size:12px; color:var(--mut); }
+.pidlive .mono, .pidlive .val, .pidlive #read { font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12px; }
 .pidlive .grp { display:flex; flex-direction:column; gap:4px; }
-.pidlive .lab { font-size:12px; opacity:.7; }
+.pidlive .lrow { display:grid; grid-template-columns:86px minmax(0,1fr); align-items:center; gap:8px; }
 .pidlive .btns { display:flex; gap:8px; flex-wrap:wrap; }
-.pidlive button { font:inherit; color:inherit; background:transparent; border:1px solid rgba(128,128,128,.35);
-                  border-radius:8px; padding:5px 12px; cursor:pointer; }
+.pidlive button { font:inherit; font-size:13px; color:var(--tx); background:var(--card); border:1px solid var(--ctl);
+                  border-radius:6px; padding:5px 12px; cursor:pointer; }
 .pidlive button:hover { border-color:var(--acc); }
-.pidlive button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+.pidlive button.primary { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+.pidlive button.go { background:#2f7a3f; border-color:#2f7a3f; color:#fff; font-weight:600; }
 .pidlive button.mini { padding:0 6px; font-size:11px; border-radius:6px; }
-.pidlive .segs { display:flex; flex-wrap:wrap; gap:4px; }
-.pidlive .segs button { padding:4px 10px; border-radius:7px; }
-.pidlive .segs button.on { background:rgba(128,128,128,.14); border-color:var(--acc); color:var(--acc); font-weight:600; }
-.pidlive .chk { display:flex; align-items:center; gap:6px; padding:5px 0; cursor:pointer; }
+.pidlive .segs { display:inline-flex; flex-wrap:wrap; }
+.pidlive .segs button { border-radius:0; margin-left:-1px; padding:5px 11px; }
+.pidlive .segs button:first-child { border-radius:8px 0 0 8px; margin-left:0; }
+.pidlive .segs button:last-child { border-radius:0 8px 8px 0; }
+.pidlive .segs button.on { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:500; position:relative; }
+.pidlive .chip { font-size:12px; border-radius:999px; padding:2px 10px; border:1px solid rgba(34,197,94,.45);
+                 background:rgba(34,197,94,.13); color:#2f6f3e; }
+.pidlive .chip.man { border-color:rgba(245,158,11,.5); background:rgba(245,158,11,.16); color:#8a4b00; }
+.pidlive .chk { display:flex; align-items:center; gap:6px; padding:2px 0; cursor:pointer; }
 .pidlive .chk input { accent-color:var(--acc); width:16px; height:16px; }
-.pidlive .sliders { display:grid; grid-template-columns:1fr; gap:10px; padding:4px 12px 12px; }
 .pidlive .sl { display:flex; flex-direction:column; gap:2px; }
 .pidlive .sl .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-.pidlive .val { font-variant-numeric:tabular-nums; font-weight:600; }
 .pidlive .sl.dis, .pidlive input:disabled { opacity:.45; }
 .pidlive input[type=range] { width:100%%; accent-color:var(--acc); }
-.pidlive input.num { width:90px; font:inherit; color:inherit; background:transparent; text-align:right;
-                     border:1px solid rgba(128,128,128,.35); border-radius:6px; padding:1px 6px; }
-.pidlive details { border:1px solid rgba(128,128,128,.3); border-radius:8px; }
-.pidlive summary { cursor:pointer; padding:7px 12px; font-weight:600; background:rgba(128,128,128,.10); border-radius:8px; }
-.pidlive details[open] summary { border-radius:8px 8px 0 0; }
-.pidlive details > section { padding:8px 12px 12px; }
-.pidlive .adv { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px 22px; padding:4px 12px 12px; }
-.pidlive section { display:flex; flex-direction:column; gap:6px; }
-.pidlive h4 { margin:4px 0 2px; font-size:13px; }
-.pidlive .hint { font-size:11.5px; opacity:.65; line-height:1.35; }
-.pidlive #read { opacity:.75; font-variant-numeric:tabular-nums; margin:2px 0 4px; }
-.pidlive table { border-collapse:collapse; font-size:12px; margin-bottom:6px; font-variant-numeric:tabular-nums; }
-.pidlive th { text-align:left; font-weight:500; opacity:.65; padding:2px 14px 2px 0; }
-.pidlive td { padding:2px 14px 2px 0; }
+.pidlive input.num { width:90px; font:inherit; color:inherit; background:var(--card); text-align:right;
+                     border:1px solid var(--ctl); border-radius:6px; padding:2px 6px; }
+.pidlive details { background:var(--card); border:1px solid var(--ln); border-radius:10px; }
+.pidlive summary { cursor:pointer; padding:12px 14px; font-size:15px; font-weight:600; list-style:none; display:flex;
+                   align-items:center; gap:8px; }
+.pidlive summary::before { content:"▸"; color:#9aa5b1; font-size:12px; width:12px; }
+.pidlive details[open] > summary::before { content:"▾"; }
+.pidlive details > section { padding:0 14px 14px; display:flex; flex-direction:column; gap:8px; }
+.pidlive .tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.pidlive .tile { border:1px solid var(--ln); border-radius:8px; padding:4px; text-align:center; background:var(--side); }
+.pidlive .tile .l { font-size:11px; color:var(--mut); }
+.pidlive .tile .v { font-family:'IBM Plex Mono', monospace; font-size:17px; font-weight:500; }
+.pidlive .tile.mv .v, .pidlive .tile.mv .l { color:#c2410c; }
+.pidlive table { border-collapse:collapse; width:100%%; font-size:13px; }
+.pidlive th { text-align:right; font-weight:600; padding:6px 8px; border-bottom:1px solid var(--ln); }
+.pidlive th:first-child, .pidlive td:first-child { text-align:left; }
+.pidlive td { padding:5px 8px; border-bottom:1px solid var(--soft); text-align:right;
+              font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12px; }
+.pidlive td:first-child { font-family:inherit; font-size:13px; }
+.pidlive tr:last-child td { border-bottom:0; }
+.pidlive td.best { background:rgba(34,197,94,.14); }
 .pidlive .dot { display:inline-block; width:9px; height:9px; border-radius:50%%; margin-right:6px; }
 .pidlive .cvwrap { position:relative; }
 .pidlive canvas { width:100%%; display:block; }
 .pidlive #tip { position:absolute; display:none; pointer-events:none; font-size:11.5px; line-height:1.45; padding:6px 9px;
-                border-radius:8px; border:1px solid rgba(128,128,128,.35); background:rgba(127,127,127,.12);
-                backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); white-space:nowrap; }
-@media (max-width:900px) { .pidlive .lvg { grid-template-columns:1fr; } }
+                border-radius:8px; border:1px solid var(--ln); background:var(--card); white-space:nowrap;
+                box-shadow:0 2px 8px rgba(0,0,0,.08); }
 """
 
 def _component():
@@ -105,12 +123,9 @@ def _apply_tuning():
 def render(ctx):
     with ctx.tabs["live"]:
         ctx.gph["live"] = True
-        st.caption(ctx.block_summary)
         if ctx.model is None or ctx.set1_ctrl is None:
             st.info(T("need_model"), icon=":material/arrow_back:")
             return
-        st.markdown(f"#### {T('live_sim_title')}")
-        st.caption(T("live_sim_desc"))
         if ctx.tabs["live"].open is False:   # mimo záložku se komponenta odpojí; stav simulace zůstává v prohlížeči
             return
         mcode, p, _ = ctx.model
@@ -145,5 +160,5 @@ def render(ctx):
         cfg["labels"].update({k: T("lv_" + k) for k in _LV_KEYS})
         if ss.pop("live_applied", False):
             st.toast(T("lv_applied_toast"), icon=":material/check:")
+        cfg["labels"].update(blk=ctx.block_summary, desc=T("live_sim_desc"), help=T("live_help"))
         _component()(key="live_sim", data=cfg, on_apply_change=_apply_tuning)
-        st.caption(T("live_help"))

@@ -25,10 +25,15 @@ def head(title, help_=None, note=None, right=None, cont=None):
     (cont or st).markdown(s, unsafe_allow_html=True)
 
 
-def lrow(label, help_=None, ratio=(1.0, 2.2), cont=None):
-    """Řádek panelu: popisek (+ „?“) vlevo, vrací sloupec pro pole vpravo (pole se popiskem „collapsed“)."""
+def lrow(label, help_=None, ratio=(1.0, 2.2), cont=None, color=None, tip=None):
+    """
+    Řádek panelu: popisek (+ „?“) vlevo, vrací sloupec pro pole vpravo (pole se popiskem „collapsed“).
+    color: barva popisku (PV / MV / DV jako v grafech, tučně); tip: nápověda po najetí na popisek (bez „?“).
+    """
     c0, c1 = (cont or st).columns(list(ratio), vertical_alignment="center")
-    c0.markdown(f"<div class='pid-plab'>{html.escape(label)}{q(help_)}</div>", unsafe_allow_html=True)
+    sty = (f" style='color:{color};font-weight:600'" if color else "") + \
+        (f" title='{html.escape(tip, quote=True)}'" if tip else "")
+    c0.markdown(f"<div class='pid-plab'{sty}>{html.escape(label)}{q(help_)}</div>", unsafe_allow_html=True)
     return c1
 
 

@@ -26,8 +26,12 @@ from ..layout import section, workspace
 from .. import wincharts
 from ..widgets import num, sel, seg
 from ..table import table
+from ..kit import card, head, lrow
+from ..theme import C_MV, C_PV, C_SP
+from ..theme import _c_dist
 
 ss = st.session_state
+_C_DIST = _c_dist()
 MAX_SEG_SHADES = 40            # automaticky nalezené úseky vyznačené v grafu (tabulka ukáže všechny)
 
 
@@ -64,7 +68,7 @@ def render_setup(ctx):
     with ctx.tabs["data"]:                    # sekce s daty až po načtení (bez dat by byly prázdné)
         sec_sig = section(ws.side, T("dk_sec_signals"), "data_sig", expanded=True, icon=":material/sensors:")
         sec_stats = section(ws.side, T("dk_sec_stats"), "data_stats", expanded=True, icon=":material/functions:")
-        sec_units = section(ws.side, T("sb_units"), "data_units", icon=":material/straighten:")
+        sec_units = section(ws.side, T("tn_units"), "data_units", expanded=True)
     cols = list(df.columns)
     tcols = time_columns_cached(ctx.ckey, df)
 
@@ -158,27 +162,30 @@ def render_setup(ctx):
             st.error(T("err_data", ex=T("err_no_signals")))
             st.stop()
         g = guess_roles(sigs, ctx.get, loops.other_pvs())
-        r3 = st.columns(1) * 3
-        ctx.c_pv = sel(r3[0], "PV", sigs, sigs.index(g["pv"]), key=f"c_pv|{fname}", help=T("h_pv"))
-        ctx.c_mv = sel(r3[1], "MV", sigs, sigs.index(g["mv"]), key=f"c_mv|{fname}", help=T("h_mv"))
+        rr = (0.55, 2.6)                   # popisek PV / MV / SP / DV vlevo v barvě grafu, výběr vpravo
+        ctx.c_pv = sel(lrow("PV", None, rr, tip=T("h_pv"), color=C_PV), "PV", sigs, sigs.index(g["pv"]), key=f"c_pv|{fname}",
+                       label_visibility="collapsed")
+        ctx.c_mv = sel(lrow("MV", None, rr, tip=T("h_mv"), color=C_MV), "MV", sigs, sigs.index(g["mv"]), key=f"c_mv|{fname}",
+                       label_visibility="collapsed")
         sp_opts = ["—"] + sigs
-        ctx.c_sp = sel(r3[2], T("col_sp"), sp_opts, sp_opts.index(g["sp"]) if g["sp"] else 0, key=f"c_sp|{fname}",
-                       help=T("h_sp"))
-        r4 = st.columns(1) * 2
+        ctx.c_sp = sel(lrow("SP", None, rr, tip=T("h_sp"), color=C_SP), T("col_sp"), sp_opts,
+                       sp_opts.index(g["sp"]) if g["sp"] else 0, key=f"c_sp|{fname}", label_visibility="collapsed",
+                       format_func=lambda x: T("tn_sp_none") if x == "—" else x)
         d_opts = [s_ for s_ in sigs if s_ not in (ctx.c_pv, ctx.c_mv, ctx.c_sp)]
         if fname == "demo" and f"c_d|{fname}" not in ss:      # ukázka: měřený přítok jako porucha (jako desktop)
             ss[f"c_d|{fname}"] = [d_ for d_ in DEMO_DISTS if d_ in d_opts]
-        ctx.c_d = r4[0].multiselect(T("col_dist"), d_opts, help=T("col_dist_help"), key=f"c_d|{fname}",
-                                    placeholder=T("ms_placeholder"))
+        ctx.c_d = lrow("DV", None, rr, tip=T("col_dist_help"), color=_C_DIST[0]).multiselect(
+            T("col_dist"), d_opts, key=f"c_d|{fname}", placeholder=T("ms_placeholder"), label_visibility="collapsed")
         pos_opts = ["—"] + [s_ for s_ in d_opts if s_ not in ctx.c_d]
         pos_key = f"c_pos|{fname}"
         if g["pos"] in pos_opts or ss.get(pos_key, "—") != "—" or ss.get("pos_on"):
-            ctx.c_pos = sel(r4[1], T("col_pos"), pos_opts, pos_opts.index(g["pos"]) if g["pos"] in pos_opts else 0,
-                            key=pos_key, help=T("h_pos"))
+            ctx.c_pos = sel(lrow(T("pos_short"), None, rr, tip=T("h_pos")), T("col_pos"), pos_opts,
+                            pos_opts.index(g["pos"]) if g["pos"] in pos_opts else 0, key=pos_key,
+                            label_visibility="collapsed")
         else:                             # poloha aktuátoru je nepovinná – jen malé tlačítko, dokud ji nikdo nechce
             ctx.c_pos = "—"
-            r4[1].button(T("pos_add"), icon=":material/add:", type="tertiary", key="g_pos_add", help=T("h_pos"),
-                         on_click=lambda: ss.update(pos_on=True))
+            lrow("", None, rr).button(T("pos_add"), icon=":material/add:", type="tertiary", key="g_pos_add",
+                                      help=T("h_pos"), on_click=lambda: ss.update(pos_on=True))
         st.caption(T("guess_note"))
 
     # ---- převzorkování na společnou mřížku
@@ -211,18 +218,27 @@ def render_setup(ctx):
     ctx.norm_ok = rng_[1] > rng_[0] and rng_[3] > rng_[2]
     # neplatný rozsah: počítá se s výchozím, aby šel blok vykreslit a opravit (běh se zastaví až po něm)
     ctx.pv_lo, ctx.pv_hi, ctx.mv_lo, ctx.mv_hi = rng_ if ctx.norm_ok else (0.0, 100.0, 0.0, 100.0)
-    with sec_stats:                      # min / max … veličin smyčky (jednotky PV / MV)
-        table(pd.DataFrame([dict(zip(("", "Min", "Max", T("stat_mean"), "σ"),
-                                            (n, *(float(f"{v:.5g}") for v in r)))) for n, *r in
-                                   stats(SimpleNamespace(pv_e=ctx.pv_e, mv_e=ctx.mv_e, sp_e=ctx.sp_e, has_sp=ctx.has_sp,
-                                                         dists=ctx.dists), ctx.c_d)]).set_index(""),
-                     width="stretch")
-    with sec_units:
-        n1, n2 = st.columns(2)
+    with sec_stats:                      # min / max … veličin smyčky (jednotky PV / MV), popisky v barvách grafu
+        sdf = pd.DataFrame([dict(zip(("", "Min", "Max", T("stat_mean"), "σ"), (n, *(float(f"{v:.4g}") for v in r))))
+                            for n, *r in stats(SimpleNamespace(pv_e=ctx.pv_e, mv_e=ctx.mv_e, sp_e=ctx.sp_e,
+                                                               has_sp=ctx.has_sp, dists=ctx.dists), ctx.c_d)]).set_index("")
+        colors = {"PV": C_PV, "MV": C_MV, "SP": C_SP}
+        table(sdf, key="data_stats", idx_style=[f"color: {colors.get(str(n), _C_DIST[0])}; font-weight: 600"
+                                                for n in sdf.index])
+    with sec_units:                     # jednotka (pole) a rozsah regulátoru (NormPV / NormMV z bloku PIDConL)
+        h_ = st.columns([0.55, 1.5, 1.1])
+        h_[1].markdown(f"<div class='pid-unit'>{T('tn_unit')}</div>", unsafe_allow_html=True)
+        h_[2].markdown(f"<div class='pid-unit'>{T('tn_range')}</div>", unsafe_allow_html=True)
         if "u_mv" not in ss:
             ss["u_mv"] = "%"
-        ctx.u_pv = n1.text_input(T("unit_pv"), key="u_pv", placeholder="m, °C, bar…", help=T("h_unit"))
-        ctx.u_mv = n2.text_input(T("unit_mv"), key="u_mv", help=T("h_unit"))
+        for k_, lbl_, col_, rg_, ph_ in (("u_pv", "PV", C_PV, rng_[:2], "m, °C, bar…"), ("u_mv", "MV", C_MV, rng_[2:], None)):
+            c_ = st.columns([0.55, 1.5, 1.1], vertical_alignment="center")
+            c_[0].markdown(f"<div class='pid-plab' style='color:{col_};font-weight:600'>{lbl_}</div>",
+                           unsafe_allow_html=True)
+            v_ = c_[1].text_input(T("unit_" + k_[2:]), key=k_, placeholder=ph_, help=T("h_unit"),
+                                  label_visibility="collapsed")
+            c_[2].markdown(f"<span class='pid-dq-r'>{rg_[0]:g} – {rg_[1]:g}</span>", unsafe_allow_html=True)
+            setattr(ctx, k_, v_)
         st.caption(T("norm_where", pv=f"{rng_[0]:g}–{rng_[1]:g}", mv=f"{rng_[2]:g}–{rng_[3]:g}"))
     if not ctx.norm_ok:
         with ctx.tabs["data"]:
@@ -322,7 +338,7 @@ def _quality(ctx):
                           [str(c) for c in ctx.c_d], (ctx.pv_lo, ctx.pv_hi), (ctx.mv_lo, ctx.mv_hi),
                           (float(ctx.mvl_lo), float(ctx.mvl_hi)))
     cnt, usable = dq.summary(checks)
-    head = (f"<span class='pid-chip {'s0' if usable else 's1'}'>{T('dq_usable') if usable else T('dq_unusable')}</span> "
+    badge = (f"<span class='pid-chip {'s0' if usable else 's1'}'>{T('dq_usable') if usable else T('dq_unusable')}</span> "
             f"<span class='pid-sub'>{T('dq_counts', **cnt)}</span>")
     rows = []
     for c in checks:
@@ -333,14 +349,32 @@ def _quality(ctx):
             f"<span class='pid-dq-n'>{html.escape(name)}</span><span><span class='pid-dq-r' style='color:{col}'>"
             f"{html.escape(T(c.res, **c.args))}</span><span class='pid-dq-w'>{html.escape(T(f'dq_{c.id}_why'))}</span>"
             f"</span></div>")
-    with st.container(border=True, key="pid_card_dq"):
+    with card("dq"):
         h1, h2 = st.columns([4, 1], vertical_alignment="center")
-        h1.markdown(f"**{T('dq_title')}** &nbsp; {head}", unsafe_allow_html=True, help=T("dq_help"))
+        head(T("dq_title"), T("dq_help"), note=badge, cont=h1)
         if h2.button(T("prev_full"), icon=":material/open_in_full:", key="g_prev_full", width="stretch"):
             _full_preview(ctx, checks)
         st.markdown("".join(rows), unsafe_allow_html=True)
     ctx.dq_checks = checks
     return checks
+
+
+def _preview(ctx, checks):
+    """Náhled souboru: první a poslední řádky výsledku (čas, PV, MV, SP, poruchy); celá tabulka v Celém náhledu."""
+    res = _result_frame(ctx)
+    h1, h2 = st.columns([4, 1], vertical_alignment="center")
+    head(T("tn_prev"), note=html.escape(T("tn_prev_note")), cont=h1)
+    if h2.button(T("tn_prev_all"), icon=":material/open_in_full:", key="g_prev_all", type="tertiary"):
+        _full_preview(ctx, checks)
+    if len(res) > 5:
+        dots = pd.DataFrame([["…"] * res.shape[1]], columns=res.columns)
+        res = pd.concat([res.head(3).astype(object), dots, res.tail(1).astype(object)], ignore_index=True)
+    table(res, key="data_prev", hide_index=True)
+
+
+def _goto(tab):
+    from .apc import guide
+    guide.goto(tab=tab)
 
 
 # ---- úseky podle vstupů (MV a každá měřená porucha má vlastní úseky) a vyřazení dat podle mezí
@@ -422,11 +456,15 @@ def render(ctx):
     """
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp
     with ctx.tabs["data"]:
-        with ctx.dws.m_chart.container(border=True, key="pid_card_rec"):
+        with ctx.dws.m_chart, card("rec"):
+            head(T("tn_rec"), note=html.escape(T("data_chart_help")))
             show(ctx.data_fig(t), key=f"chart_data_all|{ctx.fname}", fname="data_all")
-            st.caption(T("data_chart_help"))
         with ctx.dws.m_dq:
-            _quality(ctx)
+            checks = _quality(ctx)
+        with ctx.dws.m_prev, card("prev"):
+            _preview(ctx, checks)
+        ctx.dws.side.container(key="pid_cta_model").button(T("tn_to_model"), key="g_to_model", type="primary",
+                                                           width="stretch", on_click=_goto, args=("model",))
     with ctx.tabs["model"]:
         ctx.gph["model"] = True      # průvodce záložky Model nahoře (vyplní se na konci běhu)
         ws = workspace()

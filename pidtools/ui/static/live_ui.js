@@ -157,24 +157,37 @@ export default function (component) {
   el.innerHTML = `
   <div class="lvg">
   <div class="lvm">
-    <div id="read"></div>
-    <div class="cvwrap"><canvas id="cv" style="height:${CFG.ch}px"></canvas><div id="tip"></div></div>
-    <table id="kpi"></table>
+    <div class="card bar">
+      <button id="run"></button><button id="reset">↺ ${L.reset}</button>
+      <span class="lab">${L.lspeed}</span><div class="segs" id="speed"></div>
+      <span class="mono" id="tnow"></span><span class="sp"></span>
+      <span class="chip" id="chip"></span><span class="lab" id="chipt"></span>
+    </div>
+    <div class="card">
+      <div class="chead"><span class="t">${L.chart}</span><span class="n" id="read"></span></div>
+      <div class="cvwrap"><canvas id="cv" style="height:${CFG.ch}px"></canvas><div id="tip"></div></div>
+      <div class="hint">${L.desc} ${L.help}</div>
+    </div>
+    <div class="card">
+      <div class="chead"><span class="t">${L.kpi_title}</span><span class="n">${L.kpi_note}</span></div>
+      <table id="kpi"></table>
+    </div>
+    <div class="hint">${L.blk}</div>
   </div>
   <div class="lvs">
-  <div class="row">
-    <div class="btns"><button id="run"></button><button id="reset">⟲ ${L.reset}</button></div>
-    <div class="grp"><div class="lab">${L.lspeed}</div><div class="segs" id="speed"></div></div>
-    <div class="grp" id="setgrp"><div class="lab">${L.lset}</div><div class="segs" id="set"></div></div>
-    <div class="grp"><div class="lab">${L.lmode}</div><div class="segs" id="mode"></div></div>
-    <label class="chk"><input type="checkbox" id="cmp"> ${L.compare}</label>
-  </div>
-  <details open><summary>${L.lsp.split("[")[0].trim()} · ${L.lmv.split("[")[0].trim()}</summary>
-  <div class="sliders">
+  <details open><summary>${L.sec_mode}</summary><section>
+    <div class="tiles"><div class="tile"><div class="l">SP</div><div class="v" id="tsp"></div></div>
+      <div class="tile"><div class="l">PV</div><div class="v" id="tpv"></div></div>
+      <div class="tile mv"><div class="l">MV</div><div class="v" id="tmv"></div></div></div>
+    <div class="lrow"><span class="lab">${L.lmode}</span><div class="segs" id="mode"></div></div>
     <div class="sl" id="spbox"><div class="top"><span class="lab">${L.lsp}</span><span class="val" id="spv"></span></div><input type="range" id="sps"></div>
     <div class="sl" id="mvbox"><div class="top"><span class="lab">${L.lmv}</span><span class="val" id="mvv"></span></div><input type="range" id="mvs"></div>
     <div class="sl"><div class="top"><span class="lab" id="ldist"></span><span><span class="val" id="dv"></span> <button class="mini" id="d0" title="${L.d0}">0</button></span></div><input type="range" id="ds"></div>
-  </div></details>
+  </section></details>
+  <details open><summary>${L.lcmp}</summary><section>
+    <label class="chk"><input type="checkbox" id="cmp"> ${L.compare}</label>
+    <div class="lrow" id="setgrp"><span class="lab">${L.lset}</span><div class="segs" id="set"></div></div>
+  </section></details>
   <details><summary>${L.sec_tune}</summary><section>
         <div class="tune" id="tune"></div>
         <div class="btns"><button id="apply" class="primary">${L.apply}</button><button id="revert">${L.revert}</button></div>
@@ -236,8 +249,11 @@ export default function (component) {
     $("pthv").textContent = "× " + S.plant.th.toFixed(2);
     $("stv").textContent = fmt(S.plant.stic) + " " + CFG.u_mv;
     $("run").textContent = S.run ? "❚❚ " + L.pause : "▶ " + L.start;
-    $("run").className = S.run ? "" : "primary";
+    $("run").className = S.run ? "go" : "primary";
     $("setgrp").style.display = S.compare ? "none" : "";
+    $("chip").textContent = (S.auto ? "✓ " : "") + (S.auto ? "AUTO" : "MAN");
+    $("chip").className = "chip" + (S.auto ? "" : " man");
+    $("chipt").textContent = S.compare ? L.both_run : (S.set === "1" ? L.set1 : L.set2);
     $("cmp").checked = S.compare;
   }
   function liveFields() {
@@ -350,6 +366,7 @@ export default function (component) {
     theme = Object.assign({ text: cs.color, muted: dark ? "#94a3b8" : "#6b7280",
                             grid: dark ? "rgba(148,163,184,0.18)" : "rgba(100,116,139,0.15)" }, dark ? CFG.dark : CFG.light);
     el.style.setProperty("--acc", theme.acc);
+    el.classList.toggle("dark", dark);
   }
   function nice(lo, hi, n) {
     const raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
@@ -486,14 +503,27 @@ export default function (component) {
     // aktuální hodnoty a ukazatele kvality
     const b = S.bufs[nms[0]], j = at(b, b.n - 1);
     $("read").textContent = L.read.replace("{t}", fmt(b.t[j])).replace("{pv}", fmt(EP(b.PV[j]))).replace("{sp}", fmt(EP(b.SP[j]))).replace("{mv}", fmt(EM(b.MV[j])));
-    let rows = `<tr><th>${L.kpi_since}</th><th>IAE</th><th>${L.kpi_maxdev}</th><th>${L.kpi_over}</th><th>${L.kpi_settle}</th><th>${L.kpi_travel}</th></tr>`;
+    $("tnow").textContent = "t = " + fmt(b.t[j]) + " s";
+    $("tsp").textContent = fmt(EP(b.SP[j])); $("tpv").textContent = fmt(EP(b.PV[j]));
+    $("tmv").textContent = fmt(EM(b.MV[j])) + (CFG.u_mv ? " " + CFG.u_mv : "");
+    // ukazatele: řádek = ukazatel, sloupec = sada; lepší (menší) hodnota v řádku zvýrazněná
+    const K = {};
     nms.forEach((n) => {
       const kp = S.kpi[n]; if (!kp) return;
       const settled = S.t - kp.out > Math.max(0.1 * span(), 5 * CFG.h);
-      rows += `<tr><td><span class="dot" style="background:${col(n) || theme.pv}"></span>${L["set" + n]} · ${fmt(S.t - kp.t0)} s</td>` +
-        `<td>${fmt(kp.iae * PR / 100)}</td><td>${fmt(kp.maxdev * PR / 100)} ${CFG.u_pv}</td>` +
-        `<td>${kp.step ? fmt(100 * Math.max(0, kp.over) / Math.abs(kp.step)) + " %" : "–"}</td>` +
-        `<td>${settled ? fmt(kp.out - kp.t0) + " s" : "…"}</td><td>${fmt(kp.travel * MR / 100)} ${CFG.u_mv}</td></tr>`;
+      K[n] = [[S.t - kp.t0, fmt(S.t - kp.t0) + " s"], [kp.iae * PR / 100, fmt(kp.iae * PR / 100)],
+              [kp.maxdev * PR / 100, fmt(kp.maxdev * PR / 100) + " " + CFG.u_pv],
+              [kp.step ? Math.max(0, kp.over) / Math.abs(kp.step) : NaN, kp.step ? fmt(100 * Math.max(0, kp.over) / Math.abs(kp.step)) + " %" : "–"],
+              [settled ? kp.out - kp.t0 : NaN, settled ? fmt(kp.out - kp.t0) + " s" : "…"],
+              [kp.travel * MR / 100, fmt(kp.travel * MR / 100) + " " + CFG.u_mv]];
+    });
+    const names = [L.kpi_since, "IAE", L.kpi_maxdev, L.kpi_over, L.kpi_settle, L.kpi_travel];
+    let rows = "<tr><th></th>" + nms.map((n) => `<th><span class="dot" style="background:${col(n) || theme.pv}"></span>${L["set" + n]}</th>`).join("") + "</tr>";
+    names.forEach((nmK, r) => {
+      const vals = nms.map((n) => (K[n] ? K[n][r] : [NaN, "–"]));
+      const fin = vals.map((v) => v[0]).filter((v) => isFinite(v));
+      const best = r > 0 && fin.length > 1 && Math.min(...fin) !== Math.max(...fin) ? Math.min(...fin) : null;
+      rows += `<tr><td>${nmK}</td>` + vals.map((v) => `<td class="${best !== null && v[0] === best ? "best" : ""}">${v[1]}</td>`).join("") + "</tr>";
     });
     $("kpi").innerHTML = rows;
   }

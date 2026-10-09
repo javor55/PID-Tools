@@ -84,21 +84,22 @@ def _is_num_col(s):
     if not vals:
         return False
     return all((isinstance(v, Number) and not isinstance(v, (bool, np.bool_))) or
-               (isinstance(v, str) and (_NUMLIKE.match(v) or v in ("—", "–", "∞"))) for v in vals)
+               (isinstance(v, str) and (_NUMLIKE.match(v) or v in ("—", "–", "∞", "…"))) for v in vals)
 
 
 def table(data, key=None, *, where=None, select=False, hide_index=None, height=None, row_class=None,
-          cell_class=None, helps=None, **_ignored):
+          cell_class=None, helps=None, idx_style=None, **_ignored):
     """
     Vykreslí tabulku. data: DataFrame nebo Styler (styly buněk se převezmou). select=True → klepnutím se vybere
     řádek (zůstane vybraný jako u st.dataframe). hide_index: None = index jen když nese popisky (ne 0, 1, 2 …).
-    row_class / cell_class: CSS třídy řádků / buněk („best“, „muted“ …); where: kontejner (jinak aktuální).
+    row_class / cell_class: CSS třídy řádků / buněk („best“, „muted“ …); idx_style: styl buněk popisků řádků
+    (např. barva PV / MV / DV); where: kontejner (jinak aktuální).
     Vrací objekt s .selection.rows.
     """
     if where is not None:
         with where:
             return table(data, key, select=select, hide_index=hide_index, height=height, row_class=row_class,
-                         cell_class=cell_class, helps=helps)
+                         cell_class=cell_class, helps=helps, idx_style=idx_style)
     sty = None
     if hasattr(data, "data") and hasattr(data, "_compute"):          # pandas Styler
         styler, df = data, data.data
@@ -123,6 +124,10 @@ def table(data, key=None, *, where=None, select=False, hide_index=None, height=N
             rows[i].append(str(v))
         if sty:
             sty = [[""] + r for r in sty]
+        if idx_style:
+            sty = sty or [[""] * (df.shape[1] + 1) for _ in range(len(df))]
+            for i, s_ in enumerate(idx_style[:len(df)]):
+                sty[i][0] = s_ or ""
     for c in df.columns:
         s = df[c]
         is_num = _is_num_col(list(s))
