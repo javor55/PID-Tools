@@ -428,7 +428,8 @@ def _tn_sets(s):
 def _tn_robust(s):
     """Karta Robustnost: dlaždice Ms / GM / PM a tabulka sad."""
     MR, base_ctrl, mcode, p, rc, rn = s.MR, s.base_ctrl, s.mcode, s.p, s.rc, s.rn
-    set1_ctrl, set1_gain, set1_td, set2_ctrl, set2_gain, set2_td = s.set1_ctrl, s.set1_gain, s.set1_td, s.set2_ctrl, s.set2_gain, s.set2_td
+    set1_ctrl, set1_gain, set1_td, set2_ctrl = s.set1_ctrl, s.set1_gain, s.set1_td, s.set2_ctrl
+    set2_gain, set2_td = s.set2_gain, s.set2_td
     sigma_pv, sug, u_mv, unc_models, ws = s.sigma_pv, s.sug, s.u_mv, s.unc_models, s.ws
     # ---- robustnost: dlaždice Ms / GM / PM (Návrh, pod tím Set 2), tabulka sad
     with ws.verify:
@@ -648,7 +649,8 @@ def _tn_plant(s):
     ctx, d_id, d_in, d_pv, ff, ff_cmp = s.ctx, s.d_id, s.d_in, s.d_pv, s.ff, s.ff_cmp
     ffll, has_sp, kind, mcode, model_stic, mv_id = s.ffll, s.has_sp, s.kind, s.mcode, s.model_stic, s.mv_id
     p, pdl, pv_id, robust_on, samp, sdf_key = s.p, s.pdl, s.pv_id, s.robust_on, s.samp, s.sdf_key
-    sel_mask, set1_ctrl, set2_ctrl, sigma_pv, sp, sp_amp_e = s.sel_mask, s.set1_ctrl, s.set2_ctrl, s.sigma_pv, s.sp, s.sp_amp_e
+    sel_mask, set1_ctrl, set2_ctrl, sigma_pv = s.sel_mask, s.set1_ctrl, s.set2_ctrl, s.sigma_pv
+    sp, sp_amp_e = s.sp, s.sp_amp_e
     sug, ts_id, u_mv, u_pv, ws = s.sug, s.ts_id, s.u_mv, s.u_pv, s.ws
     # ---- proces a ventil v simulaci
     with ws.plant:
