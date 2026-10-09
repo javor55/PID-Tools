@@ -203,9 +203,12 @@ def _md_cards(s):
     for j, dn in enumerate(c_d):              # přenosy poruch: typ a směr účinku zvlášť pro každou poruchu
         cd_ = cards[j + 1]
         with cd_["typ"]:
+            chk_ = ((res_prev[mc_prev].get("dv_chk") or {}).get("type", {}).get(j) if mc_prev else None) or []
+            dfit_ = {k_: f_ for k_, f_, _ in chk_ if f_ is not None}      # FIT typů z porovnání (při identifikaci)
             dkinds.append(_lrow(T("ms_type"), T("h_dkind")).selectbox(
                 T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}", label_visibility="collapsed",
-                format_func=lambda x: T("dkind_" + x), disabled=not win))
+                format_func=lambda x, f_=dfit_: T("dkind_" + x) + (f" · FIT {f_[x]:.1f} %" if x in f_ else ""),
+                disabled=not win))
         with cd_["sign"]:
             dsigns.append(mdl.SIGN[seg(_lrow(T("ms_sign"), T("h_dsign")), T("ms_sign"), ["neg", "auto", "pos"],
                                        "auto", f"dsign|{dn}", format_func=gs_lab.get, disabled=not win,
@@ -478,12 +481,7 @@ def _md_mv_card(s):
                                       _unit(n, ctx, str(dn)), i == 0, T("h_dist_" + str(i)))
                            for i, n in enumerate(DIST_PARAMS)])
     with cards[0]["sign"]:
-        b1, b2 = st.columns(2)
-        if b1.button(T("refit"), icon=":material/model_training:", help=T("h_refit"), width="stretch"):
-            ss.refit_req = mcode
-            st.rerun()
-        b2.button(T("ms_reset"), on_click=_reset_edits, args=(mcode,), icon=":material/restart_alt:",
-                  width="stretch", help=T("h_ms_reset"))
+        _card_buttons(mcode)
         if ss.get("refit_msg"):
             st.caption(ss.pop("refit_msg"))
         if res[mcode].get("method") == "cl" and res[mcode].get("p_open"):
@@ -492,8 +490,13 @@ def _md_mv_card(s):
     for j in set(res[mcode].get("dv_flat") or ()):   # porucha se v datech identifikace nemění → přenos nejde odhadnout
         if j < len(c_d):
             cards[j + 1]["head"].warning(T("ms_dv_flat"), icon=":material/info:")
-    for j in range(len(c_d)):
-        if win and res[mcode].get("method") == "win":
+    for j in range(len(c_d)):                 # dofitování a původní hodnoty i v kartách poruch (týká se celého modelu)
+        with cards[j + 1]["sign"]:
+            _card_buttons(mcode, f"|d{j}")
+    if win and res[mcode].get("method") == "win":
+        with cards[0]["extra"]:
+            _mv_window_table(res[mcode], names[0])
+        for j in range(len(c_d)):
             with cards[j + 1]["extra"]:
                 _dist_window_table(res[mcode], j)
     for j, _dn in enumerate(c_d):             # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
@@ -857,12 +860,57 @@ def _param_row(key, idf_key, label, unit, signed, help_):
     return v
 
 
+def _card_buttons(code, key=""):
+    """Dofitovat volné parametry / Původní hodnoty – celý model (MV i poruchy), proto v každé kartě přenosu."""
+    b1, b2 = st.columns(2)
+    if b1.button(T("refit"), icon=":material/model_training:", help=T("h_refit"), width="stretch",
+                 key=f"g_refit{key}" if key else None):
+        ss.refit_req = code
+        st.rerun()
+    b2.button(T("ms_reset"), on_click=_reset_edits, args=(code,), icon=":material/restart_alt:", width="stretch",
+              help=T("h_ms_reset"), key=f"g_reset_ed{key}" if key else None)
+
+
+def _mv_win_est(ctx, code, r, dsigns):
+    """Zesílení MV odhadnuté zvlášť v každém úseku MV (ostatní parametry pevné): [(od, do, K, FIT)]."""
+    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"]) if i}
+    for jj, d in enumerate(r["pdl"]):
+        for i in range(3):
+            fixed[f"d{jj}_{i}"] = float(d[i])
+    out = []
+    kinds = tuple(int(d[3]) if len(d) > 3 else 0 for d in r["pdl"])
+    for a, b in ctx.wins_s.get("MV", []):
+        i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
+        try:
+            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
+                                  0, tuple(dsigns), kinds, 4)
+            out.append((float(a), float(b), float(q["p"][0]), float(q["fit"])))
+        except Exception:
+            out.append((float(a), float(b), None, None))
+    return out
+
+
+def _mv_window_table(r, pname):
+    """Tabulka odhadů zesílení MV po úsecích MV (spočtená při identifikaci)."""
+    chk = (r.get("dv_chk") or {}).get("mv")
+    if chk is None:
+        st.caption(T("ms_win_tab") + " – " + T("ms_dv_chk_none"))
+        return
+    if not chk:
+        return
+    rows = [{T("ms_win"): f"{a:.0f} – {b:.0f} s", pname: None if k is None else _g4(k),
+             "FIT [%]": None if f is None else round(f, 1)} for a, b, k, f in chk]
+    st.caption(T("ms_win_tab"))
+    table(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+
 def _dv_checks(ctx, code, r, dsigns):
     """
     Kontrolní odhady přenosů poruch pro model z úseků (počítají se při identifikaci a dofitování, ne při každé
     změně): zesílení poruchy zvlášť v každém jejím úseku a porovnání typů přenosu poruchy.
     """
-    return dict(win={j: _dv_win_est(ctx, code, r, j, str(dn), dsigns) for j, dn in enumerate(ctx.c_d)},
+    return dict(mv=_mv_win_est(ctx, code, r, dsigns),
+                win={j: _dv_win_est(ctx, code, r, j, str(dn), dsigns) for j, dn in enumerate(ctx.c_d)},
                 type={j: _dv_type_est(ctx, code, r, j, dsigns) for j in range(len(ctx.c_d))})
 
 
