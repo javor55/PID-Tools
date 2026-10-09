@@ -20,7 +20,7 @@ ss = st.session_state
 def render(ctx):
     """Vykreslí horní panel a načte data do ctx.df (bez dat zastaví běh s výzvou k nahrání)."""
     with st.container(key="pid_header"):
-        hc1, hc2, hc3 = st.columns([3.4, 2.2, 2.2], vertical_alignment="center")
+        hc1, hc2, hc3 = st.columns([3.2, 1.8, 2.8], vertical_alignment="center")
         hc1.markdown("<h1>PID Tools</h1>", unsafe_allow_html=True)
         loop_cont = hc2.container()
         with hc3:
