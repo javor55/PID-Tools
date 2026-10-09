@@ -6,6 +6,22 @@ from .models import (MODELS, n_free, model_dev, predict, predict_full, stiction_
 from .util import acf as _acf
 
 
+def flat_inputs(segs, full, rel=0.01):
+    """
+    Indexy vstupů (poruch), které se v datech identifikace prakticky nemění (rozkmit < rel × rozkmit v celém záznamu):
+    jejich přenos z nich nejde odhadnout – fitem by vyšly libovolné parametry, proto se zafixují na nulový účinek.
+    """
+    out = []
+    for j, (sg, fl) in enumerate(zip(segs, full)):
+        sg, fl = np.asarray(sg, float), np.asarray(fl, float)
+        sg, fl = sg[np.isfinite(sg)], fl[np.isfinite(fl)]
+        ref = float(np.ptp(fl)) if len(fl) else 0.0
+        var = float(np.ptp(sg)) if len(sg) else 0.0
+        if var <= max(rel * ref, 1e-9):
+            out.append(j)
+    return out
+
+
 def least_squares(*args, **kw):
     """scipy.optimize.least_squares načtený až při prvním použití (rychlejší start aplikace)."""
     from scipy.optimize import least_squares as _ls
@@ -13,7 +29,7 @@ def least_squares(*args, **kw):
 
 
 def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=None, level="none", Th=None,
-              strength=4.0, stic=0.0, sign=0):
+              strength=4.0, stic=0.0, sign=0, dists_full=None):
     """
     Nafituje model MV → PV (+ modely měřených poruch).
     fixed ..... zafixované parametry: {"p0": K, "p1": T1, …, "pθ" = poslední index procesu, "d{j}_{i}": parametry poruch}
@@ -21,11 +37,15 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     Th ........ časové měřítko neměřených poruch [s]; None = automaticky z dynamiky (dynamika × 12/strength)
     stic ...... známá stikce ventilu [% MV] – MV se před fitem převede na polohu ventilu
     sign ...... znaménko zesílení procesu: 0 = automaticky, +1 / −1 = vynucené (jako „Positive/Negative gain“)
+    dists_full  poruchy v celém záznamu (měřítko pro poznání poruchy, která se v úseku nemění); None = dists
     Postup: mřížka přes θ (je-li volné) + least squares ostatních volných parametrů na zředěných datech,
     pak společné doladění nejlepších kandidátů na plných datech.
     """
     fixed = dict(fixed or {})
     dists = [np.asarray(d, float) for d in dists]
+    dv_flat = [j for j in flat_inputs(dists, dists_full or dists) if f"d{j}_0" not in fixed]
+    for j in dv_flat:                           # porucha se v úseku nemění → nulový účinek (parametry nejdou odhadnout)
+        fixed.update({f"d{j}_0": 0.0, f"d{j}_1": 0.2 * h, f"d{j}_2": 0.0})
     mv_v = stiction_valve(mv, stic) if stic else np.asarray(mv, float)
     du = mv_v - mv_v[0]
     dD = [d - d[0] for d in dists]
@@ -173,7 +193,7 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     res_ = resid(z)
     fit = 100.0 * (1 - np.linalg.norm(res_) / max(np.linalg.norm(y - y.mean()), 1e-12))
     return dict(code=code, p=p, pdl=pdl, fit=float(fit), level=level, Th=float(Th) if Th else None,
-                stic=float(stic or 0.0), fixed=sorted(fixed))
+                stic=float(stic or 0.0), fixed=sorted(fixed), dv_flat=dv_flat)
 
 
 def auto_th(t, mv, h, strength=4.0):

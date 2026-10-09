@@ -15,7 +15,7 @@ Moduly:
 # flake8: noqa
 from .models import (MODELS, DIST_PARAMS, n_free, simulate, simulate_dist, dist_integ, model_dev, fit_percent, stiction_valve,
                      high_pass, spline_projector, dyn_scale, predict, predict_full, step_response)
-from .identification import (fit_model, auto_th, fit_with_stiction, identify, model_metrics,
+from .identification import (fit_model, auto_th, fit_with_stiction, flat_inputs, identify, model_metrics,
                              bootstrap_models, norm_factors, rescale_fit)
 from .robustness import loop_tf, is_stable, robustness, hf_gain, mv_noise
 from .simulation import (ProcStep, PIDConL, Valve, valve_char_fn, pidconl_sim_full, pidconl_sim, cascade_sim,

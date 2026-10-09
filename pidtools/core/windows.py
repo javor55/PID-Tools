@@ -12,7 +12,7 @@ uloží se jako 4. prvek parametrů poruchy [Kd, Tp, θd, typ] (simulate_dist ho
 """
 import numpy as np
 
-from .identification import least_squares
+from .identification import flat_inputs, least_squares
 from .models import MODELS, model_dev, n_free
 
 
@@ -90,6 +90,10 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
     tmin, Tmax = 0.2 * h, 20 * total
     any_integ = integ or any(d_integ)
     W = _windows(t, pv, mv, dists, valid, wins, 1, any_integ)
+    dv_flat = [j for j in flat_inputs([np.concatenate([w.dD[j][w.v] for w in W]) for j in range(nd)], dists)
+               if f"d{j}_0" not in fixed]
+    for j in dv_flat:                           # porucha se v úsecích nemění → nulový účinek (nejde odhadnout)
+        fixed.update({f"d{j}_0": 0.0, f"d{j}_1": 0.2 * h, f"d{j}_2": 0.0})
     if all(np.allclose(w.du, 0) for w in W) and all(np.allclose(d, 0) for w in W for d in w.dD):
         raise ValueError("err_mv_const")
 
@@ -205,7 +209,7 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
     den = sum(np.sum((w.y[w.v] - w.y[w.v].mean()) ** 2) for w in W if w.v.any())
     fit = float(100.0 * (1 - np.sqrt(num / den))) if den > 0 else float("nan")
     return dict(code=code, p=p, pdl=pdl, fit=fit, fits=fits, wins=[list(map(int, w)) for w in wins], level="none",
-                Th=None, stic=0.0, fixed=sorted(fixed))
+                Th=None, stic=0.0, fixed=sorted(fixed), dv_flat=dv_flat)
 
 
 def window_fits(code, p, pdl, W, h):

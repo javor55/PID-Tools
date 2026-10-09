@@ -41,10 +41,14 @@ export default function (component) {
     return D.dec === "," ? s.replace(".", ",") : s;
   };
   const pad2 = (n) => String(n).padStart(2, "0");
-  const clockStr = (s, full) => {                       // absolutní čas (hodiny:minuty), v tipu i datum
+  // absolutní čas (hodiny:minuty), v tipu i datum; čas ze souboru je „jak na hodinách“ (bez časového pásma) →
+  // číst v UTC, jinak by ho prohlížeč posunul o svou časovou zónu
+  // průběh modelu podle volby: v úsecích, nebo na celém záznamu (navazuje na data)
+  const modelOf = (r) => (S.onlyWin ? r.model[S.model] : (r.model["full_" + S.model] || r.model[S.model]));
+  const clockStr = (s, full) => {
     const d = new Date(D.clock + s * 1000);
-    const hm = `${d.getHours()}:${pad2(d.getMinutes())}` + (full || (S.view[1] - S.view[0]) < 600 ? `:${pad2(d.getSeconds())}` : "");
-    return full ? `${d.getDate()}.${d.getMonth() + 1}. ${hm}` : hm;
+    const hm = `${d.getUTCHours()}:${pad2(d.getUTCMinutes())}` + (full || (S.view[1] - S.view[0]) < 600 ? `:${pad2(d.getUTCSeconds())}` : "");
+    return full ? `${d.getUTCDate()}.${d.getUTCMonth() + 1}. ${hm}` : hm;
   };
   const fmtS = (s) => {                                   // čas v jednotce osy (s / min / h) pro políčka
     const v = +(s / D.unit.f).toFixed(D.unit.f === 1 ? 0 : 2);
@@ -143,11 +147,18 @@ export default function (component) {
         g.appendChild(b);
       }
       head.appendChild(g);
+      // kde kreslit model: jen v úsecích identifikace, nebo kontrola na celém záznamu
+      const g2 = el("div", "pidw-seg pidw-range");
+      for (const [k, lab] of [["win", X.r_win], ["full", X.r_full]]) {
+        const b = el("button", "", esc(lab));
+        b.dataset.v = k;
+        if (k === "full" && r.full_tip) b.title = r.full_tip;
+        b.onclick = () => { S.onlyWin = k === "win"; draw(); };
+        g2.appendChild(b);
+      }
       const c1 = el("label", "pidw-chk", `<input type="checkbox"> ${esc(X.resid)}`);
       c1.querySelector("input").onchange = (e) => { S.resid = e.target.checked; draw(); };
-      const c2 = el("label", "pidw-chk", `<input type="checkbox"> ${esc(X.only_win)}`);
-      c2.querySelector("input").onchange = (e) => { S.onlyWin = e.target.checked; draw(); };
-      head.append(c1, c2);
+      head.append(g2, c1);
     }
     const leg = [[r.color, r.id]].concat((r.lines || []).filter((l) => l[4]).map((l) => [l[1], l[4], l[2]]));
     if (r.kind === "pv" && r.model) leg.push(["#5b3fa8", X.model, "6 4"]);
@@ -352,9 +363,8 @@ export default function (component) {
     if (D.clock) {                                     // hodiny: hezké kroky 1 min … 1 den
       const steps = [60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400];
       const span = S.view[1] - S.view[0], st = steps.find((s) => span / s <= 7) || 86400;
-      const off = ((D.clock / 1000) % st + st) % st;   // zarovnání na celé minuty / hodiny místního času
-      const tz = -new Date(D.clock).getTimezoneOffset() * 60;
-      for (let v = Math.ceil((S.view[0] + off + tz) / st) * st - off - tz; v <= S.view[1]; v += st) {
+      const off = ((D.clock / 1000) % st + st) % st;   // zarovnání na celé minuty / hodiny času v datech
+      for (let v = Math.ceil((S.view[0] + off) / st) * st - off; v <= S.view[1]; v += st) {
         const x = tx(v, w);
         if (x < 0 || x > w - 30) continue;
         const s = el("span", "", clockStr(v));
@@ -377,11 +387,12 @@ export default function (component) {
     for (const card of cards) {
       const r = card.r;
       card.head.querySelectorAll(".pidw-model button").forEach((b) => b.classList.toggle("on", b.dataset.v === S.model));
-      card.head.querySelectorAll(".pidw-chk input").forEach((inp, k) => { inp.checked = k ? S.onlyWin : S.resid; });
+      card.head.querySelectorAll(".pidw-chk input").forEach((inp) => { inp.checked = S.resid; });
+      card.head.querySelectorAll(".pidw-range button").forEach((b) => b.classList.toggle("on", (b.dataset.v === "win") === S.onlyWin));
       yTicks(card.ax, r.lo, r.hi, r.h);
       const lines = (r.lines || []).map((l) => [l[0], l[1], l[2], l[3] || 1.4]).concat([[r.y, r.color, null, 1.8]]);
       if (r.kind === "pv" && r.model) {
-        const m = S.onlyWin ? r.model[S.model] : (r.model.full && S.model === "all" ? r.model.full : r.model[S.model]);
+        const m = modelOf(r);
         lines.push([m, "#5b3fa8", "6 4", 2.4]);
       }
       drawArea(card, card.area, r.lo, r.hi, { own: !!card.track, labels: !!card.track, lines });
@@ -505,7 +516,8 @@ export default function (component) {
       const parts = [D.clock ? clockStr(D.t[j], true) : `${fmtS(D.t[j])} ${D.unit.u}`];
       for (const r of D.rows) parts.push(`${esc(r.id)} ${fmtN(r.y[j], 4)}`);
       const pvr = D.rows.find((r) => r.kind === "pv");
-      if (pvr && pvr.model && pvr.model[S.model] && isFinite(pvr.model[S.model][j])) parts.push(`${esc(X.model)} ${fmtN(pvr.model[S.model][j], 4)}`);
+      const pm = pvr && pvr.model ? modelOf(pvr) : null;
+      if (pm && pm[j] !== null && isFinite(pm[j])) parts.push(`${esc(X.model)} ${fmtN(pm[j], 4)}`);
       tip.innerHTML = parts.join(" · ");
       const br = box.getBoundingClientRect();
       tip.style.display = "block";

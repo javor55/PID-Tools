@@ -172,13 +172,13 @@ def _md_cards(s):
         seg(st, T("ms_proc"), ["auto", "self", "integ"], "auto", "proc_type", format_func=lambda x: T("ms_proc_" + x),
             help=T("h_ms_proc"), on_change=_proc_changed)
         st.caption(T("ms_proc_note"))
-    res_prev = (ss.get("fit") or {}).get("res", {})
+    res_prev = (ss.get("fit") or {}).get("res", {}) if _fit_signals_ok(ctx) else {}
     mc_prev = ss.get("mcode") if ss.get("mcode") in res_prev else None
     cards = []
     for k_, (nm_, col_) in enumerate([("MV", c_mv)] + [(str(dn), dn) for dn in c_d]):
         fit_lbl = ""
         if mc_prev and res_prev[mc_prev].get("fit") is not None:
-            fs_ = _input_fit(ctx, res_prev[mc_prev], nm_)
+            fs_ = _input_fit(ctx, mc_prev, res_prev[mc_prev], nm_)
             fit_lbl = f" :gray[FIT {fs_:.0f} %]" if fs_ is not None else ""     # CSS ho odsune doprava
         title_ = T("ms_card", k=k_ + 1, n=nm_, c=col_) if str(col_) != nm_ else T("ms_card1", k=k_ + 1, n=nm_)
         ex_ = section(ws.cards, title_ + fit_lbl, f"card|{nm_}", expanded=True)
@@ -240,7 +240,7 @@ def _md_fit(s):
         if win:
             return mdl.identify_windows(c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns,
                                         fixed, fn=cache.fit_windows)
-        return mdl.identify(c, ts_id, pv_id, mv_id, Ts, d_id, sets, fixed, stic_fixed, fn=cache.identify)
+        return mdl.identify(c, ts_id, pv_id, mv_id, Ts, d_id, sets, fixed, stic_fixed, fn=cache.identify, d_full=dists)
 
     if run_fit and win:
         if not ctx.win_idx:
@@ -268,7 +268,7 @@ def _md_fit(s):
             n_ = max(len(chosen), 1) * (2 if closed else 1)
             prog = ws.top.progress(0.0, text=T("fitting"))
             res, errs = mdl.identify_all(
-                ts_id, pv_id, mv_id, Ts, d_id, sets, fn=cache.identify,
+                ts_id, pv_id, mv_id, Ts, d_id, sets, fn=cache.identify, d_full=dists,
                 progress=lambda i, c: prog.progress(i / n_, text=f"{T('fitting')} {model_name(c)} ({i + 1}/{n_})"))
             if res and closed:
                 ctrl_ = {k: v for k, v in ctx.set_ctrl(1).items() if k not in ("FF", "FF_LL")}
@@ -323,12 +323,18 @@ def _md_results(s):
             _rescale_fit_state(ss.fit["key"], fit_key, list(c_d))
             st.toast(T("norm_rescaled"), icon=":material/straighten:")
         res = ss.fit["res"]
-        if ss.fit["key"] != fit_key:
-            ws.top.warning(T("warn_stale"), icon=":material/update:")
-        if ss.fit["dnames"] != list(c_d):
+        if not _fit_signals_ok(s.ctx):           # jiná PV / MV: starý model k těmto datům nepatří
+            ws.top.warning(T("warn_sig_changed"), icon=":material/update:")
+            res = {}
+        elif ss.fit["dnames"] != list(c_d):
             ws.top.warning(T("warn_dists_changed"), icon=":material/update:")
             res = {}
+        elif ss.fit["key"] != fit_key:
+            ws.top.warning(T("warn_stale"), icon=":material/update:")
     s.res = res
+    # shoda každého modelu na aktuálních úsecích (tabulka, výběr typu, grafy) – úseky se mohly od identifikace změnit
+    s.fnow = {c: (_live_fits(s.ctx, c, r["p"], r["pdl"])[1] if r.get("method") == "win" and s.win else r["fit"])
+              for c, r in res.items()}
 
 
 def _md_table(s):
@@ -363,7 +369,7 @@ def _md_table(s):
             if mw_.sum() > 20:
                 mq_ = model_metrics(pv[mw_], yw_[mw_], mv[mw_], Ts, dyn_scale(c, res[c]["p"]))
                 row["NRMSE [%]"], row[T("col_status")] = round(mq_["NRMSE"], 2), T(f"st_{mq_['status']}")
-            row["FIT [%]"] = round(res[c]["fit"], 1)
+            row["FIT [%]"] = round(s.fnow[c], 1)
             for _k, (lab_, f_) in enumerate(zip(_win_labels(ctx), res[c].get("fits", []))):
                 row[lab_] = round(f_, 1)
             kinds_ = [T("dkind_short_" + ("integ" if mdl_integ_d(c, d_) else "self")) for d_ in res[c]["pdl"]]
@@ -379,8 +385,8 @@ def _md_table(s):
         st.caption(T("ms_cmp_note") if win else T("ms_cmp_note_common"))
         cvk = ("cv", fit_key)
         cvr = ss.get("cv_res") if (ss.get("cv_res") or {}).get("key") == cvk else None
-        best_fit = max(r_["fit"] for r_ in res.values())
-        simple = min((c for c in res if res[c]["fit"] >= best_fit - 2.0), key=lambda c: len(MODELS[c]["params"]))
+        best_fit = max(s.fnow.values())
+        simple = min((c for c in res if s.fnow[c] >= best_fit - 2.0), key=lambda c: len(MODELS[c]["params"]))
         crow = []
         for q, row in zip(mdl.summary(res, ts_id, pv_id, mv_id, d_id, Ts), rows):
             c = q["code"]
@@ -427,21 +433,21 @@ def _md_mv_card(s):
     c_d, cards, cmp_tabs, ctx = s.c_d, s.cards, s.cmp_tabs, s.ctx
     id_stic, mv_pre, res, win = s.id_stic, s.mv_pre, s.res, s.win
     # ---- karty přenosů: typ, parametry (Identif. = volný parametr), směr účinku, původní hodnoty
-    best = mdl.best(res)
+    best = max(res, key=s.fnow.get)
     fam = _family(ss.get("proc_type", "auto"))
     opts = ["pv", "auto"] + list(res)
     if ss.get("mtype") not in opts:
         ss["mtype"] = ss["mcode"] if ss.get("mcode") in res else "pv"
     if ss.get("mcode") in res and ss.get("mcode") != ss.get("_mcode_last"):   # model zvolený jinde (projekt)
         ss["mtype"] = ss["mcode"]
-    fam_best = max((c for c in res if c in fam), key=lambda c: res[c]["fit"], default=best)
+    fam_best = max((c for c in res if c in fam), key=lambda c: s.fnow[c], default=best)
     mv_pre.empty()
     with cards[0]["typ"]:
         mtype = _lrow(T("ms_type"), T("h_ms_type")).selectbox(T("ms_type"), opts, key="mtype",
                                                               label_visibility="collapsed",
                              format_func=lambda c: (T("ms_type_pv", m=model_name(fam_best)) if c == "pv" else
                                                     T("ms_type_auto", m=model_name(best)) if c == "auto" else
-                                                    f"{model_name(c)} · FIT {res[c]['fit']:.1f} %"))
+                                                    f"{model_name(c)} · FIT {s.fnow[c]:.1f} %"))
     mcode = fam_best if mtype == "pv" else best if mtype == "auto" else mtype
     ss["mcode"] = ss["_mcode_last"] = mcode
     names = MODELS[mcode]["params"]
@@ -483,6 +489,9 @@ def _md_mv_card(s):
         if res[mcode].get("method") == "cl" and res[mcode].get("p_open"):
             st.caption(T("idm_open_model", p=", ".join(f"{n} = {v:.4g}" for n, v in
                                                          zip(names, res[mcode]["p_open"]))))
+    for j in set(res[mcode].get("dv_flat") or ()):   # porucha se v datech identifikace nemění → přenos nejde odhadnout
+        if j < len(c_d):
+            cards[j + 1]["head"].warning(T("ms_dv_flat"), icon=":material/info:")
     for j in range(len(c_d)):
         if win and res[mcode].get("method") == "win":
             with cards[j + 1]["extra"]:
@@ -553,7 +562,8 @@ def _md_charts(s):
     # ---- grafy modelu (pod-záložky jako v desktopu)
     # model do grafů s úseky (ctx.seg_chart na konci): MV + poruchy, jen MV, jen poruchy, celý záznam
     seg_extra = _model_curves(ctx, model, model_stic, sel_mask, y_ed, rp.get("method") == "win")
-    seg_resid = _owner_fits(ctx, rp) if rp.get("method") == "win" else None
+    seg_resid = (_owner_fits(ctx, _live_fits(ctx, mcode, model[1], model[2])[0]) if rp.get("method") == "win"
+                 else None)
     labels = [T("step_title"), T("compare_all"), T("eval_title"), T("val_title")]
     if model_level != "none":
         labels.append(T("dk_unmeasured"))
@@ -582,11 +592,11 @@ def _md_charts(s):
     with t_all:
         if _shown(ctx, "mod_view2", labels, 1):
             if win:
-                ex = [(f"{c} ({r['fit']:.1f} %)", cache.predict_windows(c, r["p"], r["pdl"], t, pv, mv, Ts, dists,
+                ex = [(f"{c} ({s.fnow[c]:.1f} %)", cache.predict_windows(c, r["p"], r["pdl"], t, pv, mv, Ts, dists,
                                                                          ctx.win_idx, ctx.valid)[0][sel_mask],
                        C_MODEL[c], None) for c, r in res.items()]
             else:
-                ex = [(f"{c} ({r['fit']:.1f} %)", predict(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts,
+                ex = [(f"{c} ({s.fnow[c]:.1f} %)", predict(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts,
                                                            r.get("stic", 0.0))[0], C_MODEL[c], None)
                       for c, r in res.items()]
             show(ctx.data_fig(ts_id, sel_mask, ex), key="chart_all", fname="models")
@@ -727,11 +737,10 @@ def _proc_changed():
     ss["mtype"] = ss["mtype0"] = "pv"
 
 
-def _owner_fits(ctx, r):
-    """{vstup: [FIT úseků]} – shody úseků výsledku z úseků podle vstupů, přiřazené vstupu, kterému úsek patří."""
+def _owner_fits(ctx, fits):
+    """{vstup: [FIT úseků]} – shody úseků (pořadí sloučených úseků) přiřazené vstupu, kterému úsek patří."""
     from ...core import merge_windows
     out = {}
-    fits = r.get("fits") or []
     owners = []
     for x, ws_ in ctx.wins_s.items():
         for a, _ in ws_:
@@ -745,12 +754,40 @@ def _owner_fits(ctx, r):
     return out
 
 
-def _input_fit(ctx, r, name):
-    """FIT přenosu pro titulek karty: průměr shod jeho úseků (úseky podle vstupů), u společného úseku FIT modelu."""
+def _live_fits(ctx, code, p, pdl):
+    """Shoda modelu na aktuálních úsecích: ([FIT každého úseku], FIT přes všechny úseky) [%]."""
+    _, fits, overall = cache.predict_windows(code, p, pdl, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ctx.win_idx,
+                                             ctx.valid)
+    return fits, overall
+
+
+def _edited(code, r):
+    """Model s hodnotami z polí parametrů (ruční úpravy), jinak nafitovaný – jako model záložky."""
+    p = [float(ss.get(f"ed|{code}|{i}", v)) for i, v in enumerate(r["p"])]
+    pdl = [[float(ss.get(f"ed|{code}|d{j}|{i}", v)) for i, v in enumerate(d[:3])] for j, d in enumerate(r["pdl"])]
+    p, pdl = mdl.clamp(p, pdl)
+    return p, [d + list(r["pdl"][j][3:]) for j, d in enumerate(pdl)]
+
+
+def _input_fit(ctx, code, r, name):
+    """
+    FIT přenosu pro titulek karty: průměr shod jeho úseků s aktuálním modelem (stejné číslo jako u úseků v grafu),
+    u společného úseku FIT modelu.
+    """
     if r.get("method") == "win":
-        f = _owner_fits(ctx, r).get(name)
+        if ctx.win_mode != "inputs":
+            return None
+        f = _owner_fits(ctx, _live_fits(ctx, code, *_edited(code, r))[0]).get(name)
         return float(np.mean(f)) if f else None
     return float(r["fit"]) if name == "MV" else None
+
+
+def _fit_signals_ok(ctx):
+    """Patří uložená identifikace k vybraným signálům (stejný soubor, PV a MV)? Starší klíč bez nich = ano."""
+    key = (ss.get("fit") or {}).get("key")
+    if not isinstance(key, tuple) or len(key) < 11:
+        return True
+    return key[0] == ctx.fname and key[9] == ctx.c_pv and key[10] == ctx.c_mv
 
 
 def _card_src(ctx, name):
@@ -926,8 +963,24 @@ def _model_curves(ctx, model, stic, sel_mask, y_ed, win):
             d_s = [d[sel_mask] for d in dists]
             out["mv"] = on_seg(predict(code, p, pdl0, ctx.ts_id, ctx.pv_id, ctx.mv_id, d_s, Ts, stic)[0])
             out["dv"] = on_seg(predict(code, p0, pdl, ctx.ts_id, ctx.pv_id, ctx.mv_id, d_s, Ts, stic)[0])
-    out["full"] = predict(code, p, pdl, t, pv, mv, dists, Ts, stic)[0]
+    # celý záznam: model navazuje na naměřenou PV každých H (posun, u integračních i drift), jinak by integrační
+    # proces s neznámou rovnovážnou MV během dlouhého záznamu ujel a tvar odezev by nešel posoudit
+    H = full_horizon(ctx, code, p)
+    n_h = max(int(round(H / Ts)), 10)
+    tiles = [(i, min(i + n_h, len(t))) for i in range(0, len(t), n_h)]
+    def tiled(p_, pdl_):
+        return cache.predict_windows(code, p_, pdl_, t, pv, mv, Ts, dists, tiles, ctx.valid)[0]
+    out["full_all"] = tiled(p, pdl)
+    if dists:
+        out["full_mv"], out["full_dv"] = tiled(p, pdl0), tiled(p0, pdl)
+    out["full_h"] = H
     return out
+
+
+def full_horizon(ctx, code, p):
+    """Po jak dlouhé době model na celém záznamu navazuje na data [s]: 8× dynamika, 5 min … třetina záznamu."""
+    T_end = float(ctx.t[-1])
+    return float(min(max(8 * dyn_scale(code, p), 300.0), max(T_end / 3, 300.0)))
 
 
 def _whole_record(ctx, model, stic):

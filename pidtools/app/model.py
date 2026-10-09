@@ -52,20 +52,28 @@ def rescale_results(res, old_norm, new_norm):
     return {c: rescale_fit(r, old_norm, new_norm) for c, r in res.items()}, norm_factors(old_norm, new_norm)
 
 
-def identify(code, ts, pv, mv, Ts, d, s, fixed=None, stic_fixed=None, fn=core.identify):
-    """Identifikace jednoho modelu podle nastavení s (fn = core.identify nebo jeho varianta s cache)."""
-    return fn(code, ts, pv, mv, Ts, d, s.th_max, fixed=fixed, stic_fixed=stic_fixed, level=s.dist_level,
-              strength=float(s.dist_strength), sign=SIGN[s.gain_sign], id_stic=s.id_stic, k=decimation(len(ts)))
+def identify(code, ts, pv, mv, Ts, d, s, fixed=None, stic_fixed=None, fn=core.identify, d_full=None):
+    """
+    Identifikace jednoho modelu podle nastavení s (fn = core.identify nebo jeho varianta s cache). d_full – poruchy
+    v celém záznamu: porucha, která se v úseku prakticky nemění, dostane nulový účinek (jinak by její parametry
+    vyšly libovolné); její index je ve výsledku v „dv_flat“.
+    """
+    flat = core.flat_inputs(d, d_full) if d_full is not None else []
+    fx = {k: v for j in flat for k, v in ((f"d{j}_0", 0.0), (f"d{j}_1", 0.2 * Ts), (f"d{j}_2", 0.0))}
+    fixed = {**fx, **(fixed or {})} or None
+    r = fn(code, ts, pv, mv, Ts, d, s.th_max, fixed=fixed, stic_fixed=stic_fixed, level=s.dist_level,
+           strength=float(s.dist_strength), sign=SIGN[s.gain_sign], id_stic=s.id_stic, k=decimation(len(ts)))
+    return dict(r, dv_flat=flat) if flat else r
 
 
-def identify_all(ts, pv, mv, Ts, d, s, fn=core.identify, progress=None):
+def identify_all(ts, pv, mv, Ts, d, s, fn=core.identify, progress=None, d_full=None):
     """Identifikace všech zvolených modelů. Vrací (výsledky {kód: výsledek}, chyby [(kód, text)])."""
     res, errs = {}, []
     for i, c in enumerate(s.chosen):
         if progress:
             progress(i, c)
         try:
-            res[c] = identify(c, ts, pv, mv, Ts, d, s, fn=fn)
+            res[c] = identify(c, ts, pv, mv, Ts, d, s, fn=fn, d_full=d_full)
         except Exception as ex:
             errs.append((c, str(ex)))
     return res, errs
