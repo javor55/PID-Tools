@@ -28,6 +28,9 @@ jobs:
       - name: Install
         run: pip install -r requirements.txt -r requirements-desktop.txt -r requirements-dev.txt
 
+      - name: Browser for the UI test (Chromium)
+        run: python -m playwright install --with-deps chromium
+
       - name: Lint
         run: ruff check .
 
