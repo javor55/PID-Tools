@@ -31,6 +31,8 @@ def _rescale_fit_state(old_key, new_key, c_d):
     jednotkách je stejný – mění se jen K v %/%, Kd a stikce v %; časy zůstávají.
     """
     ss.fit["res"], (fK, fKd, fS) = mdl.rescale_results(ss.fit["res"], old_key[mdl.NORM], new_key[mdl.NORM])
+    for r in ss.fit["res"].values():
+        r.pop("dv_chk", None)                 # kontrolní odhady poruch v původních jednotkách – do nové identifikace
     for c in list(ss.fit["res"]):
         if f"ed|{c}|0" in ss:
             ss[f"ed|{c}|0"] = float(ss[f"ed|{c}|0"]) * fK
@@ -249,6 +251,9 @@ def _md_fit(s):
                 t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns, fn=cache.fit_windows,
                 progress=lambda i, c: prog.progress(i / max(len(chosen), 1),
                                                     text=f"{T('fitting')} {model_name(c)} ({i + 1}/{len(chosen)})"))
+            for i, c in enumerate(res):           # kontrolní odhady poruch (jen tady a při dofitování, ne při každé změně)
+                prog.progress(i / max(len(res), 1), text=f"{T('ms_dv_chk_run')} {model_name(c)}")
+                res[c]["dv_chk"] = _dv_checks(ctx, c, res[c], dsigns)
             prog.empty()
             for c, ex in errs:
                 ws.top.error(f"{model_name(c)}: {T(ex)}")
@@ -296,6 +301,8 @@ def _md_fit(s):
             try:
                 with ws.top, st.spinner(T("fitting")):
                     ss.fit["res"][rc_] = do_fit(rc_, fixed_, sfix)
+                    if ss.fit["res"][rc_].get("method") == "win":
+                        ss.fit["res"][rc_]["dv_chk"] = _dv_checks(ctx, rc_, ss.fit["res"][rc_], dsigns)
                 _reset_edits(rc_)
                 ss.refit_msg = T("refit_done", n=len(fixed_))
             except Exception as ex:
@@ -417,7 +424,7 @@ def _md_table(s):
 
 def _md_mv_card(s):
     """Karty přenosů: typ modelu MV, parametry (Identif. = volný parametr), směr účinku, dofitování."""
-    c_d, cards, cmp_tabs, ctx, dkinds, dsigns = s.c_d, s.cards, s.cmp_tabs, s.ctx, s.dkinds, s.dsigns
+    c_d, cards, cmp_tabs, ctx = s.c_d, s.cards, s.cmp_tabs, s.ctx
     id_stic, mv_pre, res, win = s.id_stic, s.mv_pre, s.res, s.win
     # ---- karty přenosů: typ, parametry (Identif. = volný parametr), směr účinku, původní hodnoty
     best = mdl.best(res)
@@ -476,15 +483,15 @@ def _md_mv_card(s):
         if res[mcode].get("method") == "cl" and res[mcode].get("p_open"):
             st.caption(T("idm_open_model", p=", ".join(f"{n} = {v:.4g}" for n, v in
                                                          zip(names, res[mcode]["p_open"]))))
-    for j, dn in enumerate(c_d):
+    for j in range(len(c_d)):
         if win and res[mcode].get("method") == "win":
             with cards[j + 1]["extra"]:
-                _dist_window_table(ctx, mcode, res[mcode], j, str(dn), dsigns, dkinds)
+                _dist_window_table(res[mcode], j)
     for j, _dn in enumerate(c_d):             # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
         with cmp_tabs[j + 1]:
             if _shown(ctx, "mod_cmp", s.cmp_labels, j + 1):
                 if win and res[mcode].get("method") == "win":
-                    _dist_type_table(ctx, mcode, res[mcode], j, dsigns)
+                    _dist_type_table(res[mcode], j)
                 else:
                     st.caption(T("ms_cmp_dv_common"))
     s.mcode, s.p_ed, s.pdl_ed = mcode, p_ed, pdl_ed
@@ -813,28 +820,88 @@ def _param_row(key, idf_key, label, unit, signed, help_):
     return v
 
 
-def _dist_window_table(ctx, code, r, j, name, dsigns, dkinds):
-    """Odhad zesílení poruchy zvlášť v každém jejím úseku (ostatní parametry pevné) – kontrola, zda úseky souhlasí."""
-    w = ctx.wins_s.get(name, [])
-    if len(w) < 1:
-        return
+def _dv_checks(ctx, code, r, dsigns):
+    """
+    Kontrolní odhady přenosů poruch pro model z úseků (počítají se při identifikaci a dofitování, ne při každé
+    změně): zesílení poruchy zvlášť v každém jejím úseku a porovnání typů přenosu poruchy.
+    """
+    return dict(win={j: _dv_win_est(ctx, code, r, j, str(dn), dsigns) for j, dn in enumerate(ctx.c_d)},
+                type={j: _dv_type_est(ctx, code, r, j, dsigns) for j in range(len(ctx.c_d))})
+
+
+def _dv_win_est(ctx, code, r, j, name, dsigns):
+    """Zesílení poruchy j odhadnuté zvlášť v každém jejím úseku (ostatní parametry pevné): [(od, do, Kd, FIT)]."""
     fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
     for jj, d in enumerate(r["pdl"]):
         for i in range(3):
             if not (jj == j and i == 0):
                 fixed[f"d{jj}_{i}"] = float(d[i])
-    rows = []
+    out = []
     kinds = tuple(int(d[3]) if len(d) > 3 else 0 for d in r["pdl"])
-    for a, b in w:
+    for a, b in ctx.wins_s.get(name, []):
         i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
         try:
             q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
                                   0, tuple(dsigns), kinds, 4)
-            rows.append({T("ms_win"): f"{a:.0f} – {b:.0f} s", "Kd": _g4(q["pdl"][j][0]), "FIT [%]": round(q["fit"], 1)})
+            out.append((float(a), float(b), float(q["pdl"][j][0]), float(q["fit"])))
         except Exception:
-            rows.append({T("ms_win"): f"{a:.0f} – {b:.0f} s", "Kd": None, "FIT [%]": None})
+            out.append((float(a), float(b), None, None))
+    return out
+
+
+def _dv_type_est(ctx, code, r, j, dsigns):
+    """Typy přenosu poruchy j porovnané na úsecích (model MV a ostatní poruchy pevné): [(typ, FIT, Kd, Tp, θd | chyba)]."""
+    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
+    for jj, d in enumerate(r["pdl"]):
+        if jj != j:
+            for i in range(3):
+                fixed[f"d{jj}_{i}"] = float(d[i])
+    base = [int(d[3]) if len(d) > 3 else 0 for d in r["pdl"]]
+    out = []
+    for key, kind, extra in (("integ0", 2, {f"d{j}_1": 0.2 * ctx.Ts}), ("integ", 2, {}), ("self", 1, {})):
+        kinds = list(base)
+        kinds[j] = kind
+        try:
+            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, tuple(ctx.win_idx), ctx.valid, None,
+                                  dict(fixed, **extra), 0, tuple(dsigns), tuple(kinds), 8)
+            out.append((key, float(q["fit"]), [float(x) for x in q["pdl"][j][:3]]))
+        except Exception as ex:
+            out.append((key, None, str(ex)))
+    return out
+
+
+def _dist_window_table(r, j):
+    """Tabulka odhadů zesílení poruchy po jejích úsecích (spočtená při identifikaci)."""
+    chk = (r.get("dv_chk") or {}).get("win", {}).get(j)
+    if chk is None:
+        st.caption(T("ms_win_tab") + " – " + T("ms_dv_chk_none"))
+        return
+    if not chk:
+        return
+    rows = [{T("ms_win"): f"{a:.0f} – {b:.0f} s", "Kd": None if kd is None else _g4(kd),
+             "FIT [%]": None if f is None else round(f, 1)} for a, b, kd, f in chk]
     st.caption(T("ms_win_tab"))
     table(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+
+def _dist_type_table(r, j):
+    """Porovnání typů přenosu poruchy j (spočtené při identifikaci): integrační, integrační bez setrvačnosti,
+    samoregulační. Výběr se zapíše do typu přenosu poruchy."""
+    chk = (r.get("dv_chk") or {}).get("type", {}).get(j)
+    if chk is None:
+        st.caption(T("ms_dv_chk_none"))
+        return
+    rows = []
+    for key, f, d in chk:
+        if f is None:
+            rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": None, T("ms_cmp_par"): T(d)})
+            continue
+        par = f"Kd {_g4(d[0])} · " + ("" if key == "integ0" else f"Tp {_g4(d[1])} s · ") + f"θd {_g4(d[2])} s"
+        rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": round(f, 1), T("ms_cmp_par"): par})
+    st.caption(T("ms_cmp_dv_note"))
+    table(pd.DataFrame(rows), hide_index=True, width="stretch",
+          column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0, max_value=100,
+                                                                   format="%.1f")})
 
 
 def _model_curves(ctx, model, stic, sel_mask, y_ed, win):

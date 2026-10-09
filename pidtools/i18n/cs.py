@@ -1843,6 +1843,8 @@ TEXTS = {
     'ms_identif': 'Identif.',
     'h_ms_identif': 'Zaškrtnuté parametry se identifikují z dat, nezaškrtnuté zůstanou na zadané hodnotě (Dofitovat).',
     'ms_win': 'Úsek',
+    'ms_dv_chk_run': 'Kontrolní odhady poruch:',
+    'ms_dv_chk_none': 'spočítá se při identifikaci (Identifikovat nebo Dofitovat).',
     'ms_win_tab': 'Odhad po úsecích (kontrola shody)',
     'ms_val_intro': 'Simulace celého záznamu: kolik průběhu PV vysvětlí oba vstupy a každý zvlášť. Nízká shoda u integračního procesu může znamenat neměřený přítok nebo odtok.',
     'ms_val_all': 'MV + poruchy',

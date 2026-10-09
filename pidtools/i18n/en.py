@@ -1843,6 +1843,8 @@ TEXTS = {
     'ms_identif': 'Identify',
     'h_ms_identif': 'Ticked parameters are identified from the data, unticked ones stay at the entered value (Refit).',
     'ms_win': 'Segment',
+    'ms_dv_chk_run': 'Disturbance checks:',
+    'ms_dv_chk_none': 'computed at identification (Identify or Refit).',
     'ms_win_tab': 'Estimate per segment (consistency check)',
     'ms_val_intro': 'Simulation of the whole recording: how much of PV both inputs explain, and each on its own. A low fit on an integrating process may mean an unmeasured inflow or outflow.',
     'ms_val_all': 'MV + disturbances',
