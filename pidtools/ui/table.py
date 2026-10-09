@@ -111,6 +111,9 @@ def table(data, key=None, *, where=None, select=False, hide_index=None, height=N
     else:
         df = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
     ss.setdefault("_tables", []).append((key, df))
+    from .charts import visible
+    if not visible():                       # neaktivní záložka / skrytý pohled – nic neposílat
+        return SimpleNamespace(selection=SimpleNamespace(rows=[]))
     show_idx = (not isinstance(df.index, pd.RangeIndex)) if hide_index is None else not hide_index
     lang = ss.get("lang", "cs")
     cols, rows = [], [[] for _ in range(len(df))]
@@ -125,6 +128,11 @@ def table(data, key=None, *, where=None, select=False, hide_index=None, height=N
         is_num = _is_num_col(list(s))
         cols.append(dict(name=str(c), num=is_num, help=(helps or {}).get(c)))
         for i, v in enumerate(s):
+            if isinstance(v, str) and is_num:
+                try:
+                    v = float(v)                  # „1.64e+06“, „290.8“ → číslo v zápisu jazyka
+                except ValueError:
+                    pass
             txt = num_text(v, lang) if not isinstance(v, str) else (_loc(v, lang) if is_num else v)
             rows[i].append(txt)
     ccls = None

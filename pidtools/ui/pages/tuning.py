@@ -1,4 +1,5 @@
 """Záložka Ladění (rozložení jako desktop): vlevo scénář v grafu a frekvenční analýza, vpravo scénář → návrh → sady, blok PIDConL."""
+import html
 import time
 from contextlib import nullcontext
 from types import SimpleNamespace
@@ -19,14 +20,17 @@ from ...i18n import T, TEXTS
 from .. import cache
 from .. import ff as ffmod
 from ..cache import pidconl_sim_full, robustness
-from ..charts import REPORT, mkfig, show, style, tr
+from ..charts import REPORT, hidden, mkfig, show, style, tr
 from ..theme import C_MV, C_SET1, C_SET2, C_SP, _c_dist
 from ..layout import section, workspace
 from ..widgets import fmt, model_name, notes_text, num, seg, sel, sld
 from . import apc
 from ..table import table
+from ..kit import card, head, level, lrow, tiles
+from ..kit import q as q_
 
 ss = st.session_state
+SCOLS = [0.8, 1.0, 1.15, 1.15]          # karta Návrh a sady: název | Návrh | Set 1 | Set 2
 
 
 def render_block(ctx):
@@ -41,14 +45,16 @@ def render_block(ctx):
         with ws.side:
             ws.top = st.container()
         ctx.tun = ws
-        blk = section(ws.side, T("blk_title"), "tun_block", expanded=True, icon=":material/settings:")   # 1. – bez něj
-        ws.scen = section(ws.side, T("dk_sec_scen"), "tun_scen", icon=":material/timeline:")       # výpočty nedávají smysl
-        ws.sug = section(ws.side, T("dk_sec_sug"), "tun_sug", icon=":material/calculate:")
-        ws.sets = section(ws.side, T("dk_sec_sets"), "tun_sets", icon=":material/tune:")
-        ws.hist = section(ws.side, T("dk_sec_hist"), "tun_hist", icon=":material/history:")
-        ws.verify = section(ws.side, T("dk_sec_verify"), "tun_verify", icon=":material/shield:")
-        ws.dadv = section(ws.side, T("d_title"), "tun_d", icon=":material/help:")
-        ws.plant = section(ws.side, T("plant_title"), "tun_plant", icon=":material/water_drop:")
+        # pořadí karet panelu jako v návrhu: metoda → návrh a sady → scénář → robustnost → blok, historie …
+        ws.sug = section(ws.side, T("tn_sec_method"), "tun_sug", expanded=True)
+        ws.sets = section(ws.side, T("tn_sec_sets"), "tun_sets", expanded=True)
+        ws.scen = section(ws.side, T("tn_sec_scen"), "tun_scen", expanded=True)
+        ws.verify = section(ws.side, T("tn_sec_rob"), "tun_verify", expanded=True)
+        blk = section(ws.side, T("tn_blk"), "tun_block")
+        ws.hist = section(ws.side, T("dk_sec_hist"), "tun_hist")
+        ws.dadv = section(ws.side, T("d_title"), "tun_d")
+        ws.plant = section(ws.side, T("plant_title"), "tun_plant")
+        ws.cta = ws.side.container(key="pid_cta_live")
         with blk:
             _norm_section(ctx)
             st.markdown(f"**{T('sb_block')}**")
@@ -165,12 +171,19 @@ def render(ctx):
         else:
             mcode, p, pdl = model
             with ws.main:
+                bar = card("tun_bar")
+                m_view = st.container()
+                m_methods = st.container()
+                m_below = st.container()
+            with bar:          # pohled (scénář / frekvence / všechny metody), co se srovnává, model a tip na APC
+                b1, b2 = st.columns([1.3, 1], vertical_alignment="center")
+                view = seg(b1, T("tn_view"), ["time", "freq", "all"], "time", "tun_view",
+                           format_func=lambda x: T("tn_view_" + x), label_visibility="collapsed") or "time"
+                cmp_ph = b2.empty()
                 st.caption(f"{model_name(mcode)} · " + ", ".join(f"{n} = {(0.0 if abs(v) < 1e-9 else v):.4g}"
                                                                   for n, v in zip(MODELS[mcode]["params"], p))
                            + " · " + T("samp_note", s=f"{samp:g}", h=f"{samp / 2:g}"))
                 apc.tuning_hint(ctx)   # odkaz na záložku APC, když by smyčce pomohla pokročilá struktura
-                m_view = st.container()
-                m_below = st.container()
             p_eff = tun.p_eff(p, samp)
             methods = tun.methods(mcode, p)
             mkey = f"method|{mcode}"
@@ -197,9 +210,11 @@ def render(ctx):
 
             # ---- 2 · návrh (počítá se na tlačítko Vypočítat)
             with ws.sug:
-                method = seg(st, T("method"), methods, tun.DEFAULT_METHOD, mkey, format_func=lambda x: T("m_" + x),
-                             help=T("method_help")) or tun.DEFAULT_METHOD
-                ctype = seg(st, T("ctrl_type"), ["PI", "PID"], "PI", "ctype", help=T("h_ctype")) or "PI"
+                method = sel(lrow(T("method"), T("method_help")), T("method"), methods,
+                             methods.index(tun.DEFAULT_METHOD) if tun.DEFAULT_METHOD in methods else 0, mkey,
+                             format_func=lambda x: T("m_" + x), label_visibility="collapsed")
+                ctype = seg(lrow(T("ctrl_type"), T("h_ctype")), T("ctrl_type"), ["PI", "PID"], "PI", "ctype",
+                            label_visibility="collapsed") or "PI"
                 avg, tc, ms_max = None, None, 1.6
                 crit, tgt = ss.get("opt_crit") or tun.DEFAULT_CRIT, ss.get("opt_target") or tun.DEFAULT_TARGET
                 ovs_lim = (ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100
@@ -212,17 +227,20 @@ def render(ctx):
                               help=T("avg_dmv_help"))
                     avg = (dpv / PR * 100, dmv / MR * 100)
                 elif method == "OPT":
-                    crit = seg(st, T("opt_crit"), ["MIGO", "IAE", "ISE", "ITAE", "OVS"], tun.DEFAULT_CRIT, "opt_crit",
-                               format_func=lambda x: T("crit_" + x), help=T("h_opt_crit")) or tun.DEFAULT_CRIT
+                    crits_ = ["MIGO", "IAE", "ISE", "ITAE", "OVS"]
+                    crit = sel(lrow(T("opt_crit"), T("h_opt_crit")), T("opt_crit"), crits_, crits_.index(tun.DEFAULT_CRIT),
+                               "opt_crit", format_func=lambda x: T("crit_" + x), label_visibility="collapsed")
                     st.caption(T("cdesc_" + crit))
                     if crit != "MIGO":
-                        tgt = seg(st, T("opt_target"), ["scen", "dist", "sp", "both"], tun.DEFAULT_TARGET, "opt_target",
-                                  format_func=lambda x: T("tgt_" + x), help=T("h_opt_target")) or tun.DEFAULT_TARGET
+                        tgts_ = ["scen", "dist", "sp", "both"]
+                        tgt = sel(lrow(T("opt_target"), T("h_opt_target")), T("opt_target"), tgts_,
+                                  tgts_.index(tun.DEFAULT_TARGET), "opt_target", format_func=lambda x: T("tgt_" + x),
+                                  label_visibility="collapsed")
                         if crit == "OVS":
-                            ovs_lim = (seg(st, T("opt_ovs"), [0, 2, 5, 10], 2, "opt_ovs", format_func=lambda x: f"{x} %",
-                                           help=T("h_opt_ovs")) or 0) / 100
-                    ms_max = seg(st, T("opt_ms"), [1.4, 1.6, 1.8, 2.0], 1.6, "opt_ms",
-                                 format_func=lambda x: f"{x:.1f}", help=T("opt_ms_help")) or 1.6
+                            ovs_lim = (seg(lrow(T("opt_ovs"), T("h_opt_ovs")), T("opt_ovs"), [0, 2, 5, 10], 2, "opt_ovs",
+                                           format_func=lambda x: f"{x} %", label_visibility="collapsed") or 0) / 100
+                    ms_max = seg(lrow(T("opt_ms"), T("opt_ms_help")), T("opt_ms"), [1.4, 1.6, 1.8, 2.0], 1.6, "opt_ms",
+                                 format_func=lambda x: f"{x:.1f}", label_visibility="collapsed") or 1.6
                     if ctype == "PID":
                         num(T("opt_noise", u=u_mv or "MV"), "opt_noise", round(0.01 * MR, 4), min_value=0.0,
                             format="%.4g", help=T("opt_noise_help"))
@@ -240,116 +258,112 @@ def render(ctx):
             sig_now = _sig(mcode, list(p), [list(x) for x in pdl], method, ctype, tc, avg, ms_max, hf_max, crit, tgt,
                            ovs_lim, bool(ss.get("opt_robust")), base_ctrl,
                            ss.get("scen_sig") if scen_dep else None)
-            with ws.top:
-                calc = st.button(T("dk_calc"), key="g_calc", type="primary", width="stretch",
-                                 icon=":material/play_arrow:", help=T("dk_calc_help"))
-            if calc:
+            last = ss.get("sug_last") if (ss.get("sug_last") or {}).get("mcode") == mcode else None
+            with ws.sug:
+                calc = st.button(T("dk_calc"), key="g_calc", type="primary" if method == "OPT" else "secondary",
+                                 width="stretch", help=T("dk_calc_help"))
+            # rychlé metody (pravidla) se přepočítají samy; optimalizace (sekundy) až na tlačítko
+            auto = method != "OPT" and (last is None or last["sig"] != sig_now)
+            if calc or auto or ss.pop("auto_calc", False):
                 try:
-                    with ws.top, st.spinner(T("optimizing")) if method == "OPT" else nullcontext():
+                    with ws.sug, st.spinner(T("optimizing")) if method == "OPT" else nullcontext():
                         res_ = tun.suggest(mcode, p, pdl, base_ctrl, req, robust_set, sb, solvers)
                     ss["sug_last"] = dict(sig=sig_now, sug=res_, mcode=mcode,
                                           label=T("m_" + method) + (f" · {T('crit_' + crit)}" if method == "OPT" else ""),
                                           ctype=ctype, t=time.strftime("%H:%M:%S"))
                 except Exception as ex:
-                    ws.top.error(T(str(ex)))
+                    ws.sug.error(T(str(ex)))
             last = ss.get("sug_last") if (ss.get("sug_last") or {}).get("mcode") == mcode else None
             sug = last["sug"] if last else None
             if last is None:
-                ws.top.info(T("dk_calc_hint"), icon=":material/info:")
+                ws.sug.caption(T("dk_calc_hint"))
             elif last["sig"] != sig_now:
-                ws.top.warning(T("web_stale"), icon=":material/update:")
+                ws.sug.warning(T("web_stale"), icon=":material/update:")
             else:
-                ws.top.caption(":material/check_circle: " + T("web_calc_done", t=last["t"]))
+                ws.sug.caption(":material/check_circle: " + T("web_calc_done", t=last["t"]))
             with sug_box:
                 if sug is not None:
-                    st.markdown(f"**{T('dk_suggest')}:** Gain = {sug['Kc']:.4g} · TI = {sug['Ti']:.4g} s · "
-                                f"TD = {sug['Td']:.4g} s")
-                    b1, b2 = st.columns(2)
-                    for n_, b_ in ((1, b1), (2, b2)):
-                        if b_.button(T(f"write_s{n_}"), width="stretch", icon=":material/arrow_downward:"):
-                            ss[f"set{n_}_gain"], ss[f"set{n_}_ti"], ss[f"set{n_}_td"] = sug["Kc"], sug["Ti"], sug["Td"]
-                            ss["tune_hist"] = [dict(time=time.strftime("%Y-%m-%d %H:%M"), set=n_, Kc=float(sug["Kc"]),
-                                                    Ti=float(sug["Ti"]), Td=float(sug["Td"]), model=mcode,
-                                                    method=last["label"], ctype=last["ctype"],
-                                                    scen=T("dk_sc_" + ss.get("scen_kind", "sp")),
-                                                    Ms=None, iae=ss.get("sug_iae"))] + list(ss.get("tune_hist") or [])[:49]
-                            st.rerun()
                     if sug["notes"]:
                         st.info(notes_text(sug["notes"]), icon=":material/lightbulb:")
                     if sug["Kc"] < 0:
                         st.warning(T("warn_neg_gain"), icon=":material/swap_vert:")
                 if "fit" in ss and mcode in ss.fit["res"] and ss.fit["res"][mcode]["fit"] < 70:
                     st.warning(T("warn_low_fit"), icon=":material/warning:")
+            cmp_ph.markdown(f"<div class='pid-sub' style='text-align:right'>{T('tn_cmp_line', a=T('dk_suggest'), b=T('set_2'))}"
+                            "</div>", unsafe_allow_html=True)
 
-            # ---- srovnání metod (pod grafem, široká tabulka)
-            with m_below.expander(T("cmp_title"), expanded=False, icon=":material/leaderboard:", key="cmp_open",
-                                  on_change="rerun") as cmp_exp:
-                if cmp_exp.open:  # porovnání (vč. optimalizací) se počítá až po rozbalení
-                    avg_c = (ss.get("avg_dpv", 1) / PR * 100, ss.get("avg_dmv", 1) / MR * 100) if "avg_dpv" in ss else None
-                    req_c = tun.Request(ms=ss.get("opt_ms") or 1.6, hf=hf_max, target=ss.get("opt_target") or "both",
-                                        ovs=(ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100)
-                    with st.spinner(T("optimizing")):
-                        cmp_ = tun.compare(mcode, p, pdl, base_ctrl, req_c, avg_c, sigma_pv, robust_set, solvers, robustness)
-                    rows = []
-                    for q in cmp_:
-                        rows.append({T("col_method"): T("m_" + q["method"]) + (f" · {T('crit_' + q['crit'])}" if q["crit"] else ""),
-                                     T("ctrl_type"): q["ctype"], "Gain": float(f"{q['Kc']:.4g}"),
-                                     "TI [s]": float(f"{q['Ti']:.4g}"), "TD [s]": float(f"{q['Td']:.4g}"),
-                                     "Ms": round(q["Ms"], 2) if q["Ms"] is not None else None,
-                                     T("iae_load"): float(f"{q['iae_load']:.4g}") if q["iae_load"] is not None else None,
-                                     T("iae_sp"): float(f"{q['iae_sp']:.4g}") if q["iae_sp"] is not None else None,
-                                     T("ovs_col"): round(q["ovs"], 1) if q["ovs"] is not None else None,
-                                     T("noise_col", u=u_mv or "MV"): (float(f"{q['noise'] * MR / 100:.3g}")
-                                                                      if q["noise"] is not None else None),
-                                     T("use_col"): T("use_" + (q["crit"] or q["method"]))})
-                    cdf = pd.DataFrame(rows)
-                    ev_c = table(cdf, hide_index=True, width="stretch", select=True, selection_mode="single-row", key=f"cmp|{mcode}",
-                                        column_config={"Ms": st.column_config.NumberColumn(format="%.2f"),
-                                                       T("use_col"): st.column_config.TextColumn(width="large")})
-                    try:
+            # ---- všechny metody pro tento model (karta pod grafem; optimalizace trvají → počítá se na tlačítko)
+            if view in ("time", "all"):
+                with m_methods, card("tun_methods"):
+                    head(T("tn_methods"), note=T("tn_methods_note"))
+                    if view == "all":
+                        ss["cmp_open"] = True
+                    if not ss.get("cmp_open"):
+                        st.button(T("tn_methods_run"), key="g_cmp_run", icon=":material/leaderboard:",
+                                  on_click=lambda: ss.__setitem__("cmp_open", True))
+                        st.caption(T("cmp_help"))
+                    else:
+                        avg_c = (ss.get("avg_dpv", 1) / PR * 100, ss.get("avg_dmv", 1) / MR * 100) if "avg_dpv" in ss else None
+                        req_c = tun.Request(ms=ss.get("opt_ms") or 1.6, hf=hf_max, target=ss.get("opt_target") or "both",
+                                            ovs=(ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100)
+                        with st.spinner(T("optimizing")):
+                            cmp_ = tun.compare(mcode, p, pdl, base_ctrl, req_c, avg_c, sigma_pv, robust_set, solvers,
+                                               robustness)
+                        rows, cur = [], []
+                        for q in cmp_:
+                            rows.append({T("col_method"): T("m_" + q["method"]) + (f" · {T('crit_' + q['crit'])}" if q["crit"] else ""),
+                                         T("ctrl_type"): q["ctype"], "Gain": float(f"{q['Kc']:.4g}"),
+                                         "TI [s]": float(f"{q['Ti']:.4g}"), "TD [s]": float(f"{q['Td']:.4g}"),
+                                         "Ms": round(q["Ms"], 2) if q["Ms"] is not None else None,
+                                         T("iae_load"): float(f"{q['iae_load']:.4g}") if q["iae_load"] is not None else None,
+                                         T("iae_sp"): float(f"{q['iae_sp']:.4g}") if q["iae_sp"] is not None else None,
+                                         T("ovs_col"): round(q["ovs"], 1) if q["ovs"] is not None else None,
+                                         T("noise_col", u=u_mv or "MV"): (float(f"{q['noise'] * MR / 100:.3g}")
+                                                                          if q["noise"] is not None else None),
+                                         T("use_col"): T("use_" + (q["crit"] or q["method"]))})
+                            cur.append("cur" if (q["method"], q["ctype"]) == (method, ctype) and
+                                       (method != "OPT" or q["crit"] == crit) else "")
+                        ev_c = table(pd.DataFrame(rows), key=f"cmp|{mcode}", select=True, row_class=cur)
                         sel_rows = ev_c.selection.rows
-                        if sel_rows:
-                            selected_row = rows[sel_rows[0]]
-                            st.markdown(f"**{T('sel_method')}:** {selected_row[T('col_method')]}")
-                            b1, b2, _ = st.columns([1.3, 1.3, 3])
-                            if b1.button(T("write_sel_s1"), key="cmp_s1", icon=":material/arrow_downward:"):
-                                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = selected_row["Gain"], selected_row["TI [s]"], selected_row["TD [s]"]
-                                st.rerun()
-                            if b2.button(T("write_sel_s2"), key="cmp_s2", icon=":material/arrow_downward:"):
-                                ss["set2_gain"], ss["set2_ti"], ss["set2_td"] = selected_row["Gain"], selected_row["TI [s]"], selected_row["TD [s]"]
-                                st.rerun()
-                    except AttributeError:
-                        pass
-                st.caption(T("cmp_help"))
+                        if sel_rows and ss.get("_cmp_last") != (mcode, sel_rows[0]):
+                            ss["_cmp_last"] = (mcode, sel_rows[0])        # klepnutí = metoda do Návrhu
+                            q = cmp_[sel_rows[0]]
+                            ss["pending_tune"] = (q["method"], q["ctype"], q["crit"])
+                            ss["auto_calc"] = True
+                            st.rerun()
+                        st.caption(T("cmp_help"))
 
-            # ---- 3 · sady a robustnost
+            # ---- návrh a sady v PLC: řádky Gain / TI / TD, sloupce Návrh | Set 1 | Set 2
             with ws.sets:
-                p1, p2 = st.columns(2)
-                with p1:
-                    st.markdown(f"**{T('set_1')}**", help=T("h_set_1"))
-                    set1_gain = num("Gain", "set1_gain", ss.get("set1_gain", 1.0), format="%.5g", help=T("h_gain"))
-                    set1_ti = num("TI [s]", "set1_ti", ss.get("set1_ti", 100.0), min_value=0.0, format="%.5g", help=T("h_ti"))
-                    set1_td = num("TD [s]", "set1_td", ss.get("set1_td", 0.0), min_value=0.0, format="%.5g", help=T("h_td"))
-                with p2:
-                    st.markdown(f"**{T('set_2')}**", help=T("h_set_2"))
-                    set2_gain = num("Gain", "set2_gain", sug["Kc"] if sug else 1.0, format="%.5g", help=T("h_gain"))
-                    set2_ti = num("TI [s]", "set2_ti", sug["Ti"] if sug else 100.0, min_value=0.0, format="%.5g", help=T("h_ti"))
-                    set2_td = num("TD [s]", "set2_td", sug["Td"] if sug else 0.0, min_value=0.0, format="%.5g", help=T("h_td"))
+                hc = st.columns(SCOLS, vertical_alignment="center")
+                for c_, lbl_, h_ in ((hc[1], T("dk_suggest"), T("dk_calc_help")), (hc[2], T("set_1"), T("h_set_1")),
+                                     (hc[3], T("set_2"), T("h_set_2"))):
+                    c_.markdown(f"<div class='pid-plab' style='justify-content:flex-end' title='{html.escape(h_, quote=True)}'>"
+                                f"{lbl_}</div>", unsafe_allow_html=True)
+                vals = {}
+                for lbl, k, sk, mn, hk in (("Gain", "gain", "Kc", None, "h_gain"), ("TI [s]", "ti", "Ti", 0.0, "h_ti"),
+                                           ("TD [s]", "td", "Td", 0.0, "h_td")):
+                    c = st.columns(SCOLS, vertical_alignment="center")
+                    c[0].markdown(f"<div class='pid-plab'>{lbl}{q_(T(hk))}</div>", unsafe_allow_html=True)
+                    c[1].markdown(f"<div class='pid-big-val' style='text-align:right'>{fmt(sug[sk]) if sug else '—'}</div>",
+                                  unsafe_allow_html=True)
+                    d1 = {"gain": 1.0, "ti": 100.0, "td": 0.0}[k]
+                    for n_ in (1, 2):
+                        kw_ = {} if mn is None else dict(min_value=mn)
+                        vals[(n_, k)] = num(lbl, f"set{n_}_{k}", ss.get(f"set{n_}_{k}", sug[sk] if (sug and n_ == 2) else d1),
+                                            c[1 + n_], format="%.5g", label_visibility="collapsed", **kw_)
+                set1_gain, set1_ti, set1_td = vals[(1, "gain")], vals[(1, "ti")], vals[(1, "td")]
+                set2_gain, set2_ti, set2_td = vals[(2, "gain")], vals[(2, "ti")], vals[(2, "td")]
+                b1, b2 = st.columns(2)
+                for n_, b_ in ((2, b1), (1, b2)):      # zápis v callbacku – pole sad jsou už vykreslená
+                    b_.button(T(f"tn_write_s{n_}"), key=f"g_write_s{n_}", width="stretch", disabled=sug is None,
+                              type="primary" if n_ == 2 else "secondary", on_click=_write_set, args=(n_, sug, last, mcode))
+                st.caption(T("tn_sets_note"))
                 set1_ctrl = set_ctrl(base_ctrl, set1_gain, set1_ti, set1_td)
                 set2_ctrl = set_ctrl(base_ctrl, set2_gain, set2_ti, set2_td)
                 rc = tun.set_metrics(mcode, p, set1_ctrl, sigma_pv, unc_models, robustness)
                 rn = tun.set_metrics(mcode, p, set2_ctrl, sigma_pv, unc_models, robustness)
                 ctx.PROG["tune"] = 2 if not rn["stable"] else (0 if rn["Ms"] <= 2.0 else 1)
-                tbl = pd.DataFrame({
-                    T("set_1"): [fmt(set1_gain), fmt(set1_ctrl["TI"]), fmt(set1_td), fmt(rc["Ms"], 3), fmt(rc["GM"], 3),
-                                 fmt(rc["PM"], 3), fmt(rc["noise"] * MR / 100, 3)],
-                    T("set_2"): [fmt(set2_gain), fmt(set2_ctrl["TI"]), fmt(set2_td), fmt(rn["Ms"], 3), fmt(rn["GM"], 3),
-                                 fmt(rn["PM"], 3), fmt(rn["noise"] * MR / 100, 3)]},
-                    index=["Gain", "TI [s]", "TD [s]", T("ms"), T("gm"), T("pm"), T("noise_col", u=u_mv or "MV")])
-                if unc_models:
-                    tbl.loc[T("ms_worst")] = [fmt(rc["Ms_worst"], 3), fmt(rn["Ms_worst"], 3)]
-                table(tbl, width="stretch")
-                REPORT["tables"].append((T("rep_tab_tuning"), tbl))
                 set1_placeholder = tun.is_placeholder(set1_ctrl["Gain"], set1_ctrl["TI"], set1_ctrl.get("TD", 0.0))
                 set2_placeholder = tun.is_placeholder(set2_ctrl["Gain"], set2_ctrl["TI"], set2_ctrl.get("TD", 0.0))
                 for nm, r in ((T("set_1"), rc), (T("set_2"), rn)):
@@ -360,6 +374,32 @@ def render(ctx):
                             st.info(T("set2_placeholder"), icon=":material/calculate:")
                         else:
                             st.error(T("err_unstable", n=nm), icon=":material/error:")
+
+            # ---- robustnost: dlaždice Ms / GM / PM (Návrh, pod tím Set 2), tabulka sad
+            with ws.verify:
+                rs = (tun.set_metrics(mcode, p, set_ctrl(base_ctrl, sug["Kc"], sug["Ti"], sug["Td"]), sigma_pv,
+                                      unc_models, robustness) if sug is not None else None)
+                main_, ref_, ref_n = (rs, rn, T("set_2")) if rs is not None else (rn, rc, T("set_1"))
+
+                def _v(r_, k_, d_=2):
+                    return fmt(r_[k_], d_ + 1) if r_ and r_["stable"] else "—"
+                tiles([("Ms", _v(main_, "Ms"), f"{ref_n}: {_v(ref_, 'Ms')}",
+                        level(main_["Ms"] if main_["stable"] else 99, 1.8, 2.0)),
+                       ("GM", _v(main_, "GM"), f"{ref_n}: {_v(ref_, 'GM')}",
+                        level(main_["GM"] if main_["stable"] else 0, 2.0, 1.7, lower_better=False)),
+                       ("PM", _v(main_, "PM") + ("°" if main_["stable"] else ""), f"{ref_n}: {_v(ref_, 'PM')}°",
+                        level(main_["PM"] if main_["stable"] else 0, 45, 30, lower_better=False))])
+                cols_ = {T("set_1"): rc, T("set_2"): rn, **({T("dk_suggest"): rs} if rs is not None else {})}
+                tbl = pd.DataFrame({n_: [fmt(r_["Ms"], 3), fmt(r_["GM"], 3), fmt(r_["PM"], 3),
+                                         fmt(r_["noise"] * MR / 100, 3)] + ([fmt(r_["Ms_worst"], 3)] if unc_models else [])
+                                    for n_, r_ in cols_.items()},
+                                   index=[T("ms"), T("gm"), T("pm"), T("noise_col", u=u_mv or "MV")]
+                                   + ([T("ms_worst")] if unc_models else []))
+                table(tbl, key="tun_rob")
+                REPORT["tables"].append((T("rep_tab_tuning"), pd.concat([pd.DataFrame(
+                    {T("set_1"): [fmt(set1_gain), fmt(set1_ctrl["TI"]), fmt(set1_td)],
+                     T("set_2"): [fmt(set2_gain), fmt(set2_ctrl["TI"]), fmt(set2_td)]},
+                    index=["Gain", "TI [s]", "TD [s]"]), tbl[[T("set_1"), T("set_2")]]])))
 
             # ---- historie ladění
             with ws.hist:
@@ -377,9 +417,8 @@ def render(ctx):
                         e = hist[rows_h[0]]
                         h1, h2 = st.columns(2)
                         for n_, b_ in ((1, h1), (2, h2)):
-                            if b_.button(T(f"dk_hist_s{n_}"), key=f"g_hist_s{n_}", width="stretch"):
-                                ss[f"set{n_}_gain"], ss[f"set{n_}_ti"], ss[f"set{n_}_td"] = e["Kc"], e["Ti"], e["Td"]
-                                st.rerun()
+                            b_.button(T(f"dk_hist_s{n_}"), key=f"g_hist_s{n_}", width="stretch", on_click=_hist_set,
+                                      args=(n_, e))
 
             # dopředná vazba se nastavuje v APC › Dopředná vazba; tady jen stav a promítnutí do simulací
             ffd = ffmod.design(mcode, p, pdl)
@@ -401,8 +440,8 @@ def render(ctx):
             edkey = f"scen_ed|{sdf_key}|{ss.lang}"
             kinds, kind0 = _scen_kind(c_d, sdf_key)
             with ws.scen:
-                kind = seg(st, T("dk_sc_kind"), kinds, kind0, "scen_kind", format_func=lambda x: T("dk_sc_" + x),
-                           help=T("dk_sc_kind_help")) or kind0
+                kind = sel(lrow(T("dk_sc_kind"), T("dk_sc_kind_help")), T("dk_sc_kind"), kinds, kinds.index(kind0),
+                           "scen_kind", format_func=lambda x: T("dk_sc_" + x), label_visibility="collapsed")
                 ss["scen2"] = "replay" if kind == "replay" else "custom"
                 st.caption(T("dk_sc_note_" + kind))
                 with st.popover(T("sc_where_btn"), icon=":material/help:", width="stretch"):
@@ -486,7 +525,8 @@ def render(ctx):
             tg_map = {tg_label(c_, lg): c_ for c_ in tg_codes for lg in ("cs", "en")}
             ty_map = {TEXTS[lg]["ty_" + c_]: c_ for c_ in ty_codes for lg in ("cs", "en")}
             if kind == "custom":
-                with m_below.expander(T("scen_title"), expanded=True, icon=":material/timeline:", key="sec|tun_events"):
+                with m_below, card("tun_events"):
+                    head(T("scen_title"))
                     if sdf_key not in ss:
                         ss[sdf_key] = scenario.default_rows(sp_amp_e, MR, len(c_d), T_end)
                     if f"{edkey}|init" not in ss:  # výchozí data editoru (při změně jazyka převezme poslední stav)
@@ -593,8 +633,8 @@ def render(ctx):
                                         "#9aa5b1", "dashdot")
 
             # ---- hlavní plocha: odezva ve scénáři / frekvenční analýza
-            with m_view:
-                v_time, v_freq = st.tabs([T("dk_view_time"), T("fq_title")], key="tun_view", on_change="rerun")
+            v_time = m_view.container()
+            v_freq = m_view.container()
             has_d = any(np.any(d != 0) for d in dmeas) or np.any(dmv_arr != 0) or np.any(dpv_arr != 0)
             nr = 3 if has_d else 2
             fig = mkfig(nr, [0.55, 0.25, 0.2] if nr == 3 else [0.62, 0.38])
@@ -607,12 +647,12 @@ def render(ctx):
                         fig.add_trace(tr(rq["t"], EM(rq["MV"]), T("unc_variants"), "#86efac", 1.0, show=False, group="spread",
                                          opacity=0.7), 2, 1)
             fig.add_trace(tr(ts_sim, EP(spv), "SP", C_SP, 1.4, "dash", "hv"), 1, 1)
-            kp = []
+            kp, unstable = [], []
             ylo, yhi = [], []
             for nm, (rs_, col, dash) in sims.items():
                 Pv, Mv = rs_["PV"], rs_["MV"]
                 if not scenario.stable(rs_):
-                    v_time.error(T("err_sim_unstable", n=nm), icon=":material/error:")
+                    unstable.append(nm)
                     continue
                 fig.add_trace(tr(rs_["t"], EP(Pv), f"{nm}", col, 2.0, dash, group=nm), 1, 1)
                 fig.add_trace(tr(rs_["t"], EM(Mv), f"MV {nm}", col, 2.0, dash, show=False, group=nm), 2, 1)
@@ -645,36 +685,46 @@ def render(ctx):
                 if np.any(dpv_arr != 0):
                     fig.add_trace(tr(ts_sim, dpv_arr * PR / 100, T("tg_PV"), "#7c3aed", 1.4), 3, 1)
                 ytit.append(T("dists"))
-            with v_time:
-                show(style(fig, H, ytit, lab_t, rev=f"sim|{kind}"), key="chart_sim", fname="simulation",
-                     report=T("rep_fig_sim"))
+            with v_time, hidden(view != "time"):
+                if view == "time":
+                    chart_card = card("tun_chart")
+                    head(T("tn_chart"), note=html.escape(_scen_note(kind, T_end)), cont=chart_card)
+                else:
+                    chart_card = st.container()
+                with chart_card:
+                    for e_ in unstable:
+                        st.error(T("err_sim_unstable", n=e_), icon=":material/error:")
+                    show(style(fig, H, ytit, lab_t, rev=f"sim|{kind}"), key="chart_sim", fname="simulation",
+                         report=T("rep_fig_sim"))
                 if kp:
-                    table(_best_styler(pd.DataFrame(kp).set_index(T("setting")),
-                                              [c for c in kp[0] if c != T("setting") and c != T("kpi_mvrange", u=u_mv or "MV")]),
-                                 width="stretch")
-                    REPORT["tables"].append((T("rep_tab_kpi"), pd.DataFrame(kp).set_index(T("setting"))))
-                    st.caption(T("kpi_help"))
-            if v_freq.open is not False:
+                    kdf = pd.DataFrame(kp).set_index(T("setting"))
+                    REPORT["tables"].append((T("rep_tab_kpi"), kdf))
+                    if view == "time":
+                        with card("tun_kpi"):
+                            head(T("tn_kpi"), T("kpi_help"), note=T("tn_kpi_note"))
+                            kt = kdf.T
+                            table(kt, key="tun_kpi_tab", cell_class=_best_cells(kt, [T("kpi_mvrange", u=u_mv or "MV")]))
+            if view == "freq":
                 fsets = [(T("set_1"), set1_ctrl, C_SET1, True), (T("set_2"), set2_ctrl, C_SET2, False)]
                 if sug_ctrl is not None:
                     fsets.append((T("dk_sug_curve"), sug_ctrl, C_SUG, False))
                 fres = fq.compare(mcode, p, {n_: c_ for n_, c_, _, _ in fsets})
                 bode, nyq, sens = freq_figs(fres, [(n_, c_, d_) for n_, _, c_, d_ in fsets], H)
-                with v_freq:
-                    st.markdown(f"**{T('fq_bode')}**")
+                with v_freq, card("tun_freq"):
+                    head(T("fq_bode"))
                     show(bode, key="chart_bode", fname="bode")
                     f1, f2 = st.columns(2)
                     with f1:
-                        st.markdown(f"**{T('fq_nyquist')}**")
+                        head(T("fq_nyquist"))
                         show(nyq, key="chart_nyq", fname="nyquist")
                     with f2:
-                        st.markdown(f"**{T('fq_sens')}**")
+                        head(T("fq_sens"))
                         show(sens, key="chart_sens", fname="sensitivity")
                     ftab = pd.DataFrame([dict(zip(["", "Ms", "GM", "PM [°]", "ωc [rad/s]", "ω180 [rad/s]", T("fq_bw"),
                                                    T("fq_tbw"), T("fq_stable")],
                                                   [r_[0], *[fmt(x, 4) for x in r_[1:8]], T("yes") if r_[8] else T("no")]))
                                          for r_ in freq_table(fres, [n_ for n_, _, _, _ in fsets])]).set_index("")
-                    table(ftab, width="stretch")
+                    table(ftab, key="tun_freq_tab")
                     st.caption(T("fq_help"))
             REPORT["tuning"] = dict(model=model_name(mcode), params=dict(zip(MODELS[mcode]["params"], p)),
                                     method=T("m_" + method) + (f" · {T('crit_' + crit)}" if method == "OPT" else ""),
@@ -692,34 +742,53 @@ def render(ctx):
                 out[f"FF_{dn}"] = ff[j] if ff else 0.0
             ws.sets.download_button(T("download"), pd.DataFrame([out]).to_csv(index=False, sep=";", decimal=","),
                                     "pidconl_tuning.csv", "text/csv", icon=":material/download:")
+            ws.cta.button(T("tn_to_live"), key="g_tun_live", type="primary", width="stretch",
+                          on_click=apc.guide.goto, kwargs=dict(tab="live"))
     ctx.plant = plant
     ctx.set1_ctrl = set1_ctrl
     ctx.set2_ctrl = set2_ctrl
 
 
-def _best_styler(df, cols):
-    """Tabulka ukazatelů: v každém sloupci (menší = lepší) zvýrazněná nejlepší hodnota, když je co porovnávat."""
-    if len(df) < 2:
-        return df
+def _scen_note(kind, T_end):
+    """Poznámka k nadpisu grafu: druh scénáře a délka simulace."""
+    return f"{T('dk_sc_' + kind)} · {T('sim_len')} {dur(T_end)}"
 
-    def num(v):
-        """Číslo z buňky; doby („44 s“, „2.05 min“, „1 h 05 min“) na sekundy, aby šly porovnat."""
-        parts = str(v).replace(",", ".").split()
-        try:
-            if len(parts) == 4 and parts[1] == "h":
-                return float(parts[0]) * 3600 + float(parts[2]) * 60
-            x = float(parts[0])
-        except (TypeError, ValueError, IndexError):
-            return np.nan
-        return x * {"min": 60.0, "h": 3600.0}.get(parts[1] if len(parts) > 1 else "", 1.0)
 
-    def col_style(s):
-        if s.name not in cols:
-            return [""] * len(s)
-        x = s.map(num)
-        if x.notna().sum() < 2 or x.nunique() < 2:
-            return [""] * len(s)
-        best = x.abs().min() if "over" in str(s.name).lower() else x.min()
-        return ["background-color: rgba(34,197,94,0.16); font-weight: 600" if v == best else "" for v in x]
-    return df.style.apply(col_style)
+def _best_cells(kt, skip=()):
+    """Třídy buněk tabulky ukazatelů (řádek = ukazatel, sloupec = sada): v řádku zvýrazněná nejlepší hodnota."""
+    out = []
+    for name, row in kt.iterrows():
+        cls = [""] * len(row)
+        if name not in skip and len(row) > 1:
+            x = pd.Series([_kpi_num(v) for v in row])
+            if x.notna().sum() >= 2 and x.nunique() >= 2:
+                best = x.abs().min() if "over" in str(name).lower() or "překmit" in str(name).lower() else x.min()
+                cls = ["best" if v == best else "" for v in x]
+        out.append(cls)
+    return out
 
+
+def _kpi_num(v):
+    """Číslo z buňky ukazatele; doby („44 s“, „2.05 min“, „1 h 05 min“) na sekundy, aby šly porovnat."""
+    parts = str(v).replace(",", ".").split()
+    try:
+        if len(parts) == 4 and parts[1] == "h":
+            return float(parts[0]) * 3600 + float(parts[2]) * 60
+        x = float(parts[0])
+    except (TypeError, ValueError, IndexError):
+        return np.nan
+    return x * {"min": 60.0, "h": 3600.0}.get(parts[1] if len(parts) > 1 else "", 1.0)
+
+
+def _write_set(n, sug, last, mcode):
+    """Návrh → Set n (callback tlačítka) a záznam do historie návrhů."""
+    ss[f"set{n}_gain"], ss[f"set{n}_ti"], ss[f"set{n}_td"] = sug["Kc"], sug["Ti"], sug["Td"]
+    ss["tune_hist"] = [dict(time=time.strftime("%Y-%m-%d %H:%M"), set=n, Kc=float(sug["Kc"]), Ti=float(sug["Ti"]),
+                            Td=float(sug["Td"]), model=mcode, method=last["label"], ctype=last["ctype"],
+                            scen=T("dk_sc_" + ss.get("scen_kind", "sp")), Ms=None, iae=ss.get("sug_iae"))] \
+        + list(ss.get("tune_hist") or [])[:49]
+
+
+def _hist_set(n, e):
+    """Záznam historie → Set n (callback)."""
+    ss[f"set{n}_gain"], ss[f"set{n}_ti"], ss[f"set{n}_td"] = e["Kc"], e["Ti"], e["Td"]

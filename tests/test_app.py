@@ -72,11 +72,18 @@ def test_identification(app):
 
 @pytest.mark.parametrize("method", ["SIMC", "iSIMC", "Lambda", "AMIGO", "AVG", "OPT"])
 def test_tuning_methods(app, method):
-    app.session_state[f"method|{app.session_state['mcode']}"] = method
+    mc0 = mc = app.session_state["mcode"]
+    if method == "iSIMC" and mc not in ("P1D", "P2D"):
+        app.session_state["mcode"] = mc = "P1D"           # iSIMC jen pro P1D / P2D (výběr metod podle modelu)
+        app.run()
+    app.session_state[f"method|{mc}"] = method
     app.run()
-    _button(app, "Calculate").click().run()          # návrh se počítá až na tlačítko (jako v desktopu)
+    _button(app, "Calculate").click().run()          # optimalizace se počítá na tlačítko, pravidla i samy
     assert not _errors(app)
     assert app.session_state["sug_last"]["sig"]
+    if mc != mc0:
+        app.session_state["mcode"] = mc0
+        app.run()
 
 
 @pytest.mark.parametrize("crit", ["MIGO", "IAE", "ISE", "ITAE", "OVS"])
@@ -93,16 +100,16 @@ def test_scenario_target_and_sets(app):
     app.run()
     _button(app, "Calculate").click().run()
     assert not _errors(app)
-    _button(app, "Write to Set 2").click().run()
+    _button(app, "Proposal → Set 2").click().run()
     assert app.session_state["tune_hist"][0]["set"] == 2
     for kind in ("in", "pv", "sp_in", "meas", "replay", "custom", "sp"):     # předvolby scénáře (jako desktop)
         app.session_state["scen_kind"] = kind
         app.run()
         assert not _errors(app), kind
-    app.session_state["tun_view"] = "Frequency analysis"
+    app.session_state["tun_view"] = "freq"
     app.run()
     assert not _errors(app)
-    app.session_state["tun_view"] = "Scenario response"
+    app.session_state["tun_view"] = "time"
     app.run()
     assert not _errors(app)
     app.session_state["pvfilt"], app.session_state["mvrate"] = 2.0, 0.5
@@ -392,7 +399,7 @@ def test_gain_scheduling_page():
     app.session_state["mcode"] = "P1D"
     app.run()
     _button(app, "Calculate").click().run()            # sada 2 = návrh SIMC (návrh se počítá na tlačítko)
-    _button(app, "Write to Set 2").click().run()
+    _button(app, "Proposal → Set 2").click().run()
     app.session_state["main_tab"] = [t_.label for t_ in _main(app)][4]
     app.session_state["apc_kind"] = "gainsched"
     for i, (a, b) in enumerate(((0, 2090), (2100, 4190), (4200, 6290)), start=1):
@@ -467,7 +474,7 @@ def test_feedforward_in_apc(app):
     app.session_state["scen_kind"] = "meas"
     app.run()
     assert not _errors(app)
-    kp = next(d.value for d in _dfs(app) if len(d.value) and "Set 2 without FF" in list(d.value.index))
+    kp = next(d.value.T for d in _dfs(app) if len(d.value) and "Set 2 without FF" in list(d.value.columns))
     iae_ = dict(zip(kp.index, kp["IAE [%·s]"].astype(float)))
     assert iae_["Set 2"] != pytest.approx(iae_["Set 2 without FF"], rel=1e-3)   # FF se v simulaci projeví
     # obnova z projektu (ff v projektu → klíče widgetů)

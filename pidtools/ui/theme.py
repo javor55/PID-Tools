@@ -125,9 +125,10 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 [data-testid="stButtonGroup"] button:first-child {border-radius: 8px 0 0 8px; margin-left: 0;}
 [data-testid="stButtonGroup"] button:last-child {border-radius: 0 8px 8px 0;}
 [data-testid="stButtonGroup"] button:only-child {border-radius: 8px;}
-[data-testid="stButtonGroup"] button[aria-checked="true"], [data-testid="stButtonGroup"] button[aria-pressed="true"] {background: var(--pid-accent); color: #fff; border-color: var(--pid-accent);
+[data-testid="stButtonGroup"] button[aria-checked="true"], [data-testid="stButtonGroup"] button[aria-pressed="true"]
+    {background: var(--pid-accent) !important; color: #fff !important; border-color: var(--pid-accent) !important;
     position: relative; z-index: 1;}
-[data-testid="stButtonGroup"] button[aria-checked="true"] p, [data-testid="stButtonGroup"] button[aria-pressed="true"] p {color: #fff; font-weight: 500;}
+[data-testid="stButtonGroup"] button[aria-checked="true"] p, [data-testid="stButtonGroup"] button[aria-pressed="true"] p {color: #fff !important; font-weight: 500;}
 [data-testid="stButtonGroup"] button p {font-size: 13px;}
 [data-testid="stWidgetLabel"] {min-height: 0; margin-bottom: 4px;}
 [data-testid="stWidgetLabel"] p {font-size: 13px; color: var(--pid-muted);}
@@ -152,8 +153,24 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 [class*="st-key-pidside_"] [data-testid="stExpanderDetails"] [data-testid="stVerticalBlock"] {gap: 8px;}
 [class*="st-key-pidside_"] [data-testid="stHorizontalBlock"] {gap: 8px; align-items: center;}
 .pid-plab {font-size: 13px; font-weight: 400; color: var(--pid-muted); white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;}
-.pid-plab .q {display: inline-flex; width: 1.05rem; height: 1.05rem; border-radius: 50%%; border: 1px solid #9aa5b1;
-    font-size: 0.68rem; font-weight: 600; align-items: center; justify-content: center; color: var(--pid-muted); cursor: help;}
+/* nadpis karty hlavní plochy, dlaždice hodnot (pidtools.ui.kit) */
+.pid-chead {display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 24px;}
+.pid-chead .t {font-size: 15px; font-weight: 600;}
+.pid-chead .n {font-size: 12px; color: var(--pid-muted);}
+.pid-chead .r {margin-left: auto; font-size: 12px; color: var(--pid-muted);}
+.pid-chead .q, .pid-plab .q {display: inline-flex; width: 20px; height: 20px; border-radius: 50%%; border: 1px solid #9aa5b1;
+    font-size: 11px; font-weight: 600; align-items: center; justify-content: center; color: #3e4c59; cursor: help;
+    background: var(--pid-card);}
+.pid-tiles {display: grid; gap: 8px;}
+.pid-tile {border: 1px solid var(--pid-line); border-radius: 8px; padding: 6px 4px; text-align: center;
+    background: var(--pid-side);}
+.pid-tile .l {font-size: 11px; color: var(--pid-muted);}
+.pid-tile .v {font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 500; line-height: 1.25;}
+.pid-tile .s {font-size: 11px; color: var(--pid-muted);}
+.pid-tile.ok {background: #e9f7ef; border-color: #9fd8b4;}
+.pid-tile.warn {background: #fff4dc; border-color: #f2c46d;}
+.pid-tile.bad {background: #fde8e8; border-color: #f5a3a3;}
+.pid-big-val {font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: #7c3aed;}
 .pid-unit {font-size: 12px; color: var(--pid-muted); white-space: nowrap;}
 .pid-src {font-size: 12px; color: var(--pid-muted); margin: -4px 0 0 0;}
 .pid-side-tools {display: flex; justify-content: flex-end; gap: 0.8rem; font-size: 12px; margin: 0 0.1rem 0.1rem 0;}

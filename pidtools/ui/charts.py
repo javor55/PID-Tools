@@ -1,5 +1,6 @@
 """Grafy: tvorba obrázků, zředění dlouhých průběhů, zobrazení a sběr grafů/tabulek pro report."""
 import threading
+from contextlib import contextmanager
 
 import streamlit as st
 
@@ -57,6 +58,21 @@ class Page:
     @property
     def open(self):
         return self.tab.open is not False
+
+
+@contextmanager
+def hidden(flag=True):
+    """Grafy a tabulky uvnitř se neposílají do prohlížeče (skrytý pohled), do reportu se zařadí dál."""
+    _visible().append(_visible()[-1] and not flag)
+    try:
+        yield
+    finally:
+        _visible().pop()
+
+
+def visible():
+    """Kreslí se grafy a tabulky (aktivní záložka a pohled)?"""
+    return _visible()[-1]
 
 
 def _visible():
