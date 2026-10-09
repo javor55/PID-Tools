@@ -23,7 +23,7 @@ def render(ctx):
     a nápověda „?“ (průvodce aktivní záložky se do ní doplní na konci běhu, ctx.help_ph). Záložky navazují pod ní.
     """
     with st.container(key="pid_header", horizontal=True, vertical_alignment="center", gap="medium"):
-        st.markdown("<h1>PID Tools</h1>", unsafe_allow_html=True, width="content")
+        st.markdown(_logo_html(), unsafe_allow_html=True, width="content")
         _loop_switcher(st.container(horizontal=True, vertical_alignment="center", gap="small", width="content",
                                     key="pid_loops"))
         ctx.status_ph = st.empty()
@@ -53,6 +53,15 @@ def render(ctx):
                     st.markdown(T("about_body", v=__version__))
     if ss.pop("autosave_restored", False):
         st.toast(T("as_restored"), icon=":material/restore:")
+
+
+def _logo_html():
+    """Logo z ikony aplikace (SVG) a název – nahoře vlevo v hlavičce."""
+    import base64
+    from pathlib import Path
+    svg = (Path(__file__).resolve().parents[2] / "assets" / "logo.svg").read_bytes()
+    src = "data:image/svg+xml;base64," + base64.b64encode(svg).decode()
+    return f"<div class='pid-logo'><img src='{src}' alt=''><span><b>PID</b> Tools</span></div>"
 
 
 def render_source(ctx):

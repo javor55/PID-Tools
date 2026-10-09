@@ -52,6 +52,10 @@ code, [data-testid="stMetricValue"], [data-testid="stDataFrame"] {font-variant-n
 h1 {font-weight: 600; letter-spacing: 0; margin: 0; padding: 0 !important; font-size: 18px !important;
     line-height: 1.4 !important; white-space: nowrap;}
 h4 {margin-top: 0.4rem; font-weight: 600;}
+.pid-logo {display: flex; align-items: center; gap: 8px; font-size: 18px; line-height: 1; white-space: nowrap;
+    font-weight: 500; letter-spacing: -0.01em;}
+.pid-logo img {width: 26px; height: 26px; display: block;}
+.pid-logo b {font-weight: 700; color: var(--pid-accent);}
 
 /* hlavička: název · smyčky · souhrn dat … Projekt, Nastavení, ? (vpravo místo pro menu ⋮ Streamlitu) */
 .st-key-pid_header {background: var(--pid-card); padding: 12px 3.4rem 0 24px; gap: 10px 16px !important;}
