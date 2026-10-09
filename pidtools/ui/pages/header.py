@@ -35,6 +35,8 @@ def render(ctx):
                                  on_change=load_project_file)
                 if ss.get("proj_err"):
                     st.error(T("err_proj", ex=ss.pop("proj_err")))
+                if ss.get("proj_skipped"):
+                    st.warning(T("proj_skipped", n=ss.pop("proj_skipped")), icon=":material/warning:")
                 st.caption(T("proj_help"))
             with st.popover(T("tb_settings"), width="content"):
                 st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,

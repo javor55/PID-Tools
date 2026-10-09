@@ -163,7 +163,7 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
                 cands.append((0.5 * np.sum(resid_g(make_z(x0, th)) ** 2), x0, th))
                 continue
             try:
-                r = least_squares(lambda x: resid_g(make_z(x, th)), x0, bounds=(lb[free_nt], ub[free_nt]), max_nfev=150)
+                r = least_squares(lambda x, th_=th: resid_g(make_z(x, th_)), x0, bounds=(lb[free_nt], ub[free_nt]), max_nfev=150)
             except Exception:
                 continue
             cands.append((r.cost, r.x, th))

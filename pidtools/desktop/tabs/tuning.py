@@ -320,7 +320,7 @@ class TuningTab(Workspace):
 
     def _scen_fields(self):
         k = self.kind.currentData() or "sp"
-        for wd, lab, on in ((self.sp0, self.lab_sp0, k in ("sp", "sp_in", "custom", "in", "pv", "meas", "replay")),
+        for wd, _lab, on in ((self.sp0, self.lab_sp0, k in ("sp", "sp_in", "custom", "in", "pv", "meas", "replay")),
                             (self.sp1, self.lab_sp1, k in ("sp", "sp_in", "custom")),
                             (self.d_in, self.lab_din, k in ("in", "sp_in")), (self.d_pv, self.lab_dpv, k == "pv")):
             self.scen_form.setRowVisible(wd, on)

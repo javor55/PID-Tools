@@ -25,6 +25,7 @@ export default function (component) {
   // stejná data jako minule a graf je pořád na stránce → nic nedělat (rychlé běhy aplikace)
   if (prev && prev.sig === D.sig && prev.box && prev.box.isConnected && root.contains(prev.box)) return;
   root.querySelectorAll(".pidw").forEach((n) => n.remove());
+  if (prev && prev.ro) prev.ro.disconnect();             // sledování velikosti starého grafu pryč
   if (prev && prev.box && prev.box.isConnected) prev.box.remove();
 
   const views = (window.__pidTrendView = window.__pidTrendView || {});
@@ -515,7 +516,9 @@ export default function (component) {
   }
   draw();
   let lastW = box.clientWidth;
-  new ResizeObserver(() => {                         // překreslit jen při změně šířky (výška se mění kreslením)
+  const ro = new ResizeObserver(() => {              // překreslit jen při změně šířky (výška se mění kreslením)
     if (box.clientWidth !== lastW) { lastW = box.clientWidth; draw(); }
-  }).observe(box);
+  });
+  ro.observe(box);
+  reg[D.key].ro = ro;                                // odpojí ho příští vykreslení tohoto grafu
 }

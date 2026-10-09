@@ -19,10 +19,9 @@ export default function (component) {
     const top = Math.round(tl.getBoundingClientRect().bottom + (document.querySelector('[data-testid="stMain"]')?.scrollTop || 0));
     document.documentElement.style.setProperty("--pid-top", top + "px");
   }
-  if (!W.topObs) {
+  if (!W.topObs) {                     // při změně velikosti okna; jinak při běhu (scan níže) a změně stránky
     W.topObs = true;
     window.addEventListener("resize", measureTop);
-    setInterval(measureTop, 1500);
   }
   measureTop();
   const U = { s: 1, min: 60, h: 3600 };
@@ -272,6 +271,7 @@ export default function (component) {
       setTimeout(() => {
         pending = false;
         scan();
+        measureTop();
       }, 300);
     });
     W.obs.observe(document.body, { childList: true, subtree: true });

@@ -295,7 +295,7 @@ def render(ctx):
                         mq_ = model_metrics(pv[mw_], yw_[mw_], mv[mw_], Ts, dyn_scale(c, res[c]["p"]))
                         row["NRMSE [%]"], row[T("col_status")] = round(mq_["NRMSE"], 2), T(f"st_{mq_['status']}")
                     row["FIT [%]"] = round(res[c]["fit"], 1)
-                    for k_, (lab_, f_) in enumerate(zip(_win_labels(ctx), res[c].get("fits", []))):
+                    for _k, (lab_, f_) in enumerate(zip(_win_labels(ctx), res[c].get("fits", []))):
                         row[lab_] = round(f_, 1)
                     kinds_ = [T("dkind_short_" + ("integ" if mdl_integ_d(c, d_) else "self")) for d_ in res[c]["pdl"]]
                     if kinds_:
@@ -412,7 +412,7 @@ def render(ctx):
                 if win and res[mcode].get("method") == "win":
                     with cards[j + 1]["extra"]:
                         _dist_window_table(ctx, mcode, res[mcode], j, str(dn), dsigns, dkinds)
-            for j, dn in enumerate(c_d):              # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
+            for j, _dn in enumerate(c_d):             # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
                 with cmp_tabs[j + 1]:
                     if win and res[mcode].get("method") == "win":
                         _dist_type_table(ctx, mcode, res[mcode], j, dsigns)
@@ -825,7 +825,7 @@ def _win_labels(ctx):
     from ...core import merge_windows
     owner = []
     for x, ws_ in ctx.wins_s.items():
-        for a, b in ws_:
+        for a, _b in ws_:
             owner.append((int(np.searchsorted(ctx.t, a)), x))
     out = []
     for a, b in merge_windows(ctx.win_idx, len(ctx.t)):

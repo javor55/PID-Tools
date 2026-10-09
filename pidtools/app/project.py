@@ -38,6 +38,49 @@ def is_state_key(k):
     return k in STATE_KEYS or str(k).startswith(STATE_PREFIX)
 
 
+# typy hodnot nastavení (kontrola při načtení projektu – poškozený nebo upravený soubor nesmí shodit aplikaci)
+NUM_KEYS = {"pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h", "samp", "diffgain", "propfac", "db", "mvl_lo", "mvl_hi",
+            "pvfilt", "mvrate", "sprate", "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
+            "thmax", "dist_strength", "opt_ms", "opt_noise", "opt_ovs", "avg_dpv", "avg_dmv", "scen_d_in",
+            "scen_d_pv", "sim_J", "sim_noise", "plan_dpv", "plan_snr", "cas_k", "cas_t1", "cas_t2", "cas_th",
+            "cas_samp", "cas_tci", "cas_tco"}
+BOOL_KEYS = {"pv_rng_user", "mv_rng_user", "pfb", "dfb", "id_stic", "read_manual", "opt_robust", "sim_len_u_set",
+             "diag_integ"}
+LIST_KEYS = {"chosen", "tune_hist", "audit_loops", "vchar_last"}
+NUM_PREFIX = ("ed|", "tc|", "tend_r|", "sim_S|")
+BOOL_PREFIX = ("fx|", "idf|")
+
+
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and np.isfinite(v)
+
+
+def clean_state(state):
+    """
+    Nastavení z projektu jen s povolenými klíči a hodnotami správného typu (ostatní se vynechají).
+    Vrací (čistý stav, počet vynechaných položek).
+    """
+    out, bad = {}, 0
+    for k, v in (state or {}).items():
+        k = str(k)
+        if not is_state_key(k):
+            bad += 1
+            continue
+        if k in NUM_KEYS or k.startswith(NUM_PREFIX):
+            ok = _num(v)
+        elif k in BOOL_KEYS or k.startswith(BOOL_PREFIX):
+            ok = isinstance(v, bool)
+        elif k in LIST_KEYS:
+            ok = isinstance(v, list)
+        else:
+            ok = isinstance(v, (str, int, float, bool, list)) or v is None
+        if ok:
+            out[k] = v
+        else:
+            bad += 1
+    return out, bad
+
+
 def jsonable(v):
     """Hodnota pro JSON (čísla numpy → Python, n-tice → seznamy); nepřevoditelné → None (neukládá se)."""
     if isinstance(v, (np.floating, float)):
