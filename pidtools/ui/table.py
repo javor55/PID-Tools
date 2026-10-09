@@ -37,6 +37,9 @@ _CSS = """
 .pidt tr.sel td {background: var(--sel);}
 .pidt td.best {background: rgba(34,197,94,0.14);}
 .pidt td.muted {color: var(--mut);}
+.pidt td.ok {color: #2f6f3e;}
+.pidt td.warn {color: #8a4b00; font-weight: 600;}
+.pidt td.bad {color: #b91c1c; font-weight: 600;}
 """
 
 _NUMLIKE = re.compile(r"^[−\-+]?\d")
@@ -83,8 +86,9 @@ def _is_num_col(s):
     vals = [v for v in s if v is not None and not (isinstance(v, float) and math.isnan(v)) and v != ""]
     if not vals:
         return False
-    return all((isinstance(v, Number) and not isinstance(v, (bool, np.bool_))) or
-               (isinstance(v, str) and (_NUMLIKE.match(v) or v in ("—", "–", "∞", "…"))) for v in vals)
+    num = sum((isinstance(v, Number) and not isinstance(v, (bool, np.bool_))) or
+              (isinstance(v, str) and bool(_NUMLIKE.match(v) or v in ("—", "–", "∞", "…"))) for v in vals)
+    return num >= max(1, 0.5 * len(vals))          # převážně čísla (občas „— chybí SP“) → vpravo, pevná šířka
 
 
 def table(data, key=None, *, where=None, select=False, hide_index=None, height=None, row_class=None,

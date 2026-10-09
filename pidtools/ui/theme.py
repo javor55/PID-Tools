@@ -169,11 +169,12 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
     {max-width: 100%%; min-width: 0;}
 [class*="st-key-pidside_"] [data-testid="stButtonGroup"] [role="radiogroup"],
 [class*="st-key-pidside_"] [data-testid="stButtonGroup"] [role="group"] {flex-wrap: nowrap; width: 100%%;}
-[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button {flex: 1 1 auto; min-width: 0; padding: 3px 6px;}
-[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button p {white-space: normal; line-height: 1.2;
-    overflow-wrap: anywhere;}
-[class*="st-key-pidside_"] .stButton button p, [class*="st-key-pidside_"] .stDownloadButton button p
-    {white-space: normal; line-height: 1.2;}
+[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button {flex: 1 1 auto; min-width: 0; padding: 3px 6px;
+    height: auto;}
+[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button p, [class*="st-key-pidside_"] .stButton button p,
+[class*="st-key-pidside_"] .stDownloadButton button p {white-space: normal; line-height: 1.2; word-break: normal;
+    overflow-wrap: normal;}
+[class*="st-key-pidside_"] .stButton button, [class*="st-key-pidside_"] .stDownloadButton button {height: auto;}
 .pid-plab {font-size: 12px; font-weight: 400; color: var(--pid-muted); white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;}
 /* výběr struktury APC jako záložky s podtržením */
 .st-key-pid_apckind {background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px; padding: 0 8px;}

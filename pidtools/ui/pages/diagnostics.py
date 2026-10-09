@@ -1,4 +1,6 @@
 """Záložka Diagnostika: výkon smyčky, oscilace a stikce, nelinearita."""
+import html
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,6 +15,7 @@ from ..theme import C_MV, C_PV
 from ..widgets import num, tog
 from .apc import guide as apc_guide
 from ..table import table
+from ..kit import card, head
 
 ss = st.session_state
 
@@ -25,18 +28,19 @@ def render(ctx):
         ctx.gph["diag"] = True
         ws = workspace()
         integ_known = MODELS[model[0]]["integ"] if model is not None else None
-        side = section(ws.side, T("dk_sec_diag_seg"), "diag_seg", expanded=True, icon=":material/date_range:")
+        side = section(ws.side, T("dk_sec_diag_seg"), "diag_seg", expanded=True)
+        opts = section(ws.side, T("diag_opts"), "diag_opts", expanded=True)
         with ws.main:
-            m_rec = st.container(border=True, key="pid_card_diagrec")
-            m_perf, m_osc, m_diag = st.container(border=True), st.container(border=True), st.container()
+            m_rec = card("diagrec")
+            m_perf, m_osc, m_diag = card("diagperf"), card("diagosc"), st.container()
         with side:
-            st.caption(ctx.block_summary)
             st.caption(T("diag_intro"))
             dkey = f"rng_diag|{fname}|{t[-1]:.0f}"
             if dkey not in ss:
                 ss[dkey] = (0.0, float(t[-1]))
             rd = st.slider(T("seg_diag"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=dkey,
                            help=T("h_seg_diag"))
+        with opts:
             integ_d = tog(st, T("diag_integ"), bool(integ_known), "diag_integ", help=T("h_diag_integ"))
             th_d = model[1][-1] if model is not None else num(T("diag_theta"), "diag_theta", 5.0, min_value=0.0,
                                                                help=T("h_diag_theta"))
@@ -78,8 +82,8 @@ def render(ctx):
                               yanchor="top", font=dict(size=11, color=col_)))
         fig_.update_layout(shapes=shapes, annotations=notes)
         with m_rec:
+            head(T("diag_rec_title"), note=html.escape(T("diag_rec_help")))
             show(fig_, key="chart_diag_rec", fname="diag_record")
-            st.caption(T("diag_rec_help"))
 
         # ---- výkon smyčky
         with side:
@@ -90,7 +94,7 @@ def render(ctx):
                     ss[bkey] = (float(t[-1]) / 2, float(t[-1]))
                 rb2 = st.slider(T("seg_diag_b"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=bkey)
         with m_perf:
-            st.markdown(f"**{T('perf_title')}**")
+            head(T("perf_title"), T("perf_help"))
             kA, rowA = kpi_row(sd)
             ptab = pd.DataFrame({T("seg_a"): rowA})
             if compare:
@@ -98,13 +102,12 @@ def render(ctx):
                 if sB.sum() >= 100:
                     kB, rowB = kpi_row(sB)
                     ptab = pd.DataFrame({T("seg_a"): rowA, T("seg_b"): rowB})
-            table(ptab, width="stretch")
+            table(ptab, key="diag_perf")
             REPORT["tables"].append((T("perf_title"), ptab))
-            st.caption(T("perf_help"))
 
         # ---- oscilace a ventil (verdikt)
         with m_osc:
-            st.markdown(f"**{T('osc_title')}**")
+            head(T("osc_title"))
             sig = (sp[sd] - pv[sd]) if has_sp else pv[sd]
             osc = oscillation(sig, Ts)
             if not osc["osc"]:
