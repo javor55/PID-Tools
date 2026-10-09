@@ -11,7 +11,7 @@ import json
 import streamlit as st
 
 from ..app.project import (PROJECT_VERSION, STATE_KEYS, STATE_PREFIX, fit_record, jsonable, loop_records,  # noqa: F401
-                           is_state_key, migrate_state, serialize_project)
+                           is_state_key, clean_state, migrate_state, serialize_project)
 from . import loops
 
 ss = st.session_state
@@ -43,9 +43,11 @@ def apply_project(proj):
 def _apply_one(proj):
     """Obnova jedné smyčky (a společného stavu) do session state."""
     ss.proj = proj
-    state = migrate_state(proj.get("state", {}))
+    state, bad = clean_state(migrate_state(proj.get("state", {})))
     for k_, v_ in state.items():
         ss[k_] = v_
+    if bad:
+        ss["proj_skipped"] = ss.get("proj_skipped", 0) + bad
     fnames = [proj.get("fname", "")]
     if proj.get("data"):
         n_ = len(next(iter(proj["data"]["cols"].values())))
@@ -53,13 +55,16 @@ def _apply_one(proj):
         ss["src"] = "project"
         ss["c_tim"], ss["ts_manual"], ss["time_unit"], ss["time_fmt"] = "t_s", False, "s", "auto"
         ss[f"layout|{fnames[-1]}"] = "wide"  # uložená data jsou už na společné mřížce (sloupec t_s)
+    mp = {k: v for k, v in (proj.get("map") or {}).items()       # sloupce smyčky: jen známé klíče a texty
+          if k in ("c_pv", "c_mv", "c_sp", "c_pos") and isinstance(v, str)
+          or k == "c_d" and isinstance(v, list) and all(isinstance(x, str) for x in v)}
     for fn_ in fnames:
-        for k_, v_ in proj.get("map", {}).items():
+        for k_, v_ in mp.items():
             ss[f"{k_}|{fn_}"] = v_
     win = proj.get("windows") or {}
     for fn_ in fnames:                         # úseky podle vstupů a vyřazení dat patří k souboru
-        if win.get("wins"):
-            ss[f"wins|{fn_}"] = {k: [list(w) for w in v] for k, v in win["wins"].items()}
+        if isinstance(win.get("wins"), dict):
+            ss[f"wins|{fn_}"] = {str(k): [[float(a), float(b)] for a, b in v] for k, v in win["wins"].items()}
         for nm, (on, lo, hi) in (win.get("excl") or {}).items():
             ss[f"excl|{fn_}|{nm}|on"], ss[f"excl|{fn_}|{nm}|lo"], ss[f"excl|{fn_}|{nm}|hi"] = bool(on), lo, hi
         if "tol" in win:

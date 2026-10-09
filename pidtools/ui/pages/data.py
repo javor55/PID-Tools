@@ -13,17 +13,16 @@ import streamlit as st
 
 from ...i18n import T
 from .. import loops
-from ..charts import show
 from ...app.dataio import (ROWS, TIME_FORMATS, detect_time_format, pair_time_columns,
                            row_time, to_num)
 from ...app import segments as segs_mod
 from ...app.dataset import DEMO_DISTS, default_layout, stats
 from ...app.guess import guess_roles
 from ...app.loop import DEFAULT_RANGE, range_for
-from ...app.timefmt import dur, fmt_t, unit_for
+from ...app.timefmt import dur
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
-from .. import wincharts
+from .. import trend, wincharts
 from ..widgets import num, sel, seg
 from ..table import table
 from ..kit import card, head, lrow
@@ -281,7 +280,7 @@ def _full_preview(ctx, checks):
 
     @st.dialog(T("prev_full_title", f=ctx.fname.split("|")[0]), width="large")
     def dlg():
-        show(ctx.data_fig(ctx.t), key="chart_data_full", fname="data_full")
+        trend.record(ctx, "data_trend_full", title=T("tn_rec"))
         warn = _warn_text(ctx, checks)
         res = _result_frame(ctx, warn)
         t1, t2, t3 = st.tabs([T("prev_result"), T("prev_stats"), T("prev_raw")])
@@ -456,13 +455,13 @@ def render(ctx):
     """
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp
     with ctx.tabs["data"]:
-        with ctx.dws.m_chart, card("rec"):
-            head(T("tn_rec"), note=html.escape(T("data_chart_help")))
-            show(ctx.data_fig(t), key=f"chart_data_all|{ctx.fname}", fname="data_all")
-        with ctx.dws.m_dq:
-            checks = _quality(ctx)
-        with ctx.dws.m_prev, card("prev"):
-            _preview(ctx, checks)
+        with ctx.dws.m_chart:              # záznam: společná komponenta grafu průběhů (jako Model a Diagnostika)
+            trend.record(ctx, "data_trend", title=T("tn_rec"), note=T("data_chart_help"))
+        if ctx.tabs["data"].open is not False:     # kvalita dat a náhled jen na otevřené záložce Data
+            with ctx.dws.m_dq:
+                checks = _quality(ctx)
+            with ctx.dws.m_prev, card("prev"):
+                _preview(ctx, checks)
         ctx.dws.side.container(key="pid_cta_model").button(T("tn_to_model"), key="g_to_model", type="primary",
                                                            width="stretch", on_click=_goto, args=("model",))
     with ctx.tabs["model"]:
@@ -482,9 +481,6 @@ def render(ctx):
         if rng_key not in ss:
             ss[rng_key] = (0.0, float(t[-1]))
 
-        def snap(v):
-            return float(np.clip(round(v / step) * step, 0.0, float(t[-1])))
-
         # model pro hodnocení dat (pokud už existuje)
         qmodel = None
         if "fit" in ss and ss.get("mcode") in ss.fit.get("res", {}):
@@ -495,7 +491,6 @@ def render(ctx):
             return segs_mod.quality(t, pv, mv, sp, Ts, has_sp, float(ctx.M(ctx.mvl_lo)), float(ctx.M(ctx.mvl_hi)), a, b,
                                     segs_mod.rep_frac(ctx.t_all, ctx.pv_raw, ctx.T0, a, b), qmodel)
 
-        segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"), pv)
         win_mode = ss.get("win_mode") if ss.get("win_mode") in ("common", "inputs") else "common"
         ss["win_mode"] = win_mode
         ctx.win_mode = win_mode
@@ -506,54 +501,18 @@ def render(ctx):
                     if win_mode == "inputs" else None)
         ws.val = section(ws.side, T("ms_val"), "mod_val", expanded=True, icon=":material/fact_check:")
         ws.ident = section(ws.side, T("ms_adv"), "mod_ident", icon=":material/tune:")
-        sec_auto = (section(ws.side, T("auto_title", n=len(segs)), "mod_auto", expanded=False,
-                            icon=":material/auto_awesome:") if win_mode == "common" else None)
         ws.unc = section(ws.side, T("unc_title"), "mod_unc", expanded=False, icon=":material/scatter_plot:")
         ws.model = ws.cards
         if win_mode == "common":
             rng = tuple(ss[rng_key])
         else:
             rng = _input_windows(ctx, ss[rng_key], step, None)
-        q_box = sec_auto
         if win_mode == "inputs" and sec_excl is not None:
             with sec_excl:
                 _exclusions(ctx)
         ctx.rng = rng
         ctx.sel_mask = (t >= rng[0]) & (t <= rng[1])
 
-
-        # ---- automaticky nalezené úseky (režim společného úseku)
-        if sec_auto is not None:
-            with sec_auto:
-                if not segs:
-                    st.info(T("auto_none"), icon=":material/search_off:")
-                else:
-                    rows_s = []
-                    for i_, sg in enumerate(segs):
-                        q_ = quality(sg["start"], sg["end"])
-                        tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
-                        rows_s.append({"#": i_ + 1, T("auto_from"): fmt_t(sg["start"], tu_), T("auto_to"): fmt_t(sg["end"], tu_),
-                                       T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
-                                       T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
-                    ev_s = table(pd.DataFrame(rows_s), hide_index=True, width="stretch", select=True,
-                                        selection_mode="single-row", key=f"segtab|{ctx.fname}")
-                    chosen_s = None
-                    try:
-                        if ev_s.selection.rows:
-                            chosen_s = segs[ev_s.selection.rows[0]]
-                    except AttributeError:
-                        pass
-                    b1, b2 = st.columns(2)
-                    if b1.button(T("auto_use_id"), icon=":material/model_training:", disabled=chosen_s is None,
-                                 width="stretch"):
-                        ss.pending_rng = (snap(chosen_s["start"]), snap(chosen_s["end"]))
-                        st.rerun()
-                    if b2.button(T("auto_use_val"), icon=":material/fact_check:", disabled=chosen_s is None,
-                                 width="stretch"):
-                        ss.pending_rngv = (snap(chosen_s["start"]), snap(chosen_s["end"]))
-                        st.rerun()
-                    st.caption(T("auto_help"))
-                num(T("auto_gap"), "seg_gap", 0.0, min_value=0.0, help=T("h_auto_gap"))
 
         # ---- grafy s úseky – kreslí je záložka Model (ctx.seg_chart), aby v nich byl i model
         def seg_chart(model=None, fits=None):
@@ -566,16 +525,6 @@ def render(ctx):
         dq = quality(rng[0], rng[1])
         ctx.dq = dq
         ctx.PROG["data"] = dq["level"]
-        icons = ["✓", "⚠", "✗"]
-        lv_ = dq["level"]
-        if q_box is not None:
-            box_fn = [q_box.success, q_box.warning, q_box.error][lv_]
-            lines = "  \n".join(f"{icons[lv]} {T(k_, **segs_mod.format_args(ar))}"
-                                for k_, lv, ar in sorted(dq["checks"], key=lambda c_: -c_[1]))
-            box_fn(f"**{T('q_title')}: {T('q_level' + str(lv_))}**  \n{lines}",
-                   icon=[":material/verified:", ":material/rule:", ":material/block:"][lv_])
-            if has_sp and np.nanmax(sp[ctx.sel_mask]) - np.nanmin(sp[ctx.sel_mask]) > 1e-6:
-                q_box.caption(T("info_auto"))
 
     # data úseku identifikace pro další záložky
     ctx.ts_id = t[ctx.sel_mask] - t[ctx.sel_mask][0]

@@ -67,7 +67,7 @@ def propose(sigs, get=None):
         if tag:
             groups.setdefault(tag, []).append(c)
     out = []
-    for tag, cols in groups.items():
+    for cols in groups.values():
         if len(cols) < 2:
             continue
         r = guess_roles(cols, get)

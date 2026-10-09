@@ -228,10 +228,10 @@ class FrameModel(QAbstractTableModel):
         super().__init__(parent)
         self.df, self.show_index = df, index      # ne „index“ – to je metoda QAbstractTableModel
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent=QModelIndex()):  # noqa: B008 – běžný vzor Qt modelu
         return len(self.df)
 
-    def columnCount(self, parent=QModelIndex()):
+    def columnCount(self, parent=QModelIndex()):  # noqa: B008
         return len(self.df.columns)
 
     def data(self, idx, role=Qt.DisplayRole):

@@ -24,7 +24,7 @@ def _sm_tc_key(code, p, method="SIMC"):
     return f"apc_sm_tc|{code}|{p[-1]:.4g}" if method == "SIMC" else f"apc_sm_tc|{method}|{code}|{p[-1]:.4g}"
 
 
-@st.cache_data(show_spinner=False, max_entries=16)
+@st.cache_data(show_spinner=False, max_entries=16, ttl="1h")
 def _opt_c(code, p, ctype, samp, base_items):
     return app_smith.controller(code, list(p), "OPT", ctype, None, samp, dict(base_items), smith_fn=smith_sim_c)
 

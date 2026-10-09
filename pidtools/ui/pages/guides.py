@@ -53,7 +53,7 @@ def _state(ctx):
         t_seg=float(ctx.ts_id[-1]) if ctx.ts_id is not None and len(ctx.ts_id) else 0.0, val_status=ctx.PROG.get("val"),
         set1=(ss.get("set1_gain", 1.0), ss.get("set1_ti", 100.0), ss.get("set1_td", 0.0)),
         set2=(ss.get("set2_gain"), ss.get("set2_ti"), ss.get("set2_td")), set2_ctrl=ctx.set2_ctrl,
-        n_loops=len(loops.ids()), autosave=bool(ss.get("autosave_on", True)), report=bool(ss.get("report_html")),
+        n_loops=len(loops.ids()), report=bool(ss.get("report_html")),
         plant_meta=bool(ss.get("rep_plant")))
 
 

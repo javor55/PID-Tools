@@ -12,7 +12,7 @@ st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon=str(_ICON
 
 from pidtools.i18n import DEFAULT_LANG, TEXTS, T  # noqa: E402
 from pidtools.i18n import set_lang_provider  # noqa: E402
-from pidtools.ui import autosave, charts, layout, loops, table  # noqa: E402
+from pidtools.ui import charts, layout, loops, table  # noqa: E402
 from pidtools.app.guess import loop_tag  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (apc, audit, data, diagnostics, guides, header, live, model,  # noqa: E402
@@ -57,16 +57,21 @@ def main():
         st.stop()
     header.render_status(ctx)
 
+    # Záložky, jejichž výsledky ostatní nepotřebují, se počítají jen otevřené (rychlé běhy). Sestavení reportu si
+    # vyžádá jeden plný běh (rep_pending), aby v něm byly výsledky všech záložek.
+    full = bool(st.session_state.get("rep_pending"))
     data.render(ctx)
     model.render(ctx)
     tuning.render(ctx)
     live.render(ctx)
-    diagnostics.render(ctx)
-    apc.render(ctx)
+    if full or ctx.active_tab == "diag":
+        diagnostics.render(ctx)
+    if full or ctx.active_tab == "cascade":
+        apc.render(ctx)
     project.render(ctx)
-    audit.render(ctx)
+    if full or ctx.active_tab == "audit":
+        audit.render(ctx)
     loops.save_info(ctx, loop_tag(ctx.c_pv).upper())   # souhrn smyčky pro přepínač a kaskádu
-    autosave.save(ctx)                                  # průběžné uložení do prohlížeče
     guides.render_all(ctx)                              # průvodci záložek (s výsledky tohoto běhu)
 
 

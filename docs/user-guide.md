@@ -156,8 +156,6 @@ of the benefit and values for the APL templates – see [Implementation in PCS 7
 
 - **Save project** – saves all loops, models, tuning and APC settings, optionally the data (JSON file). Load it in
   the top bar under *Project*.
-- **Autosave** – work in progress is saved continuously in the browser; on the next visit the app offers to restore
-  it. Can be switched off or cleared.
 - **Tuning protocol (report)** – plant, author, status, comment, choice of sections (model, tuning, response, APC,
   sign-off); charts embedded (works offline) or loaded from the internet (smaller file). Downloaded as HTML; to PDF
   via *Print › Save as PDF*.

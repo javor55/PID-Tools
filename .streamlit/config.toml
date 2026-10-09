@@ -31,5 +31,6 @@ gatherUsageStats = false
 toolbarMode = "viewer"
 
 [server]
-# largest uploaded file [MB] – historian exports can be large
-maxUploadSize = 200
+# largest uploaded file [MB] – historian exports can be large; a parsed table takes several times the file size in
+# memory (shared server: keep it moderate)
+maxUploadSize = 100

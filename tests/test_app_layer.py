@@ -295,3 +295,12 @@ def test_step_response_and_durations():
     assert slow["t90"] is None and slow["settle"] is None
     assert dur(45) == "45 s" and dur(750) == "12.5 min" and dur(9000) == "2 h 30 min" and dur(None) == "–"
     assert (auto_unit(600), auto_unit(5 * 3600), auto_unit(3 * 86400)) == ("s", "min", "h")
+
+
+def test_project_state_is_validated():
+    """Načtení projektu: jen povolené klíče a hodnoty správného typu (upravený soubor nesmí shodit aplikaci)."""
+    from pidtools.app.project import clean_state
+    st_, bad = clean_state({"set1_gain": 2.0, "set1_ti": "abc", "report_html": "<script>", "dfb": True, "pfb": 1,
+                            "ed|P1D|0": 1.5, "ed|P1D|1": [1], "chosen": ["P1D"], "loop_tag": "LIC1"})
+    assert st_ == {"set1_gain": 2.0, "dfb": True, "ed|P1D|0": 1.5, "chosen": ["P1D"], "loop_tag": "LIC1"}
+    assert bad == 4

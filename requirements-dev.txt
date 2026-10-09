@@ -1,2 +1,3 @@
 pytest>=8
 ruff==0.15.20
+playwright>=1.48            # web UI test in a real browser (tests/test_browser.py)

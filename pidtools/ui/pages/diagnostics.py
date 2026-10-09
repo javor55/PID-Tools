@@ -1,5 +1,4 @@
 """Záložka Diagnostika: výkon smyčky, oscilace a stikce, nelinearita."""
-import html
 
 import numpy as np
 import pandas as pd
@@ -16,6 +15,7 @@ from ..widgets import num, tog
 from .apc import guide as apc_guide
 from ..table import table
 from ..kit import card, head
+from .. import trend
 
 ss = st.session_state
 
@@ -31,15 +31,15 @@ def render(ctx):
         side = section(ws.side, T("dk_sec_diag_seg"), "diag_seg", expanded=True)
         opts = section(ws.side, T("diag_opts"), "diag_opts", expanded=True)
         with ws.main:
-            m_rec = card("diagrec")
+            m_rec = st.container()
             m_perf, m_osc, m_diag = card("diagperf"), card("diagosc"), st.container()
-        with side:
-            st.caption(T("diag_intro"))
-            dkey = f"rng_diag|{fname}|{t[-1]:.0f}"
-            if dkey not in ss:
-                ss[dkey] = (0.0, float(t[-1]))
-            rd = st.slider(T("seg_diag"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=dkey,
-                           help=T("h_seg_diag"))
+        dkey = f"rng_diag|{fname}|{t[-1]:.0f}"
+        bkey = f"rng_diagB|{fname}|{t[-1]:.0f}"
+        if dkey not in ss:
+            ss[dkey] = (0.0, float(t[-1]))
+        rd = tuple(ss[dkey])
+        with side:                     # úseky A / B se nastavují táhly v grafu (nebo čísly pod ním)
+            st.caption(T("diag_intro") + " " + T("diag_ab_hint"))
         with opts:
             integ_d = tog(st, T("diag_integ"), bool(integ_known), "diag_integ", help=T("h_diag_integ"))
             th_d = model[1][-1] if model is not None else num(T("diag_theta"), "diag_theta", 5.0, min_value=0.0,
@@ -62,37 +62,19 @@ def render(ctx):
         if sd.sum() < 100:
             side.warning(T("err_short"))
             return
-        # ---- záznam s úseky A (a B)
-        with side:
-            compare_on = bool(ss.get("perf_compare"))
-        segs_ = [(rd, "#1f5fa8", T("seg_a"))]
-        if compare_on:
-            rbk = f"rng_diagB|{fname}|{t[-1]:.0f}"
-            if rbk in ss:
-                segs_.append((ss[rbk], "#7c3aed", T("seg_b")))
-        fig_ = ctx.data_fig(t)
-        n_rows = 2 + (1 if ctx.dists else 0)
-        shapes, notes = list(fig_.layout.shapes or ()), list(fig_.layout.annotations or ())
-        for (a_, b_), col_, lab_ in segs_:
-            for r in range(1, n_rows + 1):
-                sfx = "" if r == 1 else str(r)
-                shapes.append(dict(type="rect", xref=f"x{sfx}", yref=f"y{sfx} domain", x0=a_, x1=b_, y0=0, y1=1,
-                                   fillcolor=col_, opacity=0.08, line=dict(color=col_, width=1), layer="below"))
-            notes.append(dict(xref="x", yref="y domain", x=a_, y=1, text=lab_, showarrow=False, xanchor="left",
-                              yanchor="top", font=dict(size=11, color=col_)))
-        fig_.update_layout(shapes=shapes, annotations=notes)
-        with m_rec:
-            head(T("diag_rec_title"), note=html.escape(T("diag_rec_help")))
-            show(fig_, key="chart_diag_rec", fname="diag_record")
-
-        # ---- výkon smyčky
+        # ---- záznam s úseky A (a B) – společná komponenta grafu průběhů
         with side:
             compare = st.toggle(T("perf_compare"), key="perf_compare", help=T("h_perf_compare"))
-            if compare:
-                bkey = f"rng_diagB|{fname}|{t[-1]:.0f}"
-                if bkey not in ss:
-                    ss[bkey] = (float(t[-1]) / 2, float(t[-1]))
-                rb2 = st.slider(T("seg_diag_b"), 0.0, float(t[-1]), step=float(max(Ts, t[-1] / 1000)), key=bkey)
+        if compare and bkey not in ss:
+            ss[bkey] = (float(t[-1]) / 2, float(t[-1]))
+        rb2 = tuple(ss[bkey]) if compare else None
+        with m_rec:
+            trend.record(ctx, "diag_trend", title=T("diag_rec_title"), note=T("diag_rec_help"),
+                         ab=dict(a=[float(rd[0]), float(rd[1])], b=[float(rb2[0]), float(rb2[1])] if rb2 else None,
+                                 ca="#1f5fa8", cb="#7c3aed", la=T("seg_a"), lb=T("seg_b")),
+                         on_wins=lambda: _on_ab(dkey, bkey))
+
+        # ---- výkon smyčky
         with m_perf:
             head(T("perf_title"), T("perf_help"))
             kA, rowA = kpi_row(sd)
@@ -204,3 +186,15 @@ def render(ctx):
                         st.info(T("nl_dir_warn", r=f"{np.mean(ups) / np.mean(dns):.2f}"), icon=":material/swap_vert:")
                     REPORT["notes"].append(T("rep_nl", s=f"{spread:.2f}"))
                     st.caption(T("nl_help"))
+
+
+def _on_ab(dkey, bkey):
+    """Úseky A / B posunuté v grafu → rozsahy diagnostiky (callback před během)."""
+    v = ss.get("diag_trend")
+    ab = getattr(v, "wins", None) if not isinstance(v, dict) else v.get("wins")
+    ab = (ab or {}).get("ab")
+    if not ab:
+        return
+    ss[dkey] = (float(ab["a"][0]), float(ab["a"][1]))
+    if ab.get("b"):
+        ss[bkey] = (float(ab["b"][0]), float(ab["b"][1]))

@@ -130,7 +130,7 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
                 cands.append((0.5 * np.sum(resid_g(make_z(x0, theta)) ** 2), x0, theta))
                 continue
             try:
-                r = least_squares(lambda x: resid_g(make_z(x, theta)), x0, bounds=(lb[free_nt], ub[free_nt]),
+                r = least_squares(lambda x, th_=theta: resid_g(make_z(x, th_)), x0, bounds=(lb[free_nt], ub[free_nt]),
                                   max_nfev=150)
             except Exception:
                 continue
