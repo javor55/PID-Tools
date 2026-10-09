@@ -1736,4 +1736,5 @@ TEXTS = {
     'cv_run': 'Křížové ověření',
     'h_cv': 'Pro každý úsek se model nafituje jen na ostatních úsecích a změří se jeho shoda na vynechaném úseku. Vysoká shoda = model platí i mimo data, na kterých byl nafitován.',
     'cv_help': 'CV = shoda na úseku, který se do fitu nepoužil. Výrazně nižší hodnota než FIT ukazuje, že úsek se chová jinak (jiný pracovní bod, porucha) nebo že model přeučený.',
+    'diag_rec_help': 'Celý záznam s provozním úsekem A (a úsekem B pro srovnání). Úseky se nastavují vpravo v Úseky provozních dat.',
 }

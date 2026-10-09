@@ -26,6 +26,7 @@ def render(ctx):
         integ_known = MODELS[model[0]]["integ"] if model is not None else None
         side = section(ws.side, T("dk_sec_diag_seg"), "diag_seg", expanded=True, icon=":material/date_range:")
         with ws.main:
+            m_rec = st.container(border=True, key="pid_card_diagrec")
             m_perf, m_osc, m_diag = st.container(border=True), st.container(border=True), st.container()
         with side:
             st.caption(ctx.block_summary)
@@ -56,6 +57,29 @@ def render(ctx):
         if sd.sum() < 100:
             side.warning(T("err_short"))
             return
+        # ---- záznam s úseky A (a B)
+        with side:
+            compare_on = bool(ss.get("perf_compare"))
+        segs_ = [(rd, "#1f5fa8", T("seg_a"))]
+        if compare_on:
+            rbk = f"rng_diagB|{fname}|{t[-1]:.0f}"
+            if rbk in ss:
+                segs_.append((ss[rbk], "#7c3aed", T("seg_b")))
+        fig_ = ctx.data_fig(t)
+        n_rows = 2 + (1 if ctx.dists else 0)
+        shapes, notes = list(fig_.layout.shapes or ()), list(fig_.layout.annotations or ())
+        for (a_, b_), col_, lab_ in segs_:
+            for r in range(1, n_rows + 1):
+                sfx = "" if r == 1 else str(r)
+                shapes.append(dict(type="rect", xref=f"x{sfx}", yref=f"y{sfx} domain", x0=a_, x1=b_, y0=0, y1=1,
+                                   fillcolor=col_, opacity=0.08, line=dict(color=col_, width=1), layer="below"))
+            notes.append(dict(xref="x", yref="y domain", x=a_, y=1, text=lab_, showarrow=False, xanchor="left",
+                              yanchor="top", font=dict(size=11, color=col_)))
+        fig_.update_layout(shapes=shapes, annotations=notes)
+        with m_rec:
+            show(fig_, key="chart_diag_rec", fname="diag_record")
+            st.caption(T("diag_rec_help"))
+
         # ---- výkon smyčky
         with side:
             compare = st.toggle(T("perf_compare"), key="perf_compare", help=T("h_perf_compare"))

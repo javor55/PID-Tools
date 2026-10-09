@@ -164,7 +164,8 @@ def render(ctx):
         else:
             mcode, p, pdl = model
             with ws.main:
-                st.caption(f"{model_name(mcode)} · " + ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[mcode]["params"], p))
+                st.caption(f"{model_name(mcode)} · " + ", ".join(f"{n} = {(0.0 if abs(v) < 1e-9 else v):.4g}"
+                                                                  for n, v in zip(MODELS[mcode]["params"], p))
                            + " · " + T("samp_note", s=f"{samp:g}", h=f"{samp / 2:g}"))
                 apc.tuning_hint(ctx)   # odkaz na záložku APC, když by smyčce pomohla pokročilá struktura
                 m_view = st.container()
@@ -647,7 +648,9 @@ def render(ctx):
                 show(style(fig, H, ytit, lab_t, rev=f"sim|{kind}"), key="chart_sim", fname="simulation",
                      report=T("rep_fig_sim"))
                 if kp:
-                    st.dataframe(pd.DataFrame(kp).set_index(T("setting")), width="stretch")
+                    st.dataframe(_best_styler(pd.DataFrame(kp).set_index(T("setting")),
+                                              [c for c in kp[0] if c != T("setting") and c != T("kpi_mvrange", u=u_mv or "MV")]),
+                                 width="stretch")
                     REPORT["tables"].append((T("rep_tab_kpi"), pd.DataFrame(kp).set_index(T("setting"))))
                     st.caption(T("kpi_help"))
             if v_freq.open is not False:
@@ -691,3 +694,31 @@ def render(ctx):
     ctx.plant = plant
     ctx.set1_ctrl = set1_ctrl
     ctx.set2_ctrl = set2_ctrl
+
+
+def _best_styler(df, cols):
+    """Tabulka ukazatelů: v každém sloupci (menší = lepší) zvýrazněná nejlepší hodnota, když je co porovnávat."""
+    if len(df) < 2:
+        return df
+
+    def num(v):
+        """Číslo z buňky; doby („44 s“, „2.05 min“, „1 h 05 min“) na sekundy, aby šly porovnat."""
+        parts = str(v).replace(",", ".").split()
+        try:
+            if len(parts) == 4 and parts[1] == "h":
+                return float(parts[0]) * 3600 + float(parts[2]) * 60
+            x = float(parts[0])
+        except (TypeError, ValueError, IndexError):
+            return np.nan
+        return x * {"min": 60.0, "h": 3600.0}.get(parts[1] if len(parts) > 1 else "", 1.0)
+
+    def col_style(s):
+        if s.name not in cols:
+            return [""] * len(s)
+        x = s.map(num)
+        if x.notna().sum() < 2 or x.nunique() < 2:
+            return [""] * len(s)
+        best = x.abs().min() if "over" in str(s.name).lower() else x.min()
+        return ["background-color: rgba(34,197,94,0.16); font-weight: 600" if v == best else "" for v in x]
+    return df.style.apply(col_style)
+

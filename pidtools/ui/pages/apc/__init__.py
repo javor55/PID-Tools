@@ -28,10 +28,11 @@ def render(ctx):
     with ctx.tabs["cascade"]:
         ctx.gph["apc"] = st.container()
         st.caption(ctx.block_summary)
-        kind = seg(st, T("apc_kind"), KINDS, "cascade", "apc_kind", format_func=lambda x: T("apc_" + x),
-                   help=T("h_apc_kind")) or "cascade"
-        if ctx.model is not None:
+        if ctx.model is not None:              # nejdřív doporučení, pak výběr struktury (jako v návrhu)
             guide.recommendations(recommend(ctx))
+        with st.container(border=True, key="pid_card_apckind"):
+            kind = seg(st, T("apc_kind"), KINDS, "cascade", "apc_kind", format_func=lambda x: T("apc_" + x),
+                       help=T("h_apc_kind")) or "cascade"
         if kind == "cascade":
             guide.render("cascade", checks_cascade(ctx), T("g_impl_cascade"))
             cascade.render_body(ctx)

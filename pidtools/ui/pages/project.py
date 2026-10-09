@@ -34,7 +34,7 @@ def render(ctx):
             return
         ws = workspace()
         base = _base_name()
-        with section(ws.side, T("proj_title"), "pj_proj", icon=":material/save:"):
+        with section(ws.side, T("proj_title"), "pj_proj", expanded=True, icon=":material/save:"):
             st.caption(T("proj_save_help"))
             inc = tog(st, T("proj_include_data"), True, "proj_inc", help=T("h_proj_inc"))
             payload = gather_project(ctx, inc)
@@ -50,7 +50,7 @@ def render(ctx):
             st.caption(T("as_help"))
             st.button(T("as_clear"), icon=":material/delete:",
                       on_click=lambda: ss.update(autosave_mode="clear", _autosave_hash=None, autosave_last=None))
-        with section(ws.side, T("rep_title"), "pj_rep", icon=":material/description:"):
+        with section(ws.side, T("rep_title"), "pj_rep", expanded=True, icon=":material/description:"):
             st.caption(T("rep_help"))
             m1, m2 = st.columns(2)
             m1.text_input(T("rp_plant"), key="rep_plant", placeholder=T("rp_plant_ph"))

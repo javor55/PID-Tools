@@ -1736,4 +1736,5 @@ TEXTS = {
     'cv_run': 'Cross-validation',
     'h_cv': 'For each segment the model is fitted on the other segments only and its fit on the left-out segment is measured. A high value = the model also holds outside the data it was fitted on.',
     'cv_help': 'CV = fit on the segment that was not used for fitting. A much lower value than FIT shows that the segment behaves differently (another operating point, a disturbance) or that the model is overfitted.',
+    'diag_rec_help': 'The whole recording with operating segment A (and segment B for comparison). Set the segments on the right under Operating data segments.',
 }
