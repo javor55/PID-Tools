@@ -2,7 +2,7 @@
 
 TEXTS = {
     'title': 'Identifikace procesu a ladění PIDConL',
-    'empty': 'Nahrajte nahoře export z PCS 7 nebo Process Historianu (CSV / Excel), případně si vyzkoušejte ukázková data (Demo).',
+    'empty': 'Přetáhněte sem export z PCS 7 nebo Process Historianu (CSV / Excel), případně zvolte vpravo ukázková data nebo OPC UA. Uložený projekt se otevírá v menu Projekt nahoře.',
     'status': '{n} vzorků · perioda dat {ts} s · délka {dur} s · PV {pvr} · MV {mvr}',
     'status_model': 'model připraven',
     'status_nomodel': 'model zatím není nafitovaný',
@@ -1732,4 +1732,8 @@ TEXTS = {
     'win_no_cl': 'Identifikace v uzavřené smyčce pracuje se společným úsekem – v režimu úseků podle vstupů se použije otevřená smyčka.',
     'err_no_windows': 'Žádné úseky – přidejte úsek alespoň jednomu vstupu.',
     'win_col': 'FIT {n} ({a} min) [%]',
+    'ff_mismatch': 'Porucha {d} má jiný typ přenosu než MV (např. samoregulační porucha u integračního procesu). Ideální dopředná vazba by ji musela derivovat – statická FF tu nepomůže, zesílení je 0.',
+    'cv_run': 'Křížové ověření',
+    'h_cv': 'Pro každý úsek se model nafituje jen na ostatních úsecích a změří se jeho shoda na vynechaném úseku. Vysoká shoda = model platí i mimo data, na kterých byl nafitován.',
+    'cv_help': 'CV = shoda na úseku, který se do fitu nepoužil. Výrazně nižší hodnota než FIT ukazuje, že úsek se chová jinak (jiný pracovní bod, porucha) nebo že model přeučený.',
 }

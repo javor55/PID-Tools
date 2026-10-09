@@ -647,3 +647,32 @@ def test_apc_reset_buttons_web(app):
         app.button(key=f"g_reset|{bkey}").click().run()
         assert not _errors(app), kind
         assert app.session_state[vkey] == pytest.approx(v0) and app.button(key=f"g_reset|{bkey}").disabled, kind
+
+
+def test_per_input_segments_web():
+    """Úseky podle vstupů: MV a porucha mají vlastní úseky, vyřazení dat, typ poruchy Auto, křížové ověření, projekt."""
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["src"] = "demo"
+    at.run()
+    at.session_state["win_mode"] = "inputs"
+    at.session_state["chosen"] = ["I1D", "P1D"]
+    at.session_state["wins|demo"] = {"MV": [[250.0, 1300.0], [2500.0, 3300.0]], "FI100.Pritok": [[850.0, 1750.0]]}
+    at.session_state["dkind|FI100.Pritok"] = "auto"
+    at.run()
+    assert not _errors(at)
+    assert any(w.key == "excl|demo|PV|lo" for w in at.number_input)      # vyřazení dat podle mezí
+    _button(at, "Identify").click().run()
+    assert not _errors(at)
+    res = at.session_state["fit"]["res"]
+    assert res["I1D"]["method"] == "win" and len(res["I1D"]["fits"]) >= 2 and res["I1D"]["fit"] > 80
+    assert len(res["I1D"]["pdl"][0]) == 4                       # typ přenosu poruchy vybraný automaticky
+    tab = next(d.value for d in at.dataframe if "FIT [%]" in d.value.columns)
+    assert any(str(c).startswith("FIT MV") for c in tab.columns)
+    _button(at, "Cross-validation").click().run()
+    assert not _errors(at) and at.session_state["cv_res"]["res"]["I1D"]
+    at.session_state["main_tab"] = [t.label for t in _main(at)][7]
+    at.run()
+    proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
+    assert proj["windows"]["wins"]["FI100.Pritok"] == [[850.0, 1750.0]]
+    assert proj["fit"]["res"]["I1D"]["method"] == "win"

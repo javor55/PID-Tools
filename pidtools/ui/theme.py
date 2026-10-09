@@ -40,7 +40,11 @@ _CSS = """
 :root {--pid-bg: %(bg)s; --pid-card: %(card)s; --pid-side: %(side)s; --pid-line: %(line)s; --pid-soft: %(soft)s;
     --pid-text: %(text)s; --pid-muted: %(muted)s; --pid-accent: %(accent)s; --pid-accent-bg: %(accent_bg)s;}
 [data-testid="stApp"] {background: var(--pid-bg);}
-[data-testid="stHeader"] {background: transparent;}
+/* Streamlit přes horní okraj kreslí průhlednou lištu – kliky propustit k hlavičce aplikace, kromě menu ⋮ */
+[data-testid="stHeader"], [data-testid="stHeader"] [data-testid="stToolbar"] {background: transparent;
+    pointer-events: none !important;}
+[data-testid="stHeader"] [data-testid="stMainMenu"], [data-testid="stHeader"] [data-testid="stToolbarActions"] *
+    {pointer-events: auto !important;}
 .block-container {padding-top: 0.6rem; padding-bottom: 1rem; padding-left: 1.2rem; padding-right: 1.2rem;
     max-width: 100%%;}
 code, [data-testid="stMetricValue"], [data-testid="stDataFrame"] {font-variant-numeric: tabular-nums;}
@@ -49,7 +53,7 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 
 /* hlavička */
 .st-key-pid_header {background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px;
-    padding: 0.5rem 0.9rem;}
+    padding: 0.5rem 3rem 0.5rem 0.9rem;}
 .pid-sub {color: var(--pid-muted); font-size: 0.82rem;}
 
 /* záložky: modré podtržení, „Projekt a report“ vpravo */
@@ -58,9 +62,9 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 .stTabs [data-testid="stTab"] p {font-size: 0.93rem; font-weight: 500;}
 .stTabs [data-testid="stTab"][aria-selected="true"] {color: var(--pid-accent);}
 .stTabs [data-testid="stTab"][aria-selected="true"] p {font-weight: 600;}
-.st-key-main_tab [role="tablist"]:first-of-type {background: var(--pid-card); border: 1px solid var(--pid-line);
+.st-key-main_tab > div > [role="tablist"] {background: var(--pid-card); border: 1px solid var(--pid-line);
     border-radius: 10px; padding: 0 0.6rem; width: 100%%;}
-.st-key-main_tab [role="tablist"]:first-of-type > [data-testid="stTab"]:last-child {margin-left: auto;}
+.st-key-main_tab > div > [role="tablist"] > [data-testid="stTab"]:last-child {margin-left: auto;}
 
 /* karty: sekce panelu a ohraničené kontejnery */
 [data-testid="stExpander"] details {border-radius: 10px; border: 1px solid var(--pid-line); background: var(--pid-card);}

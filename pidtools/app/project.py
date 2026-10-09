@@ -3,7 +3,8 @@ Formát projektu (JSON) společný pro webovou a desktopovou aplikaci.
 
 Projekt = záznam aktivní smyčky nahoře (čitelný i starší verzí) a při více smyčkách seznam „loops“ a „active“.
 Záznam smyčky: tag, state (nastavení – klíče STATE_KEYS a s prefixy STATE_PREFIX), map (sloupce PV, MV, SP,
-poruchy, poloha), ranges (úsek identifikace „id“ a validace „val“), ff (dopředné vazby), fit (nafitované modely).
+poruchy, poloha), ranges (úsek identifikace „id“ a validace „val“), windows (úseky podle vstupů {vstup: [[od, do] s]}
+a vyřazení dat {signál: [zap, min, max]} + tolerance), ff (dopředné vazby), fit (nafitované modely).
 Volitelně data: {"cols": {název: hodnoty}} na společné časové mřížce „t_s“.
 """
 import json
@@ -17,7 +18,7 @@ STATE_KEYS = [
     "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
     "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
     # identifikace
-    "thmax", "chosen", "mcode", "dist_level", "dist_strength", "gain_sign", "id_stic",
+    "thmax", "chosen", "mcode", "dist_level", "dist_strength", "gain_sign", "id_stic", "win_mode", "read_manual",
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
     "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist", "id_mode", "audit_loops",
@@ -28,7 +29,7 @@ STATE_KEYS = [
     # hlavička reportu
     "rep_plant", "rep_author", "rep_status", "rep_comment",
 ]
-STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|", "gs_", "apc_sm_")
+STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|", "dsign|")
 
 
 def is_state_key(k):
@@ -57,6 +58,9 @@ def fit_record(fit):
         res[code] = dict(code=code, p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d] for d in r["pdl"]],
                          fit=float(r["fit"]), level=r.get("level", "none"),
                          Th=None if r.get("Th") is None else float(r["Th"]), stic=float(r.get("stic") or 0.0))
+        if r.get("method") == "win":          # identifikace z úseků podle vstupů
+            res[code].update(method="win", fits=[float(x) for x in r.get("fits", [])],
+                             wins=[[int(a), int(b)] for a, b in r.get("wins", [])])
     return dict(res=res, dnames=list(fit["dnames"]))
 
 

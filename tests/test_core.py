@@ -212,3 +212,38 @@ def test_quality_mv_near_limit():
     pv = 50 + 0.01 * np.cumsum(mv - 20) / 100
     q = core.data_quality(t, pv, mv, np.zeros_like(mv), h, False, 0.0, 100.0)
     assert any(c[0] in ("q_lim_warn", "q_lim_bad") for c in q["checks"])
+
+
+def test_fit_windows_separate_inputs_and_types():
+    """Úseky podle vstupů: MV v jednom úseku, porucha ve dvou; integrační MV, samoregulační porucha s vyřazením."""
+    h = 1.0
+    t = np.arange(6000) * h
+    mv = 50 + np.where((t > 5000) & (t < 5300), 8.0, 0.0)
+    dv = 20 + np.where((t > 1000) & (t < 1800), 5.0, 0.0) + np.where((t > 3000) & (t < 3600), -4.0, 0.0)
+    p_true, pd_true = [-0.004, 20.0], [0.6, 60.0, 10.0, 1]
+    pv = 50 + core.model_dev("I0D", p_true, [pd_true], t, mv - mv[0], [dv - dv[0]], h)
+    pv = pv + np.random.default_rng(1).normal(0, 0.02, t.size)
+    valid = np.ones(t.size, bool)
+    valid[1200:1250] = False                              # vyřazené vzorky (např. saturace) se do ceny nepočítají
+    pv[1200:1250] = 0.0
+    wins = [(4900, 5900), (900, 2400), (2900, 4200)]
+    r = core.fit_windows("I0D", t, pv, mv, h, [dv], wins, valid, sign=-1, dkind=[1])
+    assert abs(r["p"][0] / p_true[0] - 1) < 0.05 and abs(r["p"][1] - p_true[1]) < 3
+    assert abs(r["pdl"][0][0] / pd_true[0] - 1) < 0.1 and r["pdl"][0][3] == 1
+    assert r["fit"] > 95 and len(r["fits"]) == 3
+    y, fits, overall = core.predict_windows("I0D", r["p"], r["pdl"], t, pv, mv, h, [dv], wins, valid)
+    assert np.isnan(y[100]) and np.isfinite(y[5000]) and overall > 95
+    cv = core.cross_validate("I0D", t, pv, mv, h, [dv], wins, valid, sign=-1, dkind=(1,))
+    assert len(cv) == 3
+
+
+def test_dist_type_in_simulation_and_ff():
+    """4. prvek parametrů poruchy mění typ přenosu; statická FF při různém typu poruchy a MV nemá zesílení."""
+    t = np.arange(400) * 1.0
+    step = np.where(t > 10, 1.0, 0.0)
+    y_self = core.simulate_dist(True, [1.0, 5.0, 0.0, 1], t, step, 1.0)
+    y_int = core.simulate_dist(True, [1.0, 5.0, 0.0], t, step, 1.0)
+    assert abs(y_self[-1] - 1.0) < 1e-3 and y_int[-1] > 300
+    from pidtools.core.apc import ff_design
+    assert ff_design("I0D", [-0.01, 5.0], [0.02, 3.0, 0.0])["gain"] == pytest.approx(2.0)
+    assert ff_design("I0D", [-0.01, 5.0], [0.02, 3.0, 0.0, 1])["mismatch"]

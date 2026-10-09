@@ -46,9 +46,6 @@ def open_workspace(ctx):
         with ws.main:
             ws.m_top, ws.m_chart, ws.m_dq, ws.m_prev = st.container(), st.container(), st.container(), st.container()
         ws.src = section(ws.side, T("dk_sec_src"), "data_src", expanded=True, icon=":material/database:")
-        ws.sig = section(ws.side, T("dk_sec_signals"), "data_sig", expanded=True, icon=":material/sensors:")
-        ws.stats = section(ws.side, T("dk_sec_stats"), "data_stats", expanded=True, icon=":material/functions:")
-        ws.units = section(ws.side, T("sb_units"), "data_units", icon=":material/straighten:")
         ctx.dws = ws
 
 
@@ -62,7 +59,10 @@ def render_setup(ctx):
     """Sloupce (signály, čas, dlouhý formát), převzorkování na společnou mřížku a normovací rozsahy."""
     df = ctx.df
     ws = ctx.dws
-    sec_sig, sec_stats, sec_units = ws.sig, ws.stats, ws.units
+    with ctx.tabs["data"]:                    # sekce s daty až po načtení (bez dat by byly prázdné)
+        sec_sig = section(ws.side, T("dk_sec_signals"), "data_sig", expanded=True, icon=":material/sensors:")
+        sec_stats = section(ws.side, T("dk_sec_stats"), "data_stats", expanded=True, icon=":material/functions:")
+        sec_units = section(ws.side, T("sb_units"), "data_units", icon=":material/straighten:")
     cols = list(df.columns)
     tcols = time_columns_cached(ctx.ckey, df)
 
@@ -586,7 +586,7 @@ def render(ctx):
             # stovkami úseků trvalo překreslení desítky sekund)
             n_rows = 2 + (1 if ctx.dists else 0) + (1 if resid is not None else 0)
             shapes, notes = list(fig.layout.shapes or ()), list(fig.layout.annotations or ())
-            for i_, sg in enumerate(segs[:MAX_SEG_SHADES]):
+            for i_, sg in enumerate(segs[:MAX_SEG_SHADES] if win_mode == "common" else []):
                 shapes.append(dict(type="rect", xref="x", yref="y domain", x0=sg["start"], x1=sg["end"], y0=0, y1=1,
                                    fillcolor="#bfdbfe", opacity=0.22, line_width=0, layer="below"))
                 notes.append(dict(xref="x", yref="y domain", x=sg["start"], y=1, text=f"#{i_ + 1}", showarrow=False,

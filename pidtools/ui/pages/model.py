@@ -237,9 +237,9 @@ def render(ctx):
                     r_ = res[c]
                     row[T("idm_fit_cl")] = (f"PV {r_['fit_cl_pv']:.1f} / MV {r_['fit_cl_mv']:.1f}"
                                             if r_.get("fit_cl_pv") is not None else "—")
-                row.update({n: float(f"{v:.4g}") for n, v in zip(MODELS[c]["params"], q["p"])})
+                row.update({n: _g4(v) for n, v in zip(MODELS[c]["params"], q["p"])})
                 for j, pd_ in enumerate(q["pdl"]):
-                    row.update({f"{n} ({c_d[j]})": float(f"{v:.4g}") for n, v in zip(DIST_PARAMS, pd_)})
+                    row.update({f"{n} ({c_d[j]})": _g4(v) for n, v in zip(DIST_PARAMS, pd_)})
                 if any_stic:
                     row[T("col_stic", u=u_mv or "MV")] = float(f"{q['stic'] * MR / 100:.3g}")
                 if lvl_fit != "none":
@@ -264,6 +264,22 @@ def render(ctx):
                                                                                       max_value=100, format="%.1f")})
                 st.caption(T("units_note") + (" " + T("fit_eff_note") if lvl_fit != "none" else "")
                            + (" " + T("idm_table_note") if any_cl else ""))
+                if win and len(_win_labels(ctx)) >= 2:   # křížové ověření: fit bez úseku → shoda na něm
+                    cvk = ("cv", fit_key)
+                    if st.button(T("cv_run"), icon=":material/fact_check:", key="g_cv", help=T("h_cv")):
+                        with st.spinner(T("fitting")):
+                            ss["cv_res"] = dict(key=cvk, res={c: cache.cross_validate(
+                                c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, theta_max=th_max,
+                                sign=mdl.SIGN[gain_sign], dsign=tuple(dsigns),
+                                dkind=tuple(int(d_[3]) if len(d_) > 3 else 0 for d_ in r_["pdl"]))
+                                for c, r_ in res.items() if r_.get("method") == "win"})
+                    cvr = ss.get("cv_res")
+                    if cvr and cvr["key"] == cvk:
+                        labs = _win_labels(ctx)
+                        st.dataframe(pd.DataFrame({model_name(c): {lab.replace("FIT", "CV"): round(v, 1)
+                                                                   for lab, v in zip(labs, vals)}
+                                                   for c, vals in cvr["res"].items()}).T, width="stretch")
+                        st.caption(T("cv_help"))
                 for wk, c in mdl.warnings(res, ts_id[-1], th_max):
                     st.warning(T(wk, m=model_name(c)), icon=":material/trending_up:" if wk == "warn_long_T"
                                else ":material/warning:")
@@ -502,6 +518,12 @@ def render(ctx):
     ctx.model_stic = model_stic
     ctx.sigma_pv = sigma_pv
     ctx.unc_models = unc_models
+
+
+def _g4(v):
+    """Číslo do tabulky na 4 platné číslice; numerický šum kolem nuly (θ = 1e-15 s) jako 0."""
+    v = float(v)
+    return 0.0 if abs(v) < 1e-9 else float(f"{v:.4g}")
 
 
 def mdl_integ_d(code, pd_):

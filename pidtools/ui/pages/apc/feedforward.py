@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from ....core import MODELS, dist_integ
 from ....i18n import T
 from ... import cache
 from ... import ff as ffmod
@@ -52,6 +53,8 @@ def ff_render(ctx):
         g0, tl0, tg0, dl0 = ffmod.defaults(code, p, pdm)
         with section(ws.side, T("ff_dist_title", d=dn), f"apc_ff_d{j}", icon=":material/fast_forward:"):
             st.caption(T("ff_model", k=f"{pdm[0]:.4g}", t=f"{pdm[1]:.4g}", th=f"{pdm[2]:.4g}", tp=f"{p[-1]:.4g}"))
+            if dist_integ(MODELS[code]["integ"], pdm) != MODELS[code]["integ"]:
+                st.warning(T("ff_mismatch", d=dn), icon=":material/warning:")
             use = st.toggle(T("ff_use", d=dn), key=k_["use"], help=T("h_ff_use"))
             g = num(T("ff_gain", d=dn), k_["gain"], g0, format="%.5g", help=T("h_ff_gain"))
             st.metric(T("ff_gain_eng", u=ctx.u_mv or "MV", d=dn), f"{ffmod.eng_gain(g, ctx.MR):.4g}",
