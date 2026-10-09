@@ -31,6 +31,73 @@ def flat_inputs(segs, full, rel=0.01):
     return out
 
 
+def _best_gains(x, th, gidx, lo, hi, resid_g, make_z):
+    """
+    Zesílení (MV i poruch) při daných časových konstantách a zpožděních přesně lineární regresí: rezidua jsou
+    v zesíleních lineární (r = r0 − A·g), takže start z jakékoli dynamiky dostane hned odpovídající zesílení.
+    """
+    if not gidx:
+        return x
+    x0 = x.copy()
+    x0[gidx] = 0.0
+    r0 = resid_g(make_z(x0, th))
+    cols = []
+    for k in gidx:
+        xk = x0.copy()
+        xk[k] = 1.0
+        cols.append(r0 - resid_g(make_z(xk, th)))
+    g = np.linalg.lstsq(np.column_stack(cols), r0, rcond=None)[0]
+    x0[gidx] = np.clip(g, lo[gidx], hi[gidx])
+    return x0
+
+
+def restarts(names, free_nt, cands, lb, ub, theta_max, th_free, resid_g, make_z, n=12, seed=0):
+    """
+    Robustní hledání minima po mřížce: n dalších startů – polovina náhodně posunutá kolem nejlepšího kandidáta,
+    polovina náhodně přes celý rozsah (časové konstanty log-rovnoměrně, zpoždění rovnoměrně). Zesílení se ke každé
+    dynamice dopočtou lineární regresí, pak se vše doladí nejmenšími čtverci (s volným θ) na zředěných datech.
+    Pevné semínko → stejná data = stejný výsledek. Vrací [(cena, x, θ)].
+    """
+    if not cands or not len(free_nt):
+        return []
+    rng = np.random.default_rng(seed)
+    _, xb, thb = min(cands, key=lambda c: c[0])
+    fn = [names[i] for i in free_nt]
+    lo, hi = lb[free_nt], ub[free_nt]
+    gidx = [k for k, nm in enumerate(fn) if nm == "p0" or (nm.startswith("d") and nm.endswith("_0"))]
+    out = []
+    for i in range(n):
+        wide = i % 2 == 1
+        x = np.array(xb, float).copy()
+        for k, nm in enumerate(fn):
+            if nm.startswith("b") or k in gidx:            # posun / drift a zesílení – dopočtou se
+                continue
+            if nm.startswith("d") and nm.endswith("_2"):    # zpoždění poruchy: kdekoli v rozsahu
+                x[k] = rng.uniform(0.0, theta_max)
+            elif wide and np.isfinite(hi[k]) and lo[k] > 0:  # časová konstanta přes celý rozsah (log)
+                x[k] = float(np.exp(rng.uniform(np.log(lo[k]), np.log(hi[k]))))
+            else:                                            # o řád nahoru i dolů kolem nejlepšího
+                x[k] = max(abs(x[k]), 1e-3) * np.exp(rng.normal(0.0, 1.0))
+        x = np.clip(x, lo, hi)
+        th = thb
+        if th_free:
+            th = (rng.uniform(0.0, theta_max) if wide or thb <= 0
+                  else float(np.clip(thb * np.exp(rng.normal(0.0, 0.4)), 0.0, theta_max)))
+        try:
+            x = _best_gains(x, th, gidx, lo, hi, resid_g, make_z)
+            if th_free:
+                lb2, ub2 = np.r_[lo, 0.0], np.r_[hi, theta_max]
+                r = least_squares(lambda w: resid_g(make_z(w[:-1], w[-1])), np.clip(np.r_[x, th], lb2, ub2),
+                                  bounds=(lb2, ub2), max_nfev=150)
+                out.append((r.cost, r.x[:-1], float(r.x[-1])))
+            else:
+                r = least_squares(lambda x_, th_=th: resid_g(make_z(x_, th_)), x, bounds=(lo, hi), max_nfev=150)
+                out.append((r.cost, r.x, th))
+        except Exception:
+            continue
+    return out
+
+
 def least_squares(*args, **kw):
     """scipy.optimize.least_squares načtený až při prvním použití (rychlejší start aplikace)."""
     from scipy.optimize import least_squares as _ls
@@ -187,13 +254,14 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
         except Exception:
             return best_
 
+    cands += restarts(names, free_nt, cands, lb, ub, theta_max, th_free, resid_g, make_z)
     # na zředěných datech se pořadí kandidátů může mírně lišit → doladit 3 nejlepší různá θ
     top, seen = [], set()
     for c_ in sorted(cands, key=lambda c_: c_[0]):
         if c_[2] not in seen:
             seen.add(c_[2])
             top.append(c_)
-        if len(top) == (3 if k_grid > 1 else 1):
+        if len(top) == 3:
             break
     _, xb, thb = min((refine(x_, th_) for _, x_, th_ in top), key=lambda c_: c_[0])
     z = make_z(xb, thb)

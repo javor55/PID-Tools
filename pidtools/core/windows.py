@@ -12,7 +12,7 @@ Přenos poruchy má stejné struktury jako MV (P0D … I1D, parametr dstruct); p
 """
 import numpy as np
 
-from .identification import flat_inputs, least_squares
+from .identification import flat_inputs, least_squares, restarts
 from .models import MODELS, dist_setup, dist_starts, dist_struct, model_dev, n_free, order_dists
 
 
@@ -197,6 +197,7 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
         except Exception:
             return best
 
+    cands += restarts(names, free_nt, cands, lb, ub, theta_max, th_free, resid_g, make_z)
     top, seen = [], set()
     for c in sorted(cands, key=lambda c: c[0]):
         if c[2] not in seen:
