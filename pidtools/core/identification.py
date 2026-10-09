@@ -1,9 +1,18 @@
 """Identifikace modelů z dat, hodnocení modelu a nejistota parametrů."""
 import numpy as np
 
-from .models import (MODELS, n_free, model_dev, predict, predict_full, stiction_valve,
+from .models import (MODELS, dist_setup, dist_starts, dist_struct, n_free, model_dev, order_dists, predict, predict_full, stiction_valve,
                      high_pass, spline_projector)
 from .util import acf as _acf
+
+
+def _pdl_z(z, i0, nd, dkind):
+    """Vektor fitu (od indexu i0, 4 hodnoty na poruchu: Kd, Tp, θd, Tp2) → parametry poruch [Kd, Tp, θd, typ, Tp2]."""
+    out = []
+    for j in range(nd):
+        kd, tp, th, tp2 = (float(v) for v in z[i0 + 4 * j: i0 + 4 * j + 4])
+        out.append([kd, tp, th, int(dkind[j]), tp2])
+    return out
 
 
 def flat_inputs(segs, full, rel=0.01):
@@ -29,7 +38,7 @@ def least_squares(*args, **kw):
 
 
 def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=None, level="none", Th=None,
-              strength=4.0, stic=0.0, sign=0, dists_full=None):
+              strength=4.0, stic=0.0, sign=0, dists_full=None, dstruct=None):
     """
     Nafituje model MV → PV (+ modely měřených poruch).
     fixed ..... zafixované parametry: {"p0": K, "p1": T1, …, "pθ" = poslední index procesu, "d{j}_{i}": parametry poruch}
@@ -38,14 +47,15 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     stic ...... známá stikce ventilu [% MV] – MV se před fitem převede na polohu ventilu
     sign ...... znaménko zesílení procesu: 0 = automaticky, +1 / −1 = vynucené (jako „Positive/Negative gain“)
     dists_full  poruchy v celém záznamu (měřítko pro poznání poruchy, která se v úseku nemění); None = dists
+    dstruct ... struktura přenosu každé poruchy jako u MV ("P0D" … "I1D"; None = 1. řád, typ podle procesu)
     Postup: mřížka přes θ (je-li volné) + least squares ostatních volných parametrů na zředěných datech,
     pak společné doladění nejlepších kandidátů na plných datech.
     """
     fixed = dict(fixed or {})
     dists = [np.asarray(d, float) for d in dists]
     dv_flat = [j for j in flat_inputs(dists, dists_full or dists) if f"d{j}_0" not in fixed]
-    for j in dv_flat:                           # porucha se v úseku nemění → nulový účinek (parametry nejdou odhadnout)
-        fixed.update({f"d{j}_0": 0.0, f"d{j}_1": 0.2 * h, f"d{j}_2": 0.0})
+    # struktura poruch → typy a zafixované Tp / Tp2; porucha, která se v úseku nemění → nulový účinek
+    dkind = dist_setup(fixed, len(dists), dstruct, None, dv_flat)
     mv_v = stiction_valve(mv, stic) if stic else np.asarray(mv, float)
     du = mv_v - mv_v[0]
     dD = [d - d[0] for d in dists]
@@ -87,19 +97,20 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
 
     # plný vektor parametrů: [procesní bez θ (nf)] + [θ] + [posun (nb)] + [poruchy 3·nd]
     names = [f"p{i}" for i in range(nf)] + [f"p{nf}"] + [f"b{i}" for i in range(nb)] + \
-            [f"d{j}_{i}" for j in range(nd) for i in range(3)]
+            [f"d{j}_{i}" for j in range(nd) for i in range(4)]
     th_idx = nf
     lb = [0.0 if sign > 0 else -np.inf] + [tmin] * (nf - 1) + [0.0] + [-np.inf] * nb
     ub = [0.0 if sign < 0 else np.inf] + [Tmax] * (nf - 1) + [theta_max] + [np.inf] * nb
     th_d0 = min(h, theta_max / 2)
     for _ in range(nd):
-        lb += [-np.inf, tmin, 0.0]
-        ub += [np.inf, Tmax, theta_max]
+        lb += [-np.inf, tmin, 0.0, tmin]
+        ub += [np.inf, Tmax, theta_max, Tmax]
     lb, ub = np.array(lb, float), np.array(ub, float)
     starts_proc = {1: [[g0]], 2: [[g0, T0], [g0, T0 / 5]], 3: [[g0, T0, T0 / 3], [g0, T0 / 3, T0 / 10]]}[nf]
     dist0 = []
     for k in kd0:
-        dist0 += [k, T0 / 3, th_d0]
+        dist0 += [k, T0 / 3, th_d0, T0 / 10]
+    dstarts = dist_starts(dist0, kd0, T0, theta_max)
     base0 = [y[0], 0.0][:nb]
 
     fixed_mask = np.array([n in fixed for n in names])
@@ -114,7 +125,7 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
 
         def resid(z):
             p = [float(v) for v in z[:nf + 1]]
-            pdl = [[float(v) for v in z[nf + 1 + nb + 3 * j: nf + 4 + nb + 3 * j]] for j in range(nd)]
+            pdl = _pdl_z(z, nf + 1 + nb, nd, dkind)
             r = y_ - model_dev(code, p, pdl, t_, du_, dD_, h * k)
             if nb:
                 r = r - z[nf + 1] - (z[nf + 2] * tr_k if nb == 2 else 0.0)
@@ -142,8 +153,8 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     n_th = n_grid if code == "P0D" else max(3, round(n_grid * 0.6))
     thetas = np.linspace(0, theta_max, n_th) if th_free else [zfix[th_idx]]
     for theta in thetas:
-        for sp_ in starts_proc:
-            z0 = np.r_[sp_, 0.0, base0, dist0]
+        for sp_, d0 in ((sp_, d0) for sp_ in starts_proc for d0 in dstarts):
+            z0 = np.r_[sp_, 0.0, base0, d0]
             z0 = np.where(fixed_mask, zfix, z0)
             x0 = np.clip(z0[free_nt], lb[free_nt], ub[free_nt])
             if len(x0) == 0:
@@ -187,13 +198,15 @@ def fit_model(code, t, pv, mv, h, dists=(), theta_max=None, n_grid=20, fixed=Non
     _, xb, thb = min((refine(x_, th_) for _, x_, th_ in top), key=lambda c_: c_[0])
     z = make_z(xb, thb)
     p = [float(v) for v in z[:nf + 1]]
-    pdl = [[float(v) for v in z[nf + 1 + nb + 3 * j: nf + 4 + nb + 3 * j]] for j in range(nd)]
+    pdl = _pdl_z(z, nf + 1 + nb, nd, dkind)
     if code == "P2D" and p[2] > p[1] and "p1" not in fixed and "p2" not in fixed:
         p[1], p[2] = p[2], p[1]
+    order_dists(pdl, fixed)
     res_ = resid(z)
     fit = 100.0 * (1 - np.linalg.norm(res_) / max(np.linalg.norm(y - y.mean()), 1e-12))
     return dict(code=code, p=p, pdl=pdl, fit=float(fit), level=level, Th=float(Th) if Th else None,
-                stic=float(stic or 0.0), fixed=sorted(fixed), dv_flat=dv_flat)
+                stic=float(stic or 0.0), fixed=sorted(fixed), dv_flat=dv_flat,
+                dstruct=[dist_struct(integ, d) for d in pdl])
 
 
 def auto_th(t, mv, h, strength=4.0):
@@ -207,7 +220,7 @@ def auto_th(t, mv, h, strength=4.0):
 
 
 def fit_with_stiction(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, level="none", Th=None,
-                      strength=4.0, s_max=None, n_s=13, sign=0, k=1):
+                      strength=4.0, s_max=None, n_s=13, sign=0, k=1, dstruct=None):
     """
     Současná identifikace stikce ventilu a modelu: mřížka přes S (stikci), pro každé S fit modelu.
     Data se předávají v plném rozlišení (stikce se počítá na plných datech), fit běží na každém k-tém vzorku.
@@ -218,7 +231,8 @@ def fit_with_stiction(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, 
 
     def fit_S(S, ng):
         v = stiction_valve(mv, S)
-        r = fit_model(code, t[::k], pv[::k], v[::k], h * k, ds, theta_max, ng, fixed, level, Th, strength, sign=sign)
+        r = fit_model(code, t[::k], pv[::k], v[::k], h * k, ds, theta_max, ng, fixed, level, Th, strength, sign=sign,
+                      dstruct=dstruct)
         r["stic"] = float(S)
         return r
 
@@ -247,7 +261,7 @@ def fit_with_stiction(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, 
 
 
 def identify(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, level="none", strength=4.0, sign=0,
-             id_stic=False, stic_fixed=None, k=1):
+             id_stic=False, stic_fixed=None, k=1, dstruct=None):
     """
     Identifikace jednoho modelu podle nastavení na záložce Model: fit na každém k-tém vzorku (se současným
     odhadem stikce, je-li id_stic a stikce není zadaná), pak shoda na plných datech („fit“ efektivní, „fit_raw“ surová).
@@ -256,10 +270,11 @@ def identify(code, t, pv, mv, h, dists=(), theta_max=None, fixed=None, level="no
         S = stic_fixed or 0.0
         v = stiction_valve(mv, S) if S else mv
         r = fit_model(code, t[::k], pv[::k], v[::k], h * k, [d[::k] for d in dists], theta_max, 20, fixed, level,
-                      None, strength, 0.0, sign)
+                      None, strength, 0.0, sign, dstruct=dstruct)
         r["stic"] = float(S)
     else:
-        r = fit_with_stiction(code, t, pv, mv, h, dists, theta_max, fixed, level, None, strength, None, 13, sign, k)
+        r = fit_with_stiction(code, t, pv, mv, h, dists, theta_max, fixed, level, None, strength, None, 13, sign, k,
+                              dstruct)
     r["fit"] = predict_full(code, r["p"], r["pdl"], t, pv, mv, dists, h, r["stic"], level, r["Th"])["fit"]
     r["fit_raw"] = predict(code, r["p"], r["pdl"], t, pv, mv, dists, h, r["stic"])[1]
     return r

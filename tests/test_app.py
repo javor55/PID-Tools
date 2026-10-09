@@ -696,7 +696,21 @@ def test_per_input_segments_web():
     assert not _errors(at)
     res = at.session_state["fit"]["res"]
     assert res["I1D"]["method"] == "win" and len(res["I1D"]["fits"]) >= 2 and res["I1D"]["fit"] > 80
-    assert len(res["I1D"]["pdl"][0]) == 4                       # typ přenosu poruchy vybraný automaticky
+    # porucha: struktury jako u MV (P0D … I1D), u „Auto“ vybraná nejlepší shoda z porovnání
+    cmp_ = res["I1D"]["dv_cmp"][0]
+    assert [c[0] for c in cmp_] == ["P0D", "P1D", "P2D", "I0D", "I1D"]
+    best_ = max((c for c in cmp_ if c[1] is not None), key=lambda c: c[1])
+    assert res["I1D"]["dstruct"][0] in ("I0D", "I1D") and best_[0] in ("I0D", "I1D")   # ukázka: integrační přítok
+    assert len(res["I1D"]["pdl"][0]) == 5
+    # jiná struktura poruchy v kartě → parametry z porovnání, model ji použije
+    at.session_state["mcode"] = at.session_state["mtype"] = "I1D"
+    at.session_state["dsel|I1D|0"] = "P1D"
+    at.run()
+    assert not _errors(at)
+    p1d = next(c for c in cmp_ if c[0] == "P1D")[2]
+    at.session_state["ed|I1D|d0|0"] = p1d[0]
+    at.run()
+    assert not _errors(at)
     tab = next(d.value for d in _dfs(at) if "FIT [%]" in d.value.columns)
     assert "Cross-validation [%]" in tab.columns                 # porovnání typů přenosu podle návrhu
     _button(at, "Cross-validation").click().run()
@@ -706,3 +720,4 @@ def test_per_input_segments_web():
     proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
     assert proj["windows"]["wins"]["FI100.Pritok"] == [[850.0, 1750.0]]
     assert proj["fit"]["res"]["I1D"]["method"] == "win"
+    assert len(proj["fit"]["res"]["I1D"]["dv_cmp"]["0"]) == 5

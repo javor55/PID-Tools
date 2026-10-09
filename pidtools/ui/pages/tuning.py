@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ...core import (DIST_PARAMS, MODELS, d_advice, default_tc, tune)
+from ...core import (DIST_PARAMS, MODELS, d_advice, default_tc, pd_z, tune)
 from ...app import frequency as fq
 from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
@@ -853,7 +853,7 @@ def _tn_outputs(s):
            "Ms": rn["Ms"], "GM": rn["GM"], "PM": rn["PM"],
            "Gain_old": set1_gain, "TI_old": set1_ti, "TD_old": set1_td}
     for j, dn in enumerate(c_d):
-        out.update({f"{n_}_{dn}": v for n_, v in zip(DIST_PARAMS, pdl[j])})
+        out.update({f"{n_}_{dn}": v for n_, v in zip(DIST_PARAMS + ["Tp2"], pd_z(pdl[j]))})
         out[f"FF_{dn}"] = ff[j] if ff else 0.0
     ws.sets.download_button(T("download"), pd.DataFrame([out]).to_csv(index=False, sep=";", decimal=","),
                             "pidconl_tuning.csv", "text/csv", icon=":material/download:")

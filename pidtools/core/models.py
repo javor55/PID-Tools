@@ -11,8 +11,10 @@ Modely MV -> PV (všechny s dopravním zpožděním θ):
   P2D : K · e^(-θs) / ((T1 s + 1)(T2 s + 1))
   I0D : Ki · e^(-θs) / s
   I1D : Ki · e^(-θs) / (s (T1 s + 1))
-Model poruchy -> PV: Kd · e^(-θd s) / (Tp s + 1), u integračních procesů navíc · 1/s (typ lze u poruchy
-zvolit zvlášť – 4. prvek parametrů, viz dist_integ).
+Model poruchy -> PV má stejné struktury jako MV (DIST_STRUCTS): Kd · e^(-θd s) / ((Tp s + 1)(Tp2 s + 1)),
+u integračních navíc · 1/s. Parametry poruchy pd = [Kd, Tp, θd, typ, Tp2]: typ 0 = podle procesu, 1 = samoregulační,
+2 = integrační (viz dist_integ); Tp = 0 / Tp2 = 0 = bez dané setrvačnosti (P0D: obě 0, P1D: Tp2 = 0 …).
+Starší záznam [Kd, Tp, θd] (případně s typem) platí dál – chybějící prvky = 0.
 """
 import numpy as np
 
@@ -26,6 +28,83 @@ MODELS = {
     "I1D": dict(name="Integrační + 1. řád + zpoždění", params=["Ki", "T1", "θ"], integ=True),
 }
 DIST_PARAMS = ["Kd", "Tp", "θd"]
+DIST_STRUCTS = ("P0D", "P1D", "P2D", "I0D", "I1D")
+# editovatelné parametry poruchy podle struktury: (název, index ve vektoru fitu d{j}_i: 0 Kd, 1 Tp, 2 θd, 3 Tp2)
+DIST_FIELDS = {"P0D": [("Kd", 0), ("θd", 2)], "P1D": [("Kd", 0), ("Tp", 1), ("θd", 2)],
+               "P2D": [("Kd", 0), ("Tp", 1), ("Tp2", 3), ("θd", 2)], "I0D": [("Kd", 0), ("θd", 2)],
+               "I1D": [("Kd", 0), ("Tp", 1), ("θd", 2)]}
+
+
+def pd_full(pd):
+    """Parametry poruchy v plném tvaru [Kd, Tp, θd, typ, Tp2] (starší kratší záznam doplněný nulami)."""
+    pd = [float(v) for v in pd] + [0.0] * (5 - len(pd))
+    pd[3] = int(pd[3])
+    return pd[:5]
+
+
+def pd_z(pd):
+    """Parametry poruchy → vektor fitu [Kd, Tp, θd, Tp2] (indexy d{j}_0 … d{j}_3)."""
+    f = pd_full(pd)
+    return [f[0], f[1], f[2], f[4]]
+
+
+def dist_struct(integ, pd):
+    """Struktura přenosu poruchy (jako u MV: P0D … I1D) z jejích parametrů."""
+    f = pd_full(pd)
+    n = int(f[1] > 0) + int(f[4] > 0)
+    if dist_integ(integ, f):
+        return "I0D" if n == 0 else "I1D"
+    return ("P0D", "P1D", "P2D")[n]
+
+
+def dist_setup(fixed, nd, dstruct=None, dkind=None, flat=()):
+    """
+    Nastavení fitu poruch: struktura každé poruchy (dstruct; None = 1. řád s typem dkind) → typy a zafixované
+    parametry ve `fixed` (Tp / Tp2, které struktura nemá; porucha z `flat` s nulovým účinkem). Vrací typy poruch.
+    """
+    kinds = list(dkind or [0] * nd)
+    for j in flat:
+        fixed.update({f"d{j}_0": 0.0, f"d{j}_1": 0.0, f"d{j}_2": 0.0, f"d{j}_3": 0.0})
+    for j in range(nd):
+        st_ = dstruct[j] if dstruct is not None and j < len(dstruct) else None
+        if st_:
+            kinds[j], fx_ = struct_setup(st_)
+            for i, v in fx_.items():
+                fixed.setdefault(f"d{j}_{i}", v)
+        else:
+            fixed.setdefault(f"d{j}_3", 0.0)
+    return kinds
+
+
+def dist_starts(dist0, kd0, T0, theta_max):
+    """
+    Počáteční odhady parametrů poruch pro fit: rychlá porucha (dist0) a pomalá se zpožděním – cena v Tp / θd
+    poruchy mívá lokální minima (fit z jediného startu uvízne na dolní mezi Tp).
+    """
+    if not len(kd0):
+        return [dist0]
+    slow = []
+    for k in kd0:
+        slow += [k, 2 * T0, theta_max / 3, T0 / 2]
+    return [dist0, slow]
+
+
+def order_dists(pdl, fixed):
+    """2. řád poruchy: větší časová konstanta jako Tp (jako T1 ≥ T2 u P2D)."""
+    for j, d in enumerate(pdl):
+        if d[4] > d[1] and f"d{j}_1" not in fixed and f"d{j}_3" not in fixed:
+            d[1], d[4] = d[4], d[1]
+
+
+def struct_setup(struct):
+    """Struktura poruchy → (typ 1/2, zafixované indexy vektoru fitu {i: 0.0}) – Tp / Tp2, které struktura nemá."""
+    kind = 2 if struct.startswith("I") else 1
+    fix = {}
+    if struct in ("P0D", "I0D"):
+        fix[1] = 0.0
+    if struct != "P2D":
+        fix[3] = 0.0
+    return kind, fix
 
 
 def n_free(code: str) -> int:
@@ -56,7 +135,12 @@ def dist_integ(integ, pd):
 
 def simulate_dist(integ, pd, t, dd, h):
     K, T, th = pd[:3]
-    y = K * _lag(np.interp(t - th, t, dd, left=0.0), T, h)
+    y = np.interp(t - th, t, dd, left=0.0)
+    if T > 0:
+        y = _lag(y, T, h)
+    if len(pd) > 4 and pd[4] > 0:
+        y = _lag(y, pd[4], h)
+    y = K * y
     return np.cumsum(y) * h if dist_integ(integ, pd) else y
 
 

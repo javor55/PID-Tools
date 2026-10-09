@@ -57,7 +57,8 @@ def ff_design(code, p, pd):
         # jiný typ přenosu poruchy než MV (např. samoregulační porucha u integračního procesu): ideální člen by
         # derivoval / integroval – statická dopředná vazba nemá smysl (mismatch = True, zesílení 0)
         return dict(gain=0.0, lead=0.0, lag=0.0, delay=0.0, mismatch=True)
-    return dict(gain=-pd[0] / p[0], lead=lead, lag=max(0.0, pd[1] - ahead), delay=max(0.0, pd[2] - p[-1]))
+    tp = pd[1] + (pd[4] if len(pd) > 4 else 0.0)     # 2. řád poruchy: součet časových konstant (přiblížení lagem)
+    return dict(gain=-pd[0] / p[0], lead=lead, lag=max(0.0, tp - ahead), delay=max(0.0, pd[2] - p[-1]))
 
 
 class LeadLag:
@@ -83,6 +84,8 @@ class LeadLag:
 
 def _cross(integ, pd, h):
     """Křížová vazba jako proces krok po kroku."""
+    if not dist_integ(integ, pd) and len(pd) > 4 and pd[4] > 0:
+        return ProcStep("P2D", [pd[0], max(pd[1], 1e-6), pd[4], pd[2]], h)
     return ProcStep("I1D" if dist_integ(integ, pd) else "P1D", [pd[0], max(pd[1], 1e-6), pd[2]], h)
 
 

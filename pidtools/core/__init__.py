@@ -13,7 +13,7 @@ Moduly:
 """
 # veřejné rozhraní jádra (re-export)
 # flake8: noqa
-from .models import (MODELS, DIST_PARAMS, n_free, simulate, simulate_dist, dist_integ, model_dev, fit_percent, stiction_valve,
+from .models import (MODELS, DIST_PARAMS, DIST_STRUCTS, DIST_FIELDS, pd_full, pd_z, dist_struct, struct_setup, n_free, simulate, simulate_dist, dist_integ, model_dev, fit_percent, stiction_valve,
                      high_pass, spline_projector, dyn_scale, predict, predict_full, step_response)
 from .identification import (fit_model, auto_th, fit_with_stiction, flat_inputs, identify, model_metrics,
                              bootstrap_models, norm_factors, rescale_fit)

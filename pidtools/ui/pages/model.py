@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_metrics, predict,
+from ...core import (DIST_FIELDS, MODELS, bootstrap_models, dist_struct, pd_full, pd_z, struct_setup, dyn_scale, model_metrics, predict,
                      step_response)
 from ...i18n import T
 from .. import cache
@@ -33,6 +33,7 @@ def _rescale_fit_state(old_key, new_key, c_d):
     ss.fit["res"], (fK, fKd, fS) = mdl.rescale_results(ss.fit["res"], old_key[mdl.NORM], new_key[mdl.NORM])
     for r in ss.fit["res"].values():
         r.pop("dv_chk", None)                 # kontrolní odhady poruch v původních jednotkách – do nové identifikace
+        r.pop("dv_cmp", None)
     for c in list(ss.fit["res"]):
         if f"ed|{c}|0" in ss:
             ss[f"ed|{c}|0"] = float(ss[f"ed|{c}|0"]) * fK
@@ -85,9 +86,59 @@ def _reset_edits(code):
     for i, v in enumerate(r["p"]):
         ss[f"ed|{code}|{i}"] = _g4(v) if i else float(v)      # časy: numerický šum kolem 0 jako 0
     for j, pd_ in enumerate(r["pdl"]):
-        for i, v in enumerate(pd_):
-            ss[f"ed|{code}|d{j}|{i}"] = _g4(v) if i else float(v)
+        ss.pop(f"dsel|{code}|{j}", None)                     # struktura poruchy zpět na identifikovanou
+        _set_dist_ed(code, j, pd_)
     ss[f"ed|{code}|stic"] = float(r.get("stic", 0.0) or 0.0)
+
+
+def _set_dist_ed(code, j, pd_):
+    """Pole parametrů poruchy j (Kd, Tp, θd, Tp2) z parametrů [Kd, Tp, θd, typ, Tp2]."""
+    for i, v in enumerate(pd_z(pd_)):
+        ss[f"ed|{code}|d{j}|{i}"] = _g4(v) if i else float(v)
+
+
+def _cmp_of(r, j):
+    """Porovnání struktur přenosu poruchy j z identifikace [(struktura, FIT, parametry | chyba)] (i z projektu)."""
+    c = r.get("dv_cmp") or {}
+    return c.get(j, c.get(str(j))) or []
+
+
+def _dist_id(code, r, j):
+    """Identifikovaná struktura přenosu poruchy j."""
+    return dist_struct(MODELS[code]["integ"], r["pdl"][j])
+
+
+def _dsel(code, r, j):
+    """Zvolená struktura přenosu poruchy j (výběr v kartě poruchy; jinak identifikovaná)."""
+    v = ss.get(f"dsel|{code}|{j}")
+    return v if v in DIST_FIELDS else _dist_id(code, r, j)
+
+
+def _dsel_pd(code, r, j):
+    """Parametry poruchy j pro zvolenou strukturu: identifikované, nebo z porovnání struktur."""
+    sel = _dsel(code, r, j)
+    if sel != _dist_id(code, r, j):
+        for st_, f_, pd_ in _cmp_of(r, j):
+            if st_ == sel and f_ is not None:
+                return pd_full(pd_)
+    return pd_full(r["pdl"][j])
+
+
+def _dsel_changed(code, j):
+    """Callback: jiná struktura poruchy → pole parametrů z porovnání struktur."""
+    r = ss.fit["res"][code]
+    _set_dist_ed(code, j, _dsel_pd(code, r, j))
+
+
+def _dist_from_ed(code, r, j):
+    """Parametry poruchy j [Kd, Tp, θd, typ, Tp2] ze zvolené struktury a polí parametrů."""
+    sel = _dsel(code, r, j)
+    z = pd_z(_dsel_pd(code, r, j))
+    z = [float(ss.get(f"ed|{code}|d{j}|{i}", v)) for i, v in enumerate(z)]
+    kind, fix = struct_setup(sel)
+    for i, v in fix.items():
+        z[i] = v
+    return [z[0], z[1], z[2], kind, z[3]]
 
 
 _CTX_KEYS = (
@@ -202,19 +253,21 @@ def _md_cards(s):
     dkinds, dsigns = [], []
     for j, dn in enumerate(c_d):              # přenosy poruch: typ a směr účinku zvlášť pro každou poruchu
         cd_ = cards[j + 1]
-        with cd_["typ"]:
-            chk_ = ((res_prev[mc_prev].get("dv_chk") or {}).get("type", {}).get(j) if mc_prev else None) or []
-            dfit_ = {k_: f_ for k_, f_, _ in chk_ if f_ is not None}      # FIT typů z porovnání (při identifikaci)
-            dkinds.append(_lrow(T("ms_type"), T("h_dkind")).selectbox(
-                T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}", label_visibility="collapsed",
-                format_func=lambda x, f_=dfit_: T("dkind_" + x) + (f" · FIT {f_[x]:.1f} %" if x in f_ else ""),
-                disabled=not win))
+        kk_ = f"dkind|{dn}"                   # typ přenosu pro identifikaci (jako u MV: struktura P0D … I1D)
+        ss[kk_] = {"self": "P1D", "integ": "I1D"}.get(ss.get(kk_), ss.get(kk_))
+        if ss.get(kk_) not in mdl.DIST_CHOICES:
+            ss[kk_] = "pv"
+        if mc_prev:                           # po identifikaci se volí v kartě z porovnání struktur (s FIT)
+            dkinds.append(ss[kk_])
+        else:
+            with cd_["typ"]:
+                dkinds.append(_lrow(T("ms_type"), T("h_dkind")).selectbox(
+                    T("dkind"), list(mdl.DIST_CHOICES), key=kk_, label_visibility="collapsed",
+                    format_func=lambda x: T("dkind_" + x) if x in ("pv", "auto") else model_name(x)))
         with cd_["sign"]:
             dsigns.append(mdl.SIGN[seg(_lrow(T("ms_sign"), T("h_dsign")), T("ms_sign"), ["neg", "auto", "pos"],
                                        "auto", f"dsign|{dn}", format_func=gs_lab.get, disabled=not win,
                                        label_visibility="collapsed") or "auto"])
-        if not win:
-            cd_["head"].caption(T("ms_dist_common"))
     if closed and win:
         ws.ident.warning(T("win_no_cl"), icon=":material/warning:")
         closed = False
@@ -238,12 +291,14 @@ def _md_fit(s):
     if win:
         fit_key = fit_key + ("win", tuple(ctx.win_idx), ctx.excl_key, tuple(dkinds), tuple(dsigns))
 
-    def do_fit(c, fixed=None, stic_fixed=None):
-        """Fit jednoho modelu podle nastavení (neměřené poruchy, znaménko, stikce, zafixované parametry)."""
+    def do_fit(c, fixed=None, stic_fixed=None, dk=None):
+        """Fit jednoho modelu podle nastavení (neměřené poruchy, znaménko, stikce, zafixované parametry, struktury)."""
+        dk = dk or dkinds
         if win:
-            return mdl.identify_windows(c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns,
+            return mdl.identify_windows(c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dk, dsigns,
                                         fixed, fn=cache.fit_windows)
-        return mdl.identify(c, ts_id, pv_id, mv_id, Ts, d_id, sets, fixed, stic_fixed, fn=cache.identify, d_full=dists)
+        return mdl.identify(c, ts_id, pv_id, mv_id, Ts, d_id, sets, fixed, stic_fixed, fn=cache.identify, d_full=dists,
+                            dkinds=dk)
 
     if run_fit and win:
         if not ctx.win_idx:
@@ -271,7 +326,7 @@ def _md_fit(s):
             n_ = max(len(chosen), 1) * (2 if closed else 1)
             prog = ws.top.progress(0.0, text=T("fitting"))
             res, errs = mdl.identify_all(
-                ts_id, pv_id, mv_id, Ts, d_id, sets, fn=cache.identify, d_full=dists,
+                ts_id, pv_id, mv_id, Ts, d_id, sets, fn=cache.identify, d_full=dists, dkinds=dkinds,
                 progress=lambda i, c: prog.progress(i / n_, text=f"{T('fitting')} {model_name(c)} ({i + 1}/{n_})"))
             if res and closed:
                 ctrl_ = {k: v for k, v in ctx.set_ctrl(1).items() if k not in ("FF", "FF_LL")}
@@ -295,15 +350,17 @@ def _md_fit(s):
             names_ = MODELS[rc_]["params"]
             fixed_ = {f"p{i}": float(ss[f"ed|{rc_}|{i}"]) for i in range(len(names_))
                       if not ss.get(f"idf|{rc_}|{i}", True)}
+            r0_ = ss.fit["res"][rc_]
+            dk_ = [_dsel(rc_, r0_, j) for j in range(len(c_d))]   # dofitování se zvolenými strukturami poruch
             for j in range(len(c_d)):
-                for i in range(3):
-                    if not ss.get(f"idf|{rc_}|d{j}|{i}", True):
+                for i in range(4):
+                    if not ss.get(f"idf|{rc_}|d{j}|{i}", True) and f"ed|{rc_}|d{j}|{i}" in ss:
                         fixed_[f"d{j}_{i}"] = float(ss[f"ed|{rc_}|d{j}|{i}"])
             sfix = (float(ss.get(f"ed|{rc_}|stic", 0.0)) if (not ss.get(f"idf|{rc_}|stic", True) or not id_stic)
                     else None)
             try:
                 with ws.top, st.spinner(T("fitting")):
-                    ss.fit["res"][rc_] = do_fit(rc_, fixed_, sfix)
+                    ss.fit["res"][rc_] = do_fit(rc_, fixed_, sfix, dk_)
                     if ss.fit["res"][rc_].get("method") == "win":
                         ss.fit["res"][rc_]["dv_chk"] = _dv_checks(ctx, rc_, ss.fit["res"][rc_], dsigns)
                 _reset_edits(rc_)
@@ -360,7 +417,8 @@ def _md_table(s):
                                     if r_.get("fit_cl_pv") is not None else "—")
         row.update({n: _g4(v) for n, v in zip(MODELS[c]["params"], q["p"])})
         for j, pd_ in enumerate(q["pdl"]):
-            row.update({f"{n} ({c_d[j]})": _g4(v) for n, v in zip(DIST_PARAMS, pd_)})
+            z_ = pd_z(pd_)
+            row.update({f"{n} ({c_d[j]})": _g4(z_[i]) for n, i in DIST_FIELDS[dist_struct(MODELS[c]["integ"], pd_)]})
         if any_stic:
             row[T("col_stic", u=u_mv or "MV")] = float(f"{q['stic'] * MR / 100:.3g}")
         if lvl_fit != "none":
@@ -375,7 +433,7 @@ def _md_table(s):
             row["FIT [%]"] = round(s.fnow[c], 1)
             for _k, (lab_, f_) in enumerate(zip(_win_labels(ctx), res[c].get("fits", []))):
                 row[lab_] = round(f_, 1)
-            kinds_ = [T("dkind_short_" + ("integ" if mdl_integ_d(c, d_) else "self")) for d_ in res[c]["pdl"]]
+            kinds_ = [dist_struct(MODELS[c]["integ"], d_) for d_ in res[c]["pdl"]]
             if kinds_:
                 row[T("dkind")] = ", ".join(kinds_)
         rows.append(row)
@@ -420,7 +478,7 @@ def _md_table(s):
                     ss["cv_res"] = dict(key=cvk, res={c: cache.cross_validate(
                         c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, theta_max=th_max,
                         sign=mdl.SIGN[gain_sign], dsign=tuple(dsigns),
-                        dkind=tuple(int(d_[3]) if len(d_) > 3 else 0 for d_ in r_["pdl"]))
+                        dstruct=tuple(dist_struct(MODELS[c]["integ"], d_) for d_ in r_["pdl"]))
                         for c, r_ in res.items() if r_.get("method") == "win"})
                 st.rerun()
             if cvr:
@@ -455,7 +513,7 @@ def _md_mv_card(s):
     ss["mcode"] = ss["_mcode_last"] = mcode
     names = MODELS[mcode]["params"]
     need = [f"ed|{mcode}|{i}" for i in range(len(names))] + [
-        f"ed|{mcode}|d{j}|{i}" for j in range(len(c_d)) for i in range(len(DIST_PARAMS))] + [
+        f"ed|{mcode}|d{j}|{i}" for j in range(len(c_d)) for i in range(4)] + [
         f"ed|{mcode}|stic"]
     if any(k not in ss for k in need):
         _reset_edits(mcode)
@@ -475,11 +533,26 @@ def _md_mv_card(s):
         if win:
             cd_["head"].markdown(f"<div class='pid-src'>{html.escape(_card_src(ctx, str(dn)))}</div>",
                                  unsafe_allow_html=True)
+        rj_ = res[mcode]
+        opts_ = [st_ for st_, f_, _ in _cmp_of(rj_, j) if f_ is not None] or [_dist_id(mcode, rj_, j)]
+        if _dist_id(mcode, rj_, j) not in opts_:
+            opts_ = [_dist_id(mcode, rj_, j)] + opts_
+        if ss.get(f"dsel|{mcode}|{j}") not in opts_:
+            ss[f"dsel|{mcode}|{j}"] = _dist_id(mcode, rj_, j)
+        fits_ = {st_: f_ for st_, f_, _ in _cmp_of(rj_, j) if f_ is not None}
+        id_ = _dist_id(mcode, rj_, j)
+        with cd_["typ"]:                      # typ přenosu poruchy jako u MV: struktury s FIT z porovnání
+            _lrow(T("ms_type"), T("h_dkind")).selectbox(
+                T("dkind"), opts_, key=f"dsel|{mcode}|{j}", label_visibility="collapsed",
+                on_change=_dsel_changed, args=(mcode, j),
+                format_func=lambda x, f_=fits_, i_=id_: model_name(x) + (
+                    f" · FIT {f_[x]:.1f} %" if x in f_ else "") + (f" · {T('ms_dist_ident')}" if x == i_ else ""))
         with cd_["params"]:
             _param_head()
-            pdl_ed.append([_param_row(f"ed|{mcode}|d{j}|{i}", f"idf|{mcode}|d{j}|{i}", n,
-                                      _unit(n, ctx, str(dn)), i == 0, T("h_dist_" + str(i)))
-                           for i, n in enumerate(DIST_PARAMS)])
+            for n, i in DIST_FIELDS[_dsel(mcode, rj_, j)]:
+                _param_row(f"ed|{mcode}|d{j}|{i}", f"idf|{mcode}|d{j}|{i}", n, _unit(n, ctx, str(dn)), i == 0,
+                           T("h_dist_" + str({3: 1}.get(i, i))))
+            pdl_ed.append(_dist_from_ed(mcode, rj_, j))
     with cards[0]["sign"]:
         _card_buttons(mcode)
         if ss.get("refit_msg"):
@@ -502,10 +575,7 @@ def _md_mv_card(s):
     for j, _dn in enumerate(c_d):             # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
         with cmp_tabs[j + 1]:
             if _shown(ctx, "mod_cmp", s.cmp_labels, j + 1):
-                if win and res[mcode].get("method") == "win":
-                    _dist_type_table(res[mcode], j)
-                else:
-                    st.caption(T("ms_cmp_dv_common"))
+                _dist_type_table(res[mcode], j)
     s.mcode, s.p_ed, s.pdl_ed = mcode, p_ed, pdl_ed
 
 
@@ -517,7 +587,7 @@ def _md_eval(s):
     fit_box = ws.val
     rp = res[mcode]
     p_c, pdl_c = mdl.clamp(p_ed, pdl_ed)
-    model = (mcode, p_c, [d + list(rp["pdl"][j][3:]) for j, d in enumerate(pdl_c)])   # + typ přenosu poruchy
+    model = (mcode, p_c, pdl_c)                # poruchy: [Kd, Tp, θd, typ, Tp2] podle zvolené struktury
     model_stic = float(ss.get(f"ed|{mcode}|stic", 0.0) or 0.0)
     model_level, model_Th = rp.get("level", "none"), rp.get("Th")
     edited = mdl.is_edited(model[1], model[2], model_stic, rp)
@@ -767,9 +837,8 @@ def _live_fits(ctx, code, p, pdl):
 def _edited(code, r):
     """Model s hodnotami z polí parametrů (ruční úpravy), jinak nafitovaný – jako model záložky."""
     p = [float(ss.get(f"ed|{code}|{i}", v)) for i, v in enumerate(r["p"])]
-    pdl = [[float(ss.get(f"ed|{code}|d{j}|{i}", v)) for i, v in enumerate(d[:3])] for j, d in enumerate(r["pdl"])]
-    p, pdl = mdl.clamp(p, pdl)
-    return p, [d + list(r["pdl"][j][3:]) for j, d in enumerate(pdl)]
+    pdl = [_dist_from_ed(code, r, j) for j in range(len(r["pdl"]))]
+    return mdl.clamp(p, pdl)
 
 
 def _input_fit(ctx, code, r, name):
@@ -871,19 +940,27 @@ def _card_buttons(code, key=""):
               help=T("h_ms_reset"), key=f"g_reset_ed{key}" if key else None)
 
 
+def _fixed_all(r, skip=()):
+    """Zafixované parametry výsledku r (MV i poruchy, vektor fitu) kromě názvů ve `skip`."""
+    fx = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
+    for jj, d in enumerate(r["pdl"]):
+        fx.update({f"d{jj}_{i}": float(v) for i, v in enumerate(pd_z(d))})
+    return {k: v for k, v in fx.items() if k not in skip}
+
+
+def _structs(code, r):
+    return tuple(dist_struct(MODELS[code]["integ"], d) for d in r["pdl"])
+
+
 def _mv_win_est(ctx, code, r, dsigns):
     """Zesílení MV odhadnuté zvlášť v každém úseku MV (ostatní parametry pevné): [(od, do, K, FIT)]."""
-    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"]) if i}
-    for jj, d in enumerate(r["pdl"]):
-        for i in range(3):
-            fixed[f"d{jj}_{i}"] = float(d[i])
+    fixed = _fixed_all(r, ("p0",))
     out = []
-    kinds = tuple(int(d[3]) if len(d) > 3 else 0 for d in r["pdl"])
     for a, b in ctx.wins_s.get("MV", []):
         i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
         try:
             q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
-                                  0, tuple(dsigns), kinds, 4)
+                                  0, tuple(dsigns), None, 4, _structs(code, r))
             out.append((float(a), float(b), float(q["p"][0]), float(q["fit"])))
         except Exception:
             out.append((float(a), float(b), None, None))
@@ -906,52 +983,25 @@ def _mv_window_table(r, pname):
 
 def _dv_checks(ctx, code, r, dsigns):
     """
-    Kontrolní odhady přenosů poruch pro model z úseků (počítají se při identifikaci a dofitování, ne při každé
-    změně): zesílení poruchy zvlášť v každém jejím úseku a porovnání typů přenosu poruchy.
+    Kontrolní odhady pro model z úseků (počítají se při identifikaci a dofitování, ne při každé změně): zesílení
+    MV a každé poruchy zvlášť v každém jejich úseku (porovnání struktur poruch je ve výsledku v „dv_cmp“).
     """
     return dict(mv=_mv_win_est(ctx, code, r, dsigns),
-                win={j: _dv_win_est(ctx, code, r, j, str(dn), dsigns) for j, dn in enumerate(ctx.c_d)},
-                type={j: _dv_type_est(ctx, code, r, j, dsigns) for j in range(len(ctx.c_d))})
+                win={j: _dv_win_est(ctx, code, r, j, str(dn), dsigns) for j, dn in enumerate(ctx.c_d)})
 
 
 def _dv_win_est(ctx, code, r, j, name, dsigns):
     """Zesílení poruchy j odhadnuté zvlášť v každém jejím úseku (ostatní parametry pevné): [(od, do, Kd, FIT)]."""
-    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
-    for jj, d in enumerate(r["pdl"]):
-        for i in range(3):
-            if not (jj == j and i == 0):
-                fixed[f"d{jj}_{i}"] = float(d[i])
+    fixed = _fixed_all(r, (f"d{j}_0",))
     out = []
-    kinds = tuple(int(d[3]) if len(d) > 3 else 0 for d in r["pdl"])
     for a, b in ctx.wins_s.get(name, []):
         i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
         try:
             q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
-                                  0, tuple(dsigns), kinds, 4)
+                                  0, tuple(dsigns), None, 4, _structs(code, r))
             out.append((float(a), float(b), float(q["pdl"][j][0]), float(q["fit"])))
         except Exception:
             out.append((float(a), float(b), None, None))
-    return out
-
-
-def _dv_type_est(ctx, code, r, j, dsigns):
-    """Typy přenosu poruchy j porovnané na úsecích (model MV a ostatní poruchy pevné): [(typ, FIT, Kd, Tp, θd | chyba)]."""
-    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
-    for jj, d in enumerate(r["pdl"]):
-        if jj != j:
-            for i in range(3):
-                fixed[f"d{jj}_{i}"] = float(d[i])
-    base = [int(d[3]) if len(d) > 3 else 0 for d in r["pdl"]]
-    out = []
-    for key, kind, extra in (("integ0", 2, {f"d{j}_1": 0.2 * ctx.Ts}), ("integ", 2, {}), ("self", 1, {})):
-        kinds = list(base)
-        kinds[j] = kind
-        try:
-            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, tuple(ctx.win_idx), ctx.valid, None,
-                                  dict(fixed, **extra), 0, tuple(dsigns), tuple(kinds), 8)
-            out.append((key, float(q["fit"]), [float(x) for x in q["pdl"][j][:3]]))
-        except Exception as ex:
-            out.append((key, None, str(ex)))
     return out
 
 
@@ -969,20 +1019,22 @@ def _dist_window_table(r, j):
     table(pd.DataFrame(rows), hide_index=True, width="stretch")
 
 
+def _dist_struct_text(st_, pd_):
+    """Parametry poruchy podle struktury: „Kd 0,01 · Tp 12 s · θd 3 s“."""
+    z = pd_z(pd_)
+    return " · ".join(f"{n} {_g4(z[i])}" + ("" if i == 0 else " s") for n, i in DIST_FIELDS[st_])
+
+
 def _dist_type_table(r, j):
-    """Porovnání typů přenosu poruchy j (spočtené při identifikaci): integrační, integrační bez setrvačnosti,
-    samoregulační. Výběr se zapíše do typu přenosu poruchy."""
-    chk = (r.get("dv_chk") or {}).get("type", {}).get(j)
-    if chk is None:
+    """Porovnání struktur přenosu poruchy j (spočtené při identifikaci, MV a ostatní poruchy pevné)."""
+    chk = _cmp_of(r, j)
+    if not chk:
         st.caption(T("ms_dv_chk_none"))
         return
     rows = []
-    for key, f, d in chk:
-        if f is None:
-            rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": None, T("ms_cmp_par"): T(d)})
-            continue
-        par = f"Kd {_g4(d[0])} · " + ("" if key == "integ0" else f"Tp {_g4(d[1])} s · ") + f"θd {_g4(d[2])} s"
-        rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": round(f, 1), T("ms_cmp_par"): par})
+    for st_, f, d in chk:
+        rows.append({T("ms_cmp_type"): model_name(st_), "FIT [%]": None if f is None else round(f, 1),
+                     T("ms_cmp_par"): T(d) if f is None else _dist_struct_text(st_, d)})
     st.caption(T("ms_cmp_dv_note"))
     table(pd.DataFrame(rows), hide_index=True, width="stretch",
           column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0, max_value=100,
@@ -1048,43 +1100,10 @@ def _whole_record(ctx, model, stic):
     table(pd.DataFrame(out), hide_index=True, width="stretch")
 
 
-def _dist_type_table(ctx, code, r, j, dsigns):
-    """Typy přenosu poruchy j porovnané na úsecích (model MV a ostatní poruchy pevné): integrační, integrační bez
-    setrvačnosti, samoregulační. Výběr se zapíše do typu přenosu poruchy."""
-    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
-    for jj, d in enumerate(r["pdl"]):
-        if jj != j:
-            for i in range(3):
-                fixed[f"d{jj}_{i}"] = float(d[i])
-    base = [int(d[3]) if len(d) > 3 else 0 for d in r["pdl"]]
-    rows = []
-    for key, kind, extra in (("integ0", 2, {f"d{j}_1": 0.2 * ctx.Ts}), ("integ", 2, {}), ("self", 1, {})):
-        kinds = list(base)
-        kinds[j] = kind
-        try:
-            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, tuple(ctx.win_idx), ctx.valid, None,
-                                  dict(fixed, **extra), 0, tuple(dsigns), tuple(kinds), 8)
-            d = q["pdl"][j]
-            par = f"Kd {_g4(d[0])} · " + ("" if key == "integ0" else f"Tp {_g4(d[1])} s · ") + f"θd {_g4(d[2])} s"
-            rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": round(q["fit"], 1), T("ms_cmp_par"): par})
-        except Exception as ex:
-            rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": None, T("ms_cmp_par"): T(str(ex))})
-    st.caption(T("ms_cmp_dv_note"))
-    table(pd.DataFrame(rows), hide_index=True, width="stretch",
-                 column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0, max_value=100,
-                                                                          format="%.1f")})
-
-
 def _g4(v):
     """Číslo do tabulky na 4 platné číslice; numerický šum kolem nuly (θ = 1e-15 s) jako 0."""
     v = float(v)
     return 0.0 if abs(v) < 1e-9 else float(f"{v:.4g}")
-
-
-def mdl_integ_d(code, pd_):
-    """Je přenos poruchy integrační (podle typu poruchy, jinak podle modelu MV)?"""
-    from ...core import dist_integ
-    return dist_integ(MODELS[code]["integ"], pd_)
 
 
 def _win_labels(ctx):
