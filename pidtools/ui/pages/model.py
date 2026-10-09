@@ -112,6 +112,17 @@ def render(ctx):
 
 
 
+def _shown(ctx, key, labels, i):
+    """
+    Počítat obsah pod-záložky? Jen vybraná pod-záložka otevřené záložky Model – ostatní se při každé změně
+    (úsek, parametr) nepřepočítávají. Plný běh pro report počítá vše.
+    """
+    if ctx.full:
+        return True
+    cur = ss.get(key)
+    return ctx.active_tab == "model" and (cur if cur in labels else labels[0]) == labels[i]
+
+
 def _md_ident(s):
     """Panel identifikace: režim (otevřená / uzavřená smyčka), modely, θ max, neměřené poruchy, stikce."""
     Ts, ctx, d_id, mv_id, pv_id, sel_mask = s.Ts, s.ctx, s.d_id, s.mv_id, s.pv_id, s.sel_mask
@@ -354,8 +365,8 @@ def _md_table(s):
         rows.append(row)
     with ws.m_res.container(border=True, key="pid_card_cmp"):
         st.markdown(f"**{T('ms_cmp')}**", help=T("h_ms_cmp"))
-        cmp_tabs = st.tabs([T("ms_cmp_tab", k=1, n="MV")] + [T("ms_cmp_tab", k=j + 2, n=str(dn))
-                                                               for j, dn in enumerate(c_d)])
+        cmp_labels = [T("ms_cmp_tab", k=1, n="MV")] + [T("ms_cmp_tab", k=j + 2, n=str(dn)) for j, dn in enumerate(c_d)]
+        cmp_tabs = st.tabs(cmp_labels, key="mod_cmp", on_change="rerun")
         ctx.cmp_tabs = cmp_tabs
     with cmp_tabs[0]:
         st.caption(T("ms_cmp_note") if win else T("ms_cmp_note_common"))
@@ -401,7 +412,7 @@ def _md_table(s):
         for wk, c in mdl.warnings(res, ts_id[-1], th_max):
             st.warning(T(wk, m=model_name(c)), icon=":material/trending_up:" if wk == "warn_long_T"
                        else ":material/warning:")
-    s.cmp_tabs, s.rows = cmp_tabs, rows
+    s.cmp_tabs, s.cmp_labels, s.rows = cmp_tabs, cmp_labels, rows
 
 
 def _md_mv_card(s):
@@ -471,10 +482,11 @@ def _md_mv_card(s):
                 _dist_window_table(ctx, mcode, res[mcode], j, str(dn), dsigns, dkinds)
     for j, _dn in enumerate(c_d):             # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
         with cmp_tabs[j + 1]:
-            if win and res[mcode].get("method") == "win":
-                _dist_type_table(ctx, mcode, res[mcode], j, dsigns)
-            else:
-                st.caption(T("ms_cmp_dv_common"))
+            if _shown(ctx, "mod_cmp", s.cmp_labels, j + 1):
+                if win and res[mcode].get("method") == "win":
+                    _dist_type_table(ctx, mcode, res[mcode], j, dsigns)
+                else:
+                    st.caption(T("ms_cmp_dv_common"))
     s.mcode, s.p_ed, s.pdl_ed = mcode, p_ed, pdl_ed
 
 
@@ -544,46 +556,49 @@ def _md_charts(s):
     REPORT["tables"].append((T("rep_tab_models"), pd.DataFrame(rows).set_index(T("col_model"))))
 
     with t_step:
-        ts_a, ya = step_response(mcode, rp["p"])
-        ts_b, yb = step_response(mcode, model[1], horizon=ts_a[-1])
-        f = go.Figure()
-        f.add_trace(tr(ts_a, ya * PR / 100, T("fit"), C_MODEL[mcode], 2.2))
-        if edited:
-            f.add_trace(tr(ts_b, yb * PR / 100, T("edited"), _c_edit(), 2.0, "dash"))
-        if rp.get("method") == "cl" and rp.get("p_open"):
-            ts_o, yo = step_response(mcode, rp["p_open"], horizon=ts_a[-1])
-            f.add_trace(tr(ts_o, yo * PR / 100, T("idm_open_curve"), "#94a3b8", 1.6, "dot"))
-        f.add_vline(x=model[1][-1], line=dict(color="#94a3b8", dash="dot", width=1),
-                    annotation_text="θ", annotation_position="top")
-        style(f, 420, xtitle=lab_t, rev=f"step|{mcode}")
-        f.update_layout(yaxis_title=f"Δ{lab_pv}")
-        show(f, key=f"step|{mcode}", fname="step_response", report=T("step_title"))
+        if _shown(ctx, "mod_view2", labels, 0):
+            ts_a, ya = step_response(mcode, rp["p"])
+            ts_b, yb = step_response(mcode, model[1], horizon=ts_a[-1])
+            f = go.Figure()
+            f.add_trace(tr(ts_a, ya * PR / 100, T("fit"), C_MODEL[mcode], 2.2))
+            if edited:
+                f.add_trace(tr(ts_b, yb * PR / 100, T("edited"), _c_edit(), 2.0, "dash"))
+            if rp.get("method") == "cl" and rp.get("p_open"):
+                ts_o, yo = step_response(mcode, rp["p_open"], horizon=ts_a[-1])
+                f.add_trace(tr(ts_o, yo * PR / 100, T("idm_open_curve"), "#94a3b8", 1.6, "dot"))
+            f.add_vline(x=model[1][-1], line=dict(color="#94a3b8", dash="dot", width=1),
+                        annotation_text="θ", annotation_position="top")
+            style(f, 420, xtitle=lab_t, rev=f"step|{mcode}")
+            f.update_layout(yaxis_title=f"Δ{lab_pv}")
+            show(f, key=f"step|{mcode}", fname="step_response", report=T("step_title"))
 
     with t_all:
-        if win:
-            ex = [(f"{c} ({r['fit']:.1f} %)", cache.predict_windows(c, r["p"], r["pdl"], t, pv, mv, Ts, dists,
-                                                                     ctx.win_idx, ctx.valid)[0][sel_mask],
-                   C_MODEL[c], None) for c, r in res.items()]
-        else:
-            ex = [(f"{c} ({r['fit']:.1f} %)", predict(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts,
-                                                       r.get("stic", 0.0))[0], C_MODEL[c], None)
-                  for c, r in res.items()]
-        show(ctx.data_fig(ts_id, sel_mask, ex), key="chart_all", fname="models")
+        if _shown(ctx, "mod_view2", labels, 1):
+            if win:
+                ex = [(f"{c} ({r['fit']:.1f} %)", cache.predict_windows(c, r["p"], r["pdl"], t, pv, mv, Ts, dists,
+                                                                         ctx.win_idx, ctx.valid)[0][sel_mask],
+                       C_MODEL[c], None) for c, r in res.items()]
+            else:
+                ex = [(f"{c} ({r['fit']:.1f} %)", predict(c, r["p"], r["pdl"], ts_id, pv_id, mv_id, d_id, Ts,
+                                                           r.get("stic", 0.0))[0], C_MODEL[c], None)
+                      for c, r in res.items()]
+            show(ctx.data_fig(ts_id, sel_mask, ex), key="chart_all", fname="models")
 
     # ---- neměřené poruchy: co s daty udělalo potlačení
     if model_level != "none":
         with tabs_[4]:
-            fd = mkfig(1)
-            if model_level == "high":
-                fd.add_trace(tr(ts_id, pf_ed["dist"] * PR / 100, T("dl_est"), "#7c3aed", 2.0), 1, 1)
-            else:
-                fd.add_trace(tr(ts_id, pf_ed["pv"] * PR / 100, T("dl_filtered_pv"), C_PV, 1.3), 1, 1)
-                fd.add_trace(tr(ts_id, pf_ed["yhat"] * PR / 100, T("dl_filtered_model"), C_MODEL[mcode], 2.0), 1, 1)
-            style(fd, 360, [f"Δ{lab_pv}"], lab_t, rev="dl")
-            st.caption(T("dl_view", th=f"{(model_Th or 0):.0f}"))
-            show(fd, key="chart_dl", fname="unmeasured")
-            st.caption(T("dl_view_help_" + model_level))
-    s.seg_extra, s.seg_resid, s.t_eval, s.t_val = seg_extra, seg_resid, t_eval, t_val
+            if _shown(ctx, "mod_view2", labels, 4):
+                fd = mkfig(1)
+                if model_level == "high":
+                    fd.add_trace(tr(ts_id, pf_ed["dist"] * PR / 100, T("dl_est"), "#7c3aed", 2.0), 1, 1)
+                else:
+                    fd.add_trace(tr(ts_id, pf_ed["pv"] * PR / 100, T("dl_filtered_pv"), C_PV, 1.3), 1, 1)
+                    fd.add_trace(tr(ts_id, pf_ed["yhat"] * PR / 100, T("dl_filtered_model"), C_MODEL[mcode], 2.0), 1, 1)
+                style(fd, 360, [f"Δ{lab_pv}"], lab_t, rev="dl")
+                st.caption(T("dl_view", th=f"{(model_Th or 0):.0f}"))
+                show(fd, key="chart_dl", fname="unmeasured")
+                st.caption(T("dl_view_help_" + model_level))
+    s.seg_extra, s.seg_resid, s.t_eval, s.t_val, s.labels = seg_extra, seg_resid, t_eval, t_val, labels
 
 
 def _md_detail(s):
@@ -594,52 +609,54 @@ def _md_detail(s):
     u_pv = s.u_pv
     # ---- podrobné hodnocení modelu
     with t_eval:
-        vkey_ = f"rng_val|{fname}|{t[-1]:.0f}"
-        rv_ = ss.get(vkey_)
-        segs_eval = [(T("eval_id"), sel_mask, mm)]
-        if rv_ and tuple(rv_) != tuple(rng):
-            sv_, tv_ = mdl.segment(t, rv_)
-            if sv_.sum() > 50:
-                ev_v = mdl.evaluate(mcode, model[1], model[2], model_stic, model_level, model_Th, tv_, pv[sv_],
-                                    mv[sv_], [d[sv_] for d in dists], Ts)
-                segs_eval.append((T("eval_val"), sv_, ev_v["metrics"]))
-        etab = pd.DataFrame({nm_: {
-            "FIT [%]": f"{m_['FIT']:.1f}", "NRMSE [%]": f"{m_['NRMSE']:.2f}",
-            T("eval_iae", u=u_pv or "PV"): f"{m_['IAE'] * PR / 100:.3g}", "R²": f"{m_['R2']:.3f}",
-            T("eval_white"): f"{100 * m_['frac_acf']:.0f} %", T("eval_ccf"): f"{100 * m_['frac_ccf']:.0f} %",
-            T("col_status"): T(f"st_{m_['status']}")} for nm_, _, m_ in segs_eval})
-        e1, e2 = st.columns([1, 1.6], gap="large")
-        with e1:
-            table(etab, width="stretch")
-            REPORT["tables"].append((T("eval_title"), etab))
-            msgs = [T("eval_st_" + str(mm["status"]))]
-            if mm["frac_ccf"] > 0.2:
-                msgs.append(T("eval_ccf_bad"))
-            elif mm["frac_acf"] > 0.5:
-                msgs.append(T("eval_acf_bad"))
-            else:
-                msgs.append(T("eval_res_ok"))
-            if len(segs_eval) == 1:
-                msgs.append(T("eval_no_val"))
-            st.markdown("  \n".join(msgs))
-        with e2:
-            fr = make_subplots(rows=1, cols=2, subplot_titles=(T("eval_acf_t"), T("eval_ccf_t")))
-            lags_a = np.arange(1, len(mm["acf"]) + 1) * mm["lag_step"]
-            lags_c = np.arange(0, len(mm["ccf"])) * mm["lag_step"]
-            cola = ["#dc2626" if abs(v) > mm["bound"] else "#1f5fa8" for v in mm["acf"]]
-            colc = ["#dc2626" if abs(v) > mm["bound"] else "#1f5fa8" for v in mm["ccf"]]
-            fr.add_trace(go.Bar(x=lags_a, y=mm["acf"], marker_color=cola, name="ACF", showlegend=False), 1, 1)
-            fr.add_trace(go.Bar(x=lags_c, y=mm["ccf"], marker_color=colc, name="CCF", showlegend=False), 1, 2)
-            for cix in (1, 2):
-                for sg_ in (1, -1):
-                    fr.add_hline(y=sg_ * mm["bound"], line=dict(color="#94a3b8", dash="dot", width=1), row=1, col=cix)
-            fr.update_layout(height=300, margin=dict(l=8, r=8, t=30, b=8), hovermode="closest", uirevision="res")
-            fr.update_xaxes(title_text=T("lag_s"))
-            show(fr, key="chart_restest", fname="residual_tests")
-        st.caption(T("eval_help"))
+        if _shown(ctx, "mod_view2", s.labels, 2):
+            vkey_ = f"rng_val|{fname}|{t[-1]:.0f}"
+            rv_ = ss.get(vkey_)
+            segs_eval = [(T("eval_id"), sel_mask, mm)]
+            if rv_ and tuple(rv_) != tuple(rng):
+                sv_, tv_ = mdl.segment(t, rv_)
+                if sv_.sum() > 50:
+                    ev_v = mdl.evaluate(mcode, model[1], model[2], model_stic, model_level, model_Th, tv_, pv[sv_],
+                                        mv[sv_], [d[sv_] for d in dists], Ts)
+                    segs_eval.append((T("eval_val"), sv_, ev_v["metrics"]))
+            etab = pd.DataFrame({nm_: {
+                "FIT [%]": f"{m_['FIT']:.1f}", "NRMSE [%]": f"{m_['NRMSE']:.2f}",
+                T("eval_iae", u=u_pv or "PV"): f"{m_['IAE'] * PR / 100:.3g}", "R²": f"{m_['R2']:.3f}",
+                T("eval_white"): f"{100 * m_['frac_acf']:.0f} %", T("eval_ccf"): f"{100 * m_['frac_ccf']:.0f} %",
+                T("col_status"): T(f"st_{m_['status']}")} for nm_, _, m_ in segs_eval})
+            e1, e2 = st.columns([1, 1.6], gap="large")
+            with e1:
+                table(etab, width="stretch")
+                REPORT["tables"].append((T("eval_title"), etab))
+                msgs = [T("eval_st_" + str(mm["status"]))]
+                if mm["frac_ccf"] > 0.2:
+                    msgs.append(T("eval_ccf_bad"))
+                elif mm["frac_acf"] > 0.5:
+                    msgs.append(T("eval_acf_bad"))
+                else:
+                    msgs.append(T("eval_res_ok"))
+                if len(segs_eval) == 1:
+                    msgs.append(T("eval_no_val"))
+                st.markdown("  \n".join(msgs))
+            with e2:
+                fr = make_subplots(rows=1, cols=2, subplot_titles=(T("eval_acf_t"), T("eval_ccf_t")))
+                lags_a = np.arange(1, len(mm["acf"]) + 1) * mm["lag_step"]
+                lags_c = np.arange(0, len(mm["ccf"])) * mm["lag_step"]
+                cola = ["#dc2626" if abs(v) > mm["bound"] else "#1f5fa8" for v in mm["acf"]]
+                colc = ["#dc2626" if abs(v) > mm["bound"] else "#1f5fa8" for v in mm["ccf"]]
+                fr.add_trace(go.Bar(x=lags_a, y=mm["acf"], marker_color=cola, name="ACF", showlegend=False), 1, 1)
+                fr.add_trace(go.Bar(x=lags_c, y=mm["ccf"], marker_color=colc, name="CCF", showlegend=False), 1, 2)
+                for cix in (1, 2):
+                    for sg_ in (1, -1):
+                        fr.add_hline(y=sg_ * mm["bound"], line=dict(color="#94a3b8", dash="dot", width=1), row=1, col=cix)
+                fr.update_layout(height=300, margin=dict(l=8, r=8, t=30, b=8), hovermode="closest", uirevision="res")
+                fr.update_xaxes(title_text=T("lag_s"))
+                show(fr, key="chart_restest", fname="residual_tests")
+            st.caption(T("eval_help"))
 
     with t_val:
-        _validation(ctx, model, model_stic)
+        if _shown(ctx, "mod_view2", s.labels, 3):
+            _validation(ctx, model, model_stic)
 
 
 def _md_unc(s):

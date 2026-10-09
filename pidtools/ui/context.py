@@ -29,6 +29,7 @@ class Ctx(Scaling):
     gph: dict = field(default_factory=dict)      # záložky s průvodcem (vykreslí pages.guides na konci běhu)
     help_ph: object = None                       # místo v nápovědě „?“ hlavičky pro průvodce aktivní záložky
     active_tab: str = "data"                     # klíč aktivní záložky
+    full: bool = False                           # plný běh (sestavení reportu): počítat i skryté záložky
     dq: Any = None                 # hodnocení kvality dat vybraného úseku   # stav kroků postupu (0 ok, 1 výhrada, 2 problém, None nehotovo)
     # ---- data a výběr sloupců
     t_all: Any = None

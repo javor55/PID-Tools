@@ -174,6 +174,9 @@ def render(ctx):
             s = SimpleNamespace(ctx=ctx, ws=ws, **{k: getattr(ctx, k) for k in _CTX_KEYS})
             s.mcode, s.p, s.pdl = ctx.model
             for step in _STEPS:
+                # grafy a výstupy Ladění ostatní záložky nepotřebují → jen při otevřené záložce (nebo pro report)
+                if step in (_tn_views, _tn_outputs) and not (ctx.full or ctx.active_tab == "tuning"):
+                    continue
                 step(s)
             plant, set1_ctrl, set2_ctrl = s.plant, s.set1_ctrl, s.set2_ctrl
     ctx.plant = plant

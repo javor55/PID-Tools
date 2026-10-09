@@ -171,6 +171,9 @@ def test_apc_more_structures_web(app):
 
 
 def test_validation(app):
+    """Validace modelu (pod-záložka Modelu se počítá jen otevřená)."""
+    app.session_state["main_tab"] = [t.label for t in _main(app)][1]
+    app.session_state["mod_view2"] = "Model validation"
     app.session_state["pending_rngv"] = (2000.0, 3599.0)
     app.run()
     app.run()
@@ -180,6 +183,8 @@ def test_validation(app):
         app.session_state["val_mode"], app.session_state["val_which"] = mode, which
         app.run()
         assert not _errors(app)
+    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
+    app.run()
 
 
 def test_live_simulation(app):
@@ -473,11 +478,13 @@ def test_feedforward_in_apc(app):
     assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in _dfs(app) if len(d.value))
     # simulace v Ladění: stejná sada 2 bez FF pro porovnání (scénář se skokem měřené poruchy)
     app.session_state["scen_kind"] = "meas"
+    app.session_state["main_tab"] = [t.label for t in _main(app)][2]       # grafy Ladění jen při otevřené záložce
     app.run()
     assert not _errors(app)
     kp = next(d.value.T for d in _dfs(app) if len(d.value) and "Set 2 without FF" in list(d.value.columns))
     iae_ = dict(zip(kp.index, kp["IAE [%·s]"].astype(float)))
     assert iae_["Set 2"] != pytest.approx(iae_["Set 2 without FF"], rel=1e-3)   # FF se v simulaci projeví
+    app.session_state["main_tab"] = [t.label for t in _main(app)][4]
     # obnova z projektu (ff v projektu → klíče widgetů)
     app.session_state["override_ff"] = [dict(use=True, gain=-0.5, dyn=True, lead=12.0, lag=4.0, delay=0.0)]
     app.run()
