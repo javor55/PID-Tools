@@ -145,18 +145,21 @@ def render(ctx):
                 cards.append(dict(name=nm_, head=st.container(), typ=st.container(), params=st.container(),
                                   sign=st.container(), extra=st.container()))
         gs_lab = {"neg": "−", "auto": "auto", "pos": "+"}
+        _card_css(ctx)                             # barevné zvýraznění karet podle barvy vstupu v grafech
         with cards[0]["sign"]:
-            gain_sign = seg(st, T("ms_sign"), ["neg", "auto", "pos"], "auto", "gain_sign", format_func=gs_lab.get,
-                            help=T("h_ms_sign")) or "auto"
+            gain_sign = seg(_lrow(T("ms_sign"), T("h_ms_sign")), T("ms_sign"), ["neg", "auto", "pos"], "auto",
+                            "gain_sign", format_func=gs_lab.get, label_visibility="collapsed") or "auto"
         dkinds, dsigns = [], []
         for j, dn in enumerate(c_d):              # přenosy poruch: typ a směr účinku zvlášť pro každou poruchu
             cd_ = cards[j + 1]
-            dkinds.append(cd_["typ"].selectbox(T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}",
-                                               format_func=lambda x: T("dkind_" + x), help=T("h_dkind"),
-                                               disabled=not win))
+            with cd_["typ"]:
+                dkinds.append(_lrow(T("ms_type"), T("h_dkind")).selectbox(
+                    T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}", label_visibility="collapsed",
+                    format_func=lambda x: T("dkind_" + x), disabled=not win))
             with cd_["sign"]:
-                dsigns.append(mdl.SIGN[seg(st, T("ms_sign"), ["neg", "auto", "pos"], "auto", f"dsign|{dn}",
-                                           format_func=gs_lab.get, help=T("h_dsign"), disabled=not win) or "auto"])
+                dsigns.append(mdl.SIGN[seg(_lrow(T("ms_sign"), T("h_dsign")), T("ms_sign"), ["neg", "auto", "pos"],
+                                           "auto", f"dsign|{dn}", format_func=gs_lab.get, disabled=not win,
+                                           label_visibility="collapsed") or "auto"])
             if not win:
                 cd_["head"].caption(T("ms_dist_common"))
         if closed and win:
@@ -348,7 +351,8 @@ def render(ctx):
                 ss["mtype"] = ss["mcode"]
             fam_best = max((c for c in res if c in fam), key=lambda c: res[c]["fit"], default=best)
             with cards[0]["typ"]:
-                mtype = st.selectbox(T("ms_type"), opts, key="mtype", help=T("h_ms_type"),
+                mtype = _lrow(T("ms_type"), T("h_ms_type")).selectbox(T("ms_type"), opts, key="mtype",
+                                                                      label_visibility="collapsed",
                                      format_func=lambda c: (T("ms_type_pv", m=model_name(fam_best)) if c == "pv" else
                                                             T("ms_type_auto", m=model_name(best)) if c == "auto" else
                                                             f"{model_name(c)} · FIT {res[c]['fit']:.1f} %"))
@@ -360,8 +364,10 @@ def render(ctx):
                 f"ed|{mcode}|stic"]
             if any(k not in ss for k in need):
                 reset_edits(mcode)
-            cards[0]["head"].caption(_card_src(ctx, "MV"))
+            cards[0]["head"].markdown(f"<div class='pid-src'>{html.escape(_card_src(ctx, 'MV'))}</div>",
+                                      unsafe_allow_html=True)
             with cards[0]["params"]:
+                _param_head()
                 p_ed = [_param_row(f"ed|{mcode}|{i}", f"idf|{mcode}|{i}", n, _unit(n, ctx, "MV"), i == 0,
                                    T("help_" + ("gain" if i == 0 else "theta" if i == len(names) - 1 else "T")))
                         for i, n in enumerate(names)]
@@ -372,16 +378,19 @@ def render(ctx):
             for j, dn in enumerate(c_d):
                 cd_ = cards[j + 1]
                 if win:
-                    cd_["head"].caption(_card_src(ctx, str(dn)))
+                    cd_["head"].markdown(f"<div class='pid-src'>{html.escape(_card_src(ctx, str(dn)))}</div>",
+                                         unsafe_allow_html=True)
                 with cd_["params"]:
+                    _param_head()
                     pdl_ed.append([_param_row(f"ed|{mcode}|d{j}|{i}", f"idf|{mcode}|d{j}|{i}", n,
                                               _unit(n, ctx, str(dn)), i == 0, T("h_dist_" + str(i)))
                                    for i, n in enumerate(DIST_PARAMS)])
             with cards[0]["sign"]:
-                if st.button(T("refit"), icon=":material/model_training:", help=T("h_refit"), width="stretch"):
+                b1, b2 = st.columns(2)
+                if b1.button(T("refit"), icon=":material/model_training:", help=T("h_refit"), width="stretch"):
                     ss.refit_req = mcode
                     st.rerun()
-                st.button(T("ms_reset"), on_click=reset_edits, args=(mcode,), icon=":material/restart_alt:",
+                b2.button(T("ms_reset"), on_click=reset_edits, args=(mcode,), icon=":material/restart_alt:",
                           width="stretch", help=T("h_ms_reset"))
                 if ss.get("refit_msg"):
                     st.caption(ss.pop("refit_msg"))
@@ -644,16 +653,47 @@ def _unit(name, ctx, inp):
     return "s"
 
 
+PCOLS = [0.75, 2.0, 1.15, 0.75]                # název | hodnota | jednotka | Identif.
+
+
+def _q(help_):
+    return f"<span class='q' title='{html.escape(help_, quote=True)}'>?</span>" if help_ else ""
+
+
+def _lrow(label, help_=None, ratio=(1.15, 2.6)):
+    """Popisek vlevo, pole vpravo (kompaktní řádek jako v návrhu); vrací sloupec pro pole."""
+    c0, c1 = st.columns(list(ratio), vertical_alignment="center")
+    c0.markdown(f"<div class='pid-plab'>{html.escape(label)}{_q(help_)}</div>", unsafe_allow_html=True)
+    return c1
+
+
+def _param_head():
+    c = st.columns(PCOLS, vertical_alignment="center")
+    c[3].markdown(f"<div class='pid-plab'>{T('ms_identif')}{_q(T('h_ms_identif'))}</div>", unsafe_allow_html=True)
+
+
+def _card_css(ctx):
+    """Karty přenosů v barvě vstupu (MV jantarová, poruchy podle pořadí) – stejné barvy jako úseky v grafech."""
+    import re
+    from ..wincharts import DIST_STYLE, WIN_STYLE
+    css = []
+    for nm, sty in [("MV", WIN_STYLE["MV"])] + [(str(d), DIST_STYLE[j % len(DIST_STYLE)]) for j, d in enumerate(ctx.c_d)]:
+        k = re.sub(r"[^A-Za-z0-9_-]", "-", f"sec-card-{nm}")
+        css.append(f".st-key-{k} details {{border-top: 4px solid {sty[0]} !important;}}"
+                   f".st-key-{k} summary p {{color: {sty[4]};}}")
+    st.html("<style>" + "".join(css) + "</style>")
+
+
 def _param_row(key, idf_key, label, unit, signed, help_):
     """Řádek parametru karty přenosu: název | hodnota | jednotka | Identif. (zaškrtnuté = parametr se odhaduje)."""
     if idf_key not in ss:
         ss[idf_key] = True
-    c0, c1, c2, c3 = st.columns([0.8, 2.2, 1.1, 0.7], vertical_alignment="center")
-    c0.markdown(f"**{html.escape(label)}**", help=help_)
+    c0, c1, c2, c3 = st.columns(PCOLS, vertical_alignment="center")
+    c0.markdown(f"<div class='pid-plab'>{html.escape(label)}{_q(help_)}</div>", unsafe_allow_html=True)
     v = c1.number_input(label, key=key, min_value=None if signed else 0.0, format="%.5g", label_visibility="collapsed",
                         step=max(abs(float(ss.get(key, 0.0) or 0.0)) * 0.05, 1e-6))
-    c2.caption(unit)
-    c3.checkbox(T("ms_identif"), key=idf_key, label_visibility="collapsed", help=T("h_ms_identif"))
+    c2.markdown(f"<span class='pid-unit'>{html.escape(unit)}</span>", unsafe_allow_html=True)
+    c3.checkbox(T("ms_identif"), key=idf_key, label_visibility="collapsed")
     return v
 
 

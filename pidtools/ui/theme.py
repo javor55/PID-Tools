@@ -77,12 +77,48 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 [class*="st-key-pidside_"] [data-testid="stExpander"] p, [class*="st-key-pidside_"] [data-testid="stExpander"] label
     {font-size: 0.9rem;}
 
+/* jen desktop (velké displeje, myš): jemnější a nižší pole i tlačítka v celé aplikaci */
+[data-testid="stNumberInputContainer"], [data-baseweb="input"], [data-baseweb="select"] > div
+    {min-height: 0; height: 2.15rem;}
+[data-testid="stNumberInputContainer"] input, [data-baseweb="input"] input {padding-top: 0.2rem; padding-bottom: 0.2rem;}
+[data-testid="stNumberInputContainer"] button {width: 1.6rem;}
+.stButton button, .stDownloadButton button, [data-testid="stPopover"] button {min-height: 2.15rem; padding: 0.2rem 0.8rem;}
+[data-testid="stButtonGroup"] button {min-height: 2rem; padding: 0.15rem 0.75rem;}
+[data-testid="stWidgetLabel"] {min-height: 0; margin-bottom: 0.15rem;}
+[data-testid="stCheckbox"] label {min-height: 0;}
+[data-testid="stCheckbox"] label > span:first-child {width: 1rem; height: 1rem;}
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] {gap: 0.65rem;}
+
 /* panel nastavení vpravo: vlastní posuvník, rozbalit / sbalit vše */
 [data-testid="stLayoutWrapper"]:has(> [class*="st-key-pidside_"]) {position: sticky; top: 0.5rem; align-self: flex-start;
     width: 100%%;}
 [class*="st-key-pidside_"] {max-height: calc(100vh - 1rem); overflow-y: auto; overflow-x: hidden;
     padding: 0.2rem 0.45rem 1rem 0.2rem; background: var(--pid-side); border-left: 1px solid var(--pid-line);
     border-radius: 0 10px 10px 0;}
+/* kompaktní panel (jako v návrhu): nižší pole, menší písmo a mezery, bez šipek u čísel */
+[class*="st-key-pidside_"] [data-testid="stVerticalBlock"] {gap: 0.45rem;}
+[class*="st-key-pidside_"] [data-testid="stExpanderDetails"] {padding: 0.15rem 0.85rem 0.75rem 0.85rem;}
+[class*="st-key-pidside_"] [data-testid="stExpander"] summary {padding: 0.4rem 0.85rem; font-size: 0.9rem;}
+[class*="st-key-pidside_"] [data-testid="stWidgetLabel"] {min-height: 0; margin-bottom: 0.1rem;}
+[class*="st-key-pidside_"] [data-testid="stWidgetLabel"] p, [class*="st-key-pidside_"] [data-testid="stMarkdownContainer"] p
+    {font-size: 0.82rem;}
+[class*="st-key-pidside_"] [data-testid="stCaptionContainer"] p {font-size: 0.76rem; line-height: 1.35;}
+[class*="st-key-pidside_"] [data-testid="stNumberInputContainer"], [class*="st-key-pidside_"] [data-baseweb="input"],
+[class*="st-key-pidside_"] [data-baseweb="select"] > div {min-height: 0; height: 2rem;}
+[class*="st-key-pidside_"] [data-testid="stNumberInputContainer"] input, [class*="st-key-pidside_"] [data-baseweb="input"] input,
+[class*="st-key-pidside_"] [data-baseweb="select"] {font-size: 0.82rem; font-family: 'IBM Plex Mono', monospace;}
+[class*="st-key-pidside_"] [data-testid="stNumberInputContainer"] button {display: none;}
+[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button {min-height: 1.9rem; padding: 0.1rem 0.7rem; font-size: 0.8rem;}
+[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button p {font-size: 0.8rem;}
+[class*="st-key-pidside_"] .stButton button {min-height: 2rem; padding: 0.2rem 0.75rem;}
+[class*="st-key-pidside_"] .stButton button p {font-size: 0.82rem;}
+[class*="st-key-pidside_"] [data-testid="stCheckbox"] {min-height: 0;}
+[class*="st-key-pidside_"] [data-testid="stHorizontalBlock"] {gap: 0.5rem; align-items: center;}
+.pid-plab {font-size: 0.82rem; font-weight: 500; white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;}
+.pid-plab .q {display: inline-flex; width: 1.05rem; height: 1.05rem; border-radius: 50%%; border: 1px solid #9aa5b1;
+    font-size: 0.68rem; font-weight: 600; align-items: center; justify-content: center; color: var(--pid-muted); cursor: help;}
+.pid-unit {font-size: 0.76rem; color: var(--pid-muted); white-space: nowrap;}
+.pid-src {font-size: 0.78rem; color: var(--pid-muted); margin: -0.2rem 0 0.2rem 0;}
 .pid-side-tools {display: flex; justify-content: flex-end; gap: 0.8rem; font-size: 0.78rem; margin: 0 0.1rem 0.1rem 0;}
 .pid-side-tools button {font: inherit; border: 0; background: transparent; color: var(--pid-accent); padding: 0;
     cursor: pointer;}
