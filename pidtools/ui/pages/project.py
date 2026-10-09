@@ -68,6 +68,9 @@ def render(ctx):
                      format_func=lambda x: T("rp_sec_" + x), help=T("h_rp_sections"), label_visibility="collapsed")
         with ws.side.container(key="pid_cta_report"):
             if st.button(T("rep_build"), type="primary", width="stretch"):
+                ss["rep_pending"] = True          # další běh spočítá všechny záložky a sestaví report
+                st.rerun()
+            if ss.pop("rep_pending", False):
                 with st.spinner(T("rp_building")):
                     meta = {k: ss.get("rep_" + k) for k in ("plant", "author", "status", "comment")}
                     ss.report_html = build_report(ctx, meta, ss.get("rep_sections") or [], charts)

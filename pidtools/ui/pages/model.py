@@ -146,6 +146,15 @@ def render(ctx):
                 cards.append(dict(name=nm_, head=st.container(), typ=st.container(), params=st.container(),
                                   sign=st.container(), extra=st.container()))
         gs_lab = {"neg": "−", "auto": "auto", "pos": "+"}
+        # typ přenosu MV už před identifikací (jako u poruch): podle PV / auto / samoregulační / integrační
+        mv_pre = cards[0]["typ"].empty()
+        if not mc_prev:
+            if ss.get("mtype0") not in ("pv", "auto", "self", "integ"):
+                ss["mtype0"] = "pv"
+            with mv_pre.container():
+                _lrow(T("ms_type"), T("h_ms_type0")).selectbox(
+                    T("ms_type"), ["pv", "auto", "self", "integ"], key="mtype0", label_visibility="collapsed",
+                    format_func=lambda x: T("dkind_" + x), on_change=_mtype0_changed)
         _card_css(ctx)                             # barevné zvýraznění karet podle barvy vstupu v grafech
         with cards[0]["sign"]:
             gain_sign = seg(_lrow(T("ms_sign"), T("h_ms_sign")), T("ms_sign"), ["neg", "auto", "pos"], "auto",
@@ -351,6 +360,7 @@ def render(ctx):
             if ss.get("mcode") in res and ss.get("mcode") != ss.get("_mcode_last"):   # model zvolený jinde (projekt)
                 ss["mtype"] = ss["mcode"]
             fam_best = max((c for c in res if c in fam), key=lambda c: res[c]["fit"], default=best)
+            mv_pre.empty()
             with cards[0]["typ"]:
                 mtype = _lrow(T("ms_type"), T("h_ms_type")).selectbox(T("ms_type"), opts, key="mtype",
                                                                       label_visibility="collapsed",
@@ -599,10 +609,16 @@ def _family(kind):
     return FAMILY.get(kind, list(MODELS))
 
 
+def _mtype0_changed():
+    """Typ přenosu MV před identifikací → modely, které se zkusí (callback)."""
+    k = ss.get("mtype0", "pv")
+    ss["chosen"] = _family(ss.get("proc_type", "auto") if k == "pv" else ("auto" if k == "auto" else k))
+
+
 def _proc_changed():
     """Výchozí typ přenosů → modely k identifikaci a typ MV „Podle PV“ (callback, před vykreslením widgetů)."""
     ss["chosen"] = _family(ss.get("proc_type", "auto"))
-    ss["mtype"] = "pv"
+    ss["mtype"] = ss["mtype0"] = "pv"
 
 
 def _owner_fits(ctx, r):

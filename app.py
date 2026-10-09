@@ -57,14 +57,20 @@ def main():
         st.stop()
     header.render_status(ctx)
 
+    # Záložky, jejichž výsledky ostatní nepotřebují, se počítají jen otevřené (rychlé běhy). Sestavení reportu si
+    # vyžádá jeden plný běh (rep_pending), aby v něm byly výsledky všech záložek.
+    full = bool(st.session_state.get("rep_pending"))
     data.render(ctx)
     model.render(ctx)
     tuning.render(ctx)
     live.render(ctx)
-    diagnostics.render(ctx)
-    apc.render(ctx)
+    if full or ctx.active_tab == "diag":
+        diagnostics.render(ctx)
+    if full or ctx.active_tab == "cascade":
+        apc.render(ctx)
     project.render(ctx)
-    audit.render(ctx)
+    if full or ctx.active_tab == "audit":
+        audit.render(ctx)
     loops.save_info(ctx, loop_tag(ctx.c_pv).upper())   # souhrn smyčky pro přepínač a kaskádu
     autosave.save(ctx)                                  # průběžné uložení do prohlížeče
     guides.render_all(ctx)                              # průvodci záložek (s výsledky tohoto běhu)

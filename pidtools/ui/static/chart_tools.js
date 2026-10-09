@@ -141,9 +141,15 @@ export default function (component) {
       if (a !== null && b !== null) parts.push("Δ" + tr.name + " = " + sig(b - a));
     }
     m.box.textContent = parts.join("   ");
-    m.box.style.left = sz.l + "px";
-    m.box.style.top = Math.max(0, sz.t - 22) + "px";
-    m.box.style.maxWidth = sz.w + "px";
+    // vedle tlačítka Měření, ve stejné výšce; nesmí přes legendu (jinak se zalomí)
+    const btn = gd.querySelector(":scope > .pt-meas-btn"), gr = gd.getBoundingClientRect();
+    const left = btn ? btn.offsetLeft + btn.offsetWidth + 6 : sz.l;
+    const leg = gd.querySelector(".legend");
+    let right = gr.width - 4;
+    if (leg) { const lr = leg.getBoundingClientRect(); if (lr.top - gr.top < 40) right = Math.min(right, lr.left - gr.left - 8); }
+    m.box.style.left = left + "px";
+    m.box.style.top = (btn ? btn.offsetTop : 2) + "px";
+    m.box.style.maxWidth = Math.max(160, right - left) + "px";
   }
   function startMeas(gd) {
     const fl = gd._fullLayout;
@@ -182,9 +188,9 @@ export default function (component) {
     });
     const box = document.createElement("div");
     box.className = "pt-meas-box";
-    box.style.cssText = "position:absolute;z-index:21;font:11px ui-monospace,Consolas,monospace;" +
-      "background:rgba(255,255,255,.9);color:#1f2933;padding:2px 6px;border-radius:4px;white-space:nowrap;" +
-      "overflow:hidden;text-overflow:ellipsis;pointer-events:none;";
+    box.style.cssText = "position:absolute;z-index:21;font:11px/16px 'IBM Plex Mono',ui-monospace,Consolas,monospace;" +
+      "background:rgba(255,255,255,.92);color:#1f2933;padding:1px 6px;border-radius:4px;border:1px solid #e5e9ef;" +
+      "white-space:normal;pointer-events:none;";
     gd.appendChild(box);
     m.box = box;
     drawMeas(gd);
@@ -204,7 +210,7 @@ export default function (component) {
     b.type = "button";
     b.textContent = W.txt.measure || "Measure";
     b.title = W.txt.measure_tip || "";
-    b.style.cssText = "position:absolute;left:2px;top:2px;z-index:22;font:11px sans-serif;padding:1px 6px;" +
+    b.style.cssText = "position:absolute;left:2px;top:2px;z-index:22;font:11px/16px 'IBM Plex Sans',sans-serif;padding:1px 6px;" +
       "border:1px solid #cbd2d9;border-radius:4px;background:rgba(255,255,255,.85);color:#374151;cursor:pointer;";
     b.addEventListener("click", (ev) => {
       ev.stopPropagation();

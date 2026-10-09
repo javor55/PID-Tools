@@ -221,7 +221,8 @@ def test_lazy_tabs_and_comparison(app):
         app.session_state["main_tab"] = lbl
         app.run()
         assert not _errors(app)
-        n_charts[lbl] = len(app.get("plotly_chart"))
+        n_charts[lbl] = len(app.get("plotly_chart")) + sum(  # Plotly + společný graf průběhů (Data, Model, Diag.)
+            1 for c in app.main.get("bidi_component") if str(c.key).endswith("_trend") or c.key == "model_wins")
     assert n_charts[labels[0]] > 0 and n_charts[labels[-1]] == 0   # Data má grafy, Projekt žádné
     app.session_state["main_tab"] = labels[2]
     app.run()

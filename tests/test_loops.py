@@ -73,9 +73,16 @@ def test_switch_keeps_each_loop(two_loops):
     _switcher(at).set_value(1).run()
 
 
+def _apc_tab(at):
+    """APC se počítá jen na otevřené záložce."""
+    from pidtools.i18n import TEXTS
+    at.session_state["main_tab"] = TEXTS["en"]["tab5"]
+
+
 def test_cascade_inner_from_other_loop(two_loops):
     at, _ = two_loops
     assert at.session_state["loops"]["active"] == 1
+    _apc_tab(at)
     at.session_state["cas_src"] = "loop"
     at.session_state["cas_iloop"] = 2
     at.run()
@@ -112,6 +119,7 @@ def test_project_roundtrip_two_loops(two_loops):
 def test_apc_pages(two_loops):
     """Rozvazbení, override a Smithův prediktor se dvěma smyčkami (vazby přes měřené poruchy)."""
     at, _ = two_loops
+    _apc_tab(at)
     _switcher(at).set_value(2).run()
     at.session_state["c_mv|demo"] = "FI100.Pritok"
     at.session_state["c_d|demo"] = ["LIC101.MV"]
@@ -153,7 +161,7 @@ def test_remove_loop(two_loops):
     _ok(at)
     assert at.session_state["loops"]["ids"] == [1] and at.session_state["loops"]["active"] == 1
     assert at.session_state["loop_tag"] == "LIC101"
-    assert any(b.label == "Another loop" for b in at.button)
+    assert any("Another loop" in b.label for b in at.button)
 
 
 def test_rename_loop_from_menu(two_loops):

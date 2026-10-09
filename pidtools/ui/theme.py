@@ -57,6 +57,15 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 .pid-logo img {width: 26px; height: 26px; display: block;}
 .pid-logo b {font-weight: 700; color: var(--pid-accent);}
 
+/* běží výpočet (Streamlit ukazuje stavový widget): pohyblivý pruh pod hlavičkou a kurzor „pracuji“ */
+@keyframes pidbusy {0%% {background-position: -40%% 0;} 100%% {background-position: 140%% 0;}}
+body:has([data-testid="stStatusWidget"]) .st-key-main_tab > div > [role="tablist"]::after {content: ""; position: absolute;
+    left: 0; right: 0; bottom: -1px; height: 3px; z-index: 50; pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%%, var(--pid-accent) 50%%, transparent 100%%) no-repeat;
+    background-size: 40%% 100%%; animation: pidbusy 1.1s linear infinite;}
+.st-key-main_tab > div > [role="tablist"] {position: relative;}
+body:has([data-testid="stStatusWidget"]) [data-testid="stMain"] {cursor: progress;}
+
 /* hlavička: název · smyčky · souhrn dat … Projekt, Nastavení, ? (vpravo místo pro menu ⋮ Streamlitu) */
 .st-key-pid_header {background: var(--pid-card); padding: 12px 3.4rem 0 24px; gap: 10px 16px !important;}
 .st-key-pid_header .pid-sub {font-size: 11px; color: var(--pid-muted); white-space: nowrap; overflow: hidden;
@@ -94,7 +103,7 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 [data-testid="stExpander"] summary [data-testid="stExpanderIconExpandMore"],
 [data-testid="stExpander"] summary [data-testid="stExpanderIconChevronRight"] {color: #9aa5b1; font-size: 16px;}
 [data-testid="stExpander"] details[open] summary {border-radius: 10px 10px 0 0;}
-[data-testid="stExpanderDetails"] {padding: 0 14px 14px 14px !important;}
+[data-testid="stExpanderDetails"] {padding: 12px 14px 14px 14px !important;}
 /* doplněk nadpisu karty (:gray[…], např. FIT) vpravo, písmem s pevnou šířkou */
 [data-testid="stExpander"] summary [data-testid="stMarkdownContainer"] p:has(> span) {display: flex;
     justify-content: space-between; align-items: baseline; gap: 8px; width: 100%%;}
@@ -114,13 +123,29 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
     background: transparent;}
 
 /* pole a ovládací prvky (jen desktop, myš): 13 px, bílé pole s rámečkem jako v návrhu */
-[data-testid="stNumberInputContainer"], [data-baseweb="input"], [data-baseweb="select"] > div,
-[data-baseweb="textarea"] {min-height: 0; background: var(--pid-card) !important; border: 1px solid var(--pid-ctl) !important;
+[data-testid="stNumberInputContainer"], [data-testid="stTextInputRootElement"], [data-testid="stTextAreaRootElement"],
+[data-testid="stSelectbox"] > div:not([data-testid]), [data-testid="stMultiSelect"] > div:not([data-testid]),
+[data-testid="stDateInput"] > div:not([data-testid]), [data-testid="stTimeInput"] > div:not([data-testid])
+    {min-height: 0; background: var(--pid-card) !important; border: 1px solid var(--pid-ctl) !important;
     border-radius: 6px !important;}
-[data-testid="stNumberInputContainer"], [data-baseweb="input"], [data-baseweb="select"] > div {height: 28px;}
+[data-testid="stNumberInputContainer"], [data-testid="stTextInputRootElement"],
+[data-testid="stSelectbox"] > div:not([data-testid]) {height: 28px; min-height: 28px;}
+[data-testid="stMultiSelect"] > div:not([data-testid]) {min-height: 28px;}
+[data-testid="stSelectbox"] > div:not([data-testid]) *, [data-testid="stTextInputField"],
+[data-testid="stTextAreaRootElement"] textarea {font-size: 12px; background: transparent !important;}
+[data-testid="stTextInputRootElement"]:focus-within, [data-testid="stNumberInputContainer"]:focus-within,
+[data-testid="stSelectbox"] > div:not([data-testid]):focus-within {border-color: var(--pid-accent) !important;}
 [data-testid="stNumberInputContainer"] [data-baseweb="input"] {border: 0 !important; height: auto;}
 [data-testid="stNumberInputContainer"] input, [data-baseweb="input"] input, [data-baseweb="select"] {font-size: 12px;}
 [data-testid="stNumberInputContainer"] input, [data-baseweb="input"] input {padding: 4px 8px; background: transparent;}
+[data-baseweb="base-input"], [data-baseweb="select"] > div > div, [data-baseweb="textarea"] textarea
+    {background: transparent !important;}
+/* řádek „popisek | pole“: popisek na střed výšky pole, žádné okraje navíc */
+[data-testid="stHorizontalBlock"]:has(.pid-plab) [data-testid="stElementContainer"] {margin: 0;}
+/* vlastní HTML prvky (pid-…): bez záporného spodního okraje, který Streamlit dává textu (posouval popisky) */
+[data-testid="stMarkdownContainer"]:has(> [class^="pid-"]), [data-testid="stMarkdownContainer"]:has(> [class*=" pid-"])
+    {margin-bottom: 0 !important;}
+.pid-plab {line-height: 20px;}
 [data-testid="stNumberInputContainer"] button {display: none;}
 .stButton button, .stDownloadButton button, [data-testid="stPopover"] > div > button, [data-testid="stFormSubmitButton"] button
     {min-height: 28px; padding: 4px 10px; border-radius: 6px; border-color: var(--pid-ctl);}
@@ -152,15 +177,19 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
     {align-self: stretch;}
 [data-testid="stLayoutWrapper"]:has(> [class*="st-key-pidside_"]) {position: sticky; top: 0; align-self: flex-start;
     width: 100%%;}
-[class*="st-key-pidside_"] {height: calc(100vh - var(--pid-top, 98px)); max-height: none; overflow-y: auto; overflow-x: hidden;
+[class*="st-key-pidside_"] {flex: 0 0 auto !important; height: calc(100vh - var(--pid-top, 98px)) !important;
+    max-height: calc(100vh - var(--pid-top, 98px)); overflow-y: auto; overflow-x: hidden;
     padding: 16px 24px 32px 4px; background: var(--pid-side); border-left: 1px solid var(--pid-line);
     margin-left: 0; box-sizing: border-box; padding-left: 14px;}
 [class*="st-key-pidmain_"] {padding: 16px 0 32px 0;}
 /* plocha a panel rolují nezávisle (výška okna pod hlavičkou, --pid-top měří chart_tools.js) */
 [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [class*="st-key-pidside_"])
-    {height: calc(100vh - var(--pid-top, 98px)); overflow: hidden; align-items: stretch;}
+    {flex: 0 0 auto !important; height: calc(100vh - var(--pid-top, 98px)) !important;
+    max-height: calc(100vh - var(--pid-top, 98px)); overflow: hidden; align-items: stretch;}
 [data-testid="stColumn"]:has(> [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [class*="st-key-pidmain_"])
-    {height: 100%%; overflow-y: auto; overflow-x: hidden; padding-right: 4px;}
+    {height: 100%%; max-height: 100%%; overflow-y: auto; overflow-x: hidden; padding-right: 4px;}
+[data-testid="stColumn"]:has(> [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > [class*="st-key-pidside_"])
+    {height: 100%%; max-height: 100%%; overflow: hidden;}
 [class*="st-key-pidside_"] [data-testid="stVerticalBlock"] {gap: 12px;}
 [class*="st-key-pidside_"] [data-testid="stExpanderDetails"] [data-testid="stVerticalBlock"] {gap: 8px;}
 [class*="st-key-pidside_"] [data-testid="stHorizontalBlock"] {gap: 8px; align-items: center;}

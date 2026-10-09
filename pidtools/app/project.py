@@ -18,7 +18,7 @@ STATE_KEYS = [
     "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
     "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
     # identifikace
-    "thmax", "chosen", "mcode", "mtype", "proc_type", "dist_level", "dist_strength", "gain_sign", "id_stic", "win_mode",
+    "thmax", "chosen", "mcode", "mtype", "mtype0", "proc_type", "dist_level", "dist_strength", "gain_sign", "id_stic", "win_mode",
     "read_manual",
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
