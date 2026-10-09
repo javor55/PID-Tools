@@ -22,6 +22,7 @@ from ...widgets import num, reset_button, seg
 from . import guide
 from .common import active_model
 from .recommend import rec_a
+from ...table import table
 
 ss = st.session_state
 
@@ -68,7 +69,7 @@ def split_render(ctx):
                                                                                 g=f"{gap:.3g}"))
         st.markdown(T("sr_result", b=f"{bstar:.1f}", lo=f"{lo0:.3g}", up=f"{up0:.3g}", k=f"{up1:.3g}",
                       f=f"{ctx.model[1][0] / up1 if up1 else 1.0:.3g}"))
-        st.dataframe(pd.DataFrame({T("sr_lower"): [f"K {k:.3g} · Ms {m:.2f}" + ("" if s_ else " ⚠") for k, m, s_ in (h0[0], h1[0])],
+        table(pd.DataFrame({T("sr_lower"): [f"K {k:.3g} · Ms {m:.2f}" + ("" if s_ else " ⚠") for k, m, s_ in (h0[0], h1[0])],
                                    T("sr_upper"): [f"K {k:.3g} · Ms {m:.2f}" + ("" if s_ else " ⚠") for k, m, s_ in (h0[1], h1[1])]},
                                   index=[f"{T('sr_now')} (b = {b0:.0f} %)", f"{T('sr_new')} (b = {bstar:.0f} %)"]),
                      width="stretch")
@@ -84,7 +85,7 @@ def split_render(ctx):
         show(style(fig, ctx.H, [ctx.lab_pv, T("sr_u"), T("sr_valves")], ctx.lab_t, rev="split"), key="chart_split",
              fname="split_range")
         kp = {nm: asr.kpis(runs[k], ctx.PR) for k, nm in (("now", T("sr_now")), ("new", T("sr_new")))}
-        st.dataframe(pd.DataFrame({f"IAE [{a['u_pv'] or 'PV'}·s]": {n: f"{k['iae']:.4g}" for n, k in kp.items()},
+        table(pd.DataFrame({f"IAE [{a['u_pv'] or 'PV'}·s]": {n: f"{k['iae']:.4g}" for n, k in kp.items()},
                                    T("kpi_maxdev", u=a["u_pv"] or "PV"): {n: f"{k['maxdev']:.4g}" for n, k in kp.items()},
                                    T("kpi_rev"): {n: k["rev"] for n, k in kp.items()}}), width="stretch")
 
@@ -120,7 +121,7 @@ def vpc_render(ctx):
         fig.add_trace(tr(t1, o1["MV2"], "MV2", "#7c3aed", 1.8), 3, 1)
         show(style(fig, ctx.H, [ctx.lab_pv, "MV1 [%]", "MV2 [%]"], ctx.lab_t, rev="vpc"), key="chart_vpc", fname="vpc")
         kp = {nm: avpc.kpis(runs[k], ctx.PR) for k, nm in (("off", T("vpc_off")), ("on", T("vpc_on")))}
-        st.dataframe(pd.DataFrame({f"IAE [{ctx.u_pv or 'PV'}·s]": {n: f"{k['iae']:.4g}" for n, k in kp.items()},
+        table(pd.DataFrame({f"IAE [{ctx.u_pv or 'PV'}·s]": {n: f"{k['iae']:.4g}" for n, k in kp.items()},
                                    T("vpc_at_lim"): {n: f"{k['at_lim']:.1f}" for n, k in kp.items()},
                                    T("vpc_reserve"): {n: f"{k['reserve']:.1f}" for n, k in kp.items()}}), width="stretch")
 
@@ -162,7 +163,7 @@ def ratio_render(ctx):
         fig.add_trace(tr(tp, op["LAM"], T("ra_plain"), C_SET1, 1.4, "dot"), 2, 1)
         fig.add_hline(y=1.0, line=dict(color="#dc2626", dash="dash", width=1), row=2, col=1)
         show(style(fig, ctx.H, [T("ra_flows"), "λ"], ctx.lab_t, rev="ratio"), key="chart_ratio", fname="ratio")
-        st.dataframe(pd.DataFrame({T("ra_lam_min"): [f"{kp['lam_min']:.3f}", f"{kc['lam_min']:.3f}"],
+        table(pd.DataFrame({T("ra_lam_min"): [f"{kp['lam_min']:.3f}", f"{kc['lam_min']:.3f}"],
                                    T("ra_t_rich"): [f"{kp['t_rich']:.0f}", f"{kc['t_rich']:.0f}"],
                                    T("ra_iae"): [f"{kp['iae']:.4g}", f"{kc['iae']:.4g}"]},
                                   index=[T("ra_plain"), T("ra_cross")]), width="stretch")
@@ -183,11 +184,11 @@ def rga_render(ctx):
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(f"**{T('rga_k')}**")
-        st.dataframe(pd.DataFrame([[("" if r["known"][i, j] else "? ") + f"{r['K'][i, j]:.3g}" for j in range(len(recs))]
+        table(pd.DataFrame([[("" if r["known"][i, j] else "? ") + f"{r['K'][i, j]:.3g}" for j in range(len(recs))]
                                    for i in range(len(recs))], index=r["names"], columns=cols), width="stretch")
     with c2:
         st.markdown(f"**{T('rga_l')}**")
-        st.dataframe(pd.DataFrame(np.round(r["L"], 3), index=r["names"], columns=cols), width="stretch")
+        table(pd.DataFrame(np.round(r["L"], 3), index=r["names"], columns=cols), width="stretch")
     lines = [f"**NI = {r['NI']:.3g}**"] if np.isfinite(r["NI"]) else []
     if r["pairing"] is not None:
         lines.append(T("rga_pairing") + ": " + ", ".join(f"{n} ← {r['mvs'][j]}" for n, j in zip(r["names"], r["pairing"])))

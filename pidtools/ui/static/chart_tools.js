@@ -11,6 +11,20 @@ export default function (component) {
   W.unit = (data && data.unit) || "auto";
   W.txt = (data && data.txt) || W.txt;
   const P = () => window.Plotly;
+
+  // výška hlavičky se záložkami → --pid-top: plocha a panel pod ní mají výšku okna a rolují nezávisle
+  function measureTop() {
+    const tl = document.querySelector('.st-key-main_tab [role="tablist"]');
+    if (!tl) return;
+    const top = Math.round(tl.getBoundingClientRect().bottom + (document.querySelector('[data-testid="stMain"]')?.scrollTop || 0));
+    document.documentElement.style.setProperty("--pid-top", top + "px");
+  }
+  if (!W.topObs) {
+    W.topObs = true;
+    window.addEventListener("resize", measureTop);
+    setInterval(measureTop, 1500);
+  }
+  measureTop();
   const U = { s: 1, min: 60, h: 3600 };
 
   function unitFor(span) {
@@ -225,6 +239,23 @@ export default function (component) {
   if (W.lastUnit !== W.unit) {          // jiná jednotka → popisky os všech grafů znovu
     W.lastUnit = W.unit;
     document.querySelectorAll(".js-plotly-plot").forEach((gd) => { gd.__ptKey = null; });
+  }
+  // ---- panel nastavení: „Rozbalit vše / Sbalit vše“ (přepne sekce kliknutím na jejich nadpis, bez nového běhu)
+  if (!W.sideTools) {
+    W.sideTools = true;
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest(".pid-side-tools button[data-pid-all]");
+      if (!b) return;
+      const side = b.closest('[class*="st-key-pidside_"]');
+      if (!side) return;
+      const want = b.getAttribute("data-pid-all") === "1";
+      side.querySelectorAll('[data-testid="stExpander"] details').forEach((d) => {
+        if (d.open !== want) {
+          const s = d.querySelector("summary");
+          if (s) s.click();
+        }
+      });
+    });
   }
   scan();
   if (!W.obs) {

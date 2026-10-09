@@ -56,6 +56,14 @@ def _apply_one(proj):
     for fn_ in fnames:
         for k_, v_ in proj.get("map", {}).items():
             ss[f"{k_}|{fn_}"] = v_
+    win = proj.get("windows") or {}
+    for fn_ in fnames:                         # úseky podle vstupů a vyřazení dat patří k souboru
+        if win.get("wins"):
+            ss[f"wins|{fn_}"] = {k: [list(w) for w in v] for k, v in win["wins"].items()}
+        for nm, (on, lo, hi) in (win.get("excl") or {}).items():
+            ss[f"excl|{fn_}|{nm}|on"], ss[f"excl|{fn_}|{nm}|lo"], ss[f"excl|{fn_}|{nm}|hi"] = bool(on), lo, hi
+        if "tol" in win:
+            ss[f"excl|{fn_}|tol"] = float(win["tol"])
     rg = proj.get("ranges", {})
     if rg.get("id"):
         ss["pending_rng"] = tuple(rg["id"])
@@ -109,6 +117,12 @@ def _record(c, snap, active):
         rng = next((list(v) for k, v in snap.items() if str(k).startswith(f"rng_id|{fn}|")), None)
     rv = next((list(v) for k, v in snap.items() if str(k).startswith(f"rng_val|{fn}|")), rng)
     rec = dict(tag=get("loop_tag", ""), state=state, map=mp, ranges={"id": rng, "val": rv}, ff=get("ff_state", []))
+    wins = get(f"wins|{fn}")
+    pre = f"excl|{fn}|"
+    excl = {k[len(pre):-3]: [bool(get(f"{k[:-3]}|on")), get(f"{k[:-3]}|lo"), get(f"{k[:-3]}|hi")]
+            for k in set(snap) | set(ss.keys()) if str(k).startswith(pre) and str(k).endswith("|on")}
+    if wins or excl:
+        rec["windows"] = jsonable(dict(wins=wins or {}, excl=excl, tol=get(f"excl|{fn}|tol", 0.5)))
     fit = fit_record(get("fit"))
     if fit:
         rec["fit"] = fit

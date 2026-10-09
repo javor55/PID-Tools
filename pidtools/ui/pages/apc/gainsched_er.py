@@ -16,6 +16,7 @@ from ....app import guides as app_guides
 from .recommend import rec_a
 from ....app.apc import gainsched as app_gs
 from .common import C_B, best_cz, clean, gs_frame, gs_sim_c, ss
+from ...table import table
 
 
 # ---------------------------------------------------------------- gain scheduling podle regulační odchylky
@@ -63,7 +64,7 @@ def gs_er_render(ctx, ws, g_ph):
         guide.render("gs_er", checks, T("g_impl_gs_er", u=ctx.u_pv or "PV"))
 
     with section(ws.side, T("gs_tab_title"), "apc_gser_tab", icon=":material/table:"):
-        st.dataframe(gs_frame(gs_er_tab(ctx)), hide_index=True)
+        table(gs_frame(gs_er_tab(ctx)), hide_index=True)
 
     # ---- simulace: jedna sada / scheduling podle ER / řídicí pásmo
     sec_sim = section(ws.side, T("gs_er_sim"), "apc_gser_sim", icon=":material/timeline:")
@@ -100,13 +101,13 @@ def gs_er_render(ctx, ws, g_ph):
                 T("gs_er_maxdev"): float(f"{q['maxdev']:.4g}"), T("gs_er_sat"): f"{100 * q['sat']:.0f} %",
                 T("gs_er_settled"): "✓" if q["settled"] else "✗"}
     kp = [kpi(T("gs_fixed"), of), kpi(T("gs_er_sched"), oe)] + ([kpi(T("gs_er_cz"), oz)] if oz is not None else [])
-    ws.main.dataframe(pd.DataFrame(kp), hide_index=True)
+    table(where=ws.main, data=pd.DataFrame(kp), hide_index=True)
     if cz:
         ws.main.caption(T("gs_er_cz_best", w=f"{cz * PRf:.4g}", u=ctx.u_pv or "PV"))
     else:
         ws.main.info(T("gs_er_cz_none"), icon=":material/info:")
     with ws.main.expander(T("gs_er_cz_scan"), icon=":material/table_rows:"):
-        st.dataframe(pd.DataFrame([{f"ConZone [{ctx.u_pv or 'PV'}]": float(f"{w * PRf:.4g}"),
+        table(pd.DataFrame([{f"ConZone [{ctx.u_pv or 'PV'}]": float(f"{w * PRf:.4g}"),
                                     T("iae_sp") + " + " + T("iae_load"): round(v * PRf, 4),
                                     T("gs_er_settled"): "✓" if ok else "✗"} for w, v, ok in scan]), hide_index=True)
         st.caption(T("gs_er_cz_help"))

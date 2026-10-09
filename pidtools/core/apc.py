@@ -10,7 +10,7 @@ měřené poruchy; u integrační smyčky je i křížová vazba integrační).
 """
 import numpy as np
 
-from .models import MODELS
+from .models import MODELS, dist_integ
 from .simulation import PIDConL, ProcStep
 
 __all__ = ["rga2", "rga_advice", "ff_design", "LeadLag", "mimo2_sim", "override_sim", "smith_sim", "no_delay"]
@@ -53,6 +53,10 @@ def ff_design(code, p, pd):
     """
     lead = (p[1] if code in ("P1D", "P2D", "I1D") else 0.0) + (p[2] if code == "P2D" else 0.0)
     ahead = max(0.0, p[-1] - pd[2])
+    if dist_integ(MODELS[code]["integ"], pd) != MODELS[code]["integ"]:
+        # jiný typ přenosu poruchy než MV (např. samoregulační porucha u integračního procesu): ideální člen by
+        # derivoval / integroval – statická dopředná vazba nemá smysl (mismatch = True, zesílení 0)
+        return dict(gain=0.0, lead=0.0, lag=0.0, delay=0.0, mismatch=True)
     return dict(gain=-pd[0] / p[0], lead=lead, lag=max(0.0, pd[1] - ahead), delay=max(0.0, pd[2] - p[-1]))
 
 
@@ -79,7 +83,7 @@ class LeadLag:
 
 def _cross(integ, pd, h):
     """Křížová vazba jako proces krok po kroku."""
-    return ProcStep("I1D" if integ else "P1D", [pd[0], max(pd[1], 1e-6), pd[2]], h)
+    return ProcStep("I1D" if dist_integ(integ, pd) else "P1D", [pd[0], max(pd[1], 1e-6), pd[2]], h)
 
 
 def mimo2_sim(ga, gb, xab, xba, ctrl_a, ctrl_b, h, sp_a, sp_b, dec_ab=None, dec_ba=None, dyn=True,

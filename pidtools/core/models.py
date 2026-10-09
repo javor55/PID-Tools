@@ -11,7 +11,8 @@ Modely MV -> PV (všechny s dopravním zpožděním θ):
   P2D : K · e^(-θs) / ((T1 s + 1)(T2 s + 1))
   I0D : Ki · e^(-θs) / s
   I1D : Ki · e^(-θs) / (s (T1 s + 1))
-Model poruchy -> PV: Kd · e^(-θd s) / (Tp s + 1), u integračních procesů navíc · 1/s.
+Model poruchy -> PV: Kd · e^(-θd s) / (Tp s + 1), u integračních procesů navíc · 1/s (typ lze u poruchy
+zvolit zvlášť – 4. prvek parametrů, viz dist_integ).
 """
 import numpy as np
 
@@ -47,10 +48,16 @@ def simulate(code: str, p: list[float], t: np.ndarray, du: np.ndarray, h: float)
     raise ValueError(code)
 
 
+def dist_integ(integ, pd):
+    """Je přenos poruchy integrační? 4. prvek parametrů poruchy: 0/chybí = podle procesu, 1 = ne, 2 = ano."""
+    kind = int(pd[3]) if len(pd) > 3 else 0
+    return integ if kind == 0 else kind == 2
+
+
 def simulate_dist(integ, pd, t, dd, h):
-    K, T, th = pd
+    K, T, th = pd[:3]
     y = K * _lag(np.interp(t - th, t, dd, left=0.0), T, h)
-    return np.cumsum(y) * h if integ else y
+    return np.cumsum(y) * h if dist_integ(integ, pd) else y
 
 
 def model_dev(code, p, pdl, t, du, dD, h):

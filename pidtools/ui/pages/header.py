@@ -18,94 +18,114 @@ ss = st.session_state
 
 
 def render(ctx):
-    """Vykreslí horní panel a načte data do ctx.df (bez dat zastaví běh s výzvou k nahrání)."""
-    hc1, hc2 = st.columns([3, 1.6], vertical_alignment="center")
-    hc1.title(T("title"))
-    with hc2:
-        b1, b2, b3 = st.columns(3)
-        with b1.popover(T("tb_project"), icon=":material/folder_open:", width="stretch"):
-            st.text_input(T("loop_tag"), key="loop_tag", placeholder="LIC101", help=T("h_loop_tag"))
-            st.file_uploader(T("proj_load"), type=["json"], key="proj_up", help=T("h_proj_load"),
-                             on_change=load_project_file)
-            if ss.get("proj_err"):
-                st.error(T("err_proj", ex=ss.pop("proj_err")))
-            st.caption(T("proj_help"))
-        with b2.popover(T("tb_help"), icon=":material/help:", width="stretch"):
-            st.markdown(f"**{T('guide_title')}**")
-            st.markdown(T("guide_body"))
-            st.divider()
-            st.markdown(f"**{T('gloss_title')}**")
-            st.markdown(T("gloss_body"))
-            st.divider()
-            st.markdown(f"**{T('about_title')}**")
-            st.markdown(T("about_body", v=__version__))
-        with b3.popover(T("tb_settings"), icon=":material/settings:", width="stretch"):
-            st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,
-                     format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
-            st.caption(T("theme_hint"))
-            ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
-            seg(st, T("chart_tunit"), list(charts.TIME_UNITS), "auto", "chart_tunit",
-                format_func=lambda u: T("chart_tunit_auto") if u == "auto" else u, help=T("h_chart_tunit"))
-
-    with st.container(border=True):
-        n_loops = len(loops.ids())  # od tří smyček má přepínač vlastní řádek pod zdrojem dat
-        if n_loops <= 2:
-            d1, d2, d3, d4 = st.columns([1.5, 1.6, 2.6, 1.6 if n_loops == 1 else 2.7], vertical_alignment="center")
-        else:
-            d1, d2, d3 = st.columns([1.5, 1.6, 4.2], vertical_alignment="center")
-            d4 = st.container()
-        src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else []) + \
-            (["opc"] if opc.available() else [])
-        if ss.get("src") not in src_opts:
-            ss["src"] = "file"
-        src = seg(d1, T("source"), src_opts, "file", "src", format_func=lambda x: T("src_" + x), help=T("h_source"),
-                  label_visibility="collapsed") or "file"
-        ctx.df, ctx.fname, ctx.ckey = None, "demo", "demo"
-        ss["_src_prev"], ss["_src_now"] = ss.get("_src_now"), src
-        if src == "project":
-            ctx.df = pd.DataFrame(ss.proj["data"]["cols"])
-            ctx.fname = f"project|{ss.proj.get('fname_tag', ss.proj.get('tag', ''))}|{len(ctx.df)}"
-            ctx.ckey = f"{ctx.fname}|{ss.get('proj_hash')}"
-            d2.caption(T("proj_data_caption", n=len(ctx.df)))
-        elif src == "opc":
-            _opc(d2)
-            od = ss.get("opc_df")
-            if od is not None:
-                ctx.df = od["df"]
-                ctx.fname = f"opc|{od['stamp']}|{len(ctx.df)}"
-                ctx.ckey = ctx.fname
-        elif src == "file":
-            f = _file(d2)
-            if f is not None:
-                ctx.fname = f"{f['name']}|{f['size']}"
-                ctx.ckey = f"{ctx.fname}|{f['id']}"
-                try:
-                    with st.spinner(T("loading")):
-                        ctx.df = load_table(ctx.ckey, f["name"], f["data"])
-                except Exception as ex:
-                    st.error(T("err_read", ex=ex))
-        else:
-            ctx.df = demo_frame()
-            if loops.active() == loops.ids()[0] and (ss.get("set1_gain", 1.0), ss.get("set1_ti", 100.0)) == (1.0, 100.0):
-                # „současné“ parametry ukázkové smyčky (odtokový ventil → záporné zesílení), dokud je uživatel nezmění
-                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = DEMO_SET1
-                ss["_set1_demo"] = True
-            d2.download_button(T("demo_dl"), ctx.df.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
-                               "text/csv", icon=":material/download:", help=T("demo_desc"), width="stretch")
-        if src != "demo" and ss.get("_set1_demo"):
-            # ukázkové „současné“ parametry nepatří k vlastním datům – vrátit výchozí, pokud je uživatel nezměnil
-            if (ss.get("set1_gain"), ss.get("set1_ti"), ss.get("set1_td", 0.0)) == (-2.0, 200.0, 0.0):
-                ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = 1.0, 100.0, 0.0
-            ss["_set1_demo"] = False
-        ctx.status_ph = d3.empty()
-        _loop_switcher(d4)
-
+    """
+    Hlavička jako v návrhu: bílý pruh přes celou šířku – název, smyčky, souhrn dat; vpravo Projekt, Nastavení
+    a nápověda „?“ (průvodce aktivní záložky se do ní doplní na konci běhu, ctx.help_ph). Záložky navazují pod ní.
+    """
+    with st.container(key="pid_header", horizontal=True, vertical_alignment="center", gap="medium"):
+        st.markdown(_logo_html(), unsafe_allow_html=True, width="content")
+        _loop_switcher(st.container(horizontal=True, vertical_alignment="center", gap="small", width="content",
+                                    key="pid_loops"))
+        ctx.status_ph = st.empty()
+        with st.container(horizontal=True, vertical_alignment="center", gap="small", width="content",
+                          horizontal_alignment="right", key="pid_hbtns"):
+            with st.popover(T("tb_project"), width="content"):
+                st.text_input(T("loop_tag"), key="loop_tag", placeholder="LIC101", help=T("h_loop_tag"))
+                st.file_uploader(T("proj_load"), type=["json"], key="proj_up", help=T("h_proj_load"),
+                                 on_change=load_project_file)
+                if ss.get("proj_err"):
+                    st.error(T("err_proj", ex=ss.pop("proj_err")))
+                st.caption(T("proj_help"))
+            with st.popover(T("tb_settings"), width="content"):
+                st.radio("Jazyk / Language", ["cs", "en"], key="lang", horizontal=True,
+                         format_func=lambda x: {"cs": "Čeština", "en": "English"}[x])
+                st.caption(T("theme_hint"))
+                ctx.H = sld(st, T("plot_height"), 300, 900, 460, "plot_h", step=20, help=T("h_plot_h"))
+                seg(st, T("chart_tunit"), list(charts.TIME_UNITS), "auto", "chart_tunit",
+                    format_func=lambda u: T("chart_tunit_auto") if u == "auto" else u, help=T("h_chart_tunit"))
+            with st.popover("?", width="content", help=T("h_tb_help"), key="pid_help"):
+                ctx.help_ph = st.container()          # průvodce aktivní záložky (pages.guides.render_all)
+                with st.expander(T("guide_title")):
+                    st.markdown(T("guide_body"))
+                with st.expander(T("gloss_title")):
+                    st.markdown(T("gloss_body"))
+                with st.expander(T("about_title")):
+                    st.markdown(T("about_body", v=__version__))
     if ss.pop("autosave_restored", False):
         st.toast(T("as_restored"), icon=":material/restore:")
+
+
+def _logo_html():
+    """Logo z ikony aplikace (SVG) a název – nahoře vlevo v hlavičce."""
+    import base64
+    from pathlib import Path
+    svg = (Path(__file__).resolve().parents[2] / "assets" / "logo.svg").read_bytes()
+    src = "data:image/svg+xml;base64," + base64.b64encode(svg).decode()
+    return f"<div class='pid-logo'><img src='{src}' alt=''><span><b>PID</b> Tools</span></div>"
+
+
+def render_source(ctx):
+    """
+    Zdroj dat (záložka Data, první sekce panelu): soubor / ukázka / projekt / OPC UA → ctx.df. Bez dat ukáže v hlavní
+    ploše výzvu k nahrání (a obnovu rozpracované práce) a zastaví běh.
+    """
+    ws = ctx.dws
+    cont = ws.src
+    src_opts = ["file", "demo"] + (["project"] if ss.get("proj", {}).get("data") else []) + \
+        (["opc"] if opc.available() else [])
+    if ss.get("src") not in src_opts:
+        ss["src"] = "file"
+    src = seg(cont, T("source"), src_opts, "file", "src", format_func=lambda x: T("src_" + x), help=T("h_source"),
+              label_visibility="collapsed", width="stretch") or "file"
+    ctx.df, ctx.fname, ctx.ckey = None, "demo", "demo"
+    ss["_src_prev"], ss["_src_now"] = ss.get("_src_now"), src
+    if src == "project":
+        ctx.df = pd.DataFrame(ss.proj["data"]["cols"])
+        ctx.fname = f"project|{ss.proj.get('fname_tag', ss.proj.get('tag', ''))}|{len(ctx.df)}"
+        ctx.ckey = f"{ctx.fname}|{ss.get('proj_hash')}"
+        cont.caption(T("proj_data_caption", n=len(ctx.df)))
+    elif src == "opc":
+        _opc(cont)
+        od = ss.get("opc_df")
+        if od is not None:
+            ctx.df = od["df"]
+            ctx.fname = f"opc|{od['stamp']}|{len(ctx.df)}"
+            ctx.ckey = ctx.fname
+    elif src == "file":
+        # bez načteného souboru je nahrávací plocha velká v hlavní části záložky, potom malá v panelu
+        f = _file(cont if ss.get("_up_keep") else ws.m_top)
+        if f is not None:
+            ctx.fname = f"{f['name']}|{f['size']}"
+            ctx.ckey = f"{ctx.fname}|{f['id']}"
+            try:
+                with st.spinner(T("loading")):
+                    ctx.df = load_table(ctx.ckey, f["name"], f["data"])
+            except Exception as ex:
+                cont.error(T("err_read", ex=ex))
+    else:
+        ctx.df = demo_frame()
+        if loops.active() == loops.ids()[0] and (ss.get("set1_gain", 1.0), ss.get("set1_ti", 100.0)) == (1.0, 100.0):
+            # „současné“ parametry ukázkové smyčky (odtokový ventil → záporné zesílení), dokud je uživatel nezmění
+            ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = DEMO_SET1
+            ss["_set1_demo"] = True
+        cont.download_button(T("demo_dl"), ctx.df.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
+                             "text/csv", icon=":material/download:", help=T("demo_desc"), width="stretch")
+    if src != "demo" and ss.get("_set1_demo"):
+        # ukázkové „současné“ parametry nepatří k vlastním datům – vrátit výchozí, pokud je uživatel nezměnil
+        if (ss.get("set1_gain"), ss.get("set1_ti"), ss.get("set1_td", 0.0)) == (-2.0, 200.0, 0.0):
+            ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = 1.0, 100.0, 0.0
+        ss["_set1_demo"] = False
+    ws.read_ph = cont.container()          # stav čtení a ruční nastavení (vyplní render_setup)
+
     if ctx.df is None:
-        ctx.status_ph.caption(T("empty"))
-        autosave.offer_restore()          # rozpracovaná práce uložená v prohlížeči
-        st.info(T("empty"), icon=":material/upload_file:")
+        ctx.status_ph.markdown(f"<div class='pid-sub'>{html.escape(T('title'))}</div>", unsafe_allow_html=True)
+        with ws.m_top:
+            autosave.offer_restore()          # rozpracovaná práce uložená v prohlížeči
+            st.info(T("empty"), icon=":material/upload_file:")
+        for k, tab in ctx.tabs.items():
+            if k != "data":
+                with tab:
+                    st.info(T("empty_tab"), icon=":material/arrow_back:")
         st.stop()
     _swap_fit(ctx.fname)
 
@@ -155,11 +175,9 @@ def _file(cont):
     nevykresluje a Streamlit soubor zahodí); zapomene ho jen po odebrání souboru v nahrávacím poli.
     """
     keep = ss.get("_up_keep")
-    cur = ss.get("up_file")
-    with cont.popover(cur.name if cur is not None else keep["name"] if keep else T("tb_choose_file"),
-                      icon=":material/upload_file:", width="stretch",
-                      type="secondary" if cur is not None or keep else "primary"):
-        f = st.file_uploader(T("upload"), type=["csv", "txt", "xlsx", "xls"], key="up_file")
+    with cont:
+        f = st.file_uploader(T("upload"), type=["csv", "txt", "xlsx", "xls"], key="up_file",
+                             label_visibility="collapsed" if keep else "visible")
         if f is None and keep:
             st.caption(T("up_kept", f=keep["name"]))
     if f is not None:
@@ -195,32 +213,28 @@ def render_status(ctx):
     tag_txt = html.escape(str(ss.get("loop_tag") or ""))   # tag může přijít z cizího projektu
     status = T("status", n=len(ctx.t), ts=f"{ctx.Ts:.3g}", dur=f"{ctx.t[-1]:.0f}", pvr=f"{ctx.pv_lo:g}–{ctx.pv_hi:g}",
                mvr=f"{ctx.mv_lo:g}–{ctx.mv_hi:g}")
-    ctx.status_ph.markdown(f"<div class='pid-status' style='margin:0'>{('<b>' + tag_txt + '</b> · ') if tag_txt else ''}"
+    ctx.status_ph.markdown(f"<div class='pid-sub'>{('<b>' + tag_txt + '</b> · ') if tag_txt else ''}"
                          f"{status}</div>", unsafe_allow_html=True)
 
 
 def _loop_switcher(cont):
-    """
-    Smyčky projektu. S jednou smyčkou jen nenápadné „+ smyčka“; s více přepínač (platí pro všechny záložky)
-    a menu pro přidání / odstranění.
-    """
+    """Smyčky projektu jako v návrhu: výběr aktivní smyčky (od dvou smyček), „+ Další smyčka“ a menu ⋮."""
     lids = loops.ids()
-    if len(lids) == 1:
-        cont.button(T("loop_add"), icon=":material/add:", type="tertiary", on_click=loops.add, help=T("h_loop_add"))
-        return
-    if ss.get("loop_sel") not in lids:
-        ss["loop_sel"] = loops.active()
-    c1, c2 = cont.columns([5, 1] if len(lids) <= 2 else [12, 1], vertical_alignment="center")
-    names = {i: loops.name(i) for i in lids}
-    c1.segmented_control(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
-                         label_visibility="collapsed", help=T("h_loop_sel"), width="stretch")
-    with c2.popover("", icon=":material/more_vert:", help=T("h_loop_menu")):
-        ss["loop_name_edit"] = ss.get("loop_tag") or ""
-        st.text_input(T("loop_name"), key="loop_name_edit", on_change=loops.rename, placeholder="LIC101",
-                      help=T("h_loop_tag"))
-        st.button(T("loop_add"), icon=":material/add:", on_click=loops.add, width="stretch")
-        st.button(T("loop_del", n=loops.name(loops.active())), icon=":material/delete:", width="stretch",
-                  on_click=loops.remove, args=(loops.active(),))
-        st.caption(T("loop_rename_hint"))
+    with cont:
+        if len(lids) > 1:
+            if ss.get("loop_sel") not in lids:
+                ss["loop_sel"] = loops.active()
+            names = {i: loops.name(i) for i in lids}
+            st.selectbox(T("loop"), lids, key="loop_sel", format_func=names.get, on_change=loops.on_select,
+                         label_visibility="collapsed", help=T("h_loop_sel"), width=220)
+        st.button("+ " + T("loop_add"), on_click=loops.add, help=T("h_loop_add"))
+        if len(lids) > 1:
+            with st.popover("", icon=":material/more_vert:", help=T("h_loop_menu")):
+                ss["loop_name_edit"] = ss.get("loop_tag") or ""
+                st.text_input(T("loop_name"), key="loop_name_edit", on_change=loops.rename, placeholder="LIC101",
+                              help=T("h_loop_tag"))
+                st.button(T("loop_del", n=loops.name(loops.active())), icon=":material/delete:", width="stretch",
+                          on_click=loops.remove, args=(loops.active(),))
+                st.caption(T("loop_rename_hint"))
     if ss.pop("loop_added", False):
         st.toast(T("loop_added_toast"), icon=":material/add_circle:")

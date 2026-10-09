@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from ....core import MODELS, dist_integ
 from ....i18n import T
 from ... import cache
 from ... import ff as ffmod
@@ -17,6 +18,7 @@ from ....app import guides as app_guides
 from .recommend import rec_a
 from ....app.apc import feedforward as app_ff
 from .common import C_REF
+from ...table import table
 
 
 ss = st.session_state
@@ -52,6 +54,8 @@ def ff_render(ctx):
         g0, tl0, tg0, dl0 = ffmod.defaults(code, p, pdm)
         with section(ws.side, T("ff_dist_title", d=dn), f"apc_ff_d{j}", icon=":material/fast_forward:"):
             st.caption(T("ff_model", k=f"{pdm[0]:.4g}", t=f"{pdm[1]:.4g}", th=f"{pdm[2]:.4g}", tp=f"{p[-1]:.4g}"))
+            if dist_integ(MODELS[code]["integ"], pdm) != MODELS[code]["integ"]:
+                st.warning(T("ff_mismatch", d=dn), icon=":material/warning:")
             use = st.toggle(T("ff_use", d=dn), key=k_["use"], help=T("h_ff_use"))
             g = num(T("ff_gain", d=dn), k_["gain"], g0, format="%.5g", help=T("h_ff_gain"))
             st.metric(T("ff_gain_eng", u=ctx.u_mv or "MV", d=dn), f"{ffmod.eng_gain(g, ctx.MR):.4g}",
@@ -91,7 +95,7 @@ def ff_render(ctx):
     with ws.main:
         show(style(f, ctx.H, [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_ff"), key="chart_apc_ff",
              fname="feedforward", report=T("apc_ff"))
-        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        table(pd.DataFrame(rows), hide_index=True)
         st.caption(T("ff_sim_help"))
 
     # ---- 3. hodnoty do PCS 7
@@ -101,6 +105,6 @@ def ff_render(ctx):
             st.info(T("ff_none_on"), icon=":material/info:")
         for dn, rws in tab:
             st.markdown(f"**{dn}**")
-            st.dataframe(pd.DataFrame([{T("sm_apl_block"): a, T("sm_apl_value"): float(f"{v:.4g}"),
+            table(pd.DataFrame([{T("sm_apl_block"): a, T("sm_apl_value"): float(f"{v:.4g}"),
                                         T("sm_apl_unit"): u} for a, v, u in rws]), hide_index=True)
         st.caption(T("ff_help"))

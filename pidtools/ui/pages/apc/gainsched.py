@@ -18,6 +18,7 @@ from .recommend import nl_spread, rec_a
 from ....app.apc import gainsched as app_gs
 from .common import C_PTS, clean, gs_frame, gs_sim_c, tchar, ss
 from .gainsched_er import gs_er_render, gs_er_tab
+from ...table import table
 
 
 # ---------------------------------------------------------------- gain scheduling
@@ -197,12 +198,12 @@ def gainsched_render(ctx):
                          T("gs_ms_s"): ms(rb_s), T("gs_ms_2"): ms(rb_2)})
     with ws.main:
         st.markdown(f"**{T('gs_s2')}**")
-        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        table(pd.DataFrame(rows), hide_index=True)
         st.caption(T("gs_pts_help"))
 
     # ---- 3. hodnoty do bloku GainSched
     with section(ws.side, T("gs_tab_title"), "apc_gs_tab", icon=":material/table:"):
-        st.dataframe(gs_frame(tab), hide_index=True)
+        table(gs_frame(tab), hide_index=True)
         if filled:
             st.caption(T("gs_filled"))
 
@@ -227,5 +228,5 @@ def gainsched_render(ctx):
     kp = [{T("gs_step"): f"{E(x0):.4g} → {E(x):.4g}", T("gs_iae_fixed"): round(i_f * PR, 4),
            T("gs_iae_sched"): round(i_s * PR, 4), T("gs_ms_fixed"): ms_at.get(x, ("—",))[0],
            T("gs_ms_sched"): ms_at.get(x, ("—", "—"))[1]} for x0, x, i_f, i_s in sim["iae"]]
-    ws.main.dataframe(pd.DataFrame(kp), hide_index=True)
+    table(where=ws.main, data=pd.DataFrame(kp), hide_index=True)
     ws.main.caption(T("gs_sim_help"))

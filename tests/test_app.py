@@ -16,9 +16,16 @@ WRAPPER = os.path.join(os.path.dirname(__file__), "_app_wrapper.py")
 TIMEOUT = 900
 
 
+def _dfs(app):
+    """Tabulky posledního běhu (sdílená tabulka aplikace je vlastní komponenta – AppTest ji nečte)."""
+    from types import SimpleNamespace
+    return [SimpleNamespace(value=df) for _, df in (app.session_state["_tables"] if "_tables" in app.session_state
+                                                    else [])]
+
+
 def _main(at):
-    """Hlavní záložky aplikace (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
-    return [t for t in at.tabs if t.label[:1].isdigit()]
+    """Hlavní záložky aplikace včetně „Projekt a report“ (vnořené záložky, např. pohledy v Ladění, se nepočítají)."""
+    return [t for t in at.tabs if t.label[:1].isdigit() or t.label in ("Project & report", "Projekt a report")]
 
 
 def _errors(at):
@@ -50,23 +57,33 @@ def test_start_without_data():
     at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
     at.run()
     assert not at.exception
-    assert len(at.tabs) == 0          # bez dat se záložky nezobrazí
+    tabs = _main(at)                  # záložky jsou vidět i bez dat; Data nabízí nahrání, ostatní odkazují na Data
+    assert len(tabs) == 8
+    assert len(at.get("file_uploader")) == 2      # data (hlavní plocha Dat) + projekt (hlavička)
+    assert any(i.value == "Load data in tab 1 · Data first." for i in at.info)
 
 
 def test_identification(app):
     assert app.session_state["mcode"] in MODELS
     fits = [float(m.value.rstrip(" %")) for m in app.metric if m.label.startswith("Fit – identified")]
     assert fits and fits[0] > 95
-    assert len(_main(app)) == 7
+    assert len(_main(app)) == 8
 
 
 @pytest.mark.parametrize("method", ["SIMC", "iSIMC", "Lambda", "AMIGO", "AVG", "OPT"])
 def test_tuning_methods(app, method):
-    app.session_state[f"method|{app.session_state['mcode']}"] = method
+    mc0 = mc = app.session_state["mcode"]
+    if method == "iSIMC" and mc not in ("P1D", "P2D"):
+        app.session_state["mcode"] = mc = "P1D"           # iSIMC jen pro P1D / P2D (výběr metod podle modelu)
+        app.run()
+    app.session_state[f"method|{mc}"] = method
     app.run()
-    _button(app, "Calculate").click().run()          # návrh se počítá až na tlačítko (jako v desktopu)
+    _button(app, "Calculate").click().run()          # optimalizace se počítá na tlačítko, pravidla i samy
     assert not _errors(app)
     assert app.session_state["sug_last"]["sig"]
+    if mc != mc0:
+        app.session_state["mcode"] = mc0
+        app.run()
 
 
 @pytest.mark.parametrize("crit", ["MIGO", "IAE", "ISE", "ITAE", "OVS"])
@@ -83,16 +100,16 @@ def test_scenario_target_and_sets(app):
     app.run()
     _button(app, "Calculate").click().run()
     assert not _errors(app)
-    _button(app, "Write to Set 2").click().run()
+    _button(app, "Proposal → Set 2").click().run()
     assert app.session_state["tune_hist"][0]["set"] == 2
     for kind in ("in", "pv", "sp_in", "meas", "replay", "custom", "sp"):     # předvolby scénáře (jako desktop)
         app.session_state["scen_kind"] = kind
         app.run()
         assert not _errors(app), kind
-    app.session_state["tun_view"] = "Frequency analysis"
+    app.session_state["tun_view"] = "freq"
     app.run()
     assert not _errors(app)
-    app.session_state["tun_view"] = "Scenario response"
+    app.session_state["tun_view"] = "time"
     app.run()
     assert not _errors(app)
     app.session_state["pvfilt"], app.session_state["mvrate"] = 2.0, 0.5
@@ -185,7 +202,7 @@ def test_model_tools(app):
     _button(app, "Compute uncertainty").click().run()
     assert not _errors(app)
     ith = len(MODELS[mc]["params"]) - 1
-    app.session_state[f"fx|{mc}|{ith}"], app.session_state[f"ed|{mc}|{ith}"] = True, 8.0
+    app.session_state[f"idf|{mc}|{ith}"], app.session_state[f"ed|{mc}|{ith}"] = False, 8.0   # θ neidentifikovat
     _button(app, "Refit").click().run()
     app.run()
     assert not _errors(app)
@@ -205,31 +222,39 @@ def test_lazy_tabs_and_comparison(app):
         app.run()
         assert not _errors(app)
         n_charts[lbl] = len(app.get("plotly_chart"))
-    assert n_charts[labels[0]] > 0 and n_charts[labels[5]] == 0   # Data má grafy, Projekt žádné
+    assert n_charts[labels[0]] > 0 and n_charts[labels[-1]] == 0   # Data má grafy, Projekt žádné
     app.session_state["main_tab"] = labels[2]
     app.run()
-    n_df = len(app.dataframe)
+    n_df = len(_dfs(app))
     app.session_state["cmp_open"] = True
     app.run()
     assert not _errors(app)
-    assert len(app.dataframe) == n_df + 1
+    assert len(_dfs(app)) == n_df + 1
     app.session_state["cmp_open"] = False
     app.session_state["main_tab"] = labels[0]
     app.run()
 
 
 def test_guides(app):
-    """Každá záložka má průvodce; tlačítko v kontrolním seznamu přepne na správnou záložku."""
+    """Každá záložka má průvodce (v nápovědě „?“ hlavičky, pro aktivní záložku); tlačítko přepne záložku."""
+    labels = [t.label for t in _main(app)]
+    seen = {}
+    for i, lbl in enumerate(labels):
+        app.session_state["main_tab"] = lbl
+        app.run()
+        assert not _errors(app)
+        heads = [m.value for m in app.markdown if m.value == "##### Purpose and steps"]
+        assert len(heads) == 1, lbl
+        seen[i] = [m.value for m in app.markdown]
+    assert any("**Which model when**" in v for v in seen[1])
+    assert any("**Which method when**" in v for v in seen[2])
+    app.session_state["main_tab"] = labels[2]
     app.run()
-    heads = [m.value for m in app.markdown if m.value == "##### Purpose and steps"]
-    assert len(heads) == 7                  # 7 záložek včetně přehledu smyček
-    assert any("**Which model when**" in m.value for m in app.markdown)
-    assert any("**Which method when**" in m.value for m in app.markdown)
     btn = next(b for b in app.button if b.label == "Go to Live simulation")
     btn.click().run()
     assert not _errors(app)
-    assert app.session_state["main_tab"] == [t.label for t in _main(app)][3]
-    app.session_state["main_tab"] = [t.label for t in _main(app)][0]
+    assert app.session_state["main_tab"] == labels[3]
+    app.session_state["main_tab"] = labels[0]
     app.run()
 
 
@@ -241,7 +266,7 @@ def test_other_tabs(app):
 
 
 def test_report_project_roundtrip_and_language(app):
-    app.session_state["main_tab"] = [t.label for t in _main(app)][5]      # Projekt a report
+    app.session_state["main_tab"] = [t.label for t in _main(app)][7]      # Projekt a report
     app.session_state["rep_plant"], app.session_state["rep_comment"] = "Kotelna <K2>", "a & b"
     app.run()
     _button(app, "Create report").click().run()
@@ -318,20 +343,20 @@ def test_smith_template_values():
     app.session_state["apc_kind"] = "smith"
     app.run()
     assert not _errors(app)
-    tab = next(d.value for d in app.dataframe if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
+    tab = next(d.value for d in _dfs(app) if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
     vals = dict(zip(tab.iloc[:, 0] + "." + tab.iloc[:, 1], tab.iloc[:, 2]))
     k = app.session_state["fit"]["res"]["P1D"]["p"][0]
     assert vals["SmithModelGain (Mul04).In2"] == pytest.approx(k * 2.0, rel=1e-3)
     assert {"SmithModelTimLag (Lag).LagTime", "SmithModelDeadti (DeadTime).DeadTime", "PV0 (Add04).In2",
             "PIDConL.Gain", "PIDConL.TI"} <= set(vals)
     assert any("Based on:" in c.value for c in app.caption)                  # z čeho výpočet vychází
-    gen = next(d.value for d in app.dataframe if len(d.value) and "Dead time θ" in d.value.iloc[:, 0].values)
+    gen = next(d.value for d in _dfs(app) if len(d.value) and "Dead time θ" in d.value.iloc[:, 0].values)
     assert len(gen) >= 9
     app.session_state["apc_sm_method"] = "manual"         # ruční regulátor → přímo do šablony
     app.session_state["apc_sm_mg"], app.session_state["apc_sm_mti"] = 0.7, 33.0
     app.run()
     assert not _errors(app)
-    tab = next(d.value for d in app.dataframe if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
+    tab = next(d.value for d in _dfs(app) if len(d.value) and "SmithModelGain (Mul04)" in d.value.iloc[:, 0].values)
     vals = dict(zip(tab.iloc[:, 0] + "." + tab.iloc[:, 1], tab.iloc[:, 2]))
     assert vals["PIDConL.Gain"] == pytest.approx(0.7) and vals["PIDConL.TI"] == pytest.approx(33.0)
     app.session_state["apc_sm_method"] = "OPT"
@@ -374,7 +399,7 @@ def test_gain_scheduling_page():
     app.session_state["mcode"] = "P1D"
     app.run()
     _button(app, "Calculate").click().run()            # sada 2 = návrh SIMC (návrh se počítá na tlačítko)
-    _button(app, "Write to Set 2").click().run()
+    _button(app, "Proposal → Set 2").click().run()
     app.session_state["main_tab"] = [t_.label for t_ in _main(app)][4]
     app.session_state["apc_kind"] = "gainsched"
     for i, (a, b) in enumerate(((0, 2090), (2100, 4190), (4200, 6290)), start=1):
@@ -387,12 +412,12 @@ def test_gain_scheduling_page():
     assert len(pts) == 3
     gains = [q[3] for q in pts]                     # K v bodech roste s pracovním bodem
     assert gains[0] < gains[1] < gains[2] and gains[2] / gains[0] > 2
-    tab = next(d.value for d in app.dataframe if len(d.value) and "X1 … X3" in d.value.iloc[:, 0].values)
+    tab = next(d.value for d in _dfs(app) if len(d.value) and "X1 … X3" in d.value.iloc[:, 0].values)
     xs = tab.iloc[0, 1:4].astype(float).values
     assert np.all(np.diff(xs) > 0)
     g = tab.iloc[1, 1:4].astype(float).values
     assert g[0] > g[2]                               # vyšší zesílení procesu → menší Gain regulátoru
-    kp = next(d.value for d in app.dataframe if len(d.value) and "SP step" in d.value.columns)
+    kp = next(d.value for d in _dfs(app) if len(d.value) and "SP step" in d.value.columns)
     assert kp["IAE – scheduler"].sum() < kp["IAE – one set"].sum()
     # režim X = ER: symetrická tabulka −E, 0, +E a srovnání se sadou 2 a řídicím pásmem
     app.session_state["gs_x"] = "er"
@@ -403,11 +428,11 @@ def test_gain_scheduling_page():
     app.session_state["gs_er_k"] = 1.25
     app.run()
     assert not _errors(app)
-    tab = next(d.value for d in app.dataframe if len(d.value) and "X1 … X3 (ER)" in d.value.iloc[:, 0].values)
+    tab = next(d.value for d in _dfs(app) if len(d.value) and "X1 … X3 (ER)" in d.value.iloc[:, 0].values)
     assert list(tab.iloc[0, 1:4].astype(float)) == [-4.0, 0.0, 4.0]
     g = tab.iloc[1, 1:4].astype(float).values
     assert g[0] == pytest.approx(1.25 * g[1], rel=1e-3) and g[2] == pytest.approx(g[0])
-    kp = next(d.value for d in app.dataframe if len(d.value) and "Settled" in d.value.columns)
+    kp = next(d.value for d in _dfs(app) if len(d.value) and "Settled" in d.value.columns)
     assert len(kp) >= 2 and kp["Settled"].iloc[1] == "✓"
     # změna NormPV: body se přepočítají (X v jednotkách PV stejné), identifikace bodů není potřeba
     app.session_state["gs_x"] = "pv"
@@ -427,7 +452,7 @@ def test_feedforward_in_apc(app):
     app.session_state["apc_kind"] = "ff"
     app.run()
     assert not _errors(app)
-    kp = next(d.value for d in app.dataframe if len(d.value) and "Max. PV deviation" in d.value.columns)
+    kp = next(d.value for d in _dfs(app) if len(d.value) and "Max. PV deviation" in d.value.columns)
     iae_ = dict(zip(kp.iloc[:, 0], kp["IAE disturbance"]))
     assert iae_["Static FF"] < iae_["No FF"] and iae_["Dynamic FF"] < iae_["No FF"]
     app.session_state["ffuse|0"] = True
@@ -444,12 +469,12 @@ def test_feedforward_in_apc(app):
     app.button(key="g_ffreset|0").click().run()
     assert not _errors(app)
     assert app.session_state["ff_state"][0]["gain"] == pytest.approx(g0) and app.session_state["ff_state"][0]["use"]
-    assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in app.dataframe if len(d.value))
+    assert any("FFwdHiLim" in str(d.value.iloc[:, 0].values) for d in _dfs(app) if len(d.value))
     # simulace v Ladění: stejná sada 2 bez FF pro porovnání (scénář se skokem měřené poruchy)
     app.session_state["scen_kind"] = "meas"
     app.run()
     assert not _errors(app)
-    kp = next(d.value for d in app.dataframe if len(d.value) and "Set 2 without FF" in list(d.value.index))
+    kp = next(d.value.T for d in _dfs(app) if len(d.value) and "Set 2 without FF" in list(d.value.columns))
     iae_ = dict(zip(kp.index, kp["IAE [%·s]"].astype(float)))
     assert iae_["Set 2"] != pytest.approx(iae_["Set 2 without FF"], rel=1e-3)   # FF se v simulaci projeví
     # obnova z projektu (ff v projektu → klíče widgetů)
@@ -556,7 +581,7 @@ def test_opc_source_web():
         at.run()
         _button(at, "Read history").click().run()
         assert not at.exception
-        assert at.session_state["opc_df"]["n"] == 3 and len(_main(at)) == 7
+        assert at.session_state["opc_df"]["n"] == 3 and len(_main(at)) == 8
         assert at.session_state[next(k for k in at.session_state if str(k).startswith("c_pv|opc|"))] == "TIC200.PV"
     finally:
         stop()
@@ -575,10 +600,11 @@ def test_rows_as_samples_web():
     at.run()
     at.session_state["test_inject"] = json.dumps(proj)
     at.run()
-    assert not at.exception and len(_main(at)) == 7
+    assert not at.exception and len(_main(at)) == 8
     assert at.session_state["c_tim"] == "#row"
     assert any("not recognised" in w.value for w in at.warning)
     at.session_state["row_dt"] = 2.0
+    at.session_state["read_manual"] = True        # jednotka času je v ručním nastavení čtení
     at.session_state["time_unit"] = "min"
     at.run()
     assert not at.exception
@@ -643,3 +669,32 @@ def test_apc_reset_buttons_web(app):
         app.button(key=f"g_reset|{bkey}").click().run()
         assert not _errors(app), kind
         assert app.session_state[vkey] == pytest.approx(v0) and app.button(key=f"g_reset|{bkey}").disabled, kind
+
+
+def test_per_input_segments_web():
+    """Úseky podle vstupů: MV a porucha mají vlastní úseky, vyřazení dat, typ poruchy Auto, křížové ověření, projekt."""
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["src"] = "demo"
+    at.run()
+    at.session_state["win_mode"] = "inputs"
+    at.session_state["chosen"] = ["I1D", "P1D"]
+    at.session_state["wins|demo"] = {"MV": [[250.0, 1300.0], [2500.0, 3300.0]], "FI100.Pritok": [[850.0, 1750.0]]}
+    at.session_state["dkind|FI100.Pritok"] = "auto"
+    at.run()
+    assert not _errors(at)
+    assert any(w.key == "excl|demo|PV|lo" for w in at.number_input)      # vyřazení dat podle mezí
+    _button(at, "Identify").click().run()
+    assert not _errors(at)
+    res = at.session_state["fit"]["res"]
+    assert res["I1D"]["method"] == "win" and len(res["I1D"]["fits"]) >= 2 and res["I1D"]["fit"] > 80
+    assert len(res["I1D"]["pdl"][0]) == 4                       # typ přenosu poruchy vybraný automaticky
+    tab = next(d.value for d in _dfs(at) if "FIT [%]" in d.value.columns)
+    assert "Cross-validation [%]" in tab.columns                 # porovnání typů přenosu podle návrhu
+    _button(at, "Cross-validation").click().run()
+    assert not _errors(at) and at.session_state["cv_res"]["res"]["I1D"]
+    at.session_state["main_tab"] = [t.label for t in _main(at)][7]
+    at.run()
+    proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
+    assert proj["windows"]["wins"]["FI100.Pritok"] == [[850.0, 1750.0]]
+    assert proj["fit"]["res"]["I1D"]["method"] == "win"

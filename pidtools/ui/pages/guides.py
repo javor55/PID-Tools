@@ -2,10 +2,9 @@
 Průvodci záložek: k čemu záložka je, postup, kterou metodu / model kdy zvolit, tipy z praxe a kontrolní seznam
 podle skutečného stavu projektu (s tlačítky, která rovnou přepnou záložku nebo smyčku).
 
-Každá záložka si na začátku vyhradí místo (ctx.gph[klíč]); obsah se vyplní na konci běhu (`render_all`), kdy jsou
-známé výsledky – kvalita dat, model, robustnost sad. Texty (tg_<klíč>_what / _choose / _tips) a kontroly jsou
-sdílené s desktopem v pidtools.app.guides; zde je jen vykreslení a tlačítka.
-Průvodce je ve výchozím stavu sbalený.
+Záložka se přihlásí v ctx.gph[klíč]; průvodce aktivní záložky se vykreslí do nápovědy „?“ v hlavičce na konci běhu
+(`render_all`), kdy jsou známé výsledky – kvalita dat, model, robustnost sad. Texty (tg_<klíč>_what / _choose / _tips)
+a kontroly jsou sdílené s desktopem v pidtools.app.guides; zde je jen vykreslení a tlačítka.
 """
 import streamlit as st
 
@@ -19,7 +18,8 @@ goto = apc_guide.goto
 
 
 def _render(key, checks):
-    with st.expander(T("tg_title", m=T("tg_name_" + key)), expanded=False, icon=":material/menu_book:"):
+    with st.container(key="pid_guide"):
+        st.markdown(f"**{T('tg_title', m=T('tg_name_' + key))}**")
         text = {k: T(f"tg_{key}_{k}") for k in ("what", "choose", "tips") if guides.has(f"tg_{key}_{k}")}
         wide = "|---" in text.get("choose", "")                               # tabulka potřebuje celou šířku
         cols = [st.container()] * 2 if wide else st.columns(2, gap="large")
@@ -68,10 +68,10 @@ def _action(a):
 
 
 def render_all(ctx):
-    """Vyplní průvodce všech záložek (volá se na konci běhu)."""
-    for key, ph in ctx.gph.items():
-        if key not in guides.CHECKS:
-            continue
-        checks = [(ok, txt, _action(a)) for ok, txt, a in guides.checks(key, _state(ctx))]
-        with ph:
-            _render(key, checks)
+    """Průvodce aktivní záložky do nápovědy „?“ v hlavičce (volá se na konci běhu, kdy jsou známé výsledky)."""
+    key = {"cascade": "apc"}.get(ctx.active_tab, ctx.active_tab)
+    if key not in ctx.gph or key not in guides.CHECKS or ctx.help_ph is None:
+        return
+    checks = [(ok, txt, _action(a)) for ok, txt, a in guides.checks(key, _state(ctx))]
+    with ctx.help_ph:
+        _render(key, checks)

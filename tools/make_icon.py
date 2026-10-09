@@ -1,7 +1,8 @@
 """
 Ikona aplikace PID Tools: modrý čtverec se zaoblenými rohy, žádaná hodnota (oranžová přerušovaná) a odezva smyčky
 s překmitem (bílá). Vytvoří pidtools/assets/icon.png (256 px, okno desktopu a web) a pidtools/assets/icon.ico
-(Windows: exe, instalátor, zástupci). Spuštění: python tools/make_icon.py
+(Windows: exe, instalátor, zástupci) a pidtools/assets/logo.svg (logo v hlavičce webu, ostré v každé velikosti).
+Spuštění: python tools/make_icon.py
 """
 from pathlib import Path
 
@@ -52,6 +53,39 @@ def draw(size=1024):
     return img
 
 
+def _curve(size):
+    """Body odezvy (zpoždění, překmit, ustálení) a geometrie skoku – společné pro PNG i SVG."""
+    m = size * 0.16
+    x0, x1, y_lo, y_hi = m, size - m, size * 0.74, size * 0.34
+    t = np.linspace(0, 1, 160)
+    tt = np.clip((t - 0.24) / 0.76, 0, None)
+    zeta, wn = 0.42, 13.0
+    wd = wn * np.sqrt(1 - zeta ** 2)
+    y = 1 - np.exp(-zeta * wn * tt) * (np.cos(wd * tt) + zeta / np.sqrt(1 - zeta ** 2) * np.sin(wd * tt))
+    y[t < 0.24] = 0
+    return x0, x1, y_lo, y_hi, [(x0 + ti * (x1 - x0), y_lo + yi * (y_hi - y_lo)) for ti, yi in zip(t, y)]
+
+
+def svg(size=256):
+    """Stejná kresba jako ikona ve vektoru (SVG)."""
+    x0, x1, y_lo, y_hi, pts = _curve(size)
+    w = size * 0.045
+    xs = x0 + 0.18 * (x1 - x0)
+    dash = (x1 - xs) / 7
+    path = "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y in pts)
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" role="img" aria-label="PID Tools">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e62b2"/>
+    <stop offset="1" stop-color="#28447e"/></linearGradient></defs>
+  <rect width="{size}" height="{size}" rx="{size * 0.2:.1f}" fill="url(#g)"/>
+  <path d="M{xs:.1f} {y_lo:.1f} V{y_hi:.1f}" stroke="#fb923c" stroke-width="{w:.1f}"/>
+  <path d="M{xs:.1f} {y_hi:.1f} H{x1:.1f}" stroke="#fb923c" stroke-width="{w:.1f}"
+        stroke-dasharray="{dash * 0.55:.1f} {dash * 0.45:.1f}"/>
+  <path d="{path}" fill="none" stroke="#ffffff" stroke-width="{w * 1.3:.1f}" stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
+"""
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     big = draw(1024)
@@ -59,7 +93,8 @@ def main():
     big.resize((256, 256), Image.LANCZOS).save(OUT / "icon.ico",
                                                sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128),
                                                       (256, 256)])
-    print("icon:", OUT / "icon.png", OUT / "icon.ico")
+    (OUT / "logo.svg").write_text(svg(), encoding="utf-8")
+    print("icon:", OUT / "icon.png", OUT / "icon.ico", OUT / "logo.svg")
 
 
 if __name__ == "__main__":

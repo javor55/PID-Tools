@@ -15,6 +15,7 @@ from ....app import guides as app_guides
 from .recommend import rec_a
 from ....app.apc import smith as app_smith
 from .common import smith_sim_c, tchar, ss
+from ...table import table
 
 
 # ---------------------------------------------------------------- Smithův prediktor
@@ -126,7 +127,7 @@ def smith_render(ctx):
         show(style(f, ctx.H, [ctx.lab_pv, ctx.lab_mv], ctx.lab_t, rev="apc_sm"), key="chart_apc_sm", fname="smith",
              report=T("apc_smith"))
         PR = ctx.PR / 100
-        st.dataframe(pd.DataFrame([
+        table(pd.DataFrame([
             {T("setting"): T("sm_" + k), T("iae_sp"): round(sm["iae"][k][0] * PR, 4),
              T("iae_load"): round(sm["iae"][k][1] * PR, 4)} for k in ("pid", "smith")]), hide_index=True)
         st.caption(T("sm_help", m=model_name(code)))
@@ -139,12 +140,12 @@ def smith_render(ctx):
     with mbox:
         st.caption(app_smith.basis_text(code, p, ctx, pv_op, mv_op, samp, u_pv, u_mv))
     with section(ws.side, T("sm_gen_title"), "apc_sm_gen", icon=":material/function:"):
-        st.dataframe(pd.DataFrame([{T("sm_gen_par"): T(k), T("sm_apl_value"): float(f"{x:.4g}"), T("sm_apl_unit"): u}
+        table(pd.DataFrame([{T("sm_gen_par"): T(k), T("sm_apl_value"): float(f"{x:.4g}"), T("sm_apl_unit"): u}
                                    for k, x, u in app_smith.general_rows(code, p, ctx, pv_op, mv_op, r, tc, method,
                                                                          ctype, u_pv, u_mv)]), hide_index=True)
         st.caption(T("sm_gen_help"))
     with section(ws.side, T("sm_apl_title"), "apc_sm_apl", icon=":material/table:"):
-        st.dataframe(smith_table(rows), hide_index=True)
+        table(smith_table(rows), hide_index=True)
         st.caption(T("sm_apl_note"))
         if v["th_lag"] > 3:
             st.warning(T("sm_apl_th3", r=f"{v['th_lag']:.1f}"), icon=":material/warning:")

@@ -19,59 +19,79 @@ from ....app import guides as app_guides
 from .recommend import checks_cascade, rec_a, recommend
 from .smith import smith_render, smith_values  # noqa: F401 (protokol)
 from .more import ratio_render, rga_render, split_render, vpc_render
-from ...layout import section, workspace
+from ...layout import adopt, flush_pending, release, section, workspace
 
 MORE = {"split": split_render, "vpc": vpc_render, "ratio": ratio_render, "rga": rga_render}
 
 
 def render(ctx):
     with ctx.tabs["cascade"]:
-        ctx.gph["apc"] = st.container()
-        st.caption(ctx.block_summary)
-        kind = seg(st, T("apc_kind"), KINDS, "cascade", "apc_kind", format_func=lambda x: T("apc_" + x),
-                   help=T("h_apc_kind")) or "cascade"
-        if ctx.model is not None:
-            guide.recommendations(recommend(ctx))
-        if kind == "cascade":
-            guide.render("cascade", checks_cascade(ctx), T("g_impl_cascade"))
-            cascade.render_body(ctx)
-            return
-        st.markdown(T("apc_intro_" + kind))
-        if ctx.model is None or ctx.set2_ctrl is None:
-            guide.render(kind, app_guides.apc_no_model(loops.name(loops.active())), None)
-            st.info(T("need_model"), icon=":material/arrow_back:")
-            return
-        if kind == "smith":
-            smith_render(ctx)
-            return
-        if kind in MORE:
-            MORE[kind](ctx)
-            return
-        if kind == "gainsched":
-            gainsched_render(ctx)
-            return
-        if kind == "ff":
-            ff_render(ctx)
-            return
-        other = [i for i in loops.ids() if i != loops.active()]
-        if not other:
-            guide.render(kind, app_guides.apc_need_loop(rec_a(ctx)), None)
-            return
-        names = {i: loops.name(i) for i in other}
-        if ss.get(f"apc_{kind}_b") not in other:  # výchozí druhá smyčka = ta, kterou doporučení navrhuje
-            pref = [it[2] for it in (recommend(ctx)) if it[0] == kind and it[2] in other]
-            ss[f"apc_{kind}_b"] = pref[0] if pref else other[0]
-        ws = workspace()
-        with section(ws.side, T(f"apc_{kind}_b"), f"apc_{kind}_b_sec", icon=":material/link:"):
-            bi = st.selectbox(T(f"apc_{kind}_b"), other, format_func=names.get, key=f"apc_{kind}_b",
-                              help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
-        b = loops.loop_data(bi, ctx.fname)
-        if b["model"] is None:
-            with ws.main:
-                guide.render(kind, [app_guides.apc_need_loop(rec_a(ctx))[0]] + app_guides.apc_no_model(b["name"], bi),
-                             None)
-            return
-        (decouple_render if kind == "decouple" else override_render)(ctx, bi, b, ws)
+        ctx.gph["apc"] = True
+        ws = workspace()                       # doporučení a výběr struktury nahoře v ploše, panel až k hlavičce
+        items = recommend(ctx) if ctx.model is not None else []
+        rec = {k for k, _, _ in items}
+        one = len(loops.ids()) < 2
+
+        def lab(x):
+            return ("✓ " if x in rec else "") + T("apc_" + x) + (f" · {T('g_st_need2')}" if one and x in guide.NEED2
+                                                                  else "")
+        with ws.main:
+            if ctx.model is not None:
+                guide.recommendations(items, loops.name(loops.active()))
+            with st.container(key="pid_apckind"):     # výběr struktury jako záložky (podtržení)
+                kind = seg(st, T("apc_kind"), KINDS, "cascade", "apc_kind", format_func=lab,
+                           label_visibility="collapsed") or "cascade"
+            if kind != "cascade":
+                st.caption(T("apc_intro_" + kind))
+            adopt(ws)                          # struktury kreslí do stejného panelu (jejich workspace() ho převezme)
+            try:
+                _render_kind(ctx, kind)
+            finally:
+                release()
+                flush_pending()
+
+
+def _render_kind(ctx, kind):
+    """Obsah zvolené struktury (každá má vlastní modul)."""
+    if kind == "cascade":
+        guide.render("cascade", checks_cascade(ctx), T("g_impl_cascade"))
+        cascade.render_body(ctx)
+        return
+    if ctx.model is None or ctx.set2_ctrl is None:
+        guide.render(kind, app_guides.apc_no_model(loops.name(loops.active())), None)
+        st.info(T("need_model"), icon=":material/arrow_back:")
+        return
+    if kind == "smith":
+        smith_render(ctx)
+        return
+    if kind in MORE:
+        MORE[kind](ctx)
+        return
+    if kind == "gainsched":
+        gainsched_render(ctx)
+        return
+    if kind == "ff":
+        ff_render(ctx)
+        return
+    other = [i for i in loops.ids() if i != loops.active()]
+    if not other:
+        guide.render(kind, app_guides.apc_need_loop(rec_a(ctx)), None)
+        return
+    names = {i: loops.name(i) for i in other}
+    if ss.get(f"apc_{kind}_b") not in other:  # výchozí druhá smyčka = ta, kterou doporučení navrhuje
+        pref = [it[2] for it in (recommend(ctx)) if it[0] == kind and it[2] in other]
+        ss[f"apc_{kind}_b"] = pref[0] if pref else other[0]
+    ws = workspace()
+    with section(ws.side, T(f"apc_{kind}_b"), f"apc_{kind}_b_sec", icon=":material/link:"):
+        bi = st.selectbox(T(f"apc_{kind}_b"), other, format_func=names.get, key=f"apc_{kind}_b",
+                          help=T(f"h_apc_{kind}_b", a=loops.name(loops.active())))
+    b = loops.loop_data(bi, ctx.fname)
+    if b["model"] is None:
+        with ws.main:
+            guide.render(kind, [app_guides.apc_need_loop(rec_a(ctx))[0]] + app_guides.apc_no_model(b["name"], bi),
+                         None)
+        return
+    (decouple_render if kind == "decouple" else override_render)(ctx, bi, b, ws)
 
 
 def tuning_hint(ctx):

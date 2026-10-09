@@ -9,7 +9,8 @@ from plotly.subplots import make_subplots
 
 # ── Barvy stop (grafy) – čitelné na světlém i tmavém pozadí ──────────
 from .colors import C_DIST, C_EDIT, C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: E402,F401
-FONT = "Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+FONT = "'IBM Plex Sans', Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+MONO = "'IBM Plex Mono', ui-monospace, Consolas, monospace"
 
 
 def _layout(tpl):
@@ -19,11 +20,12 @@ def _layout(tpl):
         margin=dict(l=8, r=8, t=36, b=8),
         hovermode="x unified", hoversubplots="axis",
         hoverlabel=dict(font=dict(family=FONT)),
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, bgcolor="rgba(0,0,0,0)"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
     )
+    # popisky os písmem s pevnou šířkou (jako v návrhu)
     tpl.layout.xaxis.update(showspikes=True, spikemode="across", spikesnap="cursor", spikethickness=1,
-                            zeroline=False)
-    tpl.layout.yaxis.update(zeroline=False)
+                            zeroline=False, tickfont=dict(family=MONO, size=11))
+    tpl.layout.yaxis.update(zeroline=False, tickfont=dict(family=MONO, size=11))
     return tpl
 
 

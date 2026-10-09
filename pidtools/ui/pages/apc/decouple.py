@@ -17,6 +17,7 @@ from ....app import guides as app_guides
 from ....app.apc import decouple as adec
 from ....app.apc.decouple import gain_eng
 from .common import C_B, C_REF, active_model, clean, eng, lab, mimo_sim
+from ...table import table
 
 
 # ---------------------------------------------------------------- rozvazbení 2×2
@@ -77,12 +78,12 @@ def decouple_render(ctx, bi, b, ws):
         st.caption(T("dec_sim_help"))
         rows = [{T("dec_variant"): T("dec_" + v_), f"IAE {a['name']}": round(ia, 4), f"IAE {b['name']}": round(ib, 4)}
                 for v_, ia, ib in adec.iae_table(runs, a, b)]
-        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        table(pd.DataFrame(rows), hide_index=True)
 
     # ---- parametry pro implementaci (dopředná vazba z MV druhé smyčky)
     prm = [{T("dec_path"): f"{src} → MV {dst}", T("dec_gain_pct"): round(g, 4), T("dec_gain_eng"): round(ge, 4),
             "Lead [s]": round(ld, 3), "Lag [s]": round(lg, 3), T("ff_delay"): round(dl, 3)}
            for src, dst, g, ge, ld, lg, dl in adec.params(dz, a, b)]
     with section(ws.side, T("dec_params"), "apc_dec_prm", icon=":material/table:"):
-        st.dataframe(pd.DataFrame(prm), hide_index=True)
+        table(pd.DataFrame(prm), hide_index=True)
         st.caption(T("dec_params_help"))
