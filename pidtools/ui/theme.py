@@ -48,18 +48,18 @@ _CSS = """
 .block-container {padding-top: 0.6rem; padding-bottom: 1rem; padding-left: 1.2rem; padding-right: 1.2rem;
     max-width: 100%%;}
 code, [data-testid="stMetricValue"], [data-testid="stDataFrame"] {font-variant-numeric: tabular-nums;}
-h1 {font-weight: 600; letter-spacing: -0.01em; margin: 0; padding: 0 !important; font-size: 1.45rem !important;}
+h1 {font-weight: 600; letter-spacing: -0.01em; margin: 0; padding: 0 !important; font-size: 20px !important;}
 h4 {margin-top: 0.4rem; font-weight: 600;}
 
 /* hlavička */
 .st-key-pid_header {background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px;
     padding: 0.5rem 3rem 0.5rem 0.9rem;}
-.pid-sub {color: var(--pid-muted); font-size: 0.82rem;}
+.pid-sub {color: var(--pid-muted); font-size: 12px;}
 
 /* záložky: modré podtržení, „Projekt a report“ vpravo */
 .stTabs [role="tablist"] {gap: 0.2rem;}
 .stTabs [data-testid="stTab"] {padding: 0.6rem 0.85rem; color: var(--pid-muted);}
-.stTabs [data-testid="stTab"] p {font-size: 0.93rem; font-weight: 500;}
+.stTabs [data-testid="stTab"] p {font-size: 14px; font-weight: 500;}
 .stTabs [data-testid="stTab"][aria-selected="true"] {color: var(--pid-accent);}
 .stTabs [data-testid="stTab"][aria-selected="true"] p {font-weight: 600;}
 .st-key-main_tab > div > [role="tablist"] {background: var(--pid-card); border: 1px solid var(--pid-line);
@@ -75,7 +75,7 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 [data-testid="stVerticalBlockBorderWrapper"], .stVerticalBlock[data-testid="stVerticalBlock"][class*="st-key-pid_card"]
     {background: var(--pid-card); border-radius: 10px;}
 [class*="st-key-pidside_"] [data-testid="stExpander"] p, [class*="st-key-pidside_"] [data-testid="stExpander"] label
-    {font-size: 0.9rem;}
+    {font-size: 13px;}
 
 /* jen desktop (velké displeje, myš): jemnější a nižší pole i tlačítka v celé aplikaci */
 [data-testid="stNumberInputContainer"], [data-baseweb="input"], [data-baseweb="select"] > div
@@ -88,6 +88,9 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 [data-testid="stCheckbox"] label {min-height: 0;}
 [data-testid="stCheckbox"] label > span:first-child {width: 1rem; height: 1rem;}
 [data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"] {gap: 0.65rem;}
+[data-testid="stCaptionContainer"] p {font-size: 12px;}
+[data-testid="stWidgetLabel"] p {font-size: 12px;}
+[data-testid="stButtonGroup"] button p, .stButton button p, [data-testid="stPopover"] button p {font-size: 13px;}
 
 /* panel nastavení vpravo: vlastní posuvník, rozbalit / sbalit vše */
 [data-testid="stLayoutWrapper"]:has(> [class*="st-key-pidside_"]) {position: sticky; top: 0.5rem; align-self: flex-start;
@@ -98,35 +101,35 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 /* kompaktní panel (jako v návrhu): nižší pole, menší písmo a mezery, bez šipek u čísel */
 [class*="st-key-pidside_"] [data-testid="stVerticalBlock"] {gap: 0.45rem;}
 [class*="st-key-pidside_"] [data-testid="stExpanderDetails"] {padding: 0.15rem 0.85rem 0.75rem 0.85rem;}
-[class*="st-key-pidside_"] [data-testid="stExpander"] summary {padding: 0.4rem 0.85rem; font-size: 0.9rem;}
+[class*="st-key-pidside_"] [data-testid="stExpander"] summary {padding: 0.4rem 0.85rem; font-size: 13px;}
 [class*="st-key-pidside_"] [data-testid="stWidgetLabel"] {min-height: 0; margin-bottom: 0.1rem;}
 [class*="st-key-pidside_"] [data-testid="stWidgetLabel"] p, [class*="st-key-pidside_"] [data-testid="stMarkdownContainer"] p
-    {font-size: 0.82rem;}
-[class*="st-key-pidside_"] [data-testid="stCaptionContainer"] p {font-size: 0.76rem; line-height: 1.35;}
+    {font-size: 12px;}
+[class*="st-key-pidside_"] [data-testid="stCaptionContainer"] p {font-size: 11px; line-height: 1.35;}
 [class*="st-key-pidside_"] [data-testid="stNumberInputContainer"], [class*="st-key-pidside_"] [data-baseweb="input"],
 [class*="st-key-pidside_"] [data-baseweb="select"] > div {min-height: 0; height: 2rem;}
 [class*="st-key-pidside_"] [data-testid="stNumberInputContainer"] input, [class*="st-key-pidside_"] [data-baseweb="input"] input,
-[class*="st-key-pidside_"] [data-baseweb="select"] {font-size: 0.82rem; font-family: 'IBM Plex Mono', monospace;}
+[class*="st-key-pidside_"] [data-baseweb="select"] {font-size: 12px; font-family: 'IBM Plex Mono', monospace;}
 [class*="st-key-pidside_"] [data-testid="stNumberInputContainer"] button {display: none;}
-[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button {min-height: 1.9rem; padding: 0.1rem 0.7rem; font-size: 0.8rem;}
-[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button p {font-size: 0.8rem;}
+[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button {min-height: 1.9rem; padding: 0.1rem 0.7rem; font-size: 12px;}
+[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button p {font-size: 12px;}
 [class*="st-key-pidside_"] .stButton button {min-height: 2rem; padding: 0.2rem 0.75rem;}
-[class*="st-key-pidside_"] .stButton button p {font-size: 0.82rem;}
+[class*="st-key-pidside_"] .stButton button p {font-size: 12px;}
 [class*="st-key-pidside_"] [data-testid="stCheckbox"] {min-height: 0;}
 [class*="st-key-pidside_"] [data-testid="stHorizontalBlock"] {gap: 0.5rem; align-items: center;}
-.pid-plab {font-size: 0.82rem; font-weight: 500; white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;}
+.pid-plab {font-size: 12px; font-weight: 500; white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;}
 .pid-plab .q {display: inline-flex; width: 1.05rem; height: 1.05rem; border-radius: 50%%; border: 1px solid #9aa5b1;
     font-size: 0.68rem; font-weight: 600; align-items: center; justify-content: center; color: var(--pid-muted); cursor: help;}
-.pid-unit {font-size: 0.76rem; color: var(--pid-muted); white-space: nowrap;}
-.pid-src {font-size: 0.78rem; color: var(--pid-muted); margin: -0.2rem 0 0.2rem 0;}
-.pid-side-tools {display: flex; justify-content: flex-end; gap: 0.8rem; font-size: 0.78rem; margin: 0 0.1rem 0.1rem 0;}
+.pid-unit {font-size: 11px; color: var(--pid-muted); white-space: nowrap;}
+.pid-src {font-size: 11px; color: var(--pid-muted); margin: -0.2rem 0 0.2rem 0;}
+.pid-side-tools {display: flex; justify-content: flex-end; gap: 0.8rem; font-size: 12px; margin: 0 0.1rem 0.1rem 0;}
 .pid-side-tools button {font: inherit; border: 0; background: transparent; color: var(--pid-accent); padding: 0;
     cursor: pointer;}
 
 [data-testid="stMetric"] {background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px;
     padding: 0.55rem 0.9rem;}
-[data-testid="stMetricLabel"] p {font-size: 0.82rem; color: var(--pid-muted);}
-[data-testid="stMetricValue"] {font-size: 1.45rem; font-family: 'IBM Plex Mono', monospace;}
+[data-testid="stMetricLabel"] p {font-size: 12px; color: var(--pid-muted);}
+[data-testid="stMetricValue"] {font-size: 20px; font-family: 'IBM Plex Mono', monospace;}
 .pid-status {color: var(--pid-muted); font-size: 0.85rem; margin-bottom: 0.4rem;}
 .pid-big {font-size: 0.8rem; opacity: 0.75;}
 .pid-prog {display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0.2rem 0 0.3rem 0;}
