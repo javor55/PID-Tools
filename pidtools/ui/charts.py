@@ -39,6 +39,7 @@ REPORT = _Report()
 def reset_report():
     _run.report = {"figs": [], "tables": [], "notes": []}
     _run.visible = [True]
+    _run.nchart = 0
 
 
 class Page:
@@ -114,6 +115,11 @@ def show(fig, key=None, fname="chart", select=False, report=None):
         return None
     cfg = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "autoScale2d"],
            "toImageButtonOptions": {"format": "png", "scale": 2, "filename": fname}}
-    if select:
-        return st.plotly_chart(fig, width="stretch", config=cfg, key=key, on_select="rerun", selection_mode="box")
-    return st.plotly_chart(fig, width="stretch", config=cfg, key=key)
+    # každý graf v bílé kartě (jako v návrhu); uvnitř jiné karty se rámeček nekreslí (CSS)
+    n = getattr(_run, "nchart", 0)
+    _run.nchart = n + 1
+    ck = "".join(c if c.isalnum() or c in "_-" else "_" for c in str(key or f"{fname}_{n}"))
+    with st.container(key=f"pid_card_ch_{ck}"):
+        if select:
+            return st.plotly_chart(fig, width="stretch", config=cfg, key=key, on_select="rerun", selection_mode="box")
+        return st.plotly_chart(fig, width="stretch", config=cfg, key=key)

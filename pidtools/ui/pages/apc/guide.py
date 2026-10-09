@@ -3,10 +3,14 @@ Průvodce strukturami APC: kdy metodu použít (a kdy ne), příklady z praxe, k
 skutečného stavu projektu (s tlačítky, která rovnou přepnou smyčku / záložku) a implementace v PCS 7 pomocí
 standardních šablon a bloků knihovny APL.
 """
+import html
+
 import streamlit as st
 
 from ....i18n import T
 from ... import loops
+from ...kit import card, head
+from ...layout import section, side_first
 
 ss = st.session_state
 TAB_KEYS = {"data": "tab1", "model": "tab2", "tuning": "tab3", "live": "tab4_live", "apc": "tab5", "diag": "dk_diag_tab", "project": "tab_project",
@@ -46,42 +50,55 @@ def action(a):
 
 def render(kind, checks, impl):
     """
+    Průvodce strukturou (karta nahoře v pravém panelu, jako v návrhu; bez panelu na místě volání).
     checks: [(stav, text, akce)] – stav True (splněno) / False (chybí) / None (připomínka);
             akce = identifikátor ze sdílených kontrol (viz action) nebo None.
     impl:   markdown s implementací v PCS 7 (už s vypočtenými parametry), nebo None.
-    Průvodce je ve výchozím stavu sbalený.
     """
-    with st.expander(T("g_title", m=T("apc_" + kind)), expanded=False, icon=":material/menu_book:"):
-        c1, c2 = st.columns(2, gap="large")
-        c1.markdown(T(f"g_{kind}_when"))
-        c2.markdown(T(f"g_{kind}_examples"))
-        st.markdown(f"**{T('g_checklist')}**")
-        for n, (ok, text, act_id) in enumerate(checks):
-            r = st.columns([0.05, 0.7, 0.25], vertical_alignment="center")
-            r[0].markdown(":material/check_circle:" if ok else (":material/radio_button_unchecked:" if ok is False
-                                                                 else ":material/info:"))
-            r[1].markdown(text)
-            act = action(act_id)
-            if act and ok is not True:
-                label, cb, args = act
-                r[2].button(label, on_click=cb, args=args, key=f"g_act|{kind}|{n}", width="stretch",
-                            icon=":material/arrow_forward:")
-        if impl:
-            st.markdown(f"**{T('g_impl')}**")
-            st.markdown(impl)
+    def body(side):
+        exp = (section(side, T("g_side_title", m=T("apc_" + kind)), f"apc_guide|{kind}", expanded=True)
+               if side is not None else st.expander(T("g_side_title", m=T("apc_" + kind)), expanded=True))
+        with exp:
+            st.markdown(T(f"g_{kind}_when"))
+            st.markdown(T(f"g_{kind}_examples"))
+            st.markdown(f"**{T('g_checklist')}**")
+            for n, (ok, text, act_id) in enumerate(checks):
+                ic = ":material/check_circle:" if ok else (":material/radio_button_unchecked:" if ok is False
+                                                           else ":material/info:")
+                st.markdown(f"{ic} {text}")
+                act = action(act_id)
+                if act and ok is not True:
+                    label, cb, args = act
+                    st.button(label, on_click=cb, args=args, key=f"g_act|{kind}|{n}", type="tertiary",
+                              icon=":material/arrow_forward:")
+            if impl:
+                st.markdown(f"**{T('g_impl')}**")
+                st.markdown(impl)
+    side_first(body)
 
 
-def recommendations(items):
-    """Doporučené struktury pro aktivní smyčku: [(druh, text, druhá smyčka)] → řádky s tlačítky „otevřít“."""
-    if not items:
-        return
-    with st.container(border=True):
-        st.markdown(f"**{T('g_reco_title')}**")
+NEED2 = ("decouple", "override", "rga")         # struktury, které potřebují druhou smyčku projektu
+
+
+def recommendations(items, loop_name):
+    """
+    Karta „Doporučení pro <smyčku>“: doporučené struktury se štítkem a odkazem Otevřít, nakonec struktury,
+    které potřebují další smyčku (když je v projektu jen jedna).
+    """
+    with card("apcreco"):
+        head(T("g_reco_for", n=loop_name), T("h_g_reco"))
         for n, (kind, text, other) in enumerate(items):
-            r = st.columns([0.78, 0.22], vertical_alignment="center")
-            r[0].markdown(f":material/lightbulb: {text}")
+            r = st.columns([0.88, 0.12], vertical_alignment="center")
+            r[0].markdown(f"<span class='pid-chip s0'>✓ {T('g_st_rec')}</span>&nbsp; <b>{html.escape(T('apc_' + kind))}</b>"
+                          f" – {html.escape(text)}", unsafe_allow_html=True)
             shown = ss.get("apc_kind") == kind and (kind not in ("decouple", "override")
                                                      or ss.get(f"apc_{kind}_b") == other)
             if not shown:
-                r[1].button(T("g_open", m=T("apc_" + kind)), key=f"g_reco|{kind}|{n}", on_click=goto,
-                            kwargs=dict(kind=kind, other=other), width="stretch")
+                r[1].button(T("g_open_short"), key=f"g_reco|{kind}|{n}", on_click=goto, type="tertiary",
+                            kwargs=dict(kind=kind, other=other))
+        if not items:
+            st.caption(T("g_reco_none"))
+        if len(loops.ids()) < 2:
+            st.markdown(f"<span class='pid-chip sn'>i {T('g_st_need2')}</span>&nbsp; "
+                        + T("g_reco_need2_h", k=html.escape(", ".join(T("apc_" + k) for k in NEED2))),
+                        unsafe_allow_html=True)

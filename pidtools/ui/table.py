@@ -25,13 +25,13 @@ _CSS = """
     --sel: #eef4fb; --hov: #f6f8fa; font: inherit;}
 .pidt-wrap.dark {--tx: #e2e8f0; --mut: #94a3b8; --ln: #334155; --soft: #1e293b; --sel: rgba(96,165,250,0.14);
     --hov: rgba(148,163,184,0.08);}
-.pidt {width: 100%; border-collapse: collapse; font-size: 13px; color: var(--tx); font-family: inherit;}
+.pidt {width: 100%; border-collapse: collapse; font-size: 12px; color: var(--tx); font-family: inherit;}
 .pidt th {font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--ln); white-space: nowrap;
     position: sticky; top: 0; background: inherit;}
 .pidt td {padding: 5px 8px; border-bottom: 1px solid var(--soft); vertical-align: top;}
 .pidt tr:last-child td {border-bottom: 0;}
-.pidt .n {text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; white-space: nowrap;}
-.pidt th.n {font-family: inherit; font-size: 13px;}
+.pidt .n {text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; white-space: nowrap;}
+.pidt th.n {font-family: inherit; font-size: 12px;}
 .pidt tr.click td {cursor: pointer;}
 .pidt tr.click:hover td {background: var(--hov);}
 .pidt tr.sel td {background: var(--sel);}

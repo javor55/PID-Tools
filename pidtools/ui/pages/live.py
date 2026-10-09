@@ -37,7 +37,7 @@ def _ctrl_js(c):
 
 
 _CSS = """
-.pidlive { font-family:inherit; font-size:13px; color:var(--tx); --acc:#1f5fa8; --tx:#1f2933; --mut:#52606d;
+.pidlive { font-family:inherit; font-size:12px; color:var(--tx); --acc:#1f5fa8; --tx:#1f2933; --mut:#52606d;
            --card:#ffffff; --ln:#d7dde5; --soft:#e5e9ef; --side:#f6f8fa; --ctl:#c3ccd6; }
 .pidlive.dark { --tx:#e2e8f0; --mut:#94a3b8; --card:#111a2e; --ln:#26324a; --soft:#1c2740; --side:#0f172a; --ctl:#3b4a63; }
 .pidlive * { box-sizing:border-box; }
@@ -49,13 +49,13 @@ _CSS = """
 .pidlive .bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
 .pidlive .bar .sp { flex:1; }
 .pidlive .chead { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
-.pidlive .chead .t { font-size:15px; font-weight:600; }
-.pidlive .chead .n, .pidlive .hint, .pidlive .lab { font-size:12px; color:var(--mut); }
-.pidlive .mono, .pidlive .val, .pidlive #read { font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12px; }
+.pidlive .chead .t { font-size:14px; font-weight:600; }
+.pidlive .chead .n, .pidlive .hint, .pidlive .lab { font-size:11px; color:var(--mut); }
+.pidlive .mono, .pidlive .val, .pidlive #read { font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:11px; }
 .pidlive .grp { display:flex; flex-direction:column; gap:4px; }
 .pidlive .lrow { display:grid; grid-template-columns:86px minmax(0,1fr); align-items:center; gap:8px; }
 .pidlive .btns { display:flex; gap:8px; flex-wrap:wrap; }
-.pidlive button { font:inherit; font-size:13px; color:var(--tx); background:var(--card); border:1px solid var(--ctl);
+.pidlive button { font:inherit; font-size:12px; color:var(--tx); background:var(--card); border:1px solid var(--ctl);
                   border-radius:6px; padding:5px 12px; cursor:pointer; }
 .pidlive button:hover { border-color:var(--acc); }
 .pidlive button.primary { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
@@ -66,7 +66,7 @@ _CSS = """
 .pidlive .segs button:first-child { border-radius:8px 0 0 8px; margin-left:0; }
 .pidlive .segs button:last-child { border-radius:0 8px 8px 0; }
 .pidlive .segs button.on { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:500; position:relative; }
-.pidlive .chip { font-size:12px; border-radius:999px; padding:2px 10px; border:1px solid rgba(34,197,94,.45);
+.pidlive .chip { font-size:11px; border-radius:999px; padding:2px 10px; border:1px solid rgba(34,197,94,.45);
                  background:rgba(34,197,94,.13); color:#2f6f3e; }
 .pidlive .chip.man { border-color:rgba(245,158,11,.5); background:rgba(245,158,11,.16); color:#8a4b00; }
 .pidlive .chk { display:flex; align-items:center; gap:6px; padding:2px 0; cursor:pointer; }
@@ -78,28 +78,28 @@ _CSS = """
 .pidlive input.num { width:90px; font:inherit; color:inherit; background:var(--card); text-align:right;
                      border:1px solid var(--ctl); border-radius:6px; padding:2px 6px; }
 .pidlive details { background:var(--card); border:1px solid var(--ln); border-radius:10px; }
-.pidlive summary { cursor:pointer; padding:12px 14px; font-size:15px; font-weight:600; list-style:none; display:flex;
+.pidlive summary { cursor:pointer; padding:12px 14px; font-size:14px; font-weight:600; list-style:none; display:flex;
                    align-items:center; gap:8px; }
-.pidlive summary::before { content:"▸"; color:#9aa5b1; font-size:12px; width:12px; }
+.pidlive summary::before { content:"▸"; color:#9aa5b1; font-size:11px; width:12px; }
 .pidlive details[open] > summary::before { content:"▾"; }
 .pidlive details > section { padding:0 14px 14px; display:flex; flex-direction:column; gap:8px; }
 .pidlive .tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 .pidlive .tile { border:1px solid var(--ln); border-radius:8px; padding:4px; text-align:center; background:var(--side); }
 .pidlive .tile .l { font-size:11px; color:var(--mut); }
-.pidlive .tile .v { font-family:'IBM Plex Mono', monospace; font-size:17px; font-weight:500; }
+.pidlive .tile .v { font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:500; }
 .pidlive .tile.mv .v, .pidlive .tile.mv .l { color:#c2410c; }
-.pidlive table { border-collapse:collapse; width:100%%; font-size:13px; }
+.pidlive table { border-collapse:collapse; width:100%%; font-size:12px; }
 .pidlive th { text-align:right; font-weight:600; padding:6px 8px; border-bottom:1px solid var(--ln); }
 .pidlive th:first-child, .pidlive td:first-child { text-align:left; }
 .pidlive td { padding:5px 8px; border-bottom:1px solid var(--soft); text-align:right;
-              font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12px; }
-.pidlive td:first-child { font-family:inherit; font-size:13px; }
+              font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:11px; }
+.pidlive td:first-child { font-family:inherit; font-size:12px; }
 .pidlive tr:last-child td { border-bottom:0; }
 .pidlive td.best { background:rgba(34,197,94,.14); }
 .pidlive .dot { display:inline-block; width:9px; height:9px; border-radius:50%%; margin-right:6px; }
 .pidlive .cvwrap { position:relative; }
 .pidlive canvas { width:100%%; display:block; }
-.pidlive #tip { position:absolute; display:none; pointer-events:none; font-size:11.5px; line-height:1.45; padding:6px 9px;
+.pidlive #tip { position:absolute; display:none; pointer-events:none; font-size:11px; line-height:1.45; padding:6px 9px;
                 border-radius:8px; border:1px solid var(--ln); background:var(--card); white-space:nowrap;
                 box-shadow:0 2px 8px rgba(0,0,0,.08); }
 """

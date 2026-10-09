@@ -6,7 +6,7 @@ codeFont = "IBM Plex Mono:https://fonts.googleapis.com/css2?family=IBM+Plex+Mono
 headingFontWeights = [600, 600, 600, 600, 600, 600]
 baseRadius = "medium"
 # desktop only (large displays, mouse): smaller base font = denser layout, finer fields
-baseFontSize = 13
+baseFontSize = 12
 
 [theme.light]
 primaryColor = "#1f5fa8"

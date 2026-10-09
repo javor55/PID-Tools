@@ -11,6 +11,20 @@ export default function (component) {
   W.unit = (data && data.unit) || "auto";
   W.txt = (data && data.txt) || W.txt;
   const P = () => window.Plotly;
+
+  // výška hlavičky se záložkami → --pid-top: plocha a panel pod ní mají výšku okna a rolují nezávisle
+  function measureTop() {
+    const tl = document.querySelector('.st-key-main_tab [role="tablist"]');
+    if (!tl) return;
+    const top = Math.round(tl.getBoundingClientRect().bottom + (document.querySelector('[data-testid="stMain"]')?.scrollTop || 0));
+    document.documentElement.style.setProperty("--pid-top", top + "px");
+  }
+  if (!W.topObs) {
+    W.topObs = true;
+    window.addEventListener("resize", measureTop);
+    setInterval(measureTop, 1500);
+  }
+  measureTop();
   const U = { s: 1, min: 60, h: 3600 };
 
   function unitFor(span) {

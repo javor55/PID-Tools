@@ -16,7 +16,7 @@ from .apc import guide as apc_guide
 from ..charts import REPORT, mkfig, show, style, tr
 from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..layout import section
-from ..widgets import model_name, num, seg, sld
+from ..widgets import model_name, num, seg, sel, sld
 from ...app import closedloop as cl_mod
 from ...app import model as mdl
 from ...app.loop import set_ctrl
@@ -100,8 +100,8 @@ def render(ctx):
         with ws.ident:
             if "chosen" not in ss:
                 ss["chosen"] = list(MODELS)
-            id_mode = seg(st, T("idm"), ["open", "cl"], "open", "id_mode", format_func=lambda x: T("idm_" + x),
-                          help=T("h_idm")) or "open"
+            id_mode = sel(st, T("idm"), ["open", "cl"], 0, "id_mode", format_func=lambda x: T("idm_" + x),
+                          help=T("h_idm"))
             closed = id_mode == "cl" and ctx.has_sp
             if id_mode == "cl":
                 if not ctx.has_sp:
@@ -116,8 +116,8 @@ def render(ctx):
             chosen = st.multiselect(T("models"), list(MODELS), format_func=model_name, key="chosen",
                                     placeholder=T("ms_placeholder"), help=T("h_models"))
             th_max = num(T("thmax"), "thmax", round(0.4 * ts_id[-1], 1), min_value=0.0, help=T("thmax_help"))
-            dist_level = seg(st, T("dist_level"), ["none", "medium", "high"], "none", "dist_level",
-                             format_func=lambda x: T("dl_" + x), help=T("h_dist_level")) or "none"
+            dist_level = sel(st, T("dist_level"), ["none", "medium", "high"], 0, "dist_level",
+                             format_func=lambda x: T("dl_" + x), help=T("h_dist_level"))
             st.caption(T("dl_desc_" + dist_level))
             dist_strength = sld(st, T("dist_strength"), 1, 10, 4, "dist_strength", help=T("h_dist_strength"),
                                 disabled=dist_level == "none")
