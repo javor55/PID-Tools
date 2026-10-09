@@ -43,13 +43,6 @@ def render(ctx):
             st.download_button(T("proj_save"), lambda p=payload: serialize_project(p), f"{base}_projekt.json",
                                "application/json", type="primary", width="stretch", on_click="ignore")
             st.caption(T("proj_save_help") + " " + T("pj_load_hint"))
-        with section(ws.side, T("as_title"), "pj_as", expanded=False):
-            on = tog(st, T("as_on"), True, "autosave_on", help=T("h_as_on"))
-            if on and ss.get("autosave_last"):
-                st.caption(T("as_last", t=ss["autosave_last"]))
-            st.caption(T("as_help"))
-            st.button(T("as_clear"), icon=":material/delete:",
-                      on_click=lambda: ss.update(autosave_mode="clear", _autosave_hash=None, autosave_last=None))
         rr = (0.8, 2.2)
         with section(ws.side, T("rep_title"), "pj_rep", expanded=True):
             st.caption(T("rep_help"))

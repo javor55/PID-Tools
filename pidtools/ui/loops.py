@@ -23,7 +23,7 @@ GLOBAL_KEYS = {
     "c_tag", "c_val", "main_tab", "prev_open", "drag", "inner_fit", "test_inject", "proj_inc", "loops", "loop_sel",
     "_up_keep", "_up_seen", "_src_prev", "_src_now",
 }
-GLOBAL_PREFIX = ("layout|", "cas_", "apc_", "autosave", "_autosave", "rep_", "live_sim", "_proj")
+GLOBAL_PREFIX = ("layout|", "cas_", "apc_", "rep_", "live_sim", "_proj")
 # widgety, jejichž hodnotu Streamlit nedovolí zapsat (tlačítka, výběr v grafu/tabulce, editory – ty se obnoví
 # z uložených „…|last“ hodnot); do snímku smyčky se neukládají
 SKIP_PREFIX = ("scen_ed|", "vchar_ed", "chart_data|", "cmp|", "cmp_s", "segtab|", "g_", "tg_")

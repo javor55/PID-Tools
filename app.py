@@ -12,7 +12,7 @@ st.set_page_config(page_title="PID Tools – PIDConL Tuner", page_icon=str(_ICON
 
 from pidtools.i18n import DEFAULT_LANG, TEXTS, T  # noqa: E402
 from pidtools.i18n import set_lang_provider  # noqa: E402
-from pidtools.ui import autosave, charts, layout, loops, table  # noqa: E402
+from pidtools.ui import charts, layout, loops, table  # noqa: E402
 from pidtools.app.guess import loop_tag  # noqa: E402
 from pidtools.ui.context import Ctx  # noqa: E402
 from pidtools.ui.pages import (apc, audit, data, diagnostics, guides, header, live, model,  # noqa: E402
@@ -72,7 +72,6 @@ def main():
     if full or ctx.active_tab == "audit":
         audit.render(ctx)
     loops.save_info(ctx, loop_tag(ctx.c_pv).upper())   # souhrn smyčky pro přepínač a kaskádu
-    autosave.save(ctx)                                  # průběžné uložení do prohlížeče
     guides.render_all(ctx)                              # průvodci záložek (s výsledky tohoto běhu)
 
 

@@ -36,7 +36,6 @@ class GuideState:
     set2: tuple = (1.0, 100.0, 0.0)
     set2_ctrl: dict = None                          # sada 2 jako ctrl (pro Ms)
     n_loops: int = 1
-    autosave: bool = None                           # web: automatické ukládání v prohlížeči
     report: bool = None                             # protokol vytvořen
     plant_meta: bool = None                         # vyplněná hlavička protokolu
 
@@ -141,8 +140,6 @@ def _apc(g):
 
 def _project(g):
     out = [_model(g)]
-    if g.autosave is not None:
-        out.append((True if g.autosave else None, T("tgc_proj_autosave"), None))
     out.append((True if g.report else None, T("tgc_proj_report"), None))
     out.append((True if g.plant_meta else None, T("tgc_proj_meta"), None))
     return out

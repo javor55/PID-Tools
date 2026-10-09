@@ -107,8 +107,7 @@ a gain scheduling krátce vytíží jedno jádro CPU. Pro malý tým by měla st
 
 - Nahraná data se zpracovávají jen v paměti serveru po dobu relace (a v mezipaměti výpočtů); aplikace nic
   nezapisuje na disk a nevolá žádné externí služby.
-- Rozpracovaná práce se automaticky ukládá **v prohlížeči uživatele** (IndexedDB) – ne na serveru. Uživatel ji
-  může vypnout nebo smazat v záložce Projekt a report.
+- Webová aplikace rozpracovanou práci neukládá – uživatel si ji uloží jako projekt (soubor JSON).
 - Projekt (JSON) a protokol (HTML) se stahují do počítače uživatele. Protokol s volbou „grafy z internetu“ načítá
   knihovnu grafů z CDN při otevření; výchozí volba („vložené“) funguje offline.
 

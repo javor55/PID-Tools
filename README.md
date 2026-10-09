@@ -54,7 +54,7 @@ controller structure and implementation steps follow the **PIDConL** block and t
   loops are ranked by their problems (oscillation, stiction, saturation, Harris index, valve wear, manual mode) and
   common oscillations are grouped with their likely source.
 - **Several loops in one project** (e.g. the inner and outer loop of a cascade from one export).
-- **Project file** (JSON) with models, tuning and optionally data; **autosave** of work in progress in the browser.
+- **Project file** (JSON) with models, tuning and optionally data.
 - **Tuning protocol** (HTML, print to PDF) for all loops of the project.
 - **A guide in every tab** – purpose, procedure, which method to choose when, practical tips and a checklist based
   on the state of your project.
@@ -146,7 +146,7 @@ All methods, criteria and indicators explained: [docs/methods.md](docs/methods.m
 
 - Uploaded data are processed on the server running the app **only for the session** and are not stored (no writes
   to disk, no calls to external services, Streamlit telemetry is switched off).
-- Work in progress is autosaved **only in the user's browser** (can be switched off in the Project & report tab).
+- The web app does not store work in progress; save it as a project file (JSON).
 - OPC UA access is **read only** – the application never writes to the server.
 - The public instance runs on Streamlit Community Cloud. If you may not upload plant data to a third-party server,
   run the app **locally or on an internal server** ([docs/deployment.md](docs/deployment.md)).

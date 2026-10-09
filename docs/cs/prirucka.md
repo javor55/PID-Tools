@@ -149,8 +149,6 @@ Nahoře je **doporučení** podle modelů a vazeb mezi smyčkami projektu. Každ
 
 - **Projekt** – uloží všechny smyčky, modely, ladění a nastavení APC, volitelně i data (soubor JSON). Načtete ho
   v horní liště *Projekt*.
-- **Automatické ukládání** – rozpracovaná práce se průběžně ukládá v prohlížeči; při dalším otevření aplikace se
-  nabídne obnovení. Lze vypnout nebo vymazat.
 - **Protokol z ladění** – zařízení, autor, stav, komentář, výběr sekcí (model, ladění, odezva, APC, podpisy);
   grafy vložené (funguje offline) nebo z internetu (menší soubor). Stáhne se jako HTML; do PDF přes *Tisk › Uložit
   jako PDF*.

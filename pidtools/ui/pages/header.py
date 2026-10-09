@@ -9,7 +9,7 @@ from ... import __version__
 from ...app import opc
 from ...app.dataset import DEMO_SET1, demo_frame
 from ...i18n import T
-from .. import autosave, charts, loops
+from .. import charts, loops
 from ..dataio import load_table
 from ..project import load_project_file
 from ..widgets import num, seg, sld
@@ -51,8 +51,6 @@ def render(ctx):
                     st.markdown(T("gloss_body"))
                 with st.expander(T("about_title")):
                     st.markdown(T("about_body", v=__version__))
-    if ss.pop("autosave_restored", False):
-        st.toast(T("as_restored"), icon=":material/restore:")
 
 
 def _logo_html():
@@ -120,7 +118,6 @@ def render_source(ctx):
     if ctx.df is None:
         ctx.status_ph.markdown(f"<div class='pid-sub'>{html.escape(T('title'))}</div>", unsafe_allow_html=True)
         with ws.m_top:
-            autosave.offer_restore()          # rozpracovaná práce uložená v prohlížeči
             st.info(T("empty"), icon=":material/upload_file:")
         for k, tab in ctx.tabs.items():
             if k != "data":

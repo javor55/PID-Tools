@@ -109,8 +109,7 @@ team.
 
 - Uploaded data are processed only in the server memory for the duration of the session (and in the computation
   cache); the application writes nothing to disk and calls no external services.
-- Work in progress is autosaved **in the user's browser** (IndexedDB) – not on the server. The user can switch it
-  off or clear it in the Project & report tab.
+- The web app does not store work in progress – the user saves it as a project (JSON file).
 - The project (JSON) and the protocol (HTML) are downloaded to the user's computer. A protocol with charts
   "from the internet" loads the chart library from a CDN when opened; the default (embedded) works offline.
 
