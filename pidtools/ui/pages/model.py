@@ -12,8 +12,10 @@ from ...core import (DIST_PARAMS, MODELS, bootstrap_models, dyn_scale, model_met
 from ...i18n import T
 from .. import cache
 from ..cache import pidconl_sim
+from .apc import guide as apc_guide
 from ..charts import REPORT, mkfig, show, style, tr
 from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
+from ..layout import section
 from ..widgets import model_name, num, seg, sld
 from ...app import closedloop as cl_mod
 from ...app import model as mdl
@@ -82,16 +84,16 @@ def render(ctx):
     def reset_edits(code):
         r = ss.fit["res"][code]
         for i, v in enumerate(r["p"]):
-            ss[f"ed|{code}|{i}"] = float(v)
+            ss[f"ed|{code}|{i}"] = _g4(v) if i else float(v)      # časy: numerický šum kolem 0 jako 0
         for j, pd_ in enumerate(r["pdl"]):
             for i, v in enumerate(pd_):
-                ss[f"ed|{code}|d{j}|{i}"] = float(v)
+                ss[f"ed|{code}|d{j}|{i}"] = _g4(v) if i else float(v)
         ss[f"ed|{code}|stic"] = float(r.get("stic", 0.0) or 0.0)
 
     model = None
     sigma_pv = 0.0
     model_stic, model_level, model_Th = 0.0, "none", None
-    seg_extra, seg_resid = [], None
+    seg_extra, seg_resid = None, None
     with ctx.tabs["model"]:
         # ---- 2 · identifikace (panel)
         with ws.ident:
@@ -118,25 +120,51 @@ def render(ctx):
             st.caption(T("dl_desc_" + dist_level))
             dist_strength = sld(st, T("dist_strength"), 1, 10, 4, "dist_strength", help=T("h_dist_strength"),
                                 disabled=dist_level == "none")
-            gain_sign = seg(st, T("gain_sign"), ["auto", "pos", "neg"], "auto", "gain_sign",
-                            format_func=lambda x: T("gsg_" + x), help=T("h_gain_sign")) or "auto"
             id_stic = st.toggle(T("id_stic"), key="id_stic", help=T("h_id_stic"))
-            win = ctx.win_mode == "inputs"
-            dkinds, dsigns = [], []
-            if win:                               # přenosy poruch: typ a znaménko zvlášť pro každou poruchu
-                for dn in c_d:
-                    st.markdown(f"<span class='pid-big'>{T('dist_model')}: <b>{html.escape(str(dn))}</b></span>",
-                                unsafe_allow_html=True)
-                    k1, k2 = st.columns(2)
-                    dkinds.append(k1.selectbox(T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}",
-                                               format_func=lambda x: T("dkind_" + x), help=T("h_dkind")))
-                    dsigns.append(mdl.SIGN[seg(k2, T("gain_sign"), ["auto", "pos", "neg"], "auto", f"dsign|{dn}",
-                                               format_func=lambda x: T("gsg_" + x), help=T("h_dsign")) or "auto"])
-                if closed:
-                    st.warning(T("win_no_cl"), icon=":material/warning:")
-                    closed = False
+        win = ctx.win_mode == "inputs"
+
+        # ---- struktura modelu a karty přenosů (pořadí panelu jako v návrhu)
+        with ws.struct:
+            st.markdown("<div class='pid-formula'>PV = G₁(s)·MV" + "".join(f" + G{j + 2}(s)·{html.escape(str(dn))}"
+                                                                         for j, dn in enumerate(c_d)) + "</div>",
+                        unsafe_allow_html=True)
+            seg(st, T("ms_proc"), ["auto", "self", "integ"], "auto", "proc_type", format_func=lambda x: T("ms_proc_" + x),
+                help=T("h_ms_proc"), on_change=_proc_changed)
+            st.caption(T("ms_proc_note"))
+        res_prev = (ss.get("fit") or {}).get("res", {})
+        mc_prev = ss.get("mcode") if ss.get("mcode") in res_prev else None
+        cards = []
+        for k_, (nm_, col_) in enumerate([("MV", c_mv)] + [(str(dn), dn) for dn in c_d]):
+            fit_lbl = ""
+            if mc_prev and res_prev[mc_prev].get("fit") is not None:
+                fs_ = _input_fit(ctx, res_prev[mc_prev], nm_)
+                fit_lbl = f" · FIT {fs_:.0f} %" if fs_ is not None else ""
+            title_ = T("ms_card", k=k_ + 1, n=nm_, c=col_) if str(col_) != nm_ else T("ms_card1", k=k_ + 1, n=nm_)
+            ex_ = section(ws.cards, title_ + fit_lbl, f"card|{nm_}", expanded=True)
+            with ex_:
+                cards.append(dict(name=nm_, head=st.container(), typ=st.container(), params=st.container(),
+                                  sign=st.container(), extra=st.container()))
+        gs_lab = {"neg": "−", "auto": "auto", "pos": "+"}
+        with cards[0]["sign"]:
+            gain_sign = seg(st, T("ms_sign"), ["neg", "auto", "pos"], "auto", "gain_sign", format_func=gs_lab.get,
+                            help=T("h_ms_sign")) or "auto"
+        dkinds, dsigns = [], []
+        for j, dn in enumerate(c_d):              # přenosy poruch: typ a směr účinku zvlášť pro každou poruchu
+            cd_ = cards[j + 1]
+            dkinds.append(cd_["typ"].selectbox(T("dkind"), ["pv", "auto", "self", "integ"], key=f"dkind|{dn}",
+                                               format_func=lambda x: T("dkind_" + x), help=T("h_dkind"),
+                                               disabled=not win))
+            with cd_["sign"]:
+                dsigns.append(mdl.SIGN[seg(st, T("ms_sign"), ["neg", "auto", "pos"], "auto", f"dsign|{dn}",
+                                           format_func=gs_lab.get, help=T("h_dsign"), disabled=not win) or "auto"])
+            if not win:
+                cd_["head"].caption(T("ms_dist_common"))
+        if closed and win:
+            ws.ident.warning(T("win_no_cl"), icon=":material/warning:")
+            closed = False
         with ws.top:
             run_fit = st.button(T("run_fit"), type="primary", icon=":material/play_arrow:", width="stretch")
+            st.caption(T("ms_fit_note"))
         sets = mdl.IdSettings(tuple(chosen), th_max, dist_level, dist_strength, gain_sign, id_stic)
         fit_key = mdl.fit_key(fname, rng, sets, (pv_lo, pv_hi, mv_lo, mv_hi), Ts, c_pv, c_mv, c_d, long_fmt)
         if win:
@@ -194,12 +222,14 @@ def render(ctx):
             rc_ = ss.pop("refit_req")
             if rc_ in ss.fit["res"]:
                 names_ = MODELS[rc_]["params"]
-                fixed_ = {f"p{i}": float(ss[f"ed|{rc_}|{i}"]) for i in range(len(names_)) if ss.get(f"fx|{rc_}|{i}")}
+                fixed_ = {f"p{i}": float(ss[f"ed|{rc_}|{i}"]) for i in range(len(names_))
+                          if not ss.get(f"idf|{rc_}|{i}", True)}
                 for j in range(len(c_d)):
                     for i in range(3):
-                        if ss.get(f"fx|{rc_}|d{j}|{i}"):
+                        if not ss.get(f"idf|{rc_}|d{j}|{i}", True):
                             fixed_[f"d{j}_{i}"] = float(ss[f"ed|{rc_}|d{j}|{i}"])
-                sfix = float(ss.get(f"ed|{rc_}|stic", 0.0)) if (ss.get(f"fx|{rc_}|stic") or not id_stic) else None
+                sfix = (float(ss.get(f"ed|{rc_}|stic", 0.0)) if (not ss.get(f"idf|{rc_}|stic", True) or not id_stic)
+                        else None)
                 try:
                     with ws.top, st.spinner(T("fitting")):
                         ss.fit["res"][rc_] = do_fit(rc_, fixed_, sfix)
@@ -258,14 +288,42 @@ def render(ctx):
                     if kinds_:
                         row[T("dkind")] = ", ".join(kinds_)
                 rows.append(row)
-            with ws.m_res:
-                st.dataframe(pd.DataFrame(rows).set_index(T("col_model")), width="stretch",
-                             column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0,
-                                                                                      max_value=100, format="%.1f")})
-                st.caption(T("units_note") + (" " + T("fit_eff_note") if lvl_fit != "none" else "")
+            with ws.m_res.container(border=True, key="pid_card_cmp"):
+                st.markdown(f"**{T('ms_cmp')}**", help=T("h_ms_cmp"))
+                cmp_tabs = st.tabs([T("ms_cmp_tab", k=1, n="MV")] + [T("ms_cmp_tab", k=j + 2, n=str(dn))
+                                                                       for j, dn in enumerate(c_d)])
+                ctx.cmp_tabs = cmp_tabs
+            with cmp_tabs[0]:
+                st.caption(T("ms_cmp_note") if win else T("ms_cmp_note_common"))
+                cvk = ("cv", fit_key)
+                cvr = ss.get("cv_res") if (ss.get("cv_res") or {}).get("key") == cvk else None
+                best_fit = max(r_["fit"] for r_ in res.values())
+                simple = min((c for c in res if res[c]["fit"] >= best_fit - 2.0), key=lambda c: len(MODELS[c]["params"]))
+                crow = []
+                for q, row in zip(mdl.summary(res, ts_id, pv_id, mv_id, d_id, Ts), rows):
+                    c = q["code"]
+                    cv_ = (cvr or {}).get("res", {}).get(c) if cvr else None
+                    crow.append({T("ms_cmp_use"): "●" if c == ss.get("mcode") else "",
+                                 T("ms_cmp_type"): model_name(c), "FIT [%]": row["FIT [%]"],
+                                 T("ms_cmp_cv"): (f"{float(np.nanmean(cv_)):.1f}" if cv_ else "—"),
+                                 T("ms_cmp_par"): " · ".join(f"{n} {_g4(v)}" for n, v in zip(MODELS[c]["params"], q["p"])),
+                                 T("ms_cmp_rate"): row[T("col_status")] + (f" · {T('ms_simplest')}" if c == simple else ""),
+                                 "_c": c})
+                cdf = pd.DataFrame(crow)
+                ev_c = st.dataframe(cdf.drop(columns="_c"), hide_index=True, width="stretch", on_select="rerun",
+                                    selection_mode="single-row", key=f"cmp_mv|{fit_key[0]}",
+                                    column_config={"FIT [%]": st.column_config.ProgressColumn(
+                                        "FIT [%]", min_value=0, max_value=100, format="%.1f")})
+                try:                                   # klik na řádek = Použít tento typ pro MV
+                    sel_ = ev_c.selection.rows
+                    if sel_ and ss.get("_cmp_sel_last") != (cvk, sel_[0]):
+                        ss["_cmp_sel_last"] = (cvk, sel_[0])
+                        ss["mtype"] = cdf["_c"].iloc[sel_[0]]
+                except AttributeError:
+                    pass
+                st.caption(T("ms_cmp_pick") + " " + T("units_note") + (" " + T("fit_eff_note") if lvl_fit != "none" else "")
                            + (" " + T("idm_table_note") if any_cl else ""))
                 if win and len(_win_labels(ctx)) >= 2:   # křížové ověření: fit bez úseku → shoda na něm
-                    cvk = ("cv", fit_key)
                     if st.button(T("cv_run"), icon=":material/fact_check:", key="g_cv", help=T("h_cv")):
                         with st.spinner(T("fitting")):
                             ss["cv_res"] = dict(key=cvk, res={c: cache.cross_validate(
@@ -273,68 +331,74 @@ def render(ctx):
                                 sign=mdl.SIGN[gain_sign], dsign=tuple(dsigns),
                                 dkind=tuple(int(d_[3]) if len(d_) > 3 else 0 for d_ in r_["pdl"]))
                                 for c, r_ in res.items() if r_.get("method") == "win"})
-                    cvr = ss.get("cv_res")
-                    if cvr and cvr["key"] == cvk:
-                        labs = _win_labels(ctx)
-                        st.dataframe(pd.DataFrame({model_name(c): {lab.replace("FIT", "CV"): round(v, 1)
-                                                                   for lab, v in zip(labs, vals)}
-                                                   for c, vals in cvr["res"].items()}).T, width="stretch")
+                        st.rerun()
+                    if cvr:
                         st.caption(T("cv_help"))
                 for wk, c in mdl.warnings(res, ts_id[-1], th_max):
                     st.warning(T(wk, m=model_name(c)), icon=":material/trending_up:" if wk == "warn_long_T"
                                else ":material/warning:")
 
-            # ---- 3 · model pro ladění (panel)
+            # ---- karty přenosů: typ, parametry (Identif. = volný parametr), směr účinku, původní hodnoty
             best = mdl.best(res)
-            with ws.model:
-                if ss.get("mcode") not in res:
-                    ss["mcode"] = best
-                mcode = st.selectbox(T("model_for_tuning"), list(res),
-                                     format_func=lambda c: f"{model_name(c)} ({res[c]['fit']:.1f} %)", key="mcode",
-                                     help=T("h_model_for_tuning"))
-                names = MODELS[mcode]["params"]
-                need = [f"ed|{mcode}|{i}" for i in range(len(names))] + [
-                    f"ed|{mcode}|d{j}|{i}" for j in range(len(c_d)) for i in range(len(DIST_PARAMS))] + [
-                    f"ed|{mcode}|stic"]
-                if any(k not in ss for k in need):
-                    reset_edits(mcode)
-                st.caption(T("fix_help"))
-                p_ed = []
-                for i, n in enumerate(names):           # parametry pod sebou: hodnota | zafixovat
-                    c1_, c2_ = st.columns([3, 1], vertical_alignment="bottom")
-                    p_ed.append(c1_.number_input(n, key=f"ed|{mcode}|{i}", min_value=None if i == 0 else 0.0,
-                                                 format="%.5g", help=T("help_" + ("gain" if i == 0 else "theta" if i == len(names) - 1 else "T")),
-                                                 step=max(abs(ss[f"ed|{mcode}|{i}"]) * 0.05, 1e-6)))
-                    c2_.checkbox(T("fix"), key=f"fx|{mcode}|{i}", help=T("h_fix"))
-                pdl_ed = []
-                for j, dn in enumerate(c_d):
-                    st.markdown(f"<span class='pid-big'>{T('dist_model')}: <b>{html.escape(str(dn))}</b></span>",
-                                unsafe_allow_html=True)
-                    row_ = []
-                    for i, n in enumerate(DIST_PARAMS):
-                        c1_, c2_ = st.columns([3, 1], vertical_alignment="bottom")
-                        row_.append(c1_.number_input(n, key=f"ed|{mcode}|d{j}|{i}", min_value=None if i == 0 else 0.0,
-                                                     format="%.5g", help=T("h_dist_" + str(i)),
-                                                     step=max(abs(ss[f"ed|{mcode}|d{j}|{i}"]) * 0.05, 1e-6)))
-                        c2_.checkbox(T("fix"), key=f"fx|{mcode}|d{j}|{i}", help=T("h_fix"))
-                    pdl_ed.append(row_)
+            fam = _family(ss.get("proc_type", "auto"))
+            opts = ["pv", "auto"] + list(res)
+            if ss.get("mtype") not in opts:
+                ss["mtype"] = ss["mcode"] if ss.get("mcode") in res else "pv"
+            if ss.get("mcode") in res and ss.get("mcode") != ss.get("_mcode_last"):   # model zvolený jinde (projekt)
+                ss["mtype"] = ss["mcode"]
+            fam_best = max((c for c in res if c in fam), key=lambda c: res[c]["fit"], default=best)
+            with cards[0]["typ"]:
+                mtype = st.selectbox(T("ms_type"), opts, key="mtype", help=T("h_ms_type"),
+                                     format_func=lambda c: (T("ms_type_pv", m=model_name(fam_best)) if c == "pv" else
+                                                            T("ms_type_auto", m=model_name(best)) if c == "auto" else
+                                                            f"{model_name(c)} · FIT {res[c]['fit']:.1f} %"))
+            mcode = fam_best if mtype == "pv" else best if mtype == "auto" else mtype
+            ss["mcode"] = ss["_mcode_last"] = mcode
+            names = MODELS[mcode]["params"]
+            need = [f"ed|{mcode}|{i}" for i in range(len(names))] + [
+                f"ed|{mcode}|d{j}|{i}" for j in range(len(c_d)) for i in range(len(DIST_PARAMS))] + [
+                f"ed|{mcode}|stic"]
+            if any(k not in ss for k in need):
+                reset_edits(mcode)
+            cards[0]["head"].caption(_card_src(ctx, "MV"))
+            with cards[0]["params"]:
+                p_ed = [_param_row(f"ed|{mcode}|{i}", f"idf|{mcode}|{i}", n, _unit(n, ctx, "MV"), i == 0,
+                                   T("help_" + ("gain" if i == 0 else "theta" if i == len(names) - 1 else "T")))
+                        for i, n in enumerate(names)]
                 if id_stic or res[mcode].get("stic"):
-                    sc1, sc2 = st.columns([2, 1], vertical_alignment="bottom")
-                    sc1.number_input(T("stic_param", u="% MV"), key=f"ed|{mcode}|stic", min_value=0.0, format="%.4g",
-                                     help=T("h_stic_param"))
-                    sc2.checkbox(T("fix"), key=f"fx|{mcode}|stic", help=T("h_fix"))
-                b1, b2 = st.columns(2)
-                if b1.button(T("refit"), icon=":material/model_training:", help=T("h_refit"), width="stretch"):
+                    _param_row(f"ed|{mcode}|stic", f"idf|{mcode}|stic", T("stic_param", u=""), "% MV", False,
+                               T("h_stic_param"))
+            pdl_ed = []
+            for j, dn in enumerate(c_d):
+                cd_ = cards[j + 1]
+                if win:
+                    cd_["head"].caption(_card_src(ctx, str(dn)))
+                with cd_["params"]:
+                    pdl_ed.append([_param_row(f"ed|{mcode}|d{j}|{i}", f"idf|{mcode}|d{j}|{i}", n,
+                                              _unit(n, ctx, str(dn)), i == 0, T("h_dist_" + str(i)))
+                                   for i, n in enumerate(DIST_PARAMS)])
+            with cards[0]["sign"]:
+                if st.button(T("refit"), icon=":material/model_training:", help=T("h_refit"), width="stretch"):
                     ss.refit_req = mcode
                     st.rerun()
-                b2.button(T("reset_fit"), on_click=reset_edits, args=(mcode,), icon=":material/restart_alt:",
-                          width="stretch")
+                st.button(T("ms_reset"), on_click=reset_edits, args=(mcode,), icon=":material/restart_alt:",
+                          width="stretch", help=T("h_ms_reset"))
                 if ss.get("refit_msg"):
                     st.caption(ss.pop("refit_msg"))
                 if res[mcode].get("method") == "cl" and res[mcode].get("p_open"):
                     st.caption(T("idm_open_model", p=", ".join(f"{n} = {v:.4g}" for n, v in
                                                                  zip(names, res[mcode]["p_open"]))))
-                fit_box = st.container()
+            for j, dn in enumerate(c_d):
+                if win and res[mcode].get("method") == "win":
+                    with cards[j + 1]["extra"]:
+                        _dist_window_table(ctx, mcode, res[mcode], j, str(dn), dsigns, dkinds)
+            for j, dn in enumerate(c_d):              # porovnání typů přenosu poruchy (MV a ostatní poruchy pevné)
+                with cmp_tabs[j + 1]:
+                    if win and res[mcode].get("method") == "win":
+                        _dist_type_table(ctx, mcode, res[mcode], j, dsigns)
+                    else:
+                        st.caption(T("ms_cmp_dv_common"))
+            fit_box = ws.val
             rp = res[mcode]
             p_c, pdl_c = mdl.clamp(p_ed, pdl_ed)
             model = (mcode, p_c, [d + list(rp["pdl"][j][3:]) for j, d in enumerate(pdl_c)])   # + typ přenosu poruchy
@@ -346,37 +410,34 @@ def render(ctx):
             ev_ed = mdl.evaluate(mcode, model[1], model[2], model_stic, model_level, model_Th, ts_id, pv_id, mv_id, d_id, Ts)
             pf_ed = ev_ed["pf"]
             f_fit, f_ed = ev_fit["fit"], ev_ed["fit"]
-            y_fit, y_ed = ev_fit["y_plot"], ev_ed["y_plot"]
+            y_ed = ev_ed["y_plot"]
             sigma_pv = ev_ed["sigma_pv"]
             mm = ev_ed["metrics"]
             if rp.get("method") == "win":             # shoda a průběh modelu jen v úsecích (každý s vlastním posunem)
-                yf_, _, f_fit = cache.predict_windows(mcode, rp["p"], rp["pdl"], t, pv, mv, Ts, dists, ctx.win_idx,
-                                                      ctx.valid)
+                f_fit = cache.predict_windows(mcode, rp["p"], rp["pdl"], t, pv, mv, Ts, dists, ctx.win_idx,
+                                              ctx.valid)[2]
                 ye_, _, f_ed = cache.predict_windows(mcode, model[1], model[2], t, pv, mv, Ts, dists, ctx.win_idx,
                                                      ctx.valid)
-                y_fit, y_ed = yf_[sel_mask], ye_[sel_mask]
+                y_ed = ye_[sel_mask]
                 mw_ = np.isfinite(ye_) & (ctx.valid if ctx.valid is not None else True)
                 if mw_.sum() > 20:                       # hodnocení na vzorcích úseků (bez vyřazených)
                     mm = model_metrics(pv[mw_], ye_[mw_], mv[mw_], Ts, dyn_scale(mcode, model[1]))
                     sigma_pv = float(np.std(np.diff(pv[mw_] - ye_[mw_])) / np.sqrt(2))
             ctx.PROG["model"] = 1 if ss.fit["key"] != fit_key else (0 if mm["status"] <= 1 else 1 if mm["status"] <= 3 else 2)
             ctx.PROG["model_stale"] = ss.fit["key"] != fit_key
-            m1, m2 = fit_box.columns(2)
-            m1.metric(T("fit_fit"), f"{f_fit:.1f} %")
-            m2.metric(T("fit_edit"), f"{f_ed:.1f} %", delta=f"{f_ed - f_fit:+.1f} %" if edited else None)
+            with fit_box:                          # ověření modelu: úseky a celý záznam (MV + poruchy, jen MV, jen poruchy)
+                m1, m2 = st.columns(2)
+                m1.metric(T("fit_fit"), f"{f_fit:.1f} %")
+                m2.metric(T("fit_edit"), f"{f_ed:.1f} %", delta=f"{f_ed - f_fit:+.1f} %" if edited else None)
+                st.caption(T("ms_val_intro"))
+                _whole_record(ctx, model, model_stic)
+                st.button(T("ms_use"), type="primary", icon=":material/arrow_forward:", width="stretch",
+                          on_click=apc_guide.goto, kwargs=dict(tab="tuning"), key="g_ms_use")
 
             # ---- grafy modelu (pod-záložky jako v desktopu)
-            # model vs. data se kreslí do hlavního grafu záznamu (ctx.seg_chart na konci) – jedna sada grafů
-            with ws.model:
-                if "show_resid" not in ss:
-                    ss["show_resid"] = True
-                show_res = st.toggle(T("show_resid"), key="show_resid", help=T("h_resid"))
-            seg_extra = [(f"{mcode} {T('fit')}", y_fit, C_MODEL[mcode], None)]
-            if edited:
-                seg_extra.append((f"{mcode} {T('edited')}", y_ed, _c_edit(), "dash"))
-            if model_level == "high" and pf_ed.get("raw") is not None:
-                seg_extra.append((T("model_wo_dist"), pf_ed["raw"], "#94a3b8", "dot"))
-            seg_resid = True if show_res else None
+            # model do grafů s úseky (ctx.seg_chart na konci): MV + poruchy, jen MV, jen poruchy, celý záznam
+            seg_extra = _model_curves(ctx, model, model_stic, sel_mask, y_ed, rp.get("method") == "win")
+            seg_resid = _owner_fits(ctx, rp) if rp.get("method") == "win" else None
             labels = [T("step_title"), T("compare_all"), T("eval_title"), T("val_title")]
             if model_level != "none":
                 labels.append(T("dk_unmeasured"))
@@ -510,7 +571,7 @@ def render(ctx):
                     show(fu, key="chart_unc", fname="uncertainty", report=T("unc_title"))
                     st.caption(T("unc_after"))
 
-        ctx.seg_chart(seg_extra, seg_resid)     # záznam s úsekem (+ model, rezidua, poruchy) – jedna sada grafů
+        ctx.seg_chart(seg_extra or None, seg_resid)     # grafy s úseky (+ model) – jedna sada grafů
     unc_models = (ss.unc["ps"] if (model is not None and ss.get("unc") and ss.unc["code"] == model[0]) else [])
     ctx.model = model
     ctx.model_Th = model_Th
@@ -518,6 +579,176 @@ def render(ctx):
     ctx.model_stic = model_stic
     ctx.sigma_pv = sigma_pv
     ctx.unc_models = unc_models
+
+
+FAMILY = {"integ": ["I0D", "I1D"], "self": ["P0D", "P1D", "P2D"], "auto": list(MODELS)}
+
+
+def _family(kind):
+    """Modely MV podle výchozího typu přenosů (Struktura modelu)."""
+    return FAMILY.get(kind, list(MODELS))
+
+
+def _proc_changed():
+    """Výchozí typ přenosů → modely k identifikaci a typ MV „Podle PV“ (callback, před vykreslením widgetů)."""
+    ss["chosen"] = _family(ss.get("proc_type", "auto"))
+    ss["mtype"] = "pv"
+
+
+def _owner_fits(ctx, r):
+    """{vstup: [FIT úseků]} – shody úseků výsledku z úseků podle vstupů, přiřazené vstupu, kterému úsek patří."""
+    from ...core import merge_windows
+    out = {}
+    fits = r.get("fits") or []
+    owners = []
+    for x, ws_ in ctx.wins_s.items():
+        for a, _ in ws_:
+            owners.append((int(np.searchsorted(ctx.t, a)), x))
+    for k, (a, b) in enumerate(merge_windows(ctx.win_idx, len(ctx.t))):
+        if k >= len(fits):
+            break
+        for i_, x in owners:
+            if a <= i_ < b:
+                out.setdefault(x, []).append(fits[k])
+    return out
+
+
+def _input_fit(ctx, r, name):
+    """FIT přenosu pro titulek karty: průměr shod jeho úseků (úseky podle vstupů), u společného úseku FIT modelu."""
+    if r.get("method") == "win":
+        f = _owner_fits(ctx, r).get(name)
+        return float(np.mean(f)) if f else None
+    return float(r["fit"]) if name == "MV" else None
+
+
+def _card_src(ctx, name):
+    """Odkud se přenos odhaduje (popisek karty)."""
+    from ...app.timefmt import fmt_t, unit_for
+    tu = unit_for(ss.get("chart_tunit"), float(ctx.t[-1]))
+    if ctx.win_mode != "inputs":
+        return T("ms_src_common", a=fmt_t(ctx.rng[0], tu), b=fmt_t(ctx.rng[1], tu))
+    w = ctx.wins_s.get(name, [])
+    if not w:
+        return T("ms_src_none")
+    if len(w) == 1:
+        return T("ms_src_one", a=fmt_t(w[0][0], tu), b=fmt_t(w[0][1], tu))
+    return T("ms_src_many", n=len(w))
+
+
+def _unit(name, ctx, inp):
+    """Jednotka parametru přenosu."""
+    if name in ("K", "Ki"):
+        return "%/%" if name == "K" else "%/(%·s)"
+    if name == "Kd":
+        return T("ms_unit_kd")
+    return "s"
+
+
+def _param_row(key, idf_key, label, unit, signed, help_):
+    """Řádek parametru karty přenosu: název | hodnota | jednotka | Identif. (zaškrtnuté = parametr se odhaduje)."""
+    if idf_key not in ss:
+        ss[idf_key] = True
+    c0, c1, c2, c3 = st.columns([0.8, 2.2, 1.1, 0.7], vertical_alignment="center")
+    c0.markdown(f"**{html.escape(label)}**", help=help_)
+    v = c1.number_input(label, key=key, min_value=None if signed else 0.0, format="%.5g", label_visibility="collapsed",
+                        step=max(abs(float(ss.get(key, 0.0) or 0.0)) * 0.05, 1e-6))
+    c2.caption(unit)
+    c3.checkbox(T("ms_identif"), key=idf_key, label_visibility="collapsed", help=T("h_ms_identif"))
+    return v
+
+
+def _dist_window_table(ctx, code, r, j, name, dsigns, dkinds):
+    """Odhad zesílení poruchy zvlášť v každém jejím úseku (ostatní parametry pevné) – kontrola, zda úseky souhlasí."""
+    w = ctx.wins_s.get(name, [])
+    if len(w) < 1:
+        return
+    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
+    for jj, d in enumerate(r["pdl"]):
+        for i in range(3):
+            if not (jj == j and i == 0):
+                fixed[f"d{jj}_{i}"] = float(d[i])
+    rows = []
+    kinds = tuple(int(d[3]) if len(d) > 3 else 0 for d in r["pdl"])
+    for a, b in w:
+        i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
+        try:
+            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
+                                  0, tuple(dsigns), kinds, 4)
+            rows.append({T("ms_win"): f"{a:.0f} – {b:.0f} s", "Kd": _g4(q["pdl"][j][0]), "FIT [%]": round(q["fit"], 1)})
+        except Exception:
+            rows.append({T("ms_win"): f"{a:.0f} – {b:.0f} s", "Kd": None, "FIT [%]": None})
+    st.caption(T("ms_win_tab"))
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+
+def _model_curves(ctx, model, stic, sel_mask, y_ed, win):
+    """Průběhy modelu v % PV na celém záznamu: v úsecích (MV + poruchy, jen MV, jen poruchy) a přes celý záznam."""
+    code, p, pdl = model
+    t, pv, mv, dists, Ts = ctx.t, ctx.pv, ctx.mv, ctx.dists, ctx.Ts
+    p0 = [0.0] + list(p[1:])
+    pdl0 = [[0.0] + list(d[1:]) for d in pdl]
+    out = {}
+    if win:
+        out["all"] = cache.predict_windows(code, p, pdl, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid)[0]
+        if dists:
+            out["mv"] = cache.predict_windows(code, p, pdl0, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid)[0]
+            out["dv"] = cache.predict_windows(code, p0, pdl, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid)[0]
+    else:
+        def on_seg(y):
+            yy = np.full(len(t), np.nan)
+            yy[sel_mask] = y
+            return yy
+        out["all"] = on_seg(y_ed)
+        if dists:
+            d_s = [d[sel_mask] for d in dists]
+            out["mv"] = on_seg(predict(code, p, pdl0, ctx.ts_id, ctx.pv_id, ctx.mv_id, d_s, Ts, stic)[0])
+            out["dv"] = on_seg(predict(code, p0, pdl, ctx.ts_id, ctx.pv_id, ctx.mv_id, d_s, Ts, stic)[0])
+    out["full"] = predict(code, p, pdl, t, pv, mv, dists, Ts, stic)[0]
+    return out
+
+
+def _whole_record(ctx, model, stic):
+    """Simulace celého záznamu: shoda s MV + poruchami, jen s MV a jen s poruchami (kolik vysvětluje který vstup)."""
+    code, p, pdl = model
+    rows = [(T("ms_val_all"), p, pdl)]
+    if pdl:
+        rows += [(T("ms_val_mv"), p, [[0.0] + list(d[1:]) for d in pdl]),
+                 (T("ms_val_dv"), [0.0] + list(p[1:]), pdl)]
+    out = []
+    for lab, p_, pdl_ in rows:
+        try:
+            f = predict(code, p_, pdl_, ctx.t, ctx.pv, ctx.mv, ctx.dists, ctx.Ts, stic)[1]
+        except Exception:
+            f = float("nan")
+        out.append({T("ms_val_inputs"): lab, "FIT [%]": round(f, 1) if np.isfinite(f) else None})
+    st.dataframe(pd.DataFrame(out), hide_index=True, width="stretch")
+
+
+def _dist_type_table(ctx, code, r, j, dsigns):
+    """Typy přenosu poruchy j porovnané na úsecích (model MV a ostatní poruchy pevné): integrační, integrační bez
+    setrvačnosti, samoregulační. Výběr se zapíše do typu přenosu poruchy."""
+    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
+    for jj, d in enumerate(r["pdl"]):
+        if jj != j:
+            for i in range(3):
+                fixed[f"d{jj}_{i}"] = float(d[i])
+    base = [int(d[3]) if len(d) > 3 else 0 for d in r["pdl"]]
+    rows = []
+    for key, kind, extra in (("integ0", 2, {f"d{j}_1": 0.2 * ctx.Ts}), ("integ", 2, {}), ("self", 1, {})):
+        kinds = list(base)
+        kinds[j] = kind
+        try:
+            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, tuple(ctx.win_idx), ctx.valid, None,
+                                  dict(fixed, **extra), 0, tuple(dsigns), tuple(kinds), 8)
+            d = q["pdl"][j]
+            par = f"Kd {_g4(d[0])} · " + ("" if key == "integ0" else f"Tp {_g4(d[1])} s · ") + f"θd {_g4(d[2])} s"
+            rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": round(q["fit"], 1), T("ms_cmp_par"): par})
+        except Exception as ex:
+            rows.append({T("ms_cmp_type"): T("ms_dt_" + key), "FIT [%]": None, T("ms_cmp_par"): T(str(ex))})
+    st.caption(T("ms_cmp_dv_note"))
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch",
+                 column_config={"FIT [%]": st.column_config.ProgressColumn("FIT [%]", min_value=0, max_value=100,
+                                                                          format="%.1f")})
 
 
 def _g4(v):

@@ -23,6 +23,7 @@ from ...app.loop import DEFAULT_RANGE, range_for
 from ...app.timefmt import dur, fmt_t, unit_for
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
+from .. import wincharts
 from ..widgets import num, sel, seg
 
 ss = st.session_state
@@ -364,48 +365,17 @@ def _win_store(ctx, rng0):
     return W
 
 
-def _add_window(ctx, a, b):
-    """Přidá úsek [a, b] vstupu, který se právě upravuje (tažení v grafu)."""
-    key = f"wins|{ctx.fname}"
-    W = dict(ss.get(key) or {})
-    inp = ss.get("win_edit_for") or "MV"
-    W[inp] = list(W.get(inp, [])) + [[float(a), float(b)]]
-    ss[key] = W
-    ss["wver"] = ss.get("wver", 0) + 1
-
-
-def _input_windows(ctx, rng0, step, tu):
-    """Úseky podle vstupů (panel): výběr vstupu, tabulka jeho úseků; vrací rozpětí všech úseků (pro další záložky)."""
+def _input_windows(ctx, rng0, step, tu=None):
+    """Úseky podle vstupů (upravují se táhly v grafech): indexy pro identifikaci a rozpětí všech úseků."""
     t = ctx.t
     W = _win_store(ctx, rng0)
     inputs = _win_inputs(ctx)
-    st.caption(T("win_intro"))
-    inp = seg(st, T("win_edit_for"), inputs, "MV", "win_edit_for", help=T("h_win_edit_for"), width="stretch") or "MV"
-    U = {"s": 1.0, "min": 60.0, "h": 3600.0}[tu]
-    df = pd.DataFrame([[a / U, b / U] for a, b in W[inp]], columns=[T("win_from", u=tu), T("win_to", u=tu)])
-    ed = st.data_editor(df, num_rows="dynamic", hide_index=True, width="stretch",
-                        key=f"wed|{ctx.fname}|{inp}|{ss.get('wver', 0)}",
-                        column_config={c: st.column_config.NumberColumn(c, min_value=0.0, max_value=float(t[-1]) / U,
-                                                                        format="%.4g") for c in df.columns})
-    new = []
-    for a, b in ed.to_numpy(float):
-        if np.isfinite(a) and np.isfinite(b) and abs(b - a) * U > step:
-            new.append([float(min(a, b) * U), float(max(a, b) * U)])
-    if new != W[inp]:
-        W[inp] = new
-        ss[f"wins|{ctx.fname}"] = W
-    for x in inputs:
-        n = len(W[x])
-        tot = sum(b - a for a, b in W[x])
-        st.markdown(f"<span class='pid-chip sn' style='border-color:{_win_color(ctx, x)}'>{html.escape(x)}: "
-                    f"{T('win_count', n=n, d=dur(tot))}</span>", unsafe_allow_html=True)
-    st.caption(T("win_drag"))
-    # indexy úseků pro identifikaci
     ctx.wins_s = {x: [tuple(w) for w in W[x]] for x in inputs}
     idx = []
     for x in inputs:
         for a, b in W[x]:
-            idx.append((int(np.searchsorted(t, a)), int(np.searchsorted(t, b, side="right"))))
+            if b - a > step:
+                idx.append((int(np.searchsorted(t, a)), int(np.searchsorted(t, b, side="right"))))
     ctx.win_idx = idx
     if not idx:
         return float(rng0[0]), float(rng0[1])
@@ -443,28 +413,6 @@ def _exclusions(ctx):
     st.caption(T("excl_count", d=dur(float((~ctx.valid).sum() * ctx.Ts)), p=f"{100 * (~ctx.valid).mean():.1f}"))
 
 
-def _window_shapes(ctx, shapes, notes, n_rows):
-    """Úseky vstupů (barva podle vstupu) a vyřazené vzorky (šedě) do grafu záznamu."""
-    t = ctx.t
-    for x, ws_ in (getattr(ctx, "wins_s", None) or {}).items():
-        col = _win_color(ctx, x)
-        for a, b in ws_:
-            for r in range(1, n_rows + 1):
-                sfx = "" if r == 1 else str(r)
-                shapes.append(dict(type="rect", xref=f"x{sfx}", yref=f"y{sfx} domain", x0=a, x1=b, y0=0, y1=1,
-                                   fillcolor=col, opacity=0.14, line=dict(color=col, width=1), layer="below"))
-            notes.append(dict(xref="x", yref="y domain", x=a, y=1, text=x, showarrow=False, xanchor="left",
-                              yanchor="top", font=dict(size=11, color=col)))
-    v = getattr(ctx, "valid", None)
-    if v is not None and (~v).any():
-        d = np.diff(np.r_[0, (~v).astype(int), 0])
-        for a, b in zip(np.where(d == 1)[0][:200], np.where(d == -1)[0][:200]):
-            for r in range(1, n_rows + 1):
-                sfx = "" if r == 1 else str(r)
-                shapes.append(dict(type="rect", xref=f"x{sfx}", yref=f"y{sfx} domain", x0=t[a], x1=t[min(b, len(t) - 1)],
-                                   y0=0, y1=1, fillcolor="#64748b", opacity=0.18, line_width=0, layer="below"))
-
-
 def render(ctx):
     """
     Graf načtených dat (záložka Data) a výběr úseku pro identifikaci – posuvník, tažení v grafu, automaticky nalezené
@@ -484,8 +432,7 @@ def render(ctx):
         with ws.side:
             ws.top = st.container()            # tlačítko Identifikovat a průběh
         with ws.main:
-            ws.m_bar = st.container(border=True, key="pid_card_mbar")   # lišta: úseky (společný / podle vstupů), myš
-            ws.m_seg = st.container()
+            ws.m_seg = st.container()          # grafy s úseky (komponenta wins.js)
             ws.m_res = st.container()
             ws.m_tabs = st.container()
         ctx.mws = ws
@@ -510,120 +457,70 @@ def render(ctx):
                                     segs_mod.rep_frac(ctx.t_all, ctx.pv_raw, ctx.T0, a, b), qmodel)
 
         segs = segs_mod.auto(t, mv, sp, Ts, has_sp, qmodel, ss.get("seg_gap"), pv)
-        sec_seg = section(ws.side, T("dk_sec_segment"), "mod_seg", icon=":material/straighten:",
-                          expanded=ss.get("win_mode") == "inputs")
-        sec_excl = (section(ws.side, T("excl_title"), "mod_excl", icon=":material/block:")
-                    if ss.get("win_mode") == "inputs" else None)
-        sec_auto = section(ws.side, T("auto_title", n=len(segs)), "mod_auto", expanded=False,
-                           icon=":material/auto_awesome:")
-        ws.ident = section(ws.side, T("dk_sec_ident"), "mod_ident", icon=":material/model_training:")
-        ws.model = section(ws.side, T("dk_sec_model"), "mod_model", icon=":material/tune:")
-        ws.unc = section(ws.side, T("unc_title"), "mod_unc", expanded=False, icon=":material/scatter_plot:")
-
-        b1_, b2_ = ws.m_bar.columns(2, vertical_alignment="center")
-        win_mode = seg(b1_, T("win_mode"), ["common", "inputs"], "common", "win_mode",
-                       format_func=lambda x: T("win_mode_" + x), help=T("h_win_mode")) or "common"
+        win_mode = ss.get("win_mode") if ss.get("win_mode") in ("common", "inputs") else "common"
+        ss["win_mode"] = win_mode
         ctx.win_mode = win_mode
-        drag = seg(b2_, T("mouse"), ["zoom", "select"], "zoom", "drag",
-                   format_func=lambda x: T("mouse_" + x), help=T("h_mouse")) or "zoom"
-        with sec_seg:
-            tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
-            if win_mode == "common":
-                st.caption(T("seg_intro"))
-                rng = st.slider(T("seg_id"), 0.0, float(t[-1]), step=step, key=rng_key, help=T("h_seg_id"))
-                st.caption(T("seg_span", a=fmt_t(rng[0], tu_), b=fmt_t(rng[1], tu_), d=dur(rng[1] - rng[0])))
-            else:
-                rng = _input_windows(ctx, ss[rng_key], step, tu_)
-            q_box = st.container()
+        # panel podle návrhu: struktura modelu, karty přenosů, vyřazení dat, ověření; méně častá nastavení níž
+        ws.struct = section(ws.side, T("ms_struct"), "mod_struct", expanded=True, icon=":material/account_tree:")
+        ws.cards = ws.side.container()
+        sec_excl = (section(ws.side, T("excl_title"), "mod_excl", expanded=True, icon=":material/block:")
+                    if win_mode == "inputs" else None)
+        ws.val = section(ws.side, T("ms_val"), "mod_val", expanded=True, icon=":material/fact_check:")
+        ws.ident = section(ws.side, T("ms_adv"), "mod_ident", icon=":material/tune:")
+        sec_auto = (section(ws.side, T("auto_title", n=len(segs)), "mod_auto", expanded=False,
+                            icon=":material/auto_awesome:") if win_mode == "common" else None)
+        ws.unc = section(ws.side, T("unc_title"), "mod_unc", expanded=False, icon=":material/scatter_plot:")
+        ws.model = ws.cards
+        if win_mode == "common":
+            rng = tuple(ss[rng_key])
+        else:
+            rng = _input_windows(ctx, ss[rng_key], step, None)
+        q_box = sec_auto
         if win_mode == "inputs" and sec_excl is not None:
             with sec_excl:
                 _exclusions(ctx)
         ctx.rng = rng
         ctx.sel_mask = (t >= rng[0]) & (t <= rng[1])
 
-        # ---- automaticky nalezené úseky
-        with sec_auto:
-            if not segs:
-                st.info(T("auto_none"), icon=":material/search_off:")
-            else:
-                rows_s = []
-                for i_, sg in enumerate(segs):
-                    q_ = quality(sg["start"], sg["end"])
-                    tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
-                    rows_s.append({"#": i_ + 1, T("auto_from"): fmt_t(sg["start"], tu_), T("auto_to"): fmt_t(sg["end"], tu_),
-                                   T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
-                                   T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
-                ev_s = st.dataframe(pd.DataFrame(rows_s), hide_index=True, width="stretch", on_select="rerun",
-                                    selection_mode="single-row", key=f"segtab|{ctx.fname}")
-                chosen_s = None
-                try:
-                    if ev_s.selection.rows:
-                        chosen_s = segs[ev_s.selection.rows[0]]
-                except AttributeError:
-                    pass
-                b1, b2 = st.columns(2)
-                if b1.button(T("auto_use_id"), icon=":material/model_training:", disabled=chosen_s is None,
-                             width="stretch"):
-                    ss.pending_rng = (snap(chosen_s["start"]), snap(chosen_s["end"]))
-                    st.rerun()
-                if b2.button(T("auto_use_val"), icon=":material/fact_check:", disabled=chosen_s is None,
-                             width="stretch"):
-                    ss.pending_rngv = (snap(chosen_s["start"]), snap(chosen_s["end"]))
-                    st.rerun()
-                st.caption(T("auto_help"))
-            num(T("auto_gap"), "seg_gap", 0.0, min_value=0.0, help=T("h_auto_gap"))
 
-        # ---- graf dat s úseky – kreslí ho záložka Model (ctx.seg_chart), aby v něm byl i model (jedna sada grafů)
-        def seg_chart(extra=(), resid=None):
-            """extra = [(název, y na úseku v %, barva, čára)] – model přes vybraný úsek; resid = řádek reziduí."""
-            full = []
-            for name_, y_, col_, dash_ in extra:
-                yy = np.full(len(t), np.nan)
-                yy[ctx.sel_mask] = y_
-                full.append((name_, yy, col_, dash_))
-            fig = ctx.data_fig(t, None, full, resid=resid)
-            # úseky jako tvary vložené najednou: add_vrect po jednom prochází celý graf (u dlouhých záznamů se
-            # stovkami úseků trvalo překreslení desítky sekund)
-            n_rows = 2 + (1 if ctx.dists else 0) + (1 if resid is not None else 0)
-            shapes, notes = list(fig.layout.shapes or ()), list(fig.layout.annotations or ())
-            for i_, sg in enumerate(segs[:MAX_SEG_SHADES] if win_mode == "common" else []):
-                shapes.append(dict(type="rect", xref="x", yref="y domain", x0=sg["start"], x1=sg["end"], y0=0, y1=1,
-                                   fillcolor="#bfdbfe", opacity=0.22, line_width=0, layer="below"))
-                notes.append(dict(xref="x", yref="y domain", x=sg["start"], y=1, text=f"#{i_ + 1}", showarrow=False,
-                                  xanchor="left", yanchor="top", font=dict(size=11, color="#1e40af")))
-            if win_mode == "common":
-                for r in range(1, n_rows + 1):
-                    sfx = "" if r == 1 else str(r)
-                    shapes.append(dict(type="rect", xref=f"x{sfx}", yref=f"y{sfx} domain", x0=rng[0], x1=rng[1], y0=0,
-                                       y1=1, fillcolor="#fde68a", opacity=0.25, line_width=0, layer="below"))
-            else:
-                _window_shapes(ctx, shapes, notes, n_rows)
-            fig.update_layout(shapes=shapes, annotations=notes)
-            fig.update_layout(dragmode="select" if drag == "select" else "zoom", selectdirection="h")
+        # ---- automaticky nalezené úseky (režim společného úseku)
+        if sec_auto is not None:
+            with sec_auto:
+                if not segs:
+                    st.info(T("auto_none"), icon=":material/search_off:")
+                else:
+                    rows_s = []
+                    for i_, sg in enumerate(segs):
+                        q_ = quality(sg["start"], sg["end"])
+                        tu_ = unit_for(ss.get("chart_tunit"), float(t[-1]))
+                        rows_s.append({"#": i_ + 1, T("auto_from"): fmt_t(sg["start"], tu_), T("auto_to"): fmt_t(sg["end"], tu_),
+                                       T("auto_steps"): f"{sg['n_mv']} / {sg['n_sp']}",
+                                       T("auto_quality"): ["✓ ", "⚠ ", "✗ "][q_["level"]] + T(f"q_level{q_['level']}")})
+                    ev_s = st.dataframe(pd.DataFrame(rows_s), hide_index=True, width="stretch", on_select="rerun",
+                                        selection_mode="single-row", key=f"segtab|{ctx.fname}")
+                    chosen_s = None
+                    try:
+                        if ev_s.selection.rows:
+                            chosen_s = segs[ev_s.selection.rows[0]]
+                    except AttributeError:
+                        pass
+                    b1, b2 = st.columns(2)
+                    if b1.button(T("auto_use_id"), icon=":material/model_training:", disabled=chosen_s is None,
+                                 width="stretch"):
+                        ss.pending_rng = (snap(chosen_s["start"]), snap(chosen_s["end"]))
+                        st.rerun()
+                    if b2.button(T("auto_use_val"), icon=":material/fact_check:", disabled=chosen_s is None,
+                                 width="stretch"):
+                        ss.pending_rngv = (snap(chosen_s["start"]), snap(chosen_s["end"]))
+                        st.rerun()
+                    st.caption(T("auto_help"))
+                num(T("auto_gap"), "seg_gap", 0.0, min_value=0.0, help=T("h_auto_gap"))
+
+        # ---- grafy s úseky – kreslí je záložka Model (ctx.seg_chart), aby v nich byl i model
+        def seg_chart(model=None, fits=None):
+            """model = dict(all, mv, dv, full) průběhů modelu v % PV na celém záznamu; fits = {vstup: [FIT úseků]}."""
             with ws.m_seg:
-                ev = show(fig, key=f"chart_data|{ctx.fname}", fname="model" if extra else "data", select=True,
-                          report=T("rep_fig_model" if extra else "rep_fig_data"))
-                st.caption(T("seg_tip"))
-
-            # výběr úseku tažením v grafu
-            try:
-                box = ev.selection.box if ev and ev.selection else []
-                pts = ev.selection.points if ev and ev.selection else []
-                xr = None
-                if box:
-                    xr = sorted(float(v) for v in box[0]["x"][:2])
-                elif pts:
-                    xs = [float(p_["x"]) for p_ in pts if "x" in p_]
-                    xr = [min(xs), max(xs)] if xs else None
-                if xr and xr[1] - xr[0] > step and tuple(xr) != ss.get("last_box"):
-                    ss.last_box = tuple(xr)
-                    if win_mode == "inputs":         # tažení přidá úsek vstupu, který se právě upravuje
-                        _add_window(ctx, snap(xr[0]), snap(xr[1]))
-                    else:
-                        ss.pending_rng = (snap(xr[0]), snap(xr[1]))
-                    st.rerun()
-            except Exception:
-                pass
+                wincharts.render(ctx, model, fits, rng_key)
         ctx.seg_chart = seg_chart
 
         # ---- kontrola kvality vybraného úseku
@@ -632,13 +529,14 @@ def render(ctx):
         ctx.PROG["data"] = dq["level"]
         icons = ["✓", "⚠", "✗"]
         lv_ = dq["level"]
-        box_fn = [q_box.success, q_box.warning, q_box.error][lv_]
-        lines = "  \n".join(f"{icons[lv]} {T(k_, **segs_mod.format_args(ar))}"
-                            for k_, lv, ar in sorted(dq["checks"], key=lambda c_: -c_[1]))
-        box_fn(f"**{T('q_title')}: {T('q_level' + str(lv_))}**  \n{lines}",
-               icon=[":material/verified:", ":material/rule:", ":material/block:"][lv_])
-        if has_sp and np.nanmax(sp[ctx.sel_mask]) - np.nanmin(sp[ctx.sel_mask]) > 1e-6:
-            q_box.caption(T("info_auto"))
+        if q_box is not None:
+            box_fn = [q_box.success, q_box.warning, q_box.error][lv_]
+            lines = "  \n".join(f"{icons[lv]} {T(k_, **segs_mod.format_args(ar))}"
+                                for k_, lv, ar in sorted(dq["checks"], key=lambda c_: -c_[1]))
+            box_fn(f"**{T('q_title')}: {T('q_level' + str(lv_))}**  \n{lines}",
+                   icon=[":material/verified:", ":material/rule:", ":material/block:"][lv_])
+            if has_sp and np.nanmax(sp[ctx.sel_mask]) - np.nanmin(sp[ctx.sel_mask]) > 1e-6:
+                q_box.caption(T("info_auto"))
 
     # data úseku identifikace pro další záložky
     ctx.ts_id = t[ctx.sel_mask] - t[ctx.sel_mask][0]

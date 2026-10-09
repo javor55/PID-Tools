@@ -100,6 +100,8 @@ h4 {margin-top: 0.4rem; font-weight: 600;}
 .pid-chip.s2 {background: rgba(239,68,68,0.13); color: #b91c1c; border-color: rgba(239,68,68,0.4);}
 .pid-chip.sn {background: rgba(128,128,128,0.08); color: var(--pid-muted); border-color: rgba(128,128,128,0.3);}
 .pid-arrow {opacity: 0.4;}
+.pid-formula {font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; padding: 0.35rem 0.6rem; border-radius: 6px;
+    background: var(--pid-side); border: 1px solid var(--pid-soft); margin-bottom: 0.5rem;}
 .pid-dq {display: grid; grid-template-columns: 1.6rem minmax(9rem, 14rem) minmax(0, 1fr); gap: 0.2rem 0.8rem;
     align-items: start; padding: 0.45rem 0; border-bottom: 1px solid var(--pid-soft); font-size: 0.88rem;}
 .pid-dq:last-child {border-bottom: 0;}

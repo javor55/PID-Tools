@@ -188,7 +188,7 @@ def test_model_tools(app):
     _button(app, "Compute uncertainty").click().run()
     assert not _errors(app)
     ith = len(MODELS[mc]["params"]) - 1
-    app.session_state[f"fx|{mc}|{ith}"], app.session_state[f"ed|{mc}|{ith}"] = True, 8.0
+    app.session_state[f"idf|{mc}|{ith}"], app.session_state[f"ed|{mc}|{ith}"] = False, 8.0   # θ neidentifikovat
     _button(app, "Refit").click().run()
     app.run()
     assert not _errors(app)
@@ -668,7 +668,7 @@ def test_per_input_segments_web():
     assert res["I1D"]["method"] == "win" and len(res["I1D"]["fits"]) >= 2 and res["I1D"]["fit"] > 80
     assert len(res["I1D"]["pdl"][0]) == 4                       # typ přenosu poruchy vybraný automaticky
     tab = next(d.value for d in at.dataframe if "FIT [%]" in d.value.columns)
-    assert any(str(c).startswith("FIT MV") for c in tab.columns)
+    assert "Cross-validation [%]" in tab.columns                 # porovnání typů přenosu podle návrhu
     _button(at, "Cross-validation").click().run()
     assert not _errors(at) and at.session_state["cv_res"]["res"]["I1D"]
     at.session_state["main_tab"] = [t.label for t in _main(at)][7]
