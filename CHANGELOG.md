@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased
+## 3.3.0 beta – new web look, per-input identification segments, disturbances like the MV
+
+**Beta:** for testing; please report problems.
+
+- Web: new look per the design (header with tabs, settings panel on the right, cards, tables, tiles) and desktop
+  density; the main area and the panel scroll independently.
+- Model (web and desktop): **per-input segments** – the MV and every measured disturbance have their own segments
+  (several per input), the model is fitted over all of them together; data exclusion by limits, gain per segment,
+  cross-validation.
+- Disturbance transfers are fitted **like the MV**: 0th order, 1st order, 2nd order, integrating, integrating + 1st
+  order; choose "Like MV", "Auto – best fit" or a structure; after identification pick the structure by FIT.
+- More robust minimum search in identification (extra starts across the whole range, gains solved by regression);
+  a disturbance that does not change in the data gets zero effect instead of arbitrary parameters.
+- Model on the **whole record** (toggle at the PV chart) – a check outside the segments, the model re-anchors to data.
+- FIT values agree everywhere and use the current segments; after a PV or MV change the old model is not used.
+- Web: one trend chart for Data, Model and Diagnostics (segment handles, double-click pulls a limit, drag a whole
+  segment), faster reruns (only the open tab and sub-tab are computed), busy indicator; chart time without a time
+  zone shift.
+- Web: faster Tuning (lighter simulation, cached method comparison), CSV downloads prepared on click; autosave and
+  auto-found segments removed (auto-found segments also from the desktop; the desktop keeps its autosave).
+- Project validation on load (invalid entries skipped), lower memory use, browser UI test in CI.
+
+Earlier unreleased changes:
 
 - Desktop: PySide6 limited to < 6.12 – 6.12.0 aborts Python when the application closes (refcount bug in shiboken6,
   "Fatal Python error: bool_dealloc").
