@@ -336,7 +336,7 @@ def _tn_methods(s):
     """Karta Všechny metody pro tento model (klepnutím se metoda převezme do Návrhu)."""
     MR, PR, base_ctrl, crit, ctype, hf_max = s.MR, s.PR, s.base_ctrl, s.crit, s.ctype, s.hf_max
     m_methods, mcode, method, p, pdl, robust_set = s.m_methods, s.mcode, s.method, s.p, s.pdl, s.robust_set
-    sigma_pv, solvers, u_mv, view = s.sigma_pv, s.solvers, s.u_mv, s.view
+    sigma_pv, u_mv, view = s.sigma_pv, s.u_mv, s.view
     # ---- všechny metody pro tento model (karta pod grafem; optimalizace trvají → počítá se na tlačítko)
     if view in ("time", "all"):
         with m_methods, card("tun_methods"):
@@ -352,8 +352,8 @@ def _tn_methods(s):
                 req_c = tun.Request(ms=ss.get("opt_ms") or 1.6, hf=hf_max, target=ss.get("opt_target") or "both",
                                     ovs=(ss.get("opt_ovs") if ss.get("opt_ovs") is not None else 2) / 100)
                 with st.spinner(T("optimizing")):
-                    cmp_ = tun.compare(mcode, p, pdl, base_ctrl, req_c, avg_c, sigma_pv, robust_set, solvers,
-                                       robustness)
+                    cmp_ = cache.compare(mcode, tuple(p), tuple(tuple(d) for d in pdl), base_ctrl, req_c, avg_c,
+                                         sigma_pv, robust_set)
                 rows, cur = [], []
                 for q in cmp_:
                     rows.append({T("col_method"): T("m_" + q["method"]) + (f" · {T('crit_' + q['crit'])}" if q["crit"] else ""),

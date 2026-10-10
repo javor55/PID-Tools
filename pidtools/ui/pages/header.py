@@ -108,7 +108,7 @@ def render_source(ctx):
             # „současné“ parametry ukázkové smyčky (odtokový ventil → záporné zesílení), dokud je uživatel nezmění
             ss["set1_gain"], ss["set1_ti"], ss["set1_td"] = DEMO_SET1
             ss["_set1_demo"] = True
-        cont.download_button(T("demo_dl"), ctx.df.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
+        cont.download_button(T("demo_dl"), lambda d=ctx.df: d.to_csv(index=False, sep=";", decimal=","), "demo_level.csv",
                              "text/csv", icon=":material/download:", help=T("demo_desc"), width="stretch")
     if src != "demo" and ss.get("_set1_demo"):
         # ukázkové „současné“ parametry nepatří k vlastním datům – vrátit výchozí, pokud je uživatel nezměnil

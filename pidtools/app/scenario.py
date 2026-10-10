@@ -137,8 +137,12 @@ def auto_length(code, p, ctrls, T_char, samp, ts_id, settling=core.settling_time
 
 
 def grid(samp, T_end):
-    """Výpočetní mřížka: krok h (dělení SampleTime, nejvýš ~20 000 kroků regulátoru) a časy."""
-    m_sub = max(1, min(10, int(20000 * samp / T_end)))
+    """
+    Výpočetní mřížka: krok h (dělení SampleTime) a časy. Proces se v kroku regulátoru počítá přesnou diskretizací,
+    jemnější krok jen vyhladí průběh mezi vzorky a zpřesní zaokrouhlení zpoždění – stačí ~4000 kroků (rychlá odezva
+    na změnu parametrů; rozdíl ukazatelů proti jemnému kroku desetiny procenta).
+    """
+    m_sub = max(1, min(10, int(4000 * samp / T_end)))
     h = samp / m_sub
     n = int(T_end / h) + 1
     return h, np.arange(n) * h

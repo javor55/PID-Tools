@@ -302,8 +302,9 @@ def _full_preview(ctx, checks):
             st.caption(T("prev_rows", a=len(view), n=len(res), ts=f"{ctx.Ts:.4g}"))
             table(view, height=420, hide_index=True,
                          column_config={T("prev_datetime"): st.column_config.DatetimeColumn(format="D.M.YYYY HH:mm:ss.SSS")})
-            c3.download_button(T("prev_dl"), res.to_csv(index=False, sep=";", decimal=","), "data_resampled.csv",
-                               "text/csv", icon=":material/download:", width="stretch")
+            # soubor se připraví až po klepnutí (u dlouhých záznamů by převod do CSV zdržoval každý běh)
+            c3.download_button(T("prev_dl"), lambda r=res: r.to_csv(index=False, sep=";", decimal=","),
+                               "data_resampled.csv", "text/csv", icon=":material/download:", width="stretch")
         with t2:
             num_ = res.drop(columns=[T("prev_datetime"), T("prev_note")], errors="ignore")
             table(pd.DataFrame({T("prev_min"): num_.min(), T("prev_max"): num_.max(),

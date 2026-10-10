@@ -30,3 +30,14 @@ opt_migo = st.cache_data(show_spinner=False, max_entries=32, ttl="1h")(app_tunin
 opt_time = st.cache_data(show_spinner=False, max_entries=64, ttl="1h")(app_tuning.opt_time)
 opt_scenario = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(app_tuning.opt_scenario)
 identify_cl = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(app_cl.identify)
+
+
+def _compare(code, p, pdl, base_ctrl, req, avg, sigma_pv, robust):
+    """Srovnání všech metod ladění (tabulka „Všechny metody“) – optimalizace i simulace odezev jednou na vstupy."""
+    from types import SimpleNamespace
+    solvers = SimpleNamespace(opt_migo=opt_migo, opt_time=opt_time, opt_scenario=opt_scenario)
+    return app_tuning.compare(code, list(p), [list(d) for d in pdl], dict(base_ctrl), req, avg, sigma_pv, robust,
+                              solvers, robustness)
+
+
+compare = st.cache_data(show_spinner=False, max_entries=16, ttl="1h")(_compare)
