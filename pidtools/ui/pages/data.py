@@ -2,7 +2,7 @@
 Záložka Data.
 
 `render_setup` – výběr sloupců, převzorkování a normování (horní rozbalovací sekce záložky; běží před ostatními
-záložkami, protože data potřebují všechny). `render` – výběr úseku, automaticky nalezené úseky a kontrola kvality.
+záložkami, protože data potřebují všechny). `render` – výběr úseku a kontrola kvality.
 """
 import html
 from types import SimpleNamespace
@@ -31,7 +31,6 @@ from ..theme import _c_dist
 
 ss = st.session_state
 _C_DIST = _c_dist()
-MAX_SEG_SHADES = 40            # automaticky nalezené úseky vyznačené v grafu (tabulka ukáže všechny)
 
 
 def _guess(cols, keys, default=0):
@@ -392,29 +391,21 @@ def _win_color(ctx, inp):
 
 def _win_store(ctx, rng0):
     """Úseky {vstup: [[od, do] s]} této smyčky a souboru; MV začíná společným úsekem, poruchy bez úseků."""
+    from ...app import windows as wn
     key = f"wins|{ctx.fname}"
     W = dict(ss.get(key) or {})
-    for inp in _win_inputs(ctx):
-        W.setdefault(inp, [[float(rng0[0]), float(rng0[1])]] if inp == "MV" else [])
+    W.update(wn.with_defaults(W, ctx.c_d, rng0))
     ss[key] = W
     return W
 
 
 def _input_windows(ctx, rng0, step, tu=None):
     """Úseky podle vstupů (upravují se táhly v grafech): indexy pro identifikaci a rozpětí všech úseků."""
-    t = ctx.t
+    from ...app import windows as wn
     W = _win_store(ctx, rng0)
-    inputs = _win_inputs(ctx)
-    ctx.wins_s = {x: [tuple(w) for w in W[x]] for x in inputs}
-    idx = []
-    for x in inputs:
-        for a, b in W[x]:
-            if b - a > step:
-                idx.append((int(np.searchsorted(t, a)), int(np.searchsorted(t, b, side="right"))))
-    ctx.win_idx = idx
-    if not idx:
-        return float(rng0[0]), float(rng0[1])
-    return float(t[min(a for a, _ in idx)]), float(t[min(len(t), max(b for _, b in idx)) - 1])
+    ctx.wins_s = {x: [tuple(w) for w in W[x]] for x in wn.inputs(ctx.c_d)}
+    ctx.win_idx, span = wn.indices(ctx.t, W, ctx.c_d, step)
+    return span if span else (float(rng0[0]), float(rng0[1]))
 
 
 def _exclusions(ctx):
@@ -450,8 +441,8 @@ def _exclusions(ctx):
 
 def render(ctx):
     """
-    Graf načtených dat (záložka Data) a výběr úseku pro identifikaci – posuvník, tažení v grafu, automaticky nalezené
-    úseky, kontrola kvality – vykreslený na začátku záložky Model (úsek je součástí identifikace). Počítá se tady,
+    Graf načtených dat (záložka Data) a výběr úseku pro identifikaci (táhla v grafu nebo čísla) a kontrola kvality –
+    vykreslený na začátku záložky Model (úsek je součástí identifikace). Počítá se tady,
     protože úsek potřebují všechny další záložky.
     """
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp

@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from ...core import (DIST_FIELDS, MODELS, bootstrap_models, dist_struct, pd_full, pd_z, struct_setup, dyn_scale, model_metrics, predict,
+from ...core import (DIST_FIELDS, MODELS, bootstrap_models, dist_struct, pd_z, dyn_scale, model_metrics, predict,
                      step_response)
 from ...i18n import T
 from .. import cache
@@ -20,6 +20,7 @@ from ..layout import section
 from ..widgets import model_name, num, seg, sel, sld
 from ...app import closedloop as cl_mod
 from ...app import model as mdl
+from ...app import windows as wn
 from ...app.loop import set_ctrl
 from ..table import table
 
@@ -98,30 +99,19 @@ def _set_dist_ed(code, j, pd_):
 
 
 def _cmp_of(r, j):
-    """Porovnání struktur přenosu poruchy j z identifikace [(struktura, FIT, parametry | chyba)] (i z projektu)."""
-    c = r.get("dv_cmp") or {}
-    return c.get(j, c.get(str(j))) or []
+    return wn.cmp_of(r, j)
 
 
 def _dist_id(code, r, j):
-    """Identifikovaná struktura přenosu poruchy j."""
-    return dist_struct(MODELS[code]["integ"], r["pdl"][j])
+    return wn.dist_id(code, r, j)
 
 
 def _dsel(code, r, j):
-    """Zvolená struktura přenosu poruchy j (výběr v kartě poruchy; jinak identifikovaná)."""
-    v = ss.get(f"dsel|{code}|{j}")
-    return v if v in DIST_FIELDS else _dist_id(code, r, j)
+    return wn.dsel(ss.get, code, r, j)
 
 
 def _dsel_pd(code, r, j):
-    """Parametry poruchy j pro zvolenou strukturu: identifikované, nebo z porovnání struktur."""
-    sel = _dsel(code, r, j)
-    if sel != _dist_id(code, r, j):
-        for st_, f_, pd_ in _cmp_of(r, j):
-            if st_ == sel and f_ is not None:
-                return pd_full(pd_)
-    return pd_full(r["pdl"][j])
+    return wn.dsel_pd(ss.get, code, r, j)
 
 
 def _dsel_changed(code, j):
@@ -131,14 +121,7 @@ def _dsel_changed(code, j):
 
 
 def _dist_from_ed(code, r, j):
-    """Parametry poruchy j [Kd, Tp, θd, typ, Tp2] ze zvolené struktury a polí parametrů."""
-    sel = _dsel(code, r, j)
-    z = pd_z(_dsel_pd(code, r, j))
-    z = [float(ss.get(f"ed|{code}|d{j}|{i}", v)) for i, v in enumerate(z)]
-    kind, fix = struct_setup(sel)
-    for i, v in fix.items():
-        z[i] = v
-    return [z[0], z[1], z[2], kind, z[3]]
+    return wn.dist_from_ed(ss.get, code, r, j)
 
 
 _CTX_KEYS = (
@@ -811,20 +794,7 @@ def _proc_changed():
 
 
 def _owner_fits(ctx, fits):
-    """{vstup: [FIT úseků]} – shody úseků (pořadí sloučených úseků) přiřazené vstupu, kterému úsek patří."""
-    from ...core import merge_windows
-    out = {}
-    owners = []
-    for x, ws_ in ctx.wins_s.items():
-        for a, _ in ws_:
-            owners.append((int(np.searchsorted(ctx.t, a)), x))
-    for k, (a, b) in enumerate(merge_windows(ctx.win_idx, len(ctx.t))):
-        if k >= len(fits):
-            break
-        for i_, x in owners:
-            if a <= i_ < b:
-                out.setdefault(x, []).append(fits[k])
-    return out
+    return wn.owner_fits(ctx.t, ctx.wins_s, ctx.win_idx, fits)
 
 
 def _live_fits(ctx, code, p, pdl):
@@ -855,11 +825,8 @@ def _input_fit(ctx, code, r, name):
 
 
 def _fit_signals_ok(ctx):
-    """Patří uložená identifikace k vybraným signálům (stejný soubor, PV a MV)? Starší klíč bez nich = ano."""
-    key = (ss.get("fit") or {}).get("key")
-    if not isinstance(key, tuple) or len(key) < 11:
-        return True
-    return key[0] == ctx.fname and key[9] == ctx.c_pv and key[10] == ctx.c_mv
+    """Patří uložená identifikace k vybraným signálům (stejný soubor, PV a MV)?"""
+    return wn.fit_signals_ok((ss.get("fit") or {}).get("key"), ctx.fname, ctx.c_pv, ctx.c_mv)
 
 
 def _card_src(ctx, name):
@@ -940,33 +907,6 @@ def _card_buttons(code, key=""):
               help=T("h_ms_reset"), key=f"g_reset_ed{key}" if key else None)
 
 
-def _fixed_all(r, skip=()):
-    """Zafixované parametry výsledku r (MV i poruchy, vektor fitu) kromě názvů ve `skip`."""
-    fx = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
-    for jj, d in enumerate(r["pdl"]):
-        fx.update({f"d{jj}_{i}": float(v) for i, v in enumerate(pd_z(d))})
-    return {k: v for k, v in fx.items() if k not in skip}
-
-
-def _structs(code, r):
-    return tuple(dist_struct(MODELS[code]["integ"], d) for d in r["pdl"])
-
-
-def _mv_win_est(ctx, code, r, dsigns):
-    """Zesílení MV odhadnuté zvlášť v každém úseku MV (ostatní parametry pevné): [(od, do, K, FIT)]."""
-    fixed = _fixed_all(r, ("p0",))
-    out = []
-    for a, b in ctx.wins_s.get("MV", []):
-        i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
-        try:
-            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
-                                  0, tuple(dsigns), None, 4, _structs(code, r))
-            out.append((float(a), float(b), float(q["p"][0]), float(q["fit"])))
-        except Exception:
-            out.append((float(a), float(b), None, None))
-    return out
-
-
 def _mv_window_table(r, pname):
     """Tabulka odhadů zesílení MV po úsecích MV (spočtená při identifikaci)."""
     chk = (r.get("dv_chk") or {}).get("mv")
@@ -982,27 +922,9 @@ def _mv_window_table(r, pname):
 
 
 def _dv_checks(ctx, code, r, dsigns):
-    """
-    Kontrolní odhady pro model z úseků (počítají se při identifikaci a dofitování, ne při každé změně): zesílení
-    MV a každé poruchy zvlášť v každém jejich úseku (porovnání struktur poruch je ve výsledku v „dv_cmp“).
-    """
-    return dict(mv=_mv_win_est(ctx, code, r, dsigns),
-                win={j: _dv_win_est(ctx, code, r, j, str(dn), dsigns) for j, dn in enumerate(ctx.c_d)})
-
-
-def _dv_win_est(ctx, code, r, j, name, dsigns):
-    """Zesílení poruchy j odhadnuté zvlášť v každém jejím úseku (ostatní parametry pevné): [(od, do, Kd, FIT)]."""
-    fixed = _fixed_all(r, (f"d{j}_0",))
-    out = []
-    for a, b in ctx.wins_s.get(name, []):
-        i0, i1 = int(np.searchsorted(ctx.t, a)), int(np.searchsorted(ctx.t, b, side="right"))
-        try:
-            q = cache.fit_windows(code, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ((i0, i1),), ctx.valid, None, fixed,
-                                  0, tuple(dsigns), None, 4, _structs(code, r))
-            out.append((float(a), float(b), float(q["pdl"][j][0]), float(q["fit"])))
-        except Exception:
-            out.append((float(a), float(b), None, None))
-    return out
+    """Kontrolní odhady po úsecích (při identifikaci a dofitování), viz app.windows.window_checks."""
+    return wn.window_checks(code, r, ctx.t, ctx.pv, ctx.mv, ctx.Ts, ctx.dists, ctx.wins_s, ctx.valid, dsigns, ctx.c_d,
+                            fw=cache.fit_windows)
 
 
 def _dist_window_table(r, j):
@@ -1042,45 +964,11 @@ def _dist_type_table(r, j):
 
 
 def _model_curves(ctx, model, stic, sel_mask, y_ed, win):
-    """Průběhy modelu v % PV na celém záznamu: v úsecích (MV + poruchy, jen MV, jen poruchy) a přes celý záznam."""
+    """Průběhy modelu v % PV na celém záznamu (v úsecích i přes celý záznam), viz app.windows.model_curves."""
     code, p, pdl = model
-    t, pv, mv, dists, Ts = ctx.t, ctx.pv, ctx.mv, ctx.dists, ctx.Ts
-    p0 = [0.0] + list(p[1:])
-    pdl0 = [[0.0] + list(d[1:]) for d in pdl]
-    out = {}
-    if win:
-        out["all"] = cache.predict_windows(code, p, pdl, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid)[0]
-        if dists:
-            out["mv"] = cache.predict_windows(code, p, pdl0, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid)[0]
-            out["dv"] = cache.predict_windows(code, p0, pdl, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid)[0]
-    else:
-        def on_seg(y):
-            yy = np.full(len(t), np.nan)
-            yy[sel_mask] = y
-            return yy
-        out["all"] = on_seg(y_ed)
-        if dists:
-            d_s = [d[sel_mask] for d in dists]
-            out["mv"] = on_seg(predict(code, p, pdl0, ctx.ts_id, ctx.pv_id, ctx.mv_id, d_s, Ts, stic)[0])
-            out["dv"] = on_seg(predict(code, p0, pdl, ctx.ts_id, ctx.pv_id, ctx.mv_id, d_s, Ts, stic)[0])
-    # celý záznam: model navazuje na naměřenou PV každých H (posun, u integračních i drift), jinak by integrační
-    # proces s neznámou rovnovážnou MV během dlouhého záznamu ujel a tvar odezev by nešel posoudit
-    H = full_horizon(ctx, code, p)
-    n_h = max(int(round(H / Ts)), 10)
-    tiles = [(i, min(i + n_h, len(t))) for i in range(0, len(t), n_h)]
-    def tiled(p_, pdl_):
-        return cache.predict_windows(code, p_, pdl_, t, pv, mv, Ts, dists, tiles, ctx.valid)[0]
-    out["full_all"] = tiled(p, pdl)
-    if dists:
-        out["full_mv"], out["full_dv"] = tiled(p, pdl0), tiled(p0, pdl)
-    out["full_h"] = H
-    return out
-
-
-def full_horizon(ctx, code, p):
-    """Po jak dlouhé době model na celém záznamu navazuje na data [s]: 8× dynamika, 5 min … třetina záznamu."""
-    T_end = float(ctx.t[-1])
-    return float(min(max(8 * dyn_scale(code, p), 300.0), max(T_end / 3, 300.0)))
+    seg = None if win else (sel_mask, ctx.ts_id, ctx.pv_id, ctx.mv_id, [d[sel_mask] for d in ctx.dists], y_ed)
+    return wn.model_curves(code, p, pdl, stic, ctx.t, ctx.pv, ctx.mv, ctx.dists, ctx.Ts, ctx.valid,
+                           ctx.win_idx if win else None, seg, pw=cache.predict_windows)
 
 
 def _whole_record(ctx, model, stic):

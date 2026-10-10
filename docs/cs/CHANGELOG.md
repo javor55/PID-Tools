@@ -1,6 +1,26 @@
 # Změny
 
-## Nevydáno
+## 3.3.0 beta – nový vzhled webu, identifikace z úseků podle vstupů, poruchy jako MV
+
+**Beta:** k testování; problémy prosím hlaste.
+
+- Web: nový vzhled podle návrhu (hlavička se záložkami, panel nastavení vpravo, karty, tabulky, dlaždice) a hustota
+  pro práci na PC; plocha a panel rolují každý zvlášť.
+- Model (web i desktop): **úseky podle vstupů** – MV i každá měřená porucha mají vlastní úseky (víc úseků na vstup),
+  model se fituje společně přes všechny; vyřazení dat podle mezí, odhad zesílení po úsecích, křížové ověření.
+- Přenosy poruch se fitují **stejně jako MV**: struktury 0. řád, 1. řád, 2. řád, integrační, integrační + 1. řád;
+  volba „Jako MV“, „Auto – nejlepší shoda“ nebo konkrétní struktura; po identifikaci výběr struktury podle FIT.
+- Robustnější hledání minima při identifikaci (další starty přes celý rozsah, zesílení dopočtená regresí); porucha,
+  která se v datech nemění, dostane nulový účinek místo náhodných parametrů.
+- Model na **celém záznamu** (přepínač u grafu PV) – kontrola i mimo úseky, model průběžně navazuje na data.
+- Procenta FIT jsou všude stejná a počítají se na aktuálních úsecích; po změně PV nebo MV se starý model nepoužije.
+- Web: společný graf průběhů pro Data, Model a Diagnostiku (táhla úseků, dvojklik přitáhne mez, posun celého úseku),
+  rychlejší běhy (počítá se jen otevřená záložka a podzáložka), ukazatel výpočtu; čas v grafu bez posunu časové zóny.
+- Web: rychlejší Ladění (lehčí simulace, uložené srovnání metod), CSV ke stažení se připraví až po klepnutí;
+  automatické ukládání a automaticky nalezené úseky odstraněny (i z desktopu; desktop si automatické ukládání nechává).
+- Kontrola projektu při načtení (neplatné položky se přeskočí), menší nároky na paměť, test vzhledu v prohlížeči v CI.
+
+Dříve nevydané změny:
 
 - Desktop: PySide6 omezeno na < 6.12 – verze 6.12.0 při zavření aplikace shodí Python (chyba počítání referencí
   v shiboken6, „Fatal Python error: bool_dealloc“).
