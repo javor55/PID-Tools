@@ -59,7 +59,12 @@ def render(ctx, model=None, fits=None, rng_key=None):
     pv_row = dict(id="PV", kind="pv", title=f"PV · {ctx.c_pv}" + (f" [{ctx.u_pv}]" if ctx.u_pv else ""), color="#1f5fa8",
                   y=trend.js(pv_e, idx), lo=lo, hi=hi, h=220)
     if model is not None:
-        pv_row["model"] = {k: (trend.js(ctx.EP(v), idx) if v is not None else None) for k, v in model.items()}
+        pv_row["model"] = {k: (trend.js(ctx.EP(v), idx) if v is not None else None) for k, v in model.items()
+                           if k != "full_h"}
+        if model.get("full_h"):
+            from ..app.timefmt import fmt_t, unit_for
+            tu = unit_for(ss.get("chart_tunit"), float(t[-1]))
+            pv_row["full_tip"] = T("mw_r_full_tip", h=fmt_t(model["full_h"], tu))
         allm = model.get("all")
         if allm is not None:
             pv_row["resid"] = trend.js((ctx.pv - allm) * ctx.PR / 100, idx)

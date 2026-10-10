@@ -138,7 +138,7 @@ def runs(mask, t):
 
 
 TXT_KEYS = ("mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-            "m_mv", "m_dv", "resid", "only_win", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add",
+            "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add",
             "time")
 
 

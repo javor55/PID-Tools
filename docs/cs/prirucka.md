@@ -52,8 +52,8 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
    Volitelně přidejte **měřené poruchy** a **polohu ventilu** (zpětné hlášení – pro diagnostiku ventilu).
    Doplňte jednotky PV a MV. *Rozsah regulátoru NormPV / NormMV se nastavuje v Ladění.*
 2. **Náhled načtených dat** – tabulka po převzorkování, statistika a původní soubor s rozpoznanými typy.
-3. **Úsek pro identifikaci** – tažením myší v grafu, posuvníkem nebo výběrem z **automaticky nalezených úseků**
-   (shluky skoků MV nebo SP s hodnocením vhodnosti).
+3. **Úsek pro identifikaci** – táhly pod grafem nebo zadáním čísel pod ním (v desktopu i výběrem z automaticky
+   nalezených úseků).
 4. **Kontrola kvality dat** – počet, směr a rozestup skoků, ustálení po posledním skoku, poměr signál/šum,
    komprese historianu, vzorkování, MV na limitu, rampa SP. Každé varování říká, co s tím.
 5. **Diagnostika provozu** (spodní část záložky) – na zvoleném úseku provozu:

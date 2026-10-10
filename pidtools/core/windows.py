@@ -7,13 +7,13 @@ sjednocení všech úseků:  PV = G_MV · MV + Σ G_DVj · DVj.
   - každý úsek má vlastní počáteční stav PV (posun) a u integračních přenosů i vlastní drift,
     které se v každém kroku dopočtou lineárně (nezvyšují počet hledaných parametrů),
   - vzorky mimo platnou masku (PV / MV / DV mimo meze, saturace …) se do ceny nepočítají, simulace přes ně běží dál.
-Typ přenosu poruchy: 0 = podle procesu (integrační, je-li integrační model MV), 1 = samoregulační, 2 = integrační;
-uloží se jako 4. prvek parametrů poruchy [Kd, Tp, θd, typ] (simulate_dist ho respektuje).
+Přenos poruchy má stejné struktury jako MV (P0D … I1D, parametr dstruct); parametry poruchy [Kd, Tp, θd, typ, Tp2]
+(typ 0 = podle procesu, 1 = samoregulační, 2 = integrační; Tp / Tp2 = 0, když je struktura nemá).
 """
 import numpy as np
 
-from .identification import least_squares
-from .models import MODELS, model_dev, n_free
+from .identification import flat_inputs, least_squares, restarts
+from .models import MODELS, dist_setup, dist_starts, dist_struct, model_dev, n_free, order_dists
 
 
 def merge_windows(wins, n):
@@ -58,18 +58,23 @@ def _windows(t, pv, mv, dists, valid, wins, k, integ):
 
 
 def _pdl_of(z, nf, nd, dkind):
-    return [[float(v) for v in z[nf + 1 + 3 * j: nf + 4 + 3 * j]] + ([int(dkind[j])] if dkind[j] else [])
-            for j in range(nd)]
+    """Vektor fitu → parametry poruch [Kd, Tp, θd, typ, Tp2] (4 hodnoty na poruchu: Kd, Tp, θd, Tp2)."""
+    out = []
+    for j in range(nd):
+        kd, tp, th, tp2 = (float(v) for v in z[nf + 1 + 4 * j: nf + 5 + 4 * j])
+        out.append([kd, tp, th, int(dkind[j]), tp2])
+    return out
 
 
 def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=None, fixed=None, sign=0, dsign=None,
-                dkind=None, n_grid=12):
+                dkind=None, n_grid=12, dstruct=None):
     """
     Společný fit modelu MV → PV a modelů poruch přes úseky `wins` [(i0, i1)] (indexy do t).
     valid ..... bool pole délky t – vzorky, které se počítají do ceny (None = všechny)
     fixed ..... {"p0": …, "p{nf}" = θ, "d{j}_{i}": …} zafixované parametry
     sign ...... znaménko zesílení MV (0 auto, ±1 vynucené); dsign – totéž pro každou poruchu
     dkind ..... typ přenosu každé poruchy (0 podle procesu, 1 samoregulační, 2 integrační)
+    dstruct ... struktura přenosu každé poruchy jako u MV ("P0D" … "I1D"; None = 1. řád, typ podle dkind)
     Vrací dict(code, p, pdl, fit, fits (každý úsek), wins, level="none", Th=None, stic=0, fixed).
     """
     t, pv, mv = np.asarray(t, float), np.asarray(pv, float), np.asarray(mv, float)
@@ -82,6 +87,7 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
     if not wins:
         raise ValueError("err_no_windows")
     integ = MODELS[code]["integ"]
+    dkind = dist_setup(fixed, nd, dstruct, dkind)       # struktura poruch → typy a zafixované Tp / Tp2
     d_integ = [integ if not dk else dk == 2 for dk in dkind]
     nf = n_free(code)
     span = max(t[b - 1] - t[a] for a, b in wins)
@@ -90,6 +96,9 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
     tmin, Tmax = 0.2 * h, 20 * total
     any_integ = integ or any(d_integ)
     W = _windows(t, pv, mv, dists, valid, wins, 1, any_integ)
+    dv_flat = [j for j in flat_inputs([np.concatenate([w.dD[j][w.v] for w in W]) for j in range(nd)], dists)
+               if f"d{j}_0" not in fixed]
+    dist_setup(fixed, nd, dstruct, dkind, dv_flat)      # porucha se v úsecích nemění → nulový účinek
     if all(np.allclose(w.du, 0) for w in W) and all(np.allclose(d, 0) for w in W for d in w.dD):
         raise ValueError("err_mv_const")
 
@@ -117,18 +126,19 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
             kd0[j] = -kd0[j] if kd0[j] != 0 else s * 1e-3
     T0 = span / 10
 
-    names = [f"p{i}" for i in range(nf)] + [f"p{nf}"] + [f"d{j}_{i}" for j in range(nd) for i in range(3)]
+    names = [f"p{i}" for i in range(nf)] + [f"p{nf}"] + [f"d{j}_{i}" for j in range(nd) for i in range(4)]
     th_idx = nf
     lb = [0.0 if sign > 0 else -np.inf] + [tmin] * (nf - 1) + [0.0]
     ub = [0.0 if sign < 0 else np.inf] + [Tmax] * (nf - 1) + [theta_max]
     for j in range(nd):
-        lb += [0.0 if dsign[j] > 0 else -np.inf, tmin, 0.0]
-        ub += [0.0 if dsign[j] < 0 else np.inf, Tmax, theta_max]
+        lb += [0.0 if dsign[j] > 0 else -np.inf, tmin, 0.0, tmin]
+        ub += [0.0 if dsign[j] < 0 else np.inf, Tmax, theta_max, Tmax]
     lb, ub = np.array(lb, float), np.array(ub, float)
     starts = {1: [[g0]], 2: [[g0, T0], [g0, T0 / 5]], 3: [[g0, T0, T0 / 3], [g0, T0 / 3, T0 / 10]]}[nf]
     dist0 = []
     for k in kd0:
-        dist0 += [k, T0 / 3, min(h, theta_max / 2)]
+        dist0 += [k, T0 / 3, min(h, theta_max / 2), T0 / 10]
+    dstarts = dist_starts(dist0, kd0, T0, theta_max)
     fixed_mask = np.array([n in fixed for n in names])
     zfix = np.array([float(fixed.get(n, 0.0)) for n in names])
     free_nt = np.where(~fixed_mask & (np.arange(len(names)) != th_idx))[0]
@@ -156,8 +166,8 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
     cands = []
     thetas = np.linspace(0, theta_max, max(3, n_grid)) if th_free else [zfix[th_idx]]
     for th in thetas:
-        for s0 in starts:
-            z0 = np.where(fixed_mask, zfix, np.r_[s0, 0.0, dist0])
+        for s0, d0 in ((s0, d0) for s0 in starts for d0 in dstarts):
+            z0 = np.where(fixed_mask, zfix, np.r_[s0, 0.0, d0])
             x0 = np.clip(z0[free_nt], lb[free_nt], ub[free_nt])
             if not len(x0):
                 cands.append((0.5 * np.sum(resid_g(make_z(x0, th)) ** 2), x0, th))
@@ -187,6 +197,7 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
         except Exception:
             return best
 
+    cands += restarts(names, free_nt, cands, lb, ub, theta_max, th_free, resid_g, make_z)
     top, seen = [], set()
     for c in sorted(cands, key=lambda c: c[0]):
         if c[2] not in seen:
@@ -200,12 +211,14 @@ def fit_windows(code, t, pv, mv, h, dists=(), wins=(), valid=None, theta_max=Non
     pdl = _pdl_of(z, nf, nd, dkind)
     if code == "P2D" and p[2] > p[1] and "p1" not in fixed and "p2" not in fixed:
         p[1], p[2] = p[2], p[1]
+    order_dists(pdl, fixed)
     fits = window_fits(code, p, pdl, W, h)
     num = sum(np.sum(w.proj(w.y - model_dev(code, p, pdl, w.t, w.du, w.dD, h)) ** 2) for w in W)
     den = sum(np.sum((w.y[w.v] - w.y[w.v].mean()) ** 2) for w in W if w.v.any())
     fit = float(100.0 * (1 - np.sqrt(num / den))) if den > 0 else float("nan")
     return dict(code=code, p=p, pdl=pdl, fit=fit, fits=fits, wins=[list(map(int, w)) for w in wins], level="none",
-                Th=None, stic=0.0, fixed=sorted(fixed))
+                Th=None, stic=0.0, fixed=sorted(fixed), dv_flat=dv_flat,
+                dstruct=[dist_struct(integ, d) for d in pdl])
 
 
 def window_fits(code, p, pdl, W, h):

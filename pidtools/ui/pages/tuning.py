@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ...core import (DIST_PARAMS, MODELS, d_advice, default_tc, tune)
+from ...core import (DIST_PARAMS, MODELS, d_advice, default_tc, pd_z, tune)
 from ...app import frequency as fq
 from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
@@ -174,6 +174,9 @@ def render(ctx):
             s = SimpleNamespace(ctx=ctx, ws=ws, **{k: getattr(ctx, k) for k in _CTX_KEYS})
             s.mcode, s.p, s.pdl = ctx.model
             for step in _STEPS:
+                # grafy a výstupy Ladění ostatní záložky nepotřebují → jen při otevřené záložce (nebo pro report)
+                if step in (_tn_views, _tn_outputs) and not (ctx.full or ctx.active_tab == "tuning"):
+                    continue
                 step(s)
             plant, set1_ctrl, set2_ctrl = s.plant, s.set1_ctrl, s.set2_ctrl
     ctx.plant = plant
@@ -850,7 +853,7 @@ def _tn_outputs(s):
            "Ms": rn["Ms"], "GM": rn["GM"], "PM": rn["PM"],
            "Gain_old": set1_gain, "TI_old": set1_ti, "TD_old": set1_td}
     for j, dn in enumerate(c_d):
-        out.update({f"{n_}_{dn}": v for n_, v in zip(DIST_PARAMS, pdl[j])})
+        out.update({f"{n_}_{dn}": v for n_, v in zip(DIST_PARAMS + ["Tp2"], pd_z(pdl[j]))})
         out[f"FF_{dn}"] = ff[j] if ff else 0.0
     ws.sets.download_button(T("download"), pd.DataFrame([out]).to_csv(index=False, sep=";", decimal=","),
                             "pidconl_tuning.csv", "text/csv", icon=":material/download:")

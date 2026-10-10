@@ -59,7 +59,7 @@ def main():
 
     # Záložky, jejichž výsledky ostatní nepotřebují, se počítají jen otevřené (rychlé běhy). Sestavení reportu si
     # vyžádá jeden plný běh (rep_pending), aby v něm byly výsledky všech záložek.
-    full = bool(st.session_state.get("rep_pending"))
+    full = ctx.full = bool(st.session_state.get("rep_pending"))
     data.render(ctx)
     model.render(ctx)
     tuning.render(ctx)

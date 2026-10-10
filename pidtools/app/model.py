@@ -52,20 +52,99 @@ def rescale_results(res, old_norm, new_norm):
     return {c: rescale_fit(r, old_norm, new_norm) for c, r in res.items()}, norm_factors(old_norm, new_norm)
 
 
-def identify(code, ts, pv, mv, Ts, d, s, fixed=None, stic_fixed=None, fn=core.identify):
-    """Identifikace jednoho modelu podle nastavení s (fn = core.identify nebo jeho varianta s cache)."""
-    return fn(code, ts, pv, mv, Ts, d, s.th_max, fixed=fixed, stic_fixed=stic_fixed, level=s.dist_level,
-              strength=float(s.dist_strength), sign=SIGN[s.gain_sign], id_stic=s.id_stic, k=decimation(len(ts)))
+# ---- struktura přenosu poruch (stejné struktury jako MV: P0D … I1D)
+DIST_CHOICES = ("pv", "auto") + tuple(core.DIST_STRUCTS)
+_DIST_ALIAS = {"self": "P1D", "integ": "I1D"}      # starší volby typu (projekty)
 
 
-def identify_all(ts, pv, mv, Ts, d, s, fn=core.identify, progress=None):
+def dist_structs(code, dkinds, nd):
+    """
+    Volby typu přenosu poruch → struktury pro fit: „pv“ = stejná struktura jako model MV, „auto“ = None (vybere se
+    nejlepší), jinak struktura P0D … I1D.
+    """
+    out = []
+    for j in range(nd):
+        k = dkinds[j] if dkinds is not None and j < len(dkinds) else "pv"
+        k = _DIST_ALIAS.get(k, k)
+        out.append(code if k == "pv" else None if k == "auto" else k)
+    return out
+
+
+def compare_dists(fit, r, j, structs):
+    """
+    Struktury přenosu poruchy j porovnané fitem jen jejích parametrů (model MV a ostatní poruchy pevné):
+    [(struktura, FIT, parametry poruchy | text chyby)]. fit(struktury, zafixované) → výsledek fitu.
+    """
+    fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
+    for jj, d in enumerate(r["pdl"]):
+        if jj != j:
+            fixed.update({f"d{jj}_{i}": v for i, v in enumerate(core.pd_z(d))})
+    out = []
+    for st_ in core.DIST_STRUCTS:
+        s2 = list(structs)
+        s2[j] = st_
+        try:
+            q = fit(tuple(s2), fixed)
+            out.append((st_, float(q["fit"]), core.pd_full(q["pdl"][j])))
+        except Exception as ex:
+            out.append((st_, None, str(ex)))
+    return out
+
+
+def fit_dists(fit, code, structs):
+    """
+    Fit modelu se strukturami poruch: None = vybrat nejlepší (první fit se strukturou jako MV, porovnání struktur
+    každé takové poruchy, pak společný fit s vybranými – ponechá se lepší). Výsledek má „dv_cmp“ {j: porovnání}
+    pro každou poruchu (výběr typu v kartě poruchy).
+    """
+    init = tuple(st_ or code for st_ in structs)
+    r = dict(fit(init, None))
+    flat = set(r.get("dv_flat") or ())
+    chosen, cmp = list(init), {}
+    for j in range(len(structs)):
+        if j in flat:
+            continue
+        cmp[j] = compare_dists(fit, r, j, chosen)
+        ok = [c for c in cmp[j] if c[1] is not None]
+        if structs[j] is None and ok:
+            chosen[j] = max(ok, key=lambda c: c[1])[0]
+    if tuple(chosen) != init:
+        try:
+            r2 = dict(fit(tuple(chosen), None))
+            if r2["fit"] >= r["fit"]:
+                r = r2
+        except Exception:
+            pass
+    r["dv_cmp"] = cmp
+    return r
+
+
+def identify(code, ts, pv, mv, Ts, d, s, fixed=None, stic_fixed=None, fn=core.identify, d_full=None, dkinds=None):
+    """
+    Identifikace jednoho modelu podle nastavení s (fn = core.identify nebo jeho varianta s cache). d_full – poruchy
+    v celém záznamu: porucha, která se v úseku prakticky nemění, dostane nulový účinek (jinak by její parametry
+    vyšly libovolné); její index je ve výsledku v „dv_flat“. dkinds – typ přenosu každé poruchy (DIST_CHOICES).
+    """
+    flat = core.flat_inputs(d, d_full) if d_full is not None else []
+    fx = {k: 0.0 for j in flat for k in (f"d{j}_0", f"d{j}_1", f"d{j}_2", f"d{j}_3")}
+    base = {**fx, **(fixed or {})}
+
+    def fit(structs, fx2):
+        return fn(code, ts, pv, mv, Ts, d, s.th_max, fixed={**base, **(fx2 or {})} or None, stic_fixed=stic_fixed,
+                  level=s.dist_level, strength=float(s.dist_strength), sign=SIGN[s.gain_sign], id_stic=s.id_stic,
+                  k=decimation(len(ts)), dstruct=structs)
+    r = fit_dists(fit, code, dist_structs(code, dkinds, len(d)))
+    return dict(r, dv_flat=flat) if flat else r
+
+
+def identify_all(ts, pv, mv, Ts, d, s, fn=core.identify, progress=None, d_full=None, dkinds=None):
     """Identifikace všech zvolených modelů. Vrací (výsledky {kód: výsledek}, chyby [(kód, text)])."""
     res, errs = {}, []
     for i, c in enumerate(s.chosen):
         if progress:
             progress(i, c)
         try:
-            res[c] = identify(c, ts, pv, mv, Ts, d, s, fn=fn)
+            res[c] = identify(c, ts, pv, mv, Ts, d, s, fn=fn, d_full=d_full, dkinds=dkinds)
         except Exception as ex:
             errs.append((c, str(ex)))
     return res, errs
@@ -95,7 +174,6 @@ def identify_cl_all(res, ts, sp, pv, mv, Ts, d, ctrl, s, progress=None, fn=None)
 
 
 # ---- identifikace z úseků podle vstupů (MV a každá porucha vlastní úseky, vyřazení dat podle mezí)
-DKIND = {"pv": 0, "self": 1, "integ": 2}          # typ přenosu poruchy; "auto" = vyzkoušet oba a vybrat lepší
 
 
 def valid_mask(n, signals, limits, tol):
@@ -120,26 +198,15 @@ def valid_mask(n, signals, limits, tol):
 def identify_windows(code, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fixed=None, fn=core.fit_windows):
     """
     Identifikace jednoho modelu z úseků (indexy do celého záznamu). dkinds – typ přenosu každé poruchy
-    ("pv" / "self" / "integ" / "auto"); u „auto“ se vyzkouší samoregulační i integrační a vybere lepší shoda.
+    (DIST_CHOICES: „pv“ = struktura jako MV, „auto“ = nejlepší z P0D … I1D, nebo daná struktura).
     """
-    import itertools
-    auto = [j for j, k in enumerate(dkinds) if k == "auto"]
-    base = [DKIND.get(k, 0) for k in dkinds]
-    combos = [base]
-    if auto:
-        combos = []
-        for vals in itertools.product((1, 2), repeat=min(len(auto), 3)):
-            c = list(base)
-            for j, v in zip(auto, vals):
-                c[j] = v
-            combos.append(c)
-    best_ = None
-    for dk in combos:
-        r = fn(code, t, pv, mv, Ts, d, tuple(map(tuple, wins)), valid, s.th_max, fixed, SIGN[s.gain_sign],
-               tuple(dsigns), tuple(dk))
-        if best_ is None or r["fit"] > best_["fit"]:
-            best_ = r
-    return dict(best_, method="win", stic=0.0, fit_raw=best_["fit"])
+    wins_t = tuple(map(tuple, wins))
+
+    def fit(structs, fx2):
+        return fn(code, t, pv, mv, Ts, d, wins_t, valid, s.th_max, {**(fixed or {}), **(fx2 or {})} or None,
+                  SIGN[s.gain_sign], tuple(dsigns), None, 12, structs)
+    r = fit_dists(fit, code, dist_structs(code, dkinds, len(d)))
+    return dict(r, method="win", stic=0.0, fit_raw=r["fit"])
 
 
 def identify_windows_all(t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=core.fit_windows, progress=None):
@@ -174,15 +241,18 @@ def clamp(p, pdl):
     for i in range(1, len(p)):
         p[i] = max(p[i], 1e-6) if i < len(p) - 1 else max(p[i], 0.0)
     pdl = [[float(v) for v in d] for d in pdl]
-    for d in pdl:
-        d[1] = max(d[1], 1e-6)
+    for d in pdl:                    # Tp / Tp2 = 0 = struktura bez dané setrvačnosti (P0D, I0D …)
+        d[1] = max(d[1], 0.0)
+        d[2] = max(d[2], 0.0)
+        if len(d) > 4:
+            d[4] = max(d[4], 0.0)
     return p, pdl
 
 
 def is_edited(p, pdl, stic, r):
     """Liší se upravený model od nafitovaného?"""
-    a3 = np.ravel([list(d)[:3] for d in pdl])            # typ přenosu poruchy (4. prvek) se neupravuje
-    b3 = np.ravel([list(d)[:3] for d in r["pdl"]])
+    a3 = np.ravel([core.pd_z(d) for d in pdl])            # typ přenosu poruchy (4. prvek) se neupravuje
+    b3 = np.ravel([core.pd_z(d) for d in r["pdl"]])
     return (not np.allclose(p, r["p"]) or (bool(r["pdl"]) and (a3.shape != b3.shape or not np.allclose(a3, b3)))
             or abs(stic - (r.get("stic") or 0.0)) > 1e-9)
 

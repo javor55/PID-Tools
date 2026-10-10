@@ -196,9 +196,10 @@ def test_window_live_and_apc(win):
     # Auto: MV zašedlé s živou hodnotou; ruční režim bez rázu: MV zůstane, SP zašedlá
     assert lv.sp.isEnabled() and not lv.man.isEnabled()
     mv_live = float(lv.sess.series(2)["MV"][-1])
-    assert lv.man.value() == pytest.approx(mv_live, rel=1e-6)
+    tol = 0.6 * 10 ** -lv.man.decimals()               # pole MV ukazuje hodnotu zaokrouhlenou na svá desetinná místa
+    assert lv.man.value() == pytest.approx(mv_live, abs=tol)
     lv.auto.setChecked(False)
-    assert lv.man.isEnabled() and not lv.sp.isEnabled() and lv.man.value() == pytest.approx(mv_live, rel=1e-6)
+    assert lv.man.isEnabled() and not lv.sp.isEnabled() and lv.man.value() == pytest.approx(mv_live, abs=tol)
     lv.tick()
     assert float(lv.sess.series(2)["MV"][-1]) == pytest.approx(mv_live, rel=1e-3)
     lv.auto.setChecked(True)

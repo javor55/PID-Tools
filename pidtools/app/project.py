@@ -31,7 +31,7 @@ STATE_KEYS = [
     "rep_plant", "rep_author", "rep_status", "rep_comment",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "idf|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|",
-                "dsign|")
+                "dsign|", "dsel|")
 
 
 def is_state_key(k):
@@ -103,6 +103,9 @@ def fit_record(fit):
         res[code] = dict(code=code, p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d] for d in r["pdl"]],
                          fit=float(r["fit"]), level=r.get("level", "none"),
                          Th=None if r.get("Th") is None else float(r["Th"]), stic=float(r.get("stic") or 0.0))
+        if r.get("dv_cmp"):                  # porovnání struktur přenosu poruch (výběr typu v kartě poruchy)
+            res[code]["dv_cmp"] = {str(j): [[st_, None if f is None else float(f), list(pd) if f is not None else str(pd)]
+                                            for st_, f, pd in v] for j, v in r["dv_cmp"].items()}
         if r.get("method") == "win":          # identifikace z úseků podle vstupů
             res[code].update(method="win", fits=[float(x) for x in r.get("fits", [])],
                              wins=[[int(a), int(b)] for a, b in r.get("wins", [])])
