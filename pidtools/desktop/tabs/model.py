@@ -1,6 +1,7 @@
 """
-Záložka Model: úsek identifikace (tažením v grafu), kvalita dat, nastavení a spuštění identifikace (na pozadí),
-srovnání modelů, výběr modelu pro ladění, úprava parametrů a graf model vs. data.
+Záložka Model: úsek identifikace – společný úsek (tažením v grafu), nebo úseky podle vstupů (MV a každá porucha
+vlastní úseky, vyřazení dat podle mezí) –, kvalita dat, nastavení a spuštění identifikace (na pozadí), srovnání
+modelů, výběr modelu a struktur přenosů poruch, úprava parametrů a graf model vs. data (v úsecích i na celém záznamu).
 """
 import numpy as np
 import pyqtgraph as pg
@@ -9,12 +10,14 @@ from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QHeaderView,
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from ...app import model as mdl
-from ...core import DIST_PARAMS, MODELS
+from ...app import windows as wn
+from ...core import DIST_FIELDS, MODELS, merge_windows, pd_z
 from ...i18n import T
 from .. import widgets as w
 from ..layout import Workspace, caption
 
 LEVEL_ICON = {0: "✅", 1: "⚠️", 2: "⛔"}
+WIN_COLORS = ["#f59e0b", "#0d9488", "#7c3aed", "#db2777", "#0891b2"]     # MV, poruchy (jako ve webu)
 
 
 class ModelTab(Workspace):
@@ -39,7 +42,10 @@ class ModelTab(Workspace):
         ml = QVBoxLayout(mid)
         ml.setContentsMargins(0, 0, 0, 0)
         self.stale = w.note("")
-        ml.addWidget(self.stale)
+        self.full_cb = QCheckBox(T("mw_r_full"))
+        w.tip(self.full_cb, "h_mw_full")
+        self.full_cb.toggled.connect(lambda *_: self._draw_fit())
+        ml.addLayout(w.hbox(self.stale, self.full_cb))
         self.res = w.table(["", "FIT [%]", "NRMSE [%]", T("col_status"), ""], [])
         self.res.setMinimumHeight(90)
         ml.addWidget(self.res, 1)
@@ -65,6 +71,7 @@ class ModelTab(Workspace):
         self.dist_plot = w.plot("", "ΔPV", T("time_s"))
         self.sub.addTab(self.dist_plot, T("dk_unmeasured"))
         self.val_index = self.sub.addTab(self._validation_page(), T("val_title"))
+        self.win_index = self.sub.addTab(self._windows_page(), T("ms_cmp"))
         self.sub.currentChanged.connect(lambda i: self._validate() if i == self.val_index else None)
         split.addWidget(self.sub)
         split.setStretchFactor(0, 6)
@@ -81,33 +88,56 @@ class ModelTab(Workspace):
         self.top_bar(self.run)
         self.top.addWidget(self.prog)
 
-        # ---- 1 · úsek
+        # ---- 1 · úsek: společný, nebo podle vstupů
+        self.wmode = w.combo(["common", "inputs"], labels=[T("mw_common"), T("mw_inputs")])
+        w.tip(self.wmode, "h_mw_mode")
+        self.wmode.currentIndexChanged.connect(self._wmode_changed)
         self.r_from, self.r_to = w.spin(0.0, 0, 1e9, 1), w.spin(0.0, 0, 1e9, 1)
         b_all = QPushButton(T("dk_whole"))
         b_all.clicked.connect(self._whole)
         for sp in (self.r_from, self.r_to):
             sp.valueChanged.connect(self._range_typed)
-        sec = self.section(T("dk_sec_segment"), w.form([(T("dk_from"), self.r_from), (T("dk_to"), self.r_to),
-                                                        ("", b_all)]), "segment")
-        sec.add(caption(T("dk_segment_help")))
+        self.common_box = QWidget()
+        cl = QVBoxLayout(self.common_box)
+        cl.setContentsMargins(0, 0, 0, 0)
+        cl.addLayout(w.form([(T("dk_from"), self.r_from), (T("dk_to"), self.r_to), ("", b_all)]))
+        cl.addWidget(caption(T("dk_segment_help")))
+        self.inputs_box = QWidget()          # úseky podle vstupů: tabulka (vstup, od, do) + přidat / odebrat
+        il = QVBoxLayout(self.inputs_box)
+        il.setContentsMargins(0, 0, 0, 0)
+        self.win_tab = QTableWidget(0, 3)
+        self.win_tab.verticalHeader().setVisible(False)
+        self.win_tab.setSelectionBehavior(QTableWidget.SelectRows)
+        self.win_tab.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.win_tab.setMinimumHeight(110)
+        self.win_tab.itemChanged.connect(self._win_edited)
+        self.win_in = w.combo([])
+        b_add, b_del = QPushButton(T("dk_win_add")), QPushButton(T("mw_del"))
+        b_add.clicked.connect(self._win_add)
+        b_del.clicked.connect(self._win_del)
+        il.addWidget(self.win_tab)
+        il.addLayout(w.hbox(self.win_in, b_add, b_del))
+        il.addWidget(caption(T("dk_win_help")))
+        sec = self.section(T("dk_sec_segment"), w.form([(T("mw_mode"), self.wmode)]), "segment")
+        sec.add(self.common_box)
+        sec.add(self.inputs_box)
         self.quality = w.note("")
         sec.add(QLabel("<b>" + T("q_title") + "</b>"))
         sec.add(self.quality)
 
-        # ---- automatické úseky
-        self.auto_tab = w.table([], [], stretch=False)
-        self.auto_tab.setSelectionBehavior(QTableWidget.SelectRows)
-        self.auto_tab.setSelectionMode(QTableWidget.SingleSelection)
-        self.auto_tab.setMinimumHeight(120)
-        self.gap = w.spin(0.0, 0.0, 1e9, 1)
-        w.tip(self.gap, "h_auto_gap")
-        self.gap.valueChanged.connect(self._auto_segments)
-        b_id, b_val = QPushButton(T("auto_use_id")), QPushButton(T("auto_use_val"))
-        b_id.clicked.connect(lambda: self._use_segment(False))
-        b_val.clicked.connect(lambda: self._use_segment(True))
-        self.auto_grp = self.section(T("auto_title", n=0), self.auto_tab, "auto", expanded=False)
-        self.auto_grp.add(w.form([(T("auto_gap"), self.gap)]))
-        self.auto_grp.add(w.hbox(b_id, b_val))
+        # ---- vyřazení dat (úseky podle vstupů)
+        self.excl_tab = QTableWidget(0, 4)
+        self.excl_tab.verticalHeader().setVisible(False)
+        self.excl_tab.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.excl_tab.itemChanged.connect(self._excl_edited)
+        self.excl_tol = w.spin(0.5, 0.0, 20.0, 2)
+        w.tip(self.excl_tol, "h_excl_tol")
+        self.excl_tol.valueChanged.connect(self._excl_tol_changed)
+        self.excl_note = caption("")
+        self.excl_sec = self.section(T("excl_title"), caption(T("excl_intro")), "excl", expanded=True)
+        self.excl_sec.add(self.excl_tab)
+        self.excl_sec.add(w.form([(T("excl_tol"), self.excl_tol)]))
+        self.excl_sec.add(self.excl_note)
 
         # ---- 2 · identifikace
         g = QGridLayout()
@@ -133,6 +163,11 @@ class ModelTab(Workspace):
         sec.add(g)
         sec.add(w.form([(T("thmax"), self.thmax), (T("dist_level"), self.level), (T("dist_strength"), self.strength),
                         (T("gain_sign"), self.sign), ("", self.stic)]))
+        self.dk_box = QWidget()             # typ přenosu a směr účinku každé poruchy (pro identifikaci)
+        self.dk_lay = QGridLayout(self.dk_box)
+        self.dk_lay.setContentsMargins(0, 0, 0, 0)
+        self._dk_for = None
+        sec.add(self.dk_box)
 
         # ---- 3 · model pro ladění
         self.mcode = w.combo([])
@@ -148,6 +183,12 @@ class ModelTab(Workspace):
         self.b_refit.clicked.connect(self._refit)
         self.fit_lab = w.note("")
         sec = self.section(T("dk_sec_model"), w.form([(T("model_for_tuning"), self.mcode)]), "model")
+        self.ds_box = QWidget()             # struktura přenosu každé poruchy po identifikaci (podle FIT)
+        self.ds_lay = QGridLayout(self.ds_box)
+        self.ds_lay.setContentsMargins(0, 0, 0, 0)
+        sec.add(self.ds_box)
+        self.ds_note = caption("")
+        sec.add(self.ds_note)
         sec.add(QLabel(T("dk_params")))
         sec.add(self.params)
         self.params.setMinimumWidth(0)
@@ -195,8 +236,17 @@ class ModelTab(Workspace):
             self.sign.setCurrentIndex(self.sign.findData(s.get("gain_sign")))
             self.stic.setChecked(bool(s.get("id_stic")))
             self.mode.setCurrentIndex(max(self.mode.findData(s.get("id_mode") or "open"), 0))
+            self.wmode.setCurrentIndex(max(self.wmode.findData(s.win_mode), 0))
+            self.excl_tol.setValue(float(s.excl_tol))
         finally:
             self._busy = False
+        inp = s.inputs_mode
+        self.common_box.setVisible(not inp)
+        self.inputs_box.setVisible(inp)
+        self.excl_sec.setVisible(inp)
+        self._fill_wins()
+        self._fill_excl()
+        self._fill_dkinds()
         self._quality()
         self._mode_note()
         self._results()
@@ -211,39 +261,52 @@ class ModelTab(Workspace):
             return {k: ((f"{v:.0f}" if abs(v) >= 100 else f"{v:.3g}") if isinstance(v, float) else v) for k, v in ar.items()}
         lines += [f"{LEVEL_ICON[lv]} {T(k, **fa(a))}" for k, lv, a in sorted(q["checks"], key=lambda c: -c[1])]
         self.quality.setText("  \n".join(lines))
-        self._auto_segments()
 
     def _results(self):
         s = self.s
-        self.stale.setText(("⚠️ " + T("dk_model_stale")) if s.stale else "")
-        if not s.fit:
+        self.stale.setText(("⚠️ " + T("warn_sig_changed")) if s.signals_changed else
+                           ("⚠️ " + T("dk_model_stale")) if s.stale else "")
+        if not s.fit or s.signals_changed:
             w.fill(self.res, [""], [[T("info_fit")]])
             self.mcode.clear()
+            self._fill_dsel()
+            self._fill_params()
             self._draw_fit()
+            self._fill_windows_page()
             return
         ts, pv, mv, d = s.segment()
+        live = s.live_fits()                  # shoda na aktuálních úsecích (úseky se mohly od identifikace změnit)
+        n_w = len(merge_windows(s.win_idx, len(s.t))) if s.inputs_mode else 0     # překrývající se úseky se sloučí
+        win_labels = [f"{T('ms_win')} {k + 1}" for k in range(n_w)]
         rows = []
         for q in mdl.summary(s.fit["res"], ts, pv, mv, d, s.grid.Ts):
-            pars = ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[q["code"]]["params"], q["p"]))
-            r_ = s.fit["res"][q["code"]]
+            c = q["code"]
+            pars = ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[c]["params"], q["p"]))
+            r_ = s.fit["res"][c]
             cl_ = (f"PV {r_['fit_cl_pv']:.1f} / MV {r_['fit_cl_mv']:.1f}" if r_.get("method") == "cl"
                    and r_.get("fit_cl_pv") is not None else "—")
-            rows.append([T("model_" + q["code"]), round(q["FIT"], 1), round(q["NRMSE"], 2), T(f"st_{q['status']}"), cl_,
-                         pars])
-        w.fill(self.res, [T("col_model"), "FIT [%]", "NRMSE [%]", T("col_status"), T("idm_fit_cl"), T("dk_params")],
-               rows)
+            row = [T("model_" + c), round(live[c], 1), round(q["NRMSE"], 2), T(f"st_{q['status']}"), cl_, pars,
+                   ", ".join(wn.structs(c, r_)) or "—"]
+            if win_labels:
+                fits_ = s.window_fits(c) if r_.get("method") == "win" else []
+                row += [round(f_, 1) if f_ is not None else None for f_ in fits_] + [None] * (len(win_labels) - len(fits_))
+            rows.append(row)
+        w.fill(self.res, [T("col_model"), "FIT [%]", "NRMSE [%]", T("col_status"), T("idm_fit_cl"), T("dk_params"),
+                          T("dkind")] + win_labels, rows)
         self._busy = True
         try:
             self.mcode.clear()
-            for c, r in s.fit["res"].items():
-                self.mcode.addItem(f"{T('model_' + c)} ({r['fit']:.1f} %)", c)
+            for c in s.fit["res"]:
+                self.mcode.addItem(f"{T('model_' + c)} ({live[c]:.1f} %)", c)
             self.mcode.setCurrentIndex(max(self.mcode.findData(s.get("mcode")), 0))
         finally:
             self._busy = False
+        self._fill_dsel()
         self._fill_params()
         self._draw_fit()
         self._show_unc()
         self._validate()
+        self._fill_windows_page()
 
     def _fill_params(self):
         s = self.s
@@ -254,20 +317,28 @@ class ModelTab(Workspace):
                 self.params.setRowCount(0)
                 return
             code, p, pdl = m
+            r = s.fit["res"][code]
             names = list(MODELS[code]["params"])
-            rows = names + [f"{n} ({dn})" for dn in s.c_d for n in DIST_PARAMS]
-            vals = list(p) + [v for d in pdl for v in d]
+            rows = list(names)
+            vals = list(p)
+            keys = [(f"ed|{code}|{i}", f"fx|{code}|{i}") for i in range(len(names))]
+            for j, dn in enumerate(s.c_d):        # poruchy: parametry podle zvolené struktury
+                z = pd_z(pdl[j])
+                for n, i in DIST_FIELDS[wn.dsel(s.get, code, r, j)]:
+                    rows.append(f"{n} ({dn})")
+                    vals.append(z[i])
+                    keys.append((f"ed|{code}|d{j}|{i}", f"fx|{code}|d{j}|{i}"))
             self.params.setRowCount(len(rows))         # parametry pod sebou: hodnota, zafixovat
             self.params.setVerticalHeaderLabels(rows)
             self.params.setHorizontalHeaderLabels([T("dk_value"), T("fix")])
-            keys = [f"fx|{code}|{i}" for i in range(len(names))] + [
-                f"fx|{code}|d{j}|{i}" for j in range(len(pdl)) for i in range(len(DIST_PARAMS))]
-            for j, (v, k) in enumerate(zip(vals, keys)):
-                self.params.setItem(j, 0, QTableWidgetItem(f"{v:.5g}"))
+            for j, (v, (ke, kf)) in enumerate(zip(vals, keys)):
+                it0 = QTableWidgetItem(f"{v:.5g}")
+                it0.setData(Qt.UserRole, ke)
+                self.params.setItem(j, 0, it0)
                 it = QTableWidgetItem()
                 it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-                it.setCheckState(Qt.Checked if s.get(k) else Qt.Unchecked)
-                it.setData(Qt.UserRole, k)
+                it.setCheckState(Qt.Checked if s.get(kf) else Qt.Unchecked)
+                it.setData(Qt.UserRole, kf)
                 self.params.setItem(j, 1, it)
             self.params.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
             self.params.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -275,6 +346,82 @@ class ModelTab(Workspace):
             self.params.setFixedHeight(hh + sum(self.params.rowHeight(i) for i in range(len(rows))))
         finally:
             self._busy = False
+
+    # ---- typy přenosů poruch (před identifikací) a zvolené struktury (po ní)
+    def _fill_dkinds(self):
+        s = self.s
+        key = (tuple(s.c_d), s.inputs_mode)
+        if key != self._dk_for:              # nová sada poruch → nové řádky
+            self._dk_for = key
+            while self.dk_lay.count():
+                it = self.dk_lay.takeAt(0)
+                if it.widget():
+                    it.widget().deleteLater()
+            self._dk = []
+            for j, dn in enumerate(s.c_d):
+                cb = w.combo(list(mdl.DIST_CHOICES), labels=[T("dkind_" + x) if x in ("pv", "auto") else T("model_" + x)
+                                                             for x in mdl.DIST_CHOICES])
+                w.tip(cb, "h_dkind")
+                sg_ = w.combo(["auto", "pos", "neg"], labels=["auto", "+", "−"])
+                w.tip(sg_, "h_dsign")
+                sg_.setVisible(s.inputs_mode)
+                cb.currentIndexChanged.connect(lambda *_, d_=dn, c_=cb: self._dkind_changed(d_, c_))
+                sg_.currentIndexChanged.connect(lambda *_, d_=dn, c_=sg_: self._dsign_changed(d_, c_))
+                self.dk_lay.addWidget(QLabel(f"{T('dkind')} · {dn}"), j, 0)
+                self.dk_lay.addWidget(cb, j, 1)
+                self.dk_lay.addWidget(sg_, j, 2)
+                self._dk.append((cb, sg_))
+        self._busy = True
+        try:
+            for (cb, sg_), dn, k in zip(self._dk, s.c_d, s.dkinds()):
+                cb.setCurrentIndex(max(cb.findData(k), 0))
+                sg_.setCurrentIndex(max(sg_.findData(s.get(f"dsign|{dn}", "auto")), 0))
+        finally:
+            self._busy = False
+
+    def _dkind_changed(self, dn, cb):
+        if not self._busy:
+            self.s.settings[f"dkind|{dn}"] = cb.currentData()
+            self._results()
+
+    def _dsign_changed(self, dn, cb):
+        if not self._busy:
+            self.s.settings[f"dsign|{dn}"] = cb.currentData()
+            self._results()
+
+    def _fill_dsel(self):
+        s = self.s
+        while self.ds_lay.count():
+            it = self.ds_lay.takeAt(0)
+            if it.widget():
+                it.widget().deleteLater()
+        m = s.model
+        self.ds_note.setText("")
+        if m is None:
+            return
+        code = m[0]
+        r = s.fit["res"][code]
+        notes = []
+        for j, dn in enumerate(s.c_d):
+            opts, fits = wn.dsel_options(code, r, j)
+            idn = wn.dist_id(code, r, j)
+            labels = [T("model_" + x) + (f" · FIT {fits[x]:.1f} %" if x in fits else "")
+                      + (f" · {T('ms_dist_ident')}" if x == idn else "") for x in opts]
+            cb = w.combo(opts, labels=labels)
+            w.tip(cb, "h_dkind")
+            cb.setCurrentIndex(max(cb.findData(wn.dsel(s.get, code, r, j)), 0))
+            cb.currentIndexChanged.connect(lambda *_, j_=j, c_=cb, k_=code: self._dsel_changed(k_, j_, c_))
+            self.ds_lay.addWidget(QLabel(f"{T('dkind')} · {dn}"), j, 0)
+            self.ds_lay.addWidget(cb, j, 1)
+            if j in set(r.get("dv_flat") or ()):
+                notes.append(f"ℹ️ {dn}: {T('ms_dv_flat')}")
+        self.ds_note.setText("  \n".join(notes))
+
+    def _dsel_changed(self, code, j, cb):
+        if self._busy:
+            return
+        self.s.choose_dist(code, j, cb.currentData())
+        self.win.refresh()
 
     def _bootstrap(self):
         s = self.s
@@ -304,11 +451,12 @@ class ModelTab(Workspace):
                 for i, n in enumerate(MODELS[code]["params"])])
 
     def _draw_record(self):
-        """Celý záznam (PV, SP, MV, měřené poruchy) s vybraným úsekem; model se kreslí přes něj."""
+        """Celý záznam (PV, SP, MV, měřené poruchy) s úsekem / úseky podle vstupů; model se kreslí přes něj."""
         s = self.s
         self.chart.clear()
         g = s.grid
-        self.plots[0].addItem(self.region)
+        if not s.inputs_mode:
+            self.plots[0].addItem(self.region)
         if g.has_sp:
             w.line(self.plots[0], g.t, g.sp_e, "SP", w.C_SP, 1.2, dash=True)
         w.line(self.plots[0], g.t, g.pv_e, "PV", w.C_PV, 1.1)
@@ -316,8 +464,29 @@ class ModelTab(Workspace):
         for i, (nm, d) in enumerate(zip(s.c_d, g.dists)):
             w.line(self.plots[2], g.t, d, str(nm), w.C_DIST[i % 4], 1.4)
         self.chart.set_row_visible(2, bool(s.c_d))
-        for it in getattr(self, "_seg_items", []):
-            self.plots[0].addItem(it)
+        if s.inputs_mode:
+            self._draw_wins()
+
+    def _draw_wins(self):
+        """Úseky podle vstupů jako posuvné oblasti: MV v grafu MV, poruchy v grafu poruch; vyřazené části šedě."""
+        s = self.s
+        t_end = float(s.t[-1])
+        for k, (inp, ws_) in enumerate(s.wins_s.items()):
+            plot = self.plots[1] if inp == "MV" else self.plots[2]
+            col = pg.mkColor(WIN_COLORS[k % len(WIN_COLORS)])
+            for i, (a, b) in enumerate(ws_):
+                fill = pg.mkColor(col)
+                fill.setAlpha(45)
+                reg = pg.LinearRegionItem((a, b), brush=fill, pen=pg.mkPen(col, width=1.5), bounds=(0, t_end))
+                reg.setZValue(-10)
+                reg.sigRegionChangeFinished.connect(lambda r_, inp_=inp, i_=i: self._win_moved(inp_, i_, r_))
+                plot.addItem(reg)
+        v = s.valid
+        if v is not None and (~v).any():                     # vyřazené vzorky (mimo meze) šedě pod PV
+            for a, b in wn.runs(~v, s.t)[:200]:
+                it = pg.LinearRegionItem((a, b), movable=False, brush=(148, 163, 184, 70), pen=pg.mkPen(None))
+                it.setZValue(-20)
+                self.plots[0].addItem(it)
 
     def _draw_fit(self):
         s = self.s
@@ -336,16 +505,20 @@ class ModelTab(Workspace):
         t = s.t[m]
         code, p, pdl = s.model
         r = s.fit["res"][code]
-        w.line(self.plots[0], t, s.EP(ev["y_plot"]), T("model_" + code), "#ea580c", 2.2).setZValue(-1)   # PV navrchu
-        w.line(self.plots[3], t, (s.pv[m] - ev["y_plot"]) * s.PR / 100, T("resid"), "#64748b", 1.0)
+        cv = s.model_curves()            # model v úsecích, nebo na celém záznamu (navazuje na data každých full_h)
+        full = self.full_cb.isChecked()
+        y_m = cv["full_all"] if full else cv["all"]
+        w.line(self.plots[0], s.t, s.EP(y_m), T("model_" + code), "#ea580c", 2.2).setZValue(-1)   # PV navrchu
+        w.line(self.plots[3], s.t, (s.pv - cv["all"]) * s.PR / 100, T("resid"), "#64748b", 1.0)
+        self.full_cb.setToolTip(T("mw_r_full_tip", h=f"{cv['full_h']:.0f} s"))
         mm = ev["metrics"]
         edited = mdl.is_edited(p, pdl, r.get("stic", 0.0) or 0.0, r)
-        f_fit = s.fit["res"][code]["fit"]
+        live = s.live_fits()
         self.fit_lab.setText(f"**{T('fit_edit')}: {ev['fit']:.1f} %** · NRMSE {mm['NRMSE']:.2f} % · "
                              f"{T('col_status')}: {T('st_' + str(mm['status']))}"
-                             + (f"  \n{T('fit_fit')}: {f_fit:.1f} %" if edited else ""))
+                             + (f"  \n{T('fit_fit')}: {live[code]:.1f} %" if edited else ""))
         # přechodová charakteristika (nafitovaná a upravená)
-        from ...core import predict, step_response
+        from ...core import predict, predict_windows, step_response
         self.step_plot.clear()
         ta, ya = step_response(code, r["p"])
         w.line(self.step_plot, ta, ya * s.PR / 100, T("fit"), "#ea580c", 2.2)
@@ -360,8 +533,12 @@ class ModelTab(Workspace):
         w.line(self.all_plots[0], t, s.grid.pv_e[m], "PV", w.C_PV, 1.0)
         from ...app.colors import C_MODEL
         for c, rr in s.fit["res"].items():
-            y = predict(c, rr["p"], rr["pdl"], ts, pv, mv, d, s.grid.Ts, rr.get("stic", 0.0))[0]
-            w.line(self.all_plots[0], t, s.EP(y), f"{c} ({rr['fit']:.1f} %)", C_MODEL.get(c, "#888"), 1.8)
+            if rr.get("method") == "win" and s.inputs_mode:
+                y = predict_windows(c, rr["p"], rr["pdl"], s.t, s.pv, s.mv, s.grid.Ts, list(s.grid.dists), s.win_idx,
+                                    s.valid)[0][m]
+            else:
+                y = predict(c, rr["p"], rr["pdl"], ts, pv, mv, d, s.grid.Ts, rr.get("stic", 0.0))[0]
+            w.line(self.all_plots[0], t, s.EP(y), f"{c} ({live[c]:.1f} %)", C_MODEL.get(c, "#888"), 1.8)
         w.line(self.all_plots[1], t, s.grid.mv_e[m], "MV", w.C_MV, 1.4)
         # testy reziduí
         segs = [(T("eval_id"), mm)]
@@ -489,48 +666,201 @@ class ModelTab(Workspace):
         self.v_res.setText(f"**{T('fit_pv')}: {vr['fit_pv']:.1f} %** · {T('fit_mv')}: {vr['fit_mv']:.1f} %  \n"
                            + T("val_cl_help") if which == "cur" else T("val_cl_help"))
 
-    # ---- automaticky nalezené úseky
-    def _auto_segments(self, *_):
+    # ---- úseky podle vstupů a vyřazení dat
+    def _fill_wins(self):
         s = self.s
-        if self._busy or not s.has_data:
-            return
-        segs = s.auto_segments(self.gap.value() or None)
-        self._segs = segs
-        from ...app.timefmt import fmt_t, unit_for
-        from ..chartbox import time_unit
-        tu = unit_for(time_unit(), float(s.t[-1]))
-        rows = [[i + 1, fmt_t(q["start"], tu), fmt_t(q["end"], tu), f"{(q['end'] - q['start']) / 60:.1f}",
-                 f"{q['n_mv']} / {q['n_sp']}", f"{q['up']}↑ {q['down']}↓",
-                 f"{q['quality']['snr']:.0f}" if q["quality"] and np.isfinite(q["quality"]["snr"]) else "∞",
-                 (["✓ ", "⚠ ", "✗ "][q["quality"]["level"]] + T(f"q_level{q['quality']['level']}")) if q["quality"] else "—"]
-                for i, q in enumerate(segs)]
-        w.fill(self.auto_tab, ["#", T("auto_from"), T("auto_to"), T("auto_len"), T("auto_steps"), T("auto_dirs"), "SNR",
-                               T("auto_quality")], rows)
-        self.auto_tab.resizeColumnsToContents()
-        self.auto_grp.set_title(T("auto_title", n=len(segs)))
-        for it in getattr(self, "_seg_items", []):
-            self.seg_plots[0].removeItem(it)
-        self._seg_items = []
-        for q in segs[:40]:                       # vyznačí se nejvýš 40 úseků (tabulka ukáže všechny)
-            it = pg.LinearRegionItem((q["start"], q["end"]), movable=False, brush=(191, 219, 254, 60),
-                                     pen=pg.mkPen(None))
-            it.setZValue(-20)
-            self.seg_plots[0].addItem(it)
-            self._seg_items.append(it)
+        self._busy = True
+        try:
+            ins = wn.inputs(s.c_d)
+            self.win_in.clear()
+            for x in ins:
+                self.win_in.addItem(x, x)
+            rows = [(x, a, b) for x, ws_ in s.wins_s.items() for a, b in ws_]
+            self.win_tab.setRowCount(len(rows))
+            self.win_tab.setHorizontalHeaderLabels([T("dk_win_input"), T("dk_from"), T("dk_to")])
+            for i, (x, a, b) in enumerate(rows):
+                it = QTableWidgetItem(x)
+                it.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                it.setForeground(pg.mkColor(WIN_COLORS[ins.index(x) % len(WIN_COLORS)]))
+                self.win_tab.setItem(i, 0, it)
+                for jj, v in ((1, a), (2, b)):
+                    self.win_tab.setItem(i, jj, QTableWidgetItem(f"{v:.6g}"))
+        finally:
+            self._busy = False
 
-    def _use_segment(self, validation):
-        i = self.auto_tab.currentRow()
-        if i < 0 or i >= len(getattr(self, "_segs", [])):
+    def _wins_from_table(self):
+        out = {}
+        for i in range(self.win_tab.rowCount()):
+            x = self.win_tab.item(i, 0).text()
+            try:
+                a = float(self.win_tab.item(i, 1).text().replace(",", "."))
+                b = float(self.win_tab.item(i, 2).text().replace(",", "."))
+            except (ValueError, AttributeError):
+                continue
+            out.setdefault(x, []).append([a, b])
+        return out
+
+    def _win_edited(self, *_):
+        if self._busy:
             return
-        q = self._segs[i]
-        if validation:
-            self.v_from.setValue(q["start"])
-            self.v_to.setValue(q["end"])
-            self.sub.setCurrentIndex(self.val_index)
-            self._validate()
-        else:
-            self.s.rng = (float(q["start"]), float(q["end"]))
+        s = self.s
+        t_end = float(s.t[-1])
+        W = {x: [] for x in wn.inputs(s.c_d)}
+        for x, ws_ in self._wins_from_table().items():
+            W[x] = [[max(0.0, min(a, b)), min(t_end, max(a, b))] for a, b in ws_ if abs(b - a) > 0]
+        s.wins = W
+        self.win.refresh()
+
+    def _win_moved(self, inp, i, reg):
+        if self._busy:
+            return
+        a, b = reg.getRegion()
+        s = self.s
+        W = s.wins_s
+        if i < len(W.get(inp, [])):
+            W[inp][i] = [max(0.0, float(a)), min(float(s.t[-1]), float(b))]
+            s.wins = W
             self.win.refresh()
+
+    def _win_add(self):
+        s = self.s
+        inp = self.win_in.currentData()
+        if not inp:
+            return
+        W = s.wins_s
+        t_end = float(s.t[-1])
+        a = 0.4 * t_end if not W.get(inp) else min(max(b for _, b in W[inp]), 0.8 * t_end)
+        W.setdefault(inp, []).append([a, min(t_end, a + 0.2 * t_end)])
+        s.wins = W
+        self.win.refresh()
+
+    def _win_del(self):
+        rows = sorted({i.row() for i in self.win_tab.selectedIndexes()}, reverse=True)
+        if not rows:
+            return
+        self._busy = True
+        for r_ in rows:
+            self.win_tab.removeRow(r_)
+        self._busy = False
+        self._win_edited()
+
+    def _fill_excl(self):
+        s = self.s
+        if not s.inputs_mode:
+            return
+        self._busy = True
+        try:
+            rows = s.excl_rows()
+            self.excl_tab.setRowCount(len(rows))
+            self.excl_tab.setHorizontalHeaderLabels(["", T("excl_on"), "Min", "Max"])
+            for i, (nm, on, lo, hi, _) in enumerate(rows):
+                it = QTableWidgetItem(nm)
+                it.setFlags(Qt.ItemIsEnabled)
+                self.excl_tab.setItem(i, 0, it)
+                c = QTableWidgetItem()
+                c.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                c.setCheckState(Qt.Checked if on else Qt.Unchecked)
+                self.excl_tab.setItem(i, 1, c)
+                self.excl_tab.setItem(i, 2, QTableWidgetItem(f"{lo:.6g}"))
+                self.excl_tab.setItem(i, 3, QTableWidgetItem(f"{hi:.6g}"))
+            v = s.valid
+            from ...app.timefmt import dur
+            self.excl_note.setText(T("excl_count", d=dur(float((~v).sum() * s.grid.Ts)), p=f"{100 * (~v).mean():.1f}"))
+        finally:
+            self._busy = False
+
+    def _excl_edited(self, *_):
+        if self._busy:
+            return
+        s = self.s
+        out = {}
+        for i in range(self.excl_tab.rowCount()):
+            nm = self.excl_tab.item(i, 0).text()
+            try:
+                lo = float(self.excl_tab.item(i, 2).text().replace(",", "."))
+                hi = float(self.excl_tab.item(i, 3).text().replace(",", "."))
+            except (ValueError, AttributeError):
+                continue
+            out[nm] = [self.excl_tab.item(i, 1).checkState() == Qt.Checked, lo, hi]
+        s.excl = out
+        self.win.refresh()
+
+    def _excl_tol_changed(self, v):
+        if not self._busy:
+            self.s.excl_tol = float(v)
+            self.win.refresh()
+
+    def _wmode_changed(self, *_):
+        if self._busy:
+            return
+        self.s.set(win_mode=self.wmode.currentData())
+        self.win.refresh()
+
+    # ---- porovnání: odhad po úsecích, struktury poruch, křížové ověření
+    def _windows_page(self):
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        lay.addWidget(QLabel("<b>" + T("ms_win_tab") + "</b>"))
+        self.wchk_tab = w.table([], [])
+        self.wchk_tab.setMinimumHeight(90)
+        lay.addWidget(self.wchk_tab)
+        lay.addWidget(QLabel("<b>" + T("ms_cmp") + "</b>"))
+        lay.addWidget(caption(T("ms_cmp_dv_note")))
+        self.dcmp_tab = w.table([], [])
+        self.dcmp_tab.setMinimumHeight(110)
+        lay.addWidget(self.dcmp_tab)
+        self.b_cv = QPushButton(T("cv_run"))
+        w.tip(self.b_cv, "h_cv")
+        self.b_cv.clicked.connect(self._cross_validate)
+        self.cv_tab = w.table([], [])
+        self.cv_tab.setMaximumHeight(140)
+        lay.addLayout(w.hbox(self.b_cv))
+        lay.addWidget(self.cv_tab)
+        lay.addWidget(caption(T("cv_help")))
+        return page
+
+    def _fill_windows_page(self):
+        s = self.s
+        m = s.model
+        if m is None:
+            for t_ in (self.wchk_tab, self.dcmp_tab, self.cv_tab):
+                w.fill(t_, [""], [])
+            self.b_cv.setEnabled(False)
+            return
+        code = m[0]
+        r = s.fit["res"][code]
+        chk = r.get("dv_chk") or {}
+        rows = []
+        pname = MODELS[code]["params"][0]
+        for a, b, k, f in chk.get("mv") or []:
+            rows.append(["MV", f"{a:.0f} – {b:.0f} s", f"{pname} {w.fmt(k)}", None if f is None else round(f, 1)])
+        win_ = chk.get("win") or {}
+        for j, dn in enumerate(s.c_d):
+            for a, b, k, f in win_.get(j, win_.get(str(j), [])) or []:
+                rows.append([str(dn), f"{a:.0f} – {b:.0f} s", f"Kd {w.fmt(k)}", None if f is None else round(f, 1)])
+        w.fill(self.wchk_tab, [T("dk_win_input"), T("ms_win"), T("ms_cmp_par"), "FIT [%]"],
+               rows or [[T("ms_dv_chk_none"), "", "", ""]])
+        rows = []
+        for j, dn in enumerate(s.c_d):
+            for st_, f, pd_ in wn.cmp_of(r, j):
+                par = T(pd_) if f is None else " · ".join(f"{n} {w.fmt(pd_z(pd_)[i])}" for n, i in DIST_FIELDS[st_])
+                rows.append([str(dn), T("model_" + st_), None if f is None else round(f, 1), par])
+        w.fill(self.dcmp_tab, [T("dk_win_input"), T("ms_cmp_type"), "FIT [%]", T("ms_cmp_par")], rows)
+        self.b_cv.setEnabled(s.inputs_mode and r.get("method") == "win" and len(s.win_idx) >= 2)
+        cv = s.cv if (s.cv and s.cv.get("key") == s.fit_key()) else None
+        w.fill(self.cv_tab, [T("col_model"), T("ms_cmp_cv")],
+               [[T("model_" + c), " · ".join(f"{x:.1f}" for x in v) or "—"] for c, v in (cv or {}).get("res", {}).items()])
+
+    def _cross_validate(self):
+        s = self.s
+        self.b_cv.setEnabled(False)
+        self.win.status(T("fitting"))
+
+        def done(_):
+            self.win.status("")
+            self._fill_windows_page()
+        w.run_task(lambda prog: s.cross_validate(progress=lambda i, c: prog(i, c)), done,
+                   lambda e: (self.b_cv.setEnabled(True), self.win.error(T(e))))
 
     def _refit(self):
         s = self.s
@@ -633,7 +963,7 @@ class ModelTab(Workspace):
             return
         self.run.setEnabled(False)
         self.prog.setVisible(True)
-        self.prog.setRange(0, len(s.get("chosen")) * (2 if s.id_closed else 1))
+        self.prog.setRange(0, len(s.get("chosen")) * (2 if (s.id_closed and not s.inputs_mode) else 1))
         self.win.status(T("dk_identifying"))
 
         def work(progress):
@@ -667,15 +997,14 @@ class ModelTab(Workspace):
         if item.column() == 1:                   # zaškrtnutí „zafixovat“
             self.s.settings[item.data(Qt.UserRole)] = item.checkState() == Qt.Checked
             return
-        code = self.s.model[0]
-        n = len(MODELS[code]["params"])
-        j = item.row()
         try:
             v = float(item.text().replace(",", "."))
         except ValueError:
             self._fill_params()
             return
-        key = f"ed|{code}|{j}" if j < n else f"ed|{code}|d{(j - n) // 3}|{(j - n) % 3}"
+        key = item.data(Qt.UserRole)
+        if not key:
+            return
         self.s.settings[key] = v
         self.win.refresh()
 

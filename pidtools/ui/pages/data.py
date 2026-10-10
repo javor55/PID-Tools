@@ -2,7 +2,7 @@
 Záložka Data.
 
 `render_setup` – výběr sloupců, převzorkování a normování (horní rozbalovací sekce záložky; běží před ostatními
-záložkami, protože data potřebují všechny). `render` – výběr úseku, automaticky nalezené úseky a kontrola kvality.
+záložkami, protože data potřebují všechny). `render` – výběr úseku a kontrola kvality.
 """
 import html
 from types import SimpleNamespace
@@ -31,7 +31,6 @@ from ..theme import _c_dist
 
 ss = st.session_state
 _C_DIST = _c_dist()
-MAX_SEG_SHADES = 40            # automaticky nalezené úseky vyznačené v grafu (tabulka ukáže všechny)
 
 
 def _guess(cols, keys, default=0):
@@ -442,8 +441,8 @@ def _exclusions(ctx):
 
 def render(ctx):
     """
-    Graf načtených dat (záložka Data) a výběr úseku pro identifikaci – posuvník, tažení v grafu, automaticky nalezené
-    úseky, kontrola kvality – vykreslený na začátku záložky Model (úsek je součástí identifikace). Počítá se tady,
+    Graf načtených dat (záložka Data) a výběr úseku pro identifikaci (táhla v grafu nebo čísla) a kontrola kvality –
+    vykreslený na začátku záložky Model (úsek je součástí identifikace). Počítá se tady,
     protože úsek potřebují všechny další záložky.
     """
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp

@@ -71,6 +71,46 @@ def test_web_project_opens_in_desktop(tmp_path):
     assert s.c_pv == "LIC101.PV" and s.rng == (100.0, 3000.0) and s.get("samp") == 2.0 and s.get("propfac") == 0.0
 
 
+def test_state_per_input_segments(tmp_path):
+    """Úseky podle vstupů v desktopu jako ve webu: identifikace, odhady po úsecích, struktury poruch, projekt."""
+    s = LoopState()
+    s.load_demo()
+    s.set(chosen=["I1D", "P1D"], win_mode="inputs", **{"dkind|FI100.Pritok": "auto"})
+    s.set_wins("MV", [[250, 1300], [2500, 3300]])
+    s.set_wins("FI100.Pritok", [[850, 1750]])
+    assert s.id_rng == (250.0, 3300.0) and len(s.win_idx) == 3 and s.valid.all()
+    assert not s.identify()
+    r = s.fit["res"]["I1D"]
+    assert r["method"] == "win" and r["fit"] > 90 and len(r["dv_chk"]["mv"]) == 2
+    assert [c[0] for c in r["dv_cmp"][0]] == ["P0D", "P1D", "P2D", "I0D", "I1D"]
+    s.set(mcode="I1D")
+    s.choose_dist("I1D", 0, "P1D")                     # jiná struktura poruchy z porovnání → model ji použije
+    assert s.model[2][0][3] == 1 and s.model[2][0][4] == 0.0
+    s.refit("I1D", {})
+    assert s.fit["res"]["I1D"]["dstruct"] == ["P1D"]
+    cv = s.cross_validate()
+    assert cv["I1D"] and all(np.isfinite(cv["I1D"]))
+    s.excl = {"MV": [True, 0.0, 52.0]}                 # vyřazení dat podle mezí MV
+    assert (~s.valid).any()
+    p = tmp_path / "win.json"
+    s.save_project(p)
+    s2 = LoopState()
+    s2.load_project(p)
+    assert s2.win_mode == "inputs" and s2.wins_s["FI100.Pritok"] == [[850.0, 1750.0]] and s2.excl["MV"][2] == 52.0
+    assert s2.model is not None and s2.model[2][0][3] == 1
+
+
+def test_state_model_dropped_on_signal_change():
+    """Model patří k signálům: po změně PV se nepoužije (stejně jako ve webu)."""
+    s = LoopState()
+    s.load_demo()
+    s.set(chosen=["I1D"])
+    s.identify()
+    assert s.model is not None and not s.signals_changed
+    s.set_columns("LIC101.SP", "LIC101.MV", "—", list(s.c_d))
+    assert s.signals_changed and s.model is None
+
+
 qt = pytest.importorskip("PySide6", reason="PySide6 není nainstalované (requirements-desktop.txt)")
 
 
@@ -801,3 +841,39 @@ def test_apc_reset_buttons_desktop(win):
             assert not b.isEnabled()
             checked += 1
     assert checked >= 8
+
+
+def test_window_per_input_ui(win):
+    """Záložka Model v desktopu: režim úseků podle vstupů, tabulky po úsecích, struktura poruchy, celý záznam."""
+    app, w = win
+    w.open_demo()
+    _wait(app)
+    s = w.state
+    s.set_columns("LIC101.PV", "LIC101.MV", "LIC101.SP", ["FI100.Pritok"])
+    s.set(chosen=["I1D", "P1D"])
+    w.refresh()
+    m = w.pages[1]
+    w.tabs.setCurrentIndex(1)
+    m.wmode.setCurrentIndex(m.wmode.findData("inputs"))
+    _wait(app)
+    assert s.inputs_mode and not m.inputs_box.isHidden() and not m.excl_sec.isHidden() and m.common_box.isHidden()
+    s.set_wins("MV", [[250, 1300], [2500, 3300]])
+    s.set_wins("FI100.Pritok", [[850, 1750]])
+    w.refresh()
+    assert m.win_tab.rowCount() == 3 and m.excl_tab.rowCount() == 3
+    m._identify()
+    _wait(app)
+    heads = [m.res.horizontalHeaderItem(i).text() for i in range(m.res.columnCount())]
+    assert heads[-1].startswith("Segment") and m.res.rowCount() == 2
+    assert m.wchk_tab.rowCount() == 3 and m.dcmp_tab.rowCount() == 5 and m.b_cv.isEnabled()
+    cb = m.ds_lay.itemAtPosition(0, 1).widget()
+    assert cb.count() == 5 and "FIT" in cb.itemText(0)
+    cb.setCurrentIndex(cb.findData("P0D"))
+    _wait(app)
+    assert s.model[2][0][1] == 0.0 and [m.params.verticalHeaderItem(i).text() for i in range(m.params.rowCount())][-2:] \
+        == ["Kd (FI100.Pritok)", "θd (FI100.Pritok)"]
+    m.full_cb.setChecked(True)
+    _wait(app)
+    m.wmode.setCurrentIndex(m.wmode.findData("common"))
+    _wait(app)
+    assert not s.inputs_mode and not m.common_box.isHidden() and m.excl_sec.isHidden()

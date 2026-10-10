@@ -15,10 +15,11 @@ from ..app import project as prj
 from ..app import scenario as scn
 from ..app import segments as sg
 from ..app import tuning as tun
+from ..app import windows as wn
 from ..app.dataio import read_table
 from ..app.guess import guess_roles
 from ..app.loop import Scaling, block_ctrl, range_for, set_ctrl
-from ..core import MODELS, pidconl_sim_full
+from ..core import MODELS, pd_z, pidconl_sim_full
 
 DEFAULTS = dict(
     lang="en", loop_tag="", u_pv="", u_mv="%", pv_lo=0.0, pv_hi=100.0, mv_lo=0.0, mv_hi=100.0,
@@ -51,6 +52,10 @@ class LoopState(Scaling):
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
         self.val_status = None       # výsledek validace pro průvodce: 0 dobrá, 1 stejný úsek, 2 špatná
         self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
+        self.wins = {}               # úseky podle vstupů {vstup: [[od, do] s]} (MV a měřené poruchy)
+        self.excl = {}               # vyřazení dat podle mezí {signál: [zap, min, max]} (inženýrské jednotky)
+        self.excl_tol = 0.5          # tolerance vyřazení [% rozsahu]
+        self.cv = None               # křížové ověření {"key", "res": {kód: [FIT]}}
 
     # ---- nastavení a rozsahy
     def get(self, k, default=None):
@@ -81,6 +86,7 @@ class LoopState(Scaling):
         self.c_sp = g["sp"] or "—"
         self.c_d, self.c_pos = [], g["pos"] or "—"
         self.fit = None
+        self.wins, self.excl = {}, {}
         self.update_grid(reset_range=True)
 
     def load_file(self, path):
@@ -150,10 +156,84 @@ class LoopState(Scaling):
     def sp(self):
         return self.P(self.grid.sp_e)
 
-    # ---- úsek identifikace
+    # ---- úsek identifikace (společný úsek, nebo úseky podle vstupů – pak rozpětí všech úseků)
+    @property
+    def win_mode(self):
+        return self.get("win_mode") if self.get("win_mode") in ("common", "inputs") else "common"
+
+    @property
+    def inputs_mode(self):
+        return self.win_mode == "inputs"
+
+    @property
+    def wins_s(self):
+        """Úseky {vstup: [[od, do]]} pro MV a všechny poruchy (MV výchozí = společný úsek)."""
+        return wn.with_defaults(self.wins, self.c_d, self.rng)
+
+    def set_wins(self, inp, wins):
+        W = self.wins_s
+        W[str(inp)] = [[float(min(a, b)), float(max(a, b))] for a, b in wins if abs(b - a) > 0]
+        self.wins = W
+
+    @property
+    def win_idx(self):
+        return wn.indices(self.t, self.wins_s, self.c_d, float(max(self.grid.Ts, self.t[-1] / 1000)))[0]
+
+    @property
+    def id_rng(self):
+        """Rozpětí dat identifikace: společný úsek, nebo od začátku prvního do konce posledního úseku podle vstupů."""
+        if self.inputs_mode:
+            span = wn.indices(self.t, self.wins_s, self.c_d, float(max(self.grid.Ts, self.t[-1] / 1000)))[1]
+            if span:
+                return span
+        return self.rng
+
     @property
     def sel_mask(self):
-        return (self.t >= self.rng[0]) & (self.t <= self.rng[1])
+        a, b = self.id_rng
+        return (self.t >= a) & (self.t <= b)
+
+    def excl_rows(self):
+        """Vyřazení dat: [(signál, zap, min, max, rozsah)] – PV a MV podle rozsahů (zapnuto), poruchy podle dat."""
+        g = self.grid
+        rows = [("PV", g.pv_e, (self.pv_lo, self.pv_hi), True),
+                ("MV", g.mv_e, (float(self.get("mvl_lo", self.mv_lo)), float(self.get("mvl_hi", self.mv_hi))), True)]
+        for nm, d in zip(self.c_d, g.dists):
+            rows.append((str(nm), d, (float(np.nanmin(d)), float(np.nanmax(d))), False))
+        out = []
+        for nm, _x, (lo, hi), on in rows:
+            e = self.excl.get(nm) or [on, lo, hi]
+            out.append((nm, bool(e[0]), float(e[1]) if e[1] is not None else lo, float(e[2]) if e[2] is not None else hi,
+                        (hi - lo) if hi > lo else 1.0))
+        return out
+
+    def _excl_signals(self):
+        g = self.grid
+        return [g.pv_e, g.mv_e] + list(g.dists)
+
+    @property
+    def valid(self):
+        """Vzorky, které se počítají do fitu (úseky podle vstupů; mimo meze vyřazeno); None = všechny."""
+        if not self.inputs_mode:
+            return None
+        rows = self.excl_rows()
+        return mdl.valid_mask(len(self.t), [(x, r[4]) for x, r in zip(self._excl_signals(), rows)],
+                              [(r[1], r[2], r[3]) for r in rows], float(self.excl_tol))
+
+    @property
+    def excl_key(self):
+        return (tuple((r[1], r[2], r[3]) for r in self.excl_rows()), float(self.excl_tol))
+
+    def dkinds(self):
+        """Typ přenosu každé poruchy pro identifikaci (jako MV / auto / struktura P0D … I1D)."""
+        out = []
+        for dn in self.c_d:
+            k = wn.flat_kinds(self.get(f"dkind|{dn}", "pv"))
+            out.append(k if k in mdl.DIST_CHOICES else "pv")
+        return out
+
+    def dsigns(self):
+        return [mdl.SIGN.get(self.get(f"dsign|{dn}", "auto"), 0) for dn in self.c_d]
 
     def segment(self):
         """(ts, pv, mv, poruchy) úseku identifikace v %; čas od začátku úseku."""
@@ -171,12 +251,6 @@ class LoopState(Scaling):
                               self.model[:2] if self.model else None)
         except Exception:
             return None
-
-    def auto_segments(self, gap=None):
-        """Automaticky nalezené úseky se skoky, každý s hodnocením kvality."""
-        segs = sg.auto(self.t, self.mv, self.sp, self.grid.Ts, self.grid.has_sp, self.model[:2] if self.model else None,
-                       gap, self.pv)
-        return [dict(q, quality=self.quality(q["start"], q["end"])) for q in segs]
 
     def compression(self):
         """Upozornění na kompresi historianu a nepravidelné vzorkování PV."""
@@ -215,8 +289,11 @@ class LoopState(Scaling):
                               float(self.get("dist_strength")), self.get("gain_sign"), bool(self.get("id_stic")))
 
     def fit_key(self):
-        return mdl.fit_key(self.fname, tuple(self.rng), self.id_settings(), self.norm, self.grid.Ts, self.c_pv,
-                           self.c_mv, self.c_d, self.layout == "long")
+        key = mdl.fit_key(self.fname, tuple(self.id_rng), self.id_settings(), self.norm, self.grid.Ts, self.c_pv,
+                          self.c_mv, self.c_d, self.layout == "long") + (tuple(self.dkinds()),)
+        if self.inputs_mode:
+            key = key + ("win", tuple(self.win_idx), self.excl_key, tuple(self.dsigns()))
+        return key
 
     @property
     def id_closed(self):
@@ -224,9 +301,15 @@ class LoopState(Scaling):
         return self.get("id_mode") == "cl" and self.grid is not None and self.grid.has_sp
 
     def identify(self, progress=None):
-        """Identifikace zvolených modelů na úseku (v AUTO i doladění v uzavřené smyčce). Vrací chyby [(kód, text)]."""
+        """
+        Identifikace zvolených modelů: na společném úseku (v AUTO i doladění v uzavřené smyčce), nebo z úseků podle
+        vstupů (s kontrolními odhady po úsecích). Vrací chyby [(kód, text)].
+        """
+        if self.inputs_mode:
+            return self._identify_windows(progress)
         ts, pv, mv, d = self.segment()
-        res, errs = mdl.identify_all(ts, pv, mv, self.grid.Ts, d, self.id_settings(), progress=progress)
+        res, errs = mdl.identify_all(ts, pv, mv, self.grid.Ts, d, self.id_settings(), progress=progress,
+                                     d_full=list(self.grid.dists), dkinds=self.dkinds())
         if res and self.id_closed:
             n = len(res)
             ctrl = {k: v for k, v in self.set_ctrl_plain(1).items()}
@@ -241,27 +324,86 @@ class LoopState(Scaling):
                 self.reset_edits(c)
         return errs
 
+    def _identify_windows(self, progress=None):
+        if not self.win_idx:
+            return [("—", "err_no_windows")]
+        g = self.grid
+        res, errs = mdl.identify_windows_all(self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx, self.valid,
+                                             self.id_settings(), self.dkinds(), self.dsigns(), progress=progress)
+        for c in res:
+            res[c]["dv_chk"] = self.window_checks(c, res[c])
+        if res:
+            self.fit = dict(res=res, dnames=list(self.c_d), key=self.fit_key())
+            self.settings["mcode"] = mdl.best(res)
+            for c in res:
+                self.reset_edits(c)
+        return errs
+
+    def window_checks(self, code, r):
+        """Zesílení MV a poruch zvlášť v každém jejich úseku (kontrola, zda úseky souhlasí)."""
+        g = self.grid
+        return wn.window_checks(code, r, self.t, self.pv, self.mv, g.Ts, list(g.dists), self.wins_s, self.valid,
+                                self.dsigns(), self.c_d)
+
     def refit(self, code, fixed, stic_fixed=None):
-        """Dofitování modelu se zafixovanými parametry ({"p<i>": v, "d<j>_<i>": v}); ruční úpravy se srovnají."""
-        ts, pv, mv, d = self.segment()
-        self.fit["res"][code] = mdl.identify(code, ts, pv, mv, self.grid.Ts, d, self.id_settings(), fixed, stic_fixed)
+        """Dofitování modelu se zafixovanými parametry ({"p<i>": v, "d<j>_<i>": v}) a zvolenými strukturami poruch."""
+        r0 = self.fit["res"][code]
+        dk = [wn.dsel(self.get, code, r0, j) for j in range(len(r0["pdl"]))]
+        g = self.grid
+        if r0.get("method") == "win" and self.inputs_mode:
+            r = mdl.identify_windows(code, self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx, self.valid,
+                                     self.id_settings(), dk, self.dsigns(), fixed)
+            r["dv_chk"] = self.window_checks(code, r)
+        else:
+            ts, pv, mv, d = self.segment()
+            r = mdl.identify(code, ts, pv, mv, g.Ts, d, self.id_settings(), fixed, stic_fixed, d_full=list(g.dists),
+                             dkinds=dk)
+        self.fit["res"][code] = r
         self.reset_edits(code)
+
+    def cross_validate(self, progress=None):
+        """Křížové ověření (úseky podle vstupů): fit bez každého úseku a shoda na něm. {kód: [FIT]}."""
+        from ..core import cross_validate
+        g = self.grid
+        out = {}
+        sets = self.id_settings()
+        items = [(c, r) for c, r in self.fit["res"].items() if r.get("method") == "win"]
+        for i, (c, r) in enumerate(items):
+            if progress:
+                progress(i, c)
+            out[c] = cross_validate(c, self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx, self.valid,
+                                    theta_max=sets.th_max, sign=mdl.SIGN[sets.gain_sign], dsign=tuple(self.dsigns()),
+                                    dstruct=wn.structs(c, r))
+        self.cv = dict(key=self.fit_key(), res=out)
+        return out
 
     def fixed_from_settings(self, code):
         """Zafixované parametry podle zaškrtnutí (klíče fx|… jako ve webu) a aktuálních hodnot."""
         m = self.model
         p, pdl = m[1], m[2]
         n_d = len(pdl)
-        return mdl.fixed_params(p, [bool(self.get(f"fx|{code}|{i}")) for i in range(len(p))], pdl,
-                                [[bool(self.get(f"fx|{code}|d{j}|{i}")) for i in range(3)] for j in range(n_d)])
+        z = [list(pd_z(d)) for d in pdl]
+        return mdl.fixed_params(p, [bool(self.get(f"fx|{code}|{i}")) for i in range(len(p))], z,
+                                [[bool(self.get(f"fx|{code}|d{j}|{i}")) for i in range(4)] for j in range(n_d)])
 
     def reset_edits(self, code):
         r = self.fit["res"][code]
         for i, v in enumerate(r["p"]):
             self.settings[f"ed|{code}|{i}"] = float(v)
         for j, pd_ in enumerate(r["pdl"]):
-            for i, v in enumerate(pd_):
-                self.settings[f"ed|{code}|d{j}|{i}"] = float(v)
+            self.settings.pop(f"dsel|{code}|{j}", None)          # struktura poruchy zpět na identifikovanou
+            self.set_dist_ed(code, j, pd_)
+
+    def set_dist_ed(self, code, j, pd_):
+        """Pole parametrů poruchy j (Kd, Tp, θd, Tp2) z parametrů [Kd, Tp, θd, typ, Tp2]."""
+        for i, v in enumerate(pd_z(pd_)):
+            self.settings[f"ed|{code}|d{j}|{i}"] = float(v)
+
+    def choose_dist(self, code, j, struct):
+        """Jiná struktura přenosu poruchy j (z porovnání při identifikaci) → její parametry do polí."""
+        self.settings[f"dsel|{code}|{j}"] = struct
+        r = self.fit["res"][code]
+        self.set_dist_ed(code, j, wn.dsel_pd(self.get, code, r, j))
 
     def rescale_if_needed(self):
         """Změnily se jen rozsahy regulátoru → přepočet modelů (jako ve webu). Vrací True při přepočtu."""
@@ -286,16 +428,21 @@ class LoopState(Scaling):
         return bool(self.fit) and self.fit.get("key") != self.fit_key()
 
     @property
+    def signals_changed(self):
+        """Patří identifikace k jiným signálům (jiná PV nebo MV)? Pak se model nepoužije."""
+        return bool(self.fit) and not wn.fit_signals_ok(self.fit.get("key"), self.fname, self.c_pv, self.c_mv)
+
+    @property
     def model(self):
         """Model pro ladění (kód, parametry, parametry poruch) – nafitovaný s ručními úpravami, nebo None."""
-        if not self.fit or self.fit.get("dnames") != list(self.c_d):
+        if not self.fit or self.fit.get("dnames") != list(self.c_d) or self.signals_changed:
             return None
         code = self.get("mcode")
         if code not in self.fit["res"]:
             return None
         r = self.fit["res"][code]
         p = [self.get(f"ed|{code}|{i}", v) for i, v in enumerate(r["p"])]
-        pdl = [[self.get(f"ed|{code}|d{j}|{i}", v) for i, v in enumerate(d)] for j, d in enumerate(r["pdl"])]
+        pdl = [wn.dist_from_ed(self.get, code, r, j) for j in range(len(r["pdl"]))]
         p, pdl = mdl.clamp(p, pdl)
         return code, p, pdl
 
@@ -330,8 +477,53 @@ class LoopState(Scaling):
         code, p, pdl = self.model
         r = self.fit["res"][code]
         ts, pv, mv, d = self.segment()
-        return mdl.evaluate(code, p, pdl, r.get("stic", 0.0) or 0.0, r.get("level", "none"), r.get("Th"),
-                            ts, pv, mv, d, self.grid.Ts)
+        ev = mdl.evaluate(code, p, pdl, r.get("stic", 0.0) or 0.0, r.get("level", "none"), r.get("Th"),
+                          ts, pv, mv, d, self.grid.Ts)
+        if r.get("method") == "win" and self.inputs_mode:   # shoda a průběh modelu jen v úsecích (vlastní posun)
+            from ..core import dyn_scale, model_metrics, predict_windows
+            g = self.grid
+            ye, fits, f = predict_windows(code, p, pdl, self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx,
+                                          self.valid)
+            ev = dict(ev, fit=f, fits=fits, y_plot=ye[self.sel_mask], y_full=ye)
+            mw = np.isfinite(ye) & (self.valid if self.valid is not None else True)
+            if mw.sum() > 20:
+                ev["metrics"] = model_metrics(self.pv[mw], ye[mw], self.mv[mw], g.Ts, dyn_scale(code, p))
+                ev["sigma_pv"] = float(np.std(np.diff(self.pv[mw] - ye[mw])) / np.sqrt(2))
+        return ev
+
+    def model_curves(self):
+        """Průběhy modelu na celém záznamu: v úsecích a přes celý záznam (viz app.windows.model_curves)."""
+        code, p, pdl = self.model
+        r = self.fit["res"][code]
+        g = self.grid
+        win = r.get("method") == "win" and self.inputs_mode
+        seg = None
+        if not win:
+            m = self.sel_mask
+            ts, pv, mv, d = self.segment()
+            seg = (m, ts, pv, mv, d, self.evaluate()["y_plot"])
+        return wn.model_curves(code, p, pdl, r.get("stic", 0.0) or 0.0, self.t, self.pv, self.mv, list(g.dists), g.Ts,
+                               self.valid, self.win_idx if win else None, seg)
+
+    def window_fits(self, code):
+        """Shody nafitovaného modelu v jednotlivých (sloučených) úsecích podle vstupů [%]."""
+        from ..core import predict_windows
+        r, g = self.fit["res"][code], self.grid
+        return predict_windows(code, r["p"], r["pdl"], self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx,
+                               self.valid)[1]
+
+    def live_fits(self):
+        """{kód: FIT na aktuálních úsecích} (úseky podle vstupů; jinak FIT z identifikace)."""
+        from ..core import predict_windows
+        g = self.grid
+        out = {}
+        for c, r in self.fit["res"].items():
+            if r.get("method") == "win" and self.inputs_mode:
+                out[c] = predict_windows(c, r["p"], r["pdl"], self.t, self.pv, self.mv, g.Ts, list(g.dists),
+                                         self.win_idx, self.valid)[2]
+            else:
+                out[c] = r["fit"]
+        return out
 
     # ---- blok PIDConL a sady
     def base_ctrl(self):
@@ -561,6 +753,8 @@ class LoopState(Scaling):
         fit = prj.fit_record(self.fit)
         if fit:
             rec["fit"] = fit
+        if self.wins or self.excl:                    # úseky podle vstupů a vyřazení dat (jako web)
+            rec["windows"] = prj.jsonable(dict(wins=self.wins_s, excl=dict(self.excl), tol=float(self.excl_tol)))
         proj = dict(version=prj.PROJECT_VERSION, fname=self.fname, **rec)
         if include_data and self.has_data:
             g = self.grid
@@ -593,6 +787,10 @@ class LoopState(Scaling):
         if rg and self.has_data:
             self.rng = (float(rg[0]), float(rg[1]))
         self.ff_state = rec.get("ff") or []
+        win = rec.get("windows") or {}
+        self.wins = {str(k): [[float(a), float(b)] for a, b in v] for k, v in (win.get("wins") or {}).items()}
+        self.excl = {str(k): list(v) for k, v in (win.get("excl") or {}).items()}
+        self.excl_tol = float(win.get("tol", 0.5))
         if rec.get("fit"):
             self.fit = dict(res=rec["fit"]["res"], dnames=list(rec["fit"]["dnames"]), key="__restore__")
             if self.has_data:

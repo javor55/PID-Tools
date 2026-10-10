@@ -37,6 +37,16 @@ def indices(t, W, c_d, step):
     return idx, (float(t[min(a for a, _ in idx)]), float(t[min(len(t), max(b for _, b in idx)) - 1]))
 
 
+def runs(mask, t):
+    """Souvislé úseky, kde je maska pravdivá: [(od, do) s] (nejvýš 300)."""
+    m = np.asarray(mask, bool)
+    if not m.any():
+        return []
+    d = np.diff(np.r_[0, m.astype(int), 0])
+    a, b = np.where(d == 1)[0], np.where(d == -1)[0]
+    return [(float(t[i]), float(t[min(j, len(t) - 1)])) for i, j in zip(a[:300], b[:300])]
+
+
 def owner_fits(t, wins_s, win_idx, fits):
     """{vstup: [FIT úseků]} – shody úseků (pořadí sloučených úseků) přiřazené vstupu, kterému úsek patří."""
     out, owners = {}, []

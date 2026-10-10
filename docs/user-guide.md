@@ -68,8 +68,8 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
 
 ## 2 · Model
 
-1. **Identification segment** – drag the handles under the chart or type the numbers below it (the desktop app can
-   also pick from automatically found segments). Below it the **data quality for identification**: number,
+1. **Identification segment** – a common segment, or segments per input (the MV and every disturbance have their
+   own); drag the handles in the chart or type the numbers (web and desktop work the same). Below it the **data quality for identification**: number,
    direction and spacing of steps, settling after the last step, signal-to-noise ratio, historian compression,
    sampling, MV at or beyond a limit, SP ramps. Each warning says what to do about it.
 2. **Models** – choose which structures to try (default: all; the best fit is offered). Integrating models are for

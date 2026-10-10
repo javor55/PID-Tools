@@ -89,7 +89,7 @@ class Panel(Workspace):
             vals = self._defaults_of(defaults)
             b.setEnabled(vals is not None and any(
                 abs(wd.value() - round(float(v), wd.decimals())) > 0.6 * 10 ** -wd.decimals() + 1e-9 * abs(float(v))
-                for wd, v in zip(widgets, vals)))
+                for wd, v in zip(widgets, vals) if v is not None))     # hodnota bez výchozí (chybí model) se nehodnotí
 
     def chart(self, n=2, labels=("PV", "MV"), heights=(0.62, 0.38)):
         c, plots = w.stack(n, list(labels), T("time_s"), heights=heights)
