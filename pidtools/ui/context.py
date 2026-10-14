@@ -37,6 +37,7 @@ class Ctx(Scaling):
     get: Callable = None           # sloupec → pole čísel
     long_fmt: bool = False
     t_origin: Any = None           # pd.Timestamp času 0 (u časů zadaných datem), jinak None
+    vkey: Any = None               # klíč souboru a čtení času (data prohlížeče záznamu)
     c_pv: str = ""
     c_mv: str = ""
     c_sp: str = "—"

@@ -53,8 +53,24 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
    **measured disturbances** and the **valve position** (position feedback – for valve diagnostics). Enter the PV
    and MV units. *The controller range NormPV / NormMV is set in the Tuning tab.*
 2. **Preview of loaded data** – the table after resampling, statistics and the original file with detected types.
-3. **Loaded data** – an overview chart of the whole recording. *The identification segment is selected in the
-   Model tab.*
+3. **Record viewer** – every signal of the file as recorded (no resampling), for analysing a CSV on its own
+   (web; the desktop app follows):
+   - **panels**: PV + SP, MV and disturbances to start with; the list on the left shows every signal – tick it to show
+     it, pick its panel (or a new one), colour, unit and a manual Y range (*⋯*). In a panel every signal has its own
+     Y axis, or tick **shared Y axis**. Panels can be moved up / down and resized by dragging their bottom edge;
+   - **zoom X and Y independently**: wheel = time, **Shift + wheel** = Y of the panel, wheel over a Y axis = that axis
+     only; drag = pan time (**Shift** = pan Y), drag a Y axis = pan that axis; **Zoom ⬚ / X / Y** = select with the
+     mouse; double-click = full time and automatic Y; **Back / Forward** (Backspace) step through the zoom history;
+     the strip under the time axis is an overview of the whole record (drag the frame);
+   - **Auto Y** follows the view or the whole record; **Curve** as a line or steps (held values); zoomed in close the
+     samples are drawn as points;
+   - **cursors** like on an oscilloscope: C1 / C2 (drag, click moves the nearest, ← / → = one sample) with the times,
+     Δt, 1/Δt and for every signal the values, Δ, Δ/Δt and min / max / mean / σ between the cursors;
+     **horizontal cursors** H1 / H2 for the chosen signal (click its name) with ΔH;
+   - **table** of the values in the view (a click on a row puts C1 there), **CSV** of the view or of the span between
+     the cursors;
+   - the layout (panels, colours, scales, cursors) is saved with the project.
+   *The identification segment is selected in the Model tab.*
 4. **Operating diagnostics** (bottom of the tab) – on a selected operating segment:
    - **loop performance**: standard deviation and IAE of the control error, MV travel and reversals, time at a limit,
      Harris index (how far the loop is from the theoretical minimum variance);

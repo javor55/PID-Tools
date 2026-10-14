@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Web, Data tab: **record viewer** – every signal of the file without resampling, in panels with their own Y axes;
+  zoom of time and Y independently (wheel, Shift + wheel, over an axis, rectangle / X / Y selection, zoom history),
+  oscilloscope cursors (C1 / C2 with Δt, values, Δ, Δ/Δt, min / max / mean / σ; horizontal H1 / H2), a table of the
+  view synchronised with the cursor, CSV of the view or between the cursors, overview strip; the layout is saved
+  with the project. Long records are sent to the browser once as binary data.
+
 ## 3.3.0 beta – new web look, per-input identification segments, disturbances like the MV
 
 **Beta:** for testing; please report problems.

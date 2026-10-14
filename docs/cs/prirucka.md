@@ -52,6 +52,22 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
    Volitelně přidejte **měřené poruchy** a **polohu ventilu** (zpětné hlášení – pro diagnostiku ventilu).
    Doplňte jednotky PV a MV. *Rozsah regulátoru NormPV / NormMV se nastavuje v Ladění.*
 2. **Náhled načtených dat** – tabulka po převzorkování, statistika a původní soubor s rozpoznanými typy.
+   **Prohlížeč záznamu** – všechny signály souboru tak, jak byly zaznamenány (bez převzorkování), pro samotnou
+   analýzu CSV (web; desktop bude následovat):
+   - **panely**: na začátku PV + SP, MV a poruchy; v seznamu vlevo jsou všechny signály – zaškrtnutím se zobrazí,
+     dál panel (nebo nový), barva, jednotka a ruční rozsah Y (*⋯*). V panelu má každý signál vlastní osu Y, nebo
+     zaškrtněte **společnou osu Y**. Panely jde posouvat nahoru / dolů a tažením spodního okraje měnit jejich výšku;
+   - **zoom X a Y nezávisle**: kolečko = čas, **Shift + kolečko** = Y panelu, kolečko nad osou Y = jen ta osa;
+     tažení = posun času (**Shift** = posun Y), tažení osy Y = posun té osy; **Zoom ⬚ / X / Y** = výběr myší;
+     dvojklik = celý čas a automatické Y; **Zpět / Vpřed** (Backspace) prochází historii zoomu; lišta pod časovou
+     osou je přehled celého záznamu (rámeček jde táhnout);
+   - **Auto Y** podle výřezu nebo celého záznamu; **Průběh** jako čára nebo schody (držené hodnoty); při velkém
+     přiblížení se vzorky kreslí jako body;
+   - **kurzory** jako na osciloskopu: C1 / C2 (tažení, klik přesune nejbližší, ← / → = o vzorek) s časy, Δt, 1/Δt
+     a pro každý signál hodnotami, Δ, Δ/Δt a min / max / průměrem / σ mezi kurzory; **vodorovné kurzory** H1 / H2
+     pro zvolený signál (klik na jeho název) s ΔH;
+   - **tabulka** hodnot výřezu (klik na řádek = C1), **CSV** výřezu nebo úseku mezi kurzory;
+   - rozložení (panely, barvy, měřítka, kurzory) se ukládá do projektu.
 3. **Úsek pro identifikaci** – společný úsek, nebo úseky podle vstupů (MV a každá porucha vlastní); táhly v grafu
    nebo zadáním čísel (web i desktop stejně).
 4. **Kontrola kvality dat** – počet, směr a rozestup skoků, ustálení po posledním skoku, poměr signál/šum,

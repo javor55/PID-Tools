@@ -2,11 +2,12 @@
 Test webové aplikace ve skutečném prohlížeči (Playwright + Chromium): vzhled stojí na CSS napojeném na vnitřní
 strukturu Streamlitu – po změně verze Streamlitu se může rozbít bez chyby v Pythonu. Test spustí aplikaci
 s ukázkovými daty a ověří rám (nezávislé rolování plochy a panelu), pole (bílá s rámečkem), zarovnání popisků,
-společný graf průběhů (Data, Model) a tažení táhla úseku.
+prohlížeč záznamu (Data: panely, zoom, kurzory, tabulka), společný graf průběhů (Model) a tažení táhla úseku.
 
 Bez Playwrightu nebo prohlížeče se test přeskočí (CI je instaluje, viz .github/workflows/tests.yml).
 """
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -62,7 +63,7 @@ def page(server):
         pg.wait_for_selector('[data-testid="stTab"]', timeout=60000)
         # zdroj dat: ukázka (přepínač Zdroj dat v panelu záložky Data)
         pg.locator('[class*="st-key-pidside_"] [data-testid="stButtonGroup"] button', has_text="Demo").first.click()
-        pg.wait_for_selector(".pidw", timeout=60000)
+        pg.wait_for_selector(".pidv-panel canvas", timeout=60000)
         _idle(pg)
         yield pg
         b.close()
@@ -122,12 +123,36 @@ def test_labels_aligned_with_fields(page):
     assert rows and all(abs(d) <= 2 for d in rows), rows
 
 
-def test_data_trend_chart(page):
-    """Záznam smyčky ve společném grafu průběhů: karta pro každou veličinu, časová osa s čísly."""
+def test_data_viewer(page):
+    """
+    Data: prohlížeč záznamu – panel pro PV + SP, MV a poruchu, seznam všech signálů; kurzory s odečtem hodnot
+    každého zobrazeného signálu; tabulka hodnot výřezu – zoom kolečkem výřez (počet řádků) zmenší.
+    """
     _tab(page, 0)
-    cards = page.locator(".pidw-card:has(.pidw-area)")
-    assert cards.count() >= 2
-    assert page.locator(".pidw-xax span").count() > 3
+    assert page.locator(".pidv-panel").count() >= 3
+    assert page.locator(".pidv-sig").count() >= 4
+    page.locator(".pidv-bar [data-a=cur]").click()
+    page.wait_for_timeout(300)
+    assert page.locator(".pidv-read tbody tr").count() >= 4          # PV, SP, MV, porucha
+    page.locator(".pidv-bar [data-a=tab]").click()
+    page.wait_for_timeout(300)
+
+    def rows():
+        txt = page.locator(".pidv-read .pidv-rhead").last.inner_text()
+        return int("".join(ch for ch in re.match(r"[\d\s,.]+", txt).group(0) if ch.isdigit()))
+    n0 = rows()
+    box = page.locator(".pidv-panel canvas").nth(1).bounding_box()
+    page.mouse.move(box["x"] + box["width"] * 0.6, box["y"] + box["height"] / 2)
+    for _ in range(4):
+        page.mouse.wheel(0, -120)
+        page.wait_for_timeout(80)
+    page.wait_for_timeout(300)
+    assert rows() < n0
+    page.locator(".pidv-bar [data-a=full]").click()
+    page.wait_for_timeout(300)
+    assert rows() == n0
+    page.locator(".pidv-bar [data-a=tab]").click()
+    page.locator(".pidv-bar [data-a=cur]").click()
 
 
 def test_model_handle_drag(page):
