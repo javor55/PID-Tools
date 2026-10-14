@@ -97,13 +97,53 @@ _CSS = """
 .pidv-dtab { position: relative; overflow: auto; height: 280px; }
 .pidv-note { font-size: 11px; color: var(--pv-muted); }
 .pidv-err { padding: 14px; color: #b91c1c; font-size: 13px; }
+.pidv-an { padding: 8px 12px; }
+.pidv-antabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pidv-antabs .sp { flex: 1; }
+.pidv-tabb { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--pv-axis); border-radius: 999px;
+  background: var(--pv-btn); color: var(--pv-text); cursor: pointer; }
+.pidv-tabb.on { background: var(--pv-acc); border-color: var(--pv-acc); color: #fff; }
+.pidv-anbody { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.pidv-row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12px; }
+.pidv-row select, .pidv-row input:not([type=checkbox]) { font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--pv-axis);
+  border-radius: 4px; background: var(--pv-btn); color: var(--pv-text); max-width: 220px; }
+.pidv-chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; }
+.pidv-chk i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.pidv-mini { display: block; }
+.pidv-kv { width: auto; }
+.pidv-kv td:first-child { color: var(--pv-muted); padding-right: 18px; }
+.pidv-kv td { text-align: left !important; }
+.pidv-bar2 { display: inline-block; height: 8px; border-radius: 2px; vertical-align: middle; }
+.pidv-segchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 6px; border: 1px solid var(--pv-axis);
+  border-radius: 6px; font-family: 'IBM Plex Mono', monospace; }
+.pidv-segchip i { display: inline-block; width: 12px; height: 3px; }
+.pidv-add { font: inherit; font-size: 12px; margin-top: 6px; padding: 4px 8px; border: 1px dashed var(--pv-axis); background: var(--pv-btn);
+  color: var(--pv-muted); border-radius: 6px; cursor: pointer; width: 100%; }
+.pidv-calc { display: flex; flex-direction: column; gap: 4px; padding: 6px; margin: 2px 0 6px; border: 1px solid var(--pv-axis); border-radius: 6px; }
+.pidv-calc input, .pidv-calc textarea { font: inherit; font-size: 12px; padding: 3px 6px; border: 1px solid var(--pv-axis); border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-text); }
+.pidv-calc textarea { font-family: 'IBM Plex Mono', monospace; resize: vertical; }
+.pidv-calc .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pidv-tbl.pidv-left td, .pidv-tbl.pidv-left th { text-align: left; }
+.pidv-cerr { font-size: 11px; color: #b91c1c; padding: 0 4px; }
 """
 
 TXT = ("pan", "zoom_box", "zoom_x", "zoom_y", "back", "fwd", "full", "cur", "hcur", "yauto", "ya_view", "ya_all",
        "table", "csv_view", "csv_cur", "list", "search", "panel", "new_panel", "unit", "ymin", "ymax", "auto",
        "shared", "up", "down", "remove", "help", "drag", "loading", "load_err", "retry", "signal", "mean", "min",
        "max", "slope", "rows", "rows_more", "nearest", "step", "line", "interp", "decim", "time", "no_sig",
-       "color", "more", "reset", "hide", "c_hint", "h_hint", "ylock")
+       "color", "more", "reset", "hide", "c_hint", "h_hint", "ylock", "close",
+       # analýza a vypočtené signály
+       "an", "an_ev", "an_step", "an_corr", "an_xy", "an_cmp", "ev_prev", "ev_next", "ev_mv", "ev_sp", "ev_dv", "ev_state",
+       "ev_sat", "ev_flat", "ev_gap", "ev_hint", "ev_none", "ev_kind", "ev_detail", "st_in", "st_out", "st_find", "st_hint",
+       "st_need_cur", "st_few", "st_no_step", "st_c1_late", "st_c2_early", "st_du", "st_dy", "st_k", "st_ki", "st_th",
+       "st_t", "st_tr", "st_ovs", "st_set", "st_noset", "st_integ", "st_model", "cor_target", "cor_incr", "cor_incr_h", "cor_int", "cor_int_h", "cor_vals_h", "cor_auto", "cor_auto_h", "cor_used",
+       "cor_vals", "cor_lag", "cor_run", "cor_hint", "cor_lagc", "cor_mean", "cor_weak", "cor_leads", "cor_lags", "cor_same",
+       "rng_cur", "rng_view", "xy_line", "xy_hint", "xy_fit", "xy_time", "cmp_sigs", "cmp_add_view", "cmp_add_cur",
+       "cmp_rel", "cmp_go", "cmp_hint", "calc_add", "calc_name", "calc_ph", "calc_help", "calc_save", "calc_cancel",
+       "calc_del", "calc_badname", "e_pos", "e_empty", "e_too_long", "e_bad_number", "e_unclosed", "e_bad_char",
+       "e_expected", "e_unknown_sig", "e_unknown_fn", "e_bad_args", "e_unexpected", "e_unexpected_end", "e_need_number",
+       "e_empty_res")
 
 
 def _blob_key(vkey):
@@ -258,5 +298,5 @@ def render(ctx, key="data_view", height_hint=None):
     data["sig"] = hashlib.md5(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
     lay = ss.get("dview")
     data["layout"] = lay if isinstance(lay, str) and len(lay) <= LAYOUT_MAX else None
-    comp = v2_component("pidtools_viewer", css=_CSS, js=static_asset("viewer.js"))
+    comp = v2_component("pidtools_viewer", css=_CSS, js=static_asset("viewer_an.js") + "\n" + static_asset("viewer.js"))
     return comp(key=key, data=data, on_layout_change=lambda: _on_layout(key))

@@ -79,9 +79,9 @@ export default function (component) {
     const d = clamp(Math.ceil(-Math.log10(MIN_DT / U[u])) + 1, 0, 7);
     return `${dc((s / U[u]).toFixed(d))} ${u}`;
   }
-  function fmtDur(dt) {                      // délka (Δt)
+  function fmtDur(dt, p) {                   // délka (Δt); p = platné číslice sekund
     const a = Math.abs(dt), sg = dt < 0 ? "−" : "";
-    if (a < 120) return sg + fmtG(a, 6) + " s";
+    if (a < 120) return sg + fmtG(a, p || 6) + " s";
     if (a < 7200) return `${sg}${Math.floor(a / 60)} min ${fmtG(a % 60, 4)} s`;
     if (a < 172800) return `${sg}${Math.floor(a / 3600)} h ${Math.floor((a % 3600) / 60)} min ${Math.round(a % 60)} s`;
     return `${sg}${Math.floor(a / 86400)} d ${Math.floor((a % 86400) / 3600)} h ${Math.round((a % 3600) / 60)} min`;
@@ -140,30 +140,78 @@ export default function (component) {
   let MIN_DT = 1;                         // nejmenší perioda vzorků (počet desetinných míst času)
   function start(entry) {
     // ---------------------------------------------------------------- signály
-    const SG = {}, order = [];
+    const SG = {}, order = [], AN = window.PIDViewAn;
+    function initSig(s) {                     // perioda, práh výpadku, rozsah a počet desetinných míst
+      if (s.gap !== undefined) return s;
+      const k = Math.max(1, Math.floor(s.n / 2000)), dd = [];
+      for (let i = k; i < s.n; i += k) dd.push(s.t[i] - s.t[i - 1]);
+      dd.sort((a, b) => a - b);
+      s.dt = dd.length ? Math.max(dd[dd.length >> 1], 1e-9) : 1;
+      s.gap = Math.max(10 * s.dt, D.T * 1e-4) * Math.max(1, D.decim * 2);
+      const r = mm(s, 0, s.n), span = r ? Math.max(r[1] - r[0], Math.max(Math.abs(r[0]), Math.abs(r[1])) * 0.1, 1e-9) : 1;
+      s.lo0 = r ? r[0] : 0; s.hi0 = r ? r[1] : 1;
+      s.dec = Math.max(0, Math.min(8, Math.ceil(-Math.log10(span)) + 3));
+      return s;
+    }
     for (const d of D.sigs) {
       const tt = D.times[d.ti];
       const s = entry.sigs[d.name] || (entry.sigs[d.name] = {
         t: new Float64Array(entry.buf, tt.off, tt.n), v: new Float32Array(entry.buf, d.off, d.n), n: d.n,
       });
       Object.assign(s, { name: d.name, role: d.role, color0: d.color, unit0: d.unit, ti: d.ti });
-      if (s.gap === undefined) {
-        const k = Math.max(1, Math.floor(s.n / 2000)), dd = [];
-        for (let i = k; i < s.n; i += k) dd.push(s.t[i] - s.t[i - 1]);
-        dd.sort((a, b) => a - b);
-        s.dt = dd.length ? Math.max(dd[dd.length >> 1], 1e-9) : 1;
-        s.gap = Math.max(10 * s.dt, D.T * 1e-4) * Math.max(1, D.decim * 2);
-        const r = mm(s, 0, s.n), span = r ? Math.max(r[1] - r[0], Math.max(Math.abs(r[0]), Math.abs(r[1])) * 0.1, 1e-9) : 1;
-        s.lo0 = r ? r[0] : 0; s.hi0 = r ? r[1] : 1;
-        s.dec = Math.max(0, Math.min(8, Math.ceil(-Math.log10(span)) + 3));
-      }
-      SG[d.name] = s;
+      SG[d.name] = initSig(s);
       order.push(d.name);
     }
+    const nFile = order.length;
     if (!order.length) { box.appendChild(el("div", "pidv-card pidv-err", esc(X.no_sig || "–"))); return; }
     const minDt = Math.min(...order.map((n) => SG[n].dt));
     MIN_DT = minDt;
     const MINSPAN = Math.max(minDt * 5, D.T * 1e-9, 1e-6);
+
+    // ---- vypočtené signály (vzorce) – po souborových, v pořadí zadání; může odkazovat jen na předchozí
+    const CALC_COLORS = ["#0f766e", "#9333ea", "#b45309", "#be123c", "#1d4ed8", "#4d7c0f"];
+    let calcErr = {}, events = null;
+    function cleanCalc(list) {
+      const out = [], names = new Set(order.slice(0, nFile));
+      for (const c of Array.isArray(list) ? list.slice(0, 30) : []) {
+        if (!c || typeof c.name !== "string" || typeof c.expr !== "string") continue;
+        const name = c.name.trim().slice(0, 40);
+        if (!name || names.has(name)) continue;
+        names.add(name);
+        out.push({ name, expr: c.expr.slice(0, 1000), unit: typeof c.unit === "string" ? c.unit.slice(0, 20) : "" });
+      }
+      return out;
+    }
+    function exprMsg(e) {
+      if (!(e instanceof AN.ExprError)) return String(e && e.message || e);
+      return (X["e_" + e.msg] || e.msg).replace("{a}", e.arg === undefined ? "" : e.arg) + ` (${X.e_pos || "@"} ${e.pos + 1})`;
+    }
+    function computeCalc(list) {
+      for (const n of order.splice(nFile)) delete SG[n];
+      calcErr = {};
+      events = null;
+      list.forEach((c, k) => {
+        try {
+          const P = AN.parse(c.expr, order);
+          const base = P.refs.length ? P.refs.reduce((a, n) => (SG[n].n > SG[a].n ? n : a), P.refs[0])
+            : order.slice(0, nFile).reduce((a, n) => (SG[n].n > SG[a].n ? n : a), order[0]);
+          const b = SG[base], t = b.t, n = b.n;
+          const cache = {};
+          const sig = (nm) => cache[nm] || (cache[nm] = SG[nm].t === t ? Float64Array.from(SG[nm].v) : AN.zoh(SG[nm], t));
+          const y = AN.evaluate(P.ast, { t, n, sig });
+          let m = 0;
+          for (let i = 0; i < n; i++) if (isFinite(y[i])) m++;
+          if (m < 2) throw new Error(X.e_empty_res || "–");
+          const tt = new Float64Array(m), vv = new Float32Array(m);
+          for (let i = 0, j = 0; i < n; i++) if (isFinite(y[i])) { tt[j] = t[i]; vv[j] = y[i]; j++; }
+          SG[c.name] = initSig({ t: tt, v: vv, n: m, name: c.name, role: "ƒ", color0: CALC_COLORS[k % CALC_COLORS.length],
+                                 unit0: c.unit, ti: "c:" + c.name, calc: true });
+          order.push(c.name);
+        } catch (e) {
+          calcErr[c.name] = exprMsg(e);
+        }
+      });
+    }
 
     // ---------------------------------------------------------------- stav a rozložení
     function defaults() {
@@ -176,11 +224,16 @@ export default function (component) {
       if (!panels.length) order.slice(0, 3).forEach((n, i) => panels.push({ sigs: [n], h: i ? 150 : 220 }));
       return { v: 1, panels: panels.map((p) => Object.assign({ shared: false, lo: null, hi: null }, p)), sig: {},
                view: [0, D.T], cur: { on: false, a: null, b: null }, hc: { on: false, a: null, b: null, sig: null },
-               tab: false, list: true, mode: "pan", ya: "view", step: false, act: null };
+               tab: false, list: true, mode: "pan", ya: "view", step: false, act: null, calc: [],
+               an: null, evk: { mv: true, sp: true, dv: true, state: true, sat: true, flat: true, gap: true },
+               stp: { u: null, y: null }, cor: { y: null, mode: "auto", lag: null }, xy: { x: null, y: null, line: false },
+               cmp: { sigs: [], segs: [], rel: true } };
     }
     const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
     function sanitize(L) {
-      const d = defaults();
+      const calc = cleanCalc(L && L.calc);
+      computeCalc(calc);
+      const d = Object.assign(defaults(), { calc });
       if (!L || typeof L !== "object" || !Array.isArray(L.panels)) return d;
       const used = new Set(), panels = [];
       for (const p of L.panels.slice(0, 30)) {
@@ -208,6 +261,16 @@ export default function (component) {
       if (["pan", "box", "x", "y"].includes(L.mode)) out.mode = L.mode;
       if (["view", "all"].includes(L.ya)) out.ya = L.ya;
       if (typeof L.act === "string" && SG[L.act]) out.act = L.act;
+      if (["ev", "step", "corr", "xy", "cmp"].includes(L.an)) out.an = L.an;
+      if (L.evk && typeof L.evk === "object") for (const k in out.evk) if (typeof L.evk[k] === "boolean") out.evk[k] = L.evk[k];
+      const sgn = (v) => (typeof v === "string" && SG[v] ? v : null);
+      if (L.stp && typeof L.stp === "object") out.stp = { u: sgn(L.stp.u), y: sgn(L.stp.y) };
+      if (L.cor && typeof L.cor === "object") out.cor = { y: sgn(L.cor.y), mode: ["auto", "incr", "vals", "int"].includes(L.cor.mode) ? L.cor.mode : "auto", lag: num(L.cor.lag) };
+      if (L.xy && typeof L.xy === "object") out.xy = { x: sgn(L.xy.x), y: sgn(L.xy.y), line: !!L.xy.line };
+      if (L.cmp && typeof L.cmp === "object") out.cmp = {
+        sigs: (Array.isArray(L.cmp.sigs) ? L.cmp.sigs : []).filter((n) => sgn(n)).slice(0, 4),
+        segs: (Array.isArray(L.cmp.segs) ? L.cmp.segs : []).filter((q) => Array.isArray(q) && num(q[0]) !== null && num(q[1]) !== null && q[1] > q[0]).slice(0, 8),
+        rel: L.cmp.rel !== false };
       fixView(out);
       return out;
     }
@@ -222,7 +285,7 @@ export default function (component) {
     if (D.layout) { try { parsed = JSON.parse(D.layout); } catch (e) { parsed = null; } }
     if (parsed) { S = sanitize(parsed); me.lastLay = D.layout; }
     else if (views[D.view_key]) S = sanitize(views[D.view_key]);
-    else S = defaults();
+    else S = sanitize(null);
     views[D.view_key] = S;
 
     let saveT = null;
@@ -393,7 +456,7 @@ export default function (component) {
 
     // ---------------------------------------------------------------- DOM
     const AXW = 50, R = 12, TOP = 8, BOT = 6;
-    let bar, body, listBox, plots, xcv, nav, readBox, tabBox, tip, panelsUI = [], L = AXW;
+    let bar, body, listBox, plots, xcv, nav, readBox, anBox, tabBox, tip, panelsUI = [], L = AXW;
 
     function build() {
       box.innerHTML = "";
@@ -406,13 +469,16 @@ export default function (component) {
       body.appendChild(plots);
       box.appendChild(body);
       readBox = el("div", "pidv-card pidv-read");
+      anBox = el("div", "pidv-card pidv-an");
       tabBox = el("div", "pidv-card pidv-read");
-      box.append(readBox, tabBox);
+      box.append(readBox, anBox, tabBox);
       tip = el("div", "pidv-tip");
       box.appendChild(tip);
       buildList();
       buildPanels();
+      renderAn();
       redraw();
+      if (!events) setTimeout(() => { evList(); renderAn(); redraw(); }, 30);
     }
 
     function buildBar() {
@@ -424,6 +490,8 @@ export default function (component) {
         `<div class="pidv-grp"><button class="pidv-btn" data-a="back" title="Backspace">◀ ${esc(X.back)}</button>` +
         `<button class="pidv-btn" data-a="fwd">${esc(X.fwd)} ▶</button>` +
         `<button class="pidv-btn" data-a="full">${esc(X.full)}</button></div>` +
+        `<div class="pidv-grp"><button class="pidv-btn" data-a="evp" title="${esc(X.ev_prev)}">◀ ⚑</button>` +
+        `<button class="pidv-btn" data-a="evn" title="${esc(X.ev_next)}">⚑ ▶</button></div>` +
         `<div class="pidv-grp"><button class="pidv-btn ${S.cur.on ? "on" : ""}" data-a="cur" title="${esc(X.c_hint)}">${esc(X.cur)}</button>` +
         `<button class="pidv-btn ${S.hc.on ? "on" : ""}" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button></div>` +
         `<div class="pidv-grp"><span class="pidv-lab">${esc(X.yauto)}</span>${seg("ya", [["view", X.ya_view], ["all", X.ya_all]], S.ya)}</div>` +
@@ -440,8 +508,10 @@ export default function (component) {
       bar.querySelectorAll('[data-g="step"] button').forEach((b) => b.onclick = () => { S.step = b.dataset.v === "1"; rebar(); redraw(); save(); });
       const act = {
         back, fwd,
+        evp: () => evNav(-1),
+        evn: () => evNav(1),
         full: () => { push(true); S.view = [0, D.T]; push(true); redraw(); save(); },
-        cur: () => { S.cur.on = !S.cur.on; if (S.cur.on) initCursors(); rebar(); redraw(); save(); },
+        cur: () => { S.cur.on = !S.cur.on; if (S.cur.on) initCursors(); rebar(); redraw(); renderAn(); save(); },
         hcur: () => { S.hc.on = !S.hc.on; if (S.hc.on) initH(); rebar(); redraw(); save(); },
         list: () => { S.list = !S.list; build(); save(); },
         tab: () => { S.tab = !S.tab; rebar(); redraw(); save(); },
@@ -533,11 +603,75 @@ export default function (component) {
             mo.querySelector('[data-k="auto"]').onclick = () => { push(true); clearAxis(pi, n); redraw(); rows(); save(); };
             mo.querySelector('[data-k="reset"]').onclick = () => { delete S.sig[n]; buildPanels(); redraw(); rows(); save(); };
             wrap.appendChild(mo);
+            if (SG[n].calc) wrap.appendChild(calcForm(S.calc.find((c) => c.name === n), false));
           }
+        }
+        for (const c of S.calc) {                // vypočtené signály s chybou ve vzorci (nejsou v grafu)
+          if (SG[c.name]) continue;
+          const r = el("div", "pidv-sig", `<span></span><span class="pidv-dot" style="background:#b91c1c"></span>` +
+            `<span class="nm" title="${esc(c.name)}">${esc(c.name)}<span class="role">ƒ</span></span><span></span>` +
+            `<button class="pidv-x">${opened.has(c.name) ? "▴" : "⋯"}</button>`);
+          r.querySelector(".pidv-x").onclick = () => { if (opened.has(c.name)) opened.delete(c.name); else opened.add(c.name); rows(); };
+          wrap.appendChild(r);
+          wrap.appendChild(el("div", "pidv-cerr", esc(calcErr[c.name] || "")));
+          if (opened.has(c.name)) wrap.appendChild(calcForm(c, false));
+        }
+        if (newCalc) wrap.appendChild(calcForm(newCalc, true));
+        else {
+          const add = el("button", "pidv-add", "+ ƒ " + esc(X.calc_add));
+          add.title = X.calc_help || "";
+          add.onclick = () => { newCalc = { name: "", expr: "", unit: "" }; rows(); };
+          wrap.appendChild(add);
         }
       }
       rows();
       me.rows = rows;
+    }
+    let newCalc = null;
+    function calcForm(c, isNew) {               // formulář vypočteného signálu (nový / úprava)
+      const f = el("div", "pidv-calc");
+      f.innerHTML = `<input data-k="name" placeholder="${esc(X.calc_name)}" value="${esc(c.name)}">` +
+        `<textarea data-k="expr" rows="3" spellcheck="false" placeholder="${esc(X.calc_ph)}">${esc(c.expr)}</textarea>` +
+        `<input data-k="unit" placeholder="${esc(X.unit)}" value="${esc(c.unit || "")}">` +
+        `<div class="pidv-note">${esc(X.calc_help)}</div><div class="pidv-cerr"></div>` +
+        `<div class="row"><button class="pidv-btn on" data-k="ok">${esc(X.calc_save)}</button>` +
+        `<button class="pidv-btn" data-k="cancel">${esc(X.calc_cancel)}</button>` +
+        (isNew ? "" : `<button class="pidv-btn" data-k="del">${esc(X.calc_del)}</button>`) + `</div>`;
+      const g = (k) => f.querySelector(`[data-k="${k}"]`), err = f.querySelector(".pidv-cerr");
+      g("ok").onclick = () => {
+        const name = g("name").value.trim().slice(0, 40), expr = g("expr").value, unit = g("unit").value.slice(0, 20);
+        const idx = isNew ? S.calc.length : S.calc.indexOf(c);
+        const before = order.slice(0, nFile).concat(S.calc.slice(0, idx).map((q) => q.name).filter((q) => SG[q]));
+        if (!name || order.slice(0, nFile).includes(name) || S.calc.some((q, i) => q.name === name && i !== idx)) {
+          err.textContent = X.calc_badname || "–";
+          return;
+        }
+        try { AN.parse(expr, before); } catch (e) { err.textContent = exprMsg(e); return; }
+        const old = isNew ? null : c.name;
+        const item = { name, expr, unit };
+        if (isNew) S.calc.push(item); else S.calc[idx] = item;
+        computeCalc(S.calc);
+        if (old && old !== name) {                // přejmenování: panely, nastavení a volby analýz
+          for (const p of S.panels) p.sigs = p.sigs.map((q) => (q === old ? name : q));
+          if (S.sig[old]) { S.sig[name] = S.sig[old]; delete S.sig[old]; }
+          opened.delete(old); opened.add(name);
+        }
+        if (calcErr[name]) { err.textContent = calcErr[name]; if (isNew) { S.calc.pop(); computeCalc(S.calc); } return; }
+        if (isNew) { S.panels.push({ sigs: [name], h: 150, shared: false, lo: null, hi: null }); newCalc = null; }
+        S.panels = S.panels.map((p) => Object.assign(p, { sigs: p.sigs.filter((q) => SG[q]) })).filter((p) => p.sigs.length);
+        build(); save();
+      };
+      g("cancel").onclick = () => { if (isNew) newCalc = null; else opened.delete(c.name); me.rows && me.rows(); };
+      const del = g("del");
+      if (del) del.onclick = () => {
+        S.calc = S.calc.filter((q) => q !== c);
+        removeSig(c.name);
+        computeCalc(S.calc);
+        S.panels = S.panels.map((p) => Object.assign(p, { sigs: p.sigs.filter((q) => SG[q]) })).filter((p) => p.sigs.length);
+        build(); save();
+      };
+      for (const k of ["name", "unit"]) g(k).onkeydown = (e) => { if (e.key === "Enter") g("ok").click(); };
+      return f;
     }
     function removeSig(n) {
       for (const p of S.panels) { const i = p.sigs.indexOf(n); if (i >= 0) p.sigs.splice(i, 1); }
@@ -765,6 +899,17 @@ export default function (component) {
         g.lineWidth = S.act === n ? 2 : 1.4;
         drawSig(g, P, SG[n], a);
       }
+      if (events) {                             // značky událostí signálů panelu
+        const x0 = L, x1 = w - R;
+        for (const e of evList()) {
+          if (!P.p.sigs.includes(e.sig)) continue;
+          const xa = tx(e.t, P), xb = e.t1 !== undefined ? tx(e.t1, P) : xa;
+          if (xb < x0 - 6 || xa > x1 + 6) continue;
+          g.fillStyle = EVC[e.kind];
+          if (xb > xa + 1) { g.globalAlpha = 0.18; g.fillRect(Math.max(x0, xa), TOP, Math.min(x1, xb) - Math.max(x0, xa), h - TOP - BOT); g.globalAlpha = 1; }
+          g.beginPath(); g.moveTo(xa - 4, TOP); g.lineTo(xa + 4, TOP); g.lineTo(xa, TOP + 7); g.closePath(); g.fill();
+        }
+      }
       g.restore();
     }
 
@@ -794,6 +939,31 @@ export default function (component) {
           g.setLineDash([]);
           g.fillStyle = c; g.font = "bold 10px sans-serif"; g.textAlign = "right"; g.textBaseline = "bottom";
           g.fillText(`${lab} ${fmtV(v, SG[S.hc.sig])}`, w - R - 3, y - 2);
+        }
+      }
+      if (S.an === "step" && stepRes && stepRes.ok && P.p.sigs.includes(S.stp.y)) {
+        const a = P.axes.find((q) => q.names.includes(S.stp.y)), r = stepRes;
+        if (a) {
+          g.setLineDash([5, 3]); g.lineWidth = 1.2; g.strokeStyle = "#16a34a";
+          const hl = (v) => { const y = ty(v, a, P); if (y >= TOP && y <= h - BOT) { g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke(); } };
+          hl(r.y0);
+          if (!r.integ) hl(r.yinf);
+          g.setLineDash([]);
+          g.fillStyle = "#16a34a"; g.font = "bold 10px sans-serif"; g.textAlign = "left"; g.textBaseline = "top";
+          const vl = (t, lab, dash) => {
+            if (t === null || t === undefined) return;
+            const x = tx(t, P);
+            if (x < L || x > w - R) return;
+            g.setLineDash(dash || []); g.beginPath(); g.moveTo(x, TOP); g.lineTo(x, h - BOT); g.stroke(); g.setLineDash([]);
+            g.fillText(lab, x + 3, TOP + 12);
+          };
+          vl(r.ts, "u", null);
+          if (r.theta !== null) vl(r.ts + r.theta, "θ", [2, 3]);
+          if (!r.integ && r.t63 !== null) {
+            vl(r.t63, "63 %", [2, 3]);
+            const y = ty(r.y0 + 0.632 * r.dy, a, P);
+            g.beginPath(); g.arc(tx(r.t63, P), y, 4, 0, 2 * Math.PI); g.stroke();
+          }
         }
       }
       if (band && band.P === P) {
@@ -846,6 +1016,14 @@ export default function (component) {
         cc.getContext("2d").drawImage(nav, 0, 0);
         navImg = { key: nkey, cv: cc };
       }
+      if (events) {
+        let k = 0;
+        for (const e of evList()) {
+          if (k++ > 3000) break;
+          g.fillStyle = EVC[e.kind];
+          g.fillRect(Math.round(x0 + e.t / D.T * W), h - 7, 1.5, 6);
+        }
+      }
       const a = x0 + S.view[0] / D.T * W, b = x0 + S.view[1] / D.T * W;
       g.fillStyle = "rgba(31,95,168,0.16)";
       g.fillRect(a, 1, Math.max(2, b - a), h - 2);
@@ -860,6 +1038,7 @@ export default function (component) {
         raf = 0;
         for (const P of panelsUI) { sizePanel(P); drawPanel(P); drawOverlay(P); }
         drawX(); drawNav(); readout(); table();
+        if (S.an === "xy" && !S.cur.on) renderAn();
       });
     }
     let raf2 = 0, curDirty = false;
@@ -869,7 +1048,7 @@ export default function (component) {
       raf2 = requestAnimationFrame(() => {
         raf2 = 0;
         for (const P of panelsUI) drawOverlay(P);
-        if (curDirty) { curDirty = false; readout(); table(true); }
+        if (curDirty) { curDirty = false; readout(); table(true); if (S.an === "step" || S.an === "xy") renderAn(); }
       });
     }
 
@@ -1019,6 +1198,336 @@ export default function (component) {
       document.body.appendChild(lnk);
       lnk.click();
       setTimeout(() => { URL.revokeObjectURL(url); lnk.remove(); }, 2000);
+    }
+
+    // ---------------------------------------------------------------- analýza: události, odezva, korelace, XY, srovnání
+    const EVC = { mv: "#c2410c", sp: "#64748b", dv: "#0d9488", state: "#7c3aed", sat: "#dc2626", flat: "#ca8a04", gap: "#475569" };
+    const SEGC = ["#1f5fa8", "#c2410c", "#16a34a", "#9333ea", "#db2777", "#0891b2", "#ca8a04", "#475569"];
+    let stepRes = null, corRes = null, corSel = null, curEv = null;
+    function evList() {
+      if (!events) events = AN.events(order.map((n) => SG[n]), {});
+      return events.filter((e) => S.evk[e.kind] && SG[e.sig]);
+    }
+    const roleSig = (r) => order.find((n) => SG[n].role === r);
+    const firstOf = (...c) => c.find((n) => n && SG[n]) || null;
+    const span2 = () => (S.cur.on ? [Math.min(S.cur.a, S.cur.b), Math.max(S.cur.a, S.cur.b)] : [S.view[0], S.view[1]]);
+    const sigSel = (k, cur) => `<select data-k="${k}">` + order.map((n) =>
+      `<option value="${esc(n)}" ${n === cur ? "selected" : ""}>${esc(n)}</option>`).join("") + `</select>`;
+    function gotoEvent(e) {
+      curEv = e;
+      const span = S.view[1] - S.view[0];
+      let Ln = span > D.T * 0.5 ? Math.max(MINSPAN, D.T / 12) : span;
+      if (e.t1 !== undefined) Ln = Math.min(D.T, Math.max(Ln, (e.t1 - e.t) * 1.5));
+      push(true);
+      const a = clamp(e.t - Ln * 0.3, 0, D.T - Ln);
+      S.view = [a, a + Ln];
+      if (S.cur.on) {
+        S.cur.a = e.t;
+        if (e.t1 !== undefined) S.cur.b = e.t1;
+        else if (!(S.cur.b > e.t && S.cur.b < a + Ln)) S.cur.b = Math.min(D.T, e.t + Ln * 0.5);
+        me.followRow = true;
+      }
+      push(true);
+      redraw(); renderAn(); save();
+    }
+    function evNav(dir) {
+      const L_ = evList();
+      if (!L_.length) return;
+      const ref_ = curEv && curEv.t >= S.view[0] && curEv.t <= S.view[1] ? curEv.t : S.cur.on ? S.cur.a : (S.view[0] + S.view[1]) / 2;
+      const e = dir > 0 ? L_.find((q) => q.t > ref_ + 1e-9) : [...L_].reverse().find((q) => q.t < ref_ - 1e-9);
+      if (e) gotoEvent(e);
+    }
+    function renderAn() {
+      if (!anBox) return;
+      anBox.innerHTML = "";
+      const tabs = el("div", "pidv-antabs");
+      const nEv = events ? evList().length : "…";
+      const items = [["ev", `${X.an_ev} (${nEv})`], ["step", X.an_step], ["corr", X.an_corr], ["xy", X.an_xy], ["cmp", X.an_cmp]];
+      tabs.innerHTML = `<span class="pidv-lab">${esc(X.an)}</span>` + items.map(([k, t]) =>
+        `<button class="pidv-tabb ${S.an === k ? "on" : ""}" data-an="${k}">${esc(t)}</button>`).join("") +
+        (S.an ? `<span class="sp"></span><button class="pidv-x" data-an="" title="${esc(X.close)}">×</button>` : "");
+      tabs.querySelectorAll("[data-an]").forEach((b) => b.onclick = () => {
+        S.an = b.dataset.an && b.dataset.an !== S.an ? b.dataset.an : null;
+        renderAn(); redraw(); save();
+      });
+      anBox.appendChild(tabs);
+      if (!S.an) { stepRes = null; return; }
+      const bd = el("div", "pidv-anbody");
+      anBox.appendChild(bd);
+      ({ ev: anEvents, step: anStep, corr: anCorr, xy: anXY, cmp: anCmp })[S.an](bd);
+    }
+    function anEvents(bd) {
+      if (!events) { bd.innerHTML = `<span class="pidv-note">${esc(X.loading)}</span>`; return; }
+      const cnt = {};
+      for (const e of events) if (SG[e.sig]) cnt[e.kind] = (cnt[e.kind] || 0) + 1;
+      const f = el("div", "pidv-row");
+      f.innerHTML = Object.keys(EVC).map((k) => `<label class="pidv-chk"><input type="checkbox" data-k="${k}" ${S.evk[k] ? "checked" : ""}>` +
+        `<i style="background:${EVC[k]}"></i>${esc(X["ev_" + k])} (${cnt[k] || 0})</label>`).join("") +
+        `<span class="pidv-note">${esc(X.ev_hint)}</span>`;
+      f.querySelectorAll("input").forEach((i) => i.onchange = () => { S.evk[i.dataset.k] = i.checked; renderAn(); redraw(); save(); });
+      bd.appendChild(f);
+      const L_ = evList();
+      if (!L_.length) { bd.appendChild(el("div", "pidv-note", esc(X.ev_none))); return; }
+      const wrap = el("div", "pidv-dtab");
+      wrap.style.height = Math.min(320, 30 + 24 * L_.length) + "px";
+      const det = (e) => {
+        const s = SG[e.sig], u = unitOf(e.sig);
+        if (e.kind === "mv" || e.kind === "sp" || e.kind === "dv")
+          return `${fmtV(e.a, s)} → ${fmtV(e.b, s)} ${esc(u)} (Δ ${fmtV(e.d, s)})`;
+        if (e.kind === "state") return `${fmtV(e.a, s)} → ${fmtV(e.b, s)}`;
+        if (e.kind === "gap") return esc(fmtDur(e.d));
+        return `${fmtV(e.a, s)} ${esc(u)} · ${esc(fmtDur(e.d))}`;
+      };
+      wrap.innerHTML = `<table class="pidv-tbl pidv-left"><thead><tr><th>${esc(X.time)}</th><th>${esc(X.ev_kind)}</th><th>${esc(X.signal)}</th>` +
+        `<th>${esc(X.ev_detail)}</th></tr></thead><tbody>` + L_.slice(0, 1000).map((e, i) =>
+        `<tr data-i="${i}" class="${e === curEv ? "sel" : ""}"><td>${esc(fmtT(e.t))}</td><td><span style="color:${EVC[e.kind]}">■</span> ${esc(X["ev_" + e.kind])}</td>` +
+        `<td>${esc(e.sig)}</td><td>${det(e)}</td></tr>`).join("") + `</tbody></table>`;
+      wrap.querySelectorAll("tbody tr").forEach((tr) => tr.onclick = () => gotoEvent(L_[+tr.dataset.i]));
+      bd.appendChild(wrap);
+    }
+    function anStep(bd) {
+      S.stp.u = firstOf(S.stp.u, roleSig("MV"), visible()[0], order[0]);
+      S.stp.y = firstOf(S.stp.y, roleSig("PV"), visible()[1], order[0]);
+      const c = el("div", "pidv-row");
+      c.innerHTML = `<span class="pidv-lab">${esc(X.st_in)}</span>${sigSel("u", S.stp.u)}` +
+        `<span class="pidv-lab">${esc(X.st_out)}</span>${sigSel("y", S.stp.y)}` +
+        `<button class="pidv-btn" data-k="find">${esc(X.st_find)}</button><span class="pidv-note">${esc(X.st_hint)}</span>`;
+      c.querySelectorAll("select").forEach((q) => q.onchange = () => { S.stp[q.dataset.k] = q.value; renderAn(); save(); });
+      c.querySelector('[data-k="find"]').onclick = () => {      // další skok vstupu → kurzory kolem něj
+        const st = AN.steps(SG[S.stp.u], 0.01);
+        if (!st.length) return;
+        const refT = S.cur.on ? Math.max(S.cur.a, S.cur.b) - 1e-9 : S.view[0];
+        let k = st.findIndex((e) => e.t > refT + MIN_DT * 0.5);
+        if (k < 0) k = 0;
+        const e = st[k], prevT = k > 0 ? st[k - 1].t : 0, nextT = k + 1 < st.length ? st[k + 1].t : D.T;
+        const a = Math.max(prevT + 0.6 * (e.t - prevT), e.t - 0.25 * (nextT - e.t)), b = nextT - 0.02 * (nextT - e.t);
+        S.cur.on = true; S.cur.a = snapT(a); S.cur.b = snapT(b);
+        push(true);
+        const m = 0.08 * (b - a);
+        S.view = [Math.max(0, a - m), Math.min(D.T, b + m)];
+        fixView(S);
+        push(true);
+        rebar(); redraw(); renderAn(); save();
+      };
+      bd.appendChild(c);
+      stepRes = null;
+      if (!S.cur.on) { bd.appendChild(el("div", "pidv-note", esc(X.st_need_cur))); return; }
+      const [a, b] = span2();
+      const r = AN.step(SG[S.stp.u], SG[S.stp.y], a, b);
+      stepRes = r;
+      for (const P of panelsUI) drawOverlay(P);
+      if (!r.ok) { bd.appendChild(el("div", "pidv-cerr", esc(X["st_" + r.err] || r.err))); return; }
+      const uu = unitOf(S.stp.u), uy = unitOf(S.stp.y), su = SG[S.stp.u], sy = SG[S.stp.y];
+      const kU = `${uy || "Y"}/${uu || "U"}`;
+      const rows = [
+        [X.st_du, `${fmtV(r.u0, su)} → ${fmtV(r.u1, su)} (Δ ${fmtV(r.du, su)}) ${esc(uu)}`],
+        [X.st_dy, r.integ ? "–" : `${fmtV(r.y0, sy)} → ${fmtV(r.yinf, sy)} (Δ ${fmtV(r.dy, sy)}) ${esc(uy)}`],
+      ];
+      if (r.integ) rows.push([X.st_ki, `${fmtG(r.Ki, 4)} ${esc(kU)}/s`], [X.st_th, r.theta === null ? "–" : fmtDur(r.theta)]);
+      else rows.push([X.st_k, `${fmtG(r.K, 4)} ${esc(kU)}`], [X.st_th, r.theta === null ? "–" : fmtDur(r.theta)],
+        [X.st_t, r.T === null ? "–" : fmtDur(r.T)], [X.st_tr, r.tr === null ? "–" : fmtDur(r.tr)],
+        [X.st_ovs, `${fmtG(100 * r.ovs, 3)} %`], [X.st_set, r.tset === null ? X.st_noset : fmtDur(r.tset)]);
+      const t = el("table", "pidv-tbl pidv-kv");
+      t.innerHTML = rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join("");
+      bd.appendChild(t);
+      bd.appendChild(el("div", "pidv-note", esc(r.integ ? X.st_integ : X.st_model) +
+        (r.integ ? "" : ` K = ${fmtG(r.K, 4)}, T = ${r.T === null ? "–" : fmtG(r.T, 4)} s, θ = ${r.theta === null ? "–" : fmtG(r.theta, 4)} s`)));
+    }
+    function anCorr(bd) {
+      S.cor.y = firstOf(S.cor.y, roleSig("PV"), visible()[0], order[0]);
+      const [a, b] = span2();
+      const c = el("div", "pidv-row");
+      c.innerHTML = `<span class="pidv-lab">${esc(X.cor_target)}</span>${sigSel("y", S.cor.y)}` +
+        `<div class="pidv-seg">` + [["auto", X.cor_auto, X.cor_auto_h], ["incr", X.cor_incr, X.cor_incr_h], ["int", X.cor_int, X.cor_int_h], ["vals", X.cor_vals, X.cor_vals_h]].map(([m, t, h]) =>
+          `<button data-m="${m}" class="${S.cor.mode === m ? "on" : ""}" title="${esc(h)}">${esc(t)}</button>`).join("") + `</div>` +
+        `<span class="pidv-lab">${esc(X.cor_lag)}</span><input data-k="lag" size="7" placeholder="${esc(fmtG((b - a) / 4, 3))}" value="${S.cor.lag === null ? "" : esc(fmtG(S.cor.lag, 4))}"><span class="pidv-lab">s</span>` +
+        `<button class="pidv-btn on" data-k="run">${esc(X.cor_run)}</button>` +
+        `<span class="pidv-note">${esc((S.cur.on ? X.rng_cur : X.rng_view) + ": " + fmtDur(b - a))}</span>`;
+      c.querySelector("select").onchange = (e) => { S.cor.y = e.target.value; corRes = null; renderAn(); save(); };
+      c.querySelectorAll("[data-m]").forEach((q) => q.onclick = () => { S.cor.mode = q.dataset.m; corRes = null; renderAn(); save(); });
+      const li = c.querySelector('[data-k="lag"]');
+      li.onchange = () => { const v = parseFloat(li.value.replace(",", ".")); S.cor.lag = isFinite(v) && v > 0 ? v : null; save(); };
+      c.querySelector('[data-k="run"]').onclick = () => {
+        const tgt = SG[S.cor.y], cands = order.filter((n) => n !== S.cor.y).slice(0, 80).map((n) => SG[n]);
+        const run = (m) => Object.assign(AN.xcorr(tgt, cands, a, b, { mode: m, maxLag: S.cor.lag || (b - a) / 4 }), { mode: m });
+        const best = (r) => (r.list.length ? Math.abs(r.list[0].r) : 0);
+        if (S.cor.mode === "auto") {             // přírůstky obou, nebo přírůstky cíle (integrační proces) – silnější
+          const r1 = run("incr"), r2 = run("int");
+          corRes = best(r2) > 1.3 * best(r1) ? r2 : r1;
+        } else corRes = run(S.cor.mode);
+        corRes.target = S.cor.y;
+        corSel = corRes.list.length ? corRes.list[0].name : null;
+        renderAn();
+      };
+      bd.appendChild(c);
+      bd.appendChild(el("div", "pidv-note", esc(X.cor_hint)));
+      if (!corRes || corRes.target !== S.cor.y) return;
+      if (S.cor.mode === "auto") bd.appendChild(el("div", "pidv-note", esc(X.cor_used.replace("{m}", corRes.mode === "int" ? X.cor_int : X.cor_incr))));
+      const t = el("table", "pidv-tbl");
+      t.innerHTML = `<thead><tr><th>${esc(X.signal)}</th><th>r</th><th>${esc(X.cor_lagc)}</th><th>${esc(X.cor_mean)}</th></tr></thead><tbody>` +
+        corRes.list.map((q) => {
+          const w = Math.round(Math.abs(q.r) * 60);
+          const txt = Math.abs(q.r) < 0.15 ? X.cor_weak : q.lag > 0 ? X.cor_leads.replace("{s}", q.name).replace("{y}", S.cor.y).replace("{d}", fmtDur(q.lag, 3))
+            : q.lag < 0 ? X.cor_lags.replace("{s}", q.name).replace("{y}", S.cor.y).replace("{d}", fmtDur(-q.lag, 3)) : X.cor_same;
+          return `<tr data-n="${esc(q.name)}" class="${q.name === corSel ? "sel" : ""}"><td><span style="color:${colorOf(q.name)};font-weight:600">${esc(q.name)}</span></td>` +
+            `<td><span class="pidv-bar2" style="width:${w}px;background:${q.r >= 0 ? "#16a34a" : "#dc2626"}"></span> ${fmtG(q.r, 3)}</td>` +
+            `<td>${esc(fmtDur(q.lag, 3))}</td><td style="text-align:left">${esc(txt)}</td></tr>`;
+        }).join("") + `</tbody>`;
+      t.querySelectorAll("tbody tr").forEach((tr) => tr.onclick = () => { corSel = tr.dataset.n; renderAn(); });
+      bd.appendChild(t);
+      const q = corRes.list.find((x) => x.name === corSel);
+      if (q) {
+        const cv = el("canvas", "pidv-mini");
+        bd.appendChild(cv);
+        const n = q.curve.length, xs = new Float64Array(n);
+        for (let i = 0; i < n; i++) xs[i] = (i - corRes.maxLag) * corRes.dt;
+        mini(cv, 200, [{ xs, ys: q.curve, color: colorOf(q.name) }],
+          { yr: [-1, 1], xtime: true, vmark: q.lag, hmark: 0, title: `r(τ): ${q.name} → ${S.cor.y}` });
+      }
+    }
+    function anXY(bd) {
+      S.xy.x = firstOf(S.xy.x, roleSig("MV"), visible()[0], order[0]);
+      S.xy.y = firstOf(S.xy.y, roleSig("PV"), visible()[1], order[1], order[0]);
+      const [a, b] = span2();
+      const c = el("div", "pidv-row");
+      c.innerHTML = `<span class="pidv-lab">X</span>${sigSel("x", S.xy.x)}<span class="pidv-lab">Y</span>${sigSel("y", S.xy.y)}` +
+        `<label class="pidv-chk"><input type="checkbox" ${S.xy.line ? "checked" : ""}> ${esc(X.xy_line)}</label>` +
+        `<span class="pidv-note">${esc((S.cur.on ? X.rng_cur : X.rng_view) + ": " + fmtDur(b - a) + " · " + X.xy_hint)}</span>`;
+      c.querySelectorAll("select").forEach((q) => q.onchange = () => { S.xy[q.dataset.k] = q.value; renderAn(); save(); });
+      c.querySelector("input").onchange = (e) => { S.xy.line = e.target.checked; renderAn(); save(); };
+      bd.appendChild(c);
+      const sx = SG[S.xy.x], sy = SG[S.xy.y];
+      const base = sx.n >= sy.n ? sx : sy, i0 = lb(base.t, a, base.n), i1 = lb(base.t, b + 1e-12, base.n);
+      const st = Math.max(1, Math.ceil((i1 - i0) / 20000)), m = Math.max(0, Math.ceil((i1 - i0) / st));
+      const tq = new Float64Array(m);
+      for (let i = 0; i < m; i++) tq[i] = base.t[i0 + i * st];
+      const xs = AN.zoh(sx, tq), ys = AN.zoh(sy, tq), fit = AN.linfit(xs, ys);
+      const cv = el("canvas", "pidv-mini");
+      bd.appendChild(cv);
+      mini(cv, 360, [], { scatter: { xs, ys }, line: S.xy.line, fit, xlab: S.xy.x + (unitOf(S.xy.x) ? ` [${unitOf(S.xy.x)}]` : ""),
+                          ylab: S.xy.y + (unitOf(S.xy.y) ? ` [${unitOf(S.xy.y)}]` : ""), sx, sy });
+      if (fit) bd.appendChild(el("div", "pidv-note", esc(X.xy_fit.replace("{k}", fmtG(fit.k, 4)).replace("{q}", fmtG(fit.q, 4))
+        .replace("{r2}", fmtG(fit.r2, 3)).replace("{n}", fit.n))));
+    }
+    function anCmp(bd) {
+      if (!S.cmp.sigs.length) S.cmp.sigs = [firstOf(roleSig("PV"), visible()[0], order[0])].filter(Boolean);
+      const c = el("div", "pidv-row");
+      c.innerHTML = `<span class="pidv-lab">${esc(X.cmp_sigs)}</span>` + order.filter((n) => panelOf(n) >= 0 || S.cmp.sigs.includes(n)).map((n) =>
+        `<label class="pidv-chk"><input type="checkbox" value="${esc(n)}" ${S.cmp.sigs.includes(n) ? "checked" : ""}> <span style="color:${colorOf(n)}">${esc(n)}</span></label>`).join("") +
+        `<button class="pidv-btn" data-k="view">+ ${esc(X.cmp_add_view)}</button>` +
+        `<button class="pidv-btn" data-k="cur" ${S.cur.on ? "" : "disabled"}>+ ${esc(X.cmp_add_cur)}</button>` +
+        `<label class="pidv-chk"><input type="checkbox" data-k="rel" ${S.cmp.rel ? "checked" : ""}> ${esc(X.cmp_rel)}</label>`;
+      c.querySelectorAll("input[value]").forEach((i) => i.onchange = () => {
+        S.cmp.sigs = order.filter((n) => (n === i.value ? i.checked : S.cmp.sigs.includes(n))).slice(0, 4);
+        renderAn(); save();
+      });
+      c.querySelector('[data-k="rel"]').onchange = (e) => { S.cmp.rel = e.target.checked; renderAn(); save(); };
+      const add = (q) => { if (S.cmp.segs.length < 8) { S.cmp.segs.push(q); renderAn(); save(); } };
+      c.querySelector('[data-k="view"]').onclick = () => add([S.view[0], S.view[1]]);
+      c.querySelector('[data-k="cur"]').onclick = () => add(span2());
+      bd.appendChild(c);
+      const chips = el("div", "pidv-row");
+      S.cmp.segs.forEach((q, i) => {
+        const ch = el("span", "pidv-segchip", `<i style="background:${SEGC[i]}"></i>${esc(fmtT(q[0]))} · ${esc(fmtDur(q[1] - q[0]))}` +
+          ` <button class="pidv-x" title="${esc(X.cmp_go)}">↗</button><button class="pidv-x" title="${esc(X.remove)}">×</button>`);
+        const [go, del] = ch.querySelectorAll("button");
+        go.onclick = () => { push(true); S.view = [q[0], q[1]]; fixView(S); push(true); redraw(); save(); };
+        del.onclick = () => { S.cmp.segs.splice(i, 1); renderAn(); save(); };
+        chips.appendChild(ch);
+      });
+      bd.appendChild(chips);
+      if (!S.cmp.segs.length) { bd.appendChild(el("div", "pidv-note", esc(X.cmp_hint))); return; }
+      for (const n of S.cmp.sigs) {
+        const s = SG[n];
+        if (!s) continue;
+        const series = S.cmp.segs.map((q, i) => {
+          const j0 = lb(s.t, q[0], s.n), j1 = lb(s.t, q[1] + 1e-12, s.n), st = Math.max(1, Math.ceil((j1 - j0) / 4000));
+          const m = Math.max(0, Math.ceil((j1 - j0) / st)), xs = new Float64Array(m), ys = new Float64Array(m);
+          const v0 = j1 > j0 ? s.v[j0] : 0;
+          for (let k = 0; k < m; k++) { const j = j0 + k * st; xs[k] = s.t[j] - q[0]; ys[k] = s.v[j] - (S.cmp.rel ? v0 : 0); }
+          return { xs, ys, color: SEGC[i] };
+        });
+        const cv = el("canvas", "pidv-mini");
+        bd.appendChild(cv);
+        mini(cv, 190, series, { xtime: true, title: (S.cmp.rel ? "Δ " : "") + n + (unitOf(n) ? ` [${unitOf(n)}]` : ""), sy: s });
+      }
+    }
+    function mini(cv, h, series, o) {          // malý graf: čáry (series) nebo body (o.scatter) s osami
+      const w = cssW(anBox) - 24, g = sizeCanvas(cv, w, h);
+      g.clearRect(0, 0, w, h);
+      const LL = 62, RR = 12, TT = o.title ? 20 : 8, BB = 24;
+      let xr = o.xr, yr = o.yr;
+      const ext = (arrs) => { let a = Infinity, b = -Infinity; for (const A of arrs) for (let i = 0; i < A.length; i++) if (isFinite(A[i])) { if (A[i] < a) a = A[i]; if (A[i] > b) b = A[i]; } return [a, b]; };
+      const pts = o.scatter ? [[o.scatter.xs], [o.scatter.ys]] : [series.map((q) => q.xs), series.map((q) => q.ys)];
+      if (!xr) xr = ext(pts[0]);
+      if (!yr) { yr = ext(pts[1]); const m = 0.06 * (yr[1] - yr[0] || Math.abs(yr[0]) || 1); yr = [yr[0] - m, yr[1] + m]; }
+      if (!isFinite(xr[0]) || !isFinite(yr[0])) return;
+      if (!(xr[1] > xr[0])) xr = [xr[0] - 1, xr[0] + 1];
+      if (o.scatter) { const m = 0.04 * (xr[1] - xr[0]); xr = [xr[0] - m, xr[1] + m]; }
+      const X_ = (v) => LL + (v - xr[0]) / (xr[1] - xr[0]) * (w - LL - RR), Y_ = (v) => h - BB - (v - yr[0]) / (yr[1] - yr[0]) * (h - TT - BB);
+      g.strokeStyle = col("--pv-grid"); g.lineWidth = 1;
+      g.font = "11px 'IBM Plex Mono', monospace"; g.fillStyle = col("--pv-muted");
+      const u = o.xtime ? unitFor(Math.max(Math.abs(xr[0]), Math.abs(xr[1]))) : null, f = o.xtime ? U[u] : 1;
+      const sx = nice((xr[1] - xr[0]) / f, Math.max(2, Math.floor(w / 110))), sy = nice(yr[1] - yr[0], Math.max(2, Math.floor(h / 40)));
+      g.textAlign = "center"; g.textBaseline = "top";
+      for (let v = Math.ceil(xr[0] / f / sx) * sx; v <= xr[1] / f + 1e-9; v += sx) {
+        const x = Math.round(X_(v * f)) + 0.5;
+        g.beginPath(); g.moveTo(x, TT); g.lineTo(x, h - BB); g.stroke();
+        g.fillText(fmtTick(v, sx), x, h - BB + 5);
+      }
+      g.textAlign = "right"; g.textBaseline = "middle";
+      for (let v = Math.ceil(yr[0] / sy) * sy; v <= yr[1] + 1e-12; v += sy) {
+        const y = Math.round(Y_(v)) + 0.5;
+        g.beginPath(); g.moveTo(LL, y); g.lineTo(w - RR, y); g.stroke();
+        g.fillText(fmtTick(v, sy), LL - 5, y);
+      }
+      g.strokeStyle = col("--pv-axis");
+      g.strokeRect(LL + 0.5, TT + 0.5, w - LL - RR - 1, h - TT - BB - 1);
+      g.textAlign = "right"; g.textBaseline = "bottom";
+      if (u) g.fillText(u, w - 2, h - 2);
+      if (o.xlab) g.fillText(o.xlab, w - RR, h - BB - 3);
+      if (o.title || o.ylab) { g.textAlign = "left"; g.textBaseline = "top"; g.fillStyle = col("--pv-text"); g.fillText(o.title || o.ylab, LL, 3); }
+      g.save(); g.beginPath(); g.rect(LL, TT, w - LL - RR, h - TT - BB); g.clip();
+      if (o.hmark !== undefined) { g.strokeStyle = col("--pv-muted"); g.beginPath(); g.moveTo(LL, Y_(o.hmark)); g.lineTo(w - RR, Y_(o.hmark)); g.stroke(); }
+      if (o.vmark !== undefined) { g.strokeStyle = "#d97706"; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(X_(o.vmark), TT); g.lineTo(X_(o.vmark), h - BB); g.stroke(); g.setLineDash([]); }
+      g.lineWidth = 1.5;
+      for (const q of series) {
+        g.strokeStyle = q.color; g.beginPath();
+        let pen = false;
+        for (let i = 0; i < q.xs.length; i++) {
+          if (!isFinite(q.ys[i])) { pen = false; continue; }
+          const x = X_(q.xs[i]), y = Y_(q.ys[i]);
+          if (pen) g.lineTo(x, y); else g.moveTo(x, y);
+          pen = true;
+        }
+        g.stroke();
+      }
+      if (o.scatter) {
+        const { xs, ys } = o.scatter, n = xs.length;
+        if (o.line) {
+          g.strokeStyle = col("--pv-axis"); g.lineWidth = 0.8; g.beginPath();
+          for (let i = 0; i < n; i++) if (isFinite(xs[i]) && isFinite(ys[i])) { if (i) g.lineTo(X_(xs[i]), Y_(ys[i])); else g.moveTo(X_(xs[i]), Y_(ys[i])); }
+          g.stroke();
+        }
+        for (let i = 0; i < n; i++) {
+          if (!isFinite(xs[i]) || !isFinite(ys[i])) continue;
+          g.fillStyle = `hsl(${220 - 220 * i / Math.max(1, n - 1)}, 70%, 45%)`;
+          g.fillRect(X_(xs[i]) - 1.5, Y_(ys[i]) - 1.5, 3, 3);
+        }
+        if (o.fit) {
+          g.strokeStyle = "#111827"; g.setLineDash([6, 4]); g.lineWidth = 1.3; g.beginPath();
+          g.moveTo(X_(xr[0]), Y_(o.fit.k * xr[0] + o.fit.q)); g.lineTo(X_(xr[1]), Y_(o.fit.k * xr[1] + o.fit.q)); g.stroke(); g.setLineDash([]);
+        }
+      }
+      g.restore();
+      if (o.scatter) {                            // legenda barvy = čas
+        g.textAlign = "left"; g.textBaseline = "top"; g.fillStyle = col("--pv-muted");
+        const gx = w - RR - 140;
+        const grad = g.createLinearGradient(gx, 0, gx + 80, 0);
+        grad.addColorStop(0, "hsl(220,70%,45%)"); grad.addColorStop(1, "hsl(0,70%,45%)");
+        g.fillStyle = grad; g.fillRect(gx, 6, 80, 6);
+        g.fillStyle = col("--pv-muted"); g.fillText(X.xy_time || "", gx + 86, 2);
+      }
     }
 
     // ---------------------------------------------------------------- ovládání

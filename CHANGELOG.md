@@ -7,6 +7,11 @@
   oscilloscope cursors (C1 / C2 with Δt, values, Δ, Δ/Δt, min / max / mean / σ; horizontal H1 / H2), a table of the
   view synchronised with the cursor, CSV of the view or between the cursors, overview strip; the layout is saved
   with the project. Long records are sent to the browser once as binary data.
+- Record viewer: **analysis** – events found in the record and marked in the chart (MV / SP / disturbance steps,
+  state changes, MV at a limit, unchanged signal, data gaps; jump to previous / next), **step response** between the
+  cursors (K, θ, T, rise, overshoot, settling; integrating gain), **correlation with lag** of the PV with every
+  signal, **XY plot** with regression, **compare spans** over each other, and **calculated signals** from a safe
+  formula language (filter, moving average, derivative, integral, delay…).
 
 ## 3.3.0 beta – new web look, per-input identification segments, disturbances like the MV
 

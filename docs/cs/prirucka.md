@@ -67,7 +67,24 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
      a pro každý signál hodnotami, Δ, Δ/Δt a min / max / průměrem / σ mezi kurzory; **vodorovné kurzory** H1 / H2
      pro zvolený signál (klik na jeho název) s ΔH;
    - **tabulka** hodnot výřezu (klik na řádek = C1), **CSV** výřezu nebo úseku mezi kurzory;
-   - rozložení (panely, barvy, měřítka, kurzory) se ukládá do projektu.
+   - **vypočtené signály** (*+ ƒ Vypočtený signál* v seznamu): vzorec nad ostatními signály, např. `SP - PV`,
+     `lag(TT101, 30)` nebo `avg([FT 1], 60)` – operátory, `abs`, `min`, `max`, `clip`, `if`, filtr `lag`, klouzavý
+     průměr `avg`, derivace `der`, `diff`, integrál `integ`, `delay`, čas `t`. Vypočtený signál funguje jako ostatní
+     (panely, kurzory, tabulka, CSV, analýza); jazyk vzorců je bezpečný (nespouští se žádný kód);
+   - **Analýza** pod grafem:
+     - **Události** – nalezené automaticky a označené v grafu: skoky MV, SP a poruch, změny stavových signálů (pár
+       hodnot, např. režim), MV na 0 / 100 %, živý signál, který se přestal měnit, výpadky dat; klik na řádek nebo
+       ◀ ⚑ / ⚑ ▶ v liště přejde na událost;
+     - **Odezva na skok** mezi kurzory (*Najít další skok* je umístí): zesílení K, dopravní zpoždění θ a časová
+       konstanta T (dvoubodová metoda), doba náběhu, překmit, doba ustálení; u integračního procesu integrační zesílení;
+     - **Korelace** cíle (PV) se všemi ostatními signály ve výřezu nebo mezi kurzory: nejsilnější korelace a její
+       zpoždění – které signály PV ovlivňují a s jakým zpožděním (*auto* použije přírůstky, nebo přírůstky cíle proti
+       hodnotám u integračních procesů);
+     - **XY graf** dvou signálů (body obarvené podle času, lineární regrese) – např. MV proti poloze ventilu
+       (hystereze, stikce) nebo PV proti MV (statická charakteristika);
+     - **Srovnání úseků** – několik úseků (výřez nebo mezi kurzory) přes sebe od začátku, volitelně jako Δ od
+       počáteční hodnoty;
+   - rozložení (panely, barvy, měřítka, kurzory, vypočtené signály, nastavení analýz) se ukládá do projektu.
 3. **Úsek pro identifikaci** – společný úsek, nebo úseky podle vstupů (MV a každá porucha vlastní); táhly v grafu
    nebo zadáním čísel (web i desktop stejně).
 4. **Kontrola kvality dat** – počet, směr a rozestup skoků, ustálení po posledním skoku, poměr signál/šum,

@@ -155,6 +155,42 @@ def test_data_viewer(page):
     page.locator(".pidv-bar [data-a=cur]").click()
 
 
+def test_data_viewer_analysis(page):
+    """
+    Data › Analýza: události (skoky MV ukázky), odezva na skok mezi kurzory (najít skok → zesílení), korelace
+    a vypočtený signál ze vzorce (nový panel; chybný vzorec hlásí chybu).
+    """
+    _tab(page, 0)
+    page.locator(".pidv-tabb[data-an=ev]").click()
+    page.wait_for_timeout(500)
+    assert page.locator(".pidv-an tbody tr").count() >= 6                 # ukázka: 6 skoků MV, skoky přítoku
+    page.locator(".pidv-tabb[data-an=step]").click()
+    page.locator(".pidv-an [data-k=find]").click()
+    page.wait_for_timeout(500)
+    assert page.locator(".pidv-an .pidv-kv tr").count() >= 4
+    page.locator(".pidv-tabb[data-an=corr]").click()
+    page.locator(".pidv-an [data-k=run]").click()
+    page.wait_for_timeout(500)
+    assert page.locator(".pidv-an tbody tr").count() >= 2
+    n0 = page.locator(".pidv-panel").count()
+    page.locator(".pidv-add").click()
+    form = page.locator(".pidv-calc").first
+    form.locator("[data-k=name]").fill("odchylka")
+    form.locator("[data-k=expr]").fill("LIC101.SP - LIC101.PV")
+    form.locator("[data-k=ok]").click()
+    page.wait_for_timeout(500)
+    assert page.locator(".pidv-panel").count() == n0 + 1
+    page.locator(".pidv-add").click()
+    form = page.locator(".pidv-calc").first
+    form.locator("[data-k=name]").fill("x")
+    form.locator("[data-k=expr]").fill("nic + 1")
+    form.locator("[data-k=ok]").click()
+    assert "nic" in form.locator(".pidv-cerr").inner_text()
+    form.locator("[data-k=cancel]").click()
+    page.locator(".pidv-tabb.on").click()                                # analýzu zavřít
+    page.locator(".pidv-bar [data-a=cur]").click()                       # kurzory zapnula odezva na skok
+
+
 def test_model_handle_drag(page):
     """Model: tažení táhla konce úseku doleva zkrátí úsek (hodnota v políčku pod grafem se změní)."""
     _tab(page, 1)

@@ -69,7 +69,24 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
      **horizontal cursors** H1 / H2 for the chosen signal (click its name) with ΔH;
    - **table** of the values in the view (a click on a row puts C1 there), **CSV** of the view or of the span between
      the cursors;
-   - the layout (panels, colours, scales, cursors) is saved with the project.
+   - **calculated signals** (*+ ƒ Calculated signal* in the list): a formula over other signals, e.g. `SP - PV`,
+     `lag(TT101, 30)` or `avg([FT 1], 60)` – operators, `abs`, `min`, `max`, `clip`, `if`, filter `lag`, moving
+     average `avg`, derivative `der`, `diff`, integral `integ`, `delay`, time `t`. A calculated signal works like any
+     other (panels, cursors, table, CSV, analysis); the formula language is safe (no program code is run);
+   - **Analysis** under the chart:
+     - **Events** – found automatically and marked in the chart: MV, SP and disturbance steps, state changes (signals
+       with a few values, e.g. mode), MV at 0 / 100 %, a live signal that stops changing, data gaps; a click on a row
+       or ◀ ⚑ / ⚑ ▶ in the toolbar jumps to the event;
+     - **Step response** between the cursors (*Find next step* places them): gain K, dead time θ and time constant T
+       (two-point method), rise time, overshoot, settling time; for an integrating process the integrating gain;
+     - **Correlation** of a target (PV) with every other signal over the view or between the cursors: the strongest
+       correlation and its lag – which signals influence the PV and how late (*auto* uses increments, or target
+       increments against values for integrating processes);
+     - **XY plot** of two signals (points coloured by time, linear regression) – e.g. MV against the valve position
+       (hysteresis, stiction) or PV against MV (static characteristic);
+     - **Compare spans** – several spans (the view or between the cursors) drawn over each other from their start,
+       optionally as Δ from the start value;
+   - the layout (panels, colours, scales, cursors, calculated signals, analysis settings) is saved with the project.
    *The identification segment is selected in the Model tab.*
 4. **Operating diagnostics** (bottom of the tab) – on a selected operating segment:
    - **loop performance**: standard deviation and IAE of the control error, MV travel and reversals, time at a limit,
