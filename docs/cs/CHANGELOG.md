@@ -1,5 +1,18 @@
 # Změny
 
+## Nevydáno
+
+- Web, záložka Data: **prohlížeč záznamu** – všechny signály souboru bez převzorkování v panelech s vlastními osami Y;
+  zoom času a Y nezávisle (kolečko, Shift + kolečko, nad osou, výběr obdélníkem / X / Y, historie zoomu), kurzory
+  jako na osciloskopu (C1 / C2 s Δt, hodnotami, Δ, Δ/Δt, min / max / průměrem / σ; vodorovné H1 / H2), tabulka
+  výřezu synchronní s kurzorem, CSV výřezu nebo úseku mezi kurzory, lišta s přehledem; rozložení se ukládá do
+  projektu. Dlouhé záznamy jdou do prohlížeče jednou jako binární data.
+- Prohlížeč záznamu: **analýza** – události nalezené v záznamu a označené v grafu (skoky MV / SP / poruch, změny
+  stavu, MV na limitu, signál beze změny, výpadky dat; přechod na předchozí / další), **odezva na skok** mezi kurzory
+  (K, θ, T, náběh, překmit, ustálení; integrační zesílení), **korelace se zpožděním** PV se všemi signály, **XY graf**
+  s regresí, **srovnání úseků** přes sebe a **vypočtené signály** z bezpečného jazyka vzorců (filtr, klouzavý průměr,
+  derivace, integrál, zpoždění…).
+
 ## 3.3.0 beta – nový vzhled webu, identifikace z úseků podle vstupů, poruchy jako MV
 
 **Beta:** k testování; problémy prosím hlaste.

@@ -22,7 +22,7 @@ from ...app.loop import DEFAULT_RANGE, range_for
 from ...app.timefmt import dur
 from ..dataio import pairs_cached, pivot_cached, resample_cached, time_cached, time_columns_cached
 from ..layout import section, workspace
-from .. import trend, wincharts
+from .. import trend, viewer, wincharts
 from ..widgets import num, sel, seg
 from ..table import table
 from ..kit import card, head, lrow
@@ -195,6 +195,7 @@ def render_setup(ctx):
             raw_cols.append(ctx.get(ctx.c_sp))
         rkey = (ctx.ckey, layout, time_fmt, unit_mult, str(ctx.c_pv), str(ctx.c_mv), str(ctx.c_sp), tuple(map(str, ctx.c_d)),
                 str(ss.get("c_tag")), str(ss.get("c_tim") if not ctx.long_fmt else ss.get("c_tim_l")), str(ss.get("c_val")))
+        ctx.vkey = rkey[:4] + rkey[-3:]          # soubor a čtení času (prohlížeč záznamu – všechny signály)
         ctx.t, ctx.Ts, rs, ctx.T0 = resample_cached(rkey, ctx.t_all, raw_cols, Ts_user)
         ctx.pv_e, ctx.mv_e = rs[0], rs[1]
         ctx.dists = rs[2:2 + len(ctx.c_d)]
@@ -447,8 +448,8 @@ def render(ctx):
     """
     t, Ts, pv, mv, sp, has_sp = ctx.t, ctx.Ts, ctx.pv, ctx.mv, ctx.sp, ctx.has_sp
     with ctx.tabs["data"]:
-        with ctx.dws.m_chart:              # záznam: společná komponenta grafu průběhů (jako Model a Diagnostika)
-            trend.record(ctx, "data_trend", title=T("tn_rec"), note=T("data_chart_help"))
+        with ctx.dws.m_chart:              # prohlížeč záznamu: všechny signály, zoom X / Y, kurzory, tabulka
+            viewer.render(ctx)
         if ctx.tabs["data"].open is not False:     # kvalita dat a náhled jen na otevřené záložce Data
             with ctx.dws.m_dq:
                 checks = _quality(ctx)

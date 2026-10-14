@@ -29,6 +29,8 @@ STATE_KEYS = [
     "cas_samp", "cas_tci", "cas_tco", "diag_integ",
     # hlavička reportu
     "rep_plant", "rep_author", "rep_status", "rep_comment",
+    # prohlížeč záznamu (záložka Data): rozložení panelů, barvy, měřítka, kurzory – text JSON
+    "dview",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "idf|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|",
                 "dsign|", "dsel|")

@@ -226,8 +226,8 @@ def test_lazy_tabs_and_comparison(app):
         app.session_state["main_tab"] = lbl
         app.run()
         assert not _errors(app)
-        n_charts[lbl] = len(app.get("plotly_chart")) + sum(  # Plotly + společný graf průběhů (Data, Model, Diag.)
-            1 for c in app.main.get("bidi_component") if str(c.key).endswith("_trend") or c.key == "model_wins")
+        n_charts[lbl] = len(app.get("plotly_chart")) + sum(  # Plotly + graf průběhů (Model, Diag.) a prohlížeč (Data)
+            1 for c in app.main.get("bidi_component") if str(c.key).endswith(("_trend", "_view")) or c.key == "model_wins")
     assert n_charts[labels[0]] > 0 and n_charts[labels[-1]] == 0   # Data má grafy, Projekt žádné
     app.session_state["main_tab"] = labels[2]
     app.run()
@@ -721,3 +721,50 @@ def test_per_input_segments_web():
     assert proj["windows"]["wins"]["FI100.Pritok"] == [[850.0, 1750.0]]
     assert proj["fit"]["res"]["I1D"]["method"] == "win"
     assert len(proj["fit"]["res"]["I1D"]["dv_cmp"]["0"]) == 5
+
+
+def test_data_viewer_payload(monkeypatch):
+    """
+    Prohlížeč záznamu: všechny signály bez převzorkování (Float64 časy, Float32 hodnoty), signály se stejnými časy
+    sdílejí časovou osu, chybějící hodnoty (NaN) se vynechají; dlouhý záznam se zředí min / max po skupinách.
+    """
+    from pidtools.ui import viewer
+    t = np.arange(1000.0) + 100.0
+    cols = {"A": np.sin(t / 50), "B": np.cos(t / 30), "C": np.where(t < 400, np.nan, t)}
+    pl = viewer._payload.__wrapped__("k1", ("A", "B", "C", "X"), t, lambda n: cols[n])
+    sig = {s["name"]: s for s in pl["sigs"]}
+    assert set(sig) == {"A", "B", "C"}                       # neznámý sloupec X se vynechá
+    assert sig["A"]["ti"] == sig["B"]["ti"] != sig["C"]["ti"]
+    assert sig["C"]["n"] == 700 and pl["tmin"] == 100.0 and pl["T"] == 999.0
+    buf = pl["blob"]
+    tc = np.frombuffer(buf, np.float64, pl["times"][sig["C"]["ti"]]["n"], pl["times"][sig["C"]["ti"]]["off"])
+    vc = np.frombuffer(buf, np.float32, sig["C"]["n"], sig["C"]["off"])
+    assert tc[0] == 300.0 and vc[0] == 400.0
+    monkeypatch.setattr(viewer, "CAP", 500)
+    pl = viewer._payload.__wrapped__("k2", ("A", "B"), t, lambda n: cols[n])
+    assert pl["decim"] > 1 and all(s["n"] < 1000 for s in pl["sigs"])
+    a = np.frombuffer(pl["blob"], np.float32, pl["sigs"][0]["n"], pl["sigs"][0]["off"])
+    assert np.isclose(a.max(), np.sin(t / 50).max(), atol=1e-6) and np.isclose(a.min(), np.sin(t / 50).min(), atol=1e-6)
+
+
+def test_data_viewer_layout_in_project():
+    """Rozložení prohlížeče (text JSON z komponenty) se ukládá do projektu a z projektu se načte."""
+    from pidtools.app.project import clean_state, is_state_key
+    lay = json.dumps({"v": 1, "panels": [{"sigs": ["LIC101.PV"], "h": 200}]})
+    assert is_state_key("dview")
+    assert clean_state({"dview": lay}) == ({"dview": lay}, 0)
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.run()
+    at.session_state["src"] = "demo"
+    at.run()
+    assert not _errors(at)
+    at.session_state["dview"] = lay
+    at.session_state["main_tab"] = [t.label for t in _main(at)][7]
+    at.run()
+    assert not _errors(at)
+    proj = json.loads(serialize_project(at.session_state["_proj_payload"]))
+    assert proj["state"]["dview"] == lay
+    at2 = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at2.session_state["test_inject"] = json.dumps(proj)
+    at2.run()
+    assert not _errors(at2) and at2.session_state["dview"] == lay
