@@ -45,13 +45,13 @@ _CSS = """
 .pidv-btn:disabled, .pidv-seg button:disabled { opacity: .45; cursor: default; }
 .pidv-help { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; color: var(--pv-muted);
   font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
-.pidv-body { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 10px; align-items: start; }
+.pidv-body { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 10px; align-items: start; }
 .pidv-body.nolist { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 760px) { .pidv-body { grid-template-columns: minmax(0, 1fr); } }
 .pidv-list { padding: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 760px; overflow: auto; }
 .pidv-list input[type=search] { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--pv-axis);
   border-radius: 6px; background: var(--pv-btn); color: var(--pv-text); width: 100%; box-sizing: border-box; }
-.pidv-sig { display: grid; grid-template-columns: 16px 14px minmax(0, 1fr) auto auto; gap: 6px; align-items: center;
+.pidv-sig { display: grid; grid-template-columns: 16px 14px minmax(0, 1fr) 46px 66px 16px; gap: 5px; align-items: center;
   font-size: 12px; padding: 3px 4px; border-radius: 6px; }
 .pidv-sig:hover { background: var(--pv-hl); }
 .pidv-sig.act { background: var(--pv-sel); }
@@ -60,6 +60,7 @@ _CSS = """
 .pidv-dot { width: 12px; height: 12px; border-radius: 3px; border: 0; padding: 0; cursor: pointer; }
 .pidv-sig select, .pidv-more input, .pidv-more select { font: inherit; font-size: 11px; padding: 1px 2px; border: 1px solid var(--pv-axis);
   border-radius: 4px; background: var(--pv-btn); color: var(--pv-text); }
+.pidv-sig select { width: 46px; }
 .pidv-x { font: inherit; font-size: 11px; border: 0; background: none; color: var(--pv-muted); cursor: pointer; padding: 0 2px; }
 .pidv-more { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center;
   padding: 4px 6px 6px 36px; font-size: 11px; color: var(--pv-muted); }
@@ -125,6 +126,19 @@ _CSS = """
 .pidv-calc textarea { font-family: 'IBM Plex Mono', monospace; resize: vertical; }
 .pidv-calc .row { display: flex; gap: 6px; flex-wrap: wrap; }
 .pidv-tbl.pidv-left td, .pidv-tbl.pidv-left th { text-align: left; }
+.pidv-yb { font: inherit; font-size: 10px; padding: 1px 5px; border: 1px solid var(--pv-axis); border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-muted); cursor: pointer; white-space: nowrap; width: 66px; overflow: hidden;
+  text-overflow: ellipsis; font-family: 'IBM Plex Mono', monospace; }
+.pidv-yb:hover { color: var(--pv-text); border-color: var(--pv-acc); }
+.pidv-pop { position: absolute; z-index: 20; background: var(--pv-card); border: 1px solid var(--pv-line); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px;
+  min-width: 230px; }
+.pidv-pop-h { margin-bottom: 2px; }
+.pidv-pop-r { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px; align-items: center; }
+.pidv-pop-r:last-child { display: flex; gap: 6px; }
+.pidv-pop input:not([type=radio]) { font: inherit; font-size: 12px; padding: 2px 5px; border: 1px solid var(--pv-axis); border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-text); width: 80px; }
+.pidv-pop input:disabled { opacity: .5; }
 .pidv-cerr { font-size: 11px; color: #b91c1c; padding: 0 4px; }
 """
 
@@ -133,6 +147,7 @@ TXT = ("pan", "zoom_box", "zoom_x", "zoom_y", "back", "fwd", "full", "cur", "hcu
        "shared", "up", "down", "remove", "help", "drag", "loading", "load_err", "retry", "signal", "mean", "min",
        "max", "slope", "rows", "rows_more", "nearest", "step", "line", "interp", "decim", "time", "no_sig",
        "color", "more", "reset", "hide", "c_hint", "h_hint", "ylock", "close",
+       "scale", "sc_auto", "sc_view", "sc_all", "sc_fix", "sc_apply", "sc_view_s", "sc_all_s",
        # analýza a vypočtené signály
        "an", "an_ev", "an_step", "an_corr", "an_xy", "an_cmp", "ev_prev", "ev_next", "ev_mv", "ev_sp", "ev_dv", "ev_state",
        "ev_sat", "ev_flat", "ev_gap", "ev_hint", "ev_none", "ev_kind", "ev_detail", "st_in", "st_out", "st_find", "st_hint",

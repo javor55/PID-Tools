@@ -242,7 +242,8 @@ export default function (component) {
         if (!sg.length) continue;
         let lo = num(p.lo), hi = num(p.hi);
         if (lo === null || hi === null || !(hi > lo)) lo = hi = null;
-        panels.push({ sigs: sg, h: clamp(num(p.h) || 160, 70, 900), shared: !!p.shared, lo, hi });
+        panels.push({ sigs: sg, h: clamp(num(p.h) || 160, 70, 900), shared: !!p.shared, lo, hi,
+                      ya: ["view", "all"].includes(p.ya) ? p.ya : undefined });
       }
       const out = Object.assign(d, { panels: panels.length ? panels : d.panels });
       if (L.sig && typeof L.sig === "object") for (const n in L.sig) {
@@ -252,6 +253,7 @@ export default function (component) {
         if (typeof q.u === "string") o.u = q.u.slice(0, 20);
         const lo = num(q.lo), hi = num(q.hi);
         if (lo !== null && hi !== null && hi > lo) { o.lo = lo; o.hi = hi; }
+        if (["view", "all"].includes(q.ya)) o.ya = q.ya;
         out.sig[n] = o;
       }
       if (Array.isArray(L.view) && num(L.view[0]) !== null && num(L.view[1]) !== null && L.view[1] > L.view[0]) out.view = [L.view[0], L.view[1]];
@@ -378,11 +380,11 @@ export default function (component) {
     const colorOf = (n) => (S.sig[n] && S.sig[n].c) || SG[n].color0;
     const unitOf = (n) => (S.sig[n] && S.sig[n].u !== undefined ? S.sig[n].u : SG[n].unit0);
     const sigCfg = (n) => (S.sig[n] = S.sig[n] || {});
-    function autoRange(names) {
+    function autoRange(names, ya) {          // ya: "view" (výřez) | "all" (celý záznam); jinak volba v liště
       let a = Infinity, b = -Infinity;
       for (const n of names) {
         const s = SG[n];
-        const r = S.ya === "all" ? [s.lo0, s.hi0] : mm(s, lb(s.t, S.view[0], s.n), lb(s.t, S.view[1], s.n) + 1);
+        const r = (ya || S.ya) === "all" ? [s.lo0, s.hi0] : mm(s, lb(s.t, S.view[0], s.n), lb(s.t, S.view[1], s.n) + 1);
         if (r) { a = Math.min(a, r[0]); b = Math.max(b, r[1]); }
       }
       if (!isFinite(a)) return [0, 1];
@@ -393,15 +395,15 @@ export default function (component) {
     function axesOf(pi) {                    // osy panelu: [{key, names, color, unit, lo, hi, manual}]
       const p = S.panels[pi];
       if (p.shared) {
-        const r = p.lo !== null ? [p.lo, p.hi] : autoRange(p.sigs);
+        const r = p.lo !== null ? [p.lo, p.hi] : autoRange(p.sigs, p.ya);
         const us = [...new Set(p.sigs.map(unitOf).filter(Boolean))];
-        return [{ key: "§" + pi, names: p.sigs, color: "var", unit: us.join(", "), lo: r[0], hi: r[1], manual: p.lo !== null }];
+        return [{ key: "§" + pi, names: p.sigs, color: "var", unit: us.join(", "), lo: r[0], hi: r[1], manual: p.lo !== null, ya: p.ya }];
       }
       return p.sigs.map((n) => {
         const c = S.sig[n];
         const man = c && c.lo !== undefined;
-        const r = man ? [c.lo, c.hi] : autoRange([n]);
-        return { key: n, names: [n], color: colorOf(n), unit: unitOf(n), lo: r[0], hi: r[1], manual: man };
+        const r = man ? [c.lo, c.hi] : autoRange([n], c && c.ya);
+        return { key: n, names: [n], color: colorOf(n), unit: unitOf(n), lo: r[0], hi: r[1], manual: man, ya: c && c.ya };
       });
     }
     function setAxis(pi, key, lo, hi) {
@@ -548,12 +550,13 @@ export default function (component) {
           if (f && !n.toLowerCase().includes(f)) continue;
           const pi = panelOf(n), on = pi >= 0;
           const r = el("div", "pidv-sig" + (S.act === n ? " act" : ""));
-          const opts = S.panels.map((_, i) => `<option value="${i}" ${i === pi ? "selected" : ""}>${esc(X.panel)} ${i + 1}</option>`).join("") +
+          const opts = S.panels.map((_, i) => `<option value="${i}" ${i === pi ? "selected" : ""}>${i + 1}</option>`).join("") +
             `<option value="new">+ ${esc(X.new_panel)}</option>`;
           r.innerHTML = `<input type="checkbox" ${on ? "checked" : ""} title="${esc(X.hide)}">` +
             `<button class="pidv-dot" style="background:${colorOf(n)}" title="${esc(X.color)}"></button>` +
             `<span class="nm" title="${esc(n)}">${esc(n)}${SG[n].role ? `<span class="role">${esc(SG[n].role)}</span>` : ""}</span>` +
             (on ? `<select title="${esc(X.panel)}">${opts}</select>` : "<span></span>") +
+            (on ? `<button class="pidv-yb" title="${esc(X.scale)}">${esc(scaleText(pi, n))}</button>` : "<span></span>") +
             `<button class="pidv-x" title="${esc(X.more)}">${opened.has(n) ? "▴" : "⋯"}</button>`;
           const [cb] = r.querySelectorAll("input");
           cb.onchange = () => {
@@ -581,26 +584,18 @@ export default function (component) {
             buildPanels(); rows(); redraw(); save();
           };
           r.querySelector(".pidv-x").onclick = () => { if (opened.has(n)) opened.delete(n); else opened.add(n); rows(); };
+          const yb = r.querySelector(".pidv-yb");
+          if (yb) yb.onclick = () => { const rc = yb.getBoundingClientRect(); openScale(pi, S.panels[pi].shared ? "§" + pi : n, rc.left, rc.bottom); };
           wrap.appendChild(r);
           if (opened.has(n)) {
             const c = S.sig[n] || {}, mo = el("div", "pidv-more");
             const ax = on ? axesOf(pi).find((a) => a.names.includes(n)) : null;
+            void ax; void c;
             mo.innerHTML = `<span>${esc(X.unit)}</span><input data-k="u" value="${esc(unitOf(n))}">` +
-              `<span>${esc(X.ymin)}</span><input data-k="lo" placeholder="${ax ? esc(fmtV(ax.lo, SG[n])) : ""}" value="${c.lo !== undefined ? esc(fmtV(c.lo, SG[n])) : ""}">` +
-              `<span>${esc(X.ymax)}</span><input data-k="hi" placeholder="${ax ? esc(fmtV(ax.hi, SG[n])) : ""}" value="${c.hi !== undefined ? esc(fmtV(c.hi, SG[n])) : ""}">` +
-              `<span></span><div class="row"><button class="pidv-btn" data-k="auto">${esc(X.auto)}</button>` +
-              `<button class="pidv-btn" data-k="reset">${esc(X.reset)}</button></div>`;
-            const [iu, ilo, ihi] = mo.querySelectorAll("input");
+              `<span></span><div class="row"><button class="pidv-btn" data-k="reset">${esc(X.reset)}</button></div>`;
+            const [iu] = mo.querySelectorAll("input");
             iu.onchange = () => { sigCfg(n).u = iu.value.slice(0, 20); buildPanels(); redraw(); save(); };
-            const setLim = () => {
-              const a = parseFloat(ilo.value.replace(",", ".")), b = parseFloat(ihi.value.replace(",", "."));
-              const cur = ax || { lo: SG[n].lo0, hi: SG[n].hi0 };
-              const lo = isFinite(a) ? a : cur.lo, hi = isFinite(b) ? b : cur.hi;
-              if (hi > lo) { push(true); const cc = sigCfg(n); cc.lo = lo; cc.hi = hi; if (on) S.panels[pi].shared = false; buildPanels(); redraw(); save(); }
-            };
-            ilo.onchange = setLim; ihi.onchange = setLim;
-            for (const i of [iu, ilo, ihi]) i.onkeydown = (e) => { if (e.key === "Enter") i.blur(); };
-            mo.querySelector('[data-k="auto"]').onclick = () => { push(true); clearAxis(pi, n); redraw(); rows(); save(); };
+            iu.onkeydown = (e) => { if (e.key === "Enter") iu.blur(); };
             mo.querySelector('[data-k="reset"]').onclick = () => { delete S.sig[n]; buildPanels(); redraw(); rows(); save(); };
             wrap.appendChild(mo);
             if (SG[n].calc) wrap.appendChild(calcForm(S.calc.find((c) => c.name === n), false));
@@ -673,6 +668,64 @@ export default function (component) {
       for (const k of ["name", "unit"]) g(k).onkeydown = (e) => { if (e.key === "Enter") g("ok").click(); };
       return f;
     }
+    function scaleText(pi, n) {              // popis měřítka Y signálu: „auto“, „auto ∀“ nebo „min – max“
+      const p = S.panels[pi];
+      const c = p.shared ? { lo: p.lo === null ? undefined : p.lo, hi: p.hi, ya: p.ya } : (S.sig[n] || {});
+      if (c.lo !== undefined) return `${fmtG(c.lo, 4)} – ${fmtG(c.hi, 4)}`;
+      return (c.ya || S.ya) === "all" ? X.sc_all_s : X.sc_view_s;
+    }
+    let pop = null;
+    function closeScale() { if (pop) { pop.remove(); pop = null; } }
+    function openScale(pi, key, cx, cy) {     // okénko měřítka osy Y: auto (výřez / celý záznam) nebo pevné min / max
+      closeScale();
+      const p = S.panels[pi];
+      if (!p) return;
+      const shared = key[0] === "§", n = shared ? null : key;
+      const ax = axesOf(pi).find((a) => a.key === key);
+      if (!ax) return;
+      const cfg = shared ? p : (S.sig[n] || {});
+      const man = ax.manual, ya = ax.ya || "";
+      const sref = SG[ax.names[0]];
+      pop = el("div", "pidv-pop");
+      pop.innerHTML = `<div class="pidv-pop-h">${esc(X.scale)}: <b>${esc(shared ? X.shared : n)}</b>` +
+        (ax.unit ? ` <span class="pidv-lab">[${esc(ax.unit)}]</span>` : "") + `</div>` +
+        [["", X.sc_auto.replace("{m}", S.ya === "all" ? X.ya_all : X.ya_view)], ["view", X.sc_view], ["all", X.sc_all], ["fix", X.sc_fix]].map(([v, t]) =>
+          `<label class="pidv-chk"><input type="radio" name="sc" value="${v}" ${(man ? v === "fix" : v === ya) ? "checked" : ""}> ${esc(t)}</label>`).join("") +
+        `<div class="pidv-pop-r"><span>${esc(X.ymin)}</span><input data-k="lo" value="${esc(fmtV(ax.lo, sref))}">` +
+        `<span>${esc(X.ymax)}</span><input data-k="hi" value="${esc(fmtV(ax.hi, sref))}"></div>` +
+        `<div class="pidv-pop-r"><button class="pidv-btn on" data-k="ok">${esc(X.sc_apply)}</button>` +
+        `<button class="pidv-btn" data-k="x">${esc(X.close)}</button></div>`;
+      box.appendChild(pop);
+      const br = box.getBoundingClientRect();
+      pop.style.left = clamp(cx - br.left, 4, Math.max(4, br.width - pop.offsetWidth - 4)) + "px";
+      pop.style.top = (cy - br.top + 6) + "px";
+      const ilo = pop.querySelector('[data-k="lo"]'), ihi = pop.querySelector('[data-k="hi"]');
+      const mode = () => pop.querySelector('input[name="sc"]:checked').value;
+      const sync = () => { const f = mode() === "fix"; ilo.disabled = ihi.disabled = !f; };
+      sync();
+      const apply = () => {
+        const m = mode();
+        push(true);
+        if (m === "fix") {
+          const a = parseFloat(ilo.value.replace(",", ".")), b = parseFloat(ihi.value.replace(",", "."));
+          if (!(isFinite(a) && isFinite(b) && b > a)) { ilo.style.borderColor = ihi.style.borderColor = "#dc2626"; return false; }
+          setAxis(pi, key, a, b);
+        } else {
+          clearAxis(pi, key);
+          const c = shared ? p : sigCfg(n);
+          if (m) c.ya = m; else delete c.ya;
+        }
+        push(true);
+        redraw(); me.rows && me.rows(); save();
+        return true;
+      };
+      pop.querySelectorAll('input[name="sc"]').forEach((r) => r.onchange = () => { sync(); if (mode() !== "fix") apply(); else ilo.focus(); });
+      for (const i of [ilo, ihi]) i.onkeydown = (e) => { if (e.key === "Enter" && apply()) closeScale(); if (e.key === "Escape") closeScale(); };
+      pop.querySelector('[data-k="ok"]').onclick = () => { if (apply()) closeScale(); };
+      pop.querySelector('[data-k="x"]').onclick = closeScale;
+      void cfg;
+    }
+    box.addEventListener("pointerdown", (e) => { if (pop && !pop.contains(e.target) && !e.target.classList.contains("pidv-yb")) closeScale(); }, true);
     function removeSig(n) {
       for (const p of S.panels) { const i = p.sigs.indexOf(n); if (i >= 0) p.sigs.splice(i, 1); }
       S.panels = S.panels.filter((p) => p.sigs.length);
@@ -869,23 +922,13 @@ export default function (component) {
         g.fillStyle = c;
         g.textAlign = "right";
         const st = nice(a.hi - a.lo, Math.max(2, Math.floor((h - TOP - BOT) / 38)));
-        const top = a.unit ? TOP + 16 : TOP + 5;          // nahoře jednotka osy
-        for (let v = Math.ceil(a.lo / st) * st; v <= a.hi + 1e-12; v += st) {
+        for (let v = Math.ceil(a.lo / st) * st; v <= a.hi + 1e-12; v += st) {   // jednotky jsou v hlavičce panelu
           const y = ty(v, a, P);
-          if (y < top || y > h - BOT - 2) continue;
+          if (y < TOP - 0.5 || y > h - BOT + 0.5) continue;
           g.beginPath(); g.moveTo(xr - 3, y); g.lineTo(xr, y); g.stroke();
           let s = fmtTick(v, st);
           while (s.length > 1 && g.measureText(s).width > AXW - 8) s = s.slice(0, -1);
-          g.fillText(s, xr - 5, y);
-        }
-        if (a.unit) {
-          g.textAlign = "right";
-          g.fillStyle = c;
-          g.font = "10px sans-serif";
-          let u = a.unit;
-          while (u.length > 1 && g.measureText(u).width > AXW - 8) u = u.slice(0, -1);
-          g.fillText(u, xr - 5, TOP + 6);
-          g.font = "11px 'IBM Plex Mono', monospace";
+          g.fillText(s, xr - 5, clamp(y, TOP + 6, h - BOT - 6));
         }
       });
       // průběhy
@@ -1582,7 +1625,7 @@ export default function (component) {
           push(true);
           let ly = e.clientY;
           finish((ev) => { if (Math.abs(ev.clientY - sy) > 2) moved = true; panAxis(P, ax, ev.clientY - ly); ly = ev.clientY; redraw(); },
-            () => { if (!moved) setAct(ax.names[0]); else { push(true); save(); } });
+            (ev) => { if (!moved) { setAct(ax.names[0]); openScale(P.pi, ax.key, ev.clientX, ev.clientY); } else { push(true); save(); } });
           return;
         }
         // kurzory

@@ -2028,4 +2028,12 @@ TEXTS = {
     'vw_cor_auto': 'auto',
     'vw_cor_auto_h': 'Increments of both, or target increments against values (integrating process) – whichever is stronger',
     'vw_cor_used': 'Used: {m}.',
+    'vw_scale': 'Y scale',
+    'vw_sc_auto': 'Auto as in the toolbar ({m})',
+    'vw_sc_view': 'Auto – the view',
+    'vw_sc_all': 'Auto – whole record',
+    'vw_sc_fix': 'Fixed min / max',
+    'vw_sc_apply': 'Apply',
+    'vw_sc_view_s': 'auto',
+    'vw_sc_all_s': 'auto ∀',
 }

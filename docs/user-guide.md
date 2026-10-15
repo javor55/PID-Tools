@@ -56,7 +56,8 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
 3. **Record viewer** – every signal of the file as recorded (no resampling), for analysing a CSV on its own
    (web; the desktop app follows):
    - **panels**: PV + SP, MV and disturbances to start with; the list on the left shows every signal – tick it to show
-     it, pick its panel (or a new one), colour, unit and a manual Y range (*⋯*). In a panel every signal has its own
+     it, pick its panel (or a new one), colour and unit (*⋯*). The **Y scale** of every signal is set with the button
+     next to it (*auto*) or by clicking its Y axis: auto from the view, auto from the whole record, or fixed min / max. In a panel every signal has its own
      Y axis, or tick **shared Y axis**. Panels can be moved up / down and resized by dragging their bottom edge;
    - **zoom X and Y independently**: wheel = time, **Shift + wheel** = Y of the panel, wheel over a Y axis = that axis
      only; drag = pan time (**Shift** = pan Y), drag a Y axis = pan that axis; **Zoom ⬚ / X / Y** = select with the
