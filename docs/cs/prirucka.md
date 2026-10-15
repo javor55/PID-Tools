@@ -55,7 +55,8 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
    **Prohlížeč záznamu** – všechny signály souboru tak, jak byly zaznamenány (bez převzorkování), pro samotnou
    analýzu CSV (web; desktop bude následovat):
    - **panely**: na začátku PV + SP, MV a poruchy; v seznamu vlevo jsou všechny signály – zaškrtnutím se zobrazí,
-     dál panel (nebo nový), barva, jednotka a ruční rozsah Y (*⋯*). V panelu má každý signál vlastní osu Y, nebo
+     dál panel (nebo nový), barva a jednotka (*⋯*). **Měřítko Y** každého signálu se nastaví tlačítkem vedle něj
+     (*auto*) nebo klikem na jeho osu Y: auto podle výřezu, auto z celého záznamu, nebo pevné min / max. V panelu má každý signál vlastní osu Y, nebo
      zaškrtněte **společnou osu Y**. Panely jde posouvat nahoru / dolů a tažením spodního okraje měnit jejich výšku;
    - **zoom X a Y nezávisle**: kolečko = čas, **Shift + kolečko** = Y panelu, kolečko nad osou Y = jen ta osa;
      tažení = posun času (**Shift** = posun Y), tažení osy Y = posun té osy; **Zoom ⬚ / X / Y** = výběr myší;

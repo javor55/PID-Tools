@@ -2,6 +2,8 @@
 
 ## Nevydáno
 
+- Prohlížeč záznamu: měřítko Y pro každý signál – auto podle výřezu, auto z celého záznamu nebo pevné min / max
+  (tlačítko v seznamu signálů nebo klik na osu Y).
 - Web, záložka Data: **prohlížeč záznamu** – všechny signály souboru bez převzorkování v panelech s vlastními osami Y;
   zoom času a Y nezávisle (kolečko, Shift + kolečko, nad osou, výběr obdélníkem / X / Y, historie zoomu), kurzory
   jako na osciloskopu (C1 / C2 s Δt, hodnotami, Δ, Δ/Δt, min / max / průměrem / σ; vodorovné H1 / H2), tabulka

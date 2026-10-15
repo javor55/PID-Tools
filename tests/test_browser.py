@@ -153,6 +153,18 @@ def test_data_viewer(page):
     assert rows() == n0
     page.locator(".pidv-bar [data-a=tab]").click()
     page.locator(".pidv-bar [data-a=cur]").click()
+    # měřítko Y signálu: pevné min / max z okénka u signálu, zpět na auto
+    yb = page.locator(".pidv-sig", has_text="LIC101.MV").locator(".pidv-yb")
+    yb.click()
+    page.locator(".pidv-pop input[value=fix]").check()
+    page.locator(".pidv-pop [data-k=lo]").fill("0")
+    page.locator(".pidv-pop [data-k=hi]").fill("100")
+    page.locator(".pidv-pop [data-k=ok]").click()
+    assert yb.inner_text().replace(" ", "") == "0–100"
+    yb.click()
+    page.locator(".pidv-pop input[value=view]").check()
+    page.locator(".pidv-pop [data-k=x]").click()
+    assert yb.inner_text() == "auto"
 
 
 def test_data_viewer_analysis(page):

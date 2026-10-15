@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Record viewer: Y scale per signal – auto from the view, auto from the whole record or fixed min / max (button in
+  the signal list or a click on the Y axis).
 - Web, Data tab: **record viewer** – every signal of the file without resampling, in panels with their own Y axes;
   zoom of time and Y independently (wheel, Shift + wheel, over an axis, rectangle / X / Y selection, zoom history),
   oscilloscope cursors (C1 / C2 with Δt, values, Δ, Δ/Δt, min / max / mean / σ; horizontal H1 / H2), a table of the

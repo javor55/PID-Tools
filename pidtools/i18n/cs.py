@@ -2028,4 +2028,12 @@ TEXTS = {
     'vw_cor_auto': 'auto',
     'vw_cor_auto_h': 'Přírůstky obou signálů, nebo přírůstky cíle proti hodnotám (integrační proces) – podle toho, co vyjde silněji',
     'vw_cor_used': 'Použito: {m}.',
+    'vw_scale': 'Měřítko Y',
+    'vw_sc_auto': 'Auto podle lišty ({m})',
+    'vw_sc_view': 'Auto – zobrazený výřez',
+    'vw_sc_all': 'Auto – celý záznam',
+    'vw_sc_fix': 'Pevné min / max',
+    'vw_sc_apply': 'Použít',
+    'vw_sc_view_s': 'auto',
+    'vw_sc_all_s': 'auto ∀',
 }
