@@ -151,14 +151,20 @@ class ModelTab(Workspace):
         self.strength = w.spin(4, 1, 10, 0, 1)
         self.sign = w.combo(["auto", "pos", "neg"], labels=[T("gsg_" + x) for x in ("auto", "pos", "neg")])
         self.stic = QCheckBox(T("id_stic"))
-        self.mode = w.combo(["open", "cl"], labels=[T("idm_open"), T("idm_cl")])
+        self.mode = w.combo(["auto", "open", "cl"], labels=[T("idm_auto"), T("idm_open"), T("idm_cl")])
         w.tip(self.mode, "h_idm")
         self.mode_note = caption("")
         self.b_est = QPushButton(T("idm_est_btn"))
         w.tip(self.b_est, "h_idm_est")
         self.b_est.clicked.connect(self._estimate_set1)
+        self.b_narrow = QPushButton("")              # úsek na ruční část (data se smyčkou v AUTO zkreslují model)
+        w.tip(self.b_narrow, "h_lm_narrow")
+        self.b_narrow.clicked.connect(self._narrow)
+        self.b_tocl = QPushButton(T("lm_to_cl"))
+        self.b_tocl.clicked.connect(lambda: self.mode.setCurrentIndex(self.mode.findData("cl")))
         sec = self.section(T("dk_sec_ident"), w.form([(T("idm"), self.mode)]), "ident")
         sec.add(self.mode_note)
+        sec.add(w.hbox(self.b_narrow, self.b_tocl))
         sec.add(self.b_est)
         sec.add(g)
         sec.add(w.form([(T("thmax"), self.thmax), (T("dist_level"), self.level), (T("dist_strength"), self.strength),
@@ -235,7 +241,7 @@ class ModelTab(Workspace):
             self.strength.setValue(float(s.get("dist_strength")))
             self.sign.setCurrentIndex(self.sign.findData(s.get("gain_sign")))
             self.stic.setChecked(bool(s.get("id_stic")))
-            self.mode.setCurrentIndex(max(self.mode.findData(s.get("id_mode") or "open"), 0))
+            self.mode.setCurrentIndex(max(self.mode.findData(s.id_mode), 0))
             self.wmode.setCurrentIndex(max(self.wmode.findData(s.win_mode), 0))
             self.excl_tol.setValue(float(s.excl_tol))
         finally:
@@ -275,6 +281,12 @@ class ModelTab(Workspace):
             self._fill_windows_page()
             return
         ts, pv, mv, d = s.segment()
+        from ...app import loopmode as lm
+        from ...app.timefmt import dur
+        warn = [f"⚠️ {T(k, m=T('model_' + c), th=dur(a['th']), T=dur(a['T']))}"     # pomalý proces bez zpoždění
+                for c, r_ in s.fit["res"].items() for k, a in lm.model_checks(c, r_["p"], s.grid.Ts)]
+        if warn:
+            self.stale.setText("  \n".join(([self.stale.text()] if self.stale.text() else []) + warn))
         live = s.live_fits()                  # shoda na aktuálních úsecích (úseky se mohly od identifikace změnit)
         n_w = len(merge_windows(s.win_idx, len(s.t))) if s.inputs_mode else 0     # překrývající se úseky se sloučí
         win_labels = [f"{T('ms_win')} {k + 1}" for k in range(n_w)]
@@ -904,19 +916,40 @@ class ModelTab(Workspace):
         self.s.set(id_mode=self.mode.currentData())
         self._mode_note()
 
+    def _narrow(self):
+        if self.s.narrow_to_manual():
+            self.win.refresh()
+
     def _mode_note(self):
         s = self.s
-        self.b_est.setVisible(self.mode.currentData() == "cl" and s.has_data and s.grid.has_sp)
-        if self.mode.currentData() != "cl":
-            self.mode_note.setText(T("idm_open_note"))
+        self.b_narrow.setVisible(False)
+        self.b_tocl.setVisible(False)
+        if not s.has_data:
             return
-        if not s.grid.has_sp:
-            self.mode_note.setText("⚠️ " + T("idm_need_sp"))
+        from ...app import loopmode as lm
+        frac, mode = s.auto_frac(), self.mode.currentData()
+        eff = s.id_mode_eff
+        head = T("lm_status", a=f"{100 * frac:.0f}", m=100 - round(100 * frac)) + (
+            " " + T("lm_resolved", m=T("idm_" + eff)) if mode == "auto" else "")
+        self.b_est.setVisible(eff == "cl" and s.grid.has_sp)
+        if eff != "cl":
+            lines = [head, T("idm_open_note")]
+            if mode == "cl" and not s.grid.has_sp:
+                lines.append("⚠️ " + T("idm_need_sp"))
+            if frac >= lm.AUTO_MIN:
+                lines.append("⚠️ " + T("lm_warn", a=f"{100 * frac:.0f}"))
+                span = s.manual_span()
+                if span:
+                    from ...app.timefmt import dur
+                    self.b_narrow.setText(T("lm_narrow", a=dur(span[0]), b=dur(span[1])))
+                    self.b_narrow.setVisible(True)
+                self.b_tocl.setVisible(s.grid.has_sp and not s.inputs_mode)
+            self.mode_note.setText("  \n".join(lines))
             return
         from ...app import closedloop as cl
         ex = cl.excitation(s.sp[s.sel_mask], s.pv[s.sel_mask], s.mv[s.sel_mask])
         g = [float(s.get(f"set1_{k}")) for k in ("gain", "ti", "td")]
-        lines = [T("idm_cl_note", g=f"{g[0]:.4g}", ti=f"{g[1]:.4g}", td=f"{g[2]:.4g}")]
+        lines = [head, T("idm_cl_note", g=f"{g[0]:.4g}", ti=f"{g[1]:.4g}", td=f"{g[2]:.4g}")]
         if not ex["ok"]:
             lines.append("⚠️ " + T("idm_low_exc"))
         if s.model is not None:              # sedí Set 1 s regulátorem v záznamu? (simulace smyčky s modelem)

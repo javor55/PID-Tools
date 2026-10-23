@@ -13,6 +13,7 @@ from ...core import (DIST_PARAMS, MODELS, d_advice, default_tc, pd_z, tune)
 from ...app import frequency as fq
 from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
+from ...app import loopmode as lm
 from ...app import tuning as tun
 from ...app.loop import block_ctrl, rule_ctrl, set_ctrl
 from ...app.timefmt import auto_unit, dur
@@ -324,6 +325,11 @@ def _tn_method(s):
                 st.info(notes_text(sug["notes"]), icon=":material/lightbulb:")
             if sug["Kc"] < 0:
                 st.warning(T("warn_neg_gain"), icon=":material/swap_vert:")
+            g1 = ss.get("set1_gain", 1.0)
+            g1 = None if tun.is_placeholder(g1, ss.get("set1_ti", 100.0), ss.get("set1_td", 0.0)) else g1
+            for wk, a_ in lm.tuning_checks(mcode, p, sug["Kc"], s.ctx.Ts, g1):   # věrohodnost návrhu
+                st.warning(T(wk, m=model_name(mcode), **{k: (dur(v) if k in ("th", "T") else f"{v:.3g}")
+                                                          for k, v in a_.items()}), icon=":material/warning:")
         if "fit" in ss and mcode in ss.fit["res"] and ss.fit["res"][mcode]["fit"] < 70:
             st.warning(T("warn_low_fit"), icon=":material/warning:")
     cmp_ph.markdown(f"<div class='pid-sub' style='text-align:right'>{T('tn_cmp_line', a=T('dk_suggest'), b=T('set_2'))}"

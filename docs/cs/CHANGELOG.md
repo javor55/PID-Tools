@@ -2,6 +2,10 @@
 
 ## Nevydáno
 
+- Model (web i desktop): režim dat pro identifikaci je **automatický** – v záznamu se rozpozná MAN / AUTO, ukáže
+  se podíl AUTO v úseku a při převaze AUTO se zvolí identifikace v uzavřené smyčce; když by model MV → PV použil data
+  v AUTO, varování s *Zúžit na ruční úsek* / *Identifikovat v uzavřené smyčce*. Kontroly věrohodnosti: pomalý proces
+  skoro bez dopravního zpoždění (model), zesílení smyčky K·Gain > 20 a návrh víc než 20× jiný než Set 1 (ladění).
 - Prohlížeč záznamu: měřítko Y pro každý signál – auto podle výřezu, auto z celého záznamu nebo pevné min / max
   (tlačítko v seznamu signálů nebo klik na osu Y).
 - Web, záložka Data: **prohlížeč záznamu** – všechny signály souboru bez převzorkování v panelech s vlastními osami Y;

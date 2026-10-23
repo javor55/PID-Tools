@@ -419,6 +419,16 @@ class TuningTab(Workspace):
         s = self.s
         if s.model is not None and s.fit["res"][s.model[0]]["fit"] < 70:
             warn.append("⚠️ " + T("warn_low_fit"))
+        if s.model is not None:                   # věrohodnost návrhu (model bez zpoždění, velké zesílení smyčky)
+            from ...app import loopmode as lm
+            from ...app import tuning as tun
+            from ...app.timefmt import dur
+            g1 = float(s.get("set1_gain", 1.0))
+            g1 = None if tun.is_placeholder(g1, float(s.get("set1_ti", 100.0)), float(s.get("set1_td", 0.0))) else g1
+            code, p = s.model[0], s.model[1]
+            for k, a in lm.tuning_checks(code, p, sug["Kc"], s.grid.Ts, g1):
+                warn.append("⚠️ " + T(k, m=T("model_" + code),
+                                      **{n: (dur(v) if n in ("th", "T") else f"{v:.3g}") for n, v in a.items()}))
         self.sug.setText(f"**{T('dk_suggest')}:** Gain = {sug['Kc']:.4g} · TI = {sug['Ti']:.4g} s · "
                          f"TD = {sug['Td']:.4g} s" + ("  \n" + notes if notes else "")
                          + ("  \n" + "  \n".join(warn) if warn else ""))

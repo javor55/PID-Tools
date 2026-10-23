@@ -19,9 +19,11 @@ from ..theme import C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP, _c_edit
 from ..layout import section
 from ..widgets import model_name, num, seg, sel, sld
 from ...app import closedloop as cl_mod
+from ...app import loopmode as lm
 from ...app import model as mdl
 from ...app import windows as wn
 from ...app.loop import set_ctrl
+from ...app.timefmt import dur
 from ..table import table
 
 ss = st.session_state
@@ -159,27 +161,75 @@ def _shown(ctx, key, labels, i):
     return ctx.active_tab == "model" and (cur if cur in labels else labels[0]) == labels[i]
 
 
+def _loop_det(ctx):
+    """Úseky MAN / AUTO v celém záznamu (v paměti relace pro daný soubor a signály)."""
+    key = (ctx.fname, len(ctx.t), str(ctx.c_mv), str(ctx.c_pv), str(ctx.c_sp))
+    c = ss.get("_lm_det")
+    if not c or c[0] != key:
+        c = (key, lm.detect(ctx.t, ctx.mv, ctx.pv, ctx.sp if ctx.has_sp else None))
+        ss["_lm_det"] = c
+    return c[1]
+
+
+def _auto_frac(ctx, det):
+    """Podíl AUTO v úseku identifikace (společný úsek, nebo úseky MV)."""
+    if ctx.win_mode == "inputs":
+        m = np.zeros(len(ctx.t), bool)
+        for a, b in ctx.wins_s.get("MV", []):
+            m |= (ctx.t >= a) & (ctx.t <= b)
+        return float(det["auto"][m].mean()) if m.any() else 0.0
+    return lm.frac_in(det, ctx.t, *ctx.rng)
+
+
+def _narrow_to(ctx, span):
+    """Úsek identifikace (nebo úsek MV) na ruční část záznamu."""
+    if ctx.win_mode == "inputs":
+        key = f"wins|{ctx.fname}"
+        W = dict(ss.get(key) or {})
+        W["MV"] = [[float(span[0]), float(span[1])]]
+        ss[key] = W
+    else:
+        ss["pending_rng"] = (float(span[0]), float(span[1]))
+
+
 def _md_ident(s):
     """Panel identifikace: režim (otevřená / uzavřená smyčka), modely, θ max, neměřené poruchy, stikce."""
     Ts, ctx, d_id, mv_id, pv_id, sel_mask = s.Ts, s.ctx, s.d_id, s.mv_id, s.pv_id, s.sel_mask
     ts_id, ws = s.ts_id, s.ws
     # ---- 2 · identifikace (panel)
+    # ---- data z ruční (MAN) nebo automatické (AUTO) smyčky – rozpoznání v záznamu, volba nad tlačítkem Identifikovat
+    det = _loop_det(ctx)
+    a_frac = _auto_frac(ctx, det)
+    with ws.top:
+        if ss.get("id_mode") not in ("auto", "open", "cl"):
+            ss["id_mode"] = "auto"
+        id_mode = sel(st, T("idm"), ["auto", "open", "cl"], 0, "id_mode", format_func=lambda x: T("idm_" + x),
+                      help=T("h_idm"))
+        ex_ok = cl_mod.excitation(ctx.sp[sel_mask], pv_id, mv_id)["ok"] if ctx.has_sp else False
+        eff = lm.resolve_mode(id_mode, a_frac, ctx.has_sp, ex_ok)
+        st.caption(T("lm_status", a=f"{100 * a_frac:.0f}", m=100 - round(100 * a_frac))
+                   + (" " + T("lm_resolved", m=T("idm_" + eff)) if id_mode == "auto" else ""))
+        if eff == "open" and a_frac >= lm.AUTO_MIN:
+            st.warning(T("lm_warn", a=f"{100 * a_frac:.0f}"), icon=":material/sync_problem:")
+            span = lm.manual_span(det, ctx.t, ctx.mv, *ctx.rng)
+            c1, c2 = st.columns(2)
+            if span:
+                c1.button(T("lm_narrow", a=dur(span[0]), b=dur(span[1])), key="g_lm_narrow", width="stretch",
+                          on_click=_narrow_to, args=(ctx, span), help=T("h_lm_narrow"))
+            if ctx.has_sp and ctx.win_mode != "inputs":
+                c2.button(T("lm_to_cl"), key="g_lm_cl", width="stretch", on_click=lambda: ss.update(id_mode="cl"))
+        closed = eff == "cl" and ctx.has_sp
+        if id_mode == "cl" and not ctx.has_sp:
+            st.warning(T("idm_need_sp"), icon=":material/warning:")
+        if closed:                           # uzavřená smyčka: regulátor ze záznamu (Set 1) a buzení změnami SP
+            st.caption(T("idm_cl_note", g=f"{ss.get('set1_gain', 1.0):.4g}", ti=f"{ss.get('set1_ti', 100.0):.4g}",
+                         td=f"{ss.get('set1_td', 0.0):.4g}"))
+            if not ex_ok:
+                st.warning(T("idm_low_exc"), icon=":material/warning:")
+            _set1_check(ctx, ts_id, pv_id, mv_id, d_id, Ts, sel_mask)
     with ws.ident:
         if "chosen" not in ss:
             ss["chosen"] = list(MODELS)
-        id_mode = sel(st, T("idm"), ["open", "cl"], 0, "id_mode", format_func=lambda x: T("idm_" + x),
-                      help=T("h_idm"))
-        closed = id_mode == "cl" and ctx.has_sp
-        if id_mode == "cl":
-            if not ctx.has_sp:
-                st.warning(T("idm_need_sp"), icon=":material/warning:")
-            else:
-                ex_ = cl_mod.excitation(ctx.sp[sel_mask], pv_id, mv_id)
-                st.caption(T("idm_cl_note", g=f"{ss.get('set1_gain', 1.0):.4g}", ti=f"{ss.get('set1_ti', 100.0):.4g}",
-                             td=f"{ss.get('set1_td', 0.0):.4g}"))
-                if not ex_["ok"]:
-                    st.warning(T("idm_low_exc"), icon=":material/warning:")
-                _set1_check(ctx, ts_id, pv_id, mv_id, d_id, Ts, sel_mask)
         chosen = st.multiselect(T("models"), list(MODELS), format_func=model_name, key="chosen",
                                 placeholder=T("ms_placeholder"), help=T("h_models"))
         th_max = num(T("thmax"), "thmax", round(0.4 * ts_id[-1], 1), min_value=0.0, help=T("thmax_help"))
@@ -469,6 +519,9 @@ def _md_table(s):
         for wk, c in mdl.warnings(res, ts_id[-1], th_max):
             st.warning(T(wk, m=model_name(c)), icon=":material/trending_up:" if wk == "warn_long_T"
                        else ":material/warning:")
+        for c, r_ in res.items():                # pomalý proces bez dopravního zpoždění → nesmyslně tvrdé ladění
+            for wk, a_ in lm.model_checks(c, r_["p"], Ts):
+                st.warning(T(wk, m=model_name(c), th=dur(a_["th"]), T=dur(a_["T"])), icon=":material/warning:")
     s.cmp_tabs, s.cmp_labels, s.rows = cmp_tabs, cmp_labels, rows
 
 

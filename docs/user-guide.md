@@ -106,8 +106,15 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
    own); drag the handles in the chart or type the numbers (web and desktop work the same). Below it the **data quality for identification**: number,
    direction and spacing of steps, settling after the last step, signal-to-noise ratio, historian compression,
    sampling, MV at or beyond a limit, SP ramps. Each warning says what to do about it.
+   **Identification data** (above *Identify*): *Automatic from the record* (default) recognises when the MV is moved by
+   a person (manual, MAN – steps) and when by the controller (AUTO – the MV follows the error) and shows the share of
+   AUTO in the segment. When AUTO prevails and the SP changes, closed-loop identification is used; otherwise MV → PV.
+   An MV → PV model from data with the loop in AUTO is biased (typically the dead time is missing and the tuning comes
+   out absurdly aggressive) – the app warns and offers *Narrow to the manual span* or *Identify in closed loop*.
 2. **Models** – choose which structures to try (default: all; the best fit is offered). Integrating models are for
-   processes that do not settle (level).
+   processes that do not settle (level). A slow process with almost no dead time is flagged as a probable
+   identification error; the Tuning tab also warns when the loop gain K·Gain is very high or the proposal differs
+   more than 20× from the current Set 1.
 3. **Identification settings**:
    - *Max. θ* – upper limit of the dead time;
    - *Unmeasured disturbances* – none / medium (filter of slow changes) / strong (slow disturbance estimated

@@ -877,3 +877,27 @@ def test_window_per_input_ui(win):
     m.wmode.setCurrentIndex(m.wmode.findData("common"))
     _wait(app)
     assert not s.inputs_mode and not m.common_box.isHidden() and m.excl_sec.isHidden()
+
+
+def test_loop_mode_desktop(win, tmp_path):
+    """Desktop: režim dat „automaticky“, podíl AUTO v úseku, zúžení na ruční úsek a varování u modelu bez zpoždění."""
+    from tests.test_loopmode import _record
+    app, w = win
+    t, mv, pv, sp = _record()
+    proj = dict(version=2, tag="TT", fname="rec", state={"pv_lo": 0.0, "pv_hi": 100.0, "samp": 1.0},
+                map={"c_pv": "PV", "c_mv": "MV", "c_sp": "SP", "c_d": [], "c_pos": "—"},
+                ranges={"id": [0.0, float(t[-1])]}, ff=[], data={"cols": {"t_s": t, "PV": pv, "MV": mv, "SP": sp}})
+    p = tmp_path / "rec.json"
+    p.write_text(prj.serialize_project(proj), encoding="utf-8")
+    s = w.state
+    s.load_project(p)
+    w.refresh()
+    m = w.pages[1]
+    w.tabs.setCurrentIndex(1)
+    _wait(app)
+    assert s.id_mode == "auto" and m.mode.currentData() == "auto"
+    assert 0.3 < s.auto_frac() < 0.45 and s.id_mode_eff == "open"
+    assert not m.b_narrow.isHidden() and "AUTO" in m.mode_note.text()
+    m.b_narrow.click()
+    _wait(app)
+    assert s.auto_frac() == 0.0 and s.rng[1] <= 3.3 * 3600 and m.b_narrow.isHidden()
