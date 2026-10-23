@@ -34,7 +34,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M8 | API: projekt | B | S | M6 | ◐ |
 | M9 | API: model | B | L | M5, M7 | ◐ |
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ◐ |
-| M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ☐ |
+| M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ◐ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ☐ |
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ☐ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ☐ |
@@ -273,6 +273,20 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - APC (všechny techniky), diagnostika, přehled smyček, report (HTML, beze změny `app.report`), OPC UA (jen čtení).
 
 **Hotovo když:** souhlas se zlatými případy. Report z API je shodný s dnešním (porovnání HTML bez časových značek).
+
+**Skutečnost – M11a (hotovo):**
+- `pidtools/api/analysis.py`:
+  - `diagnostics` – KPI, ventil, hystereze, nelinearita (= zlatý případ);
+  - `apc/recommend` – doporučené struktury;
+  - `report` – protokol HTML, stejná funkce jako desktop.
+- `pidtools/api/opcua.py`: `opc/browse`, `opc/find`, `workspaces/{id}/opc/history` (úloha → data prostoru),
+  test proti lokálnímu testovacímu serveru.
+- Jazyk textů z výpočtů (doporučení, protokol) podle `?lang=` nebo `Accept-Language`.
+- Přehled smyček = `/loops` (M8).
+
+**Zbývá – M11b:** jednotlivé techniky APC (kaskáda, dopředná vazba, rozvazbení, override, Smith, gain scheduling,
+poměr, split range, VPC) jako endpointy nad `app.apc.*`. Ty dnes volají přímo okna; každá technika má vlastní
+vstupy a výsledky.
 
 ---
 

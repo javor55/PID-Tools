@@ -7,6 +7,7 @@ Spuštění: python -m pidtools.api --port 8765 --token TAJNE
 Rozhraní je popsané v openapi.json vedle tohoto souboru (generované; test hlídá, že odpovídá kódu).
 """
 import asyncio
+import contextvars
 import hmac
 import json
 from contextlib import asynccontextmanager
@@ -18,7 +19,7 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL, JobManager
-from . import data, model, projects, tuning
+from . import analysis, data, model, opcua, projects, tuning
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -27,6 +28,21 @@ from .store import WorkspaceStore
 class Health(BaseModel):
     status: str
     version: str
+
+
+_LANG = contextvars.ContextVar("pidtools_lang", default=i18n.DEFAULT_LANG)
+
+
+def _request_lang(request):
+    """Jazyk textů odpovědi: ?lang=cs, jinak hlavička Accept-Language, jinak výchozí."""
+    q = request.query_params.get("lang")
+    if q in i18n.TEXTS:
+        return q
+    for part in request.headers.get("accept-language", "").split(","):
+        code = part.strip()[:2].lower()
+        if code in i18n.TEXTS:
+            return code
+    return i18n.DEFAULT_LANG
 
 
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
@@ -41,6 +57,16 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app = FastAPI(title="PID Tools API", version=__version__, lifespan=lifespan,
                   description="Identification, tuning and simulation of PIDConL loops (PCS 7).")
     app.state.store = WorkspaceStore(workspace_ttl, max_workspaces)
+    i18n.set_lang_provider(_LANG.get)            # texty výpočtů (doporučení, protokol) v jazyce požadavku
+
+    @app.middleware("http")
+    async def lang_mw(request, call_next):
+        tok = _LANG.set(_request_lang(request))
+        try:
+            return await call_next(request)
+        finally:
+            _LANG.reset(tok)
+
     app.state.jobs = jobs
     if cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cors_origins), allow_methods=["*"],
@@ -74,6 +100,8 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.include_router(projects.router(project), dependencies=[Depends(auth)])
     app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
+    app.include_router(analysis.router(project), dependencies=[Depends(auth)])
+    app.include_router(opcua.router(project, jobs), dependencies=[Depends(auth)])
 
     @app.get("/health", response_model=Health, tags=["system"])
     def health():

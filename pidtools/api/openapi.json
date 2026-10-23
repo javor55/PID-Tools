@@ -14,6 +14,62 @@
     "title": "Active",
     "type": "object"
    },
+   "Browse": {
+    "properties": {
+     "node_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Node Id"
+     },
+     "parent_path": {
+      "default": "",
+      "title": "Parent Path",
+      "type": "string"
+     },
+     "password": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Password"
+     },
+     "timeout": {
+      "default": 10.0,
+      "title": "Timeout",
+      "type": "number"
+     },
+     "url": {
+      "title": "Url",
+      "type": "string"
+     },
+     "user": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User"
+     }
+    },
+    "required": [
+     "url"
+    ],
+    "title": "Browse",
+    "type": "object"
+   },
    "Check": {
     "properties": {
      "args": {
@@ -84,6 +140,115 @@
      "mv"
     ],
     "title": "Columns",
+    "type": "object"
+   },
+   "Diagnostics": {
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "number"
+     },
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "hysteresis": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hysteresis"
+     },
+     "kpis": {
+      "additionalProperties": true,
+      "title": "Kpis",
+      "type": "object"
+     },
+     "nonlinearity": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nonlinearity"
+     },
+     "valve": {
+      "additionalProperties": true,
+      "title": "Valve",
+      "type": "object"
+     }
+    },
+    "required": [
+     "a",
+     "b",
+     "kpis",
+     "valve"
+    ],
+    "title": "Diagnostics",
+    "type": "object"
+   },
+   "Find": {
+    "properties": {
+     "node_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Node Id"
+     },
+     "password": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Password"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "timeout": {
+      "default": 10.0,
+      "title": "Timeout",
+      "type": "number"
+     },
+     "url": {
+      "title": "Url",
+      "type": "string"
+     },
+     "user": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User"
+     }
+    },
+    "required": [
+     "url",
+     "text"
+    ],
+    "title": "Find",
     "type": "object"
    },
    "FreqSet": {
@@ -239,6 +404,66 @@
      "version"
     ],
     "title": "Health",
+    "type": "object"
+   },
+   "History": {
+    "properties": {
+     "end": {
+      "format": "date-time",
+      "title": "End",
+      "type": "string"
+     },
+     "nodes": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "title": "Nodes",
+      "type": "object"
+     },
+     "password": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Password"
+     },
+     "start": {
+      "format": "date-time",
+      "title": "Start",
+      "type": "string"
+     },
+     "timeout": {
+      "default": 10.0,
+      "title": "Timeout",
+      "type": "number"
+     },
+     "url": {
+      "title": "Url",
+      "type": "string"
+     },
+     "user": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User"
+     }
+    },
+    "required": [
+     "url",
+     "nodes",
+     "start",
+     "end"
+    ],
+    "title": "History",
     "type": "object"
    },
    "JobInfo": {
@@ -850,6 +1075,34 @@
     "title": "NewLoop",
     "type": "object"
    },
+   "Node": {
+    "properties": {
+     "is_var": {
+      "title": "Is Var",
+      "type": "boolean"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "node_id": {
+      "title": "Node Id",
+      "type": "string"
+     },
+     "path": {
+      "title": "Path",
+      "type": "string"
+     }
+    },
+    "required": [
+     "node_id",
+     "name",
+     "path",
+     "is_var"
+    ],
+    "title": "Node",
+    "type": "object"
+   },
    "Note": {
     "properties": {
      "args": {
@@ -964,6 +1217,35 @@
     "title": "Range",
     "type": "object"
    },
+   "Recommendation": {
+    "properties": {
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "other": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Other"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "kind",
+     "text"
+    ],
+    "title": "Recommendation",
+    "type": "object"
+   },
    "Refit": {
     "properties": {
      "code": {
@@ -975,6 +1257,41 @@
      "code"
     ],
     "title": "Refit",
+    "type": "object"
+   },
+   "ReportReq": {
+    "properties": {
+     "chart_mode": {
+      "default": "inline",
+      "enum": [
+       "inline",
+       "cdn"
+      ],
+      "title": "Chart Mode",
+      "type": "string"
+     },
+     "meta": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Meta",
+      "type": "object"
+     },
+     "sections": {
+      "default": [
+       "model",
+       "tuning",
+       "response",
+       "apc",
+       "signoff"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "title": "Sections",
+      "type": "array"
+     }
+    },
+    "title": "ReportReq",
     "type": "object"
    },
    "Run": {
@@ -2106,6 +2423,232 @@
     ]
    }
   },
+  "/opc/available": {
+   "get": {
+    "operationId": "available_opc_available_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "title": "Response Available Opc Available Get",
+         "type": "boolean"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Available",
+    "tags": [
+     "opcua"
+    ]
+   }
+  },
+  "/opc/browse": {
+   "post": {
+    "description": "Podřízené uzly (výchozí: složka Objects).",
+    "operationId": "browse_opc_browse_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Browse"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Node"
+         },
+         "title": "Response Browse Opc Browse Post",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Browse",
+    "tags": [
+     "opcua"
+    ]
+   }
+  },
+  "/opc/find": {
+   "post": {
+    "description": "Proměnné, jejichž cesta obsahuje text (např. „FIC101“).",
+    "operationId": "find_opc_find_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Find"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Node"
+         },
+         "title": "Response Find Opc Find Post",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Find",
+    "tags": [
+     "opcua"
+    ]
+   }
+  },
   "/workspaces": {
    "post": {
     "operationId": "ws_create_workspaces_post",
@@ -2307,6 +2850,85 @@
     "summary": "Ws Get",
     "tags": [
      "workspace"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/recommend": {
+   "get": {
+    "description": "Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).",
+    "operationId": "recommend_workspaces__wid__apc_recommend_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Recommendation"
+         },
+         "title": "Response Recommend Workspaces  Wid  Apc Recommend Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Recommend",
+    "tags": [
+     "diagnostics"
     ]
    }
   },
@@ -2641,6 +3263,129 @@
     "summary": "Load File",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/diagnostics": {
+   "get": {
+    "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí podle modelu).",
+    "operationId": "diagnostics_workspaces__wid__diagnostics_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "a",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "A"
+      }
+     },
+     {
+      "in": "query",
+      "name": "b",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "B"
+      }
+     },
+     {
+      "in": "query",
+      "name": "integ",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Integ"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Diagnostics"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Diagnostics",
+    "tags": [
+     "diagnostics"
     ]
    }
   },
@@ -3857,6 +4602,91 @@
     ]
    }
   },
+  "/workspaces/{wid}/opc/history": {
+   "post": {
+    "description": "Historie vybraných uzlů (úloha) → data pracovního prostoru (nový projekt s jednou smyčkou).",
+    "operationId": "history_workspaces__wid__opc_history_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/History"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "History",
+    "tags": [
+     "opcua"
+    ]
+   }
+  },
   "/workspaces/{wid}/project": {
    "get": {
     "description": "Projekt jako soubor JSON (všechny smyčky; s daty, nebo bez nich).",
@@ -4209,6 +5039,87 @@
     "summary": "Set Range",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/report": {
+   "post": {
+    "description": "Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.",
+    "operationId": "report_workspaces__wid__report_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReportReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "text/html": {}
+      },
+      "description": "tuning protocol (HTML)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Report",
+    "tags": [
+     "diagnostics"
     ]
    }
   },
