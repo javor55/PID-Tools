@@ -121,8 +121,9 @@ def _worker(fn, args, kwargs, q):
 
 
 class Job:
-    def __init__(self, jid, fn, args, kwargs, key, timeout):
+    def __init__(self, jid, fn, args, kwargs, key, timeout, on_done=None):
         self.id, self.fn, self.args, self.kwargs, self.key, self.timeout = jid, fn, args, kwargs, key, timeout
+        self.on_done = on_done
         self.state, self.progress, self.text = "queued", 0.0, ""
         self.result = self.error = self.trace = None
         self.cached = False
@@ -154,10 +155,14 @@ class JobManager:
         self._thread.start()
 
     # ---- veřejné rozhraní
-    def submit(self, fn, *args, key=None, timeout=None, **kwargs):
-        """Nová úloha; s klíčem v cache je hotová hned (cached=True). Vrací ID úlohy."""
+    def submit(self, fn, *args, key=None, timeout=None, on_done=None, **kwargs):
+        """
+        Nová úloha; s klíčem v cache je hotová hned (cached=True). on_done(výsledek) se zavolá v procesu správce
+        po úspěšném dokončení (např. uložení výsledku do pracovního prostoru); jeho chyba úlohu označí jako chybnou.
+        Vrací ID úlohy.
+        """
         jid = f"j{next(self._ids)}"
-        job = Job(jid, fn, args, kwargs, key, timeout)
+        job = Job(jid, fn, args, kwargs, key, timeout, on_done)
         if key is not None and key in self.cache:
             job.result, job.cached = self.cache.get(key), True
             self._finish(job, "done", progress=1.0)
@@ -207,6 +212,11 @@ class JobManager:
             return self._jobs[jid]
 
     def _finish(self, job, state, progress=None, error=None):
+        if state == "done" and job.on_done is not None:
+            try:
+                job.on_done(job.result)
+            except Exception as ex:                 # noqa: BLE001 – výsledek nešel použít
+                state, error = "error", f"{type(ex).__name__}: {ex}"
         job.state = state
         job.finished = time.time()
         if progress is not None:

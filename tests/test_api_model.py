@@ -1,0 +1,117 @@
+"""
+API – model (M9): identifikace jako úloha, výsledky shodné se zlatými případy, úseky a režim MAN / AUTO,
+výběr modelu, dofitování se zafixovaným parametrem, nejistota, křížové ověření, průběhy modelu.
+"""
+import os
+import sys
+import time
+
+import pytest
+
+pytest.importorskip("fastapi")
+from fastapi.testclient import TestClient  # noqa: E402
+
+from pidtools.api import create_app  # noqa: E402
+from pidtools.app import signalpack  # noqa: E402
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "tools"))
+import golden  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(create_app(max_jobs=2)) as c:
+        yield c
+
+
+def _ws(client):
+    return client.post("/workspaces").json()["id"]
+
+
+def _wait(client, job, t=300):
+    t0 = time.time()
+    while time.time() - t0 < t:
+        st = client.get(f"/jobs/{job['id']}").json()
+        if st["state"] in ("done", "error", "cancelled", "timeout"):
+            assert st["state"] == "done", st
+            return st
+        time.sleep(0.2)
+    raise AssertionError("job timeout")
+
+
+def _models(client, wid):
+    m = client.get(f"/workspaces/{wid}/model").json()
+    return m, {r["code"]: r for r in m["results"]}
+
+
+def _same(ref_res, got):
+    """Parametry modelů jako ve zlatém případu (stejná tolerance jako tests/test_golden.py)."""
+    for c, r in ref_res.items():
+        assert golden.compare(r["p"], got[c]["p"], "/p") == [], (c, r["p"], got[c]["p"])
+        assert golden.compare(r["fit"], got[c]["fit"]) == [], c
+
+
+def test_demo_identify_like_golden(client):
+    wid = _ws(client)
+    client.post(f"/workspaces/{wid}/data/demo")
+    client.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+    job = client.post(f"/workspaces/{wid}/identify").json()
+    assert job["state"] in ("queued", "running", "done")
+    _wait(client, job)
+    m, res = _models(client, wid)
+    ref = golden.load("demo_common")["model"]
+    _same(ref["res"], res)
+    assert m["selected"] == ref["best"] and m["current"]["code"] == ref["best"] and not m["stale"]
+    # znovu se stejnými vstupy: výsledek z cache
+    again = client.post(f"/workspaces/{wid}/identify").json()
+    assert again["state"] == "done" and again["cached"]
+    # průběhy modelu binárně
+    meta, sig = signalpack.unframe(client.get(f"/workspaces/{wid}/model/curves").content)
+    assert {"pv", "mv", "model", "residual", "full"} <= set(sig) and len(sig["model"][0]) == 3600
+    # výběr modelu a dofitování se zafixovaným θ
+    client.put(f"/workspaces/{wid}/model/select", json={"code": "P1D"})
+    client.patch(f"/workspaces/{wid}/settings", json={"fx|P1D|2": True, "ed|P1D|2": 30.0})
+    _wait(client, client.post(f"/workspaces/{wid}/model/refit", json={"code": "P1D"}).json())
+    m, res = _models(client, wid)
+    assert res["P1D"]["p"][2] == pytest.approx(30.0) and m["current"]["code"] == "P1D"
+    # nejistota
+    _wait(client, client.post(f"/workspaces/{wid}/model/uncertainty", json={"n": 3}).json())
+    m, _ = _models(client, wid)
+    assert m["uncertainty"]["code"] == "P1D" and len(m["uncertainty"]["ps"]) == 3
+    # změna nastavení → model zastaralý
+    client.patch(f"/workspaces/{wid}/settings", json={"thmax": 50.0})
+    assert client.get(f"/workspaces/{wid}/model").json()["stale"]
+
+
+def test_mixed_windows_like_golden(client):
+    """Reálná smyčka TIC001: úseky MV ručně + AUTO, kombinovaná identifikace (zlatý případ tic001_mixed)."""
+    wid = _ws(client)
+    client.put(f"/workspaces/{wid}/project", content=open(os.path.join(HERE, "golden", "tic001.json"), "rb").read(),
+               headers={"Content-Type": "application/json"})
+    client.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D"], "id_mode": "auto", "win_mode": "inputs"})
+    w = client.put(f"/workspaces/{wid}/windows", json={
+        "wins": {"MV": [[5.0 * 3600, 8.6 * 3600], [8.65 * 3600, 11.1 * 3600]]},
+        "excl": {"PV": [False, 0.0, 100.0]}}).json()
+    assert w["mv_modes"] == ["man", "auto"] and "TIC002_PV" in w["inputs"]
+    assert client.put(f"/workspaces/{wid}/windows", json={"wins": {"XX": [[0, 1]]}}).status_code == 422
+    _wait(client, client.post(f"/workspaces/{wid}/identify").json())
+    m, res = _models(client, wid)
+    ref = golden.load("tic001_mixed")["model"]
+    _same(ref["res"], res)
+    assert res["P1D"]["mixed"] and res["P1D"]["fit_cl_pv"] is not None and "chk_no_delay" in res["P1D"]["checks"]
+    # režim úseku ručně → kombinovaná identifikace se nepoužije
+    w = client.put(f"/workspaces/{wid}/windows/mode", json={"index": 1, "mode": "man"}).json()
+    assert w["mv_modes"] == ["man", "man"]
+    # křížové ověření po úsecích
+    _wait(client, client.post(f"/workspaces/{wid}/model/crossval").json())
+    assert "P1D" in client.get(f"/workspaces/{wid}/model").json()["crossval"]
+
+
+def test_errors(client):
+    wid = _ws(client)
+    assert client.post(f"/workspaces/{wid}/identify").status_code == 409
+    client.post(f"/workspaces/{wid}/data/demo")
+    assert client.get(f"/workspaces/{wid}/model").json()["has_fit"] is False
+    assert client.get(f"/workspaces/{wid}/model/curves").status_code == 409
+    assert client.put(f"/workspaces/{wid}/model/select", json={"code": "P1D"}).status_code == 404

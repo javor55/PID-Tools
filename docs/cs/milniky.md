@@ -32,7 +32,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ◐ |
 | M7 | API: data a signály | B | M | M6 | ◐ |
 | M8 | API: projekt | B | S | M6 | ◐ |
-| M9 | API: model | B | L | M5, M7 | ☐ |
+| M9 | API: model | B | L | M5, M7 | ◐ |
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☐ |
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ☐ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ☐ |
@@ -237,6 +237,18 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
   křížové ověření, nejistota, kontroly věrohodnosti, data pro grafy (model × data, rezidua).
 
 **Hotovo když:** výsledky přes API souhlasí se zlatými případy.
+
+**Skutečnost:**
+- `pidtools/api/model.py`:
+  - `windows` – úseky, vyřazení dat; `windows/mode` – ručně / AUTO;
+  - `identify` – úloha;
+  - `model` – výsledky s FIT na aktuálních úsecích, NRMSE, hodnocením, kontrolami, křížovým ověřením a nejistotou;
+  - `model/select`, `model/reset`; úlohy `model/refit`, `model/crossval`, `model/uncertainty`;
+  - `model/curves` – binárně: model, jen MV, jen poruchy, celý záznam, rezidua.
+- Výpočty běží jako úlohy na odlehčené kopii prostoru (`Workspace.lean`, ≈ 150 kB) a výsledek se zapíše zpět.
+  Opakovaná identifikace se stejnými vstupy jde z cache.
+- `tests/test_api_model.py`: modely demo i TIC001 (kombinovaná) přes API = zlaté případy; ověřeny i dofitování
+  se zafixovaným θ, nejistota, křížové ověření, průběhy a zastaralý model.
 
 ### M10 · API: ladění a simulace (L)
 - Blok PIDConL a sady, metody a návrh, kontroly, porovnání metod, scénář (simulace), dopředná vazba, robustnost

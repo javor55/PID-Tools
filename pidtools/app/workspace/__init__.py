@@ -70,3 +70,16 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
     @property
     def norm(self):
         return self.pv_lo, self.pv_hi, self.mv_lo, self.mv_hi
+
+    def lean(self):
+        """
+        Kopie pro výpočet v jiném procesu (app.jobs): bez původní tabulky a signálů ze souboru (nejdou přenést
+        a výpočty nad převzorkovanými daty je nepotřebují); nastavení, úseky a výsledky jako samostatné kopie.
+        """
+        import copy
+        c = copy.copy(self)
+        c.df = c.sig = None
+        c.settings = dict(self.settings)
+        c.wins = {k: [list(w) for w in v] for k, v in self.wins.items()}
+        c.excl = {k: list(v) for k, v in self.excl.items()}
+        return c

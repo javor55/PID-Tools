@@ -18,7 +18,8 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL, JobManager
-from . import data, projects
+from . import data, model, projects
+from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
 
@@ -26,18 +27,6 @@ from .store import WorkspaceStore
 class Health(BaseModel):
     status: str
     version: str
-
-
-class JobInfo(BaseModel):
-    id: str
-    state: str
-    progress: float
-    text: str
-    error: str | None = None
-    cached: bool = False
-    created: float
-    started: float | None = None
-    finished: float | None = None
 
 
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
@@ -83,6 +72,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
     app.include_router(data.router(project), dependencies=[Depends(auth)])
     app.include_router(projects.router(project), dependencies=[Depends(auth)])
+    app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
 
     @app.get("/health", response_model=Health, tags=["system"])
     def health():
