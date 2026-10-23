@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Model (web and desktop): **combined identification** – with per-input segments, each MV segment can be set to
+  *Manual* (open loop) or *AUTO* (closed loop with controller Set 1); one model is fitted to all segments at once
+  (manual segments as MV → PV, AUTO segments by a loop simulation). A warning when the AUTO simulation does not
+  match the record (Set 1 or the NormPV / NormMV ranges do not match the controller).
 - Model (web and desktop): the identification data mode is **automatic** – MAN / AUTO is recognised in the
   record, the share of AUTO in the segment is shown, closed-loop identification is chosen when AUTO prevails; a
   warning with *Narrow to the manual span* / *Identify in closed loop* when an MV → PV model would use AUTO data.

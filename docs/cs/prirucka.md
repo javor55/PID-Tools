@@ -108,6 +108,12 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
    Převažuje-li AUTO a mění se SP, použije identifikaci v uzavřené smyčce, jinak MV → PV. Model MV → PV z dat se
    smyčkou v AUTO vychází zkreslený (typicky chybí dopravní zpoždění a ladění pak vyjde nesmyslně tvrdé) – aplikace
    upozorní a nabídne *Zúžit na ruční úsek* nebo *Identifikovat v uzavřené smyčce*.
+   **Kombinace (úseky podle vstupů):** každý úsek MV má volbu *Ručně* / *AUTO* (výchozí podle rozpoznání v záznamu).
+   Jeden model se pak fituje na všechny úseky najednou – ruční úseky jako MV → PV, úseky v AUTO porovnáním se
+   simulací smyčky s regulátorem *Set 1* (PV i MV, s rozběhem od skutečného stavu před úsekem). Ruční úseky dají
+   dobře zesílení a časovou konstantu, úseky v AUTO pomohou s dopravním zpožděním. Set 1 (Gain, TI, TD a rozsahy
+   NormPV / NormMV) musí odpovídat regulátoru v záznamu – když simulace na úsecích v AUTO sedí se záznamem pod 50 %,
+   aplikace upozorní.
    **Modely** – vyberte, které struktury vyzkoušet (výchozí: všechny; nejlepší podle shody se nabídne).
    Integrační modely jsou pro procesy, které se neustálí (hladina). Pomalý proces skoro bez dopravního zpoždění se
    označí jako pravděpodobná chyba identifikace; Ladění navíc upozorní na velmi vysoké zesílení smyčky K·Gain nebo

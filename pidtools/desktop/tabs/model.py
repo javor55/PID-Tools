@@ -7,7 +7,7 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QProgressBar, QPushButton, QSplitter,
-                               QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
+                               QFormLayout, QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from ...app import model as mdl
 from ...app import windows as wn
@@ -164,6 +164,10 @@ class ModelTab(Workspace):
         self.b_tocl.clicked.connect(lambda: self.mode.setCurrentIndex(self.mode.findData("cl")))
         sec = self.section(T("dk_sec_ident"), w.form([(T("idm"), self.mode)]), "ident")
         sec.add(self.mode_note)
+        self.mix_box = QWidget()             # úseky podle vstupů: režim každého úseku MV (ručně / AUTO)
+        self.mix_lay = QFormLayout(self.mix_box)
+        self.mix_lay.setContentsMargins(0, 0, 0, 0)
+        sec.add(self.mix_box)
         sec.add(w.hbox(self.b_narrow, self.b_tocl))
         sec.add(self.b_est)
         sec.add(g)
@@ -285,6 +289,8 @@ class ModelTab(Workspace):
         from ...app.timefmt import dur
         warn = [f"⚠️ {T(k, m=T('model_' + c), th=dur(a['th']), T=dur(a['T']))}"     # pomalý proces bez zpoždění
                 for c, r_ in s.fit["res"].items() for k, a in lm.model_checks(c, r_["p"], s.grid.Ts)]
+        warn += ["⚠️ " + T("mix_set1_bad", m=T("model_" + c), f=f"{r_['fit_cl_pv']:.0f}")      # Set 1 nesedí
+                 for c, r_ in s.fit["res"].items() if r_.get("mixed") and (r_.get("fit_cl_pv") or 100) < 50]
         if warn:
             self.stale.setText("  \n".join(([self.stale.text()] if self.stale.text() else []) + warn))
         live = s.live_fits()                  # shoda na aktuálních úsecích (úseky se mohly od identifikace změnit)
@@ -295,8 +301,8 @@ class ModelTab(Workspace):
             c = q["code"]
             pars = ", ".join(f"{n} = {v:.4g}" for n, v in zip(MODELS[c]["params"], q["p"]))
             r_ = s.fit["res"][c]
-            cl_ = (f"PV {r_['fit_cl_pv']:.1f} / MV {r_['fit_cl_mv']:.1f}" if r_.get("method") == "cl"
-                   and r_.get("fit_cl_pv") is not None else "—")
+            cl_ = (f"PV {r_['fit_cl_pv']:.1f} / MV {r_['fit_cl_mv']:.1f}" if (r_.get("method") == "cl"
+                   or r_.get("mixed")) and r_.get("fit_cl_pv") is not None else "—")
             row = [T("model_" + c), round(live[c], 1), round(q["NRMSE"], 2), T(f"st_{q['status']}"), cl_, pars,
                    ", ".join(wn.structs(c, r_)) or "—"]
             if win_labels:
@@ -930,8 +936,21 @@ class ModelTab(Workspace):
         frac, mode = s.auto_frac(), self.mode.currentData()
         eff = s.id_mode_eff
         head = T("lm_status", a=f"{100 * frac:.0f}", m=100 - round(100 * frac)) + (
-            " " + T("lm_resolved", m=T("idm_" + eff)) if mode == "auto" else "")
+            " " + T("lm_resolved", m=T("idm_" + eff)) if mode == "auto" and not s.inputs_mode else "")
+        self._fill_mix()
         self.b_est.setVisible(eff == "cl" and s.grid.has_sp)
+        if s.inputs_mode:                    # kombinovaná identifikace: režim po úsecích MV
+            lines = [head]
+            if mode == "cl" and not s.grid.has_sp:
+                lines.append("⚠️ " + T("idm_need_sp"))
+            if "auto" in s.mv_modes() and s.grid.has_sp:
+                g = [float(s.get(f"set1_{k}")) for k in ("gain", "ti", "td")]
+                lines.append(T("idm_cl_note", g=f"{g[0]:.4g}", ti=f"{g[1]:.4g}", td=f"{g[2]:.4g}"))
+                self.b_est.setVisible(True)
+            if getattr(self, "_est_msg", ""):
+                lines.append(self._est_msg)
+            self.mode_note.setText("  \n".join(lines))
+            return
         if eff != "cl":
             lines = [head, T("idm_open_note")]
             if mode == "cl" and not s.grid.has_sp:
@@ -964,6 +983,33 @@ class ModelTab(Workspace):
         if getattr(self, "_est_msg", ""):
             lines.append(self._est_msg)
         self.mode_note.setText("  \n".join(lines))
+
+    def _fill_mix(self):
+        """Volba ručně / AUTO pro každý úsek MV (jen úseky podle vstupů a se sloupcem SP)."""
+        s = self.s
+        while self.mix_lay.rowCount():
+            self.mix_lay.removeRow(0)
+        wmv = s.wins_s.get("MV", []) if s.inputs_mode else []
+        self.mix_box.setVisible(bool(wmv) and s.grid.has_sp)
+        if not wmv or not s.grid.has_sp:
+            return
+        from ...app.timefmt import dur
+        modes, choice = s.mv_modes(), self.mode.currentData()
+        lab = {"man": T("mix_man"), "auto": T("mix_auto")}
+        self.mix_lay.addRow(QLabel(T("mix_title")))
+        for k, (wi, m) in enumerate(zip(wmv, modes)):
+            det_m = wn.mv_modes(s.t, [wi], s.loop_det(), {}, "auto")[0]
+            cb = w.combo(["man", "auto"], labels=[lab["man"], lab["auto"]])
+            cb.setCurrentIndex(cb.findData(m))
+            cb.setEnabled(choice == "auto")
+            cb.setToolTip(T("h_mix", d=lab[det_m]))
+            cb.currentIndexChanged.connect(lambda _i, k=k, cb=cb: self._mix_changed(k, cb.currentData()))
+            self.mix_lay.addRow(f"MV {k + 1}: {dur(wi[0])} – {dur(wi[1])}", cb)
+
+    def _mix_changed(self, k, mode):
+        from PySide6.QtCore import QTimer
+        self.s.set_mv_mode(k, mode)
+        QTimer.singleShot(0, self.win.refresh)         # combo se při překreslení ruší – až po jeho signálu
 
     def _estimate_set1(self):
         """Set 1 = parametry PI regulátoru odhadnuté ze záznamu (úsek identifikace)."""

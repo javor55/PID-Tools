@@ -192,6 +192,36 @@ def _narrow_to(ctx, span):
         ss["pending_rng"] = (float(span[0]), float(span[1]))
 
 
+def _mv_modes(ctx, det, id_mode):
+    """
+    Úseky podle vstupů: režim každého úseku MV – ručně (otevřená smyčka) / AUTO (uzavřená smyčka s regulátorem
+    ze záznamu). Výchozí podle rozpoznání v záznamu, ruční volba se pamatuje (wmode|soubor). Vrací [„man“ | „auto“].
+    """
+    wmv = ctx.wins_s.get("MV", [])
+    okey = f"wmode|{ctx.fname}"
+    ov = {str(k): str(v) for k, v in (ss.get(okey) or [])}          # [[klíč úseku, režim]] (ukládá se do projektu)
+    choice = id_mode if ctx.has_sp else "open"
+    modes = wn.mv_modes(ctx.t, wmv, det, ov, choice)
+    if not wmv or not ctx.has_sp:
+        return modes
+    st.caption(T("mix_title"))
+    lab = {"man": T("mix_man"), "auto": T("mix_auto")}
+    for k, (w, m) in enumerate(zip(wmv, modes)):
+        mk = wn.mode_key(w)
+        det_m = wn.mv_modes(ctx.t, [w], det, {}, "auto")[0]
+        v = st.segmented_control(f"MV {k + 1}: {dur(w[0])} – {dur(w[1])}", ["man", "auto"], default=m,
+                                 key=f"wm|{ctx.fname}|{mk}|{choice}", format_func=lab.get, disabled=choice != "auto",
+                                 help=T("h_mix", d=lab[det_m]))
+        if choice == "auto" and v in ("man", "auto") and v != m:
+            ov[mk] = v
+            ss[okey] = [[k_, v_] for k_, v_ in ov.items()]
+            modes[k] = v
+    if "auto" in modes:
+        st.caption(T("idm_cl_note", g=f"{ss.get('set1_gain', 1.0):.4g}", ti=f"{ss.get('set1_ti', 100.0):.4g}",
+                     td=f"{ss.get('set1_td', 0.0):.4g}"))
+    return modes
+
+
 def _md_ident(s):
     """Panel identifikace: režim (otevřená / uzavřená smyčka), modely, θ max, neměřené poruchy, stikce."""
     Ts, ctx, d_id, mv_id, pv_id, sel_mask = s.Ts, s.ctx, s.d_id, s.mv_id, s.pv_id, s.sel_mask
@@ -209,14 +239,18 @@ def _md_ident(s):
         eff = lm.resolve_mode(id_mode, a_frac, ctx.has_sp, ex_ok)
         st.caption(T("lm_status", a=f"{100 * a_frac:.0f}", m=100 - round(100 * a_frac))
                    + (" " + T("lm_resolved", m=T("idm_" + eff)) if id_mode == "auto" else ""))
-        if eff == "open" and a_frac >= lm.AUTO_MIN:
+        s.mv_modes = _mv_modes(ctx, det, id_mode) if ctx.win_mode == "inputs" else []
+        if ctx.win_mode == "inputs":
+            eff = "open"                     # úseky podle vstupů: režim má každý úsek MV (kombinovaná identifikace)
+        elif eff == "open" and a_frac >= lm.AUTO_MIN:
             st.warning(T("lm_warn", a=f"{100 * a_frac:.0f}"), icon=":material/sync_problem:")
+        if ctx.win_mode != "inputs" and eff == "open" and a_frac >= lm.AUTO_MIN:
             span = lm.manual_span(det, ctx.t, ctx.mv, *ctx.rng)
             c1, c2 = st.columns(2)
             if span:
                 c1.button(T("lm_narrow", a=dur(span[0]), b=dur(span[1])), key="g_lm_narrow", width="stretch",
                           on_click=_narrow_to, args=(ctx, span), help=T("h_lm_narrow"))
-            if ctx.has_sp and ctx.win_mode != "inputs":
+            if ctx.has_sp:
                 c2.button(T("lm_to_cl"), key="g_lm_cl", width="stretch", on_click=lambda: ss.update(id_mode="cl"))
         closed = eff == "cl" and ctx.has_sp
         if id_mode == "cl" and not ctx.has_sp:
@@ -301,8 +335,7 @@ def _md_cards(s):
             dsigns.append(mdl.SIGN[seg(_lrow(T("ms_sign"), T("h_dsign")), T("ms_sign"), ["neg", "auto", "pos"],
                                        "auto", f"dsign|{dn}", format_func=gs_lab.get, disabled=not win,
                                        label_visibility="collapsed") or "auto"])
-    if closed and win:
-        ws.ident.warning(T("win_no_cl"), icon=":material/warning:")
+    if closed and win:          # úseky podle vstupů: uzavřená smyčka po úsecích MV (kombinovaná identifikace)
         closed = False
     s.cards, s.closed, s.dkinds, s.dsigns, s.gain_sign, s.mv_pre = cards, closed, dkinds, dsigns, gain_sign, mv_pre
 
@@ -321,12 +354,21 @@ def _md_fit(s):
         st.caption(T("ms_fit_note"))
     sets = mdl.IdSettings(tuple(chosen), th_max, dist_level, dist_strength, gain_sign, id_stic)
     fit_key = mdl.fit_key(fname, rng, sets, (pv_lo, pv_hi, mv_lo, mv_hi), Ts, c_pv, c_mv, c_d, long_fmt)
+    mixed = None
     if win:
         fit_key = fit_key + ("win", tuple(ctx.win_idx), ctx.excl_key, tuple(dkinds), tuple(dsigns))
+        if "auto" in s.mv_modes and ctx.has_sp:     # kombinovaná identifikace: úseky MV v AUTO se simulují se Set 1
+            op_, cl_, nmv_ = wn.mode_indices(t, ctx.wins_s, c_d, float(max(Ts, t[-1] / 1000)), s.mv_modes)
+            ctrl_ = {k: v for k, v in ctx.set_ctrl(1).items() if k not in ("FF", "FF_LL")}
+            mixed = dict(sp=ctx.sp, ctrl=ctrl_, open=op_, closed=cl_, open_mv=nmv_)
+            fit_key = fit_key + ("mix", tuple(s.mv_modes), tuple(sorted(ctrl_.items())))
 
     def do_fit(c, fixed=None, stic_fixed=None, dk=None):
         """Fit jednoho modelu podle nastavení (neměřené poruchy, znaménko, stikce, zafixované parametry, struktury)."""
         dk = dk or dkinds
+        if win and mixed and mixed["closed"]:
+            return mdl.identify_mixed(c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dk, dsigns, mixed,
+                                      fixed, fn=cache.fit_windows)
         if win:
             return mdl.identify_windows(c, t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dk, dsigns,
                                         fixed, fn=cache.fit_windows)
@@ -339,7 +381,7 @@ def _md_fit(s):
         else:
             prog = ws.top.progress(0.0, text=T("fitting"))
             res, errs = mdl.identify_windows_all(
-                t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns, fn=cache.fit_windows,
+                t, pv, mv, Ts, dists, ctx.win_idx, ctx.valid, sets, dkinds, dsigns, fn=cache.fit_windows, mixed=mixed,
                 progress=lambda i, c: prog.progress(i / max(len(chosen), 1),
                                                     text=f"{T('fitting')} {model_name(c)} ({i + 1}/{len(chosen)})"))
             for i, c in enumerate(res):           # kontrolní odhady poruch (jen tady a při dofitování, ne při každé změně)
@@ -439,7 +481,7 @@ def _md_table(s):
     rows = []
     lvl_fit = next(iter(res.values())).get("level", "none")
     any_stic = any(rr_.get("stic") for rr_ in res.values()) or id_stic
-    any_cl = any(rr_.get("method") == "cl" for rr_ in res.values())
+    any_cl = any(rr_.get("method") == "cl" or rr_.get("mixed") for rr_ in res.values())
     for q in mdl.summary(res, ts_id, pv_id, mv_id, d_id, Ts):
         c = q["code"]
         row = {T("col_model"): model_name(c), "FIT [%]": round(q["FIT"], 1), "NRMSE [%]": round(q["NRMSE"], 2),
@@ -519,6 +561,9 @@ def _md_table(s):
         for wk, c in mdl.warnings(res, ts_id[-1], th_max):
             st.warning(T(wk, m=model_name(c)), icon=":material/trending_up:" if wk == "warn_long_T"
                        else ":material/warning:")
+        for c, r_ in res.items():                # kombinovaná identifikace: sedí regulátor (Set 1) v úsecích v AUTO?
+            if r_.get("mixed") and r_.get("fit_cl_pv") is not None and r_["fit_cl_pv"] < 50:
+                st.warning(T("mix_set1_bad", m=model_name(c), f=f"{r_['fit_cl_pv']:.0f}"), icon=":material/rule:")
         for c, r_ in res.items():                # pomalý proces bez dopravního zpoždění → nesmyslně tvrdé ladění
             for wk, a_ in lm.model_checks(c, r_["p"], Ts):
                 st.warning(T(wk, m=model_name(c), th=dur(a_["th"]), T=dur(a_["T"])), icon=":material/warning:")
@@ -593,7 +638,7 @@ def _md_mv_card(s):
         _card_buttons(mcode)
         if ss.get("refit_msg"):
             st.caption(ss.pop("refit_msg"))
-        if res[mcode].get("method") == "cl" and res[mcode].get("p_open"):
+        if (res[mcode].get("method") == "cl" or res[mcode].get("mixed")) and res[mcode].get("p_open"):
             st.caption(T("idm_open_model", p=", ".join(f"{n} = {v:.4g}" for n, v in
                                                          zip(names, res[mcode]["p_open"]))))
     for j in set(res[mcode].get("dv_flat") or ()):   # porucha se v datech identifikace nemění → přenos nejde odhadnout

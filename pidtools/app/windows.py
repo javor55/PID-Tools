@@ -37,6 +37,48 @@ def indices(t, W, c_d, step):
     return idx, (float(t[min(a for a, _ in idx)]), float(t[min(len(t), max(b for _, b in idx)) - 1]))
 
 
+# ---- ručně (MAN) / AUTO u úseků MV (kombinovaná identifikace)
+def mode_key(w):
+    """Klíč úseku pro uloženou volbu režimu (zaokrouhlené meze v s)."""
+    return f"{float(w[0]):.0f}-{float(w[1]):.0f}"
+
+
+def mv_modes(t, wins_mv, det, overrides, choice="auto"):
+    """
+    Režim každého úseku MV: „man“ / „auto“. choice = volba Data pro identifikaci: „open“ = vše ručně, „cl“ = vše AUTO,
+    „auto“ = ruční volba u úseku (overrides {klíč: režim}), jinak podle rozpoznání v záznamu (většina AUTO → „auto“).
+    """
+    from .loopmode import frac_in
+    out = []
+    for w in wins_mv:
+        if choice in ("open", "cl"):
+            out.append("man" if choice == "open" else "auto")
+            continue
+        o = (overrides or {}).get(mode_key(w))
+        out.append(o if o in ("man", "auto") else ("auto" if det is not None and frac_in(det, t, w[0], w[1]) >= 0.5
+                                                   else "man"))
+    return out
+
+
+def mode_indices(t, W, c_d, step, modes):
+    """
+    (ruční úseky, úseky v AUTO, počet ručních úseků MV) jako indexy: ruční = úseky MV v MAN + úseky poruch,
+    AUTO = úseky MV v AUTO.
+    """
+    def idx(a, b):
+        return int(np.searchsorted(t, a)), int(np.searchsorted(t, b, side="right"))
+    op, cl = [], []
+    for w, m in zip(W.get("MV", []), modes):
+        if w[1] - w[0] > step:
+            (cl if m == "auto" else op).append(idx(*w))
+    n_mv = len(op)
+    for x in [str(c) for c in c_d]:
+        for a, b in W.get(x, []):
+            if b - a > step:
+                op.append(idx(a, b))
+    return op, cl, n_mv
+
+
 def runs(mask, t):
     """Souvislé úseky, kde je maska pravdivá: [(od, do) s] (nejvýš 300)."""
     m = np.asarray(mask, bool)
