@@ -246,8 +246,8 @@ def test_tuning_tab(page, server):
     page.wait_for_timeout(800)
     s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
     assert abs(s2["gain"] - sug["Kc"]) < 1e-9 and abs(s2["ti"] - sug["Ti"]) < 1e-9
-    page.wait_for_selector('[data-testid="kpis"] tbody tr')
-    assert page.locator('[data-testid="kpis"] tbody tr').count() == 3          # Set 1, Set 2, návrh
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"kpis\"] tbody tr').length === 3",
+                           timeout=20000)                                       # Set 1, Set 2, návrh
     page.wait_for_selector('[data-testid="resp-pv"] path', timeout=20000)
     assert page.locator('[data-testid="resp-pv"] path').count() >= 4
     page.locator('[data-testid="set-samp"]').fill("2")

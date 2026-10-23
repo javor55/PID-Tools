@@ -1,6 +1,6 @@
 // Záložka Ladění (M16): sady parametrů v PLC s robustností, návrh metodou s upozorněními a kontrolami, zápis do
 // sady, odezva scénáře (Set 1, Set 2, návrh) a ukazatele; panel: blok PIDConL a nastavení metod.
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
@@ -30,9 +30,10 @@ export function TuningMain() {
   const [err, setErr] = useState<string | null>(null);
   const preview: Pid | null = sug ? { Kc: sug.Kc, Ti: sug.Ti, Td: sug.Td } : null;
   const simKey = ["ws", wid, "sim", info.data?.sets, preview, st];
-  const sim = useQuery({ queryKey: [...simKey, "kpi"], enabled: !!info.data,
+  // při přepočtu (jiná sada, nastavení, návrh) zůstane vidět předchozí výsledek – žádné blikání
+  const sim = useQuery({ queryKey: [...simKey, "kpi"], enabled: !!info.data, placeholderData: keepPreviousData,
     queryFn: () => request<SimInfo>("POST", `/workspaces/${wid}/simulate`, { preview }) });
-  const curves = useQuery({ queryKey: [...simKey, "curves"], enabled: !!info.data,
+  const curves = useQuery({ queryKey: [...simKey, "curves"], enabled: !!info.data, placeholderData: keepPreviousData,
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/simulate/curves`, { preview })) });
 
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
