@@ -1,5 +1,6 @@
-// Záložka Ladění (M16): sady parametrů v PLC s robustností, návrh metodou s upozorněními a kontrolami, zápis do
-// sady, odezva scénáře (Set 1, Set 2, návrh) a ukazatele; panel: blok PIDConL a nastavení metod.
+// Záložka Ladění (M16, M17): sady parametrů v PLC s robustností, návrh metodou s upozorněními a kontrolami, zápis do
+// sady, porovnání metod, scénář, odezva (Set 1, Set 2, návrh) a ukazatele, frekvenční charakteristiky; panel: blok
+// PIDConL a nastavení metod.
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { binary, request } from "../api/client";
@@ -11,6 +12,7 @@ import { useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { dur } from "../lib/format";
 import { useUi } from "../store";
+import { CompareCard, FreqCard, ScenarioCard } from "./TuningMore";
 
 type TuningInfo = components["schemas"]["TuningInfo"];
 type Suggestion = components["schemas"]["Suggestion"];
@@ -104,6 +106,8 @@ export function TuningMain() {
           </>
         )}
       </div>
+      <CompareCard onPick={(q) => setSug({ method: q.method, Kc: q.Kc, Ti: q.Ti, Td: q.Td, notes: [], checks: [] })} />
+      <ScenarioCard />
       <div className="card" data-testid="response">
         <LineChart series={mk(sigs)} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel="t [s]" testid="resp-pv" />
         <LineChart series={mk(mvs)} height={140} yLabel={`MV ${String(st.u_mv ?? "")}`} xLabel="t [s]" testid="resp-mv" />
@@ -119,6 +123,7 @@ export function TuningMain() {
           </tbody></table>
         )}
       </div>
+      <FreqCard preview={preview} />
     </div>
   );
 }

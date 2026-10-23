@@ -40,7 +40,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ◐ |
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ◐ |
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
-| M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ☐ |
+| M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ◐ |
 | M18 | Živá simulace | C | M | M16 | ☐ |
 | M19 | APC | C | L | M11, M16 | ☐ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☐ |
@@ -402,6 +402,18 @@ a Playwright.
 ### M17 · Ladění 2 (L)
 - Porovnání metod, scénář (SP, porucha, šum, omezení), KPI.
 - Dopředná vazba, Smith, robustnost, frekvenční analýza.
+
+**Skutečnost M17 (část):**
+- Porovnání všech metod (úloha `/tuning/compare`, průběh ve stavovém řádku): tabulka Gain, TI, TD, Ms, IAE
+  poruchy a SP, překmit, šum MV; kliknutí na řádek převezme parametry jako návrh (odezva, ukazatele, frekvence).
+- Scénář: předvolba, SP z → na, amplitudy poruch předvoleb, editor událostí (zapnuto, kam působí, typ,
+  amplituda, začátek, konec, perioda, setrvačnost; přidat / smazat). Úprava řádku předvolby z ní udělá vlastní
+  scénář (stejně jako desktop).
+- Frekvenční analýza pro Set 1, Set 2 a návrh: tabulka (stabilita, Ms, GM, PM, ωc, šířka pásma), Bodeho
+  diagram (amplituda, fáze) a citlivost |S| / |T|.
+- Test v prohlížeči: předvolba a vlastní událost (= API), frekvence, porovnání metod a převzetí řádku.
+- Zbývá: dopředná vazba a Smith (chybí API – přidat v M11b), simulace s nejistotou modelu (`robust`, `spread`)
+  a Nyquistův diagram.
 
 ### M18 · Živá simulace
 - `live_engine.js` a `live_ui.js` převedené do TS. Test shody s `core/simulation.py` zůstává.

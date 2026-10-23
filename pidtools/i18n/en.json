@@ -2060,5 +2060,6 @@
  "ui_settings": "Settings",
  "ui_connected": "Connected to the computation server · version {v}",
  "ui_offline": "The computation server does not respond",
- "ui_api_error": "Error: {e}"
+ "ui_api_error": "Error: {e}",
+ "ui_sc_add": "Add event"
 }

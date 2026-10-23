@@ -57,6 +57,8 @@ button { font: inherit; color: inherit; }
 .tbl th, .tbl td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--pid-line); }
 .tbl th { color: var(--pid-muted); font-weight: 500; }
 .tbl tr.sel td { background: var(--pid-accent-bg); }
+.tbl tr.pick { cursor: pointer; } .tbl tr.pick:hover td { background: var(--pid-line); }
+.tbl input.num { width: 7em; }
 .trend-host { min-height: 300px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
 .card h3 { font-size: 13px; margin: 0 0 8px; }

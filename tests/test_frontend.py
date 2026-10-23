@@ -256,3 +256,34 @@ def test_tuning_tab(page, server):
     assert _api(server, "/workspaces/{wid}/settings", page)["samp"] == 2.0
     page.locator('[data-testid="set-samp"]').fill("1")
     page.locator('[data-testid="set-samp"]').press("Enter")
+
+
+def test_tuning_scenario_compare_frequency(page, server):
+    """Ladění 2: předvolba scénáře a vlastní událost, porovnání metod (úloha) s převzetím řádku, frekvenční analýza."""
+    page.locator('[data-tab="tuning"]').click()
+    page.wait_for_selector('[data-testid="scen-kind"]')
+    page.select_option('[data-testid="scen-kind"]', "in")
+    page.wait_for_function("() => document.querySelector('[data-testid=\"scen-kind\"]').value === 'in'")
+    assert _api(server, "/workspaces/{wid}/scenario", page)["kind"] == "in"
+    n = page.locator('[data-testid="scen-row"]').count()
+    page.locator('[data-testid="scen-add"]').click()
+    page.wait_for_function(f"() => document.querySelectorAll('[data-testid=\"scen-row\"]').length === {n + 1}")
+    sc = _api(server, "/workspaces/{wid}/scenario", page)
+    assert sc["kind"] == "custom" and len(sc["rows"]) == n + 1 and sc["rows"][-1][1] == "IN"
+    page.locator(f'[data-testid="scen-{n}-3"]').fill("2.5")
+    page.locator(f'[data-testid="scen-{n}-3"]').press("Enter")
+    page.wait_for_timeout(600)
+    assert _api(server, "/workspaces/{wid}/scenario", page)["rows"][-1][3] == 2.5
+    page.select_option('[data-testid="scen-kind"]', "sp")                     # zpět na výchozí
+
+    page.wait_for_selector('[data-testid="freq-table"] tbody tr', timeout=20000)
+    assert page.locator('[data-testid="freq-table"] tbody tr').count() >= 2
+    assert page.locator('[data-testid="freq-mag"] path').count() >= 2
+
+    page.locator('[data-testid="cmp-run"]').click()
+    page.wait_for_selector('[data-testid="cmp-row"]', timeout=120000)
+    assert page.locator('[data-testid="cmp-row"]').count() >= 3
+    page.locator('[data-testid="cmp-row"]').first.click()
+    page.wait_for_selector('[data-testid="sug-values"]')
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"freq-table\"] tbody tr').length === 3",
+                           timeout=20000)                                       # Set 1, Set 2, návrh
