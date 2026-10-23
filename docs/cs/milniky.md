@@ -27,7 +27,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M1 | Zlaté případy | A | M | – | ◐ |
 | M2 | Přibalené fonty (offline) | A | S | – | ◐ |
 | M3 | Texty CZ / EN do JSON | A | S | – | ◐ |
-| M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ☐ |
+| M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ◐ |
 | M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ☐ |
 | M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ☐ |
 | M7 | API: data a signály | B | M | M6 | ☐ |
@@ -140,6 +140,17 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - **M4d** – APC, diagnostika, přehled smyček; uložení a načtení projektu přes workspace.
 
 **Hotovo když:** desktop běží nad workspace, zlaté případy (M1) projdou přes workspace a stávající testy jsou zelené.
+
+**Skutečnost (M4a–d naráz):** Desktopový stav byl už bez Qt, takže se přesunul celý.
+- `pidtools/app/workspace/`:
+  - `Workspace` složený z částí `data` (M4a), `ident` (M4b), `tuning` (M4c), `analysis` a `project` (M4d);
+  - `loops.Project` – víc smyček nad jedním souborem.
+- Desktop (`state.LoopState`, `project.Project`) je jen alias.
+- Diagnostika (KPI, ventil, hystereze, nelinearita) se přesunula z okna desktopu do `analysis`.
+- Zlaté případy běží přes `Workspace`.
+- **Zbývá na později:** web dál drží stav v `st.session_state` a nad workspace přejde až s novým UI. Přestavba
+  stránek Streamlitu by se nevyplatila, nahradí je M12–M21. APC návrhy (technika po technice) jsou dál v
+  `app.apc` volané z oken; obal ve workspace dostanou s API (M11).
 
 ### M5 · Úlohy a cache
 - `pidtools/app/jobs.py`: dlouhé výpočty (identifikace, optimalizace ladění, nejistota, APC) v procesech, s průběhem

@@ -2,7 +2,7 @@
 Zlaté případy: výsledky dnešní aplikace na pevné sadě dat, se kterými se porovnává každá další verze
 (i nové API a nové rozhraní – docs/cs/milniky.md, M1).
 
-Každý případ načte data do pracovního stavu bez UI (desktop LoopState, později app.workspace), spustí
+Každý případ načte data do pracovního prostoru bez UI (pidtools.app.workspace), spustí
 identifikaci, návrh ladění, scénář, robustnost, frekvenční charakteristiky, diagnostiku a doporučení APC
 a uloží čísla do tests/golden/<případ>.out.json. tests/test_golden.py je přepočítá a porovná s tolerancí.
 
@@ -31,8 +31,8 @@ SIG = 6              # platné číslice uložených výsledků
 
 # ---- data případů
 def _state():
-    from pidtools.desktop.state import LoopState
-    return LoopState()
+    from pidtools.app.workspace import Workspace
+    return Workspace()
 
 
 def _project(name):
@@ -236,13 +236,12 @@ def run_case(name):
 
 
 def _diag(s):
-    from pidtools.app import diagnostics as dg
-    g = s.grid
-    m = s.sel_mask
-    code, p, _ = s.model
-    k = dg.kpis(s, s.t[m], s.sp[m], s.pv[m], s.mv[m], g.Ts, s.mv_lo, s.mv_hi, float(p[-1]), g.has_sp)
-    v = dg.valve(s.sp[m], s.pv[m], s.mv[m], g.Ts, g.has_sp, code.startswith("I"))
-    return dict(kpis=_plain(k), valve=_plain(v))
+    code = s.model[0]
+    out = dict(kpis=_plain(s.diag_kpis(*s.rng)), valve=_plain(s.valve(*s.rng, code.startswith("I"))))
+    nl = s.nonlinearity()
+    if nl is not None:
+        out["nonlinearity"] = dict(n=len(nl[0]), spread=nl[1])
+    return out
 
 
 def _plain(d):

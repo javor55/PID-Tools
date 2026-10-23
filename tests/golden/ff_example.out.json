@@ -28,6 +28,10 @@
    "std_e": 3.08101,
    "travel_h": 662.961
   },
+  "nonlinearity": {
+   "n": 2,
+   "spread": 1.14298
+  },
   "valve": {
    "osc": {
     "amp": 1.07523,

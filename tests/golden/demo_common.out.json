@@ -15,7 +15,7 @@
  "diag": {
   "kpis": {
    "at_lim": 0.0,
-   "harris": 0.000145706,
+   "harris": 0.000162783,
    "iae_h": 59410.1,
    "osc": {
     "amp": 17.2677,
@@ -26,6 +26,10 @@
    "rev_h": 3.00083,
    "std_e": 14.3317,
    "travel_h": 34.0094
+  },
+  "nonlinearity": {
+   "n": 6,
+   "spread": 1.0046
   },
   "valve": {
    "osc": {

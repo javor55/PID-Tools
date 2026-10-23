@@ -50,10 +50,16 @@ Shared modules added for both frontends: `app.frequency` (Bode, Nyquist, sensiti
 
 ## Desktop frontend (`pidtools/desktop`)
 
-`project.py` (`Project`) holds the loops of a project over one data file; `state.py` (`LoopState`) holds one loop – data, columns, ranges, identification segment, models, PIDConL block,
-parameter sets, scenario – in a `settings` dictionary with the same keys as the web app, so projects are
-interchangeable. It has no Qt dependency and is tested on its own. The windows (`main.py`, `tabs/`) only read and
-change the state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
+The state lives in the application layer, **`pidtools.app.workspace`**:
+- `Workspace` holds one loop: data, columns, ranges, identification segment, models, PIDConL block, parameter sets,
+  scenario and diagnostics.
+- Its settings are a `settings` dictionary with the same keys as the web app, so projects are interchangeable.
+- It is split by area into mixins: `data`, `ident`, `tuning`, `analysis` and `project`.
+- `workspace.loops.Project` holds the loops of a project over one data file.
+
+Both have no UI dependency. They are used by the desktop (`desktop/state.py` `LoopState` and `desktop/project.py`
+are aliases), by the golden cases and later by the API. The windows (`main.py`, `tabs/`) only read and change the
+state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
 pyqtgraph. Start: `python -m pidtools.desktop`.
 
 Every tab is a `layout.Workspace`: the main area on the left (`main` – charts, tables) and a settings panel on the

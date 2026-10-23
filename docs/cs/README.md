@@ -186,9 +186,10 @@ pidtools/
                            smith, gainsched
     project.py             formát projektu (JSON)
     report.py plots.py     protokol z ladění (HTML) a pomocníci grafů Plotly
+    workspace/             jedna smyčka bez UI (data, identifikace, ladění, diagnostika, projekt) a loops.py
   i18n/                    texty: cs.json, en.json, T() – jazyk nastavuje frontend
   ui/                      webový frontend ve Streamlitu (widgety, session state, cache, grafy)
-  desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): state.py (jedna smyčka, bez Qt), main.py, tabs/
+  desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): main.py, tabs/ (stav: app/workspace)
     context.py             Ctx – data sdílená záložkami v jednom běhu
     loops.py               více smyček v projektu (snímky stavu, přepínání)
     static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py)
