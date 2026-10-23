@@ -103,12 +103,17 @@ def info(wid, ws):
 
 
 def _plain(x):
+    """Výsledek výpočtu → JSON (numpy → Python, NaN / ∞ → None)."""
     if isinstance(x, dict):
         return {str(k): _plain(v) for k, v in x.items()}
     if isinstance(x, (list, tuple)):
         return [_plain(v) for v in x]
+    if isinstance(x, np.ndarray):
+        return _plain(x.tolist())
     if isinstance(x, np.generic):
-        return x.item()
+        x = x.item()
+    if isinstance(x, float) and not np.isfinite(x):
+        return None
     return x
 
 

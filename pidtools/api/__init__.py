@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL, JobManager
-from . import data, model, projects
+from . import data, model, projects, tuning
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -73,6 +73,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.include_router(data.router(project), dependencies=[Depends(auth)])
     app.include_router(projects.router(project), dependencies=[Depends(auth)])
     app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
+    app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
 
     @app.get("/health", response_model=Health, tags=["system"])
     def health():
@@ -107,6 +108,17 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
         job(jid)
         app.state.jobs.cancel(jid)
         return JobInfo(**job(jid))
+
+    @app.get("/jobs/{jid}/result", tags=["jobs"], dependencies=[Depends(auth)])
+    def job_result(jid: str):
+        """Výsledek hotové úlohy jako JSON (u úloh nad pracovním prostorem jen vrácená hodnota metody)."""
+        st = job(jid)
+        if st["state"] != "done":
+            raise HTTPException(409, f"job {st['state']}")
+        res = app.state.jobs.result(jid)
+        if isinstance(res, dict) and {"result", "state", "settings"} <= set(res):
+            res = res["result"]
+        return data._plain(res)
 
     @app.get("/jobs/{jid}/events", tags=["jobs"], dependencies=[Depends(auth)],
              responses={200: {"content": {"text/event-stream": {}}, "description": "JobInfo as server-sent events"}})

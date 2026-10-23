@@ -33,7 +33,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M7 | API: data a signály | B | M | M6 | ◐ |
 | M8 | API: projekt | B | S | M6 | ◐ |
 | M9 | API: model | B | L | M5, M7 | ◐ |
-| M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☐ |
+| M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ◐ |
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ☐ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ☐ |
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ☐ |
@@ -255,6 +255,19 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
   (nejistota modelu), frekvenční analýza (Bode, Nyquist, S/T).
 
 **Hotovo když:** souhlas se zlatými případy.
+
+**Skutečnost:**
+- `pidtools/api/tuning.py`:
+  - `tuning` – metody, sady s robustností, doporučení D, historie;
+  - `tuning/suggest` – návrh s upozorněními a kontrolami;
+  - `tuning/sets/{n}` – zápis sady s historií;
+  - `tuning/compare` – úloha; výsledek na `/jobs/{id}/result`;
+  - `scenario` – předvolby, vlastní události, SP z → na;
+  - `simulate` – ukazatele; `simulate/curves` – binárně v inženýrských jednotkách;
+  - `frequency` – L, S, T, Ms, GM, PM, šířka pásma.
+- `tests/test_api_tuning.py`: návrhy všech metod, robustnost Set 1, scénář (Set 1 i návrh) a frekvence přes API
+  = zlatý případ demo.
+- Dopředná vazba (FF) a Smith se nastavují zatím jen přes nastavení a projekt; vlastní endpointy dostanou s APC (M11).
 
 ### M11 · API: ostatní (L)
 - APC (všechny techniky), diagnostika, přehled smyček, report (HTML, beze změny `app.report`), OPC UA (jen čtení).

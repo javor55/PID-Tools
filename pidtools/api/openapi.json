@@ -86,6 +86,130 @@
     "title": "Columns",
     "type": "object"
    },
+   "FreqSet": {
+    "properties": {
+     "GM": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gm"
+     },
+     "Ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
+     },
+     "PM": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pm"
+     },
+     "S_db": {
+      "items": {
+       "type": "number"
+      },
+      "title": "S Db",
+      "type": "array"
+     },
+     "T_db": {
+      "items": {
+       "type": "number"
+      },
+      "title": "T Db",
+      "type": "array"
+     },
+     "bw": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bw"
+     },
+     "mag_db": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Mag Db",
+      "type": "array"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "phase_deg": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Phase Deg",
+      "type": "array"
+     },
+     "stable": {
+      "title": "Stable",
+      "type": "boolean"
+     },
+     "w": {
+      "items": {
+       "type": "number"
+      },
+      "title": "W",
+      "type": "array"
+     },
+     "w180": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "W180"
+     },
+     "wc": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Wc"
+     }
+    },
+    "required": [
+     "name",
+     "stable",
+     "w",
+     "mag_db",
+     "phase_deg",
+     "S_db",
+     "T_db"
+    ],
+    "title": "FreqSet",
+    "type": "object"
+   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -726,6 +850,48 @@
     "title": "NewLoop",
     "type": "object"
    },
+   "Note": {
+    "properties": {
+     "args": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key"
+    ],
+    "title": "Note",
+    "type": "object"
+   },
+   "Pid": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "title": "Ti",
+      "type": "number"
+     }
+    },
+    "required": [
+     "Kc",
+     "Ti"
+    ],
+    "title": "Pid",
+    "type": "object"
+   },
    "Quality": {
     "properties": {
      "checks": {
@@ -838,6 +1004,106 @@
     "title": "Run",
     "type": "object"
    },
+   "Scenario": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "kinds": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Kinds",
+      "type": "array"
+     },
+     "rows": {
+      "items": {
+       "items": {},
+       "type": "array"
+      },
+      "title": "Rows",
+      "type": "array"
+     },
+     "sp_from_to": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Sp From To",
+      "type": "array"
+     }
+    },
+    "required": [
+     "kind",
+     "kinds",
+     "rows",
+     "T_end",
+     "sp_from_to"
+    ],
+    "title": "Scenario",
+    "type": "object"
+   },
+   "ScenarioSet": {
+    "properties": {
+     "T_end": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "T End"
+     },
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "items": {
+         "items": {},
+         "type": "array"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "sp_from_to": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp From To"
+     }
+    },
+    "title": "ScenarioSet",
+    "type": "object"
+   },
    "Select": {
     "properties": {
      "code": {
@@ -849,6 +1115,257 @@
      "code"
     ],
     "title": "Select",
+    "type": "object"
+   },
+   "SetInfo": {
+    "properties": {
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "metrics": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Metrics"
+     },
+     "n": {
+      "title": "N",
+      "type": "integer"
+     },
+     "placeholder": {
+      "title": "Placeholder",
+      "type": "boolean"
+     },
+     "td": {
+      "title": "Td",
+      "type": "number"
+     },
+     "ti": {
+      "title": "Ti",
+      "type": "number"
+     }
+    },
+    "required": [
+     "n",
+     "gain",
+     "ti",
+     "td",
+     "placeholder"
+    ],
+    "title": "SetInfo",
+    "type": "object"
+   },
+   "SimInfo": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kpis": {
+      "additionalProperties": true,
+      "title": "Kpis",
+      "type": "object"
+     },
+     "src": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Src"
+     }
+    },
+    "required": [
+     "T_end",
+     "kpis"
+    ],
+    "title": "SimInfo",
+    "type": "object"
+   },
+   "SimReq": {
+    "properties": {
+     "T_end": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "T End"
+     },
+     "ff_cmp": {
+      "default": false,
+      "title": "Ff Cmp",
+      "type": "boolean"
+     },
+     "preview": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Pid"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "robust": {
+      "default": false,
+      "title": "Robust",
+      "type": "boolean"
+     },
+     "spread": {
+      "default": false,
+      "title": "Spread",
+      "type": "boolean"
+     }
+    },
+    "title": "SimReq",
+    "type": "object"
+   },
+   "SuggestReq": {
+    "properties": {
+     "method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Method"
+     },
+     "tc": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tc"
+     }
+    },
+    "title": "SuggestReq",
+    "type": "object"
+   },
+   "Suggestion": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "title": "Ti",
+      "type": "number"
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "method": {
+      "title": "Method",
+      "type": "string"
+     },
+     "notes": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Notes",
+      "type": "array"
+     }
+    },
+    "required": [
+     "Kc",
+     "Ti",
+     "method"
+    ],
+    "title": "Suggestion",
+    "type": "object"
+   },
+   "TuningInfo": {
+    "properties": {
+     "d_advice": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "D Advice"
+     },
+     "default_method": {
+      "title": "Default Method",
+      "type": "string"
+     },
+     "history": {
+      "default": [],
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "History",
+      "type": "array"
+     },
+     "methods": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "sets": {
+      "items": {
+       "$ref": "#/components/schemas/SetInfo"
+      },
+      "title": "Sets",
+      "type": "array"
+     }
+    },
+    "required": [
+     "model",
+     "methods",
+     "default_method",
+     "sets"
+    ],
+    "title": "TuningInfo",
     "type": "object"
    },
    "Uncertainty": {
@@ -1149,6 +1666,41 @@
      "columns"
     ],
     "title": "WorkspaceInfo",
+    "type": "object"
+   },
+   "WriteSet": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "title": "Ti",
+      "type": "number"
+     },
+     "log": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Log"
+     }
+    },
+    "required": [
+     "Kc",
+     "Ti"
+    ],
+    "title": "WriteSet",
     "type": "object"
    }
   }
@@ -1476,6 +2028,79 @@
      }
     },
     "summary": "Job Events",
+    "tags": [
+     "jobs"
+    ]
+   }
+  },
+  "/jobs/{jid}/result": {
+   "get": {
+    "description": "Výsledek hotové úlohy jako JSON (u úloh nad pracovním prostorem jen vrácená hodnota metody).",
+    "operationId": "job_result_jobs__jid__result_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "jid",
+      "required": true,
+      "schema": {
+       "title": "Jid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Job Result",
     "tags": [
      "jobs"
     ]
@@ -2016,6 +2641,102 @@
     "summary": "Load File",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/frequency": {
+   "post": {
+    "description": "Frekvenční charakteristiky (otevřená smyčka L, citlivost S a T) pro sadu 1, 2 a návrh.",
+    "operationId": "frequency_workspaces__wid__frequency_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/Pid"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Preview"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/FreqSet"
+         },
+         "title": "Response Frequency Workspaces  Wid  Frequency Post",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Frequency",
+    "tags": [
+     "tuning"
     ]
    }
   },
@@ -3491,6 +4212,163 @@
     ]
    }
   },
+  "/workspaces/{wid}/scenario": {
+   "get": {
+    "operationId": "get_scenario_workspaces__wid__scenario_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Scenario"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Scenario",
+    "tags": [
+     "tuning"
+    ]
+   },
+   "put": {
+    "description": "Druh scénáře (předvolba), vlastní události [[čas, vstup, …]], SP z → na, délka simulace.",
+    "operationId": "set_scenario_workspaces__wid__scenario_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ScenarioSet"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Scenario"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Set Scenario",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
   "/workspaces/{wid}/settings": {
    "get": {
     "description": "Nastavení smyčky (klíče jako v projektu).",
@@ -3767,6 +4645,499 @@
     "summary": "Signals",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/simulate": {
+   "post": {
+    "description": "Simulace scénáře se sadou 1 a 2 (a návrhem `preview`): ukazatele odezvy.",
+    "operationId": "simulate_workspaces__wid__simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Simulate",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/workspaces/{wid}/simulate/curves": {
+   "post": {
+    "operationId": "simulate_curves_workspaces__wid__simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_1, mv_1, pv_2, mv_2 (pv_sug, mv_sug, pv_x…) in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Simulate Curves",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/workspaces/{wid}/tuning": {
+   "get": {
+    "operationId": "info_workspaces__wid__tuning_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TuningInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Info",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/workspaces/{wid}/tuning/compare": {
+   "post": {
+    "description": "Porovnání všech metod a kritérií pro PI i PID (úloha; výsledek: GET /jobs/{id}/result).",
+    "operationId": "compare_workspaces__wid__tuning_compare_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Compare",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/workspaces/{wid}/tuning/sets/{n}": {
+   "put": {
+    "description": "Parametry do sady 1 (současné nastavení) nebo 2 (nové); log = záznam do historie ladění.",
+    "operationId": "write_set_workspaces__wid__tuning_sets__n__put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "n",
+      "required": true,
+      "schema": {
+       "title": "N",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WriteSet"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TuningInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Write Set",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/workspaces/{wid}/tuning/suggest": {
+   "post": {
+    "description": "Návrh ladění metodou (výchozí: metoda uložená u modelu) s upozorněními a kontrolami věrohodnosti.",
+    "operationId": "suggest_workspaces__wid__tuning_suggest_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SuggestReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Suggestion"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Suggest",
+    "tags": [
+     "tuning"
     ]
    }
   },
