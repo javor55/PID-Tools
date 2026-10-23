@@ -28,7 +28,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M2 | Přibalené fonty (offline) | A | S | – | ◐ |
 | M3 | Texty CZ / EN do JSON | A | S | – | ◐ |
 | M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ◐ |
-| M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ☐ |
+| M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ◐ |
 | M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ☐ |
 | M7 | API: data a signály | B | M | M6 | ☐ |
 | M8 | API: projekt | B | S | M6 | ☐ |
@@ -158,6 +158,18 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - Cache výsledků podle klíče vstupů (logika z `ui/cache.py`) s limitem paměti.
 
 **Hotovo když:** úlohu jde zrušit do 1 s a výsledek z cache se vrátí bez přepočtu (test).
+
+**Skutečnost:**
+- `pidtools/app/jobs.py`:
+  - `JobManager` – každá úloha běží ve vlastním procesu („spawn“); fronta s limitem souběžných úloh; průběh
+    (podíl a text); zrušení a časový limit ukončením procesu; hotové úlohy se po čase zapomenou.
+  - `ResultCache` – LRU s limitem velikosti.
+- `tests/test_jobs.py`:
+  - výsledek, průběh a chyba;
+  - zrušení do 1 s a časový limit;
+  - fronta s limitem;
+  - cache: výsledek bez přepočtu; skutečná identifikace na demu.
+- Dnešní web a desktop zůstávají u svých cache (`st.cache_data`, vlákno v desktopu). JobManager použije API (M6).
 
 ---
 
