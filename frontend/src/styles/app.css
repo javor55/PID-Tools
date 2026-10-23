@@ -33,3 +33,18 @@ button { font: inherit; color: inherit; }
 .job button { border: 0; background: transparent; color: var(--pid-err); cursor: pointer; padding: 0 4px; }
 
 @media (max-width: 900px) { .body { grid-template-columns: 1fr; } .side { border-left: 0; border-top: 1px solid var(--pid-line); } }
+
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.stack section { display: flex; flex-direction: column; gap: 6px; }
+.stack h3 { font-size: 12px; margin: 0; font-weight: 600; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 4px 12px;
+  cursor: pointer; display: inline-flex; align-items: center; }
+.btn:hover { border-color: var(--pid-accent); color: var(--pid-accent); }
+.field { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; }
+.field span { color: var(--pid-muted); font-size: 12px; }
+.field select { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
+.field select[multiple] { min-height: 64px; }
+.small { font-size: 12px; } .err { color: var(--pid-err); } .warn { color: var(--pid-warn); } .ok { color: var(--pid-ok); }
+.checks { margin: 0; padding-left: 18px; font-size: 12px; }
+.viewer-host { min-height: 400px; }

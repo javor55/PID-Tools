@@ -5,9 +5,13 @@ import { api } from "./api/client";
 import { format } from "./lib/format";
 import { useUi } from "./store";
 
-export function useT() {
+export function useTexts() {
   const lang = useUi((s) => s.lang);
-  const { data } = useQuery({ queryKey: ["i18n", lang], queryFn: () => api.texts(lang), staleTime: Infinity });
+  return useQuery({ queryKey: ["i18n", lang], queryFn: () => api.texts(lang), staleTime: Infinity }).data;
+}
+
+export function useT() {
+  const data = useTexts();
   return useCallback(
     (key: string, args?: Record<string, unknown>) => format(data?.[key] ?? key, args),
     [data],

@@ -11,6 +11,7 @@ const proxied = ["/health", "/i18n", "/workspaces", "/jobs", "/opc", "/fonts"];
 export default defineConfig({
   plugins: [react()],
   build: { outDir: "../pidtools/api/ui", emptyOutDir: true, sourcemap: false },
-  server: { proxy: Object.fromEntries(proxied.map((p) => [p, API])) },
+  // prohlížeč záznamu (viewer.js, viewer_an.js, viewer.css) sdílí s dnešním webem pidtools/ui/static
+  server: { proxy: Object.fromEntries(proxied.map((p) => [p, API])), fs: { allow: [".."] } },
   test: { environment: "jsdom", include: ["tests/**/*.test.ts?(x)"] },
 });

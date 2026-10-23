@@ -36,7 +36,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☑ |
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ◐ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ◐ |
-| M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ☐ |
+| M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ◐ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ☐ |
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ☐ |
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ☐ |
@@ -329,6 +329,26 @@ a Playwright.
   do projektu.
 
 **Hotovo když:** e2e scénář dnešního testu prohlížeče projde v novém UI.
+
+**Skutečnost:**
+- Prohlížeč záznamu je jeden sdílený modul pro oba weby: `pidtools/ui/static/viewer.js`, `viewer_an.js` a nově
+  `viewer.css`. Nový web ho připojí adaptérem `RecordViewer`.
+- Chování se tím nemění. Převod do TS má smysl až po vypnutí Streamlitu (M28), do té doby by to byla dvojí údržba.
+- Adaptér:
+  - stáhne binární data z `/signals` a vloží je do mezipaměti prohlížeče;
+  - doplní role a barvy signálů smyčky a texty `vw_*`;
+  - rozložení ukládá do nastavení `dview`, tedy i do projektu.
+- Panel záložky:
+  - zdroj: ukázka, nebo soubor nahraný do API;
+  - sloupce PV / MV / SP / poruchy / poloha;
+  - kvalita dat a podíl MAN / AUTO.
+- Zbývá:
+  - rozložení tabulky (dlouhý formát / dvojice čas–hodnota, formát času, ruční perioda);
+  - OPC UA dialog;
+  - jednotky a rozsahy.
+  Endpointy už existují (`/layout`, `/opc/*`, `/settings`).
+- `tests/test_frontend.py`: stejný scénář jako dnešní test prohlížeče (panely, signály, kurzory, zoom tabulky),
+  navíc kvalita, MAN / AUTO, změna sloupce SP, uložené rozložení a nahrání souboru.
 
 ### M14 · Model 1 (L)
 - Úseky: společný i podle vstupů. Komponenta `trend.js` převedená na TS s táhly.

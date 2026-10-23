@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { api, setLang } from "./api/client";
+import { api, ApiError, setLang } from "./api/client";
 import { Header } from "./components/Header";
 import { Placeholder } from "./components/Placeholder";
 import { StatusBar } from "./components/StatusBar";
 import { useT } from "./i18n";
+import { DataMain, DataSide } from "./tabs/DataTab";
 import { TABS, useUi } from "./store";
 
 function useTheme() {
@@ -23,7 +24,10 @@ function useTheme() {
 function useWorkspace() {
   const { wid, setWid } = useUi();
   useEffect(() => {
-    if (wid) return;
+    if (wid) {          // uložené ID z minula – po restartu serveru už neplatí → nový prostor
+      api.workspace(wid).catch((e) => { if (e instanceof ApiError && e.status === 404) setWid(null); });
+      return;
+    }
     api.createWorkspace().then((w) => setWid(w.id)).catch(() => setWid(null));
   }, [wid, setWid]);
 }
@@ -41,11 +45,11 @@ export default function App() {
       <Header />
       <div className="body">
         <main className="main" data-testid={`tab-${cur.id}`}>
-          <Placeholder milestone={cur.milestone} />
+          {cur.id === "data" ? <DataMain /> : <Placeholder milestone={cur.milestone} />}
         </main>
         <aside className="side">
           <h2>{T("ui_settings")}</h2>
-          <div className="muted">{T(cur.label)}</div>
+          {cur.id === "data" ? <DataSide /> : <div className="muted">{T(cur.label)}</div>}
         </aside>
       </div>
       <StatusBar />

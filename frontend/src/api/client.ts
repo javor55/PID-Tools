@@ -54,6 +54,24 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   return (ct.includes("json") ? r.json() : r.arrayBuffer()) as Promise<T>;
 }
 
+/** Požadavek s binárním tělem (soubor) – odpověď JSON. */
+export async function rawRequest<T>(method: string, path: string, body: ArrayBuffer): Promise<T> {
+  const r = await fetch(base + path, { method, headers: headers({ "Content-Type": "application/octet-stream" }), body });
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* text */ }
+    throw new ApiError(r.status, msg);
+  }
+  return r.json() as Promise<T>;
+}
+
+/** Binární odpověď (signály, průběhy). */
+export async function binary(path: string): Promise<ArrayBuffer> {
+  const r = await fetch(base + path, { headers: headers() });
+  if (!r.ok) throw new ApiError(r.status, r.statusText);
+  return r.arrayBuffer();
+}
+
 export const api = {
   health: () => request<Health>("GET", "/health"),
   texts: (l: string) => request<Record<string, string>>("GET", `/i18n/${l}`),
