@@ -293,6 +293,9 @@ class LoopState(Scaling):
                           self.c_mv, self.c_d, self.layout == "long") + (tuple(self.dkinds()),)
         if self.inputs_mode:
             key = key + ("win", tuple(self.win_idx), self.excl_key, tuple(self.dsigns()))
+            mix = self.mixed()
+            if mix:
+                key = key + ("mix", tuple(self.mv_modes()), tuple(sorted((k, str(v)) for k, v in mix["ctrl"].items())))
         return key
 
     @property
@@ -330,11 +333,37 @@ class LoopState(Scaling):
         """Použitý režim identifikace („open“ / „cl“) – u „auto“ podle podílu AUTO v úseku a buzení SP."""
         from ..app import closedloop as cl
         from ..app import loopmode as lm
-        if self.grid is None:
+        if self.grid is None or self.inputs_mode:      # úseky podle vstupů: režim má každý úsek MV (mv_modes)
             return "open"
         has_sp = self.grid.has_sp
         ex = cl.excitation(self.sp[self.sel_mask], self.pv[self.sel_mask], self.mv[self.sel_mask])["ok"] if has_sp else False
         return lm.resolve_mode(self.id_mode, self.auto_frac(), has_sp, ex)
+
+    # ---- režim úseků MV (kombinovaná identifikace: ruční úseky + úseky v AUTO)
+    def wmode_over(self):
+        return {str(k): str(v) for k, v in (self.get(f"wmode|{self.fname}") or [])}
+
+    def mv_modes(self):
+        """Režim každého úseku MV („man“ / „auto“) – volba, jinak rozpoznání v záznamu; bez SP vše ručně."""
+        if not self.inputs_mode or self.grid is None:
+            return []
+        choice = self.id_mode if self.grid.has_sp else "open"
+        return wn.mv_modes(self.t, self.wins_s.get("MV", []), self.loop_det(), self.wmode_over(), choice)
+
+    def set_mv_mode(self, k, mode):
+        wmv = self.wins_s.get("MV", [])
+        if k < len(wmv):
+            ov = self.wmode_over()
+            ov[wn.mode_key(wmv[k])] = mode
+            self.set(**{f"wmode|{self.fname}": [[a, b] for a, b in ov.items()]})
+
+    def mixed(self):
+        """Kombinovaná identifikace: dict(sp, ctrl, open, closed, open_mv), nebo None (žádný úsek MV v AUTO)."""
+        modes = self.mv_modes()
+        if "auto" not in modes or not self.grid.has_sp:
+            return None
+        op, cl_, nmv = wn.mode_indices(self.t, self.wins_s, self.c_d, float(max(self.grid.Ts, self.t[-1] / 1000)), modes)
+        return dict(sp=self.sp, ctrl=self.set_ctrl_plain(1), open=op, closed=cl_, open_mv=nmv)
 
     def manual_span(self):
         from ..app import loopmode as lm
@@ -380,7 +409,8 @@ class LoopState(Scaling):
             return [("—", "err_no_windows")]
         g = self.grid
         res, errs = mdl.identify_windows_all(self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx, self.valid,
-                                             self.id_settings(), self.dkinds(), self.dsigns(), progress=progress)
+                                             self.id_settings(), self.dkinds(), self.dsigns(), progress=progress,
+                                             mixed=self.mixed())
         for c in res:
             res[c]["dv_chk"] = self.window_checks(c, res[c])
         if res:
@@ -401,7 +431,12 @@ class LoopState(Scaling):
         r0 = self.fit["res"][code]
         dk = [wn.dsel(self.get, code, r0, j) for j in range(len(r0["pdl"]))]
         g = self.grid
-        if r0.get("method") == "win" and self.inputs_mode:
+        mix = self.mixed()
+        if r0.get("method") == "win" and self.inputs_mode and mix and mix["closed"]:
+            r = mdl.identify_mixed(code, self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx, self.valid,
+                                   self.id_settings(), dk, self.dsigns(), mix, fixed)
+            r["dv_chk"] = self.window_checks(code, r)
+        elif r0.get("method") == "win" and self.inputs_mode:
             r = mdl.identify_windows(code, self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx, self.valid,
                                      self.id_settings(), dk, self.dsigns(), fixed)
             r["dv_chk"] = self.window_checks(code, r)

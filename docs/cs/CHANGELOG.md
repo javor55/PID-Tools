@@ -2,6 +2,10 @@
 
 ## Nevydáno
 
+- Model (web i desktop): **kombinovaná identifikace** – u úseků podle vstupů lze u každého úseku MV zvolit *Ručně*
+  (otevřená smyčka) nebo *AUTO* (uzavřená smyčka s regulátorem Set 1); jeden model se fituje na všechny úseky
+  najednou (ruční úseky jako MV → PV, úseky v AUTO simulací smyčky). Varování, když simulace v AUTO se záznamem
+  nesedí (Set 1 nebo rozsahy NormPV / NormMV neodpovídají regulátoru).
 - Model (web i desktop): režim dat pro identifikaci je **automatický** – v záznamu se rozpozná MAN / AUTO, ukáže
   se podíl AUTO v úseku a při převaze AUTO se zvolí identifikace v uzavřené smyčce; když by model MV → PV použil data
   v AUTO, varování s *Zúžit na ruční úsek* / *Identifikovat v uzavřené smyčce*. Kontroly věrohodnosti: pomalý proces

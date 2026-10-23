@@ -33,7 +33,7 @@ STATE_KEYS = [
     "dview",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "idf|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|",
-                "dsign|", "dsel|")
+                "dsign|", "dsel|", "wmode|")
 
 
 def is_state_key(k):
@@ -111,6 +111,11 @@ def fit_record(fit):
         if r.get("method") == "win":          # identifikace z úseků podle vstupů
             res[code].update(method="win", fits=[float(x) for x in r.get("fits", [])],
                              wins=[[int(a), int(b)] for a, b in r.get("wins", [])])
+        if r.get("mixed"):                    # kombinovaná identifikace (úseky MV v AUTO)
+            res[code].update(mixed=True, p_open=[float(x) for x in r.get("p_open", [])],
+                             cl_wins=[[int(a), int(b)] for a, b in r.get("cl_wins", [])],
+                             fit_cl_pv=None if r.get("fit_cl_pv") is None else float(r["fit_cl_pv"]),
+                             fit_cl_mv=None if r.get("fit_cl_mv") is None else float(r["fit_cl_mv"]))
     return dict(res=res, dnames=list(fit["dnames"]))
 
 

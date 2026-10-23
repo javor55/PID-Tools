@@ -2045,5 +2045,10 @@ TEXTS = {
     'lm_to_cl': 'Identifikovat v uzavřené smyčce',
     'chk_no_delay': '{m}: dopravní zpoždění je skoro nulové ({th}) u pomalého procesu (T = {T}). U teplot, hladin a koncentrací to obvykle znamená chybu identifikace (úsek se smyčkou v AUTO, málo buzení) – ověřte odezvu na skok (Data › Analýza › Odezva na skok). Model bez zpoždění dovolí libovolně velké zesílení regulátoru.',
     'chk_loop_gain': 'Zesílení smyčky K·Gain = {kk} je velmi vysoké – běžně bývá do ~5. Nejčastější příčinou je model bez dopravního zpoždění; ověřte θ modelu a rozsahy NormPV / NormMV.',
+    'mix_title': 'Režim úseků MV – ručně (otevřená smyčka) / AUTO (uzavřená smyčka s regulátorem Set 1). Lze kombinovat: jeden model se fituje na všechny úseky najednou.',
+    'mix_man': 'Ručně',
+    'mix_auto': 'AUTO',
+    'h_mix': 'Ručně = MV měnil člověk, fit MV → PV. AUTO = MV měnil regulátor; úsek se porovná se simulací smyčky s regulátorem Set 1 (PV i MV). Rozpoznáno v záznamu: {d}. Volbu lze měnit jen u Data pro identifikaci = Automaticky.',
+    'mix_set1_bad': '{m}: simulace smyčky na úsecích v AUTO sedí se záznamem jen na {f} % (PV) – Set 1 (Gain, TI, TD, NormPV / NormMV) asi neodpovídá regulátoru v záznamu, nebo jsou v úsecích velké poruchy. Model z AUTO úseků může být zkreslený.',
     'chk_vs_set1': 'Návrh se od současného nastavení (Gain {g}) liší {r}× – ověřte model (θ) a rozsahy NormPV / NormMV a zaveďte změnu postupně.',
 }

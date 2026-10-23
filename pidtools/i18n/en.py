@@ -2045,5 +2045,10 @@ TEXTS = {
     'lm_to_cl': 'Identify in closed loop',
     'chk_no_delay': '{m}: the dead time is almost zero ({th}) for a slow process (T = {T}). For temperatures, levels and concentrations this usually means an identification error (segment with the loop in AUTO, little excitation) – check the step response (Data › Analysis › Step response). A model without dead time allows any controller gain.',
     'chk_loop_gain': 'The loop gain K·Gain = {kk} is very high – it is usually below ~5. The most common cause is a model without dead time; check the model θ and the NormPV / NormMV ranges.',
+    'mix_title': 'MV segment mode – manual (open loop) / AUTO (closed loop with controller Set 1). Can be combined: one model is fitted to all segments at once.',
+    'mix_man': 'Manual',
+    'mix_auto': 'AUTO',
+    'h_mix': 'Manual = MV was moved by an operator, MV → PV fit. AUTO = MV was moved by the controller; the segment is compared with a loop simulation using controller Set 1 (both PV and MV). Detected in the record: {d}. Can be changed only with Identification data = Automatic.',
+    'mix_set1_bad': '{m}: the loop simulation on AUTO segments matches the record only {f} % (PV) – Set 1 (Gain, TI, TD, NormPV / NormMV) probably does not match the controller in the record, or the segments contain large disturbances. The model from AUTO segments may be biased.',
     'chk_vs_set1': 'The proposal differs {r}× from the current setting (Gain {g}) – check the model (θ) and the NormPV / NormMV ranges and introduce the change gradually.',
 }

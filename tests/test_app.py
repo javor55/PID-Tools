@@ -790,3 +790,35 @@ def test_loop_mode_web():
     next(b for b in at.button if b.key == "g_lm_narrow").click().run()
     assert not _errors(at)
     assert any("(AUTO) 0 %" in c.value for c in at.caption)
+
+
+def test_mixed_identification_web():
+    """Web: úseky podle vstupů – ruční úsek MV + úsek v AUTO, volba režimu úseku a kombinovaná identifikace."""
+    from tests.test_mixed import mixed_record
+    t, sp, pv, mv = mixed_record()
+    proj = dict(version=2, tag="TT", fname="mix", state={"pv_lo": 0.0, "pv_hi": 100.0, "samp": 1.0, "lang": "en",
+                                                         "set1_gain": 1.0, "set1_ti": 300.0, "set1_td": 0.0},
+                map={"c_pv": "PV", "c_mv": "MV", "c_sp": "SP", "c_d": [], "c_pos": "—"},
+                ranges={"id": [0.0, float(t[-1])]}, ff=[], data={"cols": {"t_s": list(t), "PV": list(pv),
+                                                                          "MV": list(mv), "SP": list(sp)}})
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.session_state["test_inject"] = serialize_project(proj)
+    at.run()
+    at.session_state["main_tab"] = [t_.label for t_ in _main(at)][1]
+    at.session_state["win_mode"] = "inputs"
+    at.session_state["chosen"] = ["P1D"]
+    at.session_state["thmax"] = 1000.0
+    at.run()
+    fk = "project|TT|21600"                                    # klíč souboru z projektu (tag, počet vzorků)
+    at.session_state[f"wins|{fk}"] = {"MV": [[3000.0, 10700.0], [11000.0, 21500.0]]}
+    at.run()
+    assert not _errors(at)
+    segs = [c for c in at.get("button_group") if c.label.startswith("MV ")]
+    assert [c.value for c in segs] == ["man", "auto"]
+    _button(at, "Identify").click().run()
+    assert not _errors(at)
+    r = at.session_state["fit"]["res"]["P1D"]
+    assert r["mixed"] and abs(r["p"][0] - 1.2) < 0.1 and abs(r["p"][2] - 60) < 15, r["p"]
+    segs[1].set_value("man").run()
+    assert not _errors(at)
+    assert at.session_state[f"wmode|{fk}"] == [["11000-21500", "man"]]

@@ -901,3 +901,36 @@ def test_loop_mode_desktop(win, tmp_path):
     m.b_narrow.click()
     _wait(app)
     assert s.auto_frac() == 0.0 and s.rng[1] <= 3.3 * 3600 and m.b_narrow.isHidden()
+
+
+def test_mixed_identification_desktop(win, tmp_path):
+    """Desktop: úseky podle vstupů s ručním úsekem MV a úsekem v AUTO – volba režimu úseku a kombinovaná identifikace."""
+    from tests.test_mixed import mixed_record
+    app, w = win
+    t, sp, pv, mv = mixed_record()
+    proj = dict(version=2, tag="TT", fname="mix", state={"pv_lo": 0.0, "pv_hi": 100.0, "samp": 1.0},
+                map={"c_pv": "PV", "c_mv": "MV", "c_sp": "SP", "c_d": [], "c_pos": "—"},
+                ranges={"id": [0.0, float(t[-1])]}, ff=[], data={"cols": {"t_s": t, "PV": pv, "MV": mv, "SP": sp}})
+    p = tmp_path / "mix.json"
+    p.write_text(prj.serialize_project(proj), encoding="utf-8")
+    s = w.state
+    s.load_project(p)
+    s.set(chosen=["P1D"], thmax=1000.0, win_mode="inputs", set1_gain=1.0, set1_ti=300.0, set1_td=0.0)
+    s.set_wins("MV", [[3000, 10700], [11000, 21500]])
+    w.refresh()
+    m = w.pages[1]
+    w.tabs.setCurrentIndex(1)
+    _wait(app)
+    assert s.mv_modes() == ["man", "auto"] and not m.mix_box.isHidden() and s.id_mode_eff == "open"
+    cb = m.mix_lay.itemAt(m.mix_lay.rowCount() - 1, m.mix_lay.ItemRole.FieldRole).widget()
+    assert cb.currentData() == "auto"
+    m._identify()
+    _wait(app)
+    r = s.fit["res"]["P1D"]
+    assert r["mixed"] and abs(r["p"][0] - 1.2) < 0.1 and abs(r["p"][2] - 60) < 15, r["p"]
+    assert s.fit["key"] == s.fit_key()
+    cb = m.mix_lay.itemAt(m.mix_lay.rowCount() - 1, m.mix_lay.ItemRole.FieldRole).widget()     # po identifikaci nový
+    cb.setCurrentIndex(cb.findData("man"))              # úsek ručně → jiný klíč (model zastaralý), uloží se do nastavení
+    _wait(app)
+    assert s.mv_modes() == ["man", "man"] and s.fit["key"] != s.fit_key()
+    assert s.get(f"wmode|{s.fname}") == [["11000-21500", "man"]]

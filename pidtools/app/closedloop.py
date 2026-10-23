@@ -91,42 +91,7 @@ def identify(code, p0, pdl, ts, sp, pv, mv, d, Ts, ctrl, theta_max=None, w_mv=0.
         return np.r_[(P[idx] - pvg[idx]) / s_pv, w_mv * (M[idx] - mvg[idx]) / s_mv]
 
     x0 = np.log(np.maximum(np.abs(np.r_[p0[0], p0[1:nf]]), 1e-6))
-    lb, ub = x0 - np.log(50.0), x0 + np.log(50.0)
-    th0 = float(np.clip(p0[-1], 0.0, theta_max))
-    ths = np.unique(np.clip(np.r_[th0 * np.array([0.5, 0.75, 1.0, 1.3, 1.7]), h, th0 + 4 * h], 0.0, theta_max))
-    ths = ths[np.linspace(0, len(ths) - 1, min(n_theta, len(ths))).astype(int)]
-    cache = {}
-
-    def fit_th(th, x_start, nfev=30):
-        """Nejlepší ostatní parametry pro dané zpoždění (zpoždění je v simulaci po krocích h → hledá se zvlášť)."""
-        key = round(float(th) / h)
-        if key not in cache:
-            try:
-                r = least_squares(lambda x: resid(x, th), x_start, bounds=(lb, ub), max_nfev=nfev, diff_step=0.03)
-                cache[key] = (float(r.cost), r.x, float(th))
-            except Exception:
-                cache[key] = (np.inf, x_start, float(th))
-        return cache[key]
-
-    best = min((fit_th(th, x0) for th in ths), key=lambda c_: c_[0])
-    if not np.isfinite(best[0]):
-        raise ValueError("err_fit_failed")
-    step = max(h, round(0.02 * max(best[2], h) / h) * h)
-    for _ in range(40):                                    # lokální hledání zpoždění po krocích
-        cands = [fit_th(min(max(best[2] + k * step, 0.0), theta_max), best[1], 20) for k in (-1, 1)]
-        c = min(cands, key=lambda c_: c_[0])
-        if c[0] < best[0] - 1e-12:
-            best = c
-        elif step > h:
-            step = max(h, round(step / 2 / h) * h)
-        else:
-            break
-    try:                                                   # závěrečné doladění ostatních parametrů
-        r = least_squares(lambda x: resid(x, best[2]), best[1], bounds=(lb, ub), max_nfev=60, diff_step=0.01)
-        if r.cost < best[0]:
-            best = (float(r.cost), r.x, best[2])
-    except Exception:
-        pass
+    best = _fit_theta(resid, x0, float(np.clip(p0[-1], 0.0, theta_max)), theta_max, h, n_theta)
     cost, xb, thb = best
     p = unpack(xb, thb)
     if code == "P2D" and p[2] > p[1]:
@@ -194,3 +159,181 @@ def check_set1(code, p, pdl, ts, sp, pv, mv, d, Ts, ctrl, sim=core.pidconl_sim):
     tt, P, M = s
     fp, fm = _nfit(np.asarray(pv, float), np.interp(ts, tt, P)), _nfit(np.asarray(mv, float), np.interp(ts, tt, M))
     return dict(fit_pv=fp, fit_mv=fm, stable=True, ok=fp >= 50.0)
+
+
+def identify_mixed(code, p0, pdl, t, sp, pv, mv, dists, Ts, ctrl, open_wins, closed_wins, valid=None,
+                   theta_max=None, fixed=None, w_mv=0.5, max_pts=1500, sim=core.pidconl_sim, progress=None):
+    """
+    Společná identifikace z úseků v ručním režimu (otevřená smyčka) a úseků se smyčkou v AUTO (uzavřená smyčka).
+    Hledá se jeden model procesu: v ručních úsecích model z naměřené MV dává PV (s vlastním posunem / driftem
+    úseku jako v core.fit_windows), v úsecích v AUTO simulace celé smyčky s regulátorem ze záznamu (ctrl) na naměřené
+    SP a poruchy dává PV i MV. p0, pdl = počáteční odhad (fit ručních úseků); modely poruch se ponechají.
+    open_wins / closed_wins = [(i0, i1)] indexy do t; fixed = {"p<i>": hodnota} zafixované parametry procesu.
+    Vrací dict(p, pdl, fit_cl_pv, fit_cl_mv, fits_cl = [(shoda PV, shoda MV)] úseků v AUTO, cost).
+    """
+    from ..core.windows import _Win, merge_windows
+    t, sp, pv, mv = (np.asarray(x, float) for x in (t, sp, pv, mv))
+    dists = [np.asarray(d, float) for d in dists]
+    ctrl = {k: v for k, v in ctrl.items() if k not in ("FF", "FF_LL")}
+    n = len(t)
+    ow, cw = merge_windows(open_wins, n), merge_windows(closed_wins, n)
+    if not cw:
+        raise ValueError("err_no_windows")
+    integ = MODELS[code]["integ"] or any(len(d) > 3 and d[3] == 2 for d in pdl)
+    tot = sum(t[b - 1] - t[a] for a, b in ow + cw)
+    # ruční úseky: zředěné vzorky úměrně délce úseku
+    OW = []
+    for a, b in ow:
+        k = max(1, int(np.ceil((b - a) / max(20, max_pts * (t[b - 1] - t[a]) / tot))))
+        OW.append((_Win(t, pv, mv, dists, valid, a, b, 1, integ), k))
+    s_o = max(float(np.std(np.concatenate([pv[a:b] for a, b in ow]))) if ow else 1.0, 1e-6)
+    # úseky v AUTO: mřížka kroku regulátoru; před úsekem náběh s naměřenou MV (ruční režim), aby proces na začátku
+    # úseku nebyl v ustáleném stavu jen předpokládaný – úsek může začít uprostřed přechodu
+    T0 = sum(float(x) for x in p0[1:-1]) + float(p0[-1])
+    # krok simulace: krok regulátoru, u pomalých procesů hrubší (≈ 1/150 dynamiky) – regulátor pak počítá v tomto
+    # kroku se stejnou I / D složkou (PIDConL škáluje kroky), simulace je mnohem rychlejší
+    h = max(min(Ts, ctrl["SampleTime"]), T0 / 150.0)
+    C = []
+    for a, b in cw:
+        a0 = int(np.searchsorted(t, t[a] - min(4 * T0, 6 * 3600.0)))
+        ts = t[a0:b] - t[a0]
+        g = _grid(ts, sp[a0:b], pv[a0:b], mv[a0:b], [d[a0:b] for d in dists], h)
+        n_man = int(np.searchsorted(g[0], t[a] - t[a0]))
+        m = max(20, int(max_pts * (t[b - 1] - t[a]) / tot))
+        idx = np.unique(np.linspace(n_man, len(g[0]) - 1, min(m, len(g[0]) - n_man)).astype(int))
+        C.append((g, idx, n_man))
+    s_pv = max(float(np.std(np.concatenate([g[2][n:] for g, _, n in C]))), 1e-6)
+    s_mv = max(float(np.std(np.concatenate([g[3][n:] for g, _, n in C]))), 1e-6)
+    nf = len(MODELS[code]["params"]) - 1
+    sgn = 1.0 if p0[0] >= 0 else -1.0
+    theta_max = float(theta_max) if theta_max else 0.4 * max(t[b - 1] - t[a] for a, b in ow + cw)
+    calls = [0]
+
+    fixed = {int(k[1:]): float(v) for k, v in (fixed or {}).items() if k.startswith("p") and k[1:].isdigit()}
+    free = [i for i in range(nf) if i not in fixed]
+
+    def unpack(x, th):
+        q = [0.0] * nf
+        for i, v in fixed.items():
+            if i < nf:
+                q[i] = v
+        for i, v in zip(free, x):
+            q[i] = sgn * float(np.exp(v)) if i == 0 else float(np.exp(v))
+        return q + [float(th)]
+
+    n_res = sum(len(w.t[::k][w.v[::k]]) for w, k in OW) + sum(2 * len(idx) for _, idx, _ in C)
+
+    def resid(x, th):
+        calls[0] += 1
+        if progress and calls[0] % 25 == 0:
+            progress(calls[0])
+        p = unpack(x, th)
+        out = []
+        for w, k in OW:
+            dev = core.model_dev(code, p, pdl, w.t, w.du, w.dD, Ts)
+            r = np.full(len(w.t), 0.0)
+            r[w.v] = w.proj(w.y - dev)
+            out.append(r[::k][w.v[::k]] / s_o)
+        for (_tg, spg, pvg, mvg, dg), idx, n_man in C:
+            try:
+                P, M = _sim_track(code, p, pdl, h, spg, pvg, mvg, ctrl, dg, n_man)
+            except Exception:
+                return np.full(n_res, BAD)
+            if not (np.all(np.isfinite(P)) and np.abs(P).max() < 1e5):
+                return np.full(n_res, BAD)
+            out.append((P[idx] - pvg[idx]) / s_pv)
+            out.append(w_mv * (M[idx] - mvg[idx]) / s_mv)
+        return np.concatenate(out)
+
+    x0 = np.log(np.maximum(np.abs(np.r_[p0[0], p0[1:nf]]), 1e-6))[free]
+    th_fix = fixed.get(nf)
+    if not free:
+        best = (0.5 * float(np.sum(resid(x0, th_fix if th_fix is not None else p0[-1]) ** 2)), x0,
+                th_fix if th_fix is not None else float(p0[-1]))
+    else:
+        best = _fit_theta(resid, x0, float(np.clip(p0[-1], 0.0, theta_max)), theta_max, h, th_fixed=th_fix)
+    cost, xb, thb = best
+    p = unpack(xb, thb)
+    if code == "P2D" and p[2] > p[1]:
+        p[1], p[2] = p[2], p[1]
+    fits_cl = []
+    for (_tg, spg, pvg, mvg, dg), _, n_man in C:
+        try:
+            P, M = _sim_track(code, p, pdl, h, spg, pvg, mvg, ctrl, dg, n_man)
+            fits_cl.append((_nfit(pvg[n_man:], P[n_man:]), _nfit(mvg[n_man:], M[n_man:])))
+        except Exception:
+            fits_cl.append((None, None))
+    ok = [f for f in fits_cl if f[0] is not None]
+    return dict(code=code, p=p, pdl=[list(x) for x in pdl], cost=float(cost), nfev=calls[0], fits_cl=fits_cl,
+                fit_cl_pv=float(np.mean([f[0] for f in ok])) if ok else None,
+                fit_cl_mv=float(np.mean([f[1] for f in ok])) if ok else None)
+
+
+def _sim_track(code, p, pdl, h, sp, pv, mv, ctrl, d, n_man):
+    """
+    Simulace smyčky: prvních n_man kroků ručně s naměřenou MV (regulátor jen sleduje – bezrázový přechod), pak
+    regulátor ctrl. Start v ustáleném stavu na pv[0], mv[0]. Vrací (PV, MV) na mřížce.
+    """
+    from ..core.simulation import PIDConL, ProcStep
+    n = len(sp)
+    tt = np.arange(n) * h
+    integ = MODELS[code]["integ"]
+    yd = np.zeros(n)
+    for pd, dd in zip(pdl, d):
+        yd += core.simulate_dist(integ, pd, tt, dd, h)
+    proc, pid = ProcStep(code, p, h), PIDConL(ctrl, h)
+    pv0, mv0 = float(pv[0]), float(mv[0])
+    pid.init(sp[0], pv0 + yd[0], mv0)
+    P, M = np.zeros(n), np.zeros(n)
+    for k in range(n):
+        y = pv0 + proc.output() + yd[k]
+        u = pid.track(sp[k], y, float(mv[k])) if k < n_man else pid.step(sp[k], y)
+        proc.step(u - mv0)
+        P[k], M[k] = y, u
+    if not (np.all(np.isfinite(P)) and np.abs(P).max() < 1e5):
+        raise ValueError("unstable")
+    return P, M
+
+
+def _fit_theta(resid, x0, th0, theta_max, h, n_theta=7, th_fixed=None):
+    """
+    Nejmenší čtverce s dopravním zpožděním hledaným zvlášť (v simulaci je po krocích h): mřížka kolem th0, lokální
+    hledání po krocích a závěrečné doladění. resid(x, θ) → vektor reziduí. Vrací (cena, x, θ).
+    """
+    lb, ub = x0 - np.log(50.0), x0 + np.log(50.0)
+    ths = np.unique(np.clip(np.r_[th0 * np.array([0.5, 0.75, 1.0, 1.3, 1.7]), h, th0 + 4 * h], 0.0, theta_max))
+    ths = ths[np.linspace(0, len(ths) - 1, min(n_theta, len(ths))).astype(int)]
+    if th_fixed is not None:                          # zafixované zpoždění: jen ostatní parametry
+        ths = np.array([float(th_fixed)])
+    cache = {}
+
+    def fit_th(th, x_start, nfev=30):
+        key = round(float(th) / h)
+        if key not in cache:
+            try:
+                r = least_squares(lambda x: resid(x, th), x_start, bounds=(lb, ub), max_nfev=nfev, diff_step=0.03)
+                cache[key] = (float(r.cost), r.x, float(th))
+            except Exception:
+                cache[key] = (np.inf, x_start, float(th))
+        return cache[key]
+
+    best = min((fit_th(th, x0) for th in ths), key=lambda c_: c_[0])
+    if not np.isfinite(best[0]):
+        raise ValueError("err_fit_failed")
+    step = max(h, round(0.02 * max(best[2], h) / h) * h)
+    for _ in range(40 if th_fixed is None else 0):
+        cands = [fit_th(min(max(best[2] + k * step, 0.0), theta_max), best[1], 20) for k in (-1, 1)]
+        c = min(cands, key=lambda c_: c_[0])
+        if c[0] < best[0] - 1e-12:
+            best = c
+        elif step > h:
+            step = max(h, round(step / 2 / h) * h)
+        else:
+            break
+    try:
+        r = least_squares(lambda x: resid(x, best[2]), best[1], bounds=(lb, ub), max_nfev=60, diff_step=0.01)
+        if r.cost < best[0]:
+            best = (float(r.cost), r.x, best[2])
+    except Exception:
+        pass
+    return best

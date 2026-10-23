@@ -209,14 +209,45 @@ def identify_windows(code, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fix
     return dict(r, method="win", stic=0.0, fit_raw=r["fit"])
 
 
-def identify_windows_all(t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=core.fit_windows, progress=None):
-    """Identifikace všech zvolených modelů z úseků. Vrací (výsledky {kód: výsledek}, chyby [(kód, text)])."""
+def identify_mixed(code, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, mixed, fixed=None, fn=core.fit_windows,
+                   cl_fn=None):
+    """
+    Kombinovaná identifikace z úseků: ruční úseky (otevřená smyčka, core.fit_windows – i modely poruch) dají
+    počáteční model, pak společný fit procesu přes ruční úseky a úseky se smyčkou v AUTO (simulace smyčky s regulátorem
+    ze záznamu). mixed = dict(sp, ctrl, open = [(i0, i1)] (ruční úseky MV a úseky poruch), closed = [(i0, i1)],
+    open_mv = počet ručních úseků MV). Bez ručních úseků MV se počáteční
+    model fituje ze všech úseků. Výsledek jako identify_windows + p_open, mixed, cl_wins, fits_cl, fit_cl_pv / mv.
+    """
+    from . import closedloop as cl
+    cl_fn = cl_fn or cl.identify_mixed
+    op, cw = list(mixed["open"]), list(mixed["closed"])
+    r = identify_windows(code, t, pv, mv, Ts, d, op if mixed.get("open_mv") else wins, valid, s, dkinds, dsigns,
+                         fixed, fn)
+    if not cw:
+        return r
+    rc = cl_fn(code, r["p"], r["pdl"], t, mixed["sp"], pv, mv, d, Ts, mixed["ctrl"], op, cw, valid, s.th_max,
+               {k: v for k, v in (fixed or {}).items() if k.startswith("p")})
+    _, fits, overall = core.predict_windows(code, rc["p"], r["pdl"], t, pv, mv, Ts, d, list(wins), valid)
+    return dict(r, p=list(rc["p"]), p_open=list(r["p"]), mixed=True, cl_wins=[list(map(int, w)) for w in cw],
+                fits_cl=rc["fits_cl"], fit_cl_pv=rc["fit_cl_pv"], fit_cl_mv=rc["fit_cl_mv"], fit=float(overall),
+                fit_raw=float(overall), fits=list(fits), wins=[list(map(int, w)) for w in core.merge_windows(wins, len(t))])
+
+
+def identify_windows_all(t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=core.fit_windows, progress=None,
+                         mixed=None):
+    """
+    Identifikace všech zvolených modelů z úseků (mixed = úseky MV se smyčkou v AUTO, viz identify_mixed).
+    Vrací (výsledky {kód: výsledek}, chyby [(kód, text)]).
+    """
     res, errs = {}, []
     for i, c in enumerate(s.chosen):
         if progress:
             progress(i, c)
         try:
-            res[c] = identify_windows(c, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=fn)
+            if mixed and mixed.get("closed"):
+                res[c] = identify_mixed(c, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, mixed, fn=fn)
+            else:
+                res[c] = identify_windows(c, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fn=fn)
         except Exception as ex:
             errs.append((c, str(ex)))
     return res, errs
