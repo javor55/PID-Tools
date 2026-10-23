@@ -110,6 +110,14 @@ def _api(server, path, page):
     return json.loads(urllib.request.urlopen(req, timeout=10).read())
 
 
+def _api_post(server, path, body, page):
+    import json
+    wid = page.evaluate("sessionStorage.getItem('pid.wid')")
+    req = urllib.request.Request(server + path.format(wid=wid), data=json.dumps(body).encode(), method="POST",
+                                 headers={"X-PID-Token": TOKEN, "Content-Type": "application/json"})
+    return json.loads(urllib.request.urlopen(req, timeout=60).read())
+
+
 def test_data_tab_viewer_columns_layout(page, server):
     """Data: ukázka → prohlížeč záznamu (sdílený viewer.js), kurzory a zoom, kvalita, sloupce, uložené rozložení."""
     import re
@@ -222,3 +230,29 @@ def test_model_edit_refit_validation_uncertainty(page, server):
     wait_jobs()
     page.wait_for_selector('[data-testid="unc-table"] tbody tr')
     assert page.locator('[data-testid="unc-table"] tbody tr').count() == 3
+
+
+def test_tuning_tab(page, server):
+    """Ladění: sady s robustností, návrh SIMC, zápis do Set 2, odezva scénáře a ukazatele, nastavení bloku."""
+    page.locator('[data-tab="tuning"]').click()
+    page.wait_for_selector('[data-testid="sets"] tbody tr')
+    assert page.locator('[data-testid="sets"] tbody tr').count() == 2
+    page.select_option('[data-testid="method"]', "SIMC")
+    page.locator('[data-testid="calc"]').click()
+    page.wait_for_selector('[data-testid="sug-values"]')
+    sug = _api_post(server, "/workspaces/{wid}/tuning/suggest", {"method": "SIMC"}, page)
+    assert f"{sug['Kc']:.4g}".rstrip("0").rstrip(".") in page.locator('[data-testid="sug-values"]').inner_text()
+    page.locator('[data-testid="to-set2"]').click()
+    page.wait_for_timeout(800)
+    s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
+    assert abs(s2["gain"] - sug["Kc"]) < 1e-9 and abs(s2["ti"] - sug["Ti"]) < 1e-9
+    page.wait_for_selector('[data-testid="kpis"] tbody tr')
+    assert page.locator('[data-testid="kpis"] tbody tr').count() == 3          # Set 1, Set 2, návrh
+    page.wait_for_selector('[data-testid="resp-pv"] path', timeout=20000)
+    assert page.locator('[data-testid="resp-pv"] path').count() >= 4
+    page.locator('[data-testid="set-samp"]').fill("2")
+    page.locator('[data-testid="set-samp"]').press("Enter")
+    page.wait_for_timeout(600)
+    assert _api(server, "/workspaces/{wid}/settings", page)["samp"] == 2.0
+    page.locator('[data-testid="set-samp"]').fill("1")
+    page.locator('[data-testid="set-samp"]').press("Enter")

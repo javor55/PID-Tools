@@ -65,9 +65,10 @@ export async function rawRequest<T>(method: string, path: string, body: ArrayBuf
   return r.json() as Promise<T>;
 }
 
-/** Binární odpověď (signály, průběhy). */
-export async function binary(path: string): Promise<ArrayBuffer> {
-  const r = await fetch(base + path, { headers: headers() });
+/** Binární odpověď (signály, průběhy); s tělem jako POST JSON. */
+export async function binary(path: string, body?: unknown): Promise<ArrayBuffer> {
+  const r = await fetch(base + path, body === undefined ? { headers: headers() }
+    : { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify(body) });
   if (!r.ok) throw new ApiError(r.status, r.statusText);
   return r.arrayBuffer();
 }

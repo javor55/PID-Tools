@@ -48,3 +48,14 @@ export async function uploadFile(wid: string, file: File): Promise<WorkspaceInfo
   return rawRequest<WorkspaceInfo>("POST", `/workspaces/${wid}/data/file?name=${encodeURIComponent(file.name)}`,
     await file.arrayBuffer());
 }
+
+/** Změna nastavení smyčky: hned v rozhraní (optimisticky), pak PATCH /settings a znovu načíst prostor. */
+export function usePatchSettings() {
+  const wid = useUi((s) => s.wid);
+  const qc = useQueryClient();
+  return async (patch: Record<string, unknown>) => {
+    qc.setQueryData<Record<string, unknown>>(["ws", wid, "settings"], (old) => ({ ...(old ?? {}), ...patch }));
+    await request("PATCH", `/workspaces/${wid}/settings`, patch);
+    await qc.invalidateQueries({ queryKey: ["ws", wid] });
+  };
+}

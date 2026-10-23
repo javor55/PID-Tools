@@ -61,3 +61,10 @@ button { font: inherit; color: inherit; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
 .card h3 { font-size: 13px; margin: 0 0 8px; }
 input.num { width: 110px; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 2px 6px; font-family: var(--pid-mono); }
+.chart { margin: 0; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--pid-soft); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart text { font: 10px var(--pid-mono); fill: var(--pid-muted); }
+.chart .lab { font-family: var(--pid-font); }
+.chart figcaption { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--pid-muted); }
+.chart figcaption i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; }

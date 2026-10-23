@@ -6,6 +6,7 @@ import { StatusBar } from "./components/StatusBar";
 import { useT } from "./i18n";
 import { DataMain, DataSide } from "./tabs/DataTab";
 import { ModelMain, ModelSide } from "./tabs/ModelTab";
+import { TuningMain, TuningSide } from "./tabs/TuningTab";
 import { TABS, useUi } from "./store";
 
 function useTheme() {
@@ -46,11 +47,12 @@ export default function App() {
       <Header />
       <div className="body">
         <main className="main" data-testid={`tab-${cur.id}`}>
-          {cur.id === "data" ? <DataMain /> : cur.id === "model" ? <ModelMain /> : <Placeholder milestone={cur.milestone} />}
+          {cur.id === "data" ? <DataMain /> : cur.id === "model" ? <ModelMain /> : cur.id === "tuning" ? <TuningMain />
+            : <Placeholder milestone={cur.milestone} />}
         </main>
         <aside className="side">
           <h2>{T("ui_settings")}</h2>
-          {cur.id === "data" ? <DataSide /> : cur.id === "model" ? <ModelSide />
+          {cur.id === "data" ? <DataSide /> : cur.id === "model" ? <ModelSide /> : cur.id === "tuning" ? <TuningSide />
             : <div className="muted">{T(cur.label)}</div>}
         </aside>
       </div>

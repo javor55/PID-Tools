@@ -7,7 +7,7 @@ import type { components } from "../api/schema";
 import { unframe, series } from "../api/signals";
 import { Trend } from "../components/Trend";
 import { ModelDetails } from "./ModelDetails";
-import { type LoopMode, useSettings, useWs, useWsQuery } from "../data";
+import { type LoopMode, usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { useJobRunner } from "../jobs";
 import { dur } from "../lib/format";
@@ -25,16 +25,6 @@ const DIST_STYLE = [["#0d9488", "#0b7a70", "#e3f5f2", "#8fd3ca"], ["#7c3aed", "#
   ["#db2777", "#9d174d", "#fdf0f6", "#f5b8d3"], ["#0891b2", "#0e7490", "#e6f6fa", "#9fdcec"]];
 const MV_STYLE = ["#f59e0b", "#c77d00", "#fff4dc", "#f2c46d"];
 
-function usePatchSettings() {
-  const wid = useUi((s) => s.wid);
-  const qc = useQueryClient();
-  return async (patch: Record<string, unknown>) => {
-    // hned v rozhraní (zaškrtávátka, výběry), pak s API
-    qc.setQueryData<Record<string, unknown>>(["ws", wid, "settings"], (old) => ({ ...(old ?? {}), ...patch }));
-    await request("PATCH", `/workspaces/${wid}/settings`, patch);
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-  };
-}
 
 function useModelData() {
   const wid = useUi((s) => s.wid);

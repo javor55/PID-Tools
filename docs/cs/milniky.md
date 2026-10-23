@@ -39,7 +39,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ◐ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ◐ |
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ◐ |
-| M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ☐ |
+| M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ☐ |
 | M18 | Živá simulace | C | M | M16 | ☐ |
 | M19 | APC | C | L | M11, M16 | ☐ |
@@ -388,6 +388,16 @@ a Playwright.
 
 ### M16 · Ladění 1
 - Blok PIDConL (parametry, rozsahy, SampleTime), sady 1–3, metody a návrh, kontroly věrohodnosti.
+
+**Skutečnost M16:**
+- Sady 1 / 2 s robustností (Ms, GM, PM). Návrh zvolenou metodou s poznámkami a kontrolami věrohodnosti
+  (zesílení smyčky, rozdíl proti Set 1, zpoždění ≈ 0); zápis návrhu do Set 2 / Set 1 s historií.
+- Odezva scénáře pro Set 1, Set 2 a návrh (PV, MV) s ukazateli: IAE, překmit, doba do 90 %, ustálení.
+- Panel: blok PIDConL (SampleTime, DiffGain, NormPV / NormMV, meze MV, PropFacSP, D ve zpětné vazbě), prvky
+  smyčky (deadband, filtr PV, rychlost MV, rampa SP), nastavení metod (typ regulátoru, kritérium, cíl, překmit,
+  Ms, robustnost).
+- Nové sdílené prvky: `LineChart` (SVG) a nastavovací pole navázaná na klíče projektu.
+- Test v prohlížeči: návrh SIMC = API, zápis do Set 2, odezva a ukazatele, změna SampleTime.
 
 ### M17 · Ladění 2 (L)
 - Porovnání metod, scénář (SP, porucha, šum, omezení), KPI.
