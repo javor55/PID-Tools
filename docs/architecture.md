@@ -4,7 +4,7 @@ PID Tools is split into three layers. The aim is that the same computations and 
 by more than one frontend – today the Streamlit web app, later a desktop application for engineering stations.
 
 A plan to replace both frontends with one TypeScript UI over a Python API (web and fully offline desktop) is in
-[docs/cs/plan-jednotne-ui.md](cs/plan-jednotne-ui.md) (Czech, proposal for discussion).
+[docs/cs/plan-jednotne-ui.md](cs/plan-jednotne-ui.md) (Czech), milestones in [docs/cs/milniky.md](cs/milniky.md).
 
 ```
 frontend   pidtools/ui (Streamlit, web)   pidtools/desktop (Qt, engineering station)

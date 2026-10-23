@@ -1,6 +1,6 @@
 # Plán přechodu na jedno rozhraní (TypeScript) nad Python výpočty
 
-Stav: **návrh k diskusi**. Dokument popisuje, proč a jak přejít ze dvou rozhraní (Streamlit web + PySide6 desktop)
+Stav: **schváleno k přípravě** – prováděcí plán po milnících je v [milniky.md](milniky.md). Dokument popisuje, proč a jak přejít ze dvou rozhraní (Streamlit web + PySide6 desktop)
 na jedno webové rozhraní v TypeScriptu, které poběží na serveru i jako desktopová aplikace kompletně offline.
 Výpočty (`pidtools/core`, `pidtools/app`) zůstávají v Pythonu beze změny.
 
