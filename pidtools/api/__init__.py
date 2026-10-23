@@ -1,0 +1,154 @@
+"""
+API nad aplikační vrstvou (FastAPI): pracovní prostory, texty, dlouhé úlohy s průběhem (docs/cs/milniky.md, M6).
+
+Bezpečnost pro desktop: server poslouchá jen na 127.0.0.1 a vyžaduje token (hlavička `Authorization: Bearer …`
+nebo `X-PID-Token`); bez tokenu odpoví jen /health. CORS jen pro zadané původy (okno aplikace).
+Spuštění: python -m pidtools.api --port 8765 --token TAJNE
+Rozhraní je popsané v openapi.json vedle tohoto souboru (generované; test hlídá, že odpovídá kódu).
+"""
+import asyncio
+import hmac
+import json
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from .. import __version__, i18n
+from ..app.jobs import FINAL, JobManager
+from .store import WorkspaceStore
+
+
+class Health(BaseModel):
+    status: str
+    version: str
+
+
+class WorkspaceInfo(BaseModel):
+    id: str
+    has_data: bool
+    fname: str
+    columns: list[str]
+    pv: str | None = None
+    mv: str | None = None
+    sp: str | None = None
+    dists: list[str] = []
+    n: int = 0
+    Ts: float | None = None
+
+
+class JobInfo(BaseModel):
+    id: str
+    state: str
+    progress: float
+    text: str
+    error: str | None = None
+    cached: bool = False
+    created: float
+    started: float | None = None
+    finished: float | None = None
+
+
+def _ws_info(wid, ws):
+    has = bool(ws.has_data)
+    cols = list(ws.sig.sigs) if ws.sig is not None else []
+    return WorkspaceInfo(id=wid, has_data=has, fname=ws.fname or "", columns=[str(c) for c in cols],
+                         pv=ws.c_pv, mv=ws.c_mv, sp=None if ws.c_sp in (None, "—") else ws.c_sp,
+                         dists=[str(d) for d in ws.c_d], n=len(ws.t) if has else 0,
+                         Ts=float(ws.grid.Ts) if has else None)
+
+
+def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
+    """Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly)."""
+    jobs = JobManager(max_parallel=max_jobs)
+
+    @asynccontextmanager
+    async def lifespan(_app):
+        yield
+        jobs.shutdown()                      # běžící procesy úloh se ukončí se serverem
+
+    app = FastAPI(title="PID Tools API", version=__version__, lifespan=lifespan,
+                  description="Identification, tuning and simulation of PIDConL loops (PCS 7).")
+    app.state.store = WorkspaceStore(workspace_ttl, max_workspaces)
+    app.state.jobs = jobs
+    if cors_origins:
+        app.add_middleware(CORSMiddleware, allow_origins=list(cors_origins), allow_methods=["*"],
+                           allow_headers=["*"])
+
+    def auth(authorization: str | None = Header(None), x_pid_token: str | None = Header(None)):
+        if token is None:
+            return
+        got = x_pid_token or (authorization[7:] if authorization and authorization.startswith("Bearer ") else "")
+        if not hmac.compare_digest(str(got), str(token)):
+            raise HTTPException(401, "invalid token")
+
+    def workspace(wid: str):
+        try:
+            return app.state.store.get(wid)
+        except KeyError:
+            raise HTTPException(404, "workspace not found") from None
+
+    def job(jid: str):
+        try:
+            return app.state.jobs.status(jid)
+        except KeyError:
+            raise HTTPException(404, "job not found") from None
+
+    app.state.workspace = workspace          # pro další moduly API (M7–M11)
+
+    @app.get("/health", response_model=Health, tags=["system"])
+    def health():
+        return Health(status="ok", version=__version__)
+
+    @app.get("/i18n/{lang}", response_model=dict[str, str], tags=["system"], dependencies=[Depends(auth)])
+    def texts(lang: str):
+        if lang not in i18n.TEXTS:
+            raise HTTPException(404, "language not found")
+        return i18n.TEXTS[lang]
+
+    @app.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
+    def ws_create():
+        wid, ws = app.state.store.create()
+        return _ws_info(wid, ws)
+
+    @app.get("/workspaces/{wid}", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
+    def ws_get(wid: str):
+        return _ws_info(wid, workspace(wid))
+
+    @app.delete("/workspaces/{wid}", status_code=204, tags=["workspace"], dependencies=[Depends(auth)])
+    def ws_delete(wid: str):
+        if not app.state.store.delete(wid):
+            raise HTTPException(404, "workspace not found")
+
+    @app.get("/jobs/{jid}", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
+    def job_get(jid: str):
+        return JobInfo(**job(jid))
+
+    @app.post("/jobs/{jid}/cancel", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
+    def job_cancel(jid: str):
+        job(jid)
+        app.state.jobs.cancel(jid)
+        return JobInfo(**job(jid))
+
+    @app.get("/jobs/{jid}/events", tags=["jobs"], dependencies=[Depends(auth)],
+             responses={200: {"content": {"text/event-stream": {}}, "description": "JobInfo as server-sent events"}})
+    async def job_events(jid: str, request: Request):
+        """Průběh úlohy jako server-sent events (JobInfo při každé změně, konec u hotové / zrušené úlohy)."""
+        job(jid)
+
+        async def gen():
+            last = None
+            while True:
+                st = app.state.jobs.status(jid)
+                cur = (st["state"], round(st["progress"], 3), st["text"])
+                if cur != last:
+                    yield f"data: {json.dumps(JobInfo(**st).model_dump())}\n\n"
+                    last = cur
+                if st["state"] in FINAL or await request.is_disconnected():
+                    return
+                await asyncio.sleep(0.1)
+        return StreamingResponse(gen(), media_type="text/event-stream")
+
+    return app

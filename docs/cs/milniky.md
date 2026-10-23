@@ -29,7 +29,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M3 | Texty CZ / EN do JSON | A | S | – | ◐ |
 | M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ◐ |
 | M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ◐ |
-| M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ☐ |
+| M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ◐ |
 | M7 | API: data a signály | B | M | M6 | ☐ |
 | M8 | API: projekt | B | S | M6 | ☐ |
 | M9 | API: model | B | L | M5, M7 | ☐ |
@@ -190,6 +190,17 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - Testy pytest a httpx. Závislosti `requirements-api.txt`.
 
 **Hotovo když:** `python -m pidtools.api --port 8765 --token X` běží a testy kostry jsou v CI.
+
+**Skutečnost:**
+- `pidtools/api`: `create_app()`, `store.WorkspaceStore` (vypršení, limit počtu), `__main__` (bez `--token` se
+  token vygeneruje a vypíše na první řádek).
+- Endpointy:
+  - `/health`, `/i18n/{lang}`;
+  - `/workspaces` – vytvořit, stav, smazat;
+  - `/jobs/{id}` – stav, `cancel`, `events` (SSE).
+- `pidtools/api/openapi.json` hlídá test. Závislosti jsou v `requirements-api.txt` (FastAPI 0.161, uvicorn 0.50).
+- `tests/test_api.py`: token, CORS jen pro okno aplikace, vypršení prostorů, SSE průběh, zrušení, spuštění
+  z příkazové řádky na 127.0.0.1.
 
 ### M7 · API: data a signály
 - Nahrání souboru a odhad sloupců (CSV, Excel), mapování rolí, rozsahy.

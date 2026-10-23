@@ -30,6 +30,9 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 - `app.report` and `app.plots` use Plotly (the protocol is an HTML file with Plotly charts); the rest of `app`,
   `core` and `i18n` must import without Streamlit, Plotly or Qt (`tests/test_app_layer.py`).
 - The project file (`app.project`) is shared – a project saved in one frontend opens in the other.
+- `pidtools/api` (FastAPI, `requirements-api.txt`) wraps the workspace for the future single UI. It listens on
+  127.0.0.1 with a token for the desktop. `openapi.json` next to it is generated
+  (`python -m pidtools.api --openapi pidtools/api/openapi.json`) and checked by a test.
 - Long computations for the API run as jobs (`app.jobs`): one process per job, progress, cancel, timeout and a
   result cache by input key.
 - Golden cases (`tools/golden.py`, `tests/golden/`, checked by `tests/test_golden.py`) hold the results of the
