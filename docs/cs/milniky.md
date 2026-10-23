@@ -26,7 +26,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 |---|---|---|---|---|---|
 | M1 | Zlaté případy | A | M | – | ◐ |
 | M2 | Přibalené fonty (offline) | A | S | – | ◐ |
-| M3 | Texty CZ / EN do JSON | A | S | – | ☐ |
+| M3 | Texty CZ / EN do JSON | A | S | – | ◐ |
 | M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ☐ |
 | M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ☐ |
 | M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ☐ |
@@ -118,6 +118,12 @@ Výpočet trvá ≈ 90 s. Přehled smyček a report nemají vlastní výpočet, 
 - Test shody klíčů a placeholderů `{x}` mezi jazyky.
 
 **Hotovo když:** obě dnešní UI a report fungují beze změny a nový frontend může JSON načíst přímo.
+
+**Skutečnost:**
+- 2 050 klíčů v `pidtools/i18n/cs.json` a `en.json`; desktop build JSON přibaluje.
+- `tests/test_i18n.py` kontroluje shodu klíčů a zástupných hodnot, platný formát a JSON.
+- **Pro M12:** pět textů používá formát Pythonu (`{tc:.4g}`, `{r:.0f}`, `{ts:g}`). Formátovač v TS musí umět `.Nf`,
+  `.Ng` a `g`.
 
 ### M4 · Pracovní prostor v `app` (L, dělí se na a–d)
 Dnes je stav a workflow zdvojený:

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Development: the CZ / EN texts are in `pidtools/i18n/cs.json` and `en.json` (one source, also for the future TS UI).
 - Web: the IBM Plex fonts are bundled (`static/fonts`, OFL licence) – the app downloads nothing from the internet and
   the offline package shows the right typeface without a network.
 - Model: the *Automatic* data mode uses the closed loop (also for AUTO segments) only when Set 1 holds the

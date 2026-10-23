@@ -186,7 +186,7 @@ pidtools/
                            smith, gainsched
     project.py             formát projektu (JSON)
     report.py plots.py     protokol z ladění (HTML) a pomocníci grafů Plotly
-  i18n/                    texty: cs.py, en.py, T() – jazyk nastavuje frontend
+  i18n/                    texty: cs.json, en.json, T() – jazyk nastavuje frontend
   ui/                      webový frontend ve Streamlitu (widgety, session state, cache, grafy)
   desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): state.py (jedna smyčka, bez Qt), main.py, tabs/
     context.py             Ctx – data sdílená záložkami v jednom běhu

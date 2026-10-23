@@ -196,7 +196,7 @@ pidtools/
                            smith, gainsched
     project.py             project file format (JSON)
     report.py plots.py     tuning protocol (HTML) and Plotly figure helpers
-  i18n/                    texts: cs.py, en.py, T() – the frontend sets the language
+  i18n/                    texts: cs.json, en.json, T() – the frontend sets the language
   ui/                      Streamlit web frontend (widgets, session state, caching, charts)
   desktop/                 Qt desktop frontend (PySide6, pyqtgraph): state.py (one loop, no Qt), main.py, tabs/
     context.py             Ctx – data shared by the tabs within one run

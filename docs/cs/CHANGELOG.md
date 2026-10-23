@@ -2,6 +2,7 @@
 
 ## Nevydáno
 
+- Vývoj: texty CZ / EN jsou v `pidtools/i18n/cs.json` a `en.json` (jeden zdroj i pro budoucí rozhraní v TS).
 - Web: fonty IBM Plex jsou přibalené (`static/fonts`, licence OFL) – aplikace nestahuje nic z internetu, offline
   balíček má správné písmo i bez sítě.
 - Model: režim dat *Automaticky* použije uzavřenou smyčku (i u úseků v AUTO) jen tehdy, když je Set 1 vyplněný
