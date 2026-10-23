@@ -103,8 +103,15 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
 
 ## 2 · Model
 
-1. **Modely** – vyberte, které struktury vyzkoušet (výchozí: všechny; nejlepší podle shody se nabídne).
-   Integrační modely jsou pro procesy, které se neustálí (hladina).
+1. **Data pro identifikaci** (nad tlačítkem *Identifikovat*): *Automaticky podle záznamu* (výchozí) rozpozná, kdy MV
+   mění člověk (ručně, MAN – skoky) a kdy regulátor (AUTO – MV sleduje odchylku), a ukáže podíl AUTO v úseku.
+   Převažuje-li AUTO a mění se SP, použije identifikaci v uzavřené smyčce, jinak MV → PV. Model MV → PV z dat se
+   smyčkou v AUTO vychází zkreslený (typicky chybí dopravní zpoždění a ladění pak vyjde nesmyslně tvrdé) – aplikace
+   upozorní a nabídne *Zúžit na ruční úsek* nebo *Identifikovat v uzavřené smyčce*.
+   **Modely** – vyberte, které struktury vyzkoušet (výchozí: všechny; nejlepší podle shody se nabídne).
+   Integrační modely jsou pro procesy, které se neustálí (hladina). Pomalý proces skoro bez dopravního zpoždění se
+   označí jako pravděpodobná chyba identifikace; Ladění navíc upozorní na velmi vysoké zesílení smyčky K·Gain nebo
+   návrh víc než 20× jiný než současný Set 1.
 2. **Nastavení identifikace**:
    - *Max. θ* – horní mez dopravního zpoždění;
    - *Neměřené poruchy* – žádné / střední (filtr pomalých změn) / silné (odhad pomalé poruchy spolu s modelem);

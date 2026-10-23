@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Model (web and desktop): the identification data mode is **automatic** – MAN / AUTO is recognised in the
+  record, the share of AUTO in the segment is shown, closed-loop identification is chosen when AUTO prevails; a
+  warning with *Narrow to the manual span* / *Identify in closed loop* when an MV → PV model would use AUTO data.
+  Plausibility checks: a slow process with almost no dead time (model), loop gain K·Gain > 20 and a proposal more
+  than 20× away from Set 1 (tuning).
 - Record viewer: Y scale per signal – auto from the view, auto from the whole record or fixed min / max (button in
   the signal list or a click on the Y axis).
 - Web, Data tab: **record viewer** – every signal of the file without resampling, in panels with their own Y axes;

@@ -297,8 +297,59 @@ class LoopState(Scaling):
 
     @property
     def id_closed(self):
-        """Identifikace z dat v AUTO (nepřímá metoda se Set 1) – jen se sloupcem SP."""
-        return self.get("id_mode") == "cl" and self.grid is not None and self.grid.has_sp
+        """Identifikace z dat v AUTO (nepřímá metoda se Set 1) – jen se sloupcem SP; „auto“ podle záznamu."""
+        return self.grid is not None and self.grid.has_sp and self.id_mode_eff == "cl"
+
+    # ---- ruční (MAN) / automatická (AUTO) smyčka v záznamu
+    @property
+    def id_mode(self):
+        m = self.get("id_mode")
+        return m if m in ("auto", "open", "cl") else "auto"
+
+    def loop_det(self):
+        """Úseky MAN / AUTO celého záznamu (spočtené jednou pro soubor a signály)."""
+        from ..app import loopmode as lm
+        key = (self.fname, len(self.t), str(self.c_mv), str(self.c_pv), str(self.c_sp))
+        if getattr(self, "_lm_det", (None,))[0] != key:
+            self._lm_det = (key, lm.detect(self.t, self.mv, self.pv, self.sp if self.grid.has_sp else None))
+        return self._lm_det[1]
+
+    def auto_frac(self):
+        """Podíl AUTO v úseku identifikace (společný úsek, nebo úseky MV)."""
+        from ..app import loopmode as lm
+        det = self.loop_det()
+        if self.inputs_mode:
+            m = np.zeros(len(self.t), bool)
+            for a, b in self.wins_s.get("MV", []):
+                m |= (self.t >= a) & (self.t <= b)
+            return float(det["auto"][m].mean()) if m.any() else 0.0
+        return lm.frac_in(det, self.t, *self.rng)
+
+    @property
+    def id_mode_eff(self):
+        """Použitý režim identifikace („open“ / „cl“) – u „auto“ podle podílu AUTO v úseku a buzení SP."""
+        from ..app import closedloop as cl
+        from ..app import loopmode as lm
+        if self.grid is None:
+            return "open"
+        has_sp = self.grid.has_sp
+        ex = cl.excitation(self.sp[self.sel_mask], self.pv[self.sel_mask], self.mv[self.sel_mask])["ok"] if has_sp else False
+        return lm.resolve_mode(self.id_mode, self.auto_frac(), has_sp, ex)
+
+    def manual_span(self):
+        from ..app import loopmode as lm
+        return lm.manual_span(self.loop_det(), self.t, self.mv, *self.rng)
+
+    def narrow_to_manual(self):
+        """Úsek identifikace (u úseků podle vstupů úsek MV) na nejdelší ruční část se skokem MV."""
+        span = self.manual_span()
+        if not span:
+            return False
+        if self.inputs_mode:
+            self.set_wins("MV", [span])
+        else:
+            self.rng = (float(span[0]), float(span[1]))
+        return True
 
     def identify(self, progress=None):
         """

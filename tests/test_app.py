@@ -768,3 +768,25 @@ def test_data_viewer_layout_in_project():
     at2.session_state["test_inject"] = json.dumps(proj)
     at2.run()
     assert not _errors(at2) and at2.session_state["dview"] == lay
+
+
+def test_loop_mode_web():
+    """Model: režim dat „automaticky“ – podíl AUTO v úseku, varování a zúžení úseku na ruční část."""
+    from tests.test_loopmode import _record
+    t, mv, pv, sp = _record()
+    proj = dict(version=2, tag="TT", fname="rec", state={"pv_lo": 0.0, "pv_hi": 100.0, "samp": 1.0, "lang": "en"},
+                map={"c_pv": "PV", "c_mv": "MV", "c_sp": "SP", "c_d": [], "c_pos": "—"},
+                ranges={"id": [0.0, float(t[-1])]}, ff=[], data={"cols": {"t_s": list(t), "PV": list(pv),
+                                                                          "MV": list(mv), "SP": list(sp)}})
+    at = AppTest.from_file(WRAPPER, default_timeout=TIMEOUT)
+    at.session_state["test_inject"] = serialize_project(proj)
+    at.run()
+    at.session_state["main_tab"] = [t_.label for t_ in _main(at)][1]
+    at.run()
+    assert not _errors(at)
+    assert at.session_state["id_mode"] == "auto"
+    assert any("AUTO" in c.value for c in at.caption)
+    assert any("in AUTO" in w_.value for w_ in at.warning)
+    next(b for b in at.button if b.key == "g_lm_narrow").click().run()
+    assert not _errors(at)
+    assert any("(AUTO) 0 %" in c.value for c in at.caption)
