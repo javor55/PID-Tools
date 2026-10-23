@@ -1,0 +1,187 @@
+{
+ "apc": {
+  "delay_ratio": 0.473466,
+  "smith_tc": 5.89603
+ },
+ "data": {
+  "Ts": 1.0,
+  "has_sp": true,
+  "n": 3600,
+  "rng": [
+   0.0,
+   3599.0
+  ]
+ },
+ "diag": {
+  "kpis": {
+   "at_lim": 0.0,
+   "harris": 0.000145706,
+   "iae_h": 59410.1,
+   "osc": {
+    "amp": 17.2677,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "rev_h": 3.00083,
+   "std_e": 14.3317,
+   "travel_h": 34.0094
+  },
+  "valve": {
+   "osc": {
+    "amp": 17.2677,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "stic": {
+    "ratio": 0.981075
+   }
+  }
+ },
+ "frequency": {
+  "set1": {
+   "Ms": 1.30299,
+   "bw": 0.0150476
+  },
+  "sug": {
+   "Ms": 1.58618,
+   "bw": 0.0391576
+  }
+ },
+ "loopmode": {
+  "auto_frac": 0.0,
+  "eff": "open",
+  "frac": 0.0,
+  "mv_modes": [],
+  "runs": [
+   [
+    0.0,
+    3599.0,
+    "man"
+   ]
+  ]
+ },
+ "model": {
+  "best": "I1D",
+  "checks": [],
+  "errors": [],
+  "res": {
+   "I1D": {
+    "fit": 99.2135,
+    "p": [
+     -0.00394342,
+     13.1137,
+     11.7921
+    ],
+    "pdl": [
+     [
+      0.0100411,
+      8.16918,
+      1.99978,
+      0.0
+     ]
+    ],
+    "stic": 0.0
+   },
+   "P1D": {
+    "fit": 98.6284,
+    "p": [
+     -12.4793,
+     3237.08,
+     34.8966
+    ],
+    "pdl": [
+     [
+      727.103,
+      71960.0,
+      20.2878,
+      0.0
+     ]
+    ],
+    "stic": 0.0
+   }
+  }
+ },
+ "quality": {
+  "checks": [
+   "q_steps_ok",
+   "q_snr_ok"
+  ],
+  "level": 0,
+  "n_steps": 6,
+  "snr": 442.834
+ },
+ "scenario": {
+  "T_end": 5000.0,
+  "set1": {
+   "iae": 976.52,
+   "maxdev": 5.0,
+   "mv_travel": 24.8295,
+   "reversals": 8,
+   "step_over": 31.0989,
+   "step_settle": 640.0,
+   "step_t90": 149.0
+  },
+  "sug": {
+   "iae": 490.632,
+   "maxdev": 5.0,
+   "mv_travel": 58.3269,
+   "reversals": 2,
+   "step_over": 27.3277,
+   "step_settle": 364.0,
+   "step_t90": 74.0
+  }
+ },
+ "set1_metrics": {
+  "GM": 10.6607,
+  "Ms": 1.30299,
+  "PM": 47.8353,
+  "noise": 0.198618,
+  "stable": true
+ },
+ "tuning": {
+  "AMIGO": {
+   "Kc": -3.49352,
+   "Td": 0.0,
+   "Ti": 340.437,
+   "notes": [
+    "note_amigo",
+    "note_amigo_b0"
+   ]
+  },
+  "AVG": {
+   "Kc": -1.0,
+   "Td": 0.0,
+   "Ti": 1014.35,
+   "notes": [
+    "note_avg"
+   ]
+  },
+  "Lambda": {
+   "Kc": -4.3669,
+   "Td": 0.0,
+   "Ti": 177.84,
+   "notes": [
+    "note_lag_to_delay"
+   ]
+  },
+  "OPT": {
+   "Kc": -5.34865,
+   "Td": 0.0,
+   "Ti": 246.702,
+   "notes": [
+    "note_topt",
+    "note_ovs_fail"
+   ]
+  },
+  "SIMC": {
+   "Kc": -4.99074,
+   "Td": 0.0,
+   "Ti": 203.246,
+   "notes": [
+    "note_lag_to_delay"
+   ]
+  }
+ }
+}

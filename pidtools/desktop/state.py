@@ -337,7 +337,13 @@ class LoopState(Scaling):
             return "open"
         has_sp = self.grid.has_sp
         ex = cl.excitation(self.sp[self.sel_mask], self.pv[self.sel_mask], self.mv[self.sel_mask])["ok"] if has_sp else False
-        return lm.resolve_mode(self.id_mode, self.auto_frac(), has_sp, ex)
+        return lm.resolve_mode(self.id_mode, self.auto_frac(), has_sp, ex, self.set1_ok)
+
+    @property
+    def set1_ok(self):
+        """Set 1 je skutečný regulátor ze záznamu (ne výchozí zástupné hodnoty) – podmínka identifikace v AUTO."""
+        return not tun.is_placeholder(float(self.get("set1_gain")), float(self.get("set1_ti")),
+                                      float(self.get("set1_td")))
 
     # ---- režim úseků MV (kombinovaná identifikace: ruční úseky + úseky v AUTO)
     def wmode_over(self):
@@ -348,7 +354,7 @@ class LoopState(Scaling):
         if not self.inputs_mode or self.grid is None:
             return []
         choice = self.id_mode if self.grid.has_sp else "open"
-        return wn.mv_modes(self.t, self.wins_s.get("MV", []), self.loop_det(), self.wmode_over(), choice)
+        return wn.mv_modes(self.t, self.wins_s.get("MV", []), self.loop_det(), self.wmode_over(), choice, self.set1_ok)
 
     def set_mv_mode(self, k, mode):
         wmv = self.wins_s.get("MV", [])

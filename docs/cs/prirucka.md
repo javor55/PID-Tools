@@ -105,7 +105,8 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
 
 1. **Data pro identifikaci** (nad tlačítkem *Identifikovat*): *Automaticky podle záznamu* (výchozí) rozpozná, kdy MV
    mění člověk (ručně, MAN – skoky) a kdy regulátor (AUTO – MV sleduje odchylku), a ukáže podíl AUTO v úseku.
-   Převažuje-li AUTO a mění se SP, použije identifikaci v uzavřené smyčce, jinak MV → PV. Model MV → PV z dat se
+   Převažuje-li AUTO, mění se SP a Set 1 obsahuje skutečný regulátor ze záznamu (ne výchozí Gain 1 / TI 100),
+   použije identifikaci v uzavřené smyčce, jinak MV → PV. Model MV → PV z dat se
    smyčkou v AUTO vychází zkreslený (typicky chybí dopravní zpoždění a ladění pak vyjde nesmyslně tvrdé) – aplikace
    upozorní a nabídne *Zúžit na ruční úsek* nebo *Identifikovat v uzavřené smyčce*.
    **Kombinace (úseky podle vstupů):** každý úsek MV má volbu *Ručně* / *AUTO* (výchozí podle rozpoznání v záznamu).

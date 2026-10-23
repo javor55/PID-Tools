@@ -2050,5 +2050,6 @@ TEXTS = {
     'mix_auto': 'AUTO',
     'h_mix': 'Manual = MV was moved by an operator, MV → PV fit. AUTO = MV was moved by the controller; the segment is compared with a loop simulation using controller Set 1 (both PV and MV). Detected in the record: {d}. Can be changed only with Identification data = Automatic.',
     'mix_set1_bad': '{m}: the loop simulation on AUTO segments matches the record only {f} % (PV) – Set 1 (Gain, TI, TD, NormPV / NormMV) probably does not match the controller in the record, or the segments contain large disturbances. The model from AUTO segments may be biased.',
+    'lm_need_set1': 'The record has the loop in AUTO, but Set 1 still has the default values (Gain 1, TI 100) – closed-loop identification needs the real controller from the record. Fill in Set 1 from the block (including the NormPV / NormMV ranges) or estimate it from the record; until then open loop is used.',
     'chk_vs_set1': 'The proposal differs {r}× from the current setting (Gain {g}) – check the model (θ) and the NormPV / NormMV ranges and introduce the change gradually.',
 }

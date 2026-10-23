@@ -24,7 +24,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 
 | # | Milník | Fáze | Velikost | Závisí na | Stav |
 |---|---|---|---|---|---|
-| M1 | Zlaté případy | A | M | – | ☐ |
+| M1 | Zlaté případy | A | M | – | ◐ |
 | M2 | Přibalené fonty (offline) | A | S | – | ☐ |
 | M3 | Texty CZ / EN do JSON | A | S | – | ☐ |
 | M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ☐ |
@@ -56,6 +56,18 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 **R1–R6** jsou rozhodnutí z kap. 8 plánu (viz [Rozhodnutí](#rozhodnutí)). Fáze A se dá dělat hned, bez ohledu
 na ně, a prospěje i dnešní aplikaci.
 
+## Zjištění během práce
+
+Chyby a omezení výpočtů nalezené při přípravě. Opravené se uvádí u milníku, ostatní čekají na samostatný PR.
+
+| Kde | Zjištění | Stav |
+|---|---|---|
+| M1 | Režim dat *Automaticky* volil uzavřenou smyčku i se Set 1 na výchozích hodnotách (Gain 1, TI 100) – simulace smyčky s nesprávným regulátorem dala nesmyslný model (FIT −27 %, otevřená smyčka 87 %). | opraveno v M1: AUTO jen se skutečným Set 1, jinak upozornění |
+| M1 | Uložení projektu s daty a jeho opětovné načtení ubralo jeden vzorek (zaokrouhlení počtu vzorků při převzorkování). | opraveno v M1 |
+| M1 | Identifikace v uzavřené smyčce (nepřímá i kombinovaná) občas uvízne v lokálním minimu dopravního zpoždění (θ → 0) podle toho, kde úsek začíná. | čeká – robustnější hledání θ (víc startů, kontrola přes ruční úseky) |
+| M1 | Kombinovaná identifikace s nesprávně škálovaným Set 1 (rozsahy NormPV / NormMV) zhorší i dobrý model z ručních úseků (TIC001: θ 364 s → 0). Upozorní jen kontrola „zpoždění ≈ 0“. | čeká – varování / vyšší váha ručních úseků, když AUTO úseky shodu zhoršují |
+| M1 | Vyřazení dat podle mezí PV při rozsahu, který data nepokrývá (TIC001: rozsah 0–100, teplota 98–101 °C), tiše vyřadí většinu vzorků úseku. | čeká – upozornění na nízký podíl platných vzorků v úseku |
+
 ---
 
 ## Fáze A – příprava v dnešním kódu
@@ -78,6 +90,16 @@ pravdy, je potřeba je zachytit hned.
   `python tools/golden.py --update`.
 
 **Hotovo když:** test běží v CI do 2 min a pokrývá každou záložku aspoň jedním případem.
+
+**Skutečnost:** 8 případů:
+- demo (společný úsek a úseky podle vstupů);
+- `ff_example` (data jsou v AUTO, ale Set 1 není vyplněn);
+- TIC001 / TIC002 (anonymizovaný reálný projekt): uložený úsek, ruční úsek a kombinovaná identifikace;
+- syntetická uzavřená a kombinovaná smyčka.
+
+Výsledky každého případu: data, kvalita, MAN / AUTO, modely, návrhy ladění s kontrolami, robustnost Set 1, scénář,
+frekvence, u části i diagnostika a APC (doporučení, Smith). Navíc test uložení a načtení projektu (i formát v1).
+Výpočet trvá ≈ 90 s. Přehled smyček a report nemají vlastní výpočet, ověří je M4d / M11.
 
 ### M2 · Přibalené fonty
 - IBM Plex Sans a Mono (woff2, licence OFL) do `pidtools/ui/static/fonts`; `@font-face` v `theme.py`.

@@ -288,7 +288,7 @@ def resample(t, cols, zoh, Ts_user=None, ref=0):
     t1 = (min(v[0][-1] for i, v in enumerate(valid) if i not in zoh) if len(zoh) < len(valid)
           else max(v[0][-1] for v in valid))
     Ts = Ts_user if Ts_user else float(np.median(np.diff(valid[ref][0])))
-    n = int((t1 - t0) / Ts) + 1
+    n = int(np.floor((t1 - t0) / Ts + 1e-6)) + 1     # tolerance: uložená mřížka nesmí při načtení ztratit konec
     if n > 30000:
         Ts = (t1 - t0) / 30000
         n = 30001
