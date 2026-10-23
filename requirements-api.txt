@@ -1,0 +1,5 @@
+# API over the application layer (pidtools.api) – future one UI for web and offline desktop (docs/cs/milniky.md)
+# Tested with: fastapi 0.161, uvicorn 0.50, starlette 1.3, pydantic 2.13
+-r requirements.txt
+fastapi==0.161.1
+uvicorn==0.50.2

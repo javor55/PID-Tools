@@ -1,0 +1,172 @@
+{
+ "apc": {
+  "delay_ratio": 0.105064,
+  "nl_spread": 1.14298,
+  "smith_tc": 2.0
+ },
+ "data": {
+  "Ts": 1.0,
+  "has_sp": true,
+  "n": 738,
+  "rng": [
+   0.0,
+   737.0
+  ]
+ },
+ "diag": {
+  "kpis": {
+   "at_lim": 0.0,
+   "harris": 0.0778572,
+   "iae_h": 8683.87,
+   "osc": {
+    "amp": 1.07523,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "rev_h": 2369.06,
+   "std_e": 3.08101,
+   "travel_h": 662.961
+  },
+  "nonlinearity": {
+   "n": 2,
+   "spread": 1.14298
+  },
+  "valve": {
+   "osc": {
+    "amp": 1.07523,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "stic": {
+    "ratio": 0.346276
+   }
+  }
+ },
+ "frequency": {
+  "set1": {
+   "Ms": 1.3175,
+   "bw": 0.0519605
+  },
+  "sug": {
+   "Ms": 1.59048,
+   "bw": 0.456776
+  }
+ },
+ "loopmode": {
+  "auto_frac": 1.0,
+  "eff": "open",
+  "frac": 1.0,
+  "mv_modes": [],
+  "runs": [
+   [
+    0.0,
+    737.0,
+    "auto"
+   ]
+  ]
+ },
+ "model": {
+  "best": "P1D",
+  "checks": [],
+  "errors": [],
+  "res": {
+   "P1D": {
+    "fit": 87.2333,
+    "p": [
+     -0.799869,
+     17.036,
+     2.0
+    ],
+    "pdl": [
+     [
+      -0.199251,
+      46.2063,
+      4.60822,
+      0.0
+     ]
+    ],
+    "stic": 0.0
+   },
+   "P2D": {
+    "fit": 87.233,
+    "p": [
+     -0.799853,
+     17.0366,
+     0.201062,
+     2.0
+    ],
+    "pdl": [
+     [
+      -0.199242,
+      46.2082,
+      4.5999,
+      0.223634
+     ]
+    ],
+    "stic": 0.0
+   }
+  }
+ },
+ "quality": {
+  "checks": [
+   "q_steps_ok",
+   "q_one_dir",
+   "q_snr_ok"
+  ],
+  "level": 1,
+  "n_steps": 2,
+  "snr": 27.2075
+ },
+ "scenario": {
+  "T_end": 500.0,
+  "set1": {
+   "iae": 14042.6,
+   "maxdev": 164.481,
+   "mv_travel": 69.7522,
+   "reversals": 0,
+   "step_over": 0.0,
+   "step_settle": null,
+   "step_t90": null
+  },
+  "sug": {
+   "iae": 24.7658,
+   "maxdev": 25.0,
+   "mv_travel": 91.5487,
+   "reversals": 6,
+   "step_over": 4.36882,
+   "step_settle": 7.875,
+   "step_t90": 7.25
+  }
+ },
+ "set1_metrics": {
+  "GM": "nan",
+  "Ms": 1.31751,
+  "PM": -52.4096,
+  "noise": 0.113977,
+  "stable": false
+ },
+ "tuning": {
+  "Lambda": {
+   "Kc": -2.12985,
+   "Td": 0.0,
+   "Ti": 17.036,
+   "notes": []
+  },
+  "OPT": {
+   "Kc": -3.88536,
+   "Td": 0.0,
+   "Ti": 16.6776,
+   "notes": [
+    "note_topt"
+   ]
+  },
+  "SIMC": {
+   "Kc": -4.2597,
+   "Td": 0.0,
+   "Ti": 17.036,
+   "notes": []
+  }
+ }
+}

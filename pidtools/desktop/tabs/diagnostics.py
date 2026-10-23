@@ -7,7 +7,6 @@ import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QPushButton, QSplitter, QTabWidget, QVBoxLayout, QWidget
 
-from ...app import diagnostics as dg
 from ...core import MODELS
 from ...i18n import T
 from .. import widgets as w
@@ -109,8 +108,6 @@ class DiagnosticsTab(Workspace):
         if self._busy or not s.has_data:
             return
         g = s.grid
-        theta = (s.model[1][-1] if s.model else 5.0) + float(s.get("samp")) / 2
-        lo, hi = float(s.M(s.get("mvl_lo", s.mv_lo))), float(s.M(s.get("mvl_hi", s.mv_hi)))
         cols, heads = [], [""]
         for name, reg in ((T("seg_a"), self.ra), (T("seg_b"), self.rb)):
             if reg is self.rb and not self.cmp.isChecked():
@@ -118,7 +115,7 @@ class DiagnosticsTab(Workspace):
             m = self._mask(reg)
             if m.sum() < 100:
                 continue
-            k = dg.kpis(s, s.t[m], s.sp[m], s.pv[m], s.mv[m], g.Ts, lo, hi, theta, g.has_sp)
+            k = s.diag_kpis(*reg.getRegion())
             heads.append(name)
             cols.append([k["std_e"], k["iae_h"], k["travel_h"], k["rev_h"], k["at_lim"], k["harris"],
                          T("yes_period", p=f"{k['osc']['period']:.0f}") if k["osc"]["osc"] else T("no")])
@@ -131,16 +128,15 @@ class DiagnosticsTab(Workspace):
             self.verdict.setText(T("err_short"))
             return
         integ = self.integ.isChecked()
-        v = dg.valve(s.sp[m], s.pv[m], s.mv[m], g.Ts, g.has_sp, integ)
+        v = s.valve(*self.ra.getRegion(), integ)
         osc = v["osc"]
         lines = [T("osc_found", p=f"{osc['period']:.0f}", a=f"{osc['amp'] * s.PR / 100:.3g}", u=u_pv,
                    r=f"{osc['r']:.1f}") if osc["osc"] else T("osc_none")]
         if v["verdict"]:
             lines.append(T("stic_" + v["verdict"], r=f"{v['stic']['ratio']:.2f}"))
         if s.c_pos not in (None, "", "—"):
-            from ...app.dataset import on_grid
-            pos = on_grid(s.sig, g, s.c_pos)
-            h = dg.hysteresis(g.mv_e[m], pos[m])
+            pos = s.position()
+            h = s.hysteresis(*self.ra.getRegion())
             lines.append(f"{T('hyst')}: " + ("—" if not np.isfinite(h) else f"{abs(h):.3g} {u_mv}"))
             self.pos.clear()
             self.pos.plot(g.mv_e[m], pos[m], pen=pg.mkPen("#fecaca", width=0.6), symbol="o", symbolSize=3,
@@ -160,8 +156,7 @@ class DiagnosticsTab(Workspace):
             w.fill(self.nl, [""], [[T("need_model")]])
             self.nl_note.setText(T("need_model"))
             return
-        ts, pv, mv, d = s.segment()
-        lg, spread = dg.nonlinearity(s.model, ts, pv, mv, d, g.Ts)
+        lg, spread = s.nonlinearity()
         rows = [[f"{q['t']:.0f}", float(s.EM(q["mv_from"])), float(s.EM(q["mv_to"])), "↑" if q["dmv"] > 0 else "↓",
                  q["gain"], q["ratio"]] for q in lg]
         w.fill(self.nl, [T("nl_time"), T("nl_from"), T("nl_to"), T("nl_dir"), T("nl_gain"), T("nl_ratio")], rows)

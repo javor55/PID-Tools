@@ -43,10 +43,11 @@ def mode_key(w):
     return f"{float(w[0]):.0f}-{float(w[1]):.0f}"
 
 
-def mv_modes(t, wins_mv, det, overrides, choice="auto"):
+def mv_modes(t, wins_mv, det, overrides, choice="auto", set1_ok=True):
     """
     Režim každého úseku MV: „man“ / „auto“. choice = volba Data pro identifikaci: „open“ = vše ručně, „cl“ = vše AUTO,
-    „auto“ = ruční volba u úseku (overrides {klíč: režim}), jinak podle rozpoznání v záznamu (většina AUTO → „auto“).
+    „auto“ = ruční volba u úseku (overrides {klíč: režim}), jinak podle rozpoznání v záznamu (většina AUTO → „auto“,
+    jen když je Set 1 skutečný regulátor – set1_ok).
     """
     from .loopmode import frac_in
     out = []
@@ -55,8 +56,8 @@ def mv_modes(t, wins_mv, det, overrides, choice="auto"):
             out.append("man" if choice == "open" else "auto")
             continue
         o = (overrides or {}).get(mode_key(w))
-        out.append(o if o in ("man", "auto") else ("auto" if det is not None and frac_in(det, t, w[0], w[1]) >= 0.5
-                                                   else "man"))
+        auto = set1_ok and det is not None and frac_in(det, t, w[0], w[1]) >= 0.5
+        out.append(o if o in ("man", "auto") else ("auto" if auto else "man"))
     return out
 
 

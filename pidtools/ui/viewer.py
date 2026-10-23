@@ -12,9 +12,9 @@ import base64
 import hashlib
 import json
 
-import numpy as np
 import streamlit as st
 
+from ..app import signalpack
 from ..app.colors import C_DIST, C_MV, C_PV, C_SP
 from ..i18n import T
 from .widgets import static_asset, v2_component
@@ -167,71 +167,8 @@ def _blob_key(vkey):
 
 @st.cache_data(max_entries=2, show_spinner=False)
 def _payload(key, names, _t_all, _get):
-    """
-    Binární data prohlížeče: [časy Float64…][hodnoty Float32…] + popis signálů {name, ti, off, n}, časů {off, n}.
-    Signál bez platných vzorků se vynechá; stejné časy (široký formát) se sdílejí.
-    """
-    t = np.asarray(_t_all, float)
-    ok_t = np.isfinite(t)
-    order = np.argsort(np.where(ok_t, t, np.inf), kind="stable")
-    t = t[order]
-    tmin = float(t[np.isfinite(t)][0]) if np.isfinite(t).any() else 0.0
-    vals = []
-    for nm in names:
-        try:
-            v = np.asarray(_get(nm), float)[order]
-        except Exception:
-            continue
-        m = np.isfinite(v) & np.isfinite(t)
-        if m.sum() >= 2:
-            vals.append((nm, v, m))
-    total = sum(int(m.sum()) for _, _, m in vals)
-    g = int(np.ceil(total / CAP)) if total > CAP else 1
-    times, tkeys, sigs, vparts = [], {}, [], []
-    for nm, v, m in vals:
-        tt, vv = t[m] - tmin, v[m]
-        if g > 1:                                  # min / max po skupinách g vzorků (tvar a špičky zůstanou)
-            idx = _minmax_idx(vv, 2 * g)
-            tt, vv = tt[idx], vv[idx]
-            key_t = None
-        else:
-            key_t = hashlib.md5(np.packbits(m).tobytes()).hexdigest()
-        if key_t is not None and key_t in tkeys:
-            ti = tkeys[key_t]
-        else:
-            ti = len(times)
-            times.append(tt.astype(np.float64))
-            if key_t is not None:
-                tkeys[key_t] = ti
-        sigs.append(dict(name=str(nm), ti=ti, n=int(len(vv))))
-        vparts.append(vv.astype(np.float32))
-    off, tdesc = 0, []
-    for a in times:
-        tdesc.append(dict(off=off, n=int(len(a))))
-        off += a.nbytes
-    for s_, a in zip(sigs, vparts):
-        s_["off"] = off
-        off += a.nbytes
-    blob = b"".join([a.tobytes() for a in times] + [a.tobytes() for a in vparts])
-    T_end = max((float(a[-1]) for a in times if len(a)), default=1.0)
-    return dict(blob=blob, sigs=sigs, times=tdesc, tmin=tmin, T=max(T_end, 1e-9), decim=g,
-                hash=hashlib.md5(blob).hexdigest()[:16])
-
-
-def _minmax_idx(v, g):
-    """Indexy min a max v každé skupině g vzorků (seřazené)."""
-    n = len(v)
-    if n <= g:
-        return np.arange(n)
-    m = int(np.ceil(n / g)) * g
-    a = np.full(m, np.nan)
-    a[:n] = v
-    a = a.reshape(-1, g)
-    base = np.arange(a.shape[0]) * g
-    imin = base + np.nanargmin(np.where(np.isfinite(a), a, np.inf), axis=1)
-    imax = base + np.nanargmax(np.where(np.isfinite(a), a, -np.inf), axis=1)
-    idx = np.unique(np.concatenate([imin, imax]))
-    return idx[idx < n]
+    """Binární data prohlížeče (app.signalpack.pack); key = klíč cache (soubor, výběr signálů)."""
+    return signalpack.pack(names, _t_all, _get, CAP)
 
 
 def _media_url(blob, key):

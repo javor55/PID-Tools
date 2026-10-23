@@ -4,7 +4,7 @@ PID Tools is split into three layers. The aim is that the same computations and 
 by more than one frontend – today the Streamlit web app, later a desktop application for engineering stations.
 
 A plan to replace both frontends with one TypeScript UI over a Python API (web and fully offline desktop) is in
-[docs/cs/plan-jednotne-ui.md](cs/plan-jednotne-ui.md) (Czech, proposal for discussion).
+[docs/cs/plan-jednotne-ui.md](cs/plan-jednotne-ui.md) (Czech), milestones in [docs/cs/milniky.md](cs/milniky.md).
 
 ```
 frontend   pidtools/ui (Streamlit, web)   pidtools/desktop (Qt, engineering station)
@@ -30,6 +30,14 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 - `app.report` and `app.plots` use Plotly (the protocol is an HTML file with Plotly charts); the rest of `app`,
   `core` and `i18n` must import without Streamlit, Plotly or Qt (`tests/test_app_layer.py`).
 - The project file (`app.project`) is shared – a project saved in one frontend opens in the other.
+- `pidtools/api` (FastAPI, `requirements-api.txt`) wraps the workspace for the future single UI. It listens on
+  127.0.0.1 with a token for the desktop. `openapi.json` next to it is generated
+  (`python -m pidtools.api --openapi pidtools/api/openapi.json`) and checked by a test.
+- Long computations for the API run as jobs (`app.jobs`): one process per job, progress, cancel, timeout and a
+  result cache by input key.
+- Golden cases (`tools/golden.py`, `tests/golden/`, checked by `tests/test_golden.py`) hold the results of the
+  whole workflow on a fixed data set. A deliberate change of results is regenerated with
+  `python tools/golden.py --update` and explained in the PR.
 
 ## Web frontend (`pidtools/ui`)
 
@@ -47,10 +55,16 @@ Shared modules added for both frontends: `app.frequency` (Bode, Nyquist, sensiti
 
 ## Desktop frontend (`pidtools/desktop`)
 
-`project.py` (`Project`) holds the loops of a project over one data file; `state.py` (`LoopState`) holds one loop – data, columns, ranges, identification segment, models, PIDConL block,
-parameter sets, scenario – in a `settings` dictionary with the same keys as the web app, so projects are
-interchangeable. It has no Qt dependency and is tested on its own. The windows (`main.py`, `tabs/`) only read and
-change the state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
+The state lives in the application layer, **`pidtools.app.workspace`**:
+- `Workspace` holds one loop: data, columns, ranges, identification segment, models, PIDConL block, parameter sets,
+  scenario and diagnostics.
+- Its settings are a `settings` dictionary with the same keys as the web app, so projects are interchangeable.
+- It is split by area into mixins: `data`, `ident`, `tuning`, `analysis` and `project`.
+- `workspace.loops.Project` holds the loops of a project over one data file.
+
+Both have no UI dependency. They are used by the desktop (`desktop/state.py` `LoopState` and `desktop/project.py`
+are aliases), by the golden cases and later by the API. The windows (`main.py`, `tabs/`) only read and change the
+state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
 pyqtgraph. Start: `python -m pidtools.desktop`.
 
 Every tab is a `layout.Workspace`: the main area on the left (`main` – charts, tables) and a settings panel on the

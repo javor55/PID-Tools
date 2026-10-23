@@ -1,6 +1,6 @@
 # Plán přechodu na jedno rozhraní (TypeScript) nad Python výpočty
 
-Stav: **návrh k diskusi**. Dokument popisuje, proč a jak přejít ze dvou rozhraní (Streamlit web + PySide6 desktop)
+Stav: **schváleno k přípravě** – prováděcí plán po milnících je v [milniky.md](milniky.md). Dokument popisuje, proč a jak přejít ze dvou rozhraní (Streamlit web + PySide6 desktop)
 na jedno webové rozhraní v TypeScriptu, které poběží na serveru i jako desktopová aplikace kompletně offline.
 Výpočty (`pidtools/core`, `pidtools/app`) zůstávají v Pythonu beze změny.
 
@@ -32,7 +32,7 @@ Co dnes skřípe:
 3. **Vzhled závislý na interní struktuře Streamlitu** – CSS na vnitřní třídy, verze je připnutá a hlídá ji test.
 4. **Vlastní JS komponenty už dnes nesou nejnáročnější části** (graf průběhů, prohlížeč záznamu, živá simulace,
    tabulka) – Streamlit je u nich jen obal.
-5. **Offline** – dnešní offline balíček stahuje fonty z Google Fonts (bez internetu jen náhradní font).
+5. **Offline** – ~~dnešní offline balíček stahuje fonty z Google Fonts~~ (vyřešeno v M2: fonty jsou přibalené).
 
 ## 2. Cíle a požadavky
 

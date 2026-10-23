@@ -1,0 +1,202 @@
+{
+ "data": {
+  "Ts": 2.9,
+  "has_sp": true,
+  "n": 29793,
+  "rng": [
+   18615.9,
+   69060.8
+  ]
+ },
+ "diag": {
+  "kpis": {
+   "at_lim": 0.0,
+   "harris": 0.000161588,
+   "iae_h": 2387.5,
+   "osc": {
+    "amp": 1.04114,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "rev_h": 24.3366,
+   "std_e": 0.732497,
+   "travel_h": 3.7347
+  },
+  "nonlinearity": {
+   "n": 1,
+   "spread": null
+  },
+  "valve": {
+   "osc": {
+    "amp": 1.04114,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "stic": {
+    "ratio": 0.832771
+   }
+  }
+ },
+ "frequency": {
+  "set1": {
+   "Ms": 1.98931,
+   "bw": 0.000245775
+  },
+  "sug": {
+   "Ms": 1.00229,
+   "bw": 0.00580453
+  }
+ },
+ "loopmode": {
+  "auto_frac": 0.20138,
+  "eff": "open",
+  "frac": 0.138355,
+  "mv_modes": [],
+  "runs": [
+   [
+    0.0,
+    597.4,
+    "auto"
+   ],
+   [
+    600.3,
+    1792.2,
+    "man"
+   ],
+   [
+    1795.1,
+    2987.0,
+    "auto"
+   ],
+   [
+    2989.9,
+    31061.9,
+    "man"
+   ],
+   [
+    31064.8,
+    40022.9,
+    "auto"
+   ],
+   [
+    40025.8,
+    41217.7,
+    "man"
+   ],
+   [
+    41220.6,
+    42415.4,
+    "auto"
+   ],
+   [
+    42418.3,
+    86396.8,
+    "man"
+   ]
+  ]
+ },
+ "model": {
+  "best": "P1D",
+  "checks": [
+   "chk_no_delay"
+  ],
+  "errors": [],
+  "res": {
+   "P1D": {
+    "fit": 76.0794,
+    "p": [
+     0.12736,
+     10688.7,
+     4.69608e-22
+    ],
+    "pdl": [
+     [
+      -7.56515,
+      15674.6,
+      1957.09,
+      0.0
+     ]
+    ],
+    "stic": 0.0
+   }
+  }
+ },
+ "quality": {
+  "checks": [
+   "q_steps_ok",
+   "q_one_dir",
+   "q_snr_ok",
+   "q_compressed",
+   "q_fast_steps"
+  ],
+  "level": 1,
+  "n_steps": 3,
+  "snr": "inf"
+ },
+ "scenario": {
+  "T_end": 500000.0,
+  "set1": {
+   "iae": 65308.1,
+   "maxdev": 5.0,
+   "mv_travel": 149.931,
+   "reversals": 1094,
+   "step_over": 32.7807,
+   "step_settle": 47000.0,
+   "step_t90": 10560.0
+  },
+  "sug": {
+   "iae": 17858.2,
+   "maxdev": 5.0,
+   "mv_travel": 107.941,
+   "reversals": 1,
+   "step_over": 0.0,
+   "step_settle": 7556.0,
+   "step_t90": 6993.0
+  }
+ },
+ "set1_metrics": {
+  "GM": 526814.0,
+  "Ms": 1.9894,
+  "PM": 32.82,
+  "noise": 0.00334666,
+  "stable": true
+ },
+ "tuning": {
+  "Lambda": {
+   "Kc": 156.889,
+   "Td": 0.0,
+   "Ti": 10688.7,
+   "checks": [
+    "chk_no_delay",
+    "chk_vs_set1"
+   ],
+   "notes": []
+  },
+  "OPT": {
+   "Kc": 488.537,
+   "Td": 0.0,
+   "Ti": 10661.4,
+   "checks": [
+    "chk_no_delay",
+    "chk_loop_gain",
+    "chk_vs_set1"
+   ],
+   "notes": [
+    "note_topt"
+   ]
+  },
+  "SIMC": {
+   "Kc": 391.672,
+   "Td": 0.0,
+   "Ti": 857.094,
+   "checks": [
+    "chk_no_delay",
+    "chk_loop_gain",
+    "chk_vs_set1"
+   ],
+   "notes": []
+  }
+ }
+}

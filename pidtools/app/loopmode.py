@@ -129,11 +129,14 @@ def manual_span(det, t, mv, a, b, min_len=None):
     return best
 
 
-def resolve_mode(choice, auto_frac, has_sp, excitation_ok=True):
-    """Režim identifikace: „open“ / „cl“ podle volby; „auto“ = uzavřená smyčka, když je většina úseku v AUTO a je SP."""
+def resolve_mode(choice, auto_frac, has_sp, excitation_ok=True, set1_ok=True):
+    """
+    Režim identifikace: „open“ / „cl“ podle volby; „auto“ = uzavřená smyčka, když je většina úseku v AUTO, je SP
+    a Set 1 je skutečný regulátor ze záznamu (ne výchozí zástupné hodnoty – simulace smyčky by pak model zkreslila).
+    """
     if choice in ("open", "cl"):
         return choice
-    return "cl" if (auto_frac >= CL_MIN and has_sp and excitation_ok) else "open"
+    return "cl" if (auto_frac >= CL_MIN and has_sp and excitation_ok and set1_ok) else "open"
 
 
 # ---- kontroly věrohodnosti modelu a ladění

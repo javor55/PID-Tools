@@ -939,6 +939,9 @@ class ModelTab(Workspace):
             " " + T("lm_resolved", m=T("idm_" + eff)) if mode == "auto" and not s.inputs_mode else "")
         self._fill_mix()
         self.b_est.setVisible(eff == "cl" and s.grid.has_sp)
+        if s.grid.has_sp and frac >= lm.AUTO_MIN and not s.set1_ok and mode != "open":
+            head += "  \n⚠️ " + T("lm_need_set1")             # AUTO v záznamu, ale Set 1 není vyplněn
+            self.b_est.setVisible(True)
         if s.inputs_mode:                    # kombinovaná identifikace: režim po úsecích MV
             lines = [head]
             if mode == "cl" and not s.grid.has_sp:

@@ -69,3 +69,15 @@ def test_identify_windows_all_mixed():
     assert r["mixed"] and r["method"] == "win" and r["cl_wins"] and r["p_open"]
     assert abs(r["p"][0] - 1.2) < 0.1 and abs(r["p"][2] - 60) < 15, r["p"]
     assert r["p_open"][2] < r["p"][2]          # ruční úsek sám dá kratší zpoždění (porucha na začátku úseku)
+
+
+def test_auto_mode_needs_real_set1():
+    """Režim „automaticky“: AUTO (uzavřená smyčka) jen se skutečným Set 1, ne s výchozími zástupnými hodnotami."""
+    assert lm.resolve_mode("auto", 0.9, True, True, set1_ok=True) == "cl"
+    assert lm.resolve_mode("auto", 0.9, True, True, set1_ok=False) == "open"
+    assert lm.resolve_mode("cl", 0.9, True, True, set1_ok=False) == "cl"           # výslovná volba platí
+    t, sp, pv, mv = mixed_record()
+    det = lm.detect(t, mv, pv, sp)
+    wmv = [[3000.0, 10700.0], [11000.0, 21500.0]]
+    assert wn.mv_modes(t, wmv, det, {}, "auto", set1_ok=False) == ["man", "man"]
+    assert wn.mv_modes(t, wmv, det, {wn.mode_key(wmv[1]): "auto"}, "auto", set1_ok=False) == ["man", "auto"]

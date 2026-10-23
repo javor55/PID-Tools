@@ -1,0 +1,160 @@
+{
+ "data": {
+  "Ts": 2.9,
+  "has_sp": true,
+  "n": 29793,
+  "rng": [
+   18615.9,
+   69060.8
+  ]
+ },
+ "frequency": {
+  "set1": {
+   "Ms": 1.70518,
+   "bw": 0.000227397
+  },
+  "sug": {
+   "Ms": 1.00281,
+   "bw": 0.00712838
+  }
+ },
+ "loopmode": {
+  "auto_frac": 0.405006,
+  "eff": "open",
+  "frac": 0.138355,
+  "mv_modes": [
+   "man",
+   "auto"
+  ],
+  "runs": [
+   [
+    0.0,
+    597.4,
+    "auto"
+   ],
+   [
+    600.3,
+    1792.2,
+    "man"
+   ],
+   [
+    1795.1,
+    2987.0,
+    "auto"
+   ],
+   [
+    2989.9,
+    31061.9,
+    "man"
+   ],
+   [
+    31064.8,
+    40022.9,
+    "auto"
+   ],
+   [
+    40025.8,
+    41217.7,
+    "man"
+   ],
+   [
+    41220.6,
+    42415.4,
+    "auto"
+   ],
+   [
+    42418.3,
+    86396.8,
+    "man"
+   ]
+  ]
+ },
+ "model": {
+  "best": "P1D",
+  "checks": [
+   "chk_no_delay"
+  ],
+  "errors": [],
+  "res": {
+   "P1D": {
+    "fit": 69.4591,
+    "fit_cl_mv": -4.17408,
+    "fit_cl_pv": 67.8706,
+    "method": "win",
+    "mixed": true,
+    "p": [
+     0.0959036,
+     8691.01,
+     0.0
+    ],
+    "p_open": [
+     0.0781219,
+     2657.25,
+     364.226
+    ],
+    "pdl": [
+     [
+      0.732348,
+      561.737,
+      476.478,
+      0.0
+     ]
+    ],
+    "stic": 0.0
+   }
+  }
+ },
+ "quality": {
+  "checks": [
+   "q_steps_ok",
+   "q_one_dir",
+   "q_snr_ok",
+   "q_compressed",
+   "q_fast_steps"
+  ],
+  "level": 1,
+  "n_steps": 3,
+  "snr": "inf"
+ },
+ "scenario": {
+  "T_end": 300000.0,
+  "set1": {
+   "iae": 53235.6,
+   "maxdev": 5.0,
+   "mv_travel": 112.218,
+   "reversals": 1450,
+   "step_over": 18.1344,
+   "step_settle": 44570.0,
+   "step_t90": 12347.0
+  },
+  "sug": {
+   "iae": 21446.5,
+   "maxdev": 5.0,
+   "mv_travel": 95.0643,
+   "reversals": 1,
+   "step_over": 0.0,
+   "step_settle": 9716.0,
+   "step_t90": 8822.0
+  }
+ },
+ "set1_metrics": {
+  "GM": 568857.0,
+  "Ms": 1.70525,
+  "PM": 40.513,
+  "noise": 0.00377044,
+  "stable": true
+ },
+ "tuning": {
+  "SIMC": {
+   "Kc": 519.862,
+   "Td": 0.0,
+   "Ti": 697.28,
+   "checks": [
+    "chk_no_delay",
+    "chk_loop_gain",
+    "chk_vs_set1"
+   ],
+   "notes": []
+  }
+ }
+}

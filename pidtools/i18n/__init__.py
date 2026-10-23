@@ -1,13 +1,25 @@
 """
-Lokalizace (cs, en). Texty jsou ve slovnících `cs.TEXTS` a `en.TEXTS` se stejnými klíči.
+Lokalizace (cs, en). Texty jsou v souborech `cs.json` a `en.json` se stejnými klíči – jediný zdroj pro Python
+(obě rozhraní, protokol) i pro budoucí TypeScript rozhraní. Zástupné hodnoty mají tvar Pythonu `{název}`,
+případně s formátem `{název:.4g}`.
 `T(key, **kw)` vrací text v aktuálním jazyce, chybějící klíč se vrací beze změny.
 
 Jazyk určuje frontend: buď nastaví jazyk přímo (`set_lang`, desktop), nebo zaregistruje funkci, která ho vrací
 (`set_lang_provider`, web – jazyk z session state). Modul sám nezávisí na žádném UI frameworku.
 """
-from . import cs, en
+import json
+from pathlib import Path
 
-TEXTS = {"cs": cs.TEXTS, "en": en.TEXTS}
+LANGS = ("cs", "en")
+DIR = Path(__file__).resolve().parent
+
+
+def _load(code):
+    with open(DIR / f"{code}.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
+TEXTS = {code: _load(code) for code in LANGS}
 DEFAULT_LANG = "en"
 
 _lang = DEFAULT_LANG

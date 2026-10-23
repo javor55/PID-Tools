@@ -62,17 +62,18 @@ def read_table(name, raw_bytes):
         return sum(pd.api.types.is_numeric_dtype(d[c]) for c in d.columns)
     sep = _sniff_sep(raw)
     kw = dict(sep=sep) if sep else dict(sep=None, engine="python")   # známý oddělovač → rychlý parser C
+    # desetinná čárka, nebo tečka: rozhodne vzorek prvních řádků (velký soubor se pak čte jen jednou)
+    head = raw if len(raw) < 200_000 else raw[:raw.rfind("\n", 0, 200_000) + 1]
     try:
-        df = pd.read_csv(io.StringIO(raw), **kw)
+        h1 = pd.read_csv(io.StringIO(head), **kw)
     except Exception:
         kw = dict(sep=None, engine="python")
-        df = pd.read_csv(io.StringIO(raw), **kw)
+        h1 = pd.read_csv(io.StringIO(head), **kw)
     try:
-        df2 = pd.read_csv(io.StringIO(raw), decimal=",", **kw)
-        if n_num(df2) > n_num(df):
-            df = df2
+        comma = n_num(pd.read_csv(io.StringIO(head), decimal=",", **kw)) > n_num(h1)
     except Exception:
-        pass
+        comma = False
+    df = pd.read_csv(io.StringIO(raw), decimal=",", **kw) if comma else pd.read_csv(io.StringIO(raw), **kw)
     if df.shape[1] == 1:
         inner = _unwrap_quoted_lines(raw)
         if inner is not None:
@@ -288,7 +289,7 @@ def resample(t, cols, zoh, Ts_user=None, ref=0):
     t1 = (min(v[0][-1] for i, v in enumerate(valid) if i not in zoh) if len(zoh) < len(valid)
           else max(v[0][-1] for v in valid))
     Ts = Ts_user if Ts_user else float(np.median(np.diff(valid[ref][0])))
-    n = int((t1 - t0) / Ts) + 1
+    n = int(np.floor((t1 - t0) / Ts + 1e-6)) + 1     # tolerance: uložená mřížka nesmí při načtení ztratit konec
     if n > 30000:
         Ts = (t1 - t0) / 30000
         n = 30001

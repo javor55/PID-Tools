@@ -2,6 +2,15 @@
 
 ## Nevydáno
 
+- Načtení CSV: velké soubory se čtou jen jednou (desetinná čárka se rozpozná na prvních řádcích) – 1 mil. řádků
+  zhruba 5× rychleji.
+- Vývoj: texty CZ / EN jsou v `pidtools/i18n/cs.json` a `en.json` (jeden zdroj i pro budoucí rozhraní v TS).
+- Web: fonty IBM Plex jsou přibalené (`static/fonts`, licence OFL) – aplikace nestahuje nic z internetu, offline
+  balíček má správné písmo i bez sítě.
+- Model: režim dat *Automaticky* použije uzavřenou smyčku (i u úseků v AUTO) jen tehdy, když je Set 1 vyplněný
+  regulátor ze záznamu; s výchozími hodnotami (Gain 1, TI 100) zůstane u otevřené smyčky a upozorní.
+- Projekt: uložení s daty a opětovné načtení už neubírá poslední vzorek.
+- Vývoj: zlaté případy (`tools/golden.py`, `tests/golden`) – výsledky na pevné sadě dat hlídané v CI.
 - Model (web i desktop): **kombinovaná identifikace** – u úseků podle vstupů lze u každého úseku MV zvolit *Ručně*
   (otevřená smyčka) nebo *AUTO* (uzavřená smyčka s regulátorem Set 1); jeden model se fituje na všechny úseky
   najednou (ruční úseky jako MV → PV, úseky v AUTO simulací smyčky). Varování, když simulace v AUTO se záznamem

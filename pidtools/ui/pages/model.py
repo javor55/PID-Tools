@@ -21,6 +21,7 @@ from ..widgets import model_name, num, seg, sel, sld
 from ...app import closedloop as cl_mod
 from ...app import loopmode as lm
 from ...app import model as mdl
+from ...app import tuning as tun
 from ...app import windows as wn
 from ...app.loop import set_ctrl
 from ...app.timefmt import dur
@@ -192,6 +193,12 @@ def _narrow_to(ctx, span):
         ss["pending_rng"] = (float(span[0]), float(span[1]))
 
 
+def _set1_ok():
+    """Set 1 je skutečný regulátor ze záznamu (ne výchozí zástupné hodnoty) – podmínka identifikace v AUTO."""
+    return not tun.is_placeholder(float(ss.get("set1_gain", 1.0)), float(ss.get("set1_ti", 100.0)),
+                                  float(ss.get("set1_td", 0.0)))
+
+
 def _mv_modes(ctx, det, id_mode):
     """
     Úseky podle vstupů: režim každého úseku MV – ručně (otevřená smyčka) / AUTO (uzavřená smyčka s regulátorem
@@ -201,7 +208,7 @@ def _mv_modes(ctx, det, id_mode):
     okey = f"wmode|{ctx.fname}"
     ov = {str(k): str(v) for k, v in (ss.get(okey) or [])}          # [[klíč úseku, režim]] (ukládá se do projektu)
     choice = id_mode if ctx.has_sp else "open"
-    modes = wn.mv_modes(ctx.t, wmv, det, ov, choice)
+    modes = wn.mv_modes(ctx.t, wmv, det, ov, choice, _set1_ok())
     if not wmv or not ctx.has_sp:
         return modes
     st.caption(T("mix_title"))
@@ -236,10 +243,12 @@ def _md_ident(s):
         id_mode = sel(st, T("idm"), ["auto", "open", "cl"], 0, "id_mode", format_func=lambda x: T("idm_" + x),
                       help=T("h_idm"))
         ex_ok = cl_mod.excitation(ctx.sp[sel_mask], pv_id, mv_id)["ok"] if ctx.has_sp else False
-        eff = lm.resolve_mode(id_mode, a_frac, ctx.has_sp, ex_ok)
+        eff = lm.resolve_mode(id_mode, a_frac, ctx.has_sp, ex_ok, _set1_ok())
         st.caption(T("lm_status", a=f"{100 * a_frac:.0f}", m=100 - round(100 * a_frac))
                    + (" " + T("lm_resolved", m=T("idm_" + eff)) if id_mode == "auto" else ""))
         s.mv_modes = _mv_modes(ctx, det, id_mode) if ctx.win_mode == "inputs" else []
+        if ctx.has_sp and a_frac >= lm.AUTO_MIN and not _set1_ok() and id_mode != "open":
+            st.warning(T("lm_need_set1"), icon=":material/tune:")      # AUTO v záznamu, ale Set 1 není vyplněn
         if ctx.win_mode == "inputs":
             eff = "open"                     # úseky podle vstupů: režim má každý úsek MV (kombinovaná identifikace)
         elif eff == "open" and a_frac >= lm.AUTO_MIN:

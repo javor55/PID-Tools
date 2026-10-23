@@ -196,9 +196,10 @@ pidtools/
                            smith, gainsched
     project.py             project file format (JSON)
     report.py plots.py     tuning protocol (HTML) and Plotly figure helpers
-  i18n/                    texts: cs.py, en.py, T() – the frontend sets the language
+    workspace/             one loop without UI (data, identification, tuning, diagnostics, project) and loops.py
+  i18n/                    texts: cs.json, en.json, T() – the frontend sets the language
   ui/                      Streamlit web frontend (widgets, session state, caching, charts)
-  desktop/                 Qt desktop frontend (PySide6, pyqtgraph): state.py (one loop, no Qt), main.py, tabs/
+  desktop/                 Qt desktop frontend (PySide6, pyqtgraph): main.py, tabs/ (state: app/workspace)
     context.py             Ctx – data shared by the tabs within one run
     loops.py               several loops in a project (state snapshots, switching)
     static/                live simulation in the browser (live_engine.js = port of core/simulation.py)

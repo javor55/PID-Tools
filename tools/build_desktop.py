@@ -38,6 +38,7 @@ def pyinstaller(out):
            "--distpath", str(out), "--workpath", str(out / "_build"), "--specpath", str(out / "_build"),
            "--collect-submodules", "pidtools", "--hidden-import", "asyncua",
            "--add-data", f"{ROOT / 'pidtools' / 'assets'}{sep}pidtools/assets",
+           "--add-data", f"{ROOT / 'pidtools' / 'i18n' / '*.json'}{sep}pidtools/i18n",
            "--paths", str(ROOT)]
     for m in EXCLUDE:
         cmd += ["--exclude-module", m]

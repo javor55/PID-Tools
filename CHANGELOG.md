@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- CSV loading: large files are parsed only once (the decimal comma is detected on the first lines) – about 5× faster
+  for 1 million rows.
+- Development: the CZ / EN texts are in `pidtools/i18n/cs.json` and `en.json` (one source, also for the future TS UI).
+- Web: the IBM Plex fonts are bundled (`static/fonts`, OFL licence) – the app downloads nothing from the internet and
+  the offline package shows the right typeface without a network.
+- Model: the *Automatic* data mode uses the closed loop (also for AUTO segments) only when Set 1 holds the
+  controller from the record; with the default values (Gain 1, TI 100) it stays in open loop and shows a warning.
+- Project: saving with data and loading again no longer drops the last sample.
+- Development: golden cases (`tools/golden.py`, `tests/golden`) – results on a fixed data set checked in CI.
 - Model (web and desktop): **combined identification** – with per-input segments, each MV segment can be set to
   *Manual* (open loop) or *AUTO* (closed loop with controller Set 1); one model is fitted to all segments at once
   (manual segments as MV → PV, AUTO segments by a loop simulation). A warning when the AUTO simulation does not

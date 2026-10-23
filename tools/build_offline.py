@@ -29,7 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PY_VERSION = "3.11.9"          # last 3.11 release with an embeddable package
 EMBED_URL = f"https://www.python.org/ftp/python/{PY_VERSION}/python-{PY_VERSION}-embed-amd64.zip"
-APP_FILES = ["app.py", "pidtools", ".streamlit", "LICENSE", "README.md", "CHANGELOG.md", "docs"]
+APP_FILES = ["app.py", "pidtools", "static", ".streamlit", "LICENSE", "README.md", "CHANGELOG.md", "docs"]
 
 LAUNCHER = r"""@echo off
 rem PID Tools - offline package. Starts the app and opens it in the default browser.

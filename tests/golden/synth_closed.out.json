@@ -1,0 +1,140 @@
+{
+ "data": {
+  "Ts": 1.0,
+  "has_sp": true,
+  "n": 21600,
+  "rng": [
+   10800.0,
+   21600.0
+  ]
+ },
+ "diag": {
+  "kpis": {
+   "at_lim": 0.0,
+   "harris": 0.0962114,
+   "iae_h": 2818.82,
+   "osc": {
+    "amp": 2.66027,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "rev_h": 2313.88,
+   "std_e": 1.8463,
+   "travel_h": 411.336
+  },
+  "nonlinearity": {
+   "n": 2,
+   "spread": 1.25263
+  },
+  "valve": {
+   "osc": {
+    "amp": 2.66027,
+    "osc": false,
+    "period": "nan",
+    "r": 0.0
+   },
+   "stic": {
+    "ratio": 0.982548
+   }
+  }
+ },
+ "frequency": {
+  "set1": {
+   "Ms": 1.26748,
+   "bw": 0.00574309
+  },
+  "sug": {
+   "Ms": 1.59038,
+   "bw": 0.0178809
+  }
+ },
+ "loopmode": {
+  "auto_frac": 1.0,
+  "eff": "cl",
+  "frac": 0.5,
+  "mv_modes": [],
+  "runs": [
+   [
+    0.0,
+    10799.0,
+    "man"
+   ],
+   [
+    10800.0,
+    21599.0,
+    "auto"
+   ]
+  ]
+ },
+ "model": {
+  "best": "P1D",
+  "checks": [],
+  "errors": [],
+  "res": {
+   "P1D": {
+    "fit": 89.4063,
+    "fit_cl_mv": 88.8414,
+    "fit_cl_pv": 94.6259,
+    "method": "cl",
+    "p": [
+     1.17817,
+     272.073,
+     62.5721
+    ],
+    "p_open": [
+     1.0997,
+     252.831,
+     82.0961
+    ],
+    "pdl": [],
+    "stic": 0.0
+   }
+  }
+ },
+ "quality": {
+  "checks": [
+   "q_steps_ok",
+   "q_snr_ok"
+  ],
+  "level": 0,
+  "n_steps": 4,
+  "snr": 98.732
+ },
+ "scenario": {
+  "T_end": 7500.0,
+  "set1": {
+   "iae": 1273.17,
+   "maxdev": 5.0,
+   "mv_travel": 7.91088,
+   "reversals": 2,
+   "step_over": 0.0,
+   "step_settle": 654.0,
+   "step_t90": 489.0
+  },
+  "sug": {
+   "iae": 686.321,
+   "maxdev": 5.0,
+   "mv_travel": 18.971,
+   "reversals": 6,
+   "step_over": 4.27371,
+   "step_settle": 212.0,
+   "step_t90": 196.0
+  }
+ },
+ "set1_metrics": {
+  "GM": 5.81097,
+  "Ms": 1.2675,
+  "PM": 77.7298,
+  "noise": 0.100807,
+  "stable": true
+ },
+ "tuning": {
+  "SIMC": {
+   "Kc": 1.83068,
+   "Td": 0.0,
+   "Ti": 272.073,
+   "notes": []
+  }
+ }
+}
