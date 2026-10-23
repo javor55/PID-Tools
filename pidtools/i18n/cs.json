@@ -2048,5 +2048,17 @@
  "h_mix": "Ručně = MV měnil člověk, fit MV → PV. AUTO = MV měnil regulátor; úsek se porovná se simulací smyčky s regulátorem Set 1 (PV i MV). Rozpoznáno v záznamu: {d}. Volbu lze měnit jen u Data pro identifikaci = Automaticky.",
  "mix_set1_bad": "{m}: simulace smyčky na úsecích v AUTO sedí se záznamem jen na {f} % (PV) – Set 1 (Gain, TI, TD, NormPV / NormMV) asi neodpovídá regulátoru v záznamu, nebo jsou v úsecích velké poruchy. Model z AUTO úseků může být zkreslený.",
  "lm_need_set1": "V záznamu je smyčka v AUTO, ale Set 1 má výchozí hodnoty (Gain 1, TI 100) – identifikace v uzavřené smyčce potřebuje skutečný regulátor ze záznamu. Vyplňte Set 1 podle bloku (i rozsahy NormPV / NormMV) nebo ho odhadněte ze záznamu; do té doby se použije otevřená smyčka.",
- "chk_vs_set1": "Návrh se od současného nastavení (Gain {g}) liší {r}× – ověřte model (θ) a rozsahy NormPV / NormMV a zaveďte změnu postupně."
+ "chk_vs_set1": "Návrh se od současného nastavení (Gain {g}) liší {r}× – ověřte model (θ) a rozsahy NormPV / NormMV a zaveďte změnu postupně.",
+ "ui_theme_light": "Světlý vzhled",
+ "ui_theme_dark": "Tmavý vzhled",
+ "ui_theme_system": "Vzhled podle systému",
+ "ui_lang": "Jazyk",
+ "ui_jobs": "Výpočty",
+ "ui_cancel": "Zrušit",
+ "ui_no_data": "Žádná data – načtěte soubor nebo ukázku na záložce Data.",
+ "ui_soon": "Záložka se připravuje (nové rozhraní, milník {m}).",
+ "ui_settings": "Nastavení",
+ "ui_connected": "Připojeno k výpočtům · verze {v}",
+ "ui_offline": "Výpočetní server neodpovídá",
+ "ui_api_error": "Chyba: {e}"
 }

@@ -11,10 +11,12 @@ import contextvars
 import hmac
 import json
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .. import __version__, i18n
@@ -43,6 +45,18 @@ def _request_lang(request):
         if code in i18n.TEXTS:
             return code
     return i18n.DEFAULT_LANG
+
+
+UI_DIR = Path(__file__).resolve().parent / "ui"                      # sestavené rozhraní (frontend: npm run build)
+FONTS_DIR = Path(__file__).resolve().parents[2] / "static" / "fonts"  # přibalené fonty IBM Plex (OFL)
+
+
+def _mount_static(app):
+    """Fonty a sestavené rozhraní – až za endpointy API (ty mají přednost)."""
+    if FONTS_DIR.is_dir():
+        app.mount("/fonts", StaticFiles(directory=FONTS_DIR), name="fonts")
+    if (UI_DIR / "index.html").exists():
+        app.mount("/", StaticFiles(directory=UI_DIR, html=True), name="ui")
 
 
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
@@ -167,4 +181,5 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
                 await asyncio.sleep(0.1)
         return StreamingResponse(gen(), media_type="text/event-stream")
 
+    _mount_static(app)
     return app

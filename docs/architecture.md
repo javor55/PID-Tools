@@ -33,6 +33,9 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 - `pidtools/api` (FastAPI, `requirements-api.txt`) wraps the workspace for the future single UI. It listens on
   127.0.0.1 with a token for the desktop. `openapi.json` next to it is generated
   (`python -m pidtools.api --openapi pidtools/api/openapi.json`) and checked by a test.
+- `frontend/` (React + TypeScript, Vite) is the future single UI over the API. `npm run build` writes it to
+  `pidtools/api/ui`, which the API serves at `/`. Types come from `openapi.json`, and CI builds and tests it.
+  See `frontend/README.md`.
 - Long computations for the API run as jobs (`app.jobs`): one process per job, progress, cancel, timeout and a
   result cache by input key.
 - Golden cases (`tools/golden.py`, `tests/golden/`, checked by `tests/test_golden.py`) hold the results of the

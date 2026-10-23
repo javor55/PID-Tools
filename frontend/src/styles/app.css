@@ -1,0 +1,35 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--pid-bg); color: var(--pid-text); font: 13px/1.45 var(--pid-font); }
+button { font: inherit; color: inherit; }
+.mono { font-family: var(--pid-mono); font-variant-numeric: tabular-nums; }
+
+.shell { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+.header { display: flex; align-items: center; gap: 18px; padding: 8px 16px; background: var(--pid-card);
+  border-bottom: 1px solid var(--pid-line); }
+.header h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
+.tab { border: 0; background: transparent; padding: 6px 10px; border-radius: var(--pid-radius); cursor: pointer;
+  color: var(--pid-muted); white-space: nowrap; }
+.tab:hover { background: var(--pid-soft); color: var(--pid-text); }
+.tab[aria-selected="true"] { background: var(--pid-accent-bg); color: var(--pid-accent); font-weight: 600; }
+.tools { display: flex; gap: 6px; align-items: center; }
+.tools select, .tools button { border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius);
+  padding: 3px 8px; cursor: pointer; }
+
+.body { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
+.main { overflow: auto; padding: var(--pid-gap) 16px; min-width: 0; }
+.side { overflow: auto; background: var(--pid-side); border-left: 1px solid var(--pid-line); padding: var(--pid-gap); }
+.side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pid-muted); margin: 0 0 8px; }
+.card { background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: var(--pid-radius); padding: 12px 14px; }
+.muted { color: var(--pid-muted); }
+
+.status { display: flex; gap: 16px; align-items: center; padding: 4px 16px; background: var(--pid-card);
+  border-top: 1px solid var(--pid-line); color: var(--pid-muted); font-size: 12px; }
+.status .ok { color: var(--pid-ok); } .status .err { color: var(--pid-err); }
+.jobs { display: flex; gap: 10px; margin-left: auto; }
+.job { display: flex; gap: 6px; align-items: center; }
+.job progress { width: 120px; height: 6px; }
+.job button { border: 0; background: transparent; color: var(--pid-err); cursor: pointer; padding: 0 4px; }
+
+@media (max-width: 900px) { .body { grid-template-columns: 1fr; } .side { border-left: 0; border-top: 1px solid var(--pid-line); } }

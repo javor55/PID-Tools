@@ -24,18 +24,18 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 
 | # | Milník | Fáze | Velikost | Závisí na | Stav |
 |---|---|---|---|---|---|
-| M1 | Zlaté případy | A | M | – | ◐ |
-| M2 | Přibalené fonty (offline) | A | S | – | ◐ |
-| M3 | Texty CZ / EN do JSON | A | S | – | ◐ |
-| M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ◐ |
-| M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ◐ |
-| M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ◐ |
-| M7 | API: data a signály | B | M | M6 | ◐ |
-| M8 | API: projekt | B | S | M6 | ◐ |
-| M9 | API: model | B | L | M5, M7 | ◐ |
-| M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ◐ |
+| M1 | Zlaté případy | A | M | – | ☑ |
+| M2 | Přibalené fonty (offline) | A | S | – | ☑ |
+| M3 | Texty CZ / EN do JSON | A | S | – | ☑ |
+| M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ☑ |
+| M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ☑ |
+| M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ☑ |
+| M7 | API: data a signály | B | M | M6 | ☑ |
+| M8 | API: projekt | B | S | M6 | ☑ |
+| M9 | API: model | B | L | M5, M7 | ☑ |
+| M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☑ |
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ◐ |
-| M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ☐ |
+| M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ◐ |
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ☐ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ☐ |
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ☐ |
@@ -307,6 +307,22 @@ a Playwright.
 
 **Hotovo když:** v prohlížeči je prázdná aplikace se záložkami, přepnutím jazyka a tématu a Playwright smoke test.
 
+**Skutečnost:**
+- `frontend/`:
+  - React 19, TypeScript 5.9, Vite 8, Zustand, TanStack Query; ESLint, Vitest;
+  - npm 11 (`packageManager`; npm 10 padá na peer závislostech vitestu);
+  - verze balíčků staré aspoň 2 týdny, přesně zafixované.
+- Typy z `openapi.json` (`npm run api-types`); CI hlídá, že odpovídají.
+- Shell:
+  - hlavička s 8 záložkami (texty z `/i18n`), jazyk CS / EN, vzhled světlý / tmavý / podle systému;
+  - panel nastavení, stavový řádek se spojením a úlohami (průběh a zrušení).
+- Klient API: token z adresy (`#token=`) nebo od desktopu; jazyk v `Accept-Language`; SSE přes fetch.
+- Formát textů jako Python `str.format` (`{x:.4g}`, `{x:.0f}`) – testováno na hodnotách z Pythonu.
+- Design tokeny z dnešního webu; fonty z `/fonts`.
+- API servíruje sestavené UI na `/` (`pidtools/api/ui`, mimo git; staví CI).
+- Testy: `tests/test_frontend.py` (Playwright) ověřuje záložky, jazyk, vzhled, spojení, prostor, žádný externí
+  požadavek a fonty; Vitest pro formát.
+
 ### M13 · Data
 - Načtení souboru, mapování sloupců, rozsahy, kvalita dat.
 - `viewer.js` a `viewer_an.js` převedené na TS moduly beze změny chování: Node testy zůstávají, rozložení se ukládá
@@ -402,7 +418,7 @@ K tomu kontrola, že aplikace nedělá žádné síťové požadavky mimo `127.0
 
 | | Otázka | Výchozí volba | Potřeba nejpozději před |
 |---|---|---|---|
-| R1 | Frontend | React + TypeScript | M12 |
+| R1 | Frontend | **rozhodnuto: React + TypeScript** (porovnání s Vue, Svelte, Angular a Python UI – 23. 10. 2026) | M12 |
 | R2 | Obal desktopu | Tauri 2 (záloha Electron) | M23 |
 | R3 | Přihlášení na webu | Cloudflare Access | M26 |
 | R4 | Podpis instalátoru | firemní certifikát, standardní (EV jen pokud trvá SmartScreen) | M24 |

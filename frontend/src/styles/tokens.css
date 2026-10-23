@@ -1,0 +1,37 @@
+/* Design tokeny – stejné barvy jako dnešní web (pidtools/ui/theme.py) a grafy (pidtools/app/colors.py).
+   Fonty IBM Plex přibalené (static/fonts, OFL), servíruje je API na /fonts. */
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-ext-400-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02FF, U+1E00-1EFF; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-style: italic; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-400-italic.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-ext-500-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02FF, U+1E00-1EFF; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2212; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-ext-600-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02FF, U+1E00-1EFF; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+2212; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+2212; }
+
+:root {
+  --pid-bg: #eef1f5; --pid-card: #ffffff; --pid-side: #f6f8fa; --pid-line: #d7dde5; --pid-soft: #e5e9ef;
+  --pid-text: #1f2933; --pid-muted: #52606d; --pid-accent: #1f5fa8; --pid-accent-bg: #eaf2fb; --pid-ctl: #c3ccd6;
+  --pid-pv: #1f5fa8; --pid-sp: #9aa5b1; --pid-mv: #c2410c; --pid-set1: #64748b; --pid-set2: #15803d;
+  --pid-ok: #15803d; --pid-warn: #b45309; --pid-err: #b91c1c;
+  --pid-font: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --pid-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --pid-radius: 6px; --pid-gap: 12px;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --pid-bg: #0b1220; --pid-card: #111a2e; --pid-side: #0f172a; --pid-line: #26324a; --pid-soft: #1c2740;
+  --pid-text: #e2e8f0; --pid-muted: #94a3b8; --pid-accent: #60a5fa; --pid-accent-bg: rgba(96, 165, 250, 0.12);
+  --pid-ctl: #3b4a63; --pid-pv: #60a5fa; --pid-mv: #fb923c;
+  color-scheme: dark;
+}
