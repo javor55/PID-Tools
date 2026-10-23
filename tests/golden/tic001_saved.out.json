@@ -23,6 +23,10 @@
    "std_e": 0.732497,
    "travel_h": 3.7347
   },
+  "nonlinearity": {
+   "n": 1,
+   "spread": null
+  },
   "valve": {
    "osc": {
     "amp": 1.04114,
