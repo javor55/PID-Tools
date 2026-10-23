@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from ..app import loopmode as lm
+from ..core import DIST_FIELDS, MODELS
 from ..app import model as mdl
 from ..app import signalpack
 from ..app import windows as wn
@@ -45,8 +46,16 @@ class Check(BaseModel):
     args: dict = {}
 
 
+class DistInfo(BaseModel):
+    name: str                       # sloupec poruchy
+    struct: str                     # struktura přenosu (P0D … I1D)
+    fields: list[list]              # [[název parametru, index v ed|kód|d{j}|{index}]]
+
+
 class ModelRes(BaseModel):
     code: str
+    names: list[str] = []           # názvy parametrů procesu (ed|kód|i, fx|kód|i)
+    dists: list[DistInfo] = []
     p: list[float]
     pdl: list[list[float]] = []
     fit: float | None = None
@@ -72,6 +81,12 @@ class ModelState(BaseModel):
     warnings: list[list[str]] = []
     crossval: dict[str, list[float | None]] | None = None
     uncertainty: dict | None = None
+
+
+class Validation(BaseModel):
+    code: str
+    metrics: dict
+    sigma_pv: float | None = None
 
 
 class Select(BaseModel):
@@ -106,7 +121,10 @@ def model_state(ws):
         q = summ.get(c, {})
         wf = ws.window_fits(c) if r.get("method") == "win" and ws.inputs_mode else []
         out.append(ModelRes(
-            code=c, p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
+            code=c, names=list(MODELS[c]["params"]),
+            dists=[DistInfo(name=str(nm), struct=s_, fields=[list(f) for f in DIST_FIELDS[s_]])
+                   for nm, s_ in zip(ws.c_d, wn.structs(c, r))],
+            p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),
             method=r.get("method"), mixed=bool(r.get("mixed")), fit_cl_pv=_f(r.get("fit_cl_pv")),
             fit_cl_mv=_f(r.get("fit_cl_mv")), p_open=r.get("p_open"), structs=list(wn.structs(c, r)),
@@ -249,6 +267,14 @@ def router(get_proj, jobs):
         """Nejistota modelu – bootstrap reziduí (n refitů) – úloha."""
         ws = need_model(wid)
         return submit(wid, ws, "bootstrap", (int(body.n),), steps=int(body.n))
+
+    @r.get("/model/validation", response_model=Validation)
+    def validation(wid: str):
+        """Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace
+        s MV (ccf) s mezí `bound`, hodnocení."""
+        ws = need_model(wid)
+        ev = ws.evaluate()
+        return Validation(code=ws.model[0], metrics=_plain(ev["metrics"]), sigma_pv=_f(ev.get("sigma_pv")))
 
     @r.get("/model/curves", response_class=Response,
            responses={200: {"content": {"application/octet-stream": {}},

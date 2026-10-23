@@ -6,6 +6,7 @@ import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { unframe, series } from "../api/signals";
 import { Trend } from "../components/Trend";
+import { ModelDetails } from "./ModelDetails";
 import { type LoopMode, useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { useJobRunner } from "../jobs";
@@ -121,6 +122,7 @@ export function ModelMain() {
       {data && <Trend data={data} onWins={(w) => void onWins(w)} onMode={(m) => void patch({ win_mode: m })}
         testid="model-trend" />}
       <ModelTable model={model} />
+      {model?.has_fit && <ModelDetails model={model} />}
     </div>
   );
 }

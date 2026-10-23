@@ -193,3 +193,32 @@ def test_model_tab_identify(page, server):
     assert _api(server, "/workspaces/{wid}/settings", page)["win_mode"] == "inputs"
     page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="common"]').click()
     page.wait_for_timeout(500)
+
+
+def test_model_edit_refit_validation_uncertainty(page, server):
+    """Model 2: zafixovaný θ a dofitování, návrat k nafitovaným hodnotám, ověření modelu, nejistota (P1D z dema)."""
+    def wait_jobs():
+        page.wait_for_timeout(500)
+        page.wait_for_function("() => !document.querySelector('.jobs .job')", timeout=120000)
+        page.wait_for_timeout(800)
+    page.wait_for_selector('[data-testid="params"]')
+    assert "FIT" in page.locator('[data-testid="validation"]').inner_text()
+    th = page.locator('[data-testid="ed-ed|P1D|2"]')
+    th.fill("30")
+    th.press("Enter")
+    page.locator('[data-testid="fx-fx|P1D|2"]').click()
+    page.wait_for_timeout(600)
+    page.locator('[data-testid="refit"]').click()
+    wait_jobs()
+    p = _api(server, "/workspaces/{wid}/model", page)["current"]["p"]
+    assert abs(p[2] - 30.0) < 1e-6
+    page.locator('[data-testid="fx-fx|P1D|2"]').click()
+    page.locator('[data-testid="reset"]').click()
+    page.wait_for_timeout(800)
+    st = _api(server, "/workspaces/{wid}/settings", page)
+    assert abs(st["ed|P1D|2"] - 30.0) < 1e-6                 # návrat = hodnoty posledního (dofitovaného) výsledku
+    page.locator('[data-testid="uncertainty"] input.num').fill("3")
+    page.locator('[data-testid="unc-run"]').click()
+    wait_jobs()
+    page.wait_for_selector('[data-testid="unc-table"] tbody tr')
+    assert page.locator('[data-testid="unc-table"] tbody tr').count() == 3

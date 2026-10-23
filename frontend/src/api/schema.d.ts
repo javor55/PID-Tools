@@ -584,6 +584,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/model/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Validation
+         * @description Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace
+         *     s MV (ccf) s mezí `bound`, hodnocení.
+         */
+        get: operations["validation_workspaces__wid__model_validation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/opc/history": {
         parameters: {
             query?: never;
@@ -973,6 +994,15 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** DistInfo */
+        DistInfo: {
+            /** Fields */
+            fields: unknown[][];
+            /** Name */
+            name: string;
+            /** Struct */
+            struct: string;
+        };
         /** Find */
         Find: {
             /** Node Id */
@@ -1155,6 +1185,11 @@ export interface components {
             checks: components["schemas"]["pidtools__api__model__Check"][];
             /** Code */
             code: string;
+            /**
+             * Dists
+             * @default []
+             */
+            dists: components["schemas"]["DistInfo"][];
             /** Fit */
             fit?: number | null;
             /** Fit Cl Mv */
@@ -1170,6 +1205,11 @@ export interface components {
              * @default false
              */
             mixed: boolean;
+            /**
+             * Names
+             * @default []
+             */
+            names: string[];
             /** Nrmse */
             nrmse?: number | null;
             /** P */
@@ -1497,6 +1537,17 @@ export interface components {
              * @default 15
              */
             n: number;
+        };
+        /** Validation */
+        Validation: {
+            /** Code */
+            code: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Sigma Pv */
+            sigma_pv?: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -2790,6 +2841,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validation_workspaces__wid__model_validation_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Validation"];
                 };
             };
             /** @description Validation Error */

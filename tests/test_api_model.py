@@ -66,6 +66,11 @@ def test_demo_identify_like_golden(client):
     # znovu se stejnými vstupy: výsledek z cache
     again = client.post(f"/workspaces/{wid}/identify").json()
     assert again["state"] == "done" and again["cached"]
+    # názvy parametrů a validace
+    assert res["I1D"]["names"] == ["Ki", "T1", "θ"] and res["I1D"]["dists"][0]["name"] == "FI100.Pritok"
+    v = client.get(f"/workspaces/{wid}/model/validation").json()
+    assert v["code"] == "I1D" and abs(v["metrics"]["FIT"] - ref["res"]["I1D"]["fit"]) < 0.5
+    assert len(v["metrics"]["acf"]) > 5 and v["metrics"]["status"] in (0, 1, 2, 3)
     # průběhy modelu binárně
     meta, sig = signalpack.unframe(client.get(f"/workspaces/{wid}/model/curves").content)
     assert {"pv", "mv", "model", "residual", "full"} <= set(sig) and len(sig["model"][0]) == 3600

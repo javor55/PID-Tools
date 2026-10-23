@@ -58,3 +58,6 @@ button { font: inherit; color: inherit; }
 .tbl th { color: var(--pid-muted); font-weight: 500; }
 .tbl tr.sel td { background: var(--pid-accent-bg); }
 .trend-host { min-height: 300px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
+.card h3 { font-size: 13px; margin: 0 0 8px; }
+input.num { width: 110px; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 2px 6px; font-family: var(--pid-mono); }

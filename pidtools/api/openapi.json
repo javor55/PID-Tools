@@ -171,6 +171,33 @@
     "title": "Diagnostics",
     "type": "object"
    },
+   "DistInfo": {
+    "properties": {
+     "fields": {
+      "items": {
+       "items": {},
+       "type": "array"
+      },
+      "title": "Fields",
+      "type": "array"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "struct": {
+      "title": "Struct",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "struct",
+     "fields"
+    ],
+    "title": "DistInfo",
+    "type": "object"
+   },
    "Find": {
     "properties": {
      "node_id": {
@@ -727,6 +754,14 @@
       "title": "Code",
       "type": "string"
      },
+     "dists": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/DistInfo"
+      },
+      "title": "Dists",
+      "type": "array"
+     },
      "fit": {
       "anyOf": [
        {
@@ -786,6 +821,14 @@
       "default": false,
       "title": "Mixed",
       "type": "boolean"
+     },
+     "names": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Names",
+      "type": "array"
      },
      "nrmse": {
       "anyOf": [
@@ -1670,6 +1713,36 @@
      }
     },
     "title": "Uncertainty",
+    "type": "object"
+   },
+   "Validation": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+     },
+     "sigma_pv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sigma Pv"
+     }
+    },
+    "required": [
+     "code",
+     "metrics"
+    ],
+    "title": "Validation",
     "type": "object"
    },
    "ValidationError": {
@@ -4616,6 +4689,81 @@
      }
     },
     "summary": "Uncertainty",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/workspaces/{wid}/model/validation": {
+   "get": {
+    "description": "Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace\ns MV (ccf) s mezí `bound`, hodnocení.",
+    "operationId": "validation_workspaces__wid__model_validation_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Validation"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Validation",
     "tags": [
      "model"
     ]
