@@ -20,10 +20,13 @@ import itertools
 import multiprocessing as mp
 import pickle
 import queue
+import sys
 import threading
 import time
 import traceback
+import types
 from collections import OrderedDict
+from contextlib import contextmanager
 
 STATES = ("queued", "running", "done", "error", "cancelled", "timeout")
 FINAL = ("done", "error", "cancelled", "timeout")
@@ -80,6 +83,22 @@ class ResultCache:
 
     def __len__(self):
         return len(self._d)
+
+
+@contextmanager
+def _bare_main():
+    """
+    Při startu procesu „spawn“ by se v něm znovu spustil hlavní skript rodiče (sys.modules["__main__"]) – např.
+    aplikace Streamlit v testech nebo spouštěcí skript. Funkce úloh se importují ze svých modulů, hlavní skript
+    proces nepotřebuje: po dobu startu se nahradí prázdným modulem.
+    """
+    main = sys.modules.get("__main__")
+    sys.modules["__main__"] = types.ModuleType("__main__")
+    try:
+        yield
+    finally:
+        if main is not None:
+            sys.modules["__main__"] = main
 
 
 def _wants_progress(fn):
@@ -207,7 +226,8 @@ class JobManager:
         job.q = self._ctx.Queue()
         job.proc = self._ctx.Process(target=_worker, args=(job.fn, job.args, job.kwargs, job.q), daemon=True)
         job.state, job.started = "running", time.time()
-        job.proc.start()
+        with _bare_main():
+            job.proc.start()
 
     def _drain(self, job):
         while True:
