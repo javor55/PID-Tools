@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CSV loading: large files are parsed only once (the decimal comma is detected on the first lines) – about 5× faster
+  for 1 million rows.
 - Development: the CZ / EN texts are in `pidtools/i18n/cs.json` and `en.json` (one source, also for the future TS UI).
 - Web: the IBM Plex fonts are bundled (`static/fonts`, OFL licence) – the app downloads nothing from the internet and
   the offline package shows the right typeface without a network.

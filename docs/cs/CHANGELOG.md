@@ -2,6 +2,8 @@
 
 ## Nevydáno
 
+- Načtení CSV: velké soubory se čtou jen jednou (desetinná čárka se rozpozná na prvních řádcích) – 1 mil. řádků
+  zhruba 5× rychleji.
 - Vývoj: texty CZ / EN jsou v `pidtools/i18n/cs.json` a `en.json` (jeden zdroj i pro budoucí rozhraní v TS).
 - Web: fonty IBM Plex jsou přibalené (`static/fonts`, licence OFL) – aplikace nestahuje nic z internetu, offline
   balíček má správné písmo i bez sítě.

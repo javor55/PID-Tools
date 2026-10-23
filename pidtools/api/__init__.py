@@ -18,25 +18,14 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL, JobManager
+from . import data
+from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
 
 
 class Health(BaseModel):
     status: str
     version: str
-
-
-class WorkspaceInfo(BaseModel):
-    id: str
-    has_data: bool
-    fname: str
-    columns: list[str]
-    pv: str | None = None
-    mv: str | None = None
-    sp: str | None = None
-    dists: list[str] = []
-    n: int = 0
-    Ts: float | None = None
 
 
 class JobInfo(BaseModel):
@@ -49,15 +38,6 @@ class JobInfo(BaseModel):
     created: float
     started: float | None = None
     finished: float | None = None
-
-
-def _ws_info(wid, ws):
-    has = bool(ws.has_data)
-    cols = list(ws.sig.sigs) if ws.sig is not None else []
-    return WorkspaceInfo(id=wid, has_data=has, fname=ws.fname or "", columns=[str(c) for c in cols],
-                         pv=ws.c_pv, mv=ws.c_mv, sp=None if ws.c_sp in (None, "—") else ws.c_sp,
-                         dists=[str(d) for d in ws.c_d], n=len(ws.t) if has else 0,
-                         Ts=float(ws.grid.Ts) if has else None)
 
 
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
@@ -97,6 +77,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             raise HTTPException(404, "job not found") from None
 
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
+    app.include_router(data.router(workspace), dependencies=[Depends(auth)])
 
     @app.get("/health", response_model=Health, tags=["system"])
     def health():
@@ -111,11 +92,11 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     @app.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_create():
         wid, ws = app.state.store.create()
-        return _ws_info(wid, ws)
+        return info(wid, ws)
 
     @app.get("/workspaces/{wid}", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_get(wid: str):
-        return _ws_info(wid, workspace(wid))
+        return info(wid, workspace(wid))
 
     @app.delete("/workspaces/{wid}", status_code=204, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_delete(wid: str):

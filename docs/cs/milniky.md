@@ -30,7 +30,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ◐ |
 | M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ◐ |
 | M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ◐ |
-| M7 | API: data a signály | B | M | M6 | ☐ |
+| M7 | API: data a signály | B | M | M6 | ◐ |
 | M8 | API: projekt | B | S | M6 | ☐ |
 | M9 | API: model | B | L | M5, M7 | ☐ |
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☐ |
@@ -208,6 +208,17 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - Kvalita dat, události v záznamu, detekce MAN / AUTO.
 
 **Hotovo když:** 1 mil. vzorků se načte a přenese do 2 s (test výkonu).
+
+**Skutečnost:**
+- `pidtools/api/data.py`, endpointy pod `/workspaces/{id}`:
+  - `data/demo`, `data/file` (tělo = soubor, `?name=` určí formát);
+  - `layout`, `columns`, `range`, `settings` (GET a PATCH, jen klíče projektu);
+  - `signals` – binárně; `raw` = ze souboru, `grid` = převzorkované pv / mv / sp / d0… / valid;
+  - `quality`, `loopmode`, `compression`.
+- Binární formát (`app.signalpack`) sdílí API s prohlížečem záznamu ve Streamlitu:
+  `[uint32 délka][popis JSON][Float64 časy][Float32 hodnoty]`.
+- Výkon: CSV s 1 mil. řádků se dřív parsovalo dvakrát (desetinná tečka i čárka). Teď rozhodne vzorek a čte se
+  jednou: 3,3 s → 0,6 s; s převzorkováním ≈ 1 s. Přenos 2 signálů po 1 mil. vzorků (15 MB) trvá 0,3–0,7 s.
 
 ### M8 · API: projekt
 - Uložení a načtení projektu (s daty i bez), migrace starých verzí, export stavu.
