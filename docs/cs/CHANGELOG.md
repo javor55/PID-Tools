@@ -2,6 +2,8 @@
 
 ## Nevydáno
 
+- Web: fonty IBM Plex jsou přibalené (`static/fonts`, licence OFL) – aplikace nestahuje nic z internetu, offline
+  balíček má správné písmo i bez sítě.
 - Model: režim dat *Automaticky* použije uzavřenou smyčku (i u úseků v AUTO) jen tehdy, když je Set 1 vyplněný
   regulátor ze záznamu; s výchozími hodnotami (Gain 1, TI 100) zůstane u otevřené smyčky a upozorní.
 - Projekt: uložení s daty a opětovné načtení už neubírá poslední vzorek.

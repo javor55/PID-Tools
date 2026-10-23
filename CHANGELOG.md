@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Web: the IBM Plex fonts are bundled (`static/fonts`, OFL licence) – the app downloads nothing from the internet and
+  the offline package shows the right typeface without a network.
 - Model: the *Automatic* data mode uses the closed loop (also for AUTO segments) only when Set 1 holds the
   controller from the record; with the default values (Gain 1, TI 100) it stays in open loop and shows a warning.
 - Project: saving with data and loading again no longer drops the last sample.

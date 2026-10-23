@@ -14,6 +14,7 @@ RUN pip install -r requirements.txt
 COPY app.py ./
 COPY pidtools ./pidtools
 COPY .streamlit ./.streamlit
+COPY static ./static
 
 RUN useradd --create-home pidtools
 USER pidtools

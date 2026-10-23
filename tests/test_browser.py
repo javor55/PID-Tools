@@ -59,6 +59,8 @@ def page(server):
                 pytest.skip("Chromium pro Playwright není nainstalovaný")
             b = p.chromium.launch(executable_path=exe)
         pg = b.new_page(viewport={"width": 1440, "height": 900})
+        pg.requested = []                                  # všechny požadavky stránky (kontrola offline provozu)
+        pg.on("request", lambda r: pg.requested.append(r.url))
         pg.goto(server, wait_until="networkidle")
         pg.wait_for_selector('[data-testid="stTab"]', timeout=60000)
         # zdroj dat: ukázka (přepínač Zdroj dat v panelu záložky Data)
@@ -82,6 +84,17 @@ def _idle(pg, extra=500):
 def _tab(pg, i):
     pg.locator('[data-testid="stTab"]').nth(i).click()
     _idle(pg, 1500)
+
+
+def test_offline_no_external_requests(page, server):
+    """Žádný požadavek mimo vlastní server (fonty přibalené ve static/fonts, žádné CDN) a fonty IBM Plex načtené."""
+    page.evaluate("document.fonts.ready")
+    ext = [u for u in page.requested if not u.startswith((server, "data:", "blob:"))]
+    assert not ext, ext[:10]
+    assert any("/app/static/fonts/ibm-plex-sans-" in u for u in page.requested)
+    assert page.evaluate("""() => [...document.fonts].some(f => f.family.replace(/"/g, '') === 'IBM Plex Sans'
+                                   && f.status === 'loaded')""")
+    assert page.evaluate("document.fonts.check(\"12px 'IBM Plex Mono'\")")
 
 
 def test_frame_scrolls_independently(page):

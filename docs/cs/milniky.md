@@ -25,7 +25,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | # | Milník | Fáze | Velikost | Závisí na | Stav |
 |---|---|---|---|---|---|
 | M1 | Zlaté případy | A | M | – | ◐ |
-| M2 | Přibalené fonty (offline) | A | S | – | ☐ |
+| M2 | Přibalené fonty (offline) | A | S | – | ◐ |
 | M3 | Texty CZ / EN do JSON | A | S | – | ☐ |
 | M4 | Pracovní prostor v `app` (stav bez UI) | A | L | M1 | ☐ |
 | M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ☐ |
@@ -106,6 +106,12 @@ Výpočet trvá ≈ 90 s. Přehled smyček a report nemají vlastní výpočet, 
 - Odstranit stahování z Google Fonts (`.streamlit/config.toml`). Ověřit offline balíček bez sítě.
 
 **Hotovo když:** web i offline balíček nemají žádný požadavek mimo vlastní server (kontrola v Playwright testu).
+
+**Skutečnost:**
+- `static/fonts`: IBM Plex Sans (400, 400 kurzíva, 500, 600) a Mono (400, 500, 600), podmnožiny latin a latin-ext
+  (čeština), ≈ 280 kB, licence OFL u souborů.
+- Fonty se servírují přes `theme.fontFaces` a `server.enableStaticServing`; jsou v Dockerfile i v offline balíčku.
+- `test_offline_no_external_requests` zaznamená všechny požadavky stránky a ověří načtení fontu.
 
 ### M3 · Texty do JSON
 - `pidtools/i18n/cs.json` a `en.json` jako jediný zdroj. Rozhraní `T()` se nemění, `cs.py` a `en.py` se odstraní.
