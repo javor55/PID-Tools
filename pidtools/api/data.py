@@ -117,8 +117,11 @@ def _err(ex):
     raise HTTPException(400, str(ex.args[0]) if ex.args else type(ex).__name__) from ex
 
 
-def router(get_ws):
+def router(get_proj):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["data"])
+
+    def get_ws(wid):
+        return get_proj(wid).state
 
     def need_data(wid):
         ws = get_ws(wid)
@@ -128,9 +131,9 @@ def router(get_ws):
 
     @r.post("/data/demo", response_model=WorkspaceInfo)
     def load_demo(wid: str):
-        ws = get_ws(wid)
-        ws.load_demo()
-        return info(wid, ws)
+        p = get_proj(wid)
+        p.load_demo()
+        return info(wid, p.state)
 
     @r.post("/data/file", response_model=WorkspaceInfo,
             openapi_extra={"requestBody": {"required": True, "content": {"application/octet-stream": {
@@ -138,15 +141,15 @@ def router(get_ws):
     async def load_file(wid: str, request: Request,
                         name: Annotated[str, Query(description="file name (extension)")]):
         """Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`."""
-        ws = get_ws(wid)
+        p = get_proj(wid)
         raw = await request.body()
         if len(raw) > MAX_UPLOAD:
             raise HTTPException(413, "file too large")
         try:
-            ws.load_frame(read_table(name, raw), name)
+            p.load_frame(read_table(name, raw), name)
         except (ValueError, KeyError, IndexError) as ex:
             _err(ex)
-        return info(wid, ws)
+        return info(wid, p.state)
 
     @r.put("/layout", response_model=WorkspaceInfo)
     def set_layout(wid: str, body: Layout):

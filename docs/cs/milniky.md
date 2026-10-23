@@ -31,7 +31,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M5 | Úlohy s průběhem a zrušením, cache | A | M | M4 | ◐ |
 | M6 | Kostra API (FastAPI, token, OpenAPI) | B | M | M4 | ◐ |
 | M7 | API: data a signály | B | M | M6 | ◐ |
-| M8 | API: projekt | B | S | M6 | ☐ |
+| M8 | API: projekt | B | S | M6 | ◐ |
 | M9 | API: model | B | L | M5, M7 | ☐ |
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☐ |
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ☐ |
@@ -224,6 +224,13 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - Uložení a načtení projektu (s daty i bez), migrace starých verzí, export stavu.
 
 **Hotovo když:** všechny projekty ze zlatých případů se načtou a znovu uloží beze změny obsahu.
+
+**Skutečnost:**
+- Pracovní prostor API drží celý projekt (`workspace.loops.Project`); data a výpočty jdou na aktivní smyčku.
+- `pidtools/api/projects.py`:
+  - `GET/PUT /project` – s daty i bez, starší verze s migrací; projekt bez dat použije načtená data;
+  - `/loops` – seznam, přidání (zadané nebo odhadnuté sloupce), aktivní smyčka, odebrání.
+- `tests/test_api_project.py`: TIC001 i formát v1 se přes API vrátí beze změny; ověřeny i smyčky a projekt bez dat.
 
 ### M9 · API: model (L)
 - Úseky, identifikace (úloha s průběhem), dofitování se zafixovanými parametry, struktury poruch, porovnání,

@@ -1,9 +1,12 @@
-"""Pracovní prostory API: Workspace pod náhodným ID, s vypršením po nečinnosti a limitem počtu."""
+"""
+Pracovní prostory API: projekt (app.workspace.loops.Project – smyčky nad jedním souborem, aktivní smyčka je
+Workspace) pod náhodným ID, s vypršením po nečinnosti a limitem počtu.
+"""
 import secrets
 import threading
 import time
 
-from ..app.workspace import Workspace
+from ..app.workspace.loops import Project
 
 
 class WorkspaceStore:
@@ -17,19 +20,19 @@ class WorkspaceStore:
             del self._d[k]
 
     def create(self):
-        """Nový prázdný prostor; při plném úložišti se uvolní nejdéle nepoužitý. Vrací (id, Workspace)."""
+        """Nový prázdný projekt; při plném úložišti se uvolní nejdéle nepoužitý. Vrací (id, Project)."""
         now = time.time()
         with self._lock:
             self._sweep(now)
             while len(self._d) >= self.max_count:
                 del self._d[min(self._d, key=lambda k: self._d[k][1])]
             wid = secrets.token_urlsafe(9)
-            ws = Workspace()
-            self._d[wid] = [ws, now]
-            return wid, ws
+            proj = Project()
+            self._d[wid] = [proj, now]
+            return wid, proj
 
     def get(self, wid):
-        """Prostor podle ID (obnoví čas přístupu), jinak KeyError."""
+        """Projekt podle ID (obnoví čas přístupu), jinak KeyError."""
         now = time.time()
         with self._lock:
             self._sweep(now)
