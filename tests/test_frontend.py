@@ -158,3 +158,38 @@ def test_data_file_upload(page, server):
     w = _api(server, "/workspaces/{wid}", page)
     assert w["fname"] == "ff_example.csv" and {"CV", "MV", "SP", "DV"} <= set(w["columns"])
     page.wait_for_selector(".pidv-panel canvas")
+
+
+def test_model_tab_identify(page, server):
+    """Model: graf s úseky (sdílený trend.js), identifikace jako úloha, tabulka modelů, výběr, průběh modelu."""
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-testid="load-demo"]').click()
+    page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
+    page.locator('[data-tab="model"]').click()
+    page.wait_for_selector('[data-testid="model-trend"] .pidw', timeout=20000)
+    assert page.locator('[data-testid="no-model"]').count() == 1
+    for c in ("P0D", "P2D", "I0D"):                         # rychlejší: jen P1D a I1D
+        box = page.locator(f'[data-testid="chk-{c}"]')
+        if box.is_checked():
+            box.click()                                       # řízený prvek: stav se promítne po překreslení
+            page.wait_for_function(f"() => !document.querySelector('[data-testid=\"chk-{c}\"]').checked")
+    page.locator('[data-testid="identify"]').click()
+    page.wait_for_selector('[data-testid="models"] tbody tr', timeout=120000)
+    rows = page.locator('[data-testid="models"] tbody tr')
+    assert rows.count() == 2
+    m = _api(server, "/workspaces/{wid}/model", page)
+    assert m["selected"] == "I1D" and abs(m["current"]["p"][0] - (-0.00394)) < 2e-4      # = zlatý případ demo
+    page.locator('[data-testid="models"] input[aria-label="P1D"]').click()
+    page.wait_for_function("() => document.querySelector('[data-testid=\"models\"] input[aria-label=\"P1D\"]').checked")
+    page.wait_for_timeout(800)
+    assert _api(server, "/workspaces/{wid}/model", page)["selected"] == "P1D"
+    page.wait_for_timeout(1000)
+    assert page.locator('[data-testid="model-trend"] svg').count() >= 2              # karty grafu (SVG)
+    paths = page.evaluate("() => document.querySelectorAll('[data-testid=\"model-trend\"] svg path').length")
+    assert paths >= 4                                                                 # PV, model, MV, porucha
+    # úseky podle vstupů: přepínač v grafu → nastavení win_mode
+    page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="inputs"]').click()
+    page.wait_for_timeout(800)
+    assert _api(server, "/workspaces/{wid}/settings", page)["win_mode"] == "inputs"
+    page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="common"]').click()
+    page.wait_for_timeout(500)

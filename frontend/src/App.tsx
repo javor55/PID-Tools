@@ -5,6 +5,7 @@ import { Placeholder } from "./components/Placeholder";
 import { StatusBar } from "./components/StatusBar";
 import { useT } from "./i18n";
 import { DataMain, DataSide } from "./tabs/DataTab";
+import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TABS, useUi } from "./store";
 
 function useTheme() {
@@ -45,11 +46,12 @@ export default function App() {
       <Header />
       <div className="body">
         <main className="main" data-testid={`tab-${cur.id}`}>
-          {cur.id === "data" ? <DataMain /> : <Placeholder milestone={cur.milestone} />}
+          {cur.id === "data" ? <DataMain /> : cur.id === "model" ? <ModelMain /> : <Placeholder milestone={cur.milestone} />}
         </main>
         <aside className="side">
           <h2>{T("ui_settings")}</h2>
-          {cur.id === "data" ? <DataSide /> : <div className="muted">{T(cur.label)}</div>}
+          {cur.id === "data" ? <DataSide /> : cur.id === "model" ? <ModelSide />
+            : <div className="muted">{T(cur.label)}</div>}
         </aside>
       </div>
       <StatusBar />

@@ -48,3 +48,13 @@ button { font: inherit; color: inherit; }
 .small { font-size: 12px; } .err { color: var(--pid-err); } .warn { color: var(--pid-warn); } .ok { color: var(--pid-ok); }
 .checks { margin: 0; padding-left: 18px; font-size: 12px; }
 .viewer-host { min-height: 400px; }
+.btn.primary { background: var(--pid-accent); color: #fff; border-color: var(--pid-accent); }
+.btn.primary:hover { color: #fff; filter: brightness(1.08); }
+.btn:disabled { opacity: .55; cursor: default; }
+.field input[type="number"] { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
+.checks-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl th, .tbl td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--pid-line); }
+.tbl th { color: var(--pid-muted); font-weight: 500; }
+.tbl tr.sel td { background: var(--pid-accent-bg); }
+.trend-host { min-height: 300px; }

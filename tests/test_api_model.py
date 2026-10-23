@@ -99,7 +99,7 @@ def test_mixed_windows_like_golden(client):
     m, res = _models(client, wid)
     ref = golden.load("tic001_mixed")["model"]
     _same(ref["res"], res)
-    assert res["P1D"]["mixed"] and res["P1D"]["fit_cl_pv"] is not None and "chk_no_delay" in res["P1D"]["checks"]
+    assert res["P1D"]["mixed"] and res["P1D"]["fit_cl_pv"] is not None and "chk_no_delay" in [c["key"] for c in res["P1D"]["checks"]]
     # režim úseku ručně → kombinovaná identifikace se nepoužije
     w = client.put(f"/workspaces/{wid}/windows/mode", json={"index": 1, "mode": "man"}).json()
     assert w["mv_modes"] == ["man", "man"]

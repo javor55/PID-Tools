@@ -70,30 +70,6 @@
     "title": "Browse",
     "type": "object"
    },
-   "Check": {
-    "properties": {
-     "args": {
-      "additionalProperties": true,
-      "default": {},
-      "title": "Args",
-      "type": "object"
-     },
-     "key": {
-      "title": "Key",
-      "type": "string"
-     },
-     "level": {
-      "title": "Level",
-      "type": "integer"
-     }
-    },
-    "required": [
-     "key",
-     "level"
-    ],
-    "title": "Check",
-    "type": "object"
-   },
    "Columns": {
     "properties": {
      "dists": {
@@ -742,7 +718,7 @@
      "checks": {
       "default": [],
       "items": {
-       "type": "string"
+       "$ref": "#/components/schemas/pidtools__api__model__Check"
       },
       "title": "Checks",
       "type": "array"
@@ -1149,7 +1125,7 @@
     "properties": {
      "checks": {
       "items": {
-       "$ref": "#/components/schemas/Check"
+       "$ref": "#/components/schemas/pidtools__api__data__Check"
       },
       "title": "Checks",
       "type": "array"
@@ -2018,6 +1994,49 @@
      "Ti"
     ],
     "title": "WriteSet",
+    "type": "object"
+   },
+   "pidtools__api__data__Check": {
+    "properties": {
+     "args": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "level": {
+      "title": "Level",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "key",
+     "level"
+    ],
+    "title": "Check",
+    "type": "object"
+   },
+   "pidtools__api__model__Check": {
+    "properties": {
+     "args": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key"
+    ],
+    "title": "Check",
     "type": "object"
    }
   }
@@ -4244,7 +4263,7 @@
       "content": {
        "application/octet-stream": {}
       },
-      "description": "app.signalpack.frame on the loop grid: pv, mv, model (all), model_mv, model_dv, full (whole record), residual"
+      "description": "app.signalpack.frame on the loop grid in engineering units: pv, mv, model (all), model_mv, model_dv, full (whole record), residual"
      },
      "422": {
       "content": {

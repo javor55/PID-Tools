@@ -1,6 +1,6 @@
 // Formát textů jako Python str.format (hodnoty ověřené v Pythonu).
 import { describe, expect, it } from "vitest";
-import { format, formatValue } from "../src/lib/format";
+import { dur, format, formatValue } from "../src/lib/format";
 
 describe("formatValue", () => {
   it.each([
@@ -15,4 +15,9 @@ describe("format", () => {
   it("fills names and keeps unknown placeholders", () => {
     expect(format("Gain {g} · TI {ti:.4g} s · {x}", { g: 2, ti: 210.123456 })).toBe("Gain 2 · TI 210.1 s · {x}");
   });
+});
+
+describe("dur", () => {
+  it.each([[45, "45 s"], [750, "12.5 min"], [7500, "2 h 05 min"], [0.000123, "0.000123 s"], [NaN, "–"]])(
+    "%s → %s", (x, out) => expect(dur(x)).toBe(out));
 });

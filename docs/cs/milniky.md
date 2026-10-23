@@ -37,7 +37,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ◐ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ◐ |
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ◐ |
-| M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ☐ |
+| M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ◐ |
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ☐ |
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ☐ |
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ☐ |
@@ -354,6 +354,22 @@ a Playwright.
 - Úseky: společný i podle vstupů. Komponenta `trend.js` převedená na TS s táhly.
 - Vyřazení dat, režim dat (automaticky, otevřená, uzavřená smyčka, Ručně / AUTO po úsecích).
 - Identifikace s průběhem, tabulka výsledků a výběr modelu.
+
+**Skutečnost:**
+- Graf s úseky je sdílený modul obou webů (`trend.js`, nově `trend.css`) přes adaptér `Trend`. Řádky (PV s modelem
+  a rezidui, MV a poruchy s úseky, vyřazená data) skládá TS stejně jako `wincharts.py`.
+- Úseky se mění táhly a přepínač společný / podle vstupů se ukládá do API.
+- Panel:
+  - data pro identifikaci (automaticky / otevřená / uzavřená smyčka) s podílem MAN / AUTO;
+  - upozornění na nevyplněný Set 1;
+  - režim úseků MV ručně / AUTO;
+  - modely, θ max, neměřené poruchy, znaménko, stikce;
+  - tlačítko Identifikovat (úloha s průběhem ve stavovém řádku).
+- Tabulka modelů: FIT na aktuálních úsecích, NRMSE, hodnocení, parametry, výběr modelu, kontroly věrohodnosti.
+- Nastavení a výběr modelu se v UI mění hned a s API se sjednotí potom.
+- `/model/curves` vrací průběhy v inženýrských jednotkách, kontroly modelu nesou i hodnoty.
+- Test v prohlížeči: identifikace dema přes nové UI = zlatý případ (I1D), výběr modelu, průběh modelu v grafu,
+  přepnutí režimu úseků.
 
 ### M15 · Model 2 (L)
 - Karty přenosů (MV i poruchy), ruční úpravy, zafixování a dofitování, porovnání struktur.

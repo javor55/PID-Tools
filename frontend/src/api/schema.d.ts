@@ -936,20 +936,6 @@ export interface components {
             /** User */
             user?: string | null;
         };
-        /** Check */
-        Check: {
-            /**
-             * Args
-             * @default {}
-             */
-            args: {
-                [key: string]: unknown;
-            };
-            /** Key */
-            key: string;
-            /** Level */
-            level: number;
-        };
         /** Columns */
         Columns: {
             /**
@@ -1166,7 +1152,7 @@ export interface components {
              * Checks
              * @default []
              */
-            checks: string[];
+            checks: components["schemas"]["pidtools__api__model__Check"][];
             /** Code */
             code: string;
             /** Fit */
@@ -1303,7 +1289,7 @@ export interface components {
         /** Quality */
         Quality: {
             /** Checks */
-            checks: components["schemas"]["Check"][];
+            checks: components["schemas"]["pidtools__api__data__Check"][];
             /** Level */
             level: number;
             /** N Steps */
@@ -1624,6 +1610,32 @@ export interface components {
             log?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** Check */
+        pidtools__api__data__Check: {
+            /**
+             * Args
+             * @default {}
+             */
+            args: {
+                [key: string]: unknown;
+            };
+            /** Key */
+            key: string;
+            /** Level */
+            level: number;
+        };
+        /** Check */
+        pidtools__api__model__Check: {
+            /**
+             * Args
+             * @default {}
+             */
+            args: {
+                [key: string]: unknown;
+            };
+            /** Key */
+            key: string;
         };
     };
     responses: never;
@@ -2619,7 +2631,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description app.signalpack.frame on the loop grid: pv, mv, model (all), model_mv, model_dv, full (whole record), residual */
+            /** @description app.signalpack.frame on the loop grid in engineering units: pv, mv, model (all), model_mv, model_dv, full (whole record), residual */
             200: {
                 headers: {
                     [name: string]: unknown;

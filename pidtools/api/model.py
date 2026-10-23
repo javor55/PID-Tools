@@ -40,6 +40,11 @@ class MvMode(BaseModel):
     mode: Literal["man", "auto"]
 
 
+class Check(BaseModel):
+    key: str
+    args: dict = {}
+
+
 class ModelRes(BaseModel):
     code: str
     p: list[float]
@@ -55,7 +60,7 @@ class ModelRes(BaseModel):
     p_open: list[float] | None = None
     structs: list[str] = []
     window_fits: list[float | None] = []
-    checks: list[str] = []
+    checks: list[Check] = []
 
 
 class ModelState(BaseModel):
@@ -105,7 +110,8 @@ def model_state(ws):
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),
             method=r.get("method"), mixed=bool(r.get("mixed")), fit_cl_pv=_f(r.get("fit_cl_pv")),
             fit_cl_mv=_f(r.get("fit_cl_mv")), p_open=r.get("p_open"), structs=list(wn.structs(c, r)),
-            window_fits=[_f(x) for x in wf], checks=[k for k, _ in lm.model_checks(c, r["p"], ws.grid.Ts)]))
+            window_fits=[_f(x) for x in wf],
+            checks=[Check(key=k, args=_plain(a)) for k, a in lm.model_checks(c, r["p"], ws.grid.Ts)]))
     m = ws.model
     cur = dict(code=m[0], p=[float(x) for x in m[1]], pdl=[[float(x) for x in d_] for d_ in m[2]]) if m else None
     cv = ws.cv["res"] if ws.cv and ws.cv.get("key") == ws.fit_key() else None
@@ -131,13 +137,16 @@ def _set_windows(ws, body):
 
 
 def _curves_frame(ws):
-    """Průběhy modelu na mřížce smyčky → binární balík (signalpack)."""
+    """
+    Průběhy modelu na mřížce smyčky v inženýrských jednotkách (jako /signals?source=grid) → binární balík. model_mv /
+    model_dv jen s měřenými poruchami; residual = PV − model (jednotky PV).
+    """
     c = ws.model_curves()
-    cols = {"pv": ws.pv, "mv": ws.mv}
+    cols = {"pv": ws.EP(ws.pv), "mv": ws.EM(ws.mv)}
     names = {"all": "model", "mv": "model_mv", "dv": "model_dv", "full_all": "full"}
     for k, v in c.items():
         if k in names and v is not None:
-            cols[names[k]] = np.asarray(v, float)
+            cols[names[k]] = ws.EP(np.asarray(v, float))
     if "model" in cols:
         cols["residual"] = cols["pv"] - cols["model"]
     return signalpack.frame(signalpack.pack(list(cols), ws.t, cols.__getitem__, cap=None))
@@ -243,8 +252,8 @@ def router(get_proj, jobs):
 
     @r.get("/model/curves", response_class=Response,
            responses={200: {"content": {"application/octet-stream": {}},
-                            "description": "app.signalpack.frame on the loop grid: pv, mv, model (all), model_mv, "
-                                           "model_dv, full (whole record), residual"}})
+                            "description": "app.signalpack.frame on the loop grid in engineering units: pv, mv, "
+                                           "model (all), model_mv, model_dv, full (whole record), residual"}})
     def curves(wid: str):
         """Průběhy aktuálního modelu na mřížce smyčky (NaN mimo úseky) – binárně jako /signals."""
         return Response(_curves_frame(need_model(wid)), media_type="application/octet-stream")

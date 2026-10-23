@@ -34,3 +34,14 @@ export function format(text: string, args: Record<string, unknown> = {}): string
     name in args ? formatValue(args[name], spec ?? "") : whole,
   );
 }
+
+/** Doba čitelně jako app.timefmt.dur: 45 s, 12.5 min, 2 h 05 min; dec = desetinný oddělovač. */
+export function dur(sec: number | null | undefined, dec = "."): string {
+  if (sec === null || sec === undefined || !Number.isFinite(sec)) return "–";
+  const a = Math.abs(sec);
+  const d = (s: string) => (dec === "," ? s.replace(".", ",") : s);
+  if (a < 120) return d(`${formatValue(sec, ".3g")} s`);
+  if (a < 2 * 3600) return d(`${formatValue(sec / 60, ".3g")} min`);
+  const tot = Math.round(a / 60), h = Math.floor(tot / 60), m = tot % 60;
+  return `${sec < 0 ? "-" : ""}${h} h ${String(m).padStart(2, "0")} min`;
+}

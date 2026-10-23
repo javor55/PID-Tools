@@ -10,3 +10,8 @@ declare module "*/viewer.js" {
   export default mount;
 }
 declare module "*/viewer_an.js";
+declare module "*/trend.js" {
+  import type { ViewerComponent } from "*/viewer.js";
+  const mount: (component: ViewerComponent) => void;
+  export default mount;
+}
