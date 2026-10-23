@@ -291,6 +291,12 @@ def compare(ref, new, path="", rtol=RTOL, atol=ATOL):
     elif isinstance(ref, list) and isinstance(new, list):
         if len(ref) != len(new):
             diffs.append((path + "#len", len(ref), len(new)))
+        elif _is_params(path, ref):
+            # parametry přenosu [K, časy…]: časy s tolerancí z největší časové konstanty – malé, špatně určitelné
+            # členy (např. T2 ≪ T1 pod periodou dat) se mezi platformami liší víc než o 2 % své hodnoty
+            at = max(atol, rtol * max(abs(x) for x in ref[1:]))
+            for i, (a, b) in enumerate(zip(ref, new)):
+                diffs += compare(a, b, f"{path}[{i}]", rtol, atol if i == 0 else at)
         else:
             for i, (a, b) in enumerate(zip(ref, new)):
                 diffs += compare(a, b, f"{path}[{i}]", rtol, atol)
@@ -303,6 +309,13 @@ def compare(ref, new, path="", rtol=RTOL, atol=ATOL):
     elif ref != new:
         diffs.append((path, ref, new))
     return diffs
+
+
+def _is_params(path, ref):
+    """Parametry přenosu procesu / poruchy ve výsledku modelu (…/p, …/p_open, …/pdl[j])."""
+    tail = path.rsplit("/", 1)[-1]
+    return (len(ref) > 1 and all(isinstance(x, (int, float)) for x in ref)
+            and (tail in ("p", "p_open") or tail.startswith("pdl[")))
 
 
 def path_of(name):
