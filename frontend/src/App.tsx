@@ -5,6 +5,7 @@ import { Placeholder } from "./components/Placeholder";
 import { StatusBar } from "./components/StatusBar";
 import { useT } from "./i18n";
 import { DataMain, DataSide } from "./tabs/DataTab";
+import { LiveMain } from "./tabs/LiveTab";
 import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TuningMain, TuningSide } from "./tabs/TuningTab";
 import { TABS, useUi } from "./store";
@@ -45,16 +46,16 @@ export default function App() {
   return (
     <div className="shell">
       <Header />
-      <div className="body">
+      <div className={cur.id === "live" ? "body body-wide" : "body"}>
         <main className="main" data-testid={`tab-${cur.id}`}>
           {cur.id === "data" ? <DataMain /> : cur.id === "model" ? <ModelMain /> : cur.id === "tuning" ? <TuningMain />
-            : <Placeholder milestone={cur.milestone} />}
+            : cur.id === "live" ? <LiveMain /> : <Placeholder milestone={cur.milestone} />}
         </main>
-        <aside className="side">
+        {cur.id !== "live" && <aside className="side">
           <h2>{T("ui_settings")}</h2>
           {cur.id === "data" ? <DataSide /> : cur.id === "model" ? <ModelSide /> : cur.id === "tuning" ? <TuningSide />
             : <div className="muted">{T(cur.label)}</div>}
-        </aside>
+        </aside>}
       </div>
       <StatusBar />
     </div>

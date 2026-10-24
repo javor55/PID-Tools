@@ -48,6 +48,8 @@ button { font: inherit; color: inherit; }
 .small { font-size: 12px; } .err { color: var(--pid-err); } .warn { color: var(--pid-warn); } .ok { color: var(--pid-ok); }
 .checks { margin: 0; padding-left: 18px; font-size: 12px; }
 .viewer-host { min-height: 400px; }
+.body-wide { grid-template-columns: 1fr; }
+.live-host { margin: -4px; }
 .btn.primary { background: var(--pid-accent); color: #fff; border-color: var(--pid-accent); }
 .btn.primary:hover { color: #fff; filter: brightness(1.08); }
 .btn:disabled { opacity: .55; cursor: default; }

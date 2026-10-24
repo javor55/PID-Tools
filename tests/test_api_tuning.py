@@ -93,3 +93,29 @@ def test_sets_history_scenario_compare(ws):
     _wait(c, job)
     res = c.get(f"/jobs/{job['id']}/result").json()
     assert res and isinstance(res, (dict, list))
+
+
+def test_live_config(ws):
+    """Konfigurace živé simulace: klíče pro live_ui.js, sady shodné s laděním, jazyk textů podle požadavku."""
+    c, wid = ws
+    cfg = c.get(f"/workspaces/{wid}/live").json()
+    assert {"code", "p", "h", "pv0", "mv0", "plant", "window", "speeds", "speed0", "sets", "pv_lo", "pv_hi", "mv_lo",
+            "mv_hi", "lab_pv", "lab_mv", "font", "labels", "sim_id", "ch", "noise0", "pvf0", "pvf_max", "dist_p0",
+            "dist_pmax", "decimal", "light", "dark"} <= set(cfg)
+    assert cfg["code"] == "I1D" and set(cfg["sets"]) == {"1", "2"} and cfg["window"] >= 60
+    assert cfg["labels"]["start"] and cfg["labels"]["apply"] and cfg["labels"]["blk"] and cfg["labels"]["set1"]
+    sets = {s["n"]: s for s in c.get(f"/workspaces/{wid}/tuning").json()["sets"]}
+    assert cfg["sets"]["2"]["Gain"] == pytest.approx(sets[2]["gain"])
+    en = c.get(f"/workspaces/{wid}/live?lang=en").json()
+    cs = c.get(f"/workspaces/{wid}/live?lang=cs").json()
+    assert en["labels"]["start"] != cs["labels"]["start"] and cs["decimal"] == "," and en["decimal"] == "."
+    assert {k: v for k, v in en.items() if k not in ("labels", "decimal")} == {
+        k: v for k, v in cs.items() if k not in ("labels", "decimal")}
+
+
+def test_live_config_needs_model():
+    with TestClient(create_app()) as c:
+        wid = c.post("/workspaces").json()["id"]
+        assert c.get(f"/workspaces/{wid}/live").status_code == 409
+        c.post(f"/workspaces/{wid}/data/demo")
+        assert c.get(f"/workspaces/{wid}/live").status_code == 409

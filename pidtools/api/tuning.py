@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from ..app import frequency as fq
+from ..app import live
 from ..app import loopmode as lm
 from ..app import scenario as scn
 from ..app import signalpack
@@ -259,5 +260,10 @@ def router(get_proj, jobs):
         if preview is not None:
             sets["sug"] = ws.ctrl_of(preview.model_dump())
         return _freq(code, p, sets)
+
+    @r.get("/live", response_model=dict)
+    def live_config(wid: str):
+        """Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2."""
+        return _plain(live.web_config_ws(need_model(wid)))
 
     return r

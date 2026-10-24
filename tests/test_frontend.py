@@ -59,6 +59,8 @@ def page(server):
         pg = ctx.new_page()
         pg.requested = []
         pg.on("request", lambda r: pg.requested.append((r.method, r.url)))
+        pg.errors = []                                      # výjimky JS na stránce (kontroluje poslední test)
+        pg.on("pageerror", lambda e: pg.errors.append(str(e)))
         pg.goto(f"{server}/#token={TOKEN}", wait_until="networkidle")
         pg.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
         yield pg
@@ -301,3 +303,36 @@ def test_tuning_spread(page, server):
     page.wait_for_function(f"() => document.querySelectorAll('[data-testid=\"resp-pv\"] path').length > {n0}",
                            timeout=30000)
     box.click()
+def test_live_tab(page, server):
+    """Živá simulace (M18): sdílené live_ui.js, běh a čas simulace, zápis laděného zesílení do sady 2."""
+    page.locator('[data-tab="live"]').click()
+    page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
+    assert page.locator('[data-testid="live-sim"] .pidlive').count() == 1
+    assert page.locator("aside.side").count() == 0                                 # panel si kreslí komponenta
+    page.locator("#run").click()
+    page.wait_for_function("() => /Pause|Pozastavit/.test(document.querySelector('#run').textContent)")
+    page.wait_for_function("() => /t = [1-9]/.test(document.querySelector('#tnow').textContent)", timeout=20000)
+    t1 = page.locator("#tnow").inner_text()
+    page.wait_for_timeout(1200)
+    assert page.locator("#tnow").inner_text() != t1                                  # čas simulace běží
+    assert page.locator("#read").inner_text().strip()
+    page.locator("#run").click()                                                    # pauza
+    page.locator("details:has(#tune) > summary").click()
+    g0 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)["gain"]
+    gain = page.locator("#tune input.num").first
+    gain.fill(f"{g0 * 1.5:.6g}")
+    gain.dispatch_event("change")
+    page.locator("#apply").click()
+    page.wait_for_function(
+        "async ([a]) => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/tuning', "
+        "{headers: {'X-PID-Token': '" + TOKEN + "'}}); const s = (await r.json()).sets.find((x) => x.n === 2); "
+        "return Math.abs(s.gain - a) < 1e-9 * Math.max(1, Math.abs(a)); }", arg=[float(f"{g0 * 1.5:.6g}")])
+    s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
+    assert s2["gain"] == pytest.approx(float(f"{g0 * 1.5:.6g}"))
+    page.locator('[data-tab="data"]').click()                                       # odpojení komponenty bez chyby
+    page.wait_for_selector('[data-testid="tab-data"]')
+
+
+def test_no_page_errors(page):
+    """Během všech předchozích scénářů nevznikla na stránce žádná výjimka JS."""
+    assert page.errors == []

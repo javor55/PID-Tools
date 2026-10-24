@@ -15,6 +15,7 @@ from ...app import scenario
 from ...app.plots import C_SUG, freq_figs, freq_table
 from ...app import loopmode as lm
 from ...app import tuning as tun
+from ...app.live import block_summary
 from ...app.loop import block_ctrl, rule_ctrl, set_ctrl
 from ...app.timefmt import auto_unit, dur
 from ...i18n import T, TEXTS
@@ -88,9 +89,8 @@ def render_block(ctx):
             ws.top.error(T("err_range"), icon=":material/error:")
     ctx.base_ctrl = block_ctrl(ctx, ctx.samp, ctx.diffgain, ctx.propfac, ctx.dfb, db_e, db_mode, ctx.mvl_lo, ctx.mvl_hi,
                                ctx.pvfilt, mvrate_e, sprate_e)
-    ctx.block_summary = T("blk_summary", s=f"{ctx.samp:g}", dg=f"{ctx.diffgain:g}", p=f"{ctx.propfac:g}",
-                          d="✓" if ctx.dfb else "✗", g=f"{ss.get('set1_gain', 1.0):.4g}",
-                          ti=f"{ss.get('set1_ti', 100.0):.4g}", td=f"{ss.get('set1_td', 0.0):.4g}")
+    ctx.block_summary = block_summary(ctx.samp, ctx.diffgain, ctx.propfac, ctx.dfb, ss.get("set1_gain", 1.0),
+                                      ss.get("set1_ti", 100.0), ss.get("set1_td", 0.0))
 
 
 def _reset_editor(sdf_key, edkey):

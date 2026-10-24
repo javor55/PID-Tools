@@ -41,7 +41,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ◐ |
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ◐ |
-| M18 | Živá simulace | C | M | M16 | ☐ |
+| M18 | Živá simulace | C | M | M16 | ☑ |
 | M19 | APC | C | L | M11, M16 | ☐ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☐ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☐ |
@@ -419,6 +419,17 @@ a Playwright.
 
 ### M18 · Živá simulace
 - `live_engine.js` a `live_ui.js` převedené do TS. Test shody s `core/simulation.py` zůstává.
+
+**Skutečnost M18:**
+- `live_engine.js` a `live_ui.js` se nepřepisují do TS: nové rozhraní je používá beze změny chování jako prohlížeč
+  záznamu (`LiveTab.tsx`, typy v `legacy.d.ts`); test shody s `core/simulation.py` (`test_live_js.py`) zůstává.
+- Konfigurace simulace je v aplikační vrstvě (`app.live.web_config`, ze stavu prostoru `web_config_ws`); Streamlit ji
+  volá také, takže obě rozhraní dostanou stejná data. Vzhled přesunut z Pythonu do `ui/static/live.css`.
+- API: `GET /workspaces/{id}/live` (409 bez dat a modelu, texty v jazyce požadavku). Zápis laděného zesílení
+  (trigger „apply“) jde přes existující `PUT /tuning/sets/2`.
+- Záložka bez panelu nastavení (komponenta si kreslí vlastní postranní sloupec); odpojení komponenty při odchodu.
+- Test v prohlížeči: start, běh času a odečet, změna zesílení a „zapsat do sady 2“ = API; test API: klíče, jazyk, 409.
+- Zbývá: stav simulace se drží v prohlížeči (`window.__pidLive`), do projektu se neukládá.
 
 ### M19 · APC (L)
 - Všechny dnešní techniky, včetně „vrátit na vypočtené“.

@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { binary, request } from "../api/client";
 import { unframe } from "../api/signals";
 import mountViewer from "../../../pidtools/ui/static/viewer.js";
-import "../../../pidtools/ui/static/viewer_an.js";
+import PIDViewAn from "../../../pidtools/ui/static/viewer_an.js";
 import "../../../pidtools/ui/static/viewer.css";
 import { useSettings, useWs } from "../data";
 import { useUi } from "../store";
@@ -14,6 +14,9 @@ import { useUi } from "../store";
 const OTHER = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#9333ea",
   "#ea580c", "#0f766e", "#b91c1c", "#4f46e5", "#a16207"];
 const DIST = ["#0d9488", "#8b5cf6", "#ca8a04", "#64748b"];
+
+// analýza je prostý skript (UMD): při sestavení se z něj stane modul, viewer.js ho čte z window.PIDViewAn
+(window as unknown as { PIDViewAn?: unknown }).PIDViewAn ??= PIDViewAn;
 
 declare global { interface Window { __pidViewData?: Record<string, { buf: ArrayBuffer; sigs: Record<string, unknown> }> } }
 
