@@ -1,17 +1,22 @@
 // Seznam technik APC (pořadí jako v desktopu). Nová technika = soubor s komponentou `Main` (případně `Side`) a řádek zde;
 // bez `Main` se zobrazí zástupný text (API ještě není).
+import { CascadeMain, CascadeSide } from "./Cascade";
+import { DecoupleMain, DecoupleSide } from "./Decouple";
 import { FeedforwardMain } from "./Feedforward";
+import { GainSchedMain, GainSchedSide } from "./GainSched";
+import { GainSchedErMain, GainSchedErSide } from "./GainSchedEr";
+import { OverrideMain, OverrideSide } from "./Override";
 import { SmithMain, SmithSide } from "./Smith";
 import type { Technique } from "./common";
 
 export const TECHNIQUES: Technique[] = [
-  { id: "cascade", label: "apc_cascade" },
+  { id: "cascade", label: "apc_cascade", intro: "cas_intro", Main: CascadeMain, Side: CascadeSide },
   { id: "ff", label: "apc_ff", intro: "apc_intro_ff", Main: FeedforwardMain },
-  { id: "decouple", label: "apc_decouple", intro: "apc_intro_decouple" },
-  { id: "override", label: "apc_override", intro: "apc_intro_override" },
+  { id: "decouple", label: "apc_decouple", intro: "apc_intro_decouple", Main: DecoupleMain, Side: DecoupleSide },
+  { id: "override", label: "apc_override", intro: "apc_intro_override", Main: OverrideMain, Side: OverrideSide },
   { id: "smith", label: "apc_smith", intro: "apc_intro_smith", Main: SmithMain, Side: SmithSide },
-  { id: "gainsched", label: "apc_gainsched", intro: "apc_intro_gainsched" },
-  { id: "gs_er", label: "gs_x_er" },
+  { id: "gainsched", label: "apc_gainsched", intro: "apc_intro_gainsched", Main: GainSchedMain, Side: GainSchedSide },
+  { id: "gs_er", label: "gs_x_er", intro: "gs_er_intro", Main: GainSchedErMain, Side: GainSchedErSide },
   { id: "split", label: "apc_split", intro: "apc_intro_split" },
   { id: "vpc", label: "apc_vpc", intro: "apc_intro_vpc" },
   { id: "ratio", label: "apc_ratio", intro: "apc_intro_ratio" },

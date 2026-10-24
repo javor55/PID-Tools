@@ -532,7 +532,31 @@ a Playwright.
   integrace) a simulace PID vs. Smith (ukazatele, PV, MV).
 - Test v prohlížeči: doporučení = API, zapnutí a úprava FF, reset, ukazatele simulace, hodnoty Smitha a jeho
   simulace = API, změna typu regulátoru a optimalizace jako úloha.
-- Zbývá: kaskáda, gain scheduling (PV, ER), rozvazbení, override, poměr, split range, VPC, RGA (API vzniká souběžně).
+- Společné díly (`apc/parts.tsx`): kontrolní seznam struktury (✓ / ⚠ / připomínka, akce „tab:…“ jako tlačítko), postup
+  pro PCS 7, tabulka bodů, simulace (KPI + binární křivky) a výběr druhé smyčky projektu, která se posílá jako `?loop=`
+  (výchozí první jiná smyčka); projekt s jedinou smyčkou ukáže vysvětlující text („Tato struktura potřebuje druhou
+  smyčku …“, API 409), smyčka bez modelu upozornění.
+- Kaskáda: zdroj modelu vnitřní smyčky (jiná smyčka / ručně / z dat), ladění vnitřní a vnější smyčky a tlačítka návratu
+  k původním hodnotám (`/apc/cascade/reset`) jsou klíče `cas_*`; model z dat je úloha (`/apc/cascade/fit`, signály
+  a rozsah vnitřní PV z lokálního stavu). V hlavní ploše modely, regulátory, odezva vnitřní smyčky, oddělení rychlostí
+  s varováním, hodnoty pro šablonu CascadeControl, postup, kontroly a simulace (PV vnější, vnitřní smyčka, ventil;
+  nestabilní simulace se ohlásí).
+- Gain scheduling podle PV: počet bodů, úseky dat (`gs_r*`, návrh tlačítkem), metoda, typ, τc a Ms jsou klíče `gs_*`;
+  identifikace bodů je úloha (`/apc/gainsched/fit`). Výsledky: shoda modelu, ladění v bodech, tabulka pro GainSched,
+  upozornění (zastaralé body, charakteristika, nelinearita), kontroly a ověření jedna sada vs. scheduling. Integrační
+  model (hladina) ukáže jen vysvětlení a kontroly (API `integ`).
+- Gain scheduling podle ER: práh, násobek, skok SP a porucha jsou klíče `gs_er_*` (reset přes API), největší bezpečný
+  násobek a Ms, tabulka pro GainSched, kontroly a simulace jedna sada / ER / řídicí pásmo ConZone (KPI, nejlepší šířka
+  pásma, vyzkoušené šířky, křivky PV, MV, Gain).
+- Rozvazbení a override: vstupy simulace (typ decouplerů, amplitudy SP; MIN / MAX, skok SP a mez) nejsou v nastavení
+  projektu, drží je lokální stav a posílají se v těle simulace. Rozvazbení: RGA λ₁₁ s doporučením, parametry decouplerů,
+  IAE bez / statické / dynamické a křivky; bez modelu vazby vysvětlení. Override: upozornění na různé MV, postup, kontroly,
+  extrém PV omezující smyčky s výběrem a bez něj, podíl času a přepnutí, křivky.
+- Testy v prohlížeči (`tests/test_frontend.py`): kaskáda = API (ruční model, reset, model z dat jako úloha), gain
+  scheduling na integračním modelu, po přechodu na P1D identifikace bodů (úloha), ladění v bodech, zastaralé úseky,
+  ER (vstupy, reset, KPI simulace), jediná smyčka u rozvazbení / override a projekt se druhou smyčkou (override MIN / MAX,
+  vlastní mez, rozvazbení bez vazby, kaskáda z jiné smyčky).
+- Zbývá: poměr, split range, VPC, RGA (API vzniká souběžně).
 
 ### M20 · Diagnostika a Přehled smyček
 

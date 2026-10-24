@@ -411,6 +411,7 @@ def test_decouple_without_cross_coupling_and_missing_model():
         c.put(f"{u}/loops/active", json={"index": 0})
         info = c.get(f"{u}/apc/decouple").json()
         assert not info["ok"] and info["lam"] is None and info["params"] == [] and info["checks"]
+        assert info["advice"] and info["b"] in info["advice"] and info["advice_key"] is None   # vysvětlení chybějící vazby
         assert c.post(f"{u}/apc/decouple/simulate", json={}).status_code == 409
         assert c.post(f"{u}/apc/decouple/simulate/curves", json={}).status_code == 409
         ov = c.get(f"{u}/apc/override").json()

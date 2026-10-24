@@ -679,7 +679,8 @@ def _dec_info(proj, bi, a, b):
                impl_text=_impl("decouple"),
                checks=_checks(guides.apc_decouple(a, b, proj.active, bi, dz["xab"], dz["xba"])))
     if dz["xab"] is None and dz["xba"] is None:
-        return DecInfo(ok=False, **out)
+        return DecInfo(ok=False, advice=T("dec_need_cross", a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]),
+                       **out)
     lam = dz["lam"]
     return DecInfo(ok=True, lam=_fin(lam), advice_key=rga_advice(lam), **out,
                    advice=T(rga_advice(lam), a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]),
