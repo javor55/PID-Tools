@@ -305,8 +305,31 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
     a vrací ho `GET apc/smith` (`opt_ready`); simulace s metodou OPT bez výsledku odpoví 409.
 - `tests/test_api_apc.py`: výchozí návrh FF = `ffm.design`, zápis a čtení, reset, vliv FF na simulaci ladění,
   simulace FF a Smith = přímá volání `app.apc.*`, hodnoty šablony, ruční metoda přes nastavení, optimalizace (úloha).
+- Split range, VPC, poměrová regulace a RGA (`pidtools/api/apc_more.py`, tag `apc`, výpočty beze změny z `app.apc.splitrange`,
+  `vpc`, `ratio`, `rgan`). Druhý akční člen (split range, VPC) a model vzduchu (poměr) zadává uživatel a desktop ani web
+  je do projektu neukládají (jen stav widgetů, v `STATE_PREFIX` nejsou), proto jsou vstupy tělem požadavku (parametry
+  modelu jako seznam stejného typu modelu jako smyčka, `p[1:] ≥ 0`); `GET` vrací výchozí hodnoty (= „Původní
+  hodnoty“ desktopu) a výsledky pro ně, jinde se nic nemění:
+  - `GET apc/split?mode&b0&gap` – výchozí vstupy (model ventilu A podle režimu a b₀), vyvážený bod b*, korekce Gainu,
+    zesílení a Ms dolní / horní poloviny rozsahu teď a s b*, `impl_text` pro šablonu a kontroly; `POST apc/split/design`
+    totéž pro zadané `{mode, b0, gap, valve_a}`; `POST apc/split/simulate` – IAE, max. odchylka PV a změny směru
+    (teď / nově); `apc/split/simulate/curves` – binárně (`sp`, `pv_now`, `pv_new` v inženýrských jednotkách,
+    `u_*`, `va`, `vb` v %);
+  - `GET apc/vpc` / `POST apc/vpc/design` `{mv2, sp, factor, d}` – PI regulátor VPC (Kc, Ti), náhradní model MV2 → MV1,
+    τc, doba odezvy hlavní smyčky, `impl_text`, kontroly; `POST apc/vpc/simulate` – IAE PV, čas MV1 v limitu a rezerva
+    (VPC vypnuto / zapnuto); `apc/vpc/simulate/curves` – binárně;
+  - `GET apc/ratio?air_loop` / `POST apc/ratio/design` `{air_loop | air, R, step}` – model vzduchu (výchozí, zadaný nebo
+    z jiné smyčky projektu podle indexu z `/loops`, i s její sadou 2), seznam zdrojů, `impl_text`, kontroly;
+    `POST apc/ratio/simulate` – nejmenší λ, čas s λ < 1 a IAE paliva (bez / s křížovým omezením);
+    `apc/ratio/simulate/curves` – binárně; neznámá smyčka nebo aktivní smyčka jako zdroj → 404, `air` spolu s `air_loop` → 422;
+  - `GET apc/rga` – ze smyček projektu s modelem (aktivní + ostatní, jako `RgaPanel`): jména, MV, matice K a `known`,
+    RGA, Niederlinského index, doporučené párování, doporučení (klíče textů `rgan_*`) a kontroly; s jedinou smyčkou
+    `ready = false` (desktop zobrazí „přidejte smyčku“).
+  - Všechny výpočty trvají pod ≈ 0,3 s na demu, proto bez úloh; bez dat / modelu 409.
+- `tests/test_api_apc_more.py`: výsledky a simulace split range, VPC a poměru = přímá volání `app.apc.*` se stejnými vstupy,
+  zadaný model druhého členu, chybové případy (422 / 404 / 409), RGA a poměr se zdrojem vzduchu na dvou smyčkách.
 
-**Zbývá – M11b:** ostatní techniky APC (kaskáda, rozvazbení, override, gain scheduling, poměr, split range, VPC)
+**Zbývá – M11b:** ostatní techniky APC (kaskáda, rozvazbení, override, gain scheduling)
 jako endpointy nad `app.apc.*`; každá má vlastní vstupy a výsledky.
 
 ---
