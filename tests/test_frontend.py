@@ -288,3 +288,16 @@ def test_tuning_scenario_compare_frequency(page, server):
     page.wait_for_selector('[data-testid="sug-values"]')
     page.wait_for_function("() => document.querySelectorAll('[data-testid=\"freq-table\"] tbody tr').length === 3",
                            timeout=20000)                                       # Set 1, Set 2, návrh
+
+
+def test_tuning_spread(page, server):
+    """Simulace na variantách z nejistoty modelu (nejistota spočtená v testu záložky Model): šedé průběhy v grafu PV."""
+    page.locator('[data-tab="tuning"]').click()
+    page.wait_for_selector('[data-testid="resp-pv"] path', timeout=20000)
+    n0 = page.locator('[data-testid="resp-pv"] path').count()
+    box = page.locator('[data-testid="sim-spread"]')
+    assert box.is_enabled()
+    box.click()
+    page.wait_for_function(f"() => document.querySelectorAll('[data-testid=\"resp-pv\"] path').length > {n0}",
+                           timeout=30000)
+    box.click()
