@@ -38,7 +38,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ◐ |
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ◐ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ◐ |
-| M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ◐ |
+| M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ☑ |
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ◐ |
 | M18 | Živá simulace | C | M | M16 | ☑ |
@@ -467,7 +467,11 @@ a Playwright.
 - Křížové ověření (úseky podle vstupů), nejistota (bootstrap, 5 % / 95 %), upozornění k modelům.
 - API: názvy parametrů a struktury poruch u výsledků, `/model/validation`.
 - Test v prohlížeči: zafixované θ = 30 s po dofitování, nejistota se 3 variantami.
-- **Zbývá:** porovnání struktur poruch (výběr jiné struktury z porovnání), grafy reziduí a ACF.
+- Porovnání struktur přenosu každé měřené poruchy (FIT jen jejích parametrů, zvolená a identifikovaná struktura) a výběr
+  jiné: `PUT /model/dist` nastaví `dsel|kód|j` a parametry z porovnání jako `choose_dist` na desktopu (bez dofitování,
+  to zůstává tlačítko Dofitovat). Návrat k identifikovaným hodnotám vrací i strukturu.
+- Karta reziduí: průběh reziduí v čase, sloupcové grafy ACF a CCF s mezemi ±bound (mimo mez červeně) a texty hodnocení
+  jako na desktopu. Test v prohlížeči: počty sloupců a bodů = API, FIT struktur = API, výběr jiné struktury.
 
 ### M16 · Ladění 1
 - Blok PIDConL (parametry, rozsahy, SampleTime), sady 1–3, metody a návrh, kontroly věrohodnosti.

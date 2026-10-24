@@ -1342,6 +1342,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/model/dist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Select Dist
+         * @description Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí
+         *     ed|kód|d{j}|i; model se použije hned (bez dofitování).
+         */
+        put: operations["select_dist_workspaces__wid__model_dist_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/model/refit": {
         parameters: {
             query?: never;
@@ -2046,12 +2067,45 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** DistCmp */
+        DistCmp: {
+            /** Error */
+            error?: string | null;
+            /** Fit */
+            fit?: number | null;
+            /** Struct */
+            struct: string;
+        };
         /** DistInfo */
         DistInfo: {
+            /**
+             * Cmp
+             * @default []
+             */
+            cmp: components["schemas"]["DistCmp"][];
             /** Fields */
             fields: unknown[][];
+            /**
+             * Flat
+             * @default false
+             */
+            flat: boolean;
+            /**
+             * Ident
+             * @default
+             */
+            ident: string;
             /** Name */
             name: string;
+            /** Struct */
+            struct: string;
+        };
+        /** DistSelect */
+        DistSelect: {
+            /** Code */
+            code: string;
+            /** Index */
+            index: number;
             /** Struct */
             struct: string;
         };
@@ -6187,6 +6241,44 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    select_dist_workspaces__wid__model_dist_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DistSelect"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelState"];
                 };
             };
             /** @description Validation Error */

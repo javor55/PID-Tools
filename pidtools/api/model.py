@@ -46,10 +46,19 @@ class Check(BaseModel):
     args: dict = {}
 
 
+class DistCmp(BaseModel):
+    struct: str                     # kandidátní struktura (P0D … I1D)
+    fit: float | None = None        # FIT fitu jen parametrů poruchy (None = fit selhal)
+    error: str | None = None
+
+
 class DistInfo(BaseModel):
     name: str                       # sloupec poruchy
-    struct: str                     # struktura přenosu (P0D … I1D)
-    fields: list[list]              # [[název parametru, index v ed|kód|d{j}|{index}]]
+    struct: str                     # zvolená struktura přenosu (dsel|kód|j; jinak identifikovaná)
+    ident: str = ""                 # identifikovaná struktura
+    fields: list[list]              # [[název parametru, index v ed|kód|d{j}|{index}]] zvolené struktury
+    cmp: list[DistCmp] = []         # porovnání struktur z identifikace
+    flat: bool = False              # porucha se v datech nemění → nulový účinek
 
 
 class ModelRes(BaseModel):
@@ -93,6 +102,12 @@ class Select(BaseModel):
     code: str
 
 
+class DistSelect(BaseModel):
+    code: str
+    index: int                      # pořadí měřené poruchy
+    struct: str
+
+
 class Refit(BaseModel):
     code: str
 
@@ -104,6 +119,15 @@ class Uncertainty(BaseModel):
 def _f(x):
     x = None if x is None else float(x)
     return None if x is None or not np.isfinite(x) else x
+
+
+def _dist_info(ws, c, r, j, nm):
+    """Porucha j výsledku r: zvolená a identifikovaná struktura, porovnání struktur s FIT."""
+    sel = wn.dsel(ws.get, c, r, j)
+    cmp_ = [DistCmp(struct=st_, fit=_f(f_), error=None if f_ is not None else str(pd_))
+            for st_, f_, pd_ in wn.cmp_of(r, j)]
+    return DistInfo(name=str(nm), struct=sel, ident=wn.dist_id(c, r, j), fields=[list(f) for f in DIST_FIELDS[sel]],
+                    cmp=cmp_, flat=j in set(r.get("dv_flat") or ()))
 
 
 def model_state(ws):
@@ -122,8 +146,7 @@ def model_state(ws):
         wf = ws.window_fits(c) if r.get("method") == "win" and ws.inputs_mode else []
         out.append(ModelRes(
             code=c, names=list(MODELS[c]["params"]),
-            dists=[DistInfo(name=str(nm), struct=s_, fields=[list(f) for f in DIST_FIELDS[s_]])
-                   for nm, s_ in zip(ws.c_d, wn.structs(c, r))],
+            dists=[_dist_info(ws, c, r, j, nm) for j, nm in enumerate(ws.c_d)],
             p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),
             method=r.get("method"), mixed=bool(r.get("mixed")), fit_cl_pv=_f(r.get("fit_cl_pv")),
@@ -244,6 +267,19 @@ def router(get_proj, jobs):
         if not ws.fit or body.code not in ws.fit["res"]:
             raise HTTPException(404, "model not found")
         ws.reset_edits(body.code)
+        return model_state(ws)
+
+    @r.put("/model/dist", response_model=ModelState)
+    def select_dist(wid: str, body: DistSelect):
+        """Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí
+        ed|kód|d{j}|i; model se použije hned (bez dofitování)."""
+        ws = need_data(wid)
+        r_ = ws.fit["res"].get(body.code) if ws.fit else None
+        if r_ is None or not 0 <= body.index < len(r_["pdl"]):
+            raise HTTPException(404, "model or disturbance not found")
+        if body.struct not in wn.dsel_options(body.code, r_, body.index)[0]:
+            raise HTTPException(422, "structure not in comparison")
+        ws.choose_dist(body.code, body.index, body.struct)
         return model_state(ws)
 
     @r.post("/model/refit", response_model=JobInfo)

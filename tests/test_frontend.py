@@ -112,6 +112,13 @@ def _api(server, path, page):
     return json.loads(urllib.request.urlopen(req, timeout=10).read())
 
 
+def _api_raw(server, path, page):
+    """GET na API s tokenem – surová data (binární balík signálů)."""
+    wid = page.evaluate("sessionStorage.getItem('pid.wid')")
+    req = urllib.request.Request(server + path.format(wid=wid), headers={"X-PID-Token": TOKEN})
+    return urllib.request.urlopen(req, timeout=30).read()
+
+
 def _api_post(server, path, body, page):
     import json
     wid = page.evaluate("sessionStorage.getItem('pid.wid')")
@@ -232,6 +239,49 @@ def test_model_edit_refit_validation_uncertainty(page, server):
     wait_jobs()
     page.wait_for_selector('[data-testid="unc-table"] tbody tr')
     assert page.locator('[data-testid="unc-table"] tbody tr').count() == 3
+
+
+def test_model_residuals_and_dist_structs(page, server):
+    """Model 2: rezidua (průběh, ACF, CCF) = API, porovnání struktur poruchy = API, výběr jiné struktury."""
+    _track(page)
+    page.locator('[data-tab="model"]').click()
+    page.wait_for_selector('[data-testid="residuals"] [data-testid="acf-chart"]', timeout=30000)
+    v = _api(server, "/workspaces/{wid}/model/validation", page)["metrics"]
+    for key in ("acf", "ccf"):
+        page.wait_for_function(f"() => document.querySelectorAll('[data-testid=\"{key}-chart\"] rect').length === {len(v[key])}")
+        assert page.locator(f'[data-testid="{key}-chart"] line.bound').count() == 2
+        assert abs(float(page.locator(f'[data-testid="{key}-chart"]').get_attribute("data-bound")) - v["bound"]) < 1e-9
+        bad = sum(abs(x) > v["bound"] for x in v[key])
+        assert page.locator(f'[data-testid="{key}-chart"] rect[data-bad="1"]').count() == bad
+    import numpy as np
+    from pidtools.app import signalpack
+    meta, sig = signalpack.unframe(_api_raw(server, "/workspaces/{wid}/model/curves", page))
+    n_res = int(np.isfinite(sig["residual"][1]).sum())
+    page.wait_for_selector('[data-testid="resid-chart"] path')
+    assert int(page.locator('[data-testid="resid-chart"]').get_attribute("data-n")) == n_res > 0
+    assert page.locator('[data-testid="resid-verdict"]').inner_text().strip()
+    # porovnání struktur poruchy
+    m = _api(server, "/workspaces/{wid}/model", page)
+    code = m["selected"]
+    d = next(r for r in m["results"] if r["code"] == code)["dists"][0]
+    assert len(d["cmp"]) == 5
+    page.wait_for_selector('[data-testid="dist-cmp-0"]')
+    for c in d["cmp"]:
+        if c["fit"] is not None:
+            _wait_cell(page, f'[data-testid="dist-fit-0-{c["struct"]}"]', c["fit"], rel=1e-3)
+    assert page.locator('[data-testid="dist-cmp-0"] tr[data-current="1"]').get_attribute("data-struct") == d["struct"]
+    other = next(c["struct"] for c in d["cmp"] if c["fit"] is not None and c["struct"] != d["struct"])
+    page.locator(f'[data-testid="dist-use-0-{other}"]').click()
+    _until(lambda: next(r for r in _api(server, "/workspaces/{wid}/model", page)["results"]
+                        if r["code"] == code)["dists"][0]["struct"] == other)
+    page.wait_for_selector(f'[data-testid="dist-cmp-0"] tr[data-struct="{other}"][data-current="1"]')
+    assert _api(server, "/workspaces/{wid}/settings", page)[f"dsel|{code}|0"] == other
+    # zpět na identifikovanou strukturu (sdílený stav testů: demo + identifikovaný model)
+    page.locator('[data-testid="reset"]').click()
+    _until(lambda: next(r for r in _api(server, "/workspaces/{wid}/model", page)["results"]
+                        if r["code"] == code)["dists"][0]["struct"] == d["ident"])
+    page.wait_for_selector(f'[data-testid="dist-cmp-0"] tr[data-struct="{d["ident"]}"][data-current="1"]')
+    _quiet(page)
 
 
 def test_tuning_tab(page, server):

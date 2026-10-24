@@ -8,6 +8,7 @@ import { useSettings, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
+import { ModelResiduals } from "./ModelResiduals";
 
 type ModelState = components["schemas"]["ModelState"];
 type ModelRes = components["schemas"]["ModelRes"];
@@ -34,6 +35,33 @@ function ParamRow({ label, edKey, fxKey, value }: { label: string; edKey: string
       <td><input type="checkbox" checked={!!st[fxKey]} aria-label={`fix ${label}`} data-testid={`fx-${fxKey}`}
         onChange={(e) => void patch({ [fxKey]: e.target.checked })} /></td>
     </tr>
+  );
+}
+
+// Porovnání struktur přenosu měřené poruchy (FIT jen jejích parametrů) a výběr jiné struktury
+function DistCompare({ code, j, d }: { code: string; j: number; d: ModelRes["dists"][number] }) {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const qc = useQueryClient();
+  const use = async (struct: string) => {
+    await request("PUT", `/workspaces/${wid}/model/dist`, { code, index: j, struct });
+    await qc.invalidateQueries({ queryKey: ["ws", wid] });
+  };
+  return (
+    <div data-testid={`dist-cmp-${j}`}>
+      <div className="small">{T("dkind")} · {d.name}</div>
+      {d.flat && <div className="muted small">{T("ms_dv_flat")}</div>}
+      <table className="tbl"><thead><tr><th>{T("ms_cmp_type")}</th><th>FIT [%]</th><th /><th /></tr></thead><tbody>
+        {d.cmp.map((c) => (
+          <tr key={c.struct} data-struct={c.struct} data-current={c.struct === d.struct ? 1 : 0}>
+            <td>{T("model_" + c.struct)}{c.struct === d.ident ? ` · ${T("ms_dist_ident")}` : ""}</td>
+            <td className="mono" data-testid={`dist-fit-${j}-${c.struct}`}>{c.fit == null ? "–" : c.fit.toFixed(1)}</td>
+            <td>{c.struct === d.struct ? `✓ ${T("ms_cmp_use")}` : ""}</td>
+            <td>{c.fit != null && c.struct !== d.struct && (
+              <button className="btn" data-testid={`dist-use-${j}-${c.struct}`} onClick={() => void use(c.struct)}>{T("ui_dist_use")}</button>)}</td>
+          </tr>))}
+      </tbody></table>
+    </div>
   );
 }
 
@@ -73,6 +101,13 @@ export function ModelDetails({ model }: { model: ModelState }) {
           <button className="btn" data-testid="reset" onClick={() => void reset()}>{T("dk_reset")}</button>
         </div>
       </div>
+      {r.dists.some((d) => d.cmp.length > 0) && (
+        <div className="card" data-testid="dist-cmp">
+          <h3>{T("ms_cmp")} · {T("dkind")}</h3>
+          {r.dists.map((d, j) => d.cmp.length > 0 && <DistCompare key={j} code={code} j={j} d={d} />)}
+          <div className="muted small">{T("ms_cmp_dv_note")}</div>
+        </div>
+      )}
       <div className="card" data-testid="validation">
         <h3>{T("val_title")}</h3>
         {m ? (
@@ -113,6 +148,7 @@ export function ModelDetails({ model }: { model: ModelState }) {
           </tbody></table>
         )}
       </div>
+      <ModelResiduals model={model} />
       {model.warnings.length > 0 && (
         <div className="card">{model.warnings.map(([k, c]) => <div key={k + c} className="warn small">⚠ {T(k, { m: T("model_" + c) })}</div>)}</div>
       )}

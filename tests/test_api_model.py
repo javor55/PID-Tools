@@ -13,6 +13,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from pidtools.api import create_app  # noqa: E402
 from pidtools.app import signalpack  # noqa: E402
+from pidtools.app import windows as wn  # noqa: E402
+from pidtools.core import DIST_FIELDS  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "tools"))
@@ -120,3 +122,29 @@ def test_errors(client):
     assert client.get(f"/workspaces/{wid}/model").json()["has_fit"] is False
     assert client.get(f"/workspaces/{wid}/model/curves").status_code == 409
     assert client.put(f"/workspaces/{wid}/model/select", json={"code": "P1D"}).status_code == 404
+
+
+def test_dist_struct_compare_and_select(client):
+    """Porovnání struktur poruchy (FIT) a výběr jiné struktury = přímá volání aplikační vrstvy (choose_dist)."""
+    wid = _ws(client)
+    client.post(f"/workspaces/{wid}/data/demo")
+    client.patch(f"/workspaces/{wid}/settings", json={"chosen": ["I1D"]})
+    _wait(client, client.post(f"/workspaces/{wid}/identify").json())
+    ws = client.app.state.workspace(wid)
+    _, res = _models(client, wid)
+    d = res["I1D"]["dists"][0]
+    ref = ws.fit["res"]["I1D"]["dv_cmp"][0]
+    assert [c["struct"] for c in d["cmp"]] == [c[0] for c in ref] == ["P0D", "P1D", "P2D", "I0D", "I1D"]
+    assert [c["fit"] for c in d["cmp"]] == pytest.approx([c[1] for c in ref])
+    assert d["struct"] == d["ident"] == wn.dist_id("I1D", ws.fit["res"]["I1D"], 0)
+    other = next(c["struct"] for c in d["cmp"] if c["fit"] is not None and c["struct"] != d["ident"])
+    url = f"/workspaces/{wid}/model/dist"
+    assert client.put(url, json={"code": "I1D", "index": 0, "struct": "XX"}).status_code == 422
+    assert client.put(url, json={"code": "I1D", "index": 3, "struct": other}).status_code == 404
+    m2 = client.put(url, json={"code": "I1D", "index": 0, "struct": other}).json()
+    d2 = {r["code"]: r for r in m2["results"]}["I1D"]["dists"][0]
+    assert d2["struct"] == other and d2["ident"] == d["ident"] and d2["fields"] == [list(f) for f in DIST_FIELDS[other]]
+    assert ws.get("dsel|I1D|0") == other                      # jako ws.choose_dist v desktopu
+    assert m2["current"]["pdl"] == [list(map(float, x)) for x in ws.model[2]]
+    back = client.post(f"/workspaces/{wid}/model/reset", json={"code": "I1D"}).json()
+    assert {r["code"]: r for r in back["results"]}["I1D"]["dists"][0]["struct"] == d["ident"]

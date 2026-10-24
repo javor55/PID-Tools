@@ -842,8 +842,51 @@
     "title": "Diagnostics",
     "type": "object"
    },
+   "DistCmp": {
+    "properties": {
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "fit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit"
+     },
+     "struct": {
+      "title": "Struct",
+      "type": "string"
+     }
+    },
+    "required": [
+     "struct"
+    ],
+    "title": "DistCmp",
+    "type": "object"
+   },
    "DistInfo": {
     "properties": {
+     "cmp": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/DistCmp"
+      },
+      "title": "Cmp",
+      "type": "array"
+     },
      "fields": {
       "items": {
        "items": {},
@@ -851,6 +894,16 @@
       },
       "title": "Fields",
       "type": "array"
+     },
+     "flat": {
+      "default": false,
+      "title": "Flat",
+      "type": "boolean"
+     },
+     "ident": {
+      "default": "",
+      "title": "Ident",
+      "type": "string"
      },
      "name": {
       "title": "Name",
@@ -867,6 +920,29 @@
      "fields"
     ],
     "title": "DistInfo",
+    "type": "object"
+   },
+   "DistSelect": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "struct": {
+      "title": "Struct",
+      "type": "string"
+     }
+    },
+    "required": [
+     "code",
+     "index",
+     "struct"
+    ],
+    "title": "DistSelect",
     "type": "object"
    },
    "FFDefaults": {
@@ -11050,6 +11126,91 @@
      }
     },
     "summary": "Curves",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/workspaces/{wid}/model/dist": {
+   "put": {
+    "description": "Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí\ned|kód|d{j}|i; model se použije hned (bez dofitování).",
+    "operationId": "select_dist_workspaces__wid__model_dist_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DistSelect"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Select Dist",
     "tags": [
      "model"
     ]

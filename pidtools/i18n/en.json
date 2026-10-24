@@ -2067,5 +2067,6 @@
  "ui_sc_add": "Add event",
  "ui_cas_outer": "Outer loop",
  "ui_cas_values": "Values for the CascadeControl template",
- "ui_gs_fit_pct": "Fit [%]"
+ "ui_gs_fit_pct": "Fit [%]",
+ "ui_dist_use": "Use"
 }
