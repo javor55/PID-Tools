@@ -1180,7 +1180,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get Layout
+         * @description Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.
+         */
+        get: operations["get_layout_workspaces__wid__layout_get"];
         /** Set Layout */
         put: operations["set_layout_workspaces__wid__layout_put"];
         post?: never;
@@ -2494,6 +2498,83 @@ export interface components {
             time_fmt?: string | null;
             /** Unit */
             unit?: string | null;
+        };
+        /**
+         * LayoutInfo
+         * @description Aktuální čtení tabulky: rozložení a sloupce (odhad, pokud nejsou zadané), sloupce tabulky a možnosti výběru.
+         */
+        LayoutInfo: {
+            /** C Tag */
+            c_tag?: string | null;
+            /** C Time */
+            c_time?: string | null;
+            /** C Val */
+            c_val?: string | null;
+            /**
+             * Default Layout
+             * @default wide
+             * @enum {string}
+             */
+            default_layout: "wide" | "long" | "pairs";
+            /**
+             * Layout
+             * @default wide
+             * @enum {string}
+             */
+            layout: "wide" | "long" | "pairs";
+            /**
+             * Row Dt
+             * @default 1
+             */
+            row_dt: number;
+            /**
+             * Rows Mark
+             * @default #row
+             */
+            rows_mark: string;
+            /**
+             * Table Columns
+             * @default []
+             */
+            table_columns: string[];
+            /**
+             * Time Columns
+             * @default []
+             */
+            time_columns: string[];
+            /** Time Fmt */
+            time_fmt?: string | null;
+            /**
+             * Time Formats
+             * @default [
+             *       "auto",
+             *       "num",
+             *       "iso",
+             *       "cz",
+             *       "us",
+             *       "eu",
+             *       "mon",
+             *       "clock"
+             *     ]
+             */
+            time_formats: string[];
+            /**
+             * Time Note
+             * @default
+             */
+            time_note: string;
+            /** Unit */
+            unit?: string | null;
+            /**
+             * Units
+             * @default [
+             *       "s",
+             *       "ms",
+             *       "min",
+             *       "h"
+             *     ]
+             */
+            units: string[];
         };
         /** Loop */
         Loop: {
@@ -5832,6 +5913,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_layout_workspaces__wid__layout_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayoutInfo"];
                 };
             };
             /** @description Validation Error */

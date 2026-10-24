@@ -74,3 +74,24 @@ input.num { width: 110px; border: 1px solid var(--pid-ctl); background: var(--pi
 .chart figcaption i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; }
 .apc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .reco { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.field input[type="text"], .field input[type="datetime-local"], .field input[type="password"], .field textarea {
+  width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); color: inherit; border-radius: var(--pid-radius);
+  padding: 3px 6px; font: inherit; }
+.field.wide { grid-template-columns: 1fr; gap: 2px; }
+details.sec { border: 1px solid var(--pid-line); border-radius: var(--pid-radius); padding: 6px 8px; }
+details.sec > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+details.sec[open] > summary { margin-bottom: 6px; }
+details.sec > .stack { gap: 6px; }
+.report-frame { width: 100%; height: calc(100vh - 190px); min-height: 480px; border: 1px solid var(--pid-line);
+  border-radius: var(--pid-radius); background: #fff; }
+dialog.opc { width: min(960px, 94vw); max-height: 90vh; padding: 14px; border: 1px solid var(--pid-line);
+  border-radius: var(--pid-radius); background: var(--pid-card); color: var(--pid-text); }
+dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
+.opc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--pid-gap); }
+.opc-list { border: 1px solid var(--pid-line); border-radius: var(--pid-radius); height: 260px; overflow: auto; padding: 4px;
+  margin: 0; list-style: none; font-size: 12px; }
+.opc-list li { display: flex; gap: 6px; align-items: center; padding: 1px 2px; }
+.opc-list li.sub { padding-left: 16px; }
+.opc-list button.link { border: 0; background: transparent; cursor: pointer; padding: 0; text-align: left; color: inherit; }
+.opc-list button.link:hover { color: var(--pid-accent); }
+@media (max-width: 700px) { .opc-cols { grid-template-columns: 1fr; } }

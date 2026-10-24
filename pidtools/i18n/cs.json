@@ -2067,5 +2067,15 @@
  "ui_sc_add": "Přidat událost",
  "ui_cas_outer": "Vnější smyčka",
  "ui_cas_values": "Hodnoty do šablony CascadeControl",
- "ui_gs_fit_pct": "Shoda [%]"
+ "ui_gs_fit_pct": "Shoda [%]",
+ "ui_range_lo": "{v}: dolní mez",
+ "ui_range_hi": "{v}: horní mez",
+ "ui_opc_from": "Od",
+ "ui_opc_to": "Do",
+ "ui_close": "Zavřít",
+ "ui_proj_opened": "Projekt načten.",
+ "ui_proj_meta": "Údaje o projektu",
+ "ui_opc_none": "Nic nenalezeno.",
+ "ui_opc_role": "Role",
+ "ui_opc_n_sel": "Vybráno: {n}"
 }

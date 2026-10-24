@@ -2142,6 +2142,149 @@
     "title": "Layout",
     "type": "object"
    },
+   "LayoutInfo": {
+    "description": "Aktuální čtení tabulky: rozložení a sloupce (odhad, pokud nejsou zadané), sloupce tabulky a možnosti výběru.",
+    "properties": {
+     "c_tag": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Tag"
+     },
+     "c_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Time"
+     },
+     "c_val": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Val"
+     },
+     "default_layout": {
+      "default": "wide",
+      "enum": [
+       "wide",
+       "long",
+       "pairs"
+      ],
+      "title": "Default Layout",
+      "type": "string"
+     },
+     "layout": {
+      "default": "wide",
+      "enum": [
+       "wide",
+       "long",
+       "pairs"
+      ],
+      "title": "Layout",
+      "type": "string"
+     },
+     "row_dt": {
+      "default": 1.0,
+      "title": "Row Dt",
+      "type": "number"
+     },
+     "rows_mark": {
+      "default": "#row",
+      "title": "Rows Mark",
+      "type": "string"
+     },
+     "table_columns": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Table Columns",
+      "type": "array"
+     },
+     "time_columns": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Time Columns",
+      "type": "array"
+     },
+     "time_fmt": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Time Fmt"
+     },
+     "time_formats": {
+      "default": [
+       "auto",
+       "num",
+       "iso",
+       "cz",
+       "us",
+       "eu",
+       "mon",
+       "clock"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "title": "Time Formats",
+      "type": "array"
+     },
+     "time_note": {
+      "default": "",
+      "title": "Time Note",
+      "type": "string"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     },
+     "units": {
+      "default": [
+       "s",
+       "ms",
+       "min",
+       "h"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "title": "Units",
+      "type": "array"
+     }
+    },
+    "title": "LayoutInfo",
+    "type": "object"
+   },
    "Loop": {
     "properties": {
      "has_model": {
@@ -10276,6 +10419,79 @@
    }
   },
   "/workspaces/{wid}/layout": {
+   "get": {
+    "description": "Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.",
+    "operationId": "get_layout_workspaces__wid__layout_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LayoutInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Layout",
+    "tags": [
+     "data"
+    ]
+   },
    "put": {
     "operationId": "set_layout_workspaces__wid__layout_put",
     "parameters": [

@@ -2067,5 +2067,15 @@
  "ui_sc_add": "Add event",
  "ui_cas_outer": "Outer loop",
  "ui_cas_values": "Values for the CascadeControl template",
- "ui_gs_fit_pct": "Fit [%]"
+ "ui_gs_fit_pct": "Fit [%]",
+ "ui_range_lo": "{v}: lower limit",
+ "ui_range_hi": "{v}: upper limit",
+ "ui_opc_from": "From",
+ "ui_opc_to": "To",
+ "ui_close": "Close",
+ "ui_proj_opened": "Project opened.",
+ "ui_proj_meta": "Project details",
+ "ui_opc_none": "Nothing found.",
+ "ui_opc_role": "Role",
+ "ui_opc_n_sel": "Selected: {n}"
 }
