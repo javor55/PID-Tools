@@ -204,6 +204,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/apc/ff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ff Get
+         * @description Dopředná vazba po měřených poruchách: nastavení, návrh podle modelu, hodnoty pro PIDConL.
+         */
+        get: operations["ff_get_workspaces__wid__apc_ff_get"];
+        /**
+         * Ff Put
+         * @description Nastavení poruch po pořadí (částečné; null = beze změny) → ws.ff_state, čte ho i ladění.
+         */
+        put: operations["ff_put_workspaces__wid__apc_ff_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/ff/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ff Reset
+         * @description Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou).
+         */
+        post: operations["ff_reset_workspaces__wid__apc_ff_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/ff/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ff Simulate
+         * @description Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV.
+         */
+        post: operations["ff_simulate_workspaces__wid__apc_ff_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/ff/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ff Curves */
+        post: operations["ff_curves_workspaces__wid__apc_ff_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/apc/recommend": {
         parameters: {
             query?: never;
@@ -218,6 +299,83 @@ export interface paths {
         get: operations["recommend_workspaces__wid__apc_recommend_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/smith": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Smith Get
+         * @description Smithův prediktor: vstupy (z nastavení), regulátor, pracovní bod, hodnoty pro šablonu.
+         */
+        get: operations["smith_get_workspaces__wid__apc_smith_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/smith/optimize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Smith Optimize
+         * @description Robustní optimalizace regulátoru prediktoru (úloha); výsledek se uloží, dále GET /apc/smith.
+         */
+        post: operations["smith_optimize_workspaces__wid__apc_smith_optimize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/smith/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Smith Simulate
+         * @description Skok SP a porucha na vstupu: PID (sada 2) vs. Smith na procesu s chybou modelu (ek, et, eth [%]).
+         */
+        post: operations["smith_simulate_workspaces__wid__apc_smith_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/smith/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Smith Curves */
+        post: operations["smith_curves_workspaces__wid__apc_smith_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1003,6 +1161,116 @@ export interface components {
             /** Struct */
             struct: string;
         };
+        /** FFDefaults */
+        FFDefaults: {
+            /** Delay */
+            delay: number;
+            /** Gain */
+            gain: number;
+            /** Lag */
+            lag: number;
+            /** Lead */
+            lead: number;
+        };
+        /** FFDesign */
+        FFDesign: {
+            /** Delay */
+            delay: number;
+            /** Dyn */
+            dyn: boolean;
+            /** Gain */
+            gain: number;
+            /** Lag */
+            lag: number;
+            /** Lead */
+            lead: number;
+            /** Use */
+            use: boolean;
+        };
+        /**
+         * FFDesignIn
+         * @description Částečná změna jedné poruchy; chybějící hodnoty zůstanou.
+         */
+        FFDesignIn: {
+            /** Delay */
+            delay?: number | null;
+            /** Dyn */
+            dyn?: boolean | null;
+            /** Gain */
+            gain?: number | null;
+            /** Lag */
+            lag?: number | null;
+            /** Lead */
+            lead?: number | null;
+            /** Use */
+            use?: boolean | null;
+        };
+        /** FFDist */
+        FFDist: {
+            defaults: components["schemas"]["FFDefaults"];
+            design: components["schemas"]["FFDesign"];
+            /** Edited */
+            edited: boolean;
+            /** Eng Gain */
+            eng_gain: number;
+            /** Index */
+            index: number;
+            /** Name */
+            name: string;
+            /** Step */
+            step: number;
+            /**
+             * Values
+             * @default []
+             */
+            values: components["schemas"]["ValueRow"][];
+        };
+        /** FFInfo */
+        FFInfo: {
+            /** Dists */
+            dists: components["schemas"]["FFDist"][];
+            /** Model */
+            model: string;
+            /** Mv Range */
+            mv_range: number;
+            /** Mv Unit */
+            mv_unit: string;
+        };
+        /** FFKpi */
+        FFKpi: {
+            /** Iae */
+            iae: number;
+            /** Maxdev */
+            maxdev: number;
+        };
+        /** FFReset */
+        FFReset: {
+            /** Index */
+            index?: number | null;
+        };
+        /** FFSim */
+        FFSim: {
+            /** T End */
+            T_end: number;
+            /** Dist */
+            dist: number;
+            /** Kpis */
+            kpis: {
+                [key: string]: components["schemas"]["FFKpi"];
+            };
+            /** Step */
+            step: number;
+        };
+        /** FFSimReq */
+        FFSimReq: {
+            /**
+             * Dist
+             * @default 0
+             */
+            dist: number;
+            /** Step */
+            step?: number | null;
+        };
         /** Find */
         Find: {
             /** Node Id */
@@ -1049,6 +1317,15 @@ export interface components {
             w180?: number | null;
             /** Wc */
             wc?: number | null;
+        };
+        /** GeneralRow */
+        GeneralRow: {
+            /** Key */
+            key: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1477,6 +1754,112 @@ export interface components {
              */
             spread: boolean;
         };
+        /** SmithController */
+        SmithController: {
+            /** Kc */
+            Kc: number;
+            /**
+             * Td
+             * @default 0
+             */
+            Td: number;
+            /** Ti */
+            Ti: number;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: components["schemas"]["Note"][];
+        };
+        /** SmithIae */
+        SmithIae: {
+            /** Iae Load */
+            iae_load: number;
+            /** Iae Sp */
+            iae_sp: number;
+        };
+        /** SmithInfo */
+        SmithInfo: {
+            /** Basis Text */
+            basis_text?: string | null;
+            controller?: components["schemas"]["SmithController"] | null;
+            /** General Rows */
+            general_rows?: components["schemas"]["GeneralRow"][] | null;
+            /** Impl Text */
+            impl_text?: string | null;
+            inputs: components["schemas"]["SmithInputs"];
+            /** Integ */
+            integ: boolean;
+            /** Model */
+            model: string;
+            /** Mv Op */
+            mv_op?: number | null;
+            /** Opt Ready */
+            opt_ready: boolean;
+            /** Pv Op */
+            pv_op?: number | null;
+            /** Ratio */
+            ratio: number;
+            /** Rows */
+            rows?: components["schemas"]["SmithRow"][] | null;
+            /** Values */
+            values?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** SmithInputs */
+        SmithInputs: {
+            /** Ctype */
+            ctype: string;
+            /** Ek */
+            ek: number;
+            /** Et */
+            et: number;
+            /** Eth */
+            eth: number;
+            /** Manual */
+            manual: number[];
+            /** Method */
+            method: string;
+            /** Methods */
+            methods: string[];
+            /** Tc */
+            tc: number;
+            /** Tc Default */
+            tc_default: number;
+            /** Tc Key */
+            tc_key: string;
+        };
+        /** SmithRow */
+        SmithRow: {
+            /** Block */
+            block: string;
+            /** Input */
+            input: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: number;
+        };
+        /** SmithSim */
+        SmithSim: {
+            /** T End */
+            T_end: number;
+            controller: components["schemas"]["SmithController"];
+            /** Kpis */
+            kpis: {
+                [key: string]: components["schemas"]["SmithIae"];
+            };
+        };
+        /** SmithSimReq */
+        SmithSimReq: {
+            /** Ek */
+            ek?: number | null;
+            /** Et */
+            et?: number | null;
+            /** Eth */
+            eth?: number | null;
+        };
         /** SuggestReq */
         SuggestReq: {
             /** Method */
@@ -1561,6 +1944,15 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** ValueRow */
+        ValueRow: {
+            /** Param */
+            param: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: number;
         };
         /** Windows */
         Windows: {
@@ -2092,6 +2484,192 @@ export interface operations {
             };
         };
     };
+    ff_get_workspaces__wid__apc_ff_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FFInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ff_put_workspaces__wid__apc_ff_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": (components["schemas"]["FFDesignIn"] | null)[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FFInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ff_reset_workspaces__wid__apc_ff_reset_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FFReset"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FFInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ff_simulate_workspaces__wid__apc_ff_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FFSimReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FFSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ff_curves_workspaces__wid__apc_ff_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FFSimReq"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: pv_none, mv_none, pv_static, mv_static, pv_dynamic, mv_dynamic in engineering units */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     recommend_workspaces__wid__apc_recommend_get: {
         parameters: {
             query?: never;
@@ -2113,6 +2691,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Recommendation"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    smith_get_workspaces__wid__apc_smith_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmithInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    smith_optimize_workspaces__wid__apc_smith_optimize_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    smith_simulate_workspaces__wid__apc_smith_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmithSimReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmithSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    smith_curves_workspaces__wid__apc_smith_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmithSimReq"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: sp, pv_pid, mv_pid, pv_smith, mv_smith in engineering units */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
                 };
             };
             /** @description Validation Error */
