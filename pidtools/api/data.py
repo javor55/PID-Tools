@@ -10,7 +10,8 @@ from pydantic import BaseModel
 
 from ..app import project as prj
 from ..app import signalpack
-from ..app.dataio import read_table
+from ..app.dataio import ROWS, TIME_FORMATS, read_table
+from ..app.dataset import UNITS, guess_col
 
 MAX_UPLOAD = 200 * 2 ** 20          # největší nahraný soubor [B]
 
@@ -42,6 +43,18 @@ class Layout(BaseModel):
     c_tag: str | None = None
     c_val: str | None = None
     row_dt: float | None = None
+
+
+class LayoutInfo(Layout):
+    """Aktuální čtení tabulky: rozložení a sloupce (odhad, pokud nejsou zadané), sloupce tabulky a možnosti výběru."""
+    default_layout: Literal["wide", "long", "pairs"] = "wide"
+    table_columns: list[str] = []
+    time_columns: list[str] = []
+    time_note: str = ""
+    row_dt: float = 1.0
+    rows_mark: str = ROWS
+    time_formats: list[str] = list(TIME_FORMATS)
+    units: list[str] = list(UNITS)
 
 
 class Columns(BaseModel):
@@ -102,6 +115,22 @@ def info(wid, ws):
         origin=str(sig.origin) if sig is not None and sig.origin is not None else None)
 
 
+def layout_info(ws):
+    """Rozložení tabulky jako ho ukazuje desktop: sloupce času / tagu / hodnoty doplněné odhadem."""
+    from ..app.dataio import time_columns
+    from ..app.dataset import default_layout
+    cols = [str(c) for c in ws.df.columns]
+    src = [str(c) for c in ws.sig.time_src]
+    c_tag, c_val = ws.c_tag, ws.c_val
+    if ws.layout == "long":
+        c_tag = c_tag or cols[guess_col(cols, ["tag", "name", "název", "variable"])]
+        c_val = c_val or cols[guess_col(cols, ["value", "hodnota", "val"], 2)]
+    return LayoutInfo(
+        layout=ws.layout, time_fmt=ws.time_fmt, unit=ws.unit, c_time=src[0] if ws.layout in ("wide", "long") and src else None,
+        c_tag=c_tag, c_val=c_val, row_dt=float(ws.row_dt), default_layout=default_layout(ws.df), table_columns=cols,
+        time_columns=[str(c) for c in time_columns(ws.df)], time_note=ws.sig.time_note)
+
+
 def _plain(x):
     """Výsledek výpočtu → JSON (numpy → Python, NaN / ∞ → None)."""
     if isinstance(x, dict):
@@ -156,12 +185,20 @@ def router(get_proj):
             _err(ex)
         return info(wid, p.state)
 
+    @r.get("/layout", response_model=LayoutInfo)
+    def get_layout(wid: str):
+        """Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat."""
+        return layout_info(need_data(wid))
+
     @r.put("/layout", response_model=WorkspaceInfo)
     def set_layout(wid: str, body: Layout):
         ws = need_data(wid)
+        keep, settings = dict(ws.__dict__), dict(ws.settings)
         try:
             ws.set_layout(**body.model_dump())
         except (ValueError, KeyError, IndexError) as ex:
+            ws.__dict__.update(keep)               # nečitelné rozložení nechá předchozí čtení beze změny
+            ws.settings = settings
             _err(ex)
         return info(wid, ws)
 

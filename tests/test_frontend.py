@@ -876,6 +876,165 @@ def test_apc_override_decouple_second_loop(page, server):
     _quiet(page)
 
 
+def _api_raw(server, path, page):
+    """GET na API – surové bajty odpovědi (soubor projektu)."""
+    wid = page.evaluate("sessionStorage.getItem('pid.wid')")
+    req = urllib.request.Request(server + path.format(wid=wid), headers={"X-PID-Token": TOKEN})
+    return urllib.request.urlopen(req, timeout=60).read()
+
+
+def _open_project(page, raw, name="projekt.json"):
+    """Otevře projekt (soubor) v záložce Projekt a počká na potvrzení."""
+    page.locator('[data-tab="project"]').click()
+    page.set_input_files('[data-testid="proj-open"]', files=[{"name": name, "mimeType": "application/json", "buffer": raw}])
+    page.wait_for_selector('[data-testid="proj-msg"].ok', timeout=60000)
+
+
+def test_project_save_open_report(page, server):
+    """Projekt (M21): uložení = GET /project, otevření téhož souboru nic nezmění; report: náhled v iframe a stažení."""
+    _track(page)
+    base = "/workspaces/{wid}"
+    loops = _api(server, base + "/loops", page)
+    if not loops["loops"][loops["active"]]["has_model"]:
+        i = next(i for i, lp in enumerate(loops["loops"]) if lp["has_model"])
+        _api_send(server, "PUT", base + "/loops/active", {"index": i}, page)
+        loops = _api(server, base + "/loops", page)
+    name = loops["loops"][loops["active"]]["name"]
+    page.locator('[data-tab="project"]').click()
+    with page.expect_download() as dl:
+        page.locator('[data-testid="proj-save"]').click()
+    saved = open(dl.value.path(), "rb").read()
+    assert dl.value.suggested_filename.endswith("_projekt.json")
+    assert saved == _api_raw(server, base + "/project?data=true", page)
+    page.uncheck('[data-testid="proj-data"]')
+    with page.expect_download() as dl2:
+        page.locator('[data-testid="proj-save"]').click()
+    assert open(dl2.value.path(), "rb").read() == _api_raw(server, base + "/project?data=false", page)
+    page.check('[data-testid="proj-data"]')
+    # otevření uloženého souboru: prostor i smyčky zůstanou stejné
+    w0, l0 = _api(server, base, page), _api(server, base + "/loops", page)
+    _open_project(page, saved)
+    w1 = _api(server, base, page)
+    keys = ("id", "has_data", "pv", "mv", "sp", "dists", "n", "Ts", "duration", "rng")
+    assert {k: w1[k] for k in keys} == {k: w0[k] for k in keys} and set(w1["columns"]) == set(w0["columns"])
+    assert _api(server, base + "/loops", page) == l0
+    import json
+    again, orig = (json.loads(b) for b in (_api_raw(server, base + "/project?data=true", page), saved))
+    assert again["data"] == orig["data"] and again["loops"] == orig["loops"] if "loops" in orig else again["data"] == orig["data"]
+    page.set_input_files('[data-testid="proj-open"]', files=[{"name": "x.json", "mimeType": "application/json", "buffer": b"nope"}])
+    page.wait_for_selector('[data-testid="proj-msg"].err')
+    # report: hlavička z nastavení, náhled v izolovaném iframe, stažení = totéž
+    _fill_enter(page, "set-rep_plant", "Kotelna K2")
+    _until(lambda: _setting(server, page, "rep_plant") == "Kotelna K2")
+    page.select_option('[data-testid="set-rep_status"]', "deployed")
+    _until(lambda: _setting(server, page, "rep_status") == "deployed")
+    page.locator('[data-testid="report-build"]').click()
+    page.wait_for_selector('[data-testid="report-frame"]', timeout=120000)
+    assert page.locator('[data-testid="report-frame"]').get_attribute("sandbox") == "allow-scripts allow-modals"
+    body = page.frame_locator('[data-testid="report-frame"]').locator("body")
+    pw.expect(body).to_contain_text("Kotelna K2", timeout=60000)
+    pw.expect(body).to_contain_text(name, timeout=60000)
+    with page.expect_download() as dl3:
+        page.locator('[data-testid="report-download"]').click()
+    html = open(dl3.value.path(), encoding="utf-8").read()
+    assert "<html" in html.lower() and "Kotelna K2" in html and dl3.value.suggested_filename.endswith("_protokol.html")
+    # volba obsahu: report bez sekce APC se sestaví znovu
+    page.uncheck('[data-testid="rep-sec-apc"]')
+    page.locator('[data-testid="report-build"]').click()
+    _quiet(page)
+    _api_send(server, "PATCH", base + "/settings", {"rep_plant": ""}, page)
+
+
+def _csv_upload(page, name, text):
+    page.set_input_files('[data-testid="load-file"]', files=[{"name": name, "mimeType": "text/csv", "buffer": text.encode()}])
+    page.wait_for_function("(n) => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes(n)", arg=name)
+
+
+def test_data_layout_units_ranges(page, server):
+    """Data (M13): rozložení tabulky (dlouhý formát, bez času s periodou), jednotky v popiscích os, rozsahy PV / MV.
+    Nahrání mění data prostoru, proto se na konci vrátí projekt uložený na začátku."""
+    base = "/workspaces/{wid}"
+    backup = _api_raw(server, base + "/project?data=true", page)
+    page.locator('[data-tab="data"]').click()
+    # jednotka PV v popiscích os prohlížeče
+    page.wait_for_selector(".pidv-panel canvas", timeout=30000)
+    _fill_enter(page, "set-u_pv", "bar")
+    _until(lambda: _setting(server, page, "u_pv") == "bar")
+    page.locator(".pidv-lab", has_text="[bar]").first.wait_for(timeout=20000)
+    # rozsah zadaný ručně se uloží jako zadaný uživatelem
+    _fill_enter(page, "set-pv_lo", "-5")
+    _until(lambda: _setting(server, page, "pv_lo") == -5 and _setting(server, page, "pv_rng_user") is True)
+    # dlouhý formát (Time, Tag, Value): rozpoznán sám, sloupce = tagy
+    rows = ["Time,Tag,Value"] + [f"2024-02-13 13:{i // 60:02d}:{i % 60:02d},{t},{v}" for i in range(120)
+                                 for t, v in (("A.PV", 50 + i % 7), ("A.MV", 40 + i // 10))]
+    _csv_upload(page, "hist.csv", "\n".join(rows))
+    page.wait_for_function("() => (document.querySelector('[data-testid=\"lay-layout\"]') || {}).value === 'long'")
+    assert page.locator('[data-testid="layout-sec"]').get_attribute("open") is not None
+    w = _api(server, base, page)
+    assert w["layout"] == "long" and set(w["columns"]) == {"A.PV", "A.MV"}
+    assert [page.locator(f'[data-testid="{t}"]').input_value() for t in ("lay-time", "lay-tag", "lay-val")] == ["Time", "Tag", "Value"]
+    # společný čas nejde (tag není číslo): chyba v panelu, čtení zůstane
+    page.select_option('[data-testid="lay-layout"]', "wide")
+    page.wait_for_selector('[data-testid="lay-err"]')
+    assert _api(server, base, page)["layout"] == "long"
+    # tabulka bez času: co řádek, to vzorek s ruční periodou a jednotkou
+    _csv_upload(page, "rows.csv", "pv,mv\n" + "\n".join(f"{50 + i % 5},{i % 3}" for i in range(200)))
+    page.wait_for_selector('[data-testid="layout-sec"]')
+    assert page.locator('[data-testid="layout-sec"]').get_attribute("open") is None      # čas našel sám → sbaleno
+    page.locator('[data-testid="layout-sec"] summary').click()
+    page.select_option('[data-testid="lay-time"]', "#row")
+    page.wait_for_selector('[data-testid="lay-rowdt"]')
+    _until(lambda: _api(server, base, page)["Ts"] == pytest.approx(1.0))
+    _fill_enter(page, "lay-rowdt", "0.5")
+    _until(lambda: _api(server, base, page)["Ts"] == pytest.approx(0.5))
+    page.select_option('[data-testid="lay-unit"]', "min")
+    _until(lambda: _api(server, base, page)["Ts"] == pytest.approx(30.0))
+    lay = _api(server, base + "/layout", page)
+    assert lay["row_dt"] == 0.5 and lay["unit"] == "min" and lay["c_time"] == "#row"
+    _open_project(page, backup)                         # původní stav (demo, modely, smyčky, nastavení)
+    _until(lambda: _api(server, base, page)["pv"] == "LIC101.PV")
+    _quiet(page)
+
+
+def test_opc_dialog_history(page, server):
+    """OPC UA (M21): dialog nad lokálním testovacím serverem – připojení, hledání, výběr rolí, historie jako úloha."""
+    pytest.importorskip("asyncua")
+    from pidtools.app import opc
+    base = "/workspaces/{wid}"
+    assert _api(server, "/opc/available", page) is True
+    backup = _api_raw(server, base + "/project?data=true", page)
+    url, stop = opc.test_server(port=_free_port(), n=300)
+    try:
+        page.locator('[data-tab="data"]').click()
+        page.locator('[data-testid="opc-open"]').click()
+        page.wait_for_selector('[data-testid="opc-dialog"]')
+        page.fill('[data-testid="opc-url"]', "opc.tcp://127.0.0.1:1/x")
+        page.locator('[data-testid="opc-connect"]').click()
+        page.wait_for_selector('[data-testid="opc-msg"][role="alert"]', timeout=30000)
+        page.fill('[data-testid="opc-url"]', url)
+        page.locator('[data-testid="opc-connect"]').click()
+        page.wait_for_selector('[data-testid="opc-folder"]', timeout=30000)
+        page.locator('[data-testid="opc-folder"] button', has_text="FIC101").click()   # procházení
+        page.wait_for_selector('[data-testid="opc-var"]')
+        page.fill('[data-testid="opc-search"]', "FIC101")                              # hledání
+        page.locator('[data-testid="opc-find"]').click()
+        page.wait_for_function("() => document.querySelectorAll('[data-testid=\"opc-var\"]').length === 3")
+        for sig in ("PV", "MV", "SP"):
+            page.locator('[data-testid="opc-var"] button', has_text=f"FIC101.{sig}").click()
+        assert page.locator('[data-testid="opc-selected"] li').count() == 3
+        for i, role in enumerate(("PV", "MV", "SP")):
+            page.select_option(f'[data-testid="opc-role-{i}"]', role)
+        page.locator('[data-testid="opc-history"]').click()
+        page.wait_for_selector('[data-testid="opc-dialog"]', state="detached", timeout=120000)
+        w = _until(lambda: (lambda x: x if x["fname"] == "OPC UA" else None)(_api(server, base, page)), 60)
+        assert w["has_data"] and w["n"] > 100 and w["pv"] == "FIC101.PV" and w["mv"] == "FIC101.MV" and w["sp"] == "FIC101.SP"
+    finally:
+        stop()
+    _open_project(page, backup)
+    _until(lambda: _api(server, base, page)["pv"] == "LIC101.PV")
+    _quiet(page)
+
+
 def test_no_page_errors(page):
     """Během všech předchozích scénářů nevznikla na stránce žádná výjimka JS."""
     assert page.errors == []

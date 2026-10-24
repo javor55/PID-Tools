@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { usePatchSettings, useSettings } from "../data";
 
-export function NumSetting({ k, label, def, title, min, step }: { k: string; label: string; def?: number; title?: string;
-  min?: number; step?: number }) {
+export function NumSetting({ k, label, def, title, min, step, extra }: { k: string; label: string; def?: number; title?: string;
+  min?: number; step?: number; extra?: Record<string, unknown> }) {
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
   const [v, setV] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export function NumSetting({ k, label, def, title, min, step }: { k: string; lab
       <span>{label}</span>
       <input type="number" step={step ?? "any"} min={min} value={v ?? (typeof cur === "number" ? +cur.toPrecision(6) : String(cur))}
         data-testid={`set-${k}`} onChange={(e) => setV(e.target.value)}
-        onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v)) void patch({ [k]: +v }); setV(null); }}
+        onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v)) void patch({ [k]: +v, ...extra }); setV(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
     </label>
   );
@@ -42,6 +42,27 @@ export function CheckSetting({ k, label, def, title }: { k: string; label: strin
     <label className="small" title={title}>
       <input type="checkbox" checked={!!(st[k] ?? def)} data-testid={`set-${k}`}
         onChange={(e) => void patch({ [k]: e.target.checked })} /> {label}
+    </label>
+  );
+}
+
+/** Text navázaný na klíč nastavení (jednotka, tag, hlavička protokolu); uloží se po opuštění pole / Enter. */
+export function TextSetting({ k, label, title, placeholder, multiline }: { k: string; label: string; title?: string;
+  placeholder?: string; multiline?: boolean }) {
+  const st = useSettings().data ?? {};
+  const patch = usePatchSettings();
+  const [v, setV] = useState<string | null>(null);
+  const cur = String(st[k] ?? "");
+  const done = () => { if (v !== null && v !== cur) void patch({ [k]: v }); setV(null); };
+  return (
+    <label className="field" title={title}>
+      <span>{label}</span>
+      {multiline
+        ? <textarea rows={3} value={v ?? cur} placeholder={placeholder} data-testid={`set-${k}`}
+            onChange={(e) => setV(e.target.value)} onBlur={done} />
+        : <input type="text" value={v ?? cur} placeholder={placeholder} data-testid={`set-${k}`}
+            onChange={(e) => setV(e.target.value)} onBlur={done}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />}
     </label>
   );
 }

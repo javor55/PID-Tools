@@ -36,7 +36,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☑ |
 | M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ☑ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ◐ |
-| M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ◐ |
+| M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ☑ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ◐ |
 | M15 | Model 2: karty přenosů, úpravy, validace, nejistota | C | L | M14 | ☑ |
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
@@ -44,7 +44,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M18 | Živá simulace | C | M | M16 | ☑ |
 | M19 | APC | C | L | M11, M16 | ☑ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☐ |
-| M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☐ |
+| M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☑ |
 | M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ☐ |
 | M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ☐ |
 | M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ☐ |
@@ -425,13 +425,16 @@ a Playwright.
   - zdroj: ukázka, nebo soubor nahraný do API;
   - sloupce PV / MV / SP / poruchy / poloha;
   - kvalita dat a podíl MAN / AUTO.
-- Zbývá:
-  - rozložení tabulky (dlouhý formát / dvojice čas–hodnota, formát času, ruční perioda);
-  - OPC UA dialog;
-  - jednotky a rozsahy.
-  Endpointy už existují (`/layout`, `/opc/*`, `/settings`).
+- Zbývá (hotovo v M21):
+  - rozložení tabulky (`DataLayout.tsx`): rozložení (společný čas / čas u každé veličiny / dlouhý formát), sloupce
+    času, tagu a hodnoty, formát a jednotka času, perioda řádku bez času; sekce je rozbalená, když soubor nešel přečíst
+    automaticky; nečitelné rozložení API vrátí jako chybu a předchozí čtení nechá beze změny;
+  - OPC UA dialog (`OpcDialog.tsx`), viz M21;
+  - jednotky PV / MV, tag smyčky a rozsahy PV / MV (`u_pv`, `u_mv`, `loop_tag`, `pv_lo` … `mv_hi`; ručně zadaný rozsah
+    nastaví i `*_rng_user`, takže ho odhad z dat nepřepíše).
 - `tests/test_frontend.py`: stejný scénář jako dnešní test prohlížeče (panely, signály, kurzory, zoom tabulky),
-  navíc kvalita, MAN / AUTO, změna sloupce SP, uložené rozložení a nahrání souboru.
+  navíc kvalita, MAN / AUTO, změna sloupce SP, uložené rozložení a nahrání souboru; v M21 ještě rozložení tabulky
+  (dlouhý formát, bez času s periodou a jednotkou), jednotka v popiscích os a ručně zadaný rozsah.
 
 ### M14 · Model 1 (L)
 - Úseky: společný i podle vstupů. Komponenta `trend.js` převedená na TS s táhly.
@@ -577,6 +580,28 @@ a Playwright.
 
 ### M21 · Projekt, report, OPC UA
 - Uložení a načtení projektu (soubor), report (náhled a stažení), čtení z OPC UA.
+
+**Skutečnost M21:**
+- Záložka Projekt (`ProjectTab.tsx`, id `project`):
+  - uložení projektu stáhne soubor z `GET /project` (volba „uložit i data“ = `?data=`), otevření nahraje soubor
+    přes `PUT /project` a zneplatní všechny dotazy prostoru; chybný soubor ukáže chybu a nic nezmění;
+  - údaje o projektu a hlavička protokolu jsou nastavení `rep_plant`, `rep_author`, `rep_status`, `rep_comment`
+    (jsou v projektu jako v desktopu a Streamlitu); k tomu volba grafů (offline / z internetu) a obsahu (sekce);
+  - náhled protokolu (`POST /report`, HTML) je v iframe s `sandbox="allow-scripts allow-modals"` přes `srcdoc`,
+    bez přístupu ke stránce; stažení ukládá totéž HTML. Bez modelu aktivní smyčky ukáže text „nejdřív nafituj model“.
+- OPC UA (`OpcDialog.tsx`), tlačítko v panelu zdroje záložky Data (vypnuté, když `/opc/available` vrací false):
+  - připojení = procházení kořene (`/opc/browse`), strom se rozbaluje po složkách, hledání podle textu (`/opc/find`);
+  - vybrané proměnné mají roli PV / MV / SP / DV; časový rozsah je v místním čase;
+  - načtení je úloha `/opc/history` (průběh ve stavovém řádku); po úspěchu se data prostoru nahradí a podle rolí se
+    nastaví sloupce (`PUT /columns`, tag = cesta uzlu).
+- API: nový `GET /layout` (`LayoutInfo`: aktuální rozložení, sloupce času / tagu / hodnoty včetně odhadu, sloupce
+  tabulky, formáty a jednotky času); `PUT /layout` při chybě vrací stav před změnou. Test `test_layout_info_and_change`.
+- Testy v prohlížeči: uložení = bajty z `GET /project` (s daty i bez), otevření téhož souboru nezmění prostor ani
+  smyčky, chybný soubor; report s hlavičkou v iframe (zařízení, jméno smyčky) a stažení; dialog OPC UA nad lokálním
+  testovacím serverem (`opc.test_server`): chybné i správné připojení, procházení, hledání, role, historie → data
+  prostoru. Testy, které mění data, na konci znovu otevřou projekt uložený na začátku.
+- Zbývá: v OPC UA chybí záznam živých hodnot (desktop ho má, API pro něj endpoint nemá) a perioda (patří jen k záznamu);
+  zabezpečení spojení (certifikáty) API také neumí. Bez balíčku `asyncua` je dialog v prohlížeči netestovaný.
 
 **Hotovo když (M16–M21):** pro každou záložku projde e2e scénář převzatý z dnešních AppTest a desktop testů.
 

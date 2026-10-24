@@ -7,6 +7,7 @@ import { useT } from "./i18n";
 import { ApcMain, ApcSide } from "./tabs/ApcTab";
 import { DataMain, DataSide } from "./tabs/DataTab";
 import { LiveMain } from "./tabs/LiveTab";
+import { ProjectMain, ProjectSide } from "./tabs/ProjectTab";
 import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TuningMain, TuningSide } from "./tabs/TuningTab";
 import { TABS, useUi } from "./store";
@@ -50,12 +51,13 @@ export default function App() {
       <div className={cur.id === "live" ? "body body-wide" : "body"}>
         <main className="main" data-testid={`tab-${cur.id}`}>
           {cur.id === "data" ? <DataMain /> : cur.id === "model" ? <ModelMain /> : cur.id === "tuning" ? <TuningMain />
-            : cur.id === "live" ? <LiveMain /> : cur.id === "apc" ? <ApcMain /> : <Placeholder milestone={cur.milestone} />}
+            : cur.id === "live" ? <LiveMain /> : cur.id === "apc" ? <ApcMain />
+            : cur.id === "project" ? <ProjectMain /> : <Placeholder milestone={cur.milestone} />}
         </main>
         {cur.id !== "live" && <aside className="side">
           <h2>{T("ui_settings")}</h2>
           {cur.id === "data" ? <DataSide /> : cur.id === "model" ? <ModelSide /> : cur.id === "tuning" ? <TuningSide />
-            : cur.id === "apc" ? <ApcSide />
+            : cur.id === "apc" ? <ApcSide /> : cur.id === "project" ? <ProjectSide />
             : <div className="muted">{T(cur.label)}</div>}
         </aside>}
       </div>

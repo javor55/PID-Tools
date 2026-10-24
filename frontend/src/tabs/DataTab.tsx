@@ -4,6 +4,8 @@ import { ApiError } from "../api/client";
 import { RecordViewer } from "../components/RecordViewer";
 import { type Columns, type LoopMode, type Quality, uploadFile, useWs, useWsMutation, useWsQuery } from "../data";
 import { useT, useTexts } from "../i18n";
+import { LayoutSection, UnitsSection } from "./DataLayout";
+import { OpcButton } from "./OpcDialog";
 import { useUi } from "../store";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -71,10 +73,12 @@ export function DataSide() {
             <input type="file" accept=".csv,.txt,.xlsx,.xls" hidden data-testid="load-file"
               onChange={(e) => void onFile(e.target.files?.[0])} />
           </label>
+          <OpcButton />
         </div>
         <div className="muted small">{T("upload")}</div>
         {err && <div className="err small" role="alert">{err}</div>}
         {ws?.has_data && <div className="small mono" data-testid="data-info">{ws.fname} · {ws.n} · Ts {ws.Ts?.toPrecision(4)} s</div>}
+        <LayoutSection />
       </section>
       {ws?.has_data && (
         <section>
@@ -93,6 +97,7 @@ export function DataSide() {
             testid="col-pos" />
         </section>
       )}
+      <UnitsSection />
       {quality.data && (
         <section data-testid="quality">
           <h3>{T("q_title")}</h3>

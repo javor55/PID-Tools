@@ -73,6 +73,19 @@ export async function binary(path: string, body?: unknown): Promise<ArrayBuffer>
   return r.arrayBuffer();
 }
 
+/** Odpověď jako bajty bez ohledu na typ (soubor ke stažení: projekt, protokol); tělo JSON jen u POST. */
+export async function bytes(method: string, path: string, body?: unknown): Promise<ArrayBuffer> {
+  const init: RequestInit = { method, headers: headers(body !== undefined ? { "Content-Type": "application/json" } : {}) };
+  if (body !== undefined) init.body = JSON.stringify(body);
+  const r = await fetch(base + path, init);
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* text */ }
+    throw new ApiError(r.status, msg);
+  }
+  return r.arrayBuffer();
+}
+
 export const api = {
   health: () => request<Health>("GET", "/health"),
   texts: (l: string) => request<Record<string, string>>("GET", `/i18n/${l}`),
