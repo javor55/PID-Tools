@@ -42,7 +42,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ◐ |
 | M18 | Živá simulace | C | M | M16 | ☑ |
-| M19 | APC | C | L | M11, M16 | ◐ |
+| M19 | APC | C | L | M11, M16 | ☑ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☐ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☐ |
 | M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ☐ |
@@ -517,7 +517,7 @@ a Playwright.
 ### M19 · APC (L)
 - Všechny dnešní techniky, včetně „vrátit na vypočtené“.
 
-**Skutečnost M19 (část):**
+**Skutečnost M19:**
 - Záložka APC (`ApcTab.tsx`): karta doporučení z `/apc/recommend` (texty přeložené API, tlačítko „Otevřít …“ přepne
   techniku), přepínač technik a rozbalitelný úvod „O této struktuře“; zvolená technika se pamatuje v prohlížeči.
 - Rozšiřitelná struktura: jedna komponenta na techniku v `src/tabs/apc/` a řádek v seznamu `TECHNIQUES`
@@ -543,8 +543,31 @@ a Playwright.
   s jednou smyčkou kontrolní seznam, co chybí.
 - Test v prohlížeči (`test_apc_split_vpc_ratio_rga`): hodnoty a ukazatele všech čtyř panelů = API, úprava jednoho
   parametru druhého modelu a vstupů (návrh i simulace sledují API), návrat k původním hodnotám, RGA s jednou smyčkou.
-- Zbývá: kaskáda, gain scheduling (PV, ER), rozvazbení, override (API vzniká souběžně); RGA se dvěma smyčkami v prohlížeči
-  není testováno (API ano).
+- Společné díly (`apc/parts.tsx`): kontrolní seznam struktury (✓ / ⚠ / připomínka, akce „tab:…“ jako tlačítko), postup
+  pro PCS 7, tabulka bodů, simulace (KPI + binární křivky) a výběr druhé smyčky projektu, která se posílá jako `?loop=`
+  (výchozí první jiná smyčka); projekt s jedinou smyčkou ukáže vysvětlující text („Tato struktura potřebuje druhou
+  smyčku …“, API 409), smyčka bez modelu upozornění.
+- Kaskáda: zdroj modelu vnitřní smyčky (jiná smyčka / ručně / z dat), ladění vnitřní a vnější smyčky a tlačítka návratu
+  k původním hodnotám (`/apc/cascade/reset`) jsou klíče `cas_*`; model z dat je úloha (`/apc/cascade/fit`, signály
+  a rozsah vnitřní PV z lokálního stavu). V hlavní ploše modely, regulátory, odezva vnitřní smyčky, oddělení rychlostí
+  s varováním, hodnoty pro šablonu CascadeControl, postup, kontroly a simulace (PV vnější, vnitřní smyčka, ventil;
+  nestabilní simulace se ohlásí).
+- Gain scheduling podle PV: počet bodů, úseky dat (`gs_r*`, návrh tlačítkem), metoda, typ, τc a Ms jsou klíče `gs_*`;
+  identifikace bodů je úloha (`/apc/gainsched/fit`). Výsledky: shoda modelu, ladění v bodech, tabulka pro GainSched,
+  upozornění (zastaralé body, charakteristika, nelinearita), kontroly a ověření jedna sada vs. scheduling. Integrační
+  model (hladina) ukáže jen vysvětlení a kontroly (API `integ`).
+- Gain scheduling podle ER: práh, násobek, skok SP a porucha jsou klíče `gs_er_*` (reset přes API), největší bezpečný
+  násobek a Ms, tabulka pro GainSched, kontroly a simulace jedna sada / ER / řídicí pásmo ConZone (KPI, nejlepší šířka
+  pásma, vyzkoušené šířky, křivky PV, MV, Gain).
+- Rozvazbení a override: vstupy simulace (typ decouplerů, amplitudy SP; MIN / MAX, skok SP a mez) nejsou v nastavení
+  projektu, drží je lokální stav a posílají se v těle simulace. Rozvazbení: RGA λ₁₁ s doporučením, parametry decouplerů,
+  IAE bez / statické / dynamické a křivky; bez modelu vazby vysvětlení. Override: upozornění na různé MV, postup, kontroly,
+  extrém PV omezující smyčky s výběrem a bez něj, podíl času a přepnutí, křivky.
+- Testy v prohlížeči (`tests/test_frontend.py`): kaskáda = API (ruční model, reset, model z dat jako úloha), gain
+  scheduling na integračním modelu, po přechodu na P1D identifikace bodů (úloha), ladění v bodech, zastaralé úseky,
+  ER (vstupy, reset, KPI simulace), jediná smyčka u rozvazbení / override a projekt se druhou smyčkou (override MIN / MAX,
+  vlastní mez, rozvazbení bez vazby, kaskáda z jiné smyčky).
+- Zbývá: RGA a poměr se zdrojem z jiné smyčky v prohlížeči netestované (API ano).
 
 ### M20 · Diagnostika a Přehled smyček
 

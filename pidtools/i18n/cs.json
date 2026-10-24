@@ -2064,5 +2064,8 @@
  "ui_edited": "upraveno",
  "ui_sm_optimize": "Spočítat robustní optimalizaci",
  "ui_sm_need_opt": "Robustní optimalizaci je třeba spočítat – spusťte ji v nastavení vpravo.",
- "ui_sc_add": "Přidat událost"
+ "ui_sc_add": "Přidat událost",
+ "ui_cas_outer": "Vnější smyčka",
+ "ui_cas_values": "Hodnoty do šablony CascadeControl",
+ "ui_gs_fit_pct": "Shoda [%]"
 }

@@ -10,6 +10,8 @@ import asyncio
 import contextvars
 import hmac
 import json
+import re
+import weakref
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -59,6 +61,24 @@ def _mount_static(app):
         app.mount("/", StaticFiles(directory=UI_DIR, html=True), name="ui")
 
 
+def _serialize_workspaces(app):
+    """
+    Požadavky na jeden pracovní prostor jeden po druhém: prostor není stavěný na souběh (změna nastavení během
+    simulace) a souběžné výpočty se přetahují o GIL – dvojice ukazatele + křivky téže simulace trvala souběžně
+    několikanásobně déle než po sobě, kdy druhý požadavek vezme výsledek z mezipaměti. Úlohy běží v procesech.
+    """
+    ws_locks = weakref.WeakKeyDictionary()      # {event loop: {prostor: zámek}} – zámek asyncio patří ke smyčce
+
+    @app.middleware("http")
+    async def workspace_mw(request, call_next):
+        m = re.match(r"/workspaces/([^/]+)/", request.url.path)
+        if not m:
+            return await call_next(request)
+        locks = ws_locks.setdefault(asyncio.get_running_loop(), {})
+        async with locks.setdefault(m.group(1), asyncio.Lock()):
+            return await call_next(request)
+
+
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
     """Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly)."""
     jobs = JobManager(max_parallel=max_jobs)
@@ -80,6 +100,8 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             return await call_next(request)
         finally:
             _LANG.reset(tok)
+
+    _serialize_workspaces(app)
 
     app.state.jobs = jobs
     if cors_origins:
