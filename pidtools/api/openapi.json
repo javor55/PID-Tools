@@ -1089,6 +1089,35 @@
     "title": "Loops",
     "type": "object"
    },
+   "ModelInfo": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "params": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Params",
+      "type": "array"
+     },
+     "values": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Values",
+      "type": "array"
+     }
+    },
+    "required": [
+     "code",
+     "params",
+     "values"
+    ],
+    "title": "ModelInfo",
+    "type": "object"
+   },
    "ModelRes": {
     "properties": {
      "checks": {
@@ -1585,6 +1614,188 @@
     "title": "Range",
     "type": "object"
    },
+   "RatioDesign": {
+    "properties": {
+     "air": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "air_loop": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Air Loop"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "impl_text": {
+      "title": "Impl Text",
+      "type": "string"
+     },
+     "sources": {
+      "items": {
+       "$ref": "#/components/schemas/RatioSource"
+      },
+      "title": "Sources",
+      "type": "array"
+     }
+    },
+    "required": [
+     "air_loop",
+     "air",
+     "sources",
+     "impl_text",
+     "checks"
+    ],
+    "title": "RatioDesign",
+    "type": "object"
+   },
+   "RatioIn": {
+    "properties": {
+     "R": {
+      "default": 1.2,
+      "maximum": 100.0,
+      "minimum": 0.01,
+      "title": "R",
+      "type": "number"
+     },
+     "air": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Air"
+     },
+     "air_loop": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Air Loop"
+     },
+     "step": {
+      "default": 15.0,
+      "maximum": 50.0,
+      "minimum": -50.0,
+      "title": "Step",
+      "type": "number"
+     }
+    },
+    "title": "RatioIn",
+    "type": "object"
+   },
+   "RatioInfo": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/RatioIn"
+     },
+     "design": {
+      "$ref": "#/components/schemas/RatioDesign"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "defaults",
+     "design"
+    ],
+    "title": "RatioInfo",
+    "type": "object"
+   },
+   "RatioKpi": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "lam_min": {
+      "title": "Lam Min",
+      "type": "number"
+     },
+     "t_rich": {
+      "title": "T Rich",
+      "type": "number"
+     }
+    },
+    "required": [
+     "lam_min",
+     "t_rich",
+     "iae"
+    ],
+    "title": "RatioKpi",
+    "type": "object"
+   },
+   "RatioSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/RatioKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     },
+     "lam_min": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "title": "Lam Min",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "lam_min",
+     "kpis"
+    ],
+    "title": "RatioSim",
+    "type": "object"
+   },
+   "RatioSource": {
+    "properties": {
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "index",
+     "name"
+    ],
+    "title": "RatioSource",
+    "type": "object"
+   },
    "Recommendation": {
     "properties": {
      "kind": {
@@ -1660,6 +1871,116 @@
      }
     },
     "title": "ReportReq",
+    "type": "object"
+   },
+   "RgaInfo": {
+    "properties": {
+     "K": {
+      "default": [],
+      "items": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "title": "K",
+      "type": "array"
+     },
+     "L": {
+      "default": [],
+      "items": {
+       "items": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      "title": "L",
+      "type": "array"
+     },
+     "NI": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ni"
+     },
+     "advice": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Advice",
+      "type": "array"
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "known": {
+      "default": [],
+      "items": {
+       "items": {
+        "type": "boolean"
+       },
+       "type": "array"
+      },
+      "title": "Known",
+      "type": "array"
+     },
+     "mvs": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Mvs",
+      "type": "array"
+     },
+     "names": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Names",
+      "type": "array"
+     },
+     "pairing": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pairing"
+     },
+     "ready": {
+      "title": "Ready",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "ready"
+    ],
+    "title": "RgaInfo",
     "type": "object"
    },
    "Run": {
@@ -2256,6 +2577,241 @@
     "title": "SmithSimReq",
     "type": "object"
    },
+   "SplitCase": {
+    "properties": {
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "lower": {
+      "$ref": "#/components/schemas/SplitHalf"
+     },
+     "upper": {
+      "$ref": "#/components/schemas/SplitHalf"
+     }
+    },
+    "required": [
+     "b",
+     "lower",
+     "upper"
+    ],
+    "title": "SplitCase",
+    "type": "object"
+   },
+   "SplitDesign": {
+    "properties": {
+     "b0": {
+      "title": "B0",
+      "type": "number"
+     },
+     "bstar": {
+      "title": "Bstar",
+      "type": "number"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "corr": {
+      "title": "Corr",
+      "type": "number"
+     },
+     "gap": {
+      "title": "Gap",
+      "type": "number"
+     },
+     "impl_text": {
+      "title": "Impl Text",
+      "type": "string"
+     },
+     "mode": {
+      "enum": [
+       "opposite",
+       "sequence"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "new": {
+      "$ref": "#/components/schemas/SplitCase"
+     },
+     "now": {
+      "$ref": "#/components/schemas/SplitCase"
+     },
+     "valve_a": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "valve_b": {
+      "$ref": "#/components/schemas/ModelInfo"
+     }
+    },
+    "required": [
+     "mode",
+     "b0",
+     "gap",
+     "valve_a",
+     "valve_b",
+     "bstar",
+     "corr",
+     "now",
+     "new",
+     "impl_text",
+     "checks"
+    ],
+    "title": "SplitDesign",
+    "type": "object"
+   },
+   "SplitHalf": {
+    "properties": {
+     "k": {
+      "title": "K",
+      "type": "number"
+     },
+     "ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
+     },
+     "stable": {
+      "title": "Stable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "k",
+     "ms",
+     "stable"
+    ],
+    "title": "SplitHalf",
+    "type": "object"
+   },
+   "SplitIn": {
+    "properties": {
+     "b0": {
+      "default": 50.0,
+      "maximum": 99.0,
+      "minimum": 1.0,
+      "title": "B0",
+      "type": "number"
+     },
+     "gap": {
+      "default": 0.0,
+      "maximum": 20.0,
+      "minimum": -20.0,
+      "title": "Gap",
+      "type": "number"
+     },
+     "mode": {
+      "default": "opposite",
+      "enum": [
+       "opposite",
+       "sequence"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "valve_a": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valve A"
+     }
+    },
+    "title": "SplitIn",
+    "type": "object"
+   },
+   "SplitInfo": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/SplitIn"
+     },
+     "design": {
+      "$ref": "#/components/schemas/SplitDesign"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "defaults",
+     "design"
+    ],
+    "title": "SplitInfo",
+    "type": "object"
+   },
+   "SplitKpi": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "maxdev": {
+      "title": "Maxdev",
+      "type": "number"
+     },
+     "rev": {
+      "title": "Rev",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "iae",
+     "maxdev",
+     "rev"
+    ],
+    "title": "SplitKpi",
+    "type": "object"
+   },
+   "SplitSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "amp": {
+      "title": "Amp",
+      "type": "number"
+     },
+     "bstar": {
+      "title": "Bstar",
+      "type": "number"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/SplitKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "amp",
+     "bstar",
+     "kpis"
+    ],
+    "title": "SplitSim",
+    "type": "object"
+   },
    "SuggestReq": {
     "properties": {
      "method": {
@@ -2492,6 +3048,159 @@
      "unit"
     ],
     "title": "ValueRow",
+    "type": "object"
+   },
+   "VpcDesign": {
+    "properties": {
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "controller": {
+      "$ref": "#/components/schemas/Pid"
+     },
+     "impl_text": {
+      "title": "Impl Text",
+      "type": "string"
+     },
+     "loop_time": {
+      "title": "Loop Time",
+      "type": "number"
+     },
+     "mv2": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "surrogate": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "tc": {
+      "title": "Tc",
+      "type": "number"
+     }
+    },
+    "required": [
+     "mv2",
+     "controller",
+     "surrogate",
+     "tc",
+     "loop_time",
+     "impl_text",
+     "checks"
+    ],
+    "title": "VpcDesign",
+    "type": "object"
+   },
+   "VpcIn": {
+    "properties": {
+     "d": {
+      "default": 35.0,
+      "maximum": 100.0,
+      "minimum": -100.0,
+      "title": "D",
+      "type": "number"
+     },
+     "factor": {
+      "default": 5.0,
+      "maximum": 30.0,
+      "minimum": 1.0,
+      "title": "Factor",
+      "type": "number"
+     },
+     "mv2": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv2"
+     },
+     "sp": {
+      "default": 50.0,
+      "maximum": 95.0,
+      "minimum": 5.0,
+      "title": "Sp",
+      "type": "number"
+     }
+    },
+    "title": "VpcIn",
+    "type": "object"
+   },
+   "VpcInfo": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/VpcIn"
+     },
+     "design": {
+      "$ref": "#/components/schemas/VpcDesign"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "defaults",
+     "design"
+    ],
+    "title": "VpcInfo",
+    "type": "object"
+   },
+   "VpcKpi": {
+    "properties": {
+     "at_lim": {
+      "title": "At Lim",
+      "type": "number"
+     },
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "reserve": {
+      "title": "Reserve",
+      "type": "number"
+     }
+    },
+    "required": [
+     "iae",
+     "at_lim",
+     "reserve"
+    ],
+    "title": "VpcKpi",
+    "type": "object"
+   },
+   "VpcSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "controller": {
+      "$ref": "#/components/schemas/Pid"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/VpcKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "controller",
+     "kpis"
+    ],
+    "title": "VpcSim",
     "type": "object"
    },
    "Windows": {
@@ -2776,6 +3485,43 @@
      "Ti"
     ],
     "title": "WriteSet",
+    "type": "object"
+   },
+   "pidtools__api__apc_more__Check": {
+    "description": "Položka kontrolního seznamu struktury (app.guides): True splněno, False chybí, None připomínka.",
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action"
+     },
+     "state": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "State"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "state",
+     "text"
+    ],
+    "title": "Check",
     "type": "object"
    },
    "pidtools__api__data__Check": {
@@ -4080,6 +4826,348 @@
     ]
    }
   },
+  "/workspaces/{wid}/apc/ratio": {
+   "get": {
+    "description": "Poměrová regulace: výchozí vstupy, zdroje modelu vzduchu (ostatní smyčky) a model vzduchu.",
+    "operationId": "ratio_get_workspaces__wid__apc_ratio_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "air_loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Air Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio/design": {
+   "post": {
+    "description": "Model vzduchu (zadaný / výchozí / z jiné smyčky), implementace a kontroly pro zadané vstupy.",
+    "operationId": "ratio_design_workspaces__wid__apc_ratio_design_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioDesign"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Design",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio/simulate": {
+   "post": {
+    "description": "Skok požadavku výkonu s křížovým omezením a bez: nejmenší λ, čas s λ < 1, IAE paliva.",
+    "operationId": "ratio_simulate_workspaces__wid__apc_ratio_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio/simulate/curves": {
+   "post": {
+    "operationId": "ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: demand, fuel, air_r (air / R), air_r_plain, lam, lam_plain (flows in % of ranges)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
   "/workspaces/{wid}/apc/recommend": {
    "get": {
     "description": "Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).",
@@ -4156,6 +5244,81 @@
     "summary": "Recommend",
     "tags": [
      "diagnostics"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/rga": {
+   "get": {
+    "description": "Interakce N×N: matice zesílení, RGA, Niederlinskiho index a doporučené párování ze smyček projektu.",
+    "operationId": "rga_get_workspaces__wid__apc_rga_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RgaInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Rga Get",
+    "tags": [
+     "apc"
     ]
    }
   },
@@ -4469,6 +5632,694 @@
      }
     },
     "summary": "Smith Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split": {
+   "get": {
+    "description": "Split range: výchozí vstupy (model ventilu A podle režimu a b0) a vyvážený bod rozdělení, poloviny rozsahu.",
+    "operationId": "split_get_workspaces__wid__apc_split_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "mode",
+      "required": false,
+      "schema": {
+       "default": "opposite",
+       "enum": [
+        "opposite",
+        "sequence"
+       ],
+       "title": "Mode",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "b0",
+      "required": false,
+      "schema": {
+       "default": 50.0,
+       "maximum": 99,
+       "minimum": 1,
+       "title": "B0",
+       "type": "number"
+      }
+     },
+     {
+      "in": "query",
+      "name": "gap",
+      "required": false,
+      "schema": {
+       "default": 0.0,
+       "maximum": 20,
+       "minimum": -20,
+       "title": "Gap",
+       "type": "number"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SplitInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split/design": {
+   "post": {
+    "description": "Výsledky pro zadané vstupy: b*, zesílení a Ms obou polovin teď / s b*, hodnoty pro šablonu.",
+    "operationId": "split_design_workspaces__wid__apc_split_design_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SplitIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SplitDesign"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Design",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split/simulate": {
+   "post": {
+    "description": "Skok SP přes bod rozdělení se současným a vyváženým rozdělením: IAE, max. odchylka PV, změny směru.",
+    "operationId": "split_simulate_workspaces__wid__apc_split_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SplitIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SplitSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split/simulate/curves": {
+   "post": {
+    "operationId": "split_curves_workspaces__wid__apc_split_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SplitIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_now, pv_new in engineering units; u_now, u_new, va, vb in % (output of the controller and valves)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc": {
+   "get": {
+    "description": "Regulace polohy ventilu: výchozí vstupy (model MV2) a návrh PI regulátoru VPC.",
+    "operationId": "vpc_get_workspaces__wid__apc_vpc_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VpcInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc/design": {
+   "post": {
+    "description": "Návrh regulátoru VPC pro zadaný model MV2, SP a násobek τc.",
+    "operationId": "vpc_design_workspaces__wid__apc_vpc_design_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VpcIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VpcDesign"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Design",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc/simulate": {
+   "post": {
+    "description": "Skokové zatížení s VPC a bez něj: IAE PV, čas MV1 v limitu, rezerva MV1.",
+    "operationId": "vpc_simulate_workspaces__wid__apc_vpc_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VpcIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VpcSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc/simulate/curves": {
+   "post": {
+    "operationId": "vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VpcIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_off, pv_on in engineering units; mv1_off, mv1_on, mv2_on in %"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Curves",
     "tags": [
      "apc"
     ]

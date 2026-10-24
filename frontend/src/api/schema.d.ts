@@ -285,6 +285,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/apc/ratio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Get
+         * @description Poměrová regulace: výchozí vstupy, zdroje modelu vzduchu (ostatní smyčky) a model vzduchu.
+         */
+        get: operations["ratio_get_workspaces__wid__apc_ratio_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/ratio/design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ratio Design
+         * @description Model vzduchu (zadaný / výchozí / z jiné smyčky), implementace a kontroly pro zadané vstupy.
+         */
+        post: operations["ratio_design_workspaces__wid__apc_ratio_design_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/ratio/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ratio Simulate
+         * @description Skok požadavku výkonu s křížovým omezením a bez: nejmenší λ, čas s λ < 1, IAE paliva.
+         */
+        post: operations["ratio_simulate_workspaces__wid__apc_ratio_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/ratio/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ratio Curves */
+        post: operations["ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/apc/recommend": {
         parameters: {
             query?: never;
@@ -297,6 +374,26 @@ export interface paths {
          * @description Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).
          */
         get: operations["recommend_workspaces__wid__apc_recommend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/rga": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rga Get
+         * @description Interakce N×N: matice zesílení, RGA, Niederlinskiho index a doporučené párování ze smyček projektu.
+         */
+        get: operations["rga_get_workspaces__wid__apc_rga_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -376,6 +473,160 @@ export interface paths {
         put?: never;
         /** Smith Curves */
         post: operations["smith_curves_workspaces__wid__apc_smith_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Split Get
+         * @description Split range: výchozí vstupy (model ventilu A podle režimu a b0) a vyvážený bod rozdělení, poloviny rozsahu.
+         */
+        get: operations["split_get_workspaces__wid__apc_split_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/split/design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Split Design
+         * @description Výsledky pro zadané vstupy: b*, zesílení a Ms obou polovin teď / s b*, hodnoty pro šablonu.
+         */
+        post: operations["split_design_workspaces__wid__apc_split_design_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/split/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Split Simulate
+         * @description Skok SP přes bod rozdělení se současným a vyváženým rozdělením: IAE, max. odchylka PV, změny směru.
+         */
+        post: operations["split_simulate_workspaces__wid__apc_split_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/split/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Split Curves */
+        post: operations["split_curves_workspaces__wid__apc_split_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/vpc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vpc Get
+         * @description Regulace polohy ventilu: výchozí vstupy (model MV2) a návrh PI regulátoru VPC.
+         */
+        get: operations["vpc_get_workspaces__wid__apc_vpc_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/vpc/design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vpc Design
+         * @description Návrh regulátoru VPC pro zadaný model MV2, SP a násobek τc.
+         */
+        post: operations["vpc_design_workspaces__wid__apc_vpc_design_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/vpc/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vpc Simulate
+         * @description Skokové zatížení s VPC a bez něj: IAE PV, čas MV1 v limitu, rezerva MV1.
+         */
+        post: operations["vpc_simulate_workspaces__wid__apc_vpc_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/vpc/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vpc Curves */
+        post: operations["vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1477,6 +1728,15 @@ export interface components {
             /** Loops */
             loops: components["schemas"]["Loop"][];
         };
+        /** ModelInfo */
+        ModelInfo: {
+            /** Code */
+            code: string;
+            /** Params */
+            params: string[];
+            /** Values */
+            values: number[];
+        };
         /** ModelRes */
         ModelRes: {
             /**
@@ -1647,6 +1907,71 @@ export interface components {
             /** B */
             b: number;
         };
+        /** RatioDesign */
+        RatioDesign: {
+            air: components["schemas"]["ModelInfo"];
+            /** Air Loop */
+            air_loop: number | null;
+            /** Checks */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /** Impl Text */
+            impl_text: string;
+            /** Sources */
+            sources: components["schemas"]["RatioSource"][];
+        };
+        /** RatioIn */
+        RatioIn: {
+            /**
+             * R
+             * @default 1.2
+             */
+            R: number;
+            /** Air */
+            air?: number[] | null;
+            /** Air Loop */
+            air_loop?: number | null;
+            /**
+             * Step
+             * @default 15
+             */
+            step: number;
+        };
+        /** RatioInfo */
+        RatioInfo: {
+            defaults: components["schemas"]["RatioIn"];
+            design: components["schemas"]["RatioDesign"];
+            /** Model */
+            model: string;
+        };
+        /** RatioKpi */
+        RatioKpi: {
+            /** Iae */
+            iae: number;
+            /** Lam Min */
+            lam_min: number;
+            /** T Rich */
+            t_rich: number;
+        };
+        /** RatioSim */
+        RatioSim: {
+            /** T End */
+            T_end: number;
+            /** Kpis */
+            kpis: {
+                [key: string]: components["schemas"]["RatioKpi"];
+            };
+            /** Lam Min */
+            lam_min: {
+                [key: string]: number;
+            };
+        };
+        /** RatioSource */
+        RatioSource: {
+            /** Index */
+            index: number;
+            /** Name */
+            name: string;
+        };
         /** Recommendation */
         Recommendation: {
             /** Kind */
@@ -1687,6 +2012,50 @@ export interface components {
              *     ]
              */
             sections: string[];
+        };
+        /** RgaInfo */
+        RgaInfo: {
+            /**
+             * K
+             * @default []
+             */
+            K: number[][];
+            /**
+             * L
+             * @default []
+             */
+            L: (number | null)[][];
+            /** Ni */
+            NI?: number | null;
+            /**
+             * Advice
+             * @default []
+             */
+            advice: components["schemas"]["Note"][];
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /**
+             * Known
+             * @default []
+             */
+            known: boolean[][];
+            /**
+             * Mvs
+             * @default []
+             */
+            mvs: string[];
+            /**
+             * Names
+             * @default []
+             */
+            names: string[];
+            /** Pairing */
+            pairing?: number[] | null;
+            /** Ready */
+            ready: boolean;
         };
         /** Run */
         Run: {
@@ -1884,6 +2253,96 @@ export interface components {
             /** Eth */
             eth?: number | null;
         };
+        /** SplitCase */
+        SplitCase: {
+            /** B */
+            b: number;
+            lower: components["schemas"]["SplitHalf"];
+            upper: components["schemas"]["SplitHalf"];
+        };
+        /** SplitDesign */
+        SplitDesign: {
+            /** B0 */
+            b0: number;
+            /** Bstar */
+            bstar: number;
+            /** Checks */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /** Corr */
+            corr: number;
+            /** Gap */
+            gap: number;
+            /** Impl Text */
+            impl_text: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "opposite" | "sequence";
+            new: components["schemas"]["SplitCase"];
+            now: components["schemas"]["SplitCase"];
+            valve_a: components["schemas"]["ModelInfo"];
+            valve_b: components["schemas"]["ModelInfo"];
+        };
+        /** SplitHalf */
+        SplitHalf: {
+            /** K */
+            k: number;
+            /** Ms */
+            ms: number | null;
+            /** Stable */
+            stable: boolean;
+        };
+        /** SplitIn */
+        SplitIn: {
+            /**
+             * B0
+             * @default 50
+             */
+            b0: number;
+            /**
+             * Gap
+             * @default 0
+             */
+            gap: number;
+            /**
+             * Mode
+             * @default opposite
+             * @enum {string}
+             */
+            mode: "opposite" | "sequence";
+            /** Valve A */
+            valve_a?: number[] | null;
+        };
+        /** SplitInfo */
+        SplitInfo: {
+            defaults: components["schemas"]["SplitIn"];
+            design: components["schemas"]["SplitDesign"];
+            /** Model */
+            model: string;
+        };
+        /** SplitKpi */
+        SplitKpi: {
+            /** Iae */
+            iae: number;
+            /** Maxdev */
+            maxdev: number;
+            /** Rev */
+            rev: number;
+        };
+        /** SplitSim */
+        SplitSim: {
+            /** T End */
+            T_end: number;
+            /** Amp */
+            amp: number;
+            /** Bstar */
+            bstar: number;
+            /** Kpis */
+            kpis: {
+                [key: string]: components["schemas"]["SplitKpi"];
+            };
+        };
         /** SuggestReq */
         SuggestReq: {
             /** Method */
@@ -1977,6 +2436,66 @@ export interface components {
             unit: string;
             /** Value */
             value: number;
+        };
+        /** VpcDesign */
+        VpcDesign: {
+            /** Checks */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            controller: components["schemas"]["Pid"];
+            /** Impl Text */
+            impl_text: string;
+            /** Loop Time */
+            loop_time: number;
+            mv2: components["schemas"]["ModelInfo"];
+            surrogate: components["schemas"]["ModelInfo"];
+            /** Tc */
+            tc: number;
+        };
+        /** VpcIn */
+        VpcIn: {
+            /**
+             * D
+             * @default 35
+             */
+            d: number;
+            /**
+             * Factor
+             * @default 5
+             */
+            factor: number;
+            /** Mv2 */
+            mv2?: number[] | null;
+            /**
+             * Sp
+             * @default 50
+             */
+            sp: number;
+        };
+        /** VpcInfo */
+        VpcInfo: {
+            defaults: components["schemas"]["VpcIn"];
+            design: components["schemas"]["VpcDesign"];
+            /** Model */
+            model: string;
+        };
+        /** VpcKpi */
+        VpcKpi: {
+            /** At Lim */
+            at_lim: number;
+            /** Iae */
+            iae: number;
+            /** Reserve */
+            reserve: number;
+        };
+        /** VpcSim */
+        VpcSim: {
+            /** T End */
+            T_end: number;
+            controller: components["schemas"]["Pid"];
+            /** Kpis */
+            kpis: {
+                [key: string]: components["schemas"]["VpcKpi"];
+            };
         };
         /** Windows */
         Windows: {
@@ -2077,6 +2596,18 @@ export interface components {
             log?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * Check
+         * @description Položka kontrolního seznamu struktury (app.guides): True splněno, False chybí, None připomínka.
+         */
+        pidtools__api__apc_more__Check: {
+            /** Action */
+            action?: string | null;
+            /** State */
+            state: boolean | null;
+            /** Text */
+            text: string;
         };
         /** Check */
         pidtools__api__data__Check: {
@@ -2694,6 +3225,156 @@ export interface operations {
             };
         };
     };
+    ratio_get_workspaces__wid__apc_ratio_get: {
+        parameters: {
+            query?: {
+                air_loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_design_workspaces__wid__apc_ratio_design_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatioIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioDesign"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_simulate_workspaces__wid__apc_ratio_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatioIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatioIn"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: demand, fuel, air_r (air / R), air_r_plain, lam, lam_plain (flows in % of ranges) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     recommend_workspaces__wid__apc_recommend_get: {
         parameters: {
             query?: never;
@@ -2715,6 +3396,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Recommendation"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rga_get_workspaces__wid__apc_rga_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RgaInfo"];
                 };
             };
             /** @description Validation Error */
@@ -2853,6 +3568,306 @@ export interface operations {
         };
         responses: {
             /** @description app.signalpack.frame: sp, pv_pid, mv_pid, pv_smith, mv_smith in engineering units */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_get_workspaces__wid__apc_split_get: {
+        parameters: {
+            query?: {
+                mode?: "opposite" | "sequence";
+                b0?: number;
+                gap?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_design_workspaces__wid__apc_split_design_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitDesign"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_simulate_workspaces__wid__apc_split_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_curves_workspaces__wid__apc_split_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitIn"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: sp, pv_now, pv_new in engineering units; u_now, u_new, va, vb in % (output of the controller and valves) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vpc_get_workspaces__wid__apc_vpc_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpcInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vpc_design_workspaces__wid__apc_vpc_design_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VpcIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpcDesign"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vpc_simulate_workspaces__wid__apc_vpc_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VpcIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VpcSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VpcIn"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: sp, pv_off, pv_on in engineering units; mv1_off, mv1_on, mv2_on in % */
             200: {
                 headers: {
                     [name: string]: unknown;
