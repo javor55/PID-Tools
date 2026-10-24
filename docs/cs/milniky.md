@@ -532,7 +532,19 @@ a Playwright.
   integrace) a simulace PID vs. Smith (ukazatele, PV, MV).
 - Test v prohlížeči: doporučení = API, zapnutí a úprava FF, reset, ukazatele simulace, hodnoty Smitha a jeho
   simulace = API, změna typu regulátoru a optimalizace jako úloha.
-- Zbývá: kaskáda, gain scheduling (PV, ER), rozvazbení, override, poměr, split range, VPC, RGA (API vzniká souběžně).
+- Split range, VPC a poměr (`Split.tsx`, `Vpc.tsx`, `Ratio.tsx`): vstupy v postranním panelu (režim, b₀, mezera,
+  SP polohy, násobek τc, porucha, R, skok požadavku) a editor modelu druhého členu (`ModelEditor`: ventil A, MV2,
+  vzduch; typ modelu jako u smyčky, názvy parametrů z API) nejsou nastavení projektu (desktop je neukládá), drží je
+  prohlížeč po prostorech (`moreCommon.tsx`) a jdou v těle `POST …/design` a `…/simulate`; „Původní hodnoty“ úpravy
+  zahodí a vrátí výchozí z GET (u poměru je volitelný zdroj vzduchu `air_loop` z ostatních smyček, model se pak jen
+  zobrazí). V hlavní ploše výsledek (b*, zesílení a Ms polovin; PI regulátor VPC; nejmenší λ), hodnoty pro šablonu,
+  text implementace, kontrolní seznam a simulace (ukazatele a křivky z binárního `/curves`).
+- RGA (`Rga.tsx`): matice zesílení K (? = vazba bez modelu), RGA, Niederlinskiho index, doporučené párování a rady;
+  s jednou smyčkou kontrolní seznam, co chybí.
+- Test v prohlížeči (`test_apc_split_vpc_ratio_rga`): hodnoty a ukazatele všech čtyř panelů = API, úprava jednoho
+  parametru druhého modelu a vstupů (návrh i simulace sledují API), návrat k původním hodnotám, RGA s jednou smyčkou.
+- Zbývá: kaskáda, gain scheduling (PV, ER), rozvazbení, override (API vzniká souběžně); RGA se dvěma smyčkami v prohlížeči
+  není testováno (API ano).
 
 ### M20 · Diagnostika a Přehled smyček
 

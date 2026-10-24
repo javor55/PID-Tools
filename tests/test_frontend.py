@@ -438,6 +438,110 @@ def test_apc_tab_recommendations_ff_smith(page, server):
     page.wait_for_timeout(800)
 
 
+def _wait_sel(page, sel, want, rel=5e-3, timeout=30000):
+    """Jako _wait_num, ale pro libovolný CSS selektor (buňka tabulky)."""
+    page.wait_for_function(
+        "([s, w, r]) => { const e = document.querySelector(s); if (!e) return false;"
+        " const v = parseFloat(e.innerText.replace(',', '.')); return Math.abs(v - w) <= r * Math.max(1, Math.abs(w)); }",
+        arg=[sel, want, rel], timeout=timeout)
+
+
+def _set_num(page, testid, value):
+    page.locator(f'[data-testid="{testid}"]').fill(str(value))
+    page.locator(f'[data-testid="{testid}"]').press("Enter")
+
+
+def test_apc_split_vpc_ratio_rga(page, server):
+    """APC (M19, další techniky): split range, VPC, poměr a RGA = API; úprava modelu druhého členu; RGA s jednou smyčkou."""
+    page.locator('[data-tab="apc"]').click()
+    # split range
+    page.locator('[data-testid="apc-tech-split"]').click()
+    page.wait_for_selector('[data-testid="split-val-b"]', timeout=20000)
+    info = _api(server, "/workspaces/{wid}/apc/split", page)
+    d = info["design"]
+    _wait_num(page, "split-val-b", d["bstar"])
+    _wait_num(page, "split-val-corr", d["corr"])
+    assert page.locator('[data-testid="split-checks"] li').count() == len(d["checks"])
+    assert f"{d['bstar']:.1f}".replace(".", ",") in page.locator('[data-testid="split-result"]').inner_text().replace(".", ",")
+    sim = _api_post(server, "/workspaces/{wid}/apc/split/simulate", info["defaults"], page)
+    page.wait_for_selector('[data-testid="split-kpi-new"]', timeout=30000)
+    _wait_sel(page, '[data-testid="split-kpi-new"] td:nth-child(2)', sim["kpis"]["new"]["iae"])
+    _wait_sel(page, '[data-testid="split-kpi-now"] td:nth-child(3)', sim["kpis"]["now"]["maxdev"])
+    assert page.locator('[data-testid="split-pv"] path').count() == 3
+    assert page.locator('[data-testid="split-valves"] path').count() == 2
+    # úprava zesílení ventilu A → návrh podle API
+    va = d["valve_a"]["values"]
+    assert page.locator('[data-testid="split-va-reset"]').is_disabled()
+    _set_num(page, "split-va-0", va[0] * 2)
+    body = dict(info["defaults"], valve_a=[va[0] * 2, *va[1:]])
+    d2 = _api_post(server, "/workspaces/{wid}/apc/split/design", body, page)
+    assert d2["bstar"] != pytest.approx(d["bstar"])
+    _wait_num(page, "split-val-b", d2["bstar"])
+    sim2 = _api_post(server, "/workspaces/{wid}/apc/split/simulate", body, page)
+    _wait_sel(page, '[data-testid="split-kpi-new"] td:nth-child(2)', sim2["kpis"]["new"]["iae"])
+    page.locator('[data-testid="split-va-reset"]').click()
+    _wait_num(page, "split-val-b", d["bstar"])
+    # VPC
+    page.locator('[data-testid="apc-tech-vpc"]').click()
+    page.wait_for_selector('[data-testid="vpc-val-kc"]', timeout=20000)
+    info = _api(server, "/workspaces/{wid}/apc/vpc", page)
+    _wait_num(page, "vpc-val-kc", info["design"]["controller"]["Kc"])
+    _wait_num(page, "vpc-val-ti", info["design"]["controller"]["Ti"])
+    _wait_num(page, "vpc-val-tc", info["design"]["tc"])
+    assert page.locator('[data-testid="vpc-checks"] li').count() == len(info["design"]["checks"])
+    sim = _api_post(server, "/workspaces/{wid}/apc/vpc/simulate", info["defaults"], page)
+    page.wait_for_selector('[data-testid="vpc-kpi-on"]', timeout=30000)
+    _wait_sel(page, '[data-testid="vpc-kpi-on"] td:nth-child(2)', sim["kpis"]["on"]["iae"])
+    _wait_sel(page, '[data-testid="vpc-kpi-on"] td:nth-child(4)', sim["kpis"]["on"]["reserve"])
+    assert page.locator('[data-testid="vpc-mv1"] path').count() == 3
+    g2 = info["defaults"]["mv2"]
+    _set_num(page, "vpc-mv2-0", g2[0] * 1.5)
+    body = dict(info["defaults"], mv2=[g2[0] * 1.5, *g2[1:]])
+    d2 = _api_post(server, "/workspaces/{wid}/apc/vpc/design", body, page)
+    _wait_num(page, "vpc-val-kc", d2["controller"]["Kc"])
+    _set_num(page, "vpc-sp", 60)
+    _wait_num(page, "vpc-val-sp", 60)
+    sim2 = _api_post(server, "/workspaces/{wid}/apc/vpc/simulate", dict(body, sp=60), page)
+    _wait_sel(page, '[data-testid="vpc-kpi-on"] td:nth-child(3)', sim2["kpis"]["on"]["at_lim"])
+    page.locator('[data-testid="vpc-reset"]').click()
+    page.locator('[data-testid="vpc-mv2-reset"]').click()
+    _wait_num(page, "vpc-val-sp", 50)
+    _wait_num(page, "vpc-val-kc", info["design"]["controller"]["Kc"])
+    # poměrová regulace (jedna smyčka → jen ruční model vzduchu)
+    page.locator('[data-testid="apc-tech-ratio"]').click()
+    page.wait_for_selector('[data-testid="ratio-kpi-cross"]', timeout=30000)
+    info = _api(server, "/workspaces/{wid}/apc/ratio", page)
+    assert info["design"]["sources"] == [] and page.locator('[data-testid="ratio-src"] option').count() == 1
+    sim = _api_post(server, "/workspaces/{wid}/apc/ratio/simulate", info["defaults"], page)
+    _wait_sel(page, '[data-testid="ratio-kpi-cross"] td:nth-child(2)', sim["kpis"]["cross"]["lam_min"])
+    _wait_sel(page, '[data-testid="ratio-kpi-plain"] td:nth-child(3)', sim["kpis"]["plain"]["t_rich"])
+    assert page.locator('[data-testid="ratio-checks"] li').count() == len(info["design"]["checks"])
+    assert page.locator('[data-testid="ratio-flows"] path').count() == 4
+    _set_num(page, "ratio-R", 2)
+    _wait_num(page, "ratio-val-R", 2)
+    sim2 = _api_post(server, "/workspaces/{wid}/apc/ratio/simulate", dict(info["defaults"], R=2.0), page)
+    _wait_sel(page, '[data-testid="ratio-kpi-plain"] td:nth-child(2)', sim2["kpis"]["plain"]["lam_min"])
+    air = info["defaults"]["air"]
+    _set_num(page, "ratio-air-1", air[1] * 3)
+    sim3 = _api_post(server, "/workspaces/{wid}/apc/ratio/simulate", dict(info["defaults"], R=2.0, air=[air[0], air[1] * 3, *air[2:]]), page)
+    assert sim3["kpis"]["cross"] != sim2["kpis"]["cross"]
+    _wait_sel(page, '[data-testid="ratio-kpi-cross"] td:nth-child(4)', sim3["kpis"]["cross"]["iae"])
+    page.locator('[data-testid="ratio-reset"]').click()
+    page.locator('[data-testid="ratio-air-reset"]').click()
+    _wait_num(page, "ratio-val-R", 1.2)
+    _wait_sel(page, '[data-testid="ratio-kpi-cross"] td:nth-child(2)', sim["kpis"]["cross"]["lam_min"])
+    # RGA s jednou smyčkou: kontrolní seznam, co chybí
+    page.locator('[data-testid="apc-tech-rga"]').click()
+    page.wait_for_selector('[data-testid="rga-notready"]', timeout=20000)
+    rga = _api(server, "/workspaces/{wid}/apc/rga", page)
+    assert rga["ready"] is False
+    assert page.locator('[data-testid="rga-checks"] li').count() == len(rga["checks"])
+    assert page.locator('[data-testid="rga-k"]').count() == 0
+    for c in rga["checks"]:
+        assert c["text"] in page.locator('[data-testid="rga-checks"]').inner_text()
+    page.locator('[data-testid="apc-tech-ff"]').click()
+
+
 def test_no_page_errors(page):
     """Během všech předchozích scénářů nevznikla na stránce žádná výjimka JS."""
     assert page.errors == []
