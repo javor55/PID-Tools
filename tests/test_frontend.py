@@ -337,6 +337,14 @@ def _rel(a, b, tol=2e-3):
     return abs(a - b) <= tol * max(1.0, abs(b))
 
 
+def _wait_num(page, testid, want, rel=2e-3, timeout=20000):
+    """Počká, až číslo v prvku odpovídá očekávané hodnotě (dotazy drží do přepočtu předchozí výsledek)."""
+    page.wait_for_function(
+        "([id, w, r]) => { const e = document.querySelector(`[data-testid=\"${id}\"]`);"
+        " if (!e) return false; const v = parseFloat(e.innerText.replace(',', '.'));"
+        " return Math.abs(v - w) <= r * Math.max(1, Math.abs(w)); }", arg=[testid, want, rel], timeout=timeout)
+
+
 def test_apc_tab_recommendations_ff_smith(page, server):
     """APC (M19, 1. část): doporučení, dopředná vazba (zapnutí, úprava, reset, simulace), Smith = API, optimalizace."""
     page.locator('[data-tab="apc"]').click()
@@ -412,7 +420,7 @@ def test_apc_tab_recommendations_ff_smith(page, server):
     page.wait_for_timeout(1200)
     assert _api(server, "/workspaces/{wid}/settings", page)["apc_sm_ct"] == "PID"
     sm = _api(server, "/workspaces/{wid}/apc/smith", page)
-    assert _rel(float(page.locator('[data-testid="sm-kc"]').inner_text()), sm["controller"]["Kc"])
+    _wait_num(page, "sm-kc", sm["controller"]["Kc"])            # do načtení zůstává vidět předchozí hodnota
     page.select_option('[data-testid="set-apc_sm_ct"]', "PI")
     # robustní optimalizace jako úloha
     page.select_option('[data-testid="set-apc_sm_method"]', "OPT")
@@ -421,10 +429,11 @@ def test_apc_tab_recommendations_ff_smith(page, server):
     if not _api(server, "/workspaces/{wid}/apc/smith", page)["opt_ready"]:
         page.wait_for_selector('[data-testid="sm-need-opt"]')
         page.locator('[data-testid="sm-opt"]').click()
-    page.wait_for_selector('[data-testid="sm-kc"]', timeout=180000)
+    page.wait_for_function("() => document.querySelector('[data-testid=\"sm-opt\"]') && "
+                           "!document.querySelector('[data-testid=\"sm-opt\"]').disabled", timeout=180000)
     sm = _api(server, "/workspaces/{wid}/apc/smith", page)
     assert sm["opt_ready"] and sm["inputs"]["method"] == "OPT"
-    assert _rel(float(page.locator('[data-testid="sm-kc"]').inner_text()), sm["controller"]["Kc"])
+    _wait_num(page, "sm-kc", sm["controller"]["Kc"])
     page.select_option('[data-testid="set-apc_sm_method"]', "SIMC")
     page.wait_for_timeout(800)
 
