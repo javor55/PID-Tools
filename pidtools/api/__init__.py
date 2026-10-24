@@ -10,16 +10,20 @@ import asyncio
 import contextvars
 import hmac
 import json
+import re
+import weakref
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL, JobManager
-from . import analysis, data, model, opcua, projects, tuning
+from . import analysis, apc, apc_loops, apc_more, data, model, opcua, projects, tuning
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -45,6 +49,36 @@ def _request_lang(request):
     return i18n.DEFAULT_LANG
 
 
+UI_DIR = Path(__file__).resolve().parent / "ui"                      # sestavené rozhraní (frontend: npm run build)
+FONTS_DIR = Path(__file__).resolve().parents[2] / "static" / "fonts"  # přibalené fonty IBM Plex (OFL)
+
+
+def _mount_static(app):
+    """Fonty a sestavené rozhraní – až za endpointy API (ty mají přednost)."""
+    if FONTS_DIR.is_dir():
+        app.mount("/fonts", StaticFiles(directory=FONTS_DIR), name="fonts")
+    if (UI_DIR / "index.html").exists():
+        app.mount("/", StaticFiles(directory=UI_DIR, html=True), name="ui")
+
+
+def _serialize_workspaces(app):
+    """
+    Požadavky na jeden pracovní prostor jeden po druhém: prostor není stavěný na souběh (změna nastavení během
+    simulace) a souběžné výpočty se přetahují o GIL – dvojice ukazatele + křivky téže simulace trvala souběžně
+    několikanásobně déle než po sobě, kdy druhý požadavek vezme výsledek z mezipaměti. Úlohy běží v procesech.
+    """
+    ws_locks = weakref.WeakKeyDictionary()      # {event loop: {prostor: zámek}} – zámek asyncio patří ke smyčce
+
+    @app.middleware("http")
+    async def workspace_mw(request, call_next):
+        m = re.match(r"/workspaces/([^/]+)/", request.url.path)
+        if not m:
+            return await call_next(request)
+        locks = ws_locks.setdefault(asyncio.get_running_loop(), {})
+        async with locks.setdefault(m.group(1), asyncio.Lock()):
+            return await call_next(request)
+
+
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
     """Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly)."""
     jobs = JobManager(max_parallel=max_jobs)
@@ -66,6 +100,8 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             return await call_next(request)
         finally:
             _LANG.reset(tok)
+
+    _serialize_workspaces(app)
 
     app.state.jobs = jobs
     if cors_origins:
@@ -101,6 +137,9 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(analysis.router(project), dependencies=[Depends(auth)])
+    app.include_router(apc.router(project, jobs), dependencies=[Depends(auth)])
+    app.include_router(apc_more.router(project), dependencies=[Depends(auth)])
+    app.include_router(apc_loops.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(opcua.router(project, jobs), dependencies=[Depends(auth)])
 
     @app.get("/health", response_model=Health, tags=["system"])
@@ -167,4 +206,5 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
                 await asyncio.sleep(0.1)
         return StreamingResponse(gen(), media_type="text/event-stream")
 
+    _mount_static(app)
     return app

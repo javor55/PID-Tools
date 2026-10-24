@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from ..app import frequency as fq
+from ..app import live
 from ..app import loopmode as lm
 from ..app import scenario as scn
 from ..app import signalpack
@@ -105,6 +106,8 @@ class FreqSet(BaseModel):
     phase_deg: list[float]
     S_db: list[float]
     T_db: list[float]
+    re: list[float]          # Nyquistův diagram: reálná a imaginární část L
+    im: list[float]
 
 
 def _fin(x):
@@ -152,7 +155,8 @@ def _freq(code, p, sets):
                            wc=_fin(r["wc"]), w180=_fin(r["w180"]), bw=_fin(fq.bandwidth(r)),
                            w=[float(x) for x in r["w"]], mag_db=[float(x) for x in r["mag_db"]],
                            phase_deg=[float(x) for x in r["phase_deg"]],
-                           S_db=[float(x) for x in fq.db(r["S"])], T_db=[float(x) for x in fq.db(r["T"])]))
+                           S_db=[float(x) for x in fq.db(r["S"])], T_db=[float(x) for x in fq.db(r["T"])],
+                           re=[float(x) for x in r["L"].real], im=[float(x) for x in r["L"].imag]))
     return out
 
 
@@ -256,5 +260,10 @@ def router(get_proj, jobs):
         if preview is not None:
             sets["sug"] = ws.ctrl_of(preview.model_dump())
         return _freq(code, p, sets)
+
+    @r.get("/live", response_model=dict)
+    def live_config(wid: str):
+        """Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2."""
+        return _plain(live.web_config_ws(need_model(wid)))
 
     return r

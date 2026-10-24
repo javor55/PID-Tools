@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from ..app import loopmode as lm
+from ..core import DIST_FIELDS, MODELS
 from ..app import model as mdl
 from ..app import signalpack
 from ..app import windows as wn
@@ -40,8 +41,30 @@ class MvMode(BaseModel):
     mode: Literal["man", "auto"]
 
 
+class Check(BaseModel):
+    key: str
+    args: dict = {}
+
+
+class DistCmp(BaseModel):
+    struct: str                     # kandidátní struktura (P0D … I1D)
+    fit: float | None = None        # FIT fitu jen parametrů poruchy (None = fit selhal)
+    error: str | None = None
+
+
+class DistInfo(BaseModel):
+    name: str                       # sloupec poruchy
+    struct: str                     # zvolená struktura přenosu (dsel|kód|j; jinak identifikovaná)
+    ident: str = ""                 # identifikovaná struktura
+    fields: list[list]              # [[název parametru, index v ed|kód|d{j}|{index}]] zvolené struktury
+    cmp: list[DistCmp] = []         # porovnání struktur z identifikace
+    flat: bool = False              # porucha se v datech nemění → nulový účinek
+
+
 class ModelRes(BaseModel):
     code: str
+    names: list[str] = []           # názvy parametrů procesu (ed|kód|i, fx|kód|i)
+    dists: list[DistInfo] = []
     p: list[float]
     pdl: list[list[float]] = []
     fit: float | None = None
@@ -55,7 +78,7 @@ class ModelRes(BaseModel):
     p_open: list[float] | None = None
     structs: list[str] = []
     window_fits: list[float | None] = []
-    checks: list[str] = []
+    checks: list[Check] = []
 
 
 class ModelState(BaseModel):
@@ -69,8 +92,20 @@ class ModelState(BaseModel):
     uncertainty: dict | None = None
 
 
+class Validation(BaseModel):
+    code: str
+    metrics: dict
+    sigma_pv: float | None = None
+
+
 class Select(BaseModel):
     code: str
+
+
+class DistSelect(BaseModel):
+    code: str
+    index: int                      # pořadí měřené poruchy
+    struct: str
 
 
 class Refit(BaseModel):
@@ -84,6 +119,15 @@ class Uncertainty(BaseModel):
 def _f(x):
     x = None if x is None else float(x)
     return None if x is None or not np.isfinite(x) else x
+
+
+def _dist_info(ws, c, r, j, nm):
+    """Porucha j výsledku r: zvolená a identifikovaná struktura, porovnání struktur s FIT."""
+    sel = wn.dsel(ws.get, c, r, j)
+    cmp_ = [DistCmp(struct=st_, fit=_f(f_), error=None if f_ is not None else str(pd_))
+            for st_, f_, pd_ in wn.cmp_of(r, j)]
+    return DistInfo(name=str(nm), struct=sel, ident=wn.dist_id(c, r, j), fields=[list(f) for f in DIST_FIELDS[sel]],
+                    cmp=cmp_, flat=j in set(r.get("dv_flat") or ()))
 
 
 def model_state(ws):
@@ -101,11 +145,14 @@ def model_state(ws):
         q = summ.get(c, {})
         wf = ws.window_fits(c) if r.get("method") == "win" and ws.inputs_mode else []
         out.append(ModelRes(
-            code=c, p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
+            code=c, names=list(MODELS[c]["params"]),
+            dists=[_dist_info(ws, c, r, j, nm) for j, nm in enumerate(ws.c_d)],
+            p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),
             method=r.get("method"), mixed=bool(r.get("mixed")), fit_cl_pv=_f(r.get("fit_cl_pv")),
             fit_cl_mv=_f(r.get("fit_cl_mv")), p_open=r.get("p_open"), structs=list(wn.structs(c, r)),
-            window_fits=[_f(x) for x in wf], checks=[k for k, _ in lm.model_checks(c, r["p"], ws.grid.Ts)]))
+            window_fits=[_f(x) for x in wf],
+            checks=[Check(key=k, args=_plain(a)) for k, a in lm.model_checks(c, r["p"], ws.grid.Ts)]))
     m = ws.model
     cur = dict(code=m[0], p=[float(x) for x in m[1]], pdl=[[float(x) for x in d_] for d_ in m[2]]) if m else None
     cv = ws.cv["res"] if ws.cv and ws.cv.get("key") == ws.fit_key() else None
@@ -131,13 +178,16 @@ def _set_windows(ws, body):
 
 
 def _curves_frame(ws):
-    """Průběhy modelu na mřížce smyčky → binární balík (signalpack)."""
+    """
+    Průběhy modelu na mřížce smyčky v inženýrských jednotkách (jako /signals?source=grid) → binární balík. model_mv /
+    model_dv jen s měřenými poruchami; residual = PV − model (jednotky PV).
+    """
     c = ws.model_curves()
-    cols = {"pv": ws.pv, "mv": ws.mv}
+    cols = {"pv": ws.EP(ws.pv), "mv": ws.EM(ws.mv)}
     names = {"all": "model", "mv": "model_mv", "dv": "model_dv", "full_all": "full"}
     for k, v in c.items():
         if k in names and v is not None:
-            cols[names[k]] = np.asarray(v, float)
+            cols[names[k]] = ws.EP(np.asarray(v, float))
     if "model" in cols:
         cols["residual"] = cols["pv"] - cols["model"]
     return signalpack.frame(signalpack.pack(list(cols), ws.t, cols.__getitem__, cap=None))
@@ -219,6 +269,19 @@ def router(get_proj, jobs):
         ws.reset_edits(body.code)
         return model_state(ws)
 
+    @r.put("/model/dist", response_model=ModelState)
+    def select_dist(wid: str, body: DistSelect):
+        """Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí
+        ed|kód|d{j}|i; model se použije hned (bez dofitování)."""
+        ws = need_data(wid)
+        r_ = ws.fit["res"].get(body.code) if ws.fit else None
+        if r_ is None or not 0 <= body.index < len(r_["pdl"]):
+            raise HTTPException(404, "model or disturbance not found")
+        if body.struct not in wn.dsel_options(body.code, r_, body.index)[0]:
+            raise HTTPException(422, "structure not in comparison")
+        ws.choose_dist(body.code, body.index, body.struct)
+        return model_state(ws)
+
     @r.post("/model/refit", response_model=JobInfo)
     def refit(wid: str, body: Refit):
         """Dofitování se zafixovanými parametry (zaškrtnutí fx|kód|i v nastavení, hodnoty ed|kód|i) – úloha."""
@@ -241,10 +304,18 @@ def router(get_proj, jobs):
         ws = need_model(wid)
         return submit(wid, ws, "bootstrap", (int(body.n),), steps=int(body.n))
 
+    @r.get("/model/validation", response_model=Validation)
+    def validation(wid: str):
+        """Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace
+        s MV (ccf) s mezí `bound`, hodnocení."""
+        ws = need_model(wid)
+        ev = ws.evaluate()
+        return Validation(code=ws.model[0], metrics=_plain(ev["metrics"]), sigma_pv=_f(ev.get("sigma_pv")))
+
     @r.get("/model/curves", response_class=Response,
            responses={200: {"content": {"application/octet-stream": {}},
-                            "description": "app.signalpack.frame on the loop grid: pv, mv, model (all), model_mv, "
-                                           "model_dv, full (whole record), residual"}})
+                            "description": "app.signalpack.frame on the loop grid in engineering units: pv, mv, "
+                                           "model (all), model_mv, model_dv, full (whole record), residual"}})
     def curves(wid: str):
         """Průběhy aktuálního modelu na mřížce smyčky (NaN mimo úseky) – binárně jako /signals."""
         return Response(_curves_frame(need_model(wid)), media_type="application/octet-stream")

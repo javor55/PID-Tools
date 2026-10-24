@@ -49,6 +49,8 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
         self.val_status = None       # výsledek validace pro průvodce: 0 dobrá, 1 stejný úsek, 2 špatná
         self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
+        self.smith_opt = {}          # robustní optimalizace Smithova prediktoru {klíč zadání: regulátor} (API)
+        self.apc_loops = {}          # kaskáda a gain scheduling: model vnitřní smyčky z dat, poslední simulace (API)
         self.wins = {}               # úseky podle vstupů {vstup: [[od, do] s]} (MV a měřené poruchy)
         self.excl = {}               # vyřazení dat podle mezí {signál: [zap, min, max]} (inženýrské jednotky)
         self.excl_tol = 0.5          # tolerance vyřazení [% rozsahu]

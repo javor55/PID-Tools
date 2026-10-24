@@ -8,8 +8,7 @@ import plotly.io as pio
 from plotly.subplots import make_subplots
 
 # ── Barvy stop (grafy) – čitelné na světlém i tmavém pozadí ──────────
-from .colors import C_DIST, C_EDIT, C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: E402,F401
-FONT = "'IBM Plex Sans', Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+from .colors import FONT, C_DIST, C_EDIT, C_MODEL, C_MV, C_PV, C_SET1, C_SET2, C_SP  # noqa: E402,F401
 MONO = "'IBM Plex Mono', ui-monospace, Consolas, monospace"
 
 

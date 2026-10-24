@@ -15,3 +15,6 @@ dist/
 
 # test artefacts
 _smoke.ini
+
+# sestavené rozhraní (frontend: npm run build)
+pidtools/api/ui/

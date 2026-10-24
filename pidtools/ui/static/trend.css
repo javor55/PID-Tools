@@ -1,0 +1,65 @@
+/* Graf průběhů s úseky (trend.js) – sdílí Streamlit web (pidtools/ui/trend.py) i nové rozhraní (frontend). */
+.pidw { position: relative; display: flex; flex-direction: column; gap: 12px; font-family: inherit;
+  color: var(--pidw-text); --pidw-text: #1f2933; --pidw-muted: #52606d; --pidw-line: #d7dde5; --pidw-card: #ffffff;
+  --pidw-grid: #e5e9ef; --pidw-axis: #c3ccd6; --pidw-hbg: #eef1f5; --pidw-btn: #ffffff; }
+@media (prefers-color-scheme: dark) { .pidw.dark-auto { } }
+.pidw.dark { --pidw-text: #e2e8f0; --pidw-muted: #94a3b8; --pidw-line: #26324a; --pidw-card: #111a2e;
+  --pidw-grid: #1c2740; --pidw-axis: #334155; --pidw-hbg: #0b1220; --pidw-btn: #0f172a; }
+.pidw-card { background: var(--pidw-card); border: 1px solid var(--pidw-line); border-radius: 10px; padding: 12px 14px; }
+.pidw-bar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 10px 14px; }
+.pidw-grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pidw-title { margin: 0; padding: 0; font-size: 14px; font-weight: 600; color: var(--pidw-text); }
+.pidw-lab { font-size: 12px; color: var(--pidw-muted); }
+.pidw-note { font-size: 11px; color: var(--pidw-muted); }
+.pidw-help { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; color: var(--pidw-muted);
+  font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.pidw-seg { display: inline-flex; border: 1px solid var(--pidw-axis); border-radius: 8px; overflow: hidden; }
+.pidw-seg button { font: inherit; font-size: 12px; padding: 4px 10px; border: 0; background: var(--pidw-btn);
+  color: var(--pidw-text); cursor: pointer; }
+.pidw-seg button + button { border-left: 1px solid var(--pidw-axis); }
+.pidw-seg button.on { background: #1f5fa8; color: #fff; font-weight: 500; }
+.pidw-model button { font-size: 11px; padding: 5px 10px; }
+.pidw-model button.on { background: #5b3fa8; }
+.pidw-leg { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; font-size: 11px; color: var(--pidw-muted); }
+.pidw-leg span, .pidw-leg2 span { display: inline-flex; align-items: center; gap: 6px; }
+.pidw-leg i { display: inline-block; width: 14px; height: 10px; border: 1px solid; }
+.pidw-leg i.pidw-ln { height: 0; border: 0; border-top: 2px solid; }
+.pidw-hatch { background: repeating-linear-gradient(135deg, #8a96a3 0 2px, var(--pidw-hbg) 2px 5px) !important;
+  border-color: #8a96a3 !important; }
+.pidw-leg2 { margin-left: auto; font-size: 11px; color: var(--pidw-muted); display: inline-flex; gap: 14px; }
+.pidw-leg2 i { display: inline-block; width: 18px; height: 0; }
+.pidw-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px; }
+.pidw-head h2 { margin: 0; padding: 0; font-size: 14px; font-weight: 600; color: var(--pidw-text); }
+.pidw-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+.pidw-chk { font-size: 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--pidw-muted); cursor: pointer; }
+.pidw-chk input { width: 15px; height: 15px; }
+.pidw-plot { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px; }
+.pidw-yax { position: relative; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--pidw-muted); }
+.pidw-yax span { position: absolute; right: 0; transform: translateY(-50%); }
+.pidw-area { position: relative; border-left: 1px solid var(--pidw-axis); border-bottom: 1px solid var(--pidw-axis);
+  cursor: grab; touch-action: none; overflow: hidden; }
+.pidw-area svg { display: block; }
+.pidw-resid { margin-top: 4px; }
+.pidw-wlab { position: absolute; top: 6px; transform: translateX(-104%); font-size: 11px; padding: 1px 6px;
+  border-radius: 4px; border: 1px solid; white-space: nowrap; pointer-events: none; }
+.pidw-trackrow { margin-top: 6px; }
+.pidw-track { position: relative; height: 26px; cursor: grab; touch-action: none; }
+.pidw-rail { position: absolute; left: 0; right: 0; top: 11px; height: 4px; background: var(--pidw-grid); border-radius: 2px; }
+.pidw-fill { position: absolute; top: 9px; height: 8px; border-radius: 4px; cursor: grab; touch-action: none; }
+.pidw-handle { position: absolute; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%;
+  border: 2px solid; background: #fff; padding: 0; cursor: ew-resize; touch-action: none; }
+.pidw-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0 50px; align-items: center; }
+.pidw-chip { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid;
+  display: inline-flex; align-items: center; gap: 6px; }
+.pidw-chip input { font: inherit; width: 58px; padding: 1px 4px; border: 1px solid; border-color: inherit; border-radius: 4px;
+  background: var(--pidw-btn); color: var(--pidw-text); }
+.pidw-mini { font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid; border-color: inherit; background: var(--pidw-btn);
+  color: inherit; border-radius: 4px; cursor: pointer; }
+.pidw-add { font: inherit; font-size: 11px; padding: 4px 10px; border: 1px dashed var(--pidw-axis); background: var(--pidw-btn);
+  color: var(--pidw-muted); border-radius: 6px; cursor: pointer; }
+.pidw-xax { position: relative; height: 16px; margin-top: 2px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--pidw-muted); }
+.pidw-xax span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.pidw-xax .pidw-xu { right: 0; left: auto !important; transform: none; font-family: inherit; }
+.pidw-tip { position: absolute; display: none; pointer-events: none; z-index: 5; font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--pidw-line); background: var(--pidw-card);
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; color: var(--pidw-text); }
