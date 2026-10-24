@@ -2061,5 +2061,8 @@
  "ui_connected": "Připojeno k výpočtům · verze {v}",
  "ui_offline": "Výpočetní server neodpovídá",
  "ui_api_error": "Chyba: {e}",
+ "ui_edited": "upraveno",
+ "ui_sm_optimize": "Spočítat robustní optimalizaci",
+ "ui_sm_need_opt": "Robustní optimalizaci je třeba spočítat – spusťte ji v nastavení vpravo.",
  "ui_sc_add": "Přidat událost"
 }

@@ -42,7 +42,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M16 | Ladění 1: blok PIDConL, sady, návrh, kontroly | C | M | M10, M15 | ◐ |
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ◐ |
 | M18 | Živá simulace | C | M | M16 | ☑ |
-| M19 | APC | C | L | M11, M16 | ☐ |
+| M19 | APC | C | L | M11, M16 | ◐ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☐ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☐ |
 | M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ☐ |
@@ -454,6 +454,23 @@ a Playwright.
 
 ### M19 · APC (L)
 - Všechny dnešní techniky, včetně „vrátit na vypočtené“.
+
+**Skutečnost M19 (část):**
+- Záložka APC (`ApcTab.tsx`): karta doporučení z `/apc/recommend` (texty přeložené API, tlačítko „Otevřít …“ přepne
+  techniku), přepínač technik a rozbalitelný úvod „O této struktuře“; zvolená technika se pamatuje v prohlížeči.
+- Rozšiřitelná struktura: jedna komponenta na techniku v `src/tabs/apc/` a řádek v seznamu `TECHNIQUES`
+  (`apc/index.ts`; `Main`, volitelně `Side` pro postranní panel). Techniky bez API ukazují zástupný text.
+- Dopředná vazba: karta pro každou měřenou poruchu (zapnuto, dynamická, zesílení v % MV a v jednotkách MV, lead, lag,
+  zpoždění; změny jdou optimisticky přes `PUT /apc/ff`), příznak „upraveno“, návrat k návrhu z modelu (jedna porucha
+  i všechny), hodnoty pro PIDConL a ověření skokem poruchy (ukazatele bez FF / statická / dynamická a křivky PV, MV).
+  Bez měřené poruchy vysvětlující text.
+- Smithův prediktor: vstupy v postranním panelu (metoda, regulátor, τc, ruční Gain / TI / TD, chyba procesu) jsou klíče
+  nastavení `apc_sm_*`; robustní optimalizace (OPT) běží jako úloha se stavovým řádkem. V hlavní ploše poměr zpoždění,
+  regulátor s poznámkami, pracovní bod, z čeho výpočet vychází, obecné hodnoty a hodnoty pro šablonu (jen proces bez
+  integrace) a simulace PID vs. Smith (ukazatele, PV, MV).
+- Test v prohlížeči: doporučení = API, zapnutí a úprava FF, reset, ukazatele simulace, hodnoty Smitha a jeho
+  simulace = API, změna typu regulátoru a optimalizace jako úloha.
+- Zbývá: kaskáda, gain scheduling (PV, ER), rozvazbení, override, poměr, split range, VPC, RGA (API vzniká souběžně).
 
 ### M20 · Diagnostika a Přehled smyček
 

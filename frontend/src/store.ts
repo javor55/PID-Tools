@@ -27,11 +27,13 @@ interface UiState {
   lang: "cs" | "en";
   theme: Theme;
   tab: TabId;
+  apcTech: string;
   wid: string | null;
   jobs: Record<string, JobInfo>;
   setLang: (l: "cs" | "en") => void;
   setTheme: (t: Theme) => void;
   setTab: (t: TabId) => void;
+  setApcTech: (t: string) => void;
   setWid: (w: string | null) => void;
   putJob: (j: JobInfo) => void;
   dropJob: (id: string) => void;
@@ -41,11 +43,13 @@ export const useUi = create<UiState>((set) => ({
   lang: load("pid.lang", navigator.language?.startsWith("cs") ? "cs" : "en"),
   theme: load<Theme>("pid.theme", "system"),
   tab: load<TabId>("pid.tab", "data"),
+  apcTech: load("pid.apc", "ff"),
   wid: (() => { try { return sessionStorage.getItem("pid.wid"); } catch { return null; } })(),
   jobs: {},
   setLang: (lang) => { save("pid.lang", lang); set({ lang }); },
   setTheme: (theme) => { save("pid.theme", theme); set({ theme }); },
   setTab: (tab) => { save("pid.tab", tab); set({ tab }); },
+  setApcTech: (apcTech) => { save("pid.apc", apcTech); set({ apcTech }); },
   setWid: (wid) => { try { if (wid) sessionStorage.setItem("pid.wid", wid); else sessionStorage.removeItem("pid.wid"); } catch { /* */ } set({ wid }); },
   putJob: (j) => set((s) => ({ jobs: { ...s.jobs, [j.id]: j } })),
   dropJob: (id) => set((s) => { const jobs = { ...s.jobs }; delete jobs[id]; return { jobs }; }),

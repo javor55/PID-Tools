@@ -333,6 +333,102 @@ def test_live_tab(page, server):
     page.wait_for_selector('[data-testid="tab-data"]')
 
 
+def _rel(a, b, tol=2e-3):
+    return abs(a - b) <= tol * max(1.0, abs(b))
+
+
+def test_apc_tab_recommendations_ff_smith(page, server):
+    """APC (M19, 1. část): doporučení, dopředná vazba (zapnutí, úprava, reset, simulace), Smith = API, optimalizace."""
+    page.locator('[data-tab="apc"]').click()
+    page.wait_for_selector('[data-testid="apc-reco"]', timeout=20000)
+    reco = _api(server, "/workspaces/{wid}/apc/recommend", page)
+    page.wait_for_function("() => document.querySelector('[data-testid=\"apc-reco\"] li, [data-testid=\"apc-reco-none\"]')")
+    assert page.locator('[data-testid="apc-reco"] li').count() == len(reco)
+    for r in reco:
+        assert r["text"] in page.locator(f'[data-testid="apc-reco-{r["kind"]}"]').first.inner_text()
+    assert page.locator('[data-testid="apc-techs"] [role="tab"]').count() == 11
+    page.locator('[data-testid="apc-tech-cascade"]').click()                        # bez API → zástupný text
+    assert page.locator('[data-testid="apc-cascade"] .muted').count() == 1
+    # dopředná vazba
+    page.locator('[data-testid="apc-tech-ff"]').click()
+    ff = _api(server, "/workspaces/{wid}/apc/ff", page)
+    if not ff["dists"]:
+        page.wait_for_selector('[data-testid="ff-none"]')
+    else:
+        d0 = ff["dists"][0]
+        page.wait_for_selector('[data-testid="ff-dist-0"]')
+        assert not d0["design"]["use"] and page.locator('[data-testid="ff-edited-0"]').count() == 0
+        page.locator('[data-testid="ff-use-0"]').click()
+        page.locator('[data-testid="ff-dyn-0"]').click()
+        page.wait_for_function("() => document.querySelectorAll('[data-testid=\"ff-kpis\"] tbody tr').length === 3",
+                               timeout=20000)
+        page.wait_for_selector('[data-testid="ff-values-0"] tbody tr', timeout=20000)    # hodnoty pro PIDConL
+        cur = _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]
+        assert cur["design"]["use"] and cur["design"]["dyn"]
+        page.locator('[data-testid="ff-gain-0"]').fill("2.5")
+        page.locator('[data-testid="ff-gain-0"]').press("Enter")
+        page.wait_for_selector('[data-testid="ff-edited-0"]')
+        cur = _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]
+        assert cur["design"]["gain"] == 2.5 and cur["edited"]
+        sim = _api_post(server, "/workspaces/{wid}/apc/ff/simulate", {"dist": 0}, page)
+        want = sim["kpis"]["dynamic"]["iae"]
+        page.wait_for_function(
+            "(w) => { const t = document.querySelector('[data-testid=\"ff-kpi-dynamic\"] td:nth-child(2)');"
+            " return t && Math.abs(parseFloat(t.innerText) - w) <= 2e-3 * Math.max(1, Math.abs(w)); }", arg=want,
+            timeout=20000)
+        assert page.locator('[data-testid="ff-pv"] path').count() == 3
+        page.locator('[data-testid="ff-reset-all"]').click()
+        page.wait_for_function("() => !document.querySelector('[data-testid=\"ff-edited-0\"]')")
+        cur = _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]
+        assert cur["design"]["gain"] == pytest.approx(cur["defaults"]["gain"]) and not cur["edited"]
+        page.locator('[data-testid="ff-use-0"]').click()
+        page.locator('[data-testid="ff-dyn-0"]').click()
+        page.wait_for_selector('[data-testid="ff-all-off"]')
+        assert not _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]["design"]["use"]
+    # Smithův prediktor: hodnoty = API
+    page.locator('[data-testid="apc-tech-smith"]').click()
+    page.wait_for_selector('[data-testid="sm-kc"]', timeout=20000)
+    sm = _api(server, "/workspaces/{wid}/apc/smith", page)
+    assert sm["inputs"]["method"] == "SIMC" and sm["opt_ready"]
+    assert _rel(float(page.locator('[data-testid="sm-kc"]').inner_text()), sm["controller"]["Kc"])
+    assert _rel(float(page.locator('[data-testid="sm-ti"]').inner_text()), sm["controller"]["Ti"])
+    assert f"{sm['ratio']:.2f}" in page.locator('[data-testid="sm-ratio"]').inner_text().replace(",", ".")
+    if sm["integ"]:
+        assert page.locator('[data-testid="sm-template"]').count() == 0
+    else:
+        page.wait_for_selector('[data-testid="sm-template"] tbody tr')
+        assert page.locator('[data-testid="sm-template"] tbody tr').count() == len(sm["rows"])
+        assert page.locator('[data-testid="sm-general"] tbody tr').count() == len(sm["general_rows"])
+        assert page.locator('[data-testid="sm-op"]').count() == 1
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"sm-kpis\"] tbody tr').length === 2",
+                           timeout=30000)
+    sim = _api_post(server, "/workspaces/{wid}/apc/smith/simulate", {}, page)
+    for k in ("pid", "smith"):
+        got = page.locator(f'[data-testid="sm-kpi-{k}"] td:nth-child(2)').inner_text()
+        assert _rel(float(got), sim["kpis"][k]["iae_sp"], 5e-3)
+    assert page.locator('[data-testid="sm-pv"] path').count() == 3
+    # změna typu regulátoru přes nastavení → regulátor z API
+    page.select_option('[data-testid="set-apc_sm_ct"]', "PID")
+    page.wait_for_timeout(1200)
+    assert _api(server, "/workspaces/{wid}/settings", page)["apc_sm_ct"] == "PID"
+    sm = _api(server, "/workspaces/{wid}/apc/smith", page)
+    assert _rel(float(page.locator('[data-testid="sm-kc"]').inner_text()), sm["controller"]["Kc"])
+    page.select_option('[data-testid="set-apc_sm_ct"]', "PI")
+    # robustní optimalizace jako úloha
+    page.select_option('[data-testid="set-apc_sm_method"]', "OPT")
+    page.wait_for_selector('[data-testid="sm-opt"]')
+    page.wait_for_timeout(800)
+    if not _api(server, "/workspaces/{wid}/apc/smith", page)["opt_ready"]:
+        page.wait_for_selector('[data-testid="sm-need-opt"]')
+        page.locator('[data-testid="sm-opt"]').click()
+    page.wait_for_selector('[data-testid="sm-kc"]', timeout=180000)
+    sm = _api(server, "/workspaces/{wid}/apc/smith", page)
+    assert sm["opt_ready"] and sm["inputs"]["method"] == "OPT"
+    assert _rel(float(page.locator('[data-testid="sm-kc"]').inner_text()), sm["controller"]["Kc"])
+    page.select_option('[data-testid="set-apc_sm_method"]', "SIMC")
+    page.wait_for_timeout(800)
+
+
 def test_no_page_errors(page):
     """Během všech předchozích scénářů nevznikla na stránce žádná výjimka JS."""
     assert page.errors == []
