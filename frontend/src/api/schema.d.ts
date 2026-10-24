@@ -204,6 +204,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/apc/cascade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cascade Get
+         * @description Kaskáda (aktivní smyčka = vnější): zdroj modelu vnitřní smyčky, ladění obou smyček, oddělení rychlostí.
+         */
+        get: operations["cascade_get_workspaces__wid__apc_cascade_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/cascade/fit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cascade Fit
+         * @description Model vnitřní smyčky z dat (úloha, P1D / P2D); výsledek se uloží, dále GET /apc/cascade (zdroj data).
+         */
+        post: operations["cascade_fit_workspaces__wid__apc_cascade_fit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/cascade/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cascade Reset
+         * @description Původní hodnoty: ruční model (K, T1, T2, θ), ladění vnitřní smyčky (SampleTime, τc) nebo vnější (τc).
+         */
+        post: operations["cascade_reset_workspaces__wid__apc_cascade_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/cascade/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cascade Simulate
+         * @description Skok SP vnější smyčky a poruchy obou smyček: stabilita, doba odezvy vnitřní smyčky, IAE vnější smyčky.
+         */
+        post: operations["cascade_simulate_workspaces__wid__apc_cascade_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/cascade/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cascade Curves */
+        post: operations["cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/decouple": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dec Get
+         * @description Rozvazbení 2×2 s druhou smyčkou projektu: RGA, parametry decouplerů pro PCS 7.
+         */
+        get: operations["dec_get_workspaces__wid__apc_decouple_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/decouple/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dec Simulate
+         * @description Změny SP obou smyček bez rozvazbení, se statickými a s dynamickými decouplery: IAE v jednotkách PV.
+         */
+        post: operations["dec_simulate_workspaces__wid__apc_decouple_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/decouple/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dec Curves */
+        post: operations["dec_curves_workspaces__wid__apc_decouple_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/apc/ff": {
         parameters: {
             query?: never;
@@ -279,6 +433,258 @@ export interface paths {
         put?: never;
         /** Ff Curves */
         post: operations["ff_curves_workspaces__wid__apc_ff_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gs Get
+         * @description Gain scheduling podle PV: úseky bodů, identifikované body, ladění v bodech, tabulka pro GainSched.
+         */
+        get: operations["gs_get_workspaces__wid__apc_gainsched_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched/auto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gs Auto
+         * @description Úseky bodů znovu z automatického návrhu (do gs_r1 …); body zůstanou, ale označí se jako zastaralé.
+         */
+        post: operations["gs_auto_workspaces__wid__apc_gainsched_auto_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched/fit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gs Fit
+         * @description Identifikace modelu v úsecích bodů (úloha); úseky se uloží do gs_r*, body do gs_pts / gs_key.
+         */
+        post: operations["gs_fit_workspaces__wid__apc_gainsched_fit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gs Reset
+         * @description Původní hodnoty ladění bodů: násobek τc = 1, Ms = 1,6.
+         */
+        post: operations["gs_reset_workspaces__wid__apc_gainsched_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gs Simulate
+         * @description Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling.
+         */
+        post: operations["gs_simulate_workspaces__wid__apc_gainsched_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gs Curves */
+        post: operations["gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched_er": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Er Get
+         * @description Gain scheduling podle ER: vstupy (gs_er_*), největší bezpečný násobek k, tabulka pro GainSched.
+         */
+        get: operations["er_get_workspaces__wid__apc_gainsched_er_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched_er/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Er Reset
+         * @description Původní hodnoty: práh E = 5 % rozsahu PV, k = 2, skok SP = 20 % rozsahu PV, porucha 10 %.
+         */
+        post: operations["er_reset_workspaces__wid__apc_gainsched_er_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched_er/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Er Simulate
+         * @description Skok SP a porucha: jedna sada vs. scheduling podle ER vs. nejlepší řídicí pásmo ConZone (výpočet ~2 s,
+         *     stejné vstupy se nepočítají znovu).
+         */
+        post: operations["er_simulate_workspaces__wid__apc_gainsched_er_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Er Curves */
+        post: operations["er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ov Get
+         * @description Override s druhou smyčkou projektu: výchozí scénář (skok SP hlavní smyčky, mez omezující smyčky).
+         */
+        get: operations["ov_get_workspaces__wid__apc_override_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/override/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ov Simulate
+         * @description Simulace s výběrem MIN / MAX a bez něj; skok a mez chybějící v těle = výchozí scénář.
+         */
+        post: operations["ov_simulate_workspaces__wid__apc_override_simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/apc/override/simulate/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ov Curves */
+        post: operations["ov_curves_workspaces__wid__apc_override_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1135,6 +1541,128 @@ export interface components {
             /** User */
             user?: string | null;
         };
+        /** CascadeFit */
+        CascadeFit: {
+            /** Fit */
+            fit: number;
+            model: components["schemas"]["ModelOut"];
+        };
+        /** CascadeFitReq */
+        CascadeFitReq: {
+            /** Ihi */
+            ihi?: number | null;
+            /** Ilo */
+            ilo?: number | null;
+            /** Imv */
+            imv: string;
+            /** Ipv */
+            ipv: string;
+        };
+        /** CascadeInfo */
+        CascadeInfo: {
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["LoopCheck"][];
+            /** Impl Text */
+            impl_text?: string | null;
+            inner?: components["schemas"]["Tuned"] | null;
+            inner_fit?: components["schemas"]["CascadeFit"] | null;
+            inner_model?: components["schemas"]["ModelOut"] | null;
+            /** Inner Note */
+            inner_note?: string | null;
+            inputs: components["schemas"]["CascadeInputs"];
+            /** Model */
+            model: string;
+            outer?: components["schemas"]["Tuned"] | null;
+            outer_model?: components["schemas"]["ModelOut"] | null;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["ValueRow"][];
+            /**
+             * Sep Warn
+             * @default false
+             */
+            sep_warn: boolean;
+            /** Separation */
+            separation?: number | null;
+            /** T63 */
+            t63?: number | null;
+            /** Tc Eff */
+            tc_eff?: number | null;
+        };
+        /** CascadeInputs */
+        CascadeInputs: {
+            /** Inner Method */
+            inner_method: string;
+            /** Loop */
+            loop: number | null;
+            /** Loops */
+            loops: components["schemas"]["CascadeLoopRef"][];
+            /** Manual */
+            manual: number[];
+            /** Methods */
+            methods: string[];
+            /** Outer Ctype */
+            outer_ctype: string;
+            /** Outer Method */
+            outer_method: string;
+            /** Samp Default */
+            samp_default: number;
+            /** Samp I */
+            samp_i: number;
+            /** Signals */
+            signals: string[];
+            /** Source */
+            source: string;
+            /** Sources */
+            sources: string[];
+            /** Tci */
+            tci: number | null;
+            /** Tci Default */
+            tci_default: number;
+            /** Tci Edited */
+            tci_edited: boolean;
+            /** Tco */
+            tco: number | null;
+            /** Tco Default */
+            tco_default: number | null;
+            /** Tco Edited */
+            tco_edited: boolean;
+        };
+        /** CascadeLoopRef */
+        CascadeLoopRef: {
+            /** Has Model */
+            has_model: boolean;
+            /** Index */
+            index: number;
+            /** Name */
+            name: string;
+        };
+        /** CascadeReset */
+        CascadeReset: {
+            /**
+             * Part
+             * @enum {string}
+             */
+            part: "manual" | "inner" | "outer";
+        };
+        /** CascadeSim */
+        CascadeSim: {
+            /** T End */
+            T_end?: number | null;
+            /** Iae Outer */
+            iae_outer?: number | null;
+            /** Ok */
+            ok: boolean;
+            /** Separation */
+            separation: number;
+            /** T63 */
+            t63: number;
+        };
         /** Columns */
         Columns: {
             /**
@@ -1150,6 +1678,101 @@ export interface components {
             pv: string;
             /** Sp */
             sp?: string | null;
+        };
+        /** DecDefaults */
+        DecDefaults: {
+            /** Amp A */
+            amp_a: number;
+            /** Amp B */
+            amp_b: number;
+            /** Dtype */
+            dtype: string;
+        };
+        /** DecIae */
+        DecIae: {
+            /** Iae A */
+            iae_a: number;
+            /** Iae B */
+            iae_b: number;
+            /** Variant */
+            variant: string;
+        };
+        /** DecInfo */
+        DecInfo: {
+            /** A */
+            a: string;
+            /** Advice */
+            advice?: string | null;
+            /** Advice Key */
+            advice_key?: string | null;
+            /** B */
+            b: string;
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["LoopCheck"][];
+            defaults: components["schemas"]["DecDefaults"];
+            /** Impl Text */
+            impl_text?: string | null;
+            /** Lam */
+            lam?: number | null;
+            /** Loop */
+            loop: number;
+            /** Loops */
+            loops: components["schemas"]["CascadeLoopRef"][];
+            /** Ok */
+            ok: boolean;
+            /**
+             * Params
+             * @default []
+             */
+            params: components["schemas"]["DecParam"][];
+        };
+        /** DecParam */
+        DecParam: {
+            /** Delay */
+            delay: number;
+            /** Gain */
+            gain: number;
+            /** Gain Eng */
+            gain_eng: number;
+            /** Lag */
+            lag: number;
+            /** Lead */
+            lead: number;
+            /** Source Mv */
+            source_mv: string;
+            /** Target */
+            target: string;
+        };
+        /** DecSim */
+        DecSim: {
+            /** T End */
+            T_end: number;
+            /** Dtype */
+            dtype: string;
+            /** Kpis */
+            kpis: components["schemas"]["DecIae"][];
+        };
+        /** DecSimReq */
+        DecSimReq: {
+            /**
+             * Amp A
+             * @default 5
+             */
+            amp_a: number;
+            /**
+             * Amp B
+             * @default 5
+             */
+            amp_b: number;
+            /**
+             * Dtype
+             * @default dyn
+             * @enum {string}
+             */
+            dtype: "static" | "dyn";
         };
         /** Diagnostics */
         Diagnostics: {
@@ -1351,6 +1974,191 @@ export interface components {
             /** Value */
             value: number;
         };
+        /** GsErInfo */
+        GsErInfo: {
+            base?: components["schemas"]["Tuned"] | null;
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["LoopCheck"][];
+            /** Impl Text */
+            impl_text?: string | null;
+            inputs: components["schemas"]["GsErInputs"];
+            /** Integ */
+            integ: boolean;
+            /** K Max */
+            k_max?: number | null;
+            /** Model */
+            model: string;
+            /** Ms K */
+            ms_k?: number | null;
+            /**
+             * Table
+             * @default []
+             */
+            table: components["schemas"]["PointRow"][];
+        };
+        /** GsErInputs */
+        GsErInputs: {
+            /** E */
+            E: number;
+            /** E Default */
+            E_default: number;
+            /** D */
+            d: number;
+            /** D Default */
+            d_default: number;
+            /** Edited */
+            edited: boolean;
+            /** K */
+            k: number;
+            /** K Default */
+            k_default: number;
+            /** Spstep */
+            spstep: number;
+            /** Spstep Default */
+            spstep_default: number;
+        };
+        /** GsErKpi */
+        GsErKpi: {
+            /** Iae D */
+            iae_d: number;
+            /** Iae Sp */
+            iae_sp: number;
+            /** Maxdev */
+            maxdev: number;
+            /** Name */
+            name: string;
+            /** Sat */
+            sat: number;
+            /** Settled */
+            settled: boolean;
+        };
+        /** GsErScan */
+        GsErScan: {
+            /** Iae */
+            iae: number;
+            /** Settled */
+            settled: boolean;
+            /** Width */
+            width: number;
+        };
+        /** GsErSim */
+        GsErSim: {
+            /** T End */
+            T_end: number;
+            /** Kpis */
+            kpis: components["schemas"]["GsErKpi"][];
+            /**
+             * Scan
+             * @default []
+             */
+            scan: components["schemas"]["GsErScan"][];
+            /** Zone */
+            zone?: number | null;
+        };
+        /** GsInfo */
+        GsInfo: {
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["LoopCheck"][];
+            /**
+             * Filled
+             * @default false
+             */
+            filled: boolean;
+            /** Fitted */
+            fitted: boolean;
+            /** Impl Text */
+            impl_text?: string | null;
+            inputs: components["schemas"]["GsInputs"];
+            /** Integ */
+            integ: boolean;
+            /**
+             * Issues
+             * @default []
+             */
+            issues: string[];
+            /** Model */
+            model: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["GsPoint"][];
+            /** Spread */
+            spread?: number | null;
+            /** Stale */
+            stale: boolean;
+            /**
+             * Table
+             * @default []
+             */
+            table: components["schemas"]["PointRow"][];
+        };
+        /** GsInputs */
+        GsInputs: {
+            /** Ctype */
+            ctype: string;
+            /** Method */
+            method: string;
+            /** Methods */
+            methods: string[];
+            /** Ms */
+            ms: number;
+            /** Ms Default */
+            ms_default: number;
+            /** N */
+            n: number;
+            /** Ranges */
+            ranges: number[][];
+            /** Ranges Auto */
+            ranges_auto: boolean;
+            /** Tcf */
+            tcf: number;
+            /** Tcf Default */
+            tcf_default: number;
+        };
+        /** GsPoint */
+        GsPoint: {
+            /** Fit */
+            fit: number;
+            /** Gain */
+            gain: number;
+            /** Index */
+            index: number;
+            /** Params */
+            params: components["schemas"]["ParamRow"][];
+            /** Td */
+            td: number;
+            /** Ti */
+            ti: number | null;
+            /** U */
+            u: number;
+            /** X */
+            x: number;
+        };
+        /** GsPointKpi */
+        GsPointKpi: {
+            /** From X */
+            from_x: number;
+            /** Iae Fixed */
+            iae_fixed: number;
+            /** Iae Sched */
+            iae_sched: number;
+            /** To X */
+            to_x: number;
+        };
+        /** GsSim */
+        GsSim: {
+            /** T End */
+            T_end: number;
+            /** Kpis */
+            kpis: components["schemas"]["GsPointKpi"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1452,6 +2260,18 @@ export interface components {
             /** Pv */
             pv?: string | null;
         };
+        /**
+         * LoopCheck
+         * @description Položka kontrolního seznamu struktury (app.guides): ok True / False / None = jen k ověření.
+         */
+        LoopCheck: {
+            /** Action */
+            action?: string | null;
+            /** Ok */
+            ok: boolean | null;
+            /** Text */
+            text: string;
+        };
         /** LoopMode */
         LoopMode: {
             /** Auto Frac */
@@ -1476,6 +2296,13 @@ export interface components {
             active: number;
             /** Loops */
             loops: components["schemas"]["Loop"][];
+        };
+        /** ModelOut */
+        ModelOut: {
+            /** Code */
+            code: string;
+            /** Params */
+            params: components["schemas"]["ParamRow"][];
         };
         /** ModelRes */
         ModelRes: {
@@ -1615,6 +2442,85 @@ export interface components {
             /** Key */
             key: string;
         };
+        /** OvDefaults */
+        OvDefaults: {
+            /** Lim */
+            lim: number;
+            /** Step */
+            step: number;
+        };
+        /** OvInfo */
+        OvInfo: {
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["LoopCheck"][];
+            defaults: components["schemas"]["OvDefaults"];
+            /** Impl Text */
+            impl_text?: string | null;
+            /** Loop */
+            loop: number;
+            /** Loops */
+            loops: components["schemas"]["CascadeLoopRef"][];
+            /** Mv A */
+            mv_a: string;
+            /** Mv B */
+            mv_b: string;
+            /** Mv Differs */
+            mv_differs: boolean;
+            /** Sel */
+            sel: string;
+            /** Sels */
+            sels: string[];
+        };
+        /** OvKpi */
+        OvKpi: {
+            /** Peak */
+            peak: number;
+            /** Peak Without */
+            peak_without: number;
+            /** Share */
+            share: number;
+            /** Switches */
+            switches: number;
+        };
+        /** OvSim */
+        OvSim: {
+            /** T End */
+            T_end: number;
+            kpis: components["schemas"]["OvKpi"];
+            /** Lim */
+            lim: number;
+            /** Sel */
+            sel: string;
+            /** Step */
+            step: number;
+        };
+        /** OvSimReq */
+        OvSimReq: {
+            /** Lim */
+            lim?: number | null;
+            /**
+             * Sel
+             * @default min
+             * @enum {string}
+             */
+            sel: "min" | "max";
+            /** Step */
+            step?: number | null;
+        };
+        /** ParamRow */
+        ParamRow: {
+            /** Name */
+            name: string;
+            /** Value */
+            value: number;
+        };
         /** Pid */
         Pid: {
             /** Kc */
@@ -1626,6 +2532,15 @@ export interface components {
             Td: number;
             /** Ti */
             Ti: number;
+        };
+        /** PointRow */
+        PointRow: {
+            /** Input */
+            input: string;
+            /** Unit */
+            unit: string;
+            /** Values */
+            values: (number | null)[];
         };
         /** Quality */
         Quality: {
@@ -1909,6 +2824,23 @@ export interface components {
             checks: components["schemas"]["Note"][];
             /** Method */
             method: string;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: components["schemas"]["Note"][];
+        };
+        /** Tuned */
+        Tuned: {
+            /** Kc */
+            Kc: number;
+            /**
+             * Td
+             * @default 0
+             */
+            Td: number;
+            /** Ti */
+            Ti: number;
             /**
              * Notes
              * @default []
@@ -2508,6 +3440,315 @@ export interface operations {
             };
         };
     };
+    cascade_get_workspaces__wid__apc_cascade_get: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CascadeInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cascade_fit_workspaces__wid__apc_cascade_fit_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CascadeFitReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cascade_reset_workspaces__wid__apc_cascade_reset_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CascadeReset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CascadeInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cascade_simulate_workspaces__wid__apc_cascade_simulate_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CascadeSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description app.signalpack.frame: sp_o, pv_o in engineering units of PV, sp_i, pv_i, valve in %; 409 when the simulation is unstable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dec_get_workspaces__wid__apc_decouple_get: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dec_simulate_workspaces__wid__apc_decouple_simulate_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecSimReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dec_curves_workspaces__wid__apc_decouple_simulate_curves_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecSimReq"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: sp_a, pv_a_none, pv_a, sp_b, pv_b_none, pv_b, mv_a, mv_b in engineering units of the loops (pv_* with the chosen decoupler) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     ff_get_workspaces__wid__apc_ff_get: {
         parameters: {
             query?: never;
@@ -2675,6 +3916,466 @@ export interface operations {
         };
         responses: {
             /** @description app.signalpack.frame: pv_none, mv_none, pv_static, mv_static, pv_dynamic, mv_dynamic in engineering units */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_get_workspaces__wid__apc_gainsched_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_auto_workspaces__wid__apc_gainsched_auto_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_fit_workspaces__wid__apc_gainsched_fit_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_reset_workspaces__wid__apc_gainsched_reset_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_simulate_workspaces__wid__apc_gainsched_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description app.signalpack.frame: sp, pv_fixed, pv_sched, mv_fixed, mv_sched, gain_fixed, gain_sched in engineering units */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    er_get_workspaces__wid__apc_gainsched_er_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsErInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    er_reset_workspaces__wid__apc_gainsched_er_reset_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsErInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    er_simulate_workspaces__wid__apc_gainsched_er_simulate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GsErSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description app.signalpack.frame: sp, pv_*, mv_*, gain_* for fixed and sched, pv_zone, mv_zone with ConZone, in engineering units */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ov_get_workspaces__wid__apc_override_get: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+                sel?: "min" | "max";
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ov_simulate_workspaces__wid__apc_override_simulate_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OvSimReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OvSim"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ov_curves_workspaces__wid__apc_override_simulate_curves_post: {
+        parameters: {
+            query?: {
+                /** @description index of the second loop of the project (as in GET /loops) */
+                loop?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OvSimReq"];
+            };
+        };
+        responses: {
+            /** @description app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units */
             200: {
                 headers: {
                     [name: string]: unknown;

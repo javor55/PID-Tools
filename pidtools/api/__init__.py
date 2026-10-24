@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL, JobManager
-from . import analysis, apc, data, model, opcua, projects, tuning
+from . import analysis, apc, apc_loops, data, model, opcua, projects, tuning
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -116,6 +116,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(analysis.router(project), dependencies=[Depends(auth)])
     app.include_router(apc.router(project, jobs), dependencies=[Depends(auth)])
+    app.include_router(apc_loops.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(opcua.router(project, jobs), dependencies=[Depends(auth)])
 
     @app.get("/health", response_model=Health, tags=["system"])
