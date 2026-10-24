@@ -251,7 +251,7 @@ def _smith_ctrl(ws, inp):
     samp = float(ws.get("samp"))
     if inp.method != "OPT":
         return asm.controller(code, p, inp.method, inp.ctype, inp.tc, samp, ws.base_ctrl(), tuple(inp.manual))
-    return getattr(ws, "smith_opt", {}).get(_opt_key(ws, inp.ctype))
+    return ws.smith_opt.get(_opt_key(ws, inp.ctype))
 
 
 def _ctrl_out(r):
@@ -408,8 +408,6 @@ def router(get_proj, jobs):
                 cur = get_proj(wid).state
             except HTTPException:
                 return
-            if not hasattr(cur, "smith_opt"):
-                cur.smith_opt = {}
             cur.smith_opt[key] = res
         jid = jobs.submit(_optimize, code, list(p), inp.ctype, float(ws.get("samp")), dict(ws.base_ctrl()),
                           timeout=600, on_done=done)
