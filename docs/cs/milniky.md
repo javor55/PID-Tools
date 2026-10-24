@@ -411,9 +411,11 @@ a Playwright.
   scénář (stejně jako desktop).
 - Frekvenční analýza pro Set 1, Set 2 a návrh: tabulka (stabilita, Ms, GM, PM, ωc, šířka pásma), Bodeho
   diagram (amplituda, fáze) a citlivost |S| / |T|.
-- Test v prohlížeči: předvolba a vlastní událost (= API), frekvence, porovnání metod a převzetí řádku.
-- Zbývá: dopředná vazba a Smith (chybí API – přidat v M11b), simulace s nejistotou modelu (`robust`, `spread`)
-  a Nyquistův diagram.
+- Nyquistův diagram L pro Set 1, Set 2 a návrh: kružnice Ms, kritický bod −1, pohled Re, Im ∈ [−3; 1,5].
+- Simulace s rozptylem modelu (`spread`): přepínač v záložce Ladění, dostupný po výpočtu nejistoty (záložka Model);
+  varianty jsou šedé čáry v grafu PV.
+- Test v prohlížeči: předvolba a vlastní událost (= API), frekvence (včetně Nyquista), porovnání metod a převzetí řádku.
+- Zbývá: dopředná vazba a Smith (chybí API – přidat v M11b), simulace s robustností (`robust`).
 
 ### M18 · Živá simulace
 - `live_engine.js` a `live_ui.js` převedené do TS. Test shody s `core/simulation.py` zůstává.

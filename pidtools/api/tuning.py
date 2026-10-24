@@ -105,6 +105,8 @@ class FreqSet(BaseModel):
     phase_deg: list[float]
     S_db: list[float]
     T_db: list[float]
+    re: list[float]          # Nyquistův diagram: reálná a imaginární část L
+    im: list[float]
 
 
 def _fin(x):
@@ -152,7 +154,8 @@ def _freq(code, p, sets):
                            wc=_fin(r["wc"]), w180=_fin(r["w180"]), bw=_fin(fq.bandwidth(r)),
                            w=[float(x) for x in r["w"]], mag_db=[float(x) for x in r["mag_db"]],
                            phase_deg=[float(x) for x in r["phase_deg"]],
-                           S_db=[float(x) for x in fq.db(r["S"])], T_db=[float(x) for x in fq.db(r["T"])]))
+                           S_db=[float(x) for x in fq.db(r["S"])], T_db=[float(x) for x in fq.db(r["T"])],
+                           re=[float(x) for x in r["L"].real], im=[float(x) for x in r["L"].imag]))
     return out
 
 

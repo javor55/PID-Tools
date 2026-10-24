@@ -20,6 +20,12 @@ type Row = [boolean, string, string, number, number | null, number | null, numbe
 
 const TYPES = ["step", "ramp", "sine", "pulse", "rpulse", "noise"] as const;
 const SET_COLORS: Record<string, string> = { set1: "#64748b", set2: "#15803d", sug: "#1f5fa8" };
+// Nyquist: pohled a kružnice Ms (střed −1, poloměr 1/Ms), kritický bod −1 (kříž; NaN přeruší čáru)
+const NYQ_LIM = 3, MS_T = 1.6;
+const inView = (x: number, y: number) => x >= -NYQ_LIM && x <= 1.5 && y >= -NYQ_LIM && y <= 1.5;
+const MS_CIRCLE = { x: Array.from({ length: 200 }, (_, i) => -1 + Math.cos((2 * Math.PI * i) / 199) / MS_T),
+  y: Array.from({ length: 200 }, (_, i) => Math.sin((2 * Math.PI * i) / 199) / MS_T) };
+const CRIT = { x: [-1.06, -0.94, NaN, -1, -1], y: [0, 0, NaN, -0.06, 0.06] };
 
 function NumCell({ v, onCommit, testid }: { v: number | null; onCommit: (x: number | null) => void; testid?: string }) {
   const [d, setD] = useState<string | null>(null);
@@ -168,7 +174,19 @@ export function FreqCard({ preview }: { preview: Pid | null }) {
       <div className="small muted">{T("fq_sens")}</div>
       <LineChart series={[...line("S_db"), ...line("T_db", "5 4")]} height={180} logX yLabel="dB" xLabel={T("fq_w")}
         testid="freq-sens" />
+      <div className="small muted">{T("fq_nyquist")}</div>
+      <LineChart series={nyq(fr.data, name)} height={696} xDomain={[-NYQ_LIM, 1.5]} yDomain={[-NYQ_LIM, 1.5]} xLabel="Re L"
+        yLabel="Im L" testid="freq-nyq" />
       <div className="small muted">{T("fq_help")}</div>
     </div>
   );
+}
+
+// Nyquistův diagram L: body mimo pohled se vynechají (NaN); výška 696 = stejné měřítko os, kružnice je kruh
+function nyq(data: FreqSet[], name: (n: string) => string): Series[] {
+  return [{ name: `Ms = ${MS_T}`, x: MS_CIRCLE.x, y: MS_CIRCLE.y, color: "#9aa5b1", dash: "4 3" },
+    ...data.map((r) => ({ name: name(r.name),
+      x: r.re.map((x, i) => (inView(x, r.im[i]) ? x : NaN)), y: r.im.map((y, i) => (inView(r.re[i], y) ? y : NaN)),
+      color: SET_COLORS[r.name] ?? "#888" })),
+    { name: "−1", x: CRIT.x, y: CRIT.y, color: "#b91c1c" }];
 }

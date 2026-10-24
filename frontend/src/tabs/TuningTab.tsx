@@ -7,7 +7,7 @@ import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { series, unframe } from "../api/signals";
 import { CheckSetting, NumSetting, SelectSetting } from "../components/Fields";
-import { LineChart } from "../components/LineChart";
+import { LineChart, type Series } from "../components/LineChart";
 import { useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { dur } from "../lib/format";
@@ -17,6 +17,7 @@ import { CompareCard, FreqCard, ScenarioCard } from "./TuningMore";
 type TuningInfo = components["schemas"]["TuningInfo"];
 type Suggestion = components["schemas"]["Suggestion"];
 type SimInfo = components["schemas"]["SimInfo"];
+type ModelState = components["schemas"]["ModelState"];
 type Pid = { Kc: number; Ti: number; Td: number };
 
 export function TuningMain() {
@@ -30,13 +31,17 @@ export function TuningMain() {
   const [method, setMethod] = useState<string | null>(null);
   const [sug, setSug] = useState<Suggestion | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [spread, setSpread] = useState(false);
+  const model = useWsQuery<ModelState>("model", "/model");
+  const hasUnc = !!model.data?.uncertainty;                 // varianty z nejistoty (záložka Model)
+  const sp = spread && hasUnc;
   const preview: Pid | null = sug ? { Kc: sug.Kc, Ti: sug.Ti, Td: sug.Td } : null;
-  const simKey = ["ws", wid, "sim", info.data?.sets, preview, st];
+  const simKey = ["ws", wid, "sim", info.data?.sets, preview, st, sp];
   // při přepočtu (jiná sada, nastavení, návrh) zůstane vidět předchozí výsledek – žádné blikání
   const sim = useQuery({ queryKey: [...simKey, "kpi"], enabled: !!info.data, placeholderData: keepPreviousData,
-    queryFn: () => request<SimInfo>("POST", `/workspaces/${wid}/simulate`, { preview }) });
+    queryFn: () => request<SimInfo>("POST", `/workspaces/${wid}/simulate`, { preview, spread: sp }) });
   const curves = useQuery({ queryKey: [...simKey, "curves"], enabled: !!info.data, placeholderData: keepPreviousData,
-    queryFn: async () => unframe(await binary(`/workspaces/${wid}/simulate/curves`, { preview })) });
+    queryFn: async () => unframe(await binary(`/workspaces/${wid}/simulate/curves`, { preview, spread: sp })) });
 
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (info.isError || (info.data === undefined && !info.isLoading)) return <div className="card muted">{T("need_model")}</div>;
@@ -66,6 +71,12 @@ export function TuningMain() {
     const x = series(curves.data!.meta, curves.data!.blob, s.key);
     return x ? [{ name: s.name, x: x.t, y: x.v, color: s.color, dash: s.dash }] : [];
   }) : []);
+  // varianty z nejistoty (pv_x…) jako tenké šedé čáry pod hlavními průběhy; legenda jen jedna položka
+  const cv = curves.data;
+  const varPv: Series[] = sp && cv ? cv.meta.sigs.map((x) => x.name).filter((n) => n.startsWith("pv_x")).flatMap((n, i) => {
+    const x = series(cv.meta, cv.blob, n);
+    return x ? [{ name: T("unc_variants"), x: x.t, y: x.v, color: "#cbd2d9", width: 1, legend: i === 0 }] : [];
+  }) : [];
   const k = (sim.data?.kpis ?? {}) as Record<string, Record<string, unknown> | null>;
   const kv = (n: string, f: (r: Record<string, unknown>) => unknown) => (k[n] ? f(k[n]!) : null);
   const step = (r: Record<string, unknown>) => (r.step ?? {}) as Record<string, number | null>;
@@ -109,7 +120,11 @@ export function TuningMain() {
       <CompareCard onPick={(q) => setSug({ method: q.method, Kc: q.Kc, Ti: q.Ti, Td: q.Td, notes: [], checks: [] })} />
       <ScenarioCard />
       <div className="card" data-testid="response">
-        <LineChart series={mk(sigs)} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel="t [s]" testid="resp-pv" />
+        <label className="small" title={T("h_spread_on")}>
+          <input type="checkbox" checked={sp} disabled={!hasUnc} data-testid="sim-spread"
+            onChange={(e) => setSpread(e.target.checked)} /> {T("spread_on")}
+        </label>
+        <LineChart series={[...varPv, ...mk(sigs)]} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel="t [s]" testid="resp-pv" />
         <LineChart series={mk(mvs)} height={140} yLabel={`MV ${String(st.u_mv ?? "")}`} xLabel="t [s]" testid="resp-mv" />
         {sim.data && (
           <table className="tbl" data-testid="kpis"><thead><tr><th /><th>IAE</th><th>{T("kpi_over")}</th><th>{T("kpi_t90")}</th>

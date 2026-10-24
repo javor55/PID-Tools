@@ -314,6 +314,13 @@
       ],
       "title": "Bw"
      },
+     "im": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Im",
+      "type": "array"
+     },
      "mag_db": {
       "items": {
        "type": "number"
@@ -330,6 +337,13 @@
        "type": "number"
       },
       "title": "Phase Deg",
+      "type": "array"
+     },
+     "re": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Re",
       "type": "array"
      },
      "stable": {
@@ -373,7 +387,9 @@
      "mag_db",
      "phase_deg",
      "S_db",
-     "T_db"
+     "T_db",
+     "re",
+     "im"
     ],
     "title": "FreqSet",
     "type": "object"

@@ -279,6 +279,7 @@ def test_tuning_scenario_compare_frequency(page, server):
     page.wait_for_selector('[data-testid="freq-table"] tbody tr', timeout=20000)
     assert page.locator('[data-testid="freq-table"] tbody tr').count() >= 2
     assert page.locator('[data-testid="freq-mag"] path').count() >= 2
+    assert page.locator('[data-testid="freq-nyq"] path').count() >= 2     # sady + kružnice Ms + kříž −1
 
     page.locator('[data-testid="cmp-run"]').click()
     page.wait_for_selector('[data-testid="cmp-row"]', timeout=120000)

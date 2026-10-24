@@ -1035,12 +1035,16 @@ export interface components {
             T_db: number[];
             /** Bw */
             bw?: number | null;
+            /** Im */
+            im: number[];
             /** Mag Db */
             mag_db: number[];
             /** Name */
             name: string;
             /** Phase Deg */
             phase_deg: number[];
+            /** Re */
+            re: number[];
             /** Stable */
             stable: boolean;
             /** W */
