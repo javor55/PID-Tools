@@ -198,6 +198,316 @@
     "title": "DistInfo",
     "type": "object"
    },
+   "FFDefaults": {
+    "properties": {
+     "delay": {
+      "title": "Delay",
+      "type": "number"
+     },
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "lag": {
+      "title": "Lag",
+      "type": "number"
+     },
+     "lead": {
+      "title": "Lead",
+      "type": "number"
+     }
+    },
+    "required": [
+     "gain",
+     "lead",
+     "lag",
+     "delay"
+    ],
+    "title": "FFDefaults",
+    "type": "object"
+   },
+   "FFDesign": {
+    "properties": {
+     "delay": {
+      "title": "Delay",
+      "type": "number"
+     },
+     "dyn": {
+      "title": "Dyn",
+      "type": "boolean"
+     },
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "lag": {
+      "title": "Lag",
+      "type": "number"
+     },
+     "lead": {
+      "title": "Lead",
+      "type": "number"
+     },
+     "use": {
+      "title": "Use",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "use",
+     "dyn",
+     "gain",
+     "lead",
+     "lag",
+     "delay"
+    ],
+    "title": "FFDesign",
+    "type": "object"
+   },
+   "FFDesignIn": {
+    "description": "Částečná změna jedné poruchy; chybějící hodnoty zůstanou.",
+    "properties": {
+     "delay": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delay"
+     },
+     "dyn": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dyn"
+     },
+     "gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gain"
+     },
+     "lag": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lag"
+     },
+     "lead": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lead"
+     },
+     "use": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use"
+     }
+    },
+    "title": "FFDesignIn",
+    "type": "object"
+   },
+   "FFDist": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/FFDefaults"
+     },
+     "design": {
+      "$ref": "#/components/schemas/FFDesign"
+     },
+     "edited": {
+      "title": "Edited",
+      "type": "boolean"
+     },
+     "eng_gain": {
+      "title": "Eng Gain",
+      "type": "number"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "step": {
+      "title": "Step",
+      "type": "number"
+     },
+     "values": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/ValueRow"
+      },
+      "title": "Values",
+      "type": "array"
+     }
+    },
+    "required": [
+     "index",
+     "name",
+     "design",
+     "defaults",
+     "edited",
+     "eng_gain",
+     "step"
+    ],
+    "title": "FFDist",
+    "type": "object"
+   },
+   "FFInfo": {
+    "properties": {
+     "dists": {
+      "items": {
+       "$ref": "#/components/schemas/FFDist"
+      },
+      "title": "Dists",
+      "type": "array"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "mv_range": {
+      "title": "Mv Range",
+      "type": "number"
+     },
+     "mv_unit": {
+      "title": "Mv Unit",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "mv_unit",
+     "mv_range",
+     "dists"
+    ],
+    "title": "FFInfo",
+    "type": "object"
+   },
+   "FFKpi": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "maxdev": {
+      "title": "Maxdev",
+      "type": "number"
+     }
+    },
+    "required": [
+     "iae",
+     "maxdev"
+    ],
+    "title": "FFKpi",
+    "type": "object"
+   },
+   "FFReset": {
+    "properties": {
+     "index": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Index"
+     }
+    },
+    "title": "FFReset",
+    "type": "object"
+   },
+   "FFSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "dist": {
+      "title": "Dist",
+      "type": "integer"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/FFKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     },
+     "step": {
+      "title": "Step",
+      "type": "number"
+     }
+    },
+    "required": [
+     "dist",
+     "step",
+     "T_end",
+     "kpis"
+    ],
+    "title": "FFSim",
+    "type": "object"
+   },
+   "FFSimReq": {
+    "properties": {
+     "dist": {
+      "default": 0,
+      "title": "Dist",
+      "type": "integer"
+     },
+     "step": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Step"
+     }
+    },
+    "title": "FFSimReq",
+    "type": "object"
+   },
    "Find": {
     "properties": {
      "node_id": {
@@ -392,6 +702,29 @@
      "im"
     ],
     "title": "FreqSet",
+    "type": "object"
+   },
+   "GeneralRow": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "key",
+     "value",
+     "unit"
+    ],
+    "title": "GeneralRow",
     "type": "object"
    },
    "HTTPValidationError": {
@@ -1586,6 +1919,343 @@
     "title": "SimReq",
     "type": "object"
    },
+   "SmithController": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "title": "Ti",
+      "type": "number"
+     },
+     "notes": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Notes",
+      "type": "array"
+     }
+    },
+    "required": [
+     "Kc",
+     "Ti"
+    ],
+    "title": "SmithController",
+    "type": "object"
+   },
+   "SmithIae": {
+    "properties": {
+     "iae_load": {
+      "title": "Iae Load",
+      "type": "number"
+     },
+     "iae_sp": {
+      "title": "Iae Sp",
+      "type": "number"
+     }
+    },
+    "required": [
+     "iae_sp",
+     "iae_load"
+    ],
+    "title": "SmithIae",
+    "type": "object"
+   },
+   "SmithInfo": {
+    "properties": {
+     "basis_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Basis Text"
+     },
+     "controller": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SmithController"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "general_rows": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/GeneralRow"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "General Rows"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "inputs": {
+      "$ref": "#/components/schemas/SmithInputs"
+     },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "mv_op": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv Op"
+     },
+     "opt_ready": {
+      "title": "Opt Ready",
+      "type": "boolean"
+     },
+     "pv_op": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv Op"
+     },
+     "ratio": {
+      "title": "Ratio",
+      "type": "number"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/SmithRow"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "values": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Values"
+     }
+    },
+    "required": [
+     "model",
+     "inputs",
+     "integ",
+     "ratio",
+     "opt_ready"
+    ],
+    "title": "SmithInfo",
+    "type": "object"
+   },
+   "SmithInputs": {
+    "properties": {
+     "ctype": {
+      "title": "Ctype",
+      "type": "string"
+     },
+     "ek": {
+      "title": "Ek",
+      "type": "number"
+     },
+     "et": {
+      "title": "Et",
+      "type": "number"
+     },
+     "eth": {
+      "title": "Eth",
+      "type": "number"
+     },
+     "manual": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Manual",
+      "type": "array"
+     },
+     "method": {
+      "title": "Method",
+      "type": "string"
+     },
+     "methods": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+     },
+     "tc": {
+      "title": "Tc",
+      "type": "number"
+     },
+     "tc_default": {
+      "title": "Tc Default",
+      "type": "number"
+     },
+     "tc_key": {
+      "title": "Tc Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "method",
+     "methods",
+     "ctype",
+     "tc",
+     "tc_default",
+     "tc_key",
+     "manual",
+     "ek",
+     "et",
+     "eth"
+    ],
+    "title": "SmithInputs",
+    "type": "object"
+   },
+   "SmithRow": {
+    "properties": {
+     "block": {
+      "title": "Block",
+      "type": "string"
+     },
+     "input": {
+      "title": "Input",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "block",
+     "input",
+     "value",
+     "unit"
+    ],
+    "title": "SmithRow",
+    "type": "object"
+   },
+   "SmithSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "controller": {
+      "$ref": "#/components/schemas/SmithController"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/SmithIae"
+      },
+      "title": "Kpis",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "controller",
+     "kpis"
+    ],
+    "title": "SmithSim",
+    "type": "object"
+   },
+   "SmithSimReq": {
+    "properties": {
+     "ek": {
+      "anyOf": [
+       {
+        "maximum": 200.0,
+        "minimum": -90.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ek"
+     },
+     "et": {
+      "anyOf": [
+       {
+        "maximum": 200.0,
+        "minimum": -90.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Et"
+     },
+     "eth": {
+      "anyOf": [
+       {
+        "maximum": 200.0,
+        "minimum": -90.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Eth"
+     }
+    },
+    "title": "SmithSimReq",
+    "type": "object"
+   },
    "SuggestReq": {
     "properties": {
      "method": {
@@ -1799,6 +2469,29 @@
      "type"
     ],
     "title": "ValidationError",
+    "type": "object"
+   },
+   "ValueRow": {
+    "properties": {
+     "param": {
+      "title": "Param",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "param",
+     "value",
+     "unit"
+    ],
+    "title": "ValueRow",
     "type": "object"
    },
    "Windows": {
@@ -2961,6 +3654,432 @@
     ]
    }
   },
+  "/workspaces/{wid}/apc/ff": {
+   "get": {
+    "description": "Dopředná vazba po měřených poruchách: nastavení, návrh podle modelu, hodnoty pro PIDConL.",
+    "operationId": "ff_get_workspaces__wid__apc_ff_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Get",
+    "tags": [
+     "apc"
+    ]
+   },
+   "put": {
+    "description": "Nastavení poruch po pořadí (částečné; null = beze změny) → ws.ff_state, čte ho i ladění.",
+    "operationId": "ff_put_workspaces__wid__apc_ff_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "items": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/FFDesignIn"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "title": "Body",
+        "type": "array"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Put",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff/reset": {
+   "post": {
+    "description": "Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou).",
+    "operationId": "ff_reset_workspaces__wid__apc_ff_reset_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/FFReset"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Reset",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff/simulate": {
+   "post": {
+    "description": "Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV.",
+    "operationId": "ff_simulate_workspaces__wid__apc_ff_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FFSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff/simulate/curves": {
+   "post": {
+    "operationId": "ff_curves_workspaces__wid__apc_ff_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FFSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: pv_none, mv_none, pv_static, mv_static, pv_dynamic, mv_dynamic in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
   "/workspaces/{wid}/apc/recommend": {
    "get": {
     "description": "Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).",
@@ -3037,6 +4156,321 @@
     "summary": "Recommend",
     "tags": [
      "diagnostics"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith": {
+   "get": {
+    "description": "Smithův prediktor: vstupy (z nastavení), regulátor, pracovní bod, hodnoty pro šablonu.",
+    "operationId": "smith_get_workspaces__wid__apc_smith_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SmithInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith/optimize": {
+   "post": {
+    "description": "Robustní optimalizace regulátoru prediktoru (úloha); výsledek se uloží, dále GET /apc/smith.",
+    "operationId": "smith_optimize_workspaces__wid__apc_smith_optimize_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Optimize",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith/simulate": {
+   "post": {
+    "description": "Skok SP a porucha na vstupu: PID (sada 2) vs. Smith na procesu s chybou modelu (ek, et, eth [%]).",
+    "operationId": "smith_simulate_workspaces__wid__apc_smith_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SmithSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SmithSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith/simulate/curves": {
+   "post": {
+    "operationId": "smith_curves_workspaces__wid__apc_smith_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SmithSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_pid, mv_pid, pv_smith, mv_smith in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Curves",
+    "tags": [
+     "apc"
     ]
    }
   },

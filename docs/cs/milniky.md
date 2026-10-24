@@ -267,7 +267,7 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
   - `frequency` – L, S, T, Ms, GM, PM, šířka pásma.
 - `tests/test_api_tuning.py`: návrhy všech metod, robustnost Set 1, scénář (Set 1 i návrh) a frekvence přes API
   = zlatý případ demo.
-- Dopředná vazba (FF) a Smith se nastavují zatím jen přes nastavení a projekt; vlastní endpointy dostanou s APC (M11).
+- Dopředná vazba (FF) a Smith mají vlastní endpointy od M11b (`apc/ff`, `apc/smith`).
 
 ### M11 · API: ostatní (L)
 - APC (všechny techniky), diagnostika, přehled smyček, report (HTML, beze změny `app.report`), OPC UA (jen čtení).
@@ -284,9 +284,30 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - Jazyk textů z výpočtů (doporučení, protokol) podle `?lang=` nebo `Accept-Language`.
 - Přehled smyček = `/loops` (M8).
 
-**Zbývá – M11b:** jednotlivé techniky APC (kaskáda, dopředná vazba, rozvazbení, override, Smith, gain scheduling,
-poměr, split range, VPC) jako endpointy nad `app.apc.*`. Ty dnes volají přímo okna; každá technika má vlastní
-vstupy a výsledky.
+**Skutečnost – M11b (část):**
+- `pidtools/api/apc.py` (tag `apc`), výpočty beze změny z `app.feedforward`, `app.apc.feedforward`, `app.apc.smith`.
+- Dopředná vazba:
+  - `GET apc/ff` – po měřených poruchách nastavení {use, dyn, gain, lead, lag, delay} (zesílení v % MV na jednotku
+    poruchy, k tomu `eng_gain` v jednotkách MV), návrh podle modelu, příznak ručních úprav, výchozí skok a hodnoty
+    pro PIDConL (zapnuté poruchy);
+  - `PUT apc/ff` – seznam částečných změn po pořadí (`null` = beze změny) → `ws.ff_state` (`ffm.state`), stejně jako
+    desktop; čte ho i ladění (`set_ctrl`, simulace, scénář);
+  - `POST apc/ff/reset` – `{index}` (bez indexu všechny): zesílení, lead, lag a zpoždění znovu z modelu;
+  - `POST apc/ff/simulate` – skok poruchy bez FF / statická / dynamická (sada 2): IAE a max. odchylka PV;
+    `apc/ff/simulate/curves` – průběhy binárně v inženýrských jednotkách. Simulace trvá ≈ 0,05 s, proto synchronně.
+- Smithův prediktor:
+  - `GET apc/smith` – vstupy z nastavení (stejné klíče jako desktop a web: `apc_sm_method`, `apc_sm_ct`,
+    `apc_sm_tc|…`, `apc_sm_man`, `apc_sm_ek` / `et` / `eth`; mění se přes `PATCH /settings`), regulátor, poměr θ,
+    pracovní bod, `basis_text`, `general_rows`, `values` a řádky pro šablonu (u integračního procesu jen regulátor);
+  - `POST apc/smith/simulate` (`ek`, `et`, `eth` [%], jinak z nastavení) – IAE (SP, porucha) PID vs. Smith;
+    `apc/smith/simulate/curves` – průběhy binárně;
+  - `POST apc/smith/optimize` – robustní optimalizace jako úloha (≈ 2 s na demu); výsledek se drží u prostoru
+    a vrací ho `GET apc/smith` (`opt_ready`); simulace s metodou OPT bez výsledku odpoví 409.
+- `tests/test_api_apc.py`: výchozí návrh FF = `ffm.design`, zápis a čtení, reset, vliv FF na simulaci ladění,
+  simulace FF a Smith = přímá volání `app.apc.*`, hodnoty šablony, ruční metoda přes nastavení, optimalizace (úloha).
+
+**Zbývá – M11b:** ostatní techniky APC (kaskáda, rozvazbení, override, gain scheduling, poměr, split range, VPC)
+jako endpointy nad `app.apc.*`; každá má vlastní vstupy a výsledky.
 
 ---
 
