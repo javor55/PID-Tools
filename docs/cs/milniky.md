@@ -34,7 +34,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M8 | API: projekt | B | S | M6 | ☑ |
 | M9 | API: model | B | L | M5, M7 | ☑ |
 | M10 | API: ladění, scénář, robustnost, frekvence | B | L | M9 | ☑ |
-| M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ◐ |
+| M11 | API: APC, diagnostika, přehled smyček, report, OPC UA | B | L | M10 | ☑ |
 | M12 | Kostra frontendu (TS, design, téma, jazyk) | C | M | M3, M6, **R1** | ◐ |
 | M13 | Záložka Data + prohlížeč záznamu | C | M | M7, M12 | ◐ |
 | M14 | Model 1: úseky, identifikace, výsledky | C | L | M9, M13 | ◐ |
@@ -303,6 +303,46 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
     `apc/smith/simulate/curves` – průběhy binárně;
   - `POST apc/smith/optimize` – robustní optimalizace jako úloha (≈ 2 s na demu); výsledek se drží u prostoru
     a vrací ho `GET apc/smith` (`opt_ready`); simulace s metodou OPT bez výsledku odpoví 409.
+- `pidtools/api/apc_loops.py` (tag `apc`), výpočty beze změny z `app.apc.cascade`, `gainsched`, `decouple`, `override`.
+  Kontrolní seznam struktury (`checks` = `app.guides.apc_*`, položky {ok, text, action}) a postup pro PCS 7
+  (`impl_text`) vrací každý `GET`. Techniky se dvěma smyčkami berou druhou smyčku parametrem `loop` (index jako
+  v `GET /loops`, výchozí je první jiná smyčka); projekt s jedinou smyčkou odpoví 409, neexistující index 404,
+  smyčka bez modelu 409.
+- Kaskáda (aktivní smyčka = vnější):
+  - `GET apc/cascade?loop=` – vstupy z nastavení (`cas_src` loop / manual / data, `cas_k`, `cas_t1`, `cas_t2`,
+    `cas_th`, `cas_im`, `cas_om`, `cas_oct`, `cas_samp`, `cas_tci`, `cas_tco`; chybějící τc = výchozí z modelu,
+    příznaky `tci_edited` / `tco_edited`), model vnitřní smyčky, regulátor vnitřní a vnější smyčky, doba odezvy
+    `t63`, model vnější smyčky, oddělení rychlostí (`separation`, `sep_warn`) a řádky pro blok PIDConL;
+  - `POST apc/cascade/reset` – `{part: manual | inner | outer}` (ruční model, SampleTime a τc vnitřní, τc vnější);
+  - `POST apc/cascade/fit` – model vnitřní smyčky z dat (P1D / P2D) jako úloha; výsledek se drží u prostoru
+    a vrací ho `GET`;
+  - `POST apc/cascade/simulate` (stabilita, `t63`, oddělení, IAE vnější smyčky) a `…/simulate/curves` (SP a PV vnější
+    v jednotkách PV, vnitřní SP / PV a ventil v %; nestabilní simulace = 409).
+- Gain scheduling podle PV:
+  - `GET apc/gainsched` – úseky bodů (`gs_n`, `gs_r1…`, jinak automatický návrh), identifikované body (`gs_pts`,
+    `gs_key`; po změně rozsahů se přepočtou, po změně úseků jsou `stale`), ladění v bodech (`gs_m`, `gs_ct`,
+    `gs_tcf`, `gs_ms`), tabulka pro GainSched, problémy rozvrhu (`issues`) a rozptyl zesílení (`spread`);
+    u integračního procesu jen `integ` a kontroly;
+  - `POST apc/gainsched/auto` (úseky z návrhu), `POST apc/gainsched/reset` (násobek τc a Ms);
+  - `POST apc/gainsched/fit` – identifikace modelu v úsecích bodů jako úloha (≈ 2 s na demu); chyba úseku = chyba
+    úlohy, body zůstanou;
+  - `POST apc/gainsched/simulate` (IAE jedna sada vs. scheduling pro každý přechod, ≈ 0,5 s) a `…/simulate/curves`
+    (SP, PV, MV a zesílení obou variant).
+- Gain scheduling podle ER:
+  - `GET apc/gainsched_er` – vstupy `gs_er_E`, `gs_er_k`, `gs_er_spstep`, `gs_er_d` (výchozí jako desktop), největší
+    bezpečný násobek `k_max`, Ms při zvoleném k, tabulka pro GainSched; `POST apc/gainsched_er/reset` maže hodnoty;
+  - `POST apc/gainsched_er/simulate` – IAE, max. odchylka, podíl na limitu a ustálení pro jednu sadu, scheduling
+    a nejlepší ConZone, rozptyl pásem; výpočet trvá ≈ 2 s, proto se výsledek drží u prostoru (stejné vstupy
+    a `…/simulate/curves` se nepočítají znovu).
+- Rozvazbení: `GET apc/decouple?loop=` (RGA λ₁₁ a doporučení, parametry decouplerů pro PCS 7, bez vzájemné vazby
+  `ok = false`), `POST apc/decouple/simulate` (`dtype` static / dyn, `amp_a`, `amp_b` [%] → IAE obou smyček pro tři
+  varianty) a `…/simulate/curves`. Desktop nemá uložené nastavení ani „původní hodnoty“ (výchozí v `defaults`).
+- Override: `GET apc/override?loop=&sel=min|max` (výchozí skok SP a mez `defaults` z `aov.defaults`, příznak
+  `mv_differs`), `POST apc/override/simulate` (`sel`, `step`, `lim`; chybějící = výchozí scénář → špička PV druhé
+  smyčky s výběrem a bez, podíl času a přepnutí) a `…/simulate/curves`.
+- `tests/test_api_apc_loops.py`: výsledky = přímá volání `app.apc.*` (kaskáda ručně / ze smyčky / z dat, body
+  gain scheduling po úloze, ER, rozvazbení, override), nastavení přes `PATCH /settings` a reset, úlohy, 409 / 404 /
+  422; dvousmyčkové techniky na projektu se dvěma provázanými smyčkami (syntetická data).
 - `tests/test_api_apc.py`: výchozí návrh FF = `ffm.design`, zápis a čtení, reset, vliv FF na simulaci ladění,
   simulace FF a Smith = přímá volání `app.apc.*`, hodnoty šablony, ruční metoda přes nastavení, optimalizace (úloha).
 - Split range, VPC, poměrová regulace a RGA (`pidtools/api/apc_more.py`, tag `apc`, výpočty beze změny z `app.apc.splitrange`,
@@ -329,8 +369,7 @@ obal nad ní; web ji začne používat tam, kde to nevyžaduje přestavbu strán
 - `tests/test_api_apc_more.py`: výsledky a simulace split range, VPC a poměru = přímá volání `app.apc.*` se stejnými vstupy,
   zadaný model druhého členu, chybové případy (422 / 404 / 409), RGA a poměr se zdrojem vzduchu na dvou smyčkách.
 
-**Zbývá – M11b:** ostatní techniky APC (kaskáda, rozvazbení, override, gain scheduling)
-jako endpointy nad `app.apc.*`; každá má vlastní vstupy a výsledky.
+**M11b je hotové:** všechny techniky APC mají endpointy (`api/apc.py`, `apc_loops.py`, `apc_more.py`).
 
 ---
 

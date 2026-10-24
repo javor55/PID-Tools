@@ -132,7 +132,8 @@ def test_smith_like_direct_calls(ws):
     info = c.get(url).json()
     inp = info["inputs"]
     assert inp["method"] == "SIMC" and inp["ctype"] == "PI" and info["opt_ready"]
-    assert inp["tc"] == pytest.approx(REF["apc"]["smith_tc"]) == pytest.approx(inp["tc_default"])
+    assert inp["tc"] == pytest.approx(inp["tc_default"])
+    assert inp["tc"] == pytest.approx(REF["apc"]["smith_tc"], rel=1e-3)     # zlatý případ (zaokrouhlený, platforma)
     assert inp["tc_key"] == f"apc_sm_tc|{code}|{p[-1]:.4g}"
     r = asm.controller(code, p, "SIMC", "PI", inp["tc"], samp, s.base_ctrl(), None)
     assert {k: info["controller"][k] for k in ("Kc", "Ti", "Td")} == pytest.approx({k: r[k] for k in ("Kc", "Ti", "Td")})
