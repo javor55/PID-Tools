@@ -1,4 +1,4 @@
-"""python -m pidtools.desktop [data.csv | projekt.json]"""
+"""python -m pidtools.desktop [data.csv | projekt.pidproj | projekt.json]"""
 import sys
 
 from . import launch

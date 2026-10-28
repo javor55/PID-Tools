@@ -81,7 +81,7 @@ The same computations as a desktop window without a browser – for engineering 
 
 ```bash
 pip install -r requirements.txt -r requirements-desktop.txt
-python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.json
+python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.pidproj
 ```
 
 Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,

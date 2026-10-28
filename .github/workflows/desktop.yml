@@ -1,5 +1,6 @@
 # Desktop window (Tauri 2, M23) on Windows: frontend + sidecar + `tauri build` (NSIS), unit tests of the Rust part
-# and a smoke test of the INSTALLED app (silent install -> `pidtools-desktop.exe --smoke` -> uninstall).
+# and a smoke test of the INSTALLED app (silent install -> .pidproj association check -> `pidtools-desktop.exe
+# --smoke --open sample.pidproj` -> uninstall).
 # The installer is NOT signed yet (Authenticode is M24).
 name: Desktop (Windows)
 
@@ -89,11 +90,22 @@ jobs:
           Start-Process -FilePath $setup.FullName -ArgumentList "/S", "/D=$dir" -Wait
           Get-ChildItem $dir | Format-Table Name, Length
           if (-not (Test-Path "$dir\sidecar\_internal")) { throw "sidecar\_internal was not installed next to the app" }
+          # asociace přípony .pidproj: NSIS zapíše třídu souboru a příkaz otevření (currentUser -> HKCU)
+          $ext = Get-ItemProperty "HKCU:\Software\Classes\.pidproj" -ErrorAction SilentlyContinue
+          if (-not $ext) { throw "file association .pidproj was not registered (HKCU\Software\Classes\.pidproj)" }
+          $class = $ext."(default)"
+          $cmd = (Get-ItemProperty "HKCU:\Software\Classes\$class\shell\open\command" -ErrorAction Stop)."(default)"
+          Write-Host ".pidproj -> class '$class', open command: $cmd"
+          if ($cmd -notmatch "pidtools-desktop\.exe" -or $cmd -notmatch "%1") { throw "unexpected open command: $cmd" }
+          # ukázkový projekt jako argument: --smoke --open ho předá jako poklep a z /pending-open musí vyjít beze změny
+          $proj = Join-Path $env:RUNNER_TEMP "ukazka.pidproj"
+          Set-Content -Path $proj -Value '{"version": 2, "state": {}}' -Encoding utf8
           $log = Join-Path $env:RUNNER_TEMP "smoke.log"
-          $p = Start-Process -FilePath "$dir\pidtools-desktop.exe" -ArgumentList "--smoke", "--smoke-log", $log `
+          $p = Start-Process -FilePath "$dir\pidtools-desktop.exe" -ArgumentList "--smoke", "--smoke-log", $log, "--open", $proj `
                  -Wait -PassThru -WindowStyle Hidden
           Get-Content $log
           if ($p.ExitCode -ne 0) { throw "Smoke test failed ($($p.ExitCode))" }
+          if (-not (Select-String -Path $log -Pattern "delivered" -Quiet)) { throw "smoke did not exercise the open path" }
           $left = Get-Process -Name "pidtools-api*" -ErrorAction SilentlyContinue
           if ($left) { throw "sidecar survived the app" }
           $un = Get-ChildItem "$dir\uninstall.exe" -ErrorAction SilentlyContinue

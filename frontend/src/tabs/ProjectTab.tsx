@@ -1,7 +1,7 @@
 // Záložka Projekt a report (M21): uložení / otevření projektu (soubor), údaje a volby protokolu, náhled protokolu
 // (HTML v izolovaném iframe) a jeho stažení.
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { ApiError, bytes, rawRequest } from "../api/client";
 import { SelectSetting, TextSetting } from "../components/Fields";
@@ -14,6 +14,49 @@ const STATUSES = ["draft", "deployed", "verified"] as const;
 
 interface ReportState { html: string | null; busy: boolean; err: string | null; set: (p: Partial<ReportState>) => void }
 const useReport = create<ReportState>((set) => ({ html: null, busy: false, err: null, set: (p) => set(p) }));
+
+/** Přípona souborů projektu: výchozí `.pidproj`, otevřít jde i starší `.json` (obsah je stejný JSON). */
+export const PROJECT_EXT = ".pidproj";
+export const PROJECT_ACCEPT = `${PROJECT_EXT},.json,application/json`;
+const PENDING_EVENT = "pidtools:pending-open";      // okno desktopu ho vyvolá po uložení souboru k otevření
+
+interface ProjMsg { err: boolean; text: string }
+const useProjMsg = create<{ msg: ProjMsg | null; set: (m: ProjMsg | null) => void }>((set) => ({ msg: null, set: (msg) => set({ msg }) }));
+
+/** Nahraje projekt (bajty souboru) do prostoru a zneplatní jeho dotazy. */
+async function openProject(wid: string, raw: ArrayBuffer, qc: QueryClient, T: (k: string) => string) {
+  useProjMsg.getState().set(null);
+  try {
+    await rawRequest("PUT", `/workspaces/${wid}/project`, raw);
+    await qc.invalidateQueries({ queryKey: ["ws", wid] });
+    useReport.getState().set({ html: null, err: null });
+    useProjMsg.getState().set({ err: false, text: T("ui_proj_opened") });
+  } catch (e) {
+    useProjMsg.getState().set({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) });
+  }
+}
+
+/** Projekt otevřený poklepem na soubor v okně desktopu: při startu a po události od okna se vyzvedne z `/pending-open`. */
+export function usePendingOpen() {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!wid) return;
+    let busy = false;
+    const check = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const raw = await bytes("GET", "/pending-open");
+        if (raw.byteLength > 0) { useUi.getState().setTab("project"); await openProject(wid, raw, qc, T); }
+      } catch { /* bez čekajícího souboru / nedostupné (týmový režim) */ } finally { busy = false; }
+    };
+    void check();
+    window.addEventListener(PENDING_EVENT, check);
+    return () => window.removeEventListener(PENDING_EVENT, check);
+  }, [wid, qc, T]);
+}
 
 function saveAs(name: string, data: BlobPart, type: string) {
   const a = document.createElement("a");
@@ -61,24 +104,16 @@ function ProjectBox() {
   const qc = useQueryClient();
   const base = useBaseName();
   const [withData, setWithData] = useState(true);
-  const [msg, setMsg] = useState<{ err: boolean; text: string } | null>(null);
-  const fail = (e: unknown) => setMsg({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) });
+  const { msg, set: setMsg } = useProjMsg();
 
   async function save() {
     if (!wid) return;
     setMsg(null);
-    try { saveAs(`${base}_projekt.json`, await bytes("GET", `/workspaces/${wid}/project?data=${withData}`), "application/json"); }
-    catch (e) { fail(e); }
+    try { saveAs(`${base}_projekt${PROJECT_EXT}`, await bytes("GET", `/workspaces/${wid}/project?data=${withData}`), "application/json"); }
+    catch (e) { setMsg({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) }); }
   }
   async function open(f: File | undefined) {
-    if (!f || !wid) return;
-    setMsg(null);
-    try {
-      await rawRequest("PUT", `/workspaces/${wid}/project`, await f.arrayBuffer());
-      await qc.invalidateQueries({ queryKey: ["ws", wid] });
-      useReport.getState().set({ html: null, err: null });
-      setMsg({ err: false, text: T("ui_proj_opened") });
-    } catch (e) { fail(e); }
+    if (f && wid) await openProject(wid, await f.arrayBuffer(), qc, T);
   }
   return (
     <section>
@@ -92,7 +127,7 @@ function ProjectBox() {
         <button className="btn primary" onClick={() => void save()} data-testid="proj-save">{T("proj_save")}</button>
         <label className="btn" title={T("h_proj_load")}>
           {T("proj_load")}
-          <input type="file" accept=".json,application/json" hidden data-testid="proj-open"
+          <input type="file" accept={PROJECT_ACCEPT} hidden data-testid="proj-open"
             onChange={(e) => { void open(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
       </div>

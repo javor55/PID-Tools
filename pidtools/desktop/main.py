@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBo
 from .. import __version__, i18n
 from ..i18n import T
 from ..app import guides
+from ..app.project import EXT, is_project_path
 from . import layout
 from .help import HelpWindow, general_markdown, guide_state, tab_markdown
 from .project import Project
@@ -28,6 +29,7 @@ from .tabs.model import ModelTab
 from .tabs.tuning import TuningTab
 
 ORG, APP = "PID Tools", "PID Tools desktop"
+PROJECT_FILTER = "PID Tools project (*.pidproj *.json);;PID Tools project (*.pidproj);;Older project (*.json)"
 
 
 class MainWindow(QMainWindow):
@@ -302,7 +304,7 @@ class MainWindow(QMainWindow):
 
     # ---- soubor
     def open_path(self, path):
-        """Otevře data nebo projekt (.json) – z dialogu, nedávných souborů i přetažením do okna."""
+        """Otevře data nebo projekt (.pidproj, starší .json) – z dialogu, nedávných souborů i přetažením do okna."""
         path = str(path)
         if not Path(path).exists():
             self.error(T("dk_missing", f=path))
@@ -310,7 +312,7 @@ class MainWindow(QMainWindow):
             return False
         self._remember(path)
         try:
-            if path.lower().endswith(".json"):
+            if is_project_path(path):
                 self.project.load(path)
             else:
                 self.project.load_file(path)
@@ -385,15 +387,17 @@ class MainWindow(QMainWindow):
         self.build()
 
     def open_project(self):
-        path, _ = QFileDialog.getOpenFileName(self, T("dk_open_project"), self._dir(), "PID Tools (*.json)")
+        path, _ = QFileDialog.getOpenFileName(self, T("dk_open_project"), self._dir(), PROJECT_FILTER)
         if path:
             self.open_path(path)
 
     def save_project(self):
-        name = (self.state.get("loop_tag") or "pidtools_project") + ".json"
+        name = (self.state.get("loop_tag") or "pidtools_project") + EXT
         path, _ = QFileDialog.getSaveFileName(self, T("dk_save_project"), str(Path(self._dir()) / name),
-                                              "PID Tools (*.json)")
+                                              "PID Tools project (*.pidproj);;Older project (*.json)")
         if path:
+            if not Path(path).suffix:                 # na některých platformách dialog příponu nepřidá
+                path += EXT
             self._remember(path)
             self.project.save(path, include_data=True)
             self._recent_add(path)
@@ -449,7 +453,7 @@ class ReportDialog(QDialog):
 
 
 def run(argv=None, splash=None):
-    """Spuštění aplikace; volitelně s cestou k datům nebo projektu (.json). splash = úvodní obrazovka (zavře se)."""
+    """Spuštění aplikace; volitelně s cestou k datům nebo projektu (.pidproj, .json). splash = úvodní obrazovka."""
     argv = sys.argv if argv is None else argv
     app = QApplication.instance() or QApplication(argv)
     app.setOrganizationName(ORG)

@@ -250,8 +250,8 @@ values.
 
 - Uploaded data are processed only in the server memory for the duration of the session (and in the computation
   cache); the application writes nothing to disk and calls no external services.
-- The web app does not store work in progress – the user saves it as a project (JSON file).
-- The project (JSON) and the protocol (HTML) are downloaded to the user's computer. A protocol with charts
+- The web app does not store work in progress – the user saves it as a project (`.pidproj` file, JSON content).
+- The project (`.pidproj`, JSON content) and the protocol (HTML) are downloaded to the user's computer. A protocol with charts
   "from the internet" loads the chart library from a CDN when opened; the default (embedded) works offline.
 
 ## Updates

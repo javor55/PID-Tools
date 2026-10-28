@@ -45,6 +45,35 @@ def _loops(p):
         for i, ls in enumerate(p.loops)])
 
 
+def pending_router(enabled=True):
+    """
+    Projekt čekající na otevření (poklep na soubor `.pidproj` v okně desktopu): Rust ho vloží, rozhraní si ho vyzvedne
+    a otevře do svého prostoru. Jedno místo, vyzvednutí ho vyprázdní. V týmovém režimu (enabled=False) se nedrží nic.
+    """
+    r = APIRouter(prefix="/pending-open", tags=["project"])
+    box = {}
+
+    @r.put("", status_code=204)
+    async def put_pending(request: Request):
+        """Uloží soubor projektu (obsah JSON) k otevření; kontroluje se až při otevření v prostoru."""
+        if not enabled:
+            raise HTTPException(403, "not available")
+        raw = await request.body()
+        if len(raw) > MAX_PROJECT:
+            raise HTTPException(413, "project too large")
+        box["raw"] = raw
+
+    @r.get("", response_class=Response, responses={200: {"content": {"application/json": {}}}, 204: {}})
+    def take_pending():
+        """Vyzvedne čekající projekt (a vyprázdní místo); 204, když žádný není."""
+        raw = box.pop("raw", None)
+        if raw is None:
+            return Response(status_code=204)
+        return Response(raw, media_type="application/json")
+
+    return r
+
+
 def router(get_proj):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["project"])
 
@@ -53,7 +82,8 @@ def router(get_proj):
     def save(wid: str, data: bool = True):
         """Projekt jako soubor JSON (všechny smyčky; s daty, nebo bez nich)."""
         p = get_proj(wid)
-        return Response(prj.serialize_project(p.to_project(include_data=data)), media_type="application/json")
+        return Response(prj.serialize_project(p.to_project(include_data=data)), media_type="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="{prj.project_name("pidtools")}"'})
 
     @r.put("/project", response_model=WorkspaceInfo,
            openapi_extra={"requestBody": {"required": True, "content": {"application/json": {
