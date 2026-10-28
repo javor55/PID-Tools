@@ -1,6 +1,6 @@
 // Panel záložky Data: čtení tabulky (rozložení, sloupce času / tagu / hodnoty, formát a jednotka času, perioda řádku)
 // a jednotky + rozsahy PV / MV (klíče nastavení jako v desktopu a Streamlitu).
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import type { components } from "../api/schema";
 import { NumSetting, TextSetting } from "../components/Fields";
@@ -46,15 +46,23 @@ export function LayoutSection() {
   const put = useWsMutation<Layout>("PUT", "/layout");
   const [err, setErr] = useState<string | null>(null);
   const [ov, setOv] = useState<{ f: string; v: boolean } | null>(null);      // ruční rozbalení / sbalení (pro daný soubor)
+  const sent = useRef<{ f: string; body: Layout } | null>(null);
   const L = q.data;
   if (!L || !ws?.has_data) return null;
   const rows = L.c_time === L.rows_mark;
   const cols = L.table_columns.map((c) => ({ v: c, text: c }));
   const apply = async (patch: Partial<Layout>, keepCols = true) => {
     setErr(null);
-    const base: Layout = { layout: L.layout, time_fmt: L.time_fmt, unit: L.unit, row_dt: L.row_dt,
-      c_time: keepCols ? L.c_time : null, c_tag: keepCols ? L.c_tag : null, c_val: keepCols ? L.c_val : null };
-    try { await put.mutateAsync({ ...base, ...patch }); } catch (e) { setErr(e instanceof ApiError ? T(e.message) : String(e)); }
+    // poslední odeslané čtení má přednost před načteným (to se po změně načítá znovu): dvě rychlé změny po sobě
+    // (perioda, pak jednotka) jinak pošlou podruhé starou hodnotu té první
+    const cur = { layout: L.layout, time_fmt: L.time_fmt, unit: L.unit, row_dt: L.row_dt, c_time: L.c_time, c_tag: L.c_tag,
+      c_val: L.c_val, ...(sent.current?.f === ws.fname ? sent.current.body : {}) };
+    const body: Layout = { ...cur, ...(keepCols ? {} : { c_time: null, c_tag: null, c_val: null }), ...patch };
+    sent.current = { f: ws.fname, body };
+    try { await put.mutateAsync(body); } catch (e) {
+      sent.current = null;                                   // server nechal předchozí čtení
+      setErr(e instanceof ApiError ? T(e.message) : String(e));
+    }
   };
   const open = L.layout !== "wide" || L.time_note === "rows_auto" || L.time_fmt !== "auto" || L.unit !== "s";
   return (
