@@ -49,7 +49,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ☐ |
 | M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ☐ |
 | M25 | Offline ověření na čistém Windows | D | S | M24 | ☐ |
-| M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☐ |
+| M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☑ |
 | M27 | Parita a pilot | E | M | M13–M21, M25 | ☐ |
 | M28 | Vypnutí staré aplikace, verze 4.0 | E | M | M27 | ☐ |
 
@@ -699,6 +699,33 @@ K tomu kontrola, že aplikace nedělá žádné síťové požadavky mimo `127.0
 - Přihlášení (R3): Cloudflare Access nebo OIDC.
 - Pracovní prostor na uživatele, limity velikosti souborů a počtu úloh, vypršení nečinnosti, logy.
 - Návod v `docs/deployment.md`.
+
+**Skutečnost M26:**
+- Týmový režim se zapíná proměnnými prostředí `PIDTOOLS_*` (modul `pidtools/api/deploy.py`, `DeployConfig.from_env`);
+  výchozí režim `token` (desktop) zůstává beze změny. `create_app(team=…)` přepne ověření, vlastnictví a limity;
+  `pidtools/api/__main__.py` zůstal nedotčený, kontejner se spouští `python -m pidtools.api.serve`.
+- Přihlášení (R3): `PIDTOOLS_AUTH=cloudflare` ověřuje JWT z hlavičky `Cf-Access-Jwt-Assertion` (RS256, vydavatel
+  `https://<tým>.cloudflareaccess.com`, audience tag, platnost) podle JWKS týmu; klíče se drží v paměti (1 h, nové `kid`
+  = nové stažení nejvýš jednou za minutu), chybějící / neplatný token → 401, nedostupné klíče → 503. Záložní režim
+  `header` (OIDC / jiné proxy) věří hlavičce s uživatelem jen s výslovným `PIDTOOLS_TRUST_USER_HEADER=1` (hlavička
+  není podepsaná – riziko je v návodu). Nová závislost: `PyJWT[crypto]==2.13.0` v `requirements-api.txt` (RS256 potřebuje
+  `cryptography`; jen pro týmový režim, import je líný). Podpis JWT jsme nepsali ručně.
+- Uživatelé: pracovní prostor (`WorkspaceStore.create/get/delete(owner=…)`) a úloha (`TeamJobs`) patří tomu, kdo je
+  vytvořil; cizí ID dává 404 (včetně `/jobs/{id}`, `cancel`, `result`, `events`). Limity: prostory na uživatele (nový uvolní jeho nejdéle nepoužitý),
+  čekající + běžící úlohy na uživatele (429), velikost nahrání (413, podle `Content-Length` ještě před čtením těla; parametr
+  `data.router(max_upload=…)`), vypršení nečinnosti `PIDTOOLS_WORKSPACE_TTL`.
+- Logy (modul `logging`): `pidtools.access` – řádek na požadavek (uživatel, metoda, cesta, stav, ms), `pidtools.jobs` –
+  odeslání, start a konec úlohy s uživatelem; úroveň `PIDTOOLS_LOG_LEVEL`, `/health` jen na úrovni DEBUG.
+- Kontejner `Dockerfile.web` (vícestupňový: Node 24 sestaví UI, běh na Pythonu 3.11 slim bez Qt a Streamlitu, uživatel
+  bez práv, `HEALTHCHECK` na `/health`, `PORT`, uvicorn s `proxy_headers`; základní obrazy připnuté tagem i digestem)
+  a `.dockerignore`. Starý `Dockerfile` (Streamlit) zůstává do M28. Obraz se sestavil a prošel zkouškou: zdraví,
+  prostor, demo, identifikace (úloha), report, izolace uživatelů a limit.
+- Testy `tests/test_api_team.py`: JWT s lokálním RSA klíčem a falešným JWKS (bez sítě; špatná audience / vydavatel /
+  platnost / podpis / `kid` / algoritmus, rotace klíčů, výpadek), izolace prostorů i úloh, limity, volitelnost režimu
+  `header`, nezměněný desktop, uživatel v lozích. Návod `docs/deployment.md` (a stručně `docs/cs/nasazeni.md`).
+- Zbývá: běží jediný proces (prostory a úlohy jsou v paměti, po restartu se ztratí; víc replik by vyžadovalo sdílené
+  úložiště); žádná role správce ani kvóty na objem dat; ověření proti skutečnému Cloudflare Access se nedělalo (jen
+  proti lokálně podepsaným tokenům).
 
 ---
 

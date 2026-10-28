@@ -151,7 +151,7 @@ def _err(ex):
     raise HTTPException(400, str(ex.args[0]) if ex.args else type(ex).__name__) from ex
 
 
-def router(get_proj):
+def router(get_proj, max_upload=MAX_UPLOAD):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["data"])
 
     def get_ws(wid):
@@ -176,8 +176,10 @@ def router(get_proj):
                         name: Annotated[str, Query(description="file name (extension)")]):
         """Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`."""
         p = get_proj(wid)
+        if int(request.headers.get("content-length") or 0) > max_upload:      # velké tělo se ani nečte
+            raise HTTPException(413, "file too large")
         raw = await request.body()
-        if len(raw) > MAX_UPLOAD:
+        if len(raw) > max_upload:
             raise HTTPException(413, "file too large")
         try:
             p.load_frame(read_table(name, raw), name)
