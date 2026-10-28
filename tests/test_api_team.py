@@ -264,6 +264,9 @@ def test_logs_contain_user(jwks, caplog):
         c.get("/health")
         c.post(f"/workspaces/{wid}/data/demo", headers=hdr("alice@acme.com"))
         jid = c.post(f"/workspaces/{wid}/identify", headers=hdr("alice@acme.com")).json()["id"]
+        deadline = time.time() + 20                      # zrušení ještě čekající úlohy by start do logu nedalo
+        while time.time() < deadline and c.get(f"/jobs/{jid}", headers=hdr("alice@acme.com")).json()["state"] == "queued":
+            time.sleep(0.02)
         c.post(f"/jobs/{jid}/cancel", headers=hdr("alice@acme.com"))
         deadline = time.time() + 20
         while time.time() < deadline and not any("job end" in r.getMessage() for r in caplog.records):
