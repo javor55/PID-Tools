@@ -2,6 +2,10 @@
 
 ## Nevydáno
 
+- Nasazení (M26): nový web běží jako jeden kontejner pro tým (`Dockerfile.web`) s přihlášením přes Cloudflare Access
+  (nebo důvěryhodnou hlavičku proxy), pracovními prostory a úlohami po uživatelích, limity (prostory, úlohy, velikost
+  nahrání, vypršení nečinnosti) a logy požadavků a úloh – nastavuje se proměnnými `PIDTOOLS_*`, viz
+  `docs/deployment.md`. Desktop a režim s tokenem se nemění.
 - Načtení CSV: velké soubory se čtou jen jednou (desetinná čárka se rozpozná na prvních řádcích) – 1 mil. řádků
   zhruba 5× rychleji.
 - Vývoj: texty CZ / EN jsou v `pidtools/i18n/cs.json` a `en.json` (jeden zdroj i pro budoucí rozhraní v TS).

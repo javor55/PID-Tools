@@ -4,6 +4,7 @@ API nad aplikační vrstvou (FastAPI): pracovní prostory, texty, dlouhé úlohy
 Bezpečnost pro desktop: server poslouchá jen na 127.0.0.1 a vyžaduje token (hlavička `Authorization: Bearer …`
 nebo `X-PID-Token`); bez tokenu odpoví jen /health. CORS jen pro zadané původy (okno aplikace).
 Spuštění: python -m pidtools.api --port 8765 --token TAJNE
+Týmový web (M26): přihlášení za Cloudflare Access, pracovní prostory a úlohy po uživatelích – deploy.py.
 Rozhraní je popsané v openapi.json vedle tohoto souboru (generované; test hlídá, že odpovídá kódu).
 """
 import asyncio
@@ -22,8 +23,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .. import __version__, i18n
-from ..app.jobs import FINAL, JobManager
-from . import analysis, apc, apc_loops, apc_more, audit, data, model, opcua, projects, tuning
+from ..app.jobs import FINAL
+from . import analysis, apc, apc_loops, apc_more, audit, data, deploy, model, opcua, projects, tuning
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -79,9 +80,21 @@ def _serialize_workspaces(app):
             return await call_next(request)
 
 
-def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2):
-    """Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly)."""
-    jobs = JobManager(max_parallel=max_jobs)
+def _opt(team, names, defaults):
+    """Hodnoty z týmového nastavení, bez něj výchozí."""
+    return tuple(defaults) if team is None else tuple(getattr(team, n) for n in names)
+
+
+def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2, team=None,
+               verifier=None):
+    """
+    Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly). team (deploy.DeployConfig s přihlášením
+    cloudflare / header) zapne týmový režim: uživatel místo tokenu, prostory a úlohy po uživatelích, limity, logy;
+    verifier (jen testy) nahradí ověřování JWT.
+    """
+    workspace_ttl, max_workspaces, max_jobs = _opt(team, ("ttl", "max_workspaces", "max_jobs"),
+                                                   (workspace_ttl, max_workspaces, max_jobs))
+    jobs = deploy.make_jobs(team, max_jobs)
 
     @asynccontextmanager
     async def lifespan(_app):
@@ -108,16 +121,18 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
         app.add_middleware(CORSMiddleware, allow_origins=list(cors_origins), allow_methods=["*"],
                            allow_headers=["*"])
 
-    def auth(authorization: str | None = Header(None), x_pid_token: str | None = Header(None)):
+    def token_auth(authorization: str | None = Header(None), x_pid_token: str | None = Header(None)):
         if token is None:
             return
         got = x_pid_token or (authorization[7:] if authorization and authorization.startswith("Bearer ") else "")
         if not hmac.compare_digest(str(got), str(token)):
             raise HTTPException(401, "invalid token")
 
+    auth = token_auth if team is None else deploy.make_auth(team, verifier)
+
     def project(wid: str):
         try:
-            return app.state.store.get(wid)
+            return app.state.store.get(wid, owner=deploy.USER.get())     # v týmovém režimu jen vlastní prostor
         except KeyError:
             raise HTTPException(404, "workspace not found") from None
 
@@ -127,12 +142,14 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
 
     def job(jid: str):
         try:
+            if not deploy.visible(jobs, jid):
+                raise KeyError(jid)
             return app.state.jobs.status(jid)
         except KeyError:
             raise HTTPException(404, "job not found") from None
 
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
-    app.include_router(data.router(project), dependencies=[Depends(auth)])
+    app.include_router(data.router(project, *_opt(team, ["max_upload"], [data.MAX_UPLOAD])), dependencies=[Depends(auth)])
     app.include_router(projects.router(project), dependencies=[Depends(auth)])
     app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
@@ -155,7 +172,8 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
 
     @app.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_create():
-        wid, proj = app.state.store.create()
+        wid, proj = app.state.store.create(owner=deploy.USER.get(),
+                                           max_per_owner=_opt(team, ["max_workspaces_user"], [None])[0])
         return info(wid, proj.state)
 
     @app.get("/workspaces/{wid}", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
@@ -164,7 +182,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
 
     @app.delete("/workspaces/{wid}", status_code=204, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_delete(wid: str):
-        if not app.state.store.delete(wid):
+        if not app.state.store.delete(wid, owner=deploy.USER.get()):
             raise HTTPException(404, "workspace not found")
 
     @app.get("/jobs/{jid}", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
@@ -208,4 +226,5 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
         return StreamingResponse(gen(), media_type="text/event-stream")
 
     _mount_static(app)
+    deploy.install(app, team)
     return app

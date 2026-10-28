@@ -1,0 +1,42 @@
+# PID Tools web for a team (API + built React UI in one container) – docs/deployment.md
+#   docker build -f Dockerfile.web -t pid-tools-web .
+#   docker run -d -p 8080:8080 -e PIDTOOLS_AUTH=cloudflare -e PIDTOOLS_CF_TEAM=<team> -e PIDTOOLS_CF_AUD=<aud> pid-tools-web
+# (the Streamlit image is still `Dockerfile`; this one replaces it when the old web app is removed – milestone M28)
+
+# ---- 1. frontend build (Node only here, not in the runtime image)
+FROM node:24-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c AS ui
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npx -y npm@11.21.0 ci
+COPY frontend ./
+# the record viewer / trend / live modules are shared with the Streamlit web (imported from ../../../pidtools/ui/static)
+COPY pidtools/ui/static /src/pidtools/ui/static
+# vite writes to ../pidtools/api/ui (= /src/pidtools/api/ui)
+RUN npm run build
+
+# ---- 2. runtime: Python only, no Qt / Streamlit
+FROM python:3.11-slim-bookworm@sha256:ef521de1d817dc92a6358c906bbadb9a0b7e38040038642833521b9d582c2233
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8080
+WORKDIR /app
+COPY requirements.txt requirements-api.txt ./
+# requirements.txt also lists Streamlit (the old web app) – the API does not import it
+RUN grep -v -i '^streamlit' requirements.txt > requirements-core.txt \
+    && sed 's#^-r requirements.txt#-r requirements-core.txt#' requirements-api.txt > requirements-web.txt \
+    && pip install -r requirements-web.txt \
+    && rm requirements-core.txt requirements-web.txt
+
+COPY pidtools ./pidtools
+COPY static ./static
+COPY --from=ui /src/pidtools/api/ui ./pidtools/api/ui
+
+RUN useradd --system --create-home --uid 10001 pidtools
+USER pidtools
+
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.environ.get('PORT', '8080'), timeout=4)" || exit 1
+
+CMD ["python", "-m", "pidtools.api.serve"]

@@ -1,8 +1,16 @@
 .git
 .venv
+.claude
+.devcontainer
 .pytest_cache
 .ruff_cache
 **/__pycache__
+**/node_modules
 tests
 docs
+tools
+dist
 *.md
+# the built UI comes from the Node stage of Dockerfile.web
+pidtools/api/ui
+frontend/dist
