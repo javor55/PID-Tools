@@ -4,6 +4,13 @@ name: Sidecar (Windows)
 
 on:
   workflow_dispatch:
+  push:                    # změna samotného sidecaru se ověří i bez PR
+    paths:
+      - "pidtools/api/sidecar.py"
+      - "tools/build_sidecar.py"
+      - "tools/pidtools_api.py"
+      - "tests/test_sidecar.py"
+      - ".github/workflows/sidecar.yml"
   pull_request:
     paths:
       - "pidtools/**"
