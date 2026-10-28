@@ -45,7 +45,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M19 | APC | C | L | M11, M16 | ☑ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☑ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☑ |
-| M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ☐ |
+| M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ◐ |
 | M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ☐ |
 | M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ☐ |
 | M25 | Offline ověření na čistém Windows | D | S | M24 | ☐ |
@@ -641,6 +641,36 @@ a Playwright.
 - Smoke test zabaleného programu v CI na Windows.
 
 **Hotovo když:** zabalený backend nastartuje do 4 s a projde smoke testem.
+
+**Skutečnost M22:**
+- Vstup `pidtools/api/sidecar.py` (`python -m pidtools.api.sidecar`, zabalený `tools/pidtools_api.py`): `--port`
+  (0 = volný port; soket se otevře předem a předá serveru, takže mezi výběrem a startem není okno), `--token`
+  (jinak náhodný), `--parent-pid`, `--smoke`. Poslouchá jen na 127.0.0.1. Po startu serveru vypíše jediný řádek
+  `PIDTOOLS_READY {"port": …, "token": "…", "version": "…"}` (čte ho obal okna, `parse_ready`).
+- `--parent-pid`: vlákno každých 0,5 s zkouší rodiče (Windows `OpenProcess` + `WaitForSingleObject` přes ctypes,
+  POSIX `os.kill(pid, 0)` a změna rodiče; `psutil` v závislostech není). Zmizí-li, server se korektně zastaví (úlohy
+  se ukončí s ním), po 5 s se proces ukončí natvrdo.
+- Úlohy: `freeze_support()` hned na začátku vstupního skriptu, před těžkými importy; start „spawn“ zůstává
+  (`app.jobs`), podproces zmrazeného programu se vrátí do role úlohy. `_bare_main()` zůstává beze změny.
+- `tools/build_sidecar.py`: PyInstaller onedir -> `dist/pidtools-api/`; program se jmenuje podle konvence Tauri 2
+  `externalBin` `<název>-<cílová trojice>` (`pidtools-api-x86_64-pc-windows-msvc.exe`,
+  `pidtools-api-x86_64-unknown-linux-gnu`; `--target-triple` přepíše). Data: `pidtools/api/ui`, `static/fonts`, i18n
+  JSON; `plotly` včetně dat (protokol). Vyloučeno: PySide6, pyqtgraph, Streamlit a jeho závislosti, `pidtools.desktop`,
+  `pidtools.ui`. Pro Tauri: `externalBin` bere jeden soubor, složku `_internal` je třeba přidat jako `resources`
+  (řeší M23).
+- `--smoke` zabaleného programu: volný port, `/health`, workspace, demo, identifikace jako úloha do konce, protokol
+  (HTML > 10 kB), kód 0.
+- Změřeno (Linux, Python 3.11, PyInstaller 6.22.3): start do řádku READY 1,3 s (z kódu 1,7 s; z `main` 0,2 s po
+  importech), onedir 237 MB (98 MB po zabalení tar.gz), smoke test 12 s (z toho identifikace 8 s), po zabití rodiče
+  sidecar skončí za ~2,3 s. Úloha v zabaleném programu proběhla (spawn zmrazeného programu na Linuxu funguje).
+- CI `.github/workflows/sidecar.yml` (windows-latest; ruční spuštění a pull request s cestami `pidtools/**`,
+  `frontend/**`, `tools/build_sidecar.py`): sestaví rozhraní i sidecar, spustí `--smoke`, `tests/test_sidecar.py -k
+  frozen` (start, token, ukončení s rodičem) a nahraje onedir jako artefakt.
+- Testy `tests/test_sidecar.py`: řádek READY, volný port, hlídání rodiče (bez sestavení); spuštěný program z kódu i
+  zabalený (přeskočí se, není-li `dist/` nebo `PIDTOOLS_SIDECAR_EXE`).
+- Zbývá: běh na Windows (zmrazený `multiprocessing` a `OpenProcess`) ověří až první běh CI, lokálně ověřeno jen na
+  Linuxu; změřit start na Windows (cíl < 4 s; antivirus první spuštění zpomalí); zmenšení onedir (scipy a numpy tvoří
+  většinu); při tvrdém ukončení sidecaru (kill) mohou osiřet procesy běžících úloh.
 
 ### M23 · Okno desktopu (Tauri)
 - Tauri 2:

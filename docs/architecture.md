@@ -33,6 +33,9 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 - `pidtools/api` (FastAPI, `requirements-api.txt`) wraps the workspace for the future single UI. It listens on
   127.0.0.1 with a token for the desktop. `openapi.json` next to it is generated
   (`python -m pidtools.api --openapi pidtools/api/openapi.json`) and checked by a test.
+- `pidtools/api/sidecar.py` runs the API as a standalone program for the Tauri window (`--port 0 --token --parent-pid`,
+  one `PIDTOOLS_READY {json}` line on stdout, exits with its parent, `--smoke` self-test). `tools/build_sidecar.py`
+  packs it with PyInstaller (onedir, no Qt / Streamlit, named `pidtools-api-<target triple>`); CI: `sidecar.yml`.
 - `frontend/` (React + TypeScript, Vite) is the future single UI over the API. `npm run build` writes it to
   `pidtools/api/ui`, which the API serves at `/`. Types come from `openapi.json`, and CI builds and tests it.
   See `frontend/README.md`.

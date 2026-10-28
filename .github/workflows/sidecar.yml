@@ -1,0 +1,75 @@
+# Sidecar (the API as a standalone program for the Tauri desktop window, M22): PyInstaller onedir on Windows,
+# smoke test of the built exe (incl. a job in a spawned process) and a check that it exits with its parent.
+name: Sidecar (Windows)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "pidtools/**"
+      - "frontend/**"
+      - "tools/build_sidecar.py"
+      - "tools/pidtools_api.py"
+      - "tests/test_sidecar.py"
+      - ".github/workflows/sidecar.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sidecar:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npx -y npm@11.21.0 ci --no-audit --no-fund
+
+      - name: Frontend build (-> pidtools/api/ui)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install
+        run: pip install -r requirements-api.txt pytest pyinstaller==6.22.3
+
+      - name: Build the sidecar
+        run: python tools/build_sidecar.py
+
+      - name: Smoke test of the built program (startup, workspace, demo, identification job, report)
+        shell: pwsh
+        run: |
+          $exe = "dist\pidtools-api\pidtools-api-x86_64-pc-windows-msvc.exe"
+          $out = & $exe --smoke 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0) { throw "Smoke test failed ($LASTEXITCODE)" }
+
+      - name: Startup time, token, and exit with the parent process
+        shell: pwsh
+        env:
+          PIDTOOLS_SIDECAR_EXE: ${{ github.workspace }}\dist\pidtools-api\pidtools-api-x86_64-pc-windows-msvc.exe
+        run: python -m pytest tests/test_sidecar.py -q -s -k "frozen"
+
+      - name: Size of the onedir
+        shell: pwsh
+        run: |
+          $mb = (Get-ChildItem dist\pidtools-api -Recurse -File | Measure-Object Length -Sum).Sum / 1MB
+          Write-Host ("onedir: {0:N0} MB" -f $mb)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pidtools-api-win64
+          path: dist/pidtools-api
+          retention-days: 30
