@@ -105,3 +105,43 @@ def test_opc_history_to_workspace():
             assert c.post("/opc/browse", json={"url": "opc.tcp://127.0.0.1:1/x", "timeout": 1}).status_code == 502
     finally:
         stop()
+
+
+def test_diagnostics_window_scatter_nonlinearity(ws):
+    """Okno A / B, fázový graf, poloha a rozšířená nelinearita = přímá volání aplikační vrstvy."""
+    import numpy as np
+    c, wid = ws
+    w = c.app.state.store.get(wid).state
+    d = c.get(f"/workspaces/{wid}/diagnostics", params={"a": 600, "b": 2400, "integ": False}).json()
+    assert (d["a"], d["b"], d["integ"]) == (600, 2400, False)
+    for k, v in w.diag_kpis(600, 2400).items():
+        if k != "osc":
+            assert d["kpis"][k] == pytest.approx(v)
+    x, y = w.phase(600, 2400, False)
+    assert len(d["phase"]["x"]) == len(x) and d["phase"]["x"][5] == pytest.approx(x[5])
+    assert d["phase"]["y"][-1] == pytest.approx(y[-1])
+    assert d["position"] is None and d["hysteresis"] is None            # demo bez polohy ventilu
+    di = c.get(f"/workspaces/{wid}/diagnostics").json()           # výchozí podle modelu (I1D = integrační)
+    assert di["integ"] is True and di["phase"]["y"][:50] != c.get(
+        f"/workspaces/{wid}/diagnostics", params={"integ": False}).json()["phase"]["y"][:50]
+    lg, spread = w.nonlinearity()
+    nl = d["nonlinearity"]
+    assert nl["spread"] == pytest.approx(spread) and len(nl["gains"]) == len(lg)
+    assert nl["gains"][0]["from_e"] == pytest.approx(float(w.EM(lg[0]["mv_from"])))
+    assert nl["ref"] == pytest.approx(w.model[1][0]) and nl["param"] and nl["integ"] == (w.model[0][0] == "I")
+    assert np.isfinite(nl["gains"][0]["gain"])
+
+
+def test_diagnostics_scatter_is_thinned_and_position(ws):
+    c, wid = ws
+    d = c.get(f"/workspaces/{wid}/diagnostics").json()
+    assert len(d["phase"]["x"]) <= 3000
+    w = c.app.state.store.get(wid).state
+    cols = list(w.sig.sigs)
+    cur = dict(pv=w.c_pv, mv=w.c_mv, sp=w.c_sp, dists=list(w.c_d))
+    c.put(f"/workspaces/{wid}/columns", json=dict(cur, pos=cols[0]))
+    d = c.get(f"/workspaces/{wid}/diagnostics").json()
+    assert d["position"] is not None and len(d["position"]["x"]) == len(d["phase"]["x"])
+    pos = w.pos_scatter(*w.rng)
+    assert d["position"]["y"][3] == pytest.approx(pos[1][3])
+    c.put(f"/workspaces/{wid}/columns", json=dict(cur, pos=None))

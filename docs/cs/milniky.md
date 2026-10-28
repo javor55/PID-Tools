@@ -43,7 +43,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M17 | Ladění 2: porovnání, scénář, robustnost, frekvence | C | L | M16 | ◐ |
 | M18 | Živá simulace | C | M | M16 | ☑ |
 | M19 | APC | C | L | M11, M16 | ☑ |
-| M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☐ |
+| M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☑ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☑ |
 | M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ☐ |
 | M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ☐ |
@@ -577,6 +577,32 @@ a Playwright.
 - Zbývá: RGA a poměr se zdrojem z jiné smyčky v prohlížeči netestované (API ano).
 
 ### M20 · Diagnostika a Přehled smyček
+
+**Skutečnost M20:**
+- Diagnostika (`DiagTab.tsx`): záznam s úseky A / B ve sdíleném `trend.js` (režim „ab“, táhla i políčka; úseky a volba
+  „Porovnat se druhým úsekem“ jsou stav prohlížeče podle záznamu jako v desktopu), tabulka výkonu smyčky (úsek A a B:
+  směrodatná odchylka, IAE, pohyb MV, změny směru, MV v limitu, Harris, oscilace), oscilace a ventil (perioda, amplituda,
+  závěr o stikci, hystereze při sloupci polohy), grafy korelace MV–PV, MV vs. PV (u integračního procesu dPV/dt), MV vs.
+  poloha ventilu a nelinearita (tabulka lokálních zesílení, graf podle MV, verdikt, rozdíl směrů, tlačítko „Navrhnout
+  gain scheduling“ přepne na APC). Panel: úseky, porovnání a „Integrační proces“ = klíč `diag_integ` (výchozí podle modelu).
+- API `GET /diagnostics` rozšířeno: `integ` (výchozí je nastavení `diag_integ`, jinak model), fázový graf a poloha
+  (`phase`, `position`, zředěné na 3000 bodů; `Workspace.phase`, `pos_scatter`) a nelinearita s MV v jednotkách,
+  zesílením modelu a názvem parametru. Okno B se čte stejným voláním s jinými `a`, `b`.
+- Přehled smyček (`LoopsTab.tsx`): tabulka smyček projektu (název, PV, MV, SP, poloha, model, sady, stav a problémy
+  podle `app.audit`), aktivace, odebrání a přidání smyčky (zvolené sloupce, nebo odhad); po změně se zneplatní všechny
+  dotazy prostoru. Od dvou smyček je v záhlaví výběr aktivní smyčky. Přehled smyček souboru jako v desktopu: smyčky
+  v panelu (návrh z tagů, přidat / odebrat, PV, MV, SP, poloha, θ, integrační; ukládají se do `audit_loops`), okno
+  analýzy, pořadí od nejhorší, společné oscilace, detail vybrané smyčky (PV, MV) a „Otevřít jako smyčku projektu“.
+- API (`pidtools/api/audit.py`): `GET /audit/loops` (uložené nebo `?propose=true`), `POST /audit/analyse` (smyčky
+  a okno, výsledky s problémy, ukazateli a zředěnými průběhy, společné oscilace; ukládá `audit_loops`),
+  `GET /loops/overview` (řádek na smyčku se stavem z `audit.analyse_loop`). Analýza běží synchronně (na ukázce jednotky
+  ms), ne jako úloha.
+- `LineChart` umí body (`dots`) pro fázové grafy a nelinearitu.
+- Testy: API (`test_api_analysis.py`, `test_api_project.py`: okno, fázový graf, poloha, nelinearita, analýza = `app.audit`,
+  přehled smyček) a v prohlížeči (`test_diagnostics_tab`, `test_loops_overview_add_switch_delete`: hodnoty = API, změna
+  úseku A, srovnání B, přepnutí `diag_integ`, přidání / přepnutí / odebrání smyčky, analýza souboru).
+- Zbývá: v záznamu se nekreslí poloha ventilu a měřené poruchy (poloha je v samostatném grafu); analýza smyček souboru
+  nad velkými soubory by mohla patřit do úlohy; smyčky přehledu se upravují jen v panelu (bez změny rozsahů NormPV / NormMV).
 
 ### M21 · Projekt, report, OPC UA
 - Uložení a načtení projektu (soubor), report (náhled a stažení), čtení z OPC UA.

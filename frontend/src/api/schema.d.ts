@@ -1039,6 +1039,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/audit/analyse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyse
+         * @description Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci.
+         */
+        post: operations["analyse_workspaces__wid__audit_analyse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/audit/loops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit Loops
+         * @description Smyčky v souboru: uložené v projektu, jinak (nebo s `propose`) návrh z názvů tagů.
+         */
+        get: operations["audit_loops_workspaces__wid__audit_loops_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/columns": {
         parameters: {
             query?: never;
@@ -1122,7 +1162,8 @@ export interface paths {
         };
         /**
          * Diagnostics
-         * @description Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí podle modelu).
+         * @description Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf
+         *     MV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.
          */
         get: operations["diagnostics_workspaces__wid__diagnostics_get"];
         put?: never;
@@ -1265,6 +1306,26 @@ export interface paths {
         get?: never;
         /** Set Active */
         put: operations["set_active_workspaces__wid__loops_active_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/loops/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Loops Overview
+         * @description Smyčky projektu: sloupce, model, sady parametrů a stav (problémy podle přehledu smyček).
+         */
+        get: operations["loops_overview_workspaces__wid__loops_overview_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1796,6 +1857,110 @@ export interface components {
             /** Index */
             index: number;
         };
+        /** Audit */
+        Audit: {
+            /** Common */
+            common: components["schemas"]["AuditCommon"][];
+            /** Results */
+            results: components["schemas"]["AuditResult"][];
+        };
+        /** AuditCommon */
+        AuditCommon: {
+            /** By Stiction */
+            by_stiction: boolean;
+            /** Loops */
+            loops: string[];
+            /** Period */
+            period: number;
+            /** Source */
+            source: string;
+        };
+        /** AuditLoop */
+        AuditLoop: {
+            /**
+             * Integ
+             * @default false
+             */
+            integ: boolean;
+            /** Mv */
+            mv: string;
+            /** Name */
+            name: string;
+            /** Pos */
+            pos?: string | null;
+            /** Pv */
+            pv: string;
+            /** Sp */
+            sp?: string | null;
+            /** Theta */
+            theta?: number | null;
+        };
+        /** AuditLoops */
+        AuditLoops: {
+            /** Loops */
+            loops: components["schemas"]["AuditLoop"][];
+            /**
+             * Saved
+             * @default false
+             */
+            saved: boolean;
+        };
+        /** AuditProblem */
+        AuditProblem: {
+            /** Key */
+            key: string;
+            /** Severity */
+            severity: number;
+        };
+        /** AuditReq */
+        AuditReq: {
+            /** A */
+            a?: number | null;
+            /** B */
+            b?: number | null;
+            /** Loops */
+            loops?: components["schemas"]["AuditLoop"][] | null;
+        };
+        /** AuditResult */
+        AuditResult: {
+            /** Err */
+            err?: string | null;
+            /** Kpis */
+            kpis?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Mv
+             * @default []
+             */
+            mv: (number | null)[];
+            /** Name */
+            name: string;
+            /** Ok */
+            ok: boolean;
+            /**
+             * Problems
+             * @default []
+             */
+            problems: components["schemas"]["AuditProblem"][];
+            /**
+             * Pv
+             * @default []
+             */
+            pv: (number | null)[];
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /** Sp */
+            sp?: (number | null)[] | null;
+            /**
+             * T
+             * @default []
+             */
+            t: number[];
+        };
         /** Browse */
         Browse: {
             /** Node Id */
@@ -2058,6 +2223,8 @@ export interface components {
             b: number;
             /** Hysteresis */
             hysteresis?: number | null;
+            /** Integ */
+            integ: boolean;
             /** Kpis */
             kpis: {
                 [key: string]: unknown;
@@ -2066,6 +2233,8 @@ export interface components {
             nonlinearity?: {
                 [key: string]: unknown;
             } | null;
+            phase: components["schemas"]["Scatter"];
+            position?: components["schemas"]["Scatter"] | null;
             /** Valve */
             valve: {
                 [key: string]: unknown;
@@ -2658,6 +2827,27 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** LoopHealth */
+        LoopHealth: {
+            /** Err */
+            err?: string | null;
+            /** Kpis */
+            kpis?: {
+                [key: string]: unknown;
+            } | null;
+            /** Ok */
+            ok: boolean;
+            /**
+             * Problems
+             * @default []
+             */
+            problems: components["schemas"]["AuditProblem"][];
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+        };
         /** LoopMode */
         LoopMode: {
             /** Auto Frac */
@@ -2676,12 +2866,55 @@ export interface components {
             /** Set1 Ok */
             set1_ok: boolean;
         };
+        /** LoopRow */
+        LoopRow: {
+            /** Active */
+            active: boolean;
+            health: components["schemas"]["LoopHealth"];
+            /** Index */
+            index: number;
+            /** Model */
+            model?: string | null;
+            /** Mv */
+            mv?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Params
+             * @default []
+             */
+            params: (number | null)[];
+            /** Pos */
+            pos?: string | null;
+            /** Pv */
+            pv?: string | null;
+            set1: components["schemas"]["LoopSet"];
+            set2: components["schemas"]["LoopSet"];
+            /** Sp */
+            sp?: string | null;
+        };
+        /** LoopSet */
+        LoopSet: {
+            /** Gain */
+            gain?: number | null;
+            /** Td */
+            td?: number | null;
+            /** Ti */
+            ti?: number | null;
+        };
         /** Loops */
         Loops: {
             /** Active */
             active: number;
             /** Loops */
             loops: components["schemas"]["Loop"][];
+        };
+        /** LoopsOverview */
+        LoopsOverview: {
+            /** Active */
+            active: number;
+            /** Loops */
+            loops: components["schemas"]["LoopRow"][];
         };
         /** ModelInfo */
         ModelInfo: {
@@ -3118,6 +3351,13 @@ export interface components {
              * @enum {string}
              */
             kind: "man" | "auto";
+        };
+        /** Scatter */
+        Scatter: {
+            /** X */
+            x: (number | null)[];
+            /** Y */
+            y: (number | null)[];
         };
         /** Scenario */
         Scenario: {
@@ -5723,6 +5963,80 @@ export interface operations {
             };
         };
     };
+    analyse_workspaces__wid__audit_analyse_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Audit"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_loops_workspaces__wid__audit_loops_get: {
+        parameters: {
+            query?: {
+                propose?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLoops"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_columns_workspaces__wid__columns_put: {
         parameters: {
             query?: never;
@@ -6219,6 +6533,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Loops"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    loops_overview_workspaces__wid__loops_overview_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopsOverview"];
                 };
             };
             /** @description Validation Error */

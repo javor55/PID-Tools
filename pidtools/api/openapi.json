@@ -14,6 +14,316 @@
     "title": "Active",
     "type": "object"
    },
+   "Audit": {
+    "properties": {
+     "common": {
+      "items": {
+       "$ref": "#/components/schemas/AuditCommon"
+      },
+      "title": "Common",
+      "type": "array"
+     },
+     "results": {
+      "items": {
+       "$ref": "#/components/schemas/AuditResult"
+      },
+      "title": "Results",
+      "type": "array"
+     }
+    },
+    "required": [
+     "results",
+     "common"
+    ],
+    "title": "Audit",
+    "type": "object"
+   },
+   "AuditCommon": {
+    "properties": {
+     "by_stiction": {
+      "title": "By Stiction",
+      "type": "boolean"
+     },
+     "loops": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "period": {
+      "title": "Period",
+      "type": "number"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     }
+    },
+    "required": [
+     "period",
+     "loops",
+     "source",
+     "by_stiction"
+    ],
+    "title": "AuditCommon",
+    "type": "object"
+   },
+   "AuditLoop": {
+    "properties": {
+     "integ": {
+      "default": false,
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "mv": {
+      "title": "Mv",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "pos": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pos"
+     },
+     "pv": {
+      "title": "Pv",
+      "type": "string"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     },
+     "theta": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Theta"
+     }
+    },
+    "required": [
+     "name",
+     "pv",
+     "mv"
+    ],
+    "title": "AuditLoop",
+    "type": "object"
+   },
+   "AuditLoops": {
+    "properties": {
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/AuditLoop"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "saved": {
+      "default": false,
+      "title": "Saved",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "loops"
+    ],
+    "title": "AuditLoops",
+    "type": "object"
+   },
+   "AuditProblem": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "severity": {
+      "title": "Severity",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "key",
+     "severity"
+    ],
+    "title": "AuditProblem",
+    "type": "object"
+   },
+   "AuditReq": {
+    "properties": {
+     "a": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "A"
+     },
+     "b": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "B"
+     },
+     "loops": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/AuditLoop"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Loops"
+     }
+    },
+    "title": "AuditReq",
+    "type": "object"
+   },
+   "AuditResult": {
+    "properties": {
+     "err": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Err"
+     },
+     "kpis": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kpis"
+     },
+     "mv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Mv",
+      "type": "array"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "problems": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/AuditProblem"
+      },
+      "title": "Problems",
+      "type": "array"
+     },
+     "pv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Pv",
+      "type": "array"
+     },
+     "score": {
+      "default": 0,
+      "title": "Score",
+      "type": "integer"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "items": {
+         "anyOf": [
+          {
+           "type": "number"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     },
+     "t": {
+      "default": [],
+      "items": {
+       "type": "number"
+      },
+      "title": "T",
+      "type": "array"
+     }
+    },
+    "required": [
+     "name",
+     "ok"
+    ],
+    "title": "AuditResult",
+    "type": "object"
+   },
    "Browse": {
     "properties": {
      "node_id": {
@@ -810,6 +1120,10 @@
       ],
       "title": "Hysteresis"
      },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
      "kpis": {
       "additionalProperties": true,
       "title": "Kpis",
@@ -827,6 +1141,19 @@
       ],
       "title": "Nonlinearity"
      },
+     "phase": {
+      "$ref": "#/components/schemas/Scatter"
+     },
+     "position": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Scatter"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
      "valve": {
       "additionalProperties": true,
       "title": "Valve",
@@ -836,8 +1163,10 @@
     "required": [
      "a",
      "b",
+     "integ",
      "kpis",
-     "valve"
+     "valve",
+     "phase"
     ],
     "title": "Diagnostics",
     "type": "object"
@@ -2443,6 +2772,55 @@
     "title": "LoopCheck",
     "type": "object"
    },
+   "LoopHealth": {
+    "properties": {
+     "err": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Err"
+     },
+     "kpis": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kpis"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "problems": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/AuditProblem"
+      },
+      "title": "Problems",
+      "type": "array"
+     },
+     "score": {
+      "default": 0,
+      "title": "Score",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "ok"
+    ],
+    "title": "LoopHealth",
+    "type": "object"
+   },
    "LoopMode": {
     "properties": {
      "auto_frac": {
@@ -2495,6 +2873,150 @@
     "title": "LoopMode",
     "type": "object"
    },
+   "LoopRow": {
+    "properties": {
+     "active": {
+      "title": "Active",
+      "type": "boolean"
+     },
+     "health": {
+      "$ref": "#/components/schemas/LoopHealth"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "mv": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "params": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Params",
+      "type": "array"
+     },
+     "pos": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pos"
+     },
+     "pv": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv"
+     },
+     "set1": {
+      "$ref": "#/components/schemas/LoopSet"
+     },
+     "set2": {
+      "$ref": "#/components/schemas/LoopSet"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     }
+    },
+    "required": [
+     "index",
+     "name",
+     "active",
+     "set1",
+     "set2",
+     "health"
+    ],
+    "title": "LoopRow",
+    "type": "object"
+   },
+   "LoopSet": {
+    "properties": {
+     "gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gain"
+     },
+     "td": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Td"
+     },
+     "ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ti"
+     }
+    },
+    "title": "LoopSet",
+    "type": "object"
+   },
    "Loops": {
     "properties": {
      "active": {
@@ -2514,6 +3036,27 @@
      "loops"
     ],
     "title": "Loops",
+    "type": "object"
+   },
+   "LoopsOverview": {
+    "properties": {
+     "active": {
+      "title": "Active",
+      "type": "integer"
+     },
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/LoopRow"
+      },
+      "title": "Loops",
+      "type": "array"
+     }
+    },
+    "required": [
+     "active",
+     "loops"
+    ],
+    "title": "LoopsOverview",
     "type": "object"
    },
    "ModelInfo": {
@@ -3704,6 +4247,44 @@
      "kind"
     ],
     "title": "Run",
+    "type": "object"
+   },
+   "Scatter": {
+    "properties": {
+     "x": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "X",
+      "type": "array"
+     },
+     "y": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Y",
+      "type": "array"
+     }
+    },
+    "required": [
+     "x",
+     "y"
+    ],
+    "title": "Scatter",
     "type": "object"
    },
    "Scenario": {
@@ -9866,6 +10447,176 @@
     ]
    }
   },
+  "/workspaces/{wid}/audit/analyse": {
+   "post": {
+    "description": "Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci.",
+    "operationId": "analyse_workspaces__wid__audit_analyse_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AuditReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Audit"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Analyse",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
+  "/workspaces/{wid}/audit/loops": {
+   "get": {
+    "description": "Smyčky v souboru: uložené v projektu, jinak (nebo s `propose`) návrh z názvů tagů.",
+    "operationId": "audit_loops_workspaces__wid__audit_loops_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "propose",
+      "required": false,
+      "schema": {
+       "default": false,
+       "title": "Propose",
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AuditLoops"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Audit Loops",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
   "/workspaces/{wid}/columns": {
    "put": {
     "operationId": "set_columns_workspaces__wid__columns_put",
@@ -10202,7 +10953,7 @@
   },
   "/workspaces/{wid}/diagnostics": {
    "get": {
-    "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí podle modelu).",
+    "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf\nMV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.",
     "operationId": "diagnostics_workspaces__wid__diagnostics_get",
     "parameters": [
      {
@@ -11041,6 +11792,81 @@
     "summary": "Set Active",
     "tags": [
      "project"
+    ]
+   }
+  },
+  "/workspaces/{wid}/loops/overview": {
+   "get": {
+    "description": "Smyčky projektu: sloupce, model, sady parametrů a stav (problémy podle přehledu smyček).",
+    "operationId": "loops_overview_workspaces__wid__loops_overview_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopsOverview"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Loops Overview",
+    "tags": [
+     "audit"
     ]
    }
   },

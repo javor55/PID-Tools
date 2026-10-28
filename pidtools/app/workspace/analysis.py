@@ -2,6 +2,8 @@
 Diagnostika smyčky nad daty pracovního prostoru: KPI úseku, ventil (oscilace, stikce), hystereze podle polohy
 a nelinearita z místních zesílení (M4d). Výpočty jsou v app.diagnostics; tady se jen skládají vstupy ze stavu.
 """
+import numpy as np
+
 from .. import diagnostics as dg
 
 
@@ -40,6 +42,20 @@ class AnalysisMixin:
             return None
         m = self.range_mask(a, b)
         return dg.hysteresis(self.grid.mv_e[m], pos[m])
+
+    def phase(self, a, b, integ=False):
+        """Fázový graf MV–PV úseku v inženýrských jednotkách: (MV, PV) nebo (MV, dPV/dt) u integračního procesu."""
+        m = self.range_mask(a, b)
+        y = np.gradient(self.pv[m], self.grid.Ts) * self.PR / 100 if integ else self.EP(self.pv[m])
+        return self.EM(self.mv[m]), y
+
+    def pos_scatter(self, a, b):
+        """MV vs. poloha ventilu v úseku (inženýrské jednotky MV), nebo None bez sloupce polohy."""
+        pos = self.position()
+        if pos is None:
+            return None
+        m = self.range_mask(a, b)
+        return self.grid.mv_e[m], pos[m]
 
     def nonlinearity(self):
         """Místní zesílení po skocích MV v úseku identifikace a jejich rozptyl; (seznam, rozptyl) nebo None."""

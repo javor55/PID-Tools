@@ -2078,5 +2078,16 @@
  "ui_proj_meta": "Údaje o projektu",
  "ui_opc_none": "Nic nenalezeno.",
  "ui_opc_role": "Role",
- "ui_opc_n_sel": "Vybráno: {n}"
+ "ui_opc_n_sel": "Vybráno: {n}",
+ "ui_lp_title": "Smyčky projektu",
+ "ui_lp_help": "Všechny smyčky nad jedním souborem. Aktivní smyčka je ta, kterou ukazují ostatní záložky; stav vychází z přehledu smyček (celý záznam).",
+ "ui_lp_active": "Aktivní",
+ "ui_lp_activate": "Aktivovat",
+ "ui_lp_delete": "Odstranit",
+ "ui_lp_sets": "Sady (Gain / TI / TD)",
+ "ui_lp_new": "Nová smyčka",
+ "ui_lp_add_cols": "Přidat se zvolenými sloupci",
+ "ui_lp_add_auto": "Přidat (sloupce se odhadnou)",
+ "ui_lp_no_model": "bez modelu",
+ "ui_lp_error": "Smyčku nelze vyhodnotit: {e}"
 }
