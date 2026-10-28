@@ -34,6 +34,25 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      # nové rozhraní (frontend/, React + TS): typy z openapi.json, lint, typy, testy, sestavení → pidtools/api/ui
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npx -y npm@11.21.0 ci --no-audit --no-fund
+
+      - name: Frontend API types match openapi.json
+        working-directory: frontend
+        run: npm run api-types && git diff --exit-code src/api/schema.d.ts
+
+      - name: Frontend lint, types, tests, build
+        working-directory: frontend
+        run: npm run lint && npm run typecheck && npm test && npm run build
+
       - name: Tests
         env:
           QT_QPA_PLATFORM: offscreen

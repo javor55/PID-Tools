@@ -1,0 +1,114 @@
+/* Prohlížeč záznamu (viewer.js) – sdílí Streamlit web (pidtools/ui/viewer.py) i nové rozhraní (frontend). */
+.pidv { position: relative; display: flex; flex-direction: column; gap: 10px; font-family: inherit; outline: none;
+  color: var(--pv-text); --pv-text: #1f2933; --pv-muted: #52606d; --pv-line: #d7dde5; --pv-card: #ffffff;
+  --pv-grid: #e8ecf1; --pv-axis: #c3ccd6; --pv-btn: #ffffff; --pv-hl: #eef4fb; --pv-acc: #1f5fa8; --pv-sel: #dbe8f7; }
+.pidv.dark { --pv-text: #e2e8f0; --pv-muted: #94a3b8; --pv-line: #26324a; --pv-card: #111a2e; --pv-grid: #1c2740;
+  --pv-axis: #334155; --pv-btn: #0f172a; --pv-hl: #16223a; --pv-acc: #60a5fa; --pv-sel: #1e3a5f; }
+.pidv-card { background: var(--pv-card); border: 1px solid var(--pv-line); border-radius: 10px; }
+.pidv-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; }
+.pidv-grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pidv-lab { font-size: 12px; color: var(--pv-muted); }
+.pidv-seg { display: inline-flex; border: 1px solid var(--pv-axis); border-radius: 8px; overflow: hidden; }
+.pidv-seg button, .pidv-btn { font: inherit; font-size: 12px; padding: 4px 9px; border: 0; background: var(--pv-btn);
+  color: var(--pv-text); cursor: pointer; white-space: nowrap; }
+.pidv-btn { border: 1px solid var(--pv-axis); border-radius: 8px; }
+.pidv-seg button + button { border-left: 1px solid var(--pv-axis); }
+.pidv-seg button.on, .pidv-btn.on { background: var(--pv-acc); color: #fff; }
+.pidv-btn:disabled, .pidv-seg button:disabled { opacity: .45; cursor: default; }
+.pidv-help { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; color: var(--pv-muted);
+  font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.pidv-body { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 10px; align-items: start; }
+.pidv-body.nolist { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) { .pidv-body { grid-template-columns: minmax(0, 1fr); } }
+.pidv-list { padding: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 760px; overflow: auto; }
+.pidv-list input[type=search] { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--pv-axis);
+  border-radius: 6px; background: var(--pv-btn); color: var(--pv-text); width: 100%; box-sizing: border-box; }
+.pidv-sig { display: grid; grid-template-columns: 16px 14px minmax(0, 1fr) 46px 66px 16px; gap: 5px; align-items: center;
+  font-size: 12px; padding: 3px 4px; border-radius: 6px; }
+.pidv-sig:hover { background: var(--pv-hl); }
+.pidv-sig.act { background: var(--pv-sel); }
+.pidv-sig .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.pidv-sig .role { font-size: 10px; color: var(--pv-muted); margin-left: 4px; }
+.pidv-dot { width: 12px; height: 12px; border-radius: 3px; border: 0; padding: 0; cursor: pointer; }
+.pidv-sig select, .pidv-more input, .pidv-more select { font: inherit; font-size: 11px; padding: 1px 2px; border: 1px solid var(--pv-axis);
+  border-radius: 4px; background: var(--pv-btn); color: var(--pv-text); }
+.pidv-sig select { width: 46px; }
+.pidv-x { font: inherit; font-size: 11px; border: 0; background: none; color: var(--pv-muted); cursor: pointer; padding: 0 2px; }
+.pidv-more { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center;
+  padding: 4px 6px 6px 36px; font-size: 11px; color: var(--pv-muted); }
+.pidv-more input { width: 100%; box-sizing: border-box; }
+.pidv-more .row { display: flex; gap: 6px; align-items: center; }
+.pidv-plots { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.pidv-panel { position: relative; padding: 6px 10px 0 6px; margin-bottom: 8px; }
+.pidv-ph { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 12px; margin: 0 0 4px 4px; min-height: 20px; }
+.pidv-chip { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; cursor: pointer; }
+.pidv-chip i { display: inline-block; width: 14px; height: 0; border-top: 2px solid; }
+.pidv-chip.act { text-decoration: underline; }
+.pidv-ph .sp { flex: 1; }
+.pidv-cv { display: block; touch-action: none; }
+.pidv-rs { height: 7px; cursor: ns-resize; margin: 0 -10px 0 -6px; border-radius: 0 0 10px 10px; }
+.pidv-rs:hover { background: var(--pv-hl); }
+.pidv-xcard { padding: 0 10px 6px 6px; position: sticky; bottom: 0; z-index: 3; box-shadow: 0 -2px 6px rgba(0,0,0,.06); }
+.pidv-bar { position: sticky; top: 0; z-index: 4; }
+.pidv-xax { display: block; }
+.pidv-nav { display: block; cursor: grab; touch-action: none; margin-top: 2px; }
+.pidv-tip { position: absolute; display: none; pointer-events: none; z-index: 5; font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--pv-line); background: var(--pv-card);
+  box-shadow: 0 2px 8px rgba(0,0,0,.14); white-space: nowrap; color: var(--pv-text); line-height: 1.45; }
+.pidv-tip b { font-weight: 600; }
+.pidv-read { padding: 8px 10px; overflow-x: auto; }
+.pidv-tbl { border-collapse: collapse; font-size: 12px; width: 100%; }
+.pidv-tbl th, .pidv-tbl td { padding: 3px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--pv-grid);
+  font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+.pidv-tbl th { font-family: inherit; font-weight: 600; color: var(--pv-muted); position: sticky; top: 0; background: var(--pv-card); z-index: 1; }
+.pidv-tbl td:first-child, .pidv-tbl th:first-child { text-align: left; font-family: inherit; }
+.pidv-tbl tr.sel td { background: var(--pv-sel); }
+.pidv-tbl tbody tr { cursor: pointer; }
+.pidv-tbl tbody tr:hover td { background: var(--pv-hl); }
+.pidv-rhead { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; font-size: 12px; margin-bottom: 6px; }
+.pidv-rhead b { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+.pidv-dtab { position: relative; overflow: auto; height: 280px; }
+.pidv-note { font-size: 11px; color: var(--pv-muted); }
+.pidv-err { padding: 14px; color: #b91c1c; font-size: 13px; }
+.pidv-an { padding: 8px 12px; }
+.pidv-antabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pidv-antabs .sp { flex: 1; }
+.pidv-tabb { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--pv-axis); border-radius: 999px;
+  background: var(--pv-btn); color: var(--pv-text); cursor: pointer; }
+.pidv-tabb.on { background: var(--pv-acc); border-color: var(--pv-acc); color: #fff; }
+.pidv-anbody { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.pidv-row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12px; }
+.pidv-row select, .pidv-row input:not([type=checkbox]) { font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--pv-axis);
+  border-radius: 4px; background: var(--pv-btn); color: var(--pv-text); max-width: 220px; }
+.pidv-chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; }
+.pidv-chk i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.pidv-mini { display: block; }
+.pidv-kv { width: auto; }
+.pidv-kv td:first-child { color: var(--pv-muted); padding-right: 18px; }
+.pidv-kv td { text-align: left !important; }
+.pidv-bar2 { display: inline-block; height: 8px; border-radius: 2px; vertical-align: middle; }
+.pidv-segchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 6px; border: 1px solid var(--pv-axis);
+  border-radius: 6px; font-family: 'IBM Plex Mono', monospace; }
+.pidv-segchip i { display: inline-block; width: 12px; height: 3px; }
+.pidv-add { font: inherit; font-size: 12px; margin-top: 6px; padding: 4px 8px; border: 1px dashed var(--pv-axis); background: var(--pv-btn);
+  color: var(--pv-muted); border-radius: 6px; cursor: pointer; width: 100%; }
+.pidv-calc { display: flex; flex-direction: column; gap: 4px; padding: 6px; margin: 2px 0 6px; border: 1px solid var(--pv-axis); border-radius: 6px; }
+.pidv-calc input, .pidv-calc textarea { font: inherit; font-size: 12px; padding: 3px 6px; border: 1px solid var(--pv-axis); border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-text); }
+.pidv-calc textarea { font-family: 'IBM Plex Mono', monospace; resize: vertical; }
+.pidv-calc .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pidv-tbl.pidv-left td, .pidv-tbl.pidv-left th { text-align: left; }
+.pidv-yb { font: inherit; font-size: 10px; padding: 1px 5px; border: 1px solid var(--pv-axis); border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-muted); cursor: pointer; white-space: nowrap; width: 66px; overflow: hidden;
+  text-overflow: ellipsis; font-family: 'IBM Plex Mono', monospace; }
+.pidv-yb:hover { color: var(--pv-text); border-color: var(--pv-acc); }
+.pidv-pop { position: absolute; z-index: 20; background: var(--pv-card); border: 1px solid var(--pv-line); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px;
+  min-width: 230px; }
+.pidv-pop-h { margin-bottom: 2px; }
+.pidv-pop-r { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px; align-items: center; }
+.pidv-pop-r:last-child { display: flex; gap: 6px; }
+.pidv-pop input:not([type=radio]) { font: inherit; font-size: 12px; padding: 2px 5px; border: 1px solid var(--pv-axis); border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-text); width: 80px; }
+.pidv-pop input:disabled { opacity: .5; }
+.pidv-cerr { font-size: 11px; color: #b91c1c; padding: 0 4px; }

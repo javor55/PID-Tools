@@ -62,6 +62,42 @@ def test_file_columns_range_settings(client):
     assert client.patch(f"/workspaces/{wid}/settings", json={"hack": 1}).status_code == 422
 
 
+def _long_csv(n=60):
+    rows = ["Time,Tag,Value"]
+    for i in range(n):
+        for tag, v in (("FIC.PV", 50 + (i % 7)), ("FIC.MV", 40 + (i // 10))):
+            rows.append(f"2024-02-13 13:{i // 60:02d}:{i % 60:02d},{tag},{v}")
+    return "\n".join(rows).encode()
+
+
+def test_layout_info_and_change(client):
+    """GET /layout ukazuje, jak je tabulka přečtená; PUT /layout ji přečte jinak (dlouhý formát, bez času)."""
+    wid = _ws(client)
+    assert client.get(f"/workspaces/{wid}/layout").status_code == 409
+    w = client.post(f"/workspaces/{wid}/data/file", params={"name": "h.csv"}, content=_long_csv()).json()
+    assert w["layout"] == "long" and set(w["columns"]) == {"FIC.PV", "FIC.MV"}
+    lay = client.get(f"/workspaces/{wid}/layout").json()
+    assert lay["layout"] == lay["default_layout"] == "long" and lay["table_columns"] == ["Time", "Tag", "Value"]
+    assert (lay["c_time"], lay["c_tag"], lay["c_val"]) == ("Time", "Tag", "Value") and lay["unit"] == "s"
+    r = client.put(f"/workspaces/{wid}/layout", json={"layout": "wide"})       # dlouhý formát jako společný čas nejde
+    assert r.status_code == 400
+    assert client.get(f"/workspaces/{wid}/layout").json()["layout"] == "long"
+    assert client.get(f"/workspaces/{wid}").json()["columns"] == w["columns"]
+    w = client.put(f"/workspaces/{wid}/layout", json={"layout": "long", "c_tag": "Tag", "c_val": "Value"}).json()
+    assert set(w["columns"]) == {"FIC.PV", "FIC.MV"}
+    # bez času: co řádek, to vzorek s ručně zadanou periodou
+    raw = "pv,mv\n" + "\n".join(f"{50 + i % 5},{i % 3}" for i in range(200))
+    w = client.post(f"/workspaces/{wid}/data/file", params={"name": "r.csv"}, content=raw.encode()).json()
+    rows = client.get(f"/workspaces/{wid}/layout").json()["rows_mark"]
+    w = client.put(f"/workspaces/{wid}/layout", json={"layout": "wide", "c_time": rows}).json()
+    assert set(w["columns"]) == {"pv", "mv"} and w["Ts"] == pytest.approx(1.0)
+    w = client.put(f"/workspaces/{wid}/layout", json={"layout": "wide", "c_time": rows, "row_dt": 0.5,
+                                                      "unit": "min"}).json()
+    assert w["Ts"] == pytest.approx(30.0)
+    lay = client.get(f"/workspaces/{wid}/layout").json()
+    assert lay["row_dt"] == 0.5 and lay["unit"] == "min" and lay["c_time"] == rows
+
+
 def test_errors(client):
     wid = _ws(client)
     assert client.get(f"/workspaces/{wid}/signals").status_code == 409          # bez dat

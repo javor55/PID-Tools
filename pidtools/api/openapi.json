@@ -14,6 +14,316 @@
     "title": "Active",
     "type": "object"
    },
+   "Audit": {
+    "properties": {
+     "common": {
+      "items": {
+       "$ref": "#/components/schemas/AuditCommon"
+      },
+      "title": "Common",
+      "type": "array"
+     },
+     "results": {
+      "items": {
+       "$ref": "#/components/schemas/AuditResult"
+      },
+      "title": "Results",
+      "type": "array"
+     }
+    },
+    "required": [
+     "results",
+     "common"
+    ],
+    "title": "Audit",
+    "type": "object"
+   },
+   "AuditCommon": {
+    "properties": {
+     "by_stiction": {
+      "title": "By Stiction",
+      "type": "boolean"
+     },
+     "loops": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "period": {
+      "title": "Period",
+      "type": "number"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     }
+    },
+    "required": [
+     "period",
+     "loops",
+     "source",
+     "by_stiction"
+    ],
+    "title": "AuditCommon",
+    "type": "object"
+   },
+   "AuditLoop": {
+    "properties": {
+     "integ": {
+      "default": false,
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "mv": {
+      "title": "Mv",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "pos": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pos"
+     },
+     "pv": {
+      "title": "Pv",
+      "type": "string"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     },
+     "theta": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Theta"
+     }
+    },
+    "required": [
+     "name",
+     "pv",
+     "mv"
+    ],
+    "title": "AuditLoop",
+    "type": "object"
+   },
+   "AuditLoops": {
+    "properties": {
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/AuditLoop"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "saved": {
+      "default": false,
+      "title": "Saved",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "loops"
+    ],
+    "title": "AuditLoops",
+    "type": "object"
+   },
+   "AuditProblem": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "severity": {
+      "title": "Severity",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "key",
+     "severity"
+    ],
+    "title": "AuditProblem",
+    "type": "object"
+   },
+   "AuditReq": {
+    "properties": {
+     "a": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "A"
+     },
+     "b": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "B"
+     },
+     "loops": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/AuditLoop"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Loops"
+     }
+    },
+    "title": "AuditReq",
+    "type": "object"
+   },
+   "AuditResult": {
+    "properties": {
+     "err": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Err"
+     },
+     "kpis": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kpis"
+     },
+     "mv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Mv",
+      "type": "array"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "problems": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/AuditProblem"
+      },
+      "title": "Problems",
+      "type": "array"
+     },
+     "pv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Pv",
+      "type": "array"
+     },
+     "score": {
+      "default": 0,
+      "title": "Score",
+      "type": "integer"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "items": {
+         "anyOf": [
+          {
+           "type": "number"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     },
+     "t": {
+      "default": [],
+      "items": {
+       "type": "number"
+      },
+      "title": "T",
+      "type": "array"
+     }
+    },
+    "required": [
+     "name",
+     "ok"
+    ],
+    "title": "AuditResult",
+    "type": "object"
+   },
    "Browse": {
     "properties": {
      "node_id": {
@@ -70,28 +380,431 @@
     "title": "Browse",
     "type": "object"
    },
-   "Check": {
+   "CascadeFit": {
     "properties": {
-     "args": {
-      "additionalProperties": true,
-      "default": {},
-      "title": "Args",
-      "type": "object"
+     "fit": {
+      "title": "Fit",
+      "type": "number"
      },
-     "key": {
-      "title": "Key",
-      "type": "string"
-     },
-     "level": {
-      "title": "Level",
-      "type": "integer"
+     "model": {
+      "$ref": "#/components/schemas/ModelOut"
      }
     },
     "required": [
-     "key",
-     "level"
+     "model",
+     "fit"
     ],
-    "title": "Check",
+    "title": "CascadeFit",
+    "type": "object"
+   },
+   "CascadeFitReq": {
+    "properties": {
+     "ihi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ihi"
+     },
+     "ilo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ilo"
+     },
+     "imv": {
+      "title": "Imv",
+      "type": "string"
+     },
+     "ipv": {
+      "title": "Ipv",
+      "type": "string"
+     }
+    },
+    "required": [
+     "ipv",
+     "imv"
+    ],
+    "title": "CascadeFitReq",
+    "type": "object"
+   },
+   "CascadeInfo": {
+    "properties": {
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/LoopCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "inner": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Tuned"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "inner_fit": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CascadeFit"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "inner_model": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ModelOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "inner_note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inner Note"
+     },
+     "inputs": {
+      "$ref": "#/components/schemas/CascadeInputs"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "outer": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Tuned"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "outer_model": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ModelOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "rows": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/ValueRow"
+      },
+      "title": "Rows",
+      "type": "array"
+     },
+     "sep_warn": {
+      "default": false,
+      "title": "Sep Warn",
+      "type": "boolean"
+     },
+     "separation": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Separation"
+     },
+     "t63": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "T63"
+     },
+     "tc_eff": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tc Eff"
+     }
+    },
+    "required": [
+     "model",
+     "inputs"
+    ],
+    "title": "CascadeInfo",
+    "type": "object"
+   },
+   "CascadeInputs": {
+    "properties": {
+     "inner_method": {
+      "title": "Inner Method",
+      "type": "string"
+     },
+     "loop": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Loop"
+     },
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/CascadeLoopRef"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "manual": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Manual",
+      "type": "array"
+     },
+     "methods": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+     },
+     "outer_ctype": {
+      "title": "Outer Ctype",
+      "type": "string"
+     },
+     "outer_method": {
+      "title": "Outer Method",
+      "type": "string"
+     },
+     "samp_default": {
+      "title": "Samp Default",
+      "type": "number"
+     },
+     "samp_i": {
+      "title": "Samp I",
+      "type": "number"
+     },
+     "signals": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Signals",
+      "type": "array"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "sources": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Sources",
+      "type": "array"
+     },
+     "tci": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tci"
+     },
+     "tci_default": {
+      "title": "Tci Default",
+      "type": "number"
+     },
+     "tci_edited": {
+      "title": "Tci Edited",
+      "type": "boolean"
+     },
+     "tco": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tco"
+     },
+     "tco_default": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tco Default"
+     },
+     "tco_edited": {
+      "title": "Tco Edited",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "source",
+     "sources",
+     "loops",
+     "loop",
+     "manual",
+     "inner_method",
+     "outer_method",
+     "outer_ctype",
+     "methods",
+     "samp_i",
+     "samp_default",
+     "tci",
+     "tci_default",
+     "tci_edited",
+     "tco",
+     "tco_default",
+     "tco_edited",
+     "signals"
+    ],
+    "title": "CascadeInputs",
+    "type": "object"
+   },
+   "CascadeLoopRef": {
+    "properties": {
+     "has_model": {
+      "title": "Has Model",
+      "type": "boolean"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "index",
+     "name",
+     "has_model"
+    ],
+    "title": "CascadeLoopRef",
+    "type": "object"
+   },
+   "CascadeReset": {
+    "properties": {
+     "part": {
+      "enum": [
+       "manual",
+       "inner",
+       "outer"
+      ],
+      "title": "Part",
+      "type": "string"
+     }
+    },
+    "required": [
+     "part"
+    ],
+    "title": "CascadeReset",
+    "type": "object"
+   },
+   "CascadeSim": {
+    "properties": {
+     "T_end": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "T End"
+     },
+     "iae_outer": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Iae Outer"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "separation": {
+      "title": "Separation",
+      "type": "number"
+     },
+     "t63": {
+      "title": "T63",
+      "type": "number"
+     }
+    },
+    "required": [
+     "ok",
+     "t63",
+     "separation"
+    ],
+    "title": "CascadeSim",
     "type": "object"
    },
    "Columns": {
@@ -142,6 +855,250 @@
     "title": "Columns",
     "type": "object"
    },
+   "DecDefaults": {
+    "properties": {
+     "amp_a": {
+      "title": "Amp A",
+      "type": "number"
+     },
+     "amp_b": {
+      "title": "Amp B",
+      "type": "number"
+     },
+     "dtype": {
+      "title": "Dtype",
+      "type": "string"
+     }
+    },
+    "required": [
+     "dtype",
+     "amp_a",
+     "amp_b"
+    ],
+    "title": "DecDefaults",
+    "type": "object"
+   },
+   "DecIae": {
+    "properties": {
+     "iae_a": {
+      "title": "Iae A",
+      "type": "number"
+     },
+     "iae_b": {
+      "title": "Iae B",
+      "type": "number"
+     },
+     "variant": {
+      "title": "Variant",
+      "type": "string"
+     }
+    },
+    "required": [
+     "variant",
+     "iae_a",
+     "iae_b"
+    ],
+    "title": "DecIae",
+    "type": "object"
+   },
+   "DecInfo": {
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "string"
+     },
+     "advice": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Advice"
+     },
+     "advice_key": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Advice Key"
+     },
+     "b": {
+      "title": "B",
+      "type": "string"
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/LoopCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/DecDefaults"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "lam": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lam"
+     },
+     "loop": {
+      "title": "Loop",
+      "type": "integer"
+     },
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/CascadeLoopRef"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "params": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/DecParam"
+      },
+      "title": "Params",
+      "type": "array"
+     }
+    },
+    "required": [
+     "loop",
+     "a",
+     "b",
+     "loops",
+     "ok",
+     "defaults"
+    ],
+    "title": "DecInfo",
+    "type": "object"
+   },
+   "DecParam": {
+    "properties": {
+     "delay": {
+      "title": "Delay",
+      "type": "number"
+     },
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "gain_eng": {
+      "title": "Gain Eng",
+      "type": "number"
+     },
+     "lag": {
+      "title": "Lag",
+      "type": "number"
+     },
+     "lead": {
+      "title": "Lead",
+      "type": "number"
+     },
+     "source_mv": {
+      "title": "Source Mv",
+      "type": "string"
+     },
+     "target": {
+      "title": "Target",
+      "type": "string"
+     }
+    },
+    "required": [
+     "source_mv",
+     "target",
+     "gain",
+     "gain_eng",
+     "lead",
+     "lag",
+     "delay"
+    ],
+    "title": "DecParam",
+    "type": "object"
+   },
+   "DecSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "dtype": {
+      "title": "Dtype",
+      "type": "string"
+     },
+     "kpis": {
+      "items": {
+       "$ref": "#/components/schemas/DecIae"
+      },
+      "title": "Kpis",
+      "type": "array"
+     }
+    },
+    "required": [
+     "dtype",
+     "T_end",
+     "kpis"
+    ],
+    "title": "DecSim",
+    "type": "object"
+   },
+   "DecSimReq": {
+    "properties": {
+     "amp_a": {
+      "default": 5.0,
+      "maximum": 100.0,
+      "minimum": -100.0,
+      "title": "Amp A",
+      "type": "number"
+     },
+     "amp_b": {
+      "default": 5.0,
+      "maximum": 100.0,
+      "minimum": -100.0,
+      "title": "Amp B",
+      "type": "number"
+     },
+     "dtype": {
+      "default": "dyn",
+      "enum": [
+       "static",
+       "dyn"
+      ],
+      "title": "Dtype",
+      "type": "string"
+     }
+    },
+    "title": "DecSimReq",
+    "type": "object"
+   },
    "Diagnostics": {
     "properties": {
      "a": {
@@ -163,6 +1120,10 @@
       ],
       "title": "Hysteresis"
      },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
      "kpis": {
       "additionalProperties": true,
       "title": "Kpis",
@@ -180,6 +1141,19 @@
       ],
       "title": "Nonlinearity"
      },
+     "phase": {
+      "$ref": "#/components/schemas/Scatter"
+     },
+     "position": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Scatter"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
      "valve": {
       "additionalProperties": true,
       "title": "Valve",
@@ -189,10 +1163,425 @@
     "required": [
      "a",
      "b",
+     "integ",
      "kpis",
-     "valve"
+     "valve",
+     "phase"
     ],
     "title": "Diagnostics",
+    "type": "object"
+   },
+   "DistCmp": {
+    "properties": {
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "fit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit"
+     },
+     "struct": {
+      "title": "Struct",
+      "type": "string"
+     }
+    },
+    "required": [
+     "struct"
+    ],
+    "title": "DistCmp",
+    "type": "object"
+   },
+   "DistInfo": {
+    "properties": {
+     "cmp": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/DistCmp"
+      },
+      "title": "Cmp",
+      "type": "array"
+     },
+     "fields": {
+      "items": {
+       "items": {},
+       "type": "array"
+      },
+      "title": "Fields",
+      "type": "array"
+     },
+     "flat": {
+      "default": false,
+      "title": "Flat",
+      "type": "boolean"
+     },
+     "ident": {
+      "default": "",
+      "title": "Ident",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "struct": {
+      "title": "Struct",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "struct",
+     "fields"
+    ],
+    "title": "DistInfo",
+    "type": "object"
+   },
+   "DistSelect": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "struct": {
+      "title": "Struct",
+      "type": "string"
+     }
+    },
+    "required": [
+     "code",
+     "index",
+     "struct"
+    ],
+    "title": "DistSelect",
+    "type": "object"
+   },
+   "FFDefaults": {
+    "properties": {
+     "delay": {
+      "title": "Delay",
+      "type": "number"
+     },
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "lag": {
+      "title": "Lag",
+      "type": "number"
+     },
+     "lead": {
+      "title": "Lead",
+      "type": "number"
+     }
+    },
+    "required": [
+     "gain",
+     "lead",
+     "lag",
+     "delay"
+    ],
+    "title": "FFDefaults",
+    "type": "object"
+   },
+   "FFDesign": {
+    "properties": {
+     "delay": {
+      "title": "Delay",
+      "type": "number"
+     },
+     "dyn": {
+      "title": "Dyn",
+      "type": "boolean"
+     },
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "lag": {
+      "title": "Lag",
+      "type": "number"
+     },
+     "lead": {
+      "title": "Lead",
+      "type": "number"
+     },
+     "use": {
+      "title": "Use",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "use",
+     "dyn",
+     "gain",
+     "lead",
+     "lag",
+     "delay"
+    ],
+    "title": "FFDesign",
+    "type": "object"
+   },
+   "FFDesignIn": {
+    "description": "Částečná změna jedné poruchy; chybějící hodnoty zůstanou.",
+    "properties": {
+     "delay": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delay"
+     },
+     "dyn": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dyn"
+     },
+     "gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gain"
+     },
+     "lag": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lag"
+     },
+     "lead": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lead"
+     },
+     "use": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use"
+     }
+    },
+    "title": "FFDesignIn",
+    "type": "object"
+   },
+   "FFDist": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/FFDefaults"
+     },
+     "design": {
+      "$ref": "#/components/schemas/FFDesign"
+     },
+     "edited": {
+      "title": "Edited",
+      "type": "boolean"
+     },
+     "eng_gain": {
+      "title": "Eng Gain",
+      "type": "number"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "step": {
+      "title": "Step",
+      "type": "number"
+     },
+     "values": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/ValueRow"
+      },
+      "title": "Values",
+      "type": "array"
+     }
+    },
+    "required": [
+     "index",
+     "name",
+     "design",
+     "defaults",
+     "edited",
+     "eng_gain",
+     "step"
+    ],
+    "title": "FFDist",
+    "type": "object"
+   },
+   "FFInfo": {
+    "properties": {
+     "dists": {
+      "items": {
+       "$ref": "#/components/schemas/FFDist"
+      },
+      "title": "Dists",
+      "type": "array"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "mv_range": {
+      "title": "Mv Range",
+      "type": "number"
+     },
+     "mv_unit": {
+      "title": "Mv Unit",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "mv_unit",
+     "mv_range",
+     "dists"
+    ],
+    "title": "FFInfo",
+    "type": "object"
+   },
+   "FFKpi": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "maxdev": {
+      "title": "Maxdev",
+      "type": "number"
+     }
+    },
+    "required": [
+     "iae",
+     "maxdev"
+    ],
+    "title": "FFKpi",
+    "type": "object"
+   },
+   "FFReset": {
+    "properties": {
+     "index": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Index"
+     }
+    },
+    "title": "FFReset",
+    "type": "object"
+   },
+   "FFSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "dist": {
+      "title": "Dist",
+      "type": "integer"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/FFKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     },
+     "step": {
+      "title": "Step",
+      "type": "number"
+     }
+    },
+    "required": [
+     "dist",
+     "step",
+     "T_end",
+     "kpis"
+    ],
+    "title": "FFSim",
+    "type": "object"
+   },
+   "FFSimReq": {
+    "properties": {
+     "dist": {
+      "default": 0,
+      "title": "Dist",
+      "type": "integer"
+     },
+     "step": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Step"
+     }
+    },
+    "title": "FFSimReq",
     "type": "object"
    },
    "Find": {
@@ -311,6 +1700,13 @@
       ],
       "title": "Bw"
      },
+     "im": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Im",
+      "type": "array"
+     },
      "mag_db": {
       "items": {
        "type": "number"
@@ -327,6 +1723,13 @@
        "type": "number"
       },
       "title": "Phase Deg",
+      "type": "array"
+     },
+     "re": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Re",
       "type": "array"
      },
      "stable": {
@@ -370,9 +1773,534 @@
      "mag_db",
      "phase_deg",
      "S_db",
-     "T_db"
+     "T_db",
+     "re",
+     "im"
     ],
     "title": "FreqSet",
+    "type": "object"
+   },
+   "GeneralRow": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "key",
+     "value",
+     "unit"
+    ],
+    "title": "GeneralRow",
+    "type": "object"
+   },
+   "GsErInfo": {
+    "properties": {
+     "base": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Tuned"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/LoopCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "inputs": {
+      "$ref": "#/components/schemas/GsErInputs"
+     },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "k_max": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "K Max"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "ms_k": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms K"
+     },
+     "table": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/PointRow"
+      },
+      "title": "Table",
+      "type": "array"
+     }
+    },
+    "required": [
+     "model",
+     "integ",
+     "inputs"
+    ],
+    "title": "GsErInfo",
+    "type": "object"
+   },
+   "GsErInputs": {
+    "properties": {
+     "E": {
+      "title": "E",
+      "type": "number"
+     },
+     "E_default": {
+      "title": "E Default",
+      "type": "number"
+     },
+     "d": {
+      "title": "D",
+      "type": "number"
+     },
+     "d_default": {
+      "title": "D Default",
+      "type": "number"
+     },
+     "edited": {
+      "title": "Edited",
+      "type": "boolean"
+     },
+     "k": {
+      "title": "K",
+      "type": "number"
+     },
+     "k_default": {
+      "title": "K Default",
+      "type": "number"
+     },
+     "spstep": {
+      "title": "Spstep",
+      "type": "number"
+     },
+     "spstep_default": {
+      "title": "Spstep Default",
+      "type": "number"
+     }
+    },
+    "required": [
+     "E",
+     "k",
+     "spstep",
+     "d",
+     "E_default",
+     "k_default",
+     "spstep_default",
+     "d_default",
+     "edited"
+    ],
+    "title": "GsErInputs",
+    "type": "object"
+   },
+   "GsErKpi": {
+    "properties": {
+     "iae_d": {
+      "title": "Iae D",
+      "type": "number"
+     },
+     "iae_sp": {
+      "title": "Iae Sp",
+      "type": "number"
+     },
+     "maxdev": {
+      "title": "Maxdev",
+      "type": "number"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "sat": {
+      "title": "Sat",
+      "type": "number"
+     },
+     "settled": {
+      "title": "Settled",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "name",
+     "iae_sp",
+     "iae_d",
+     "maxdev",
+     "sat",
+     "settled"
+    ],
+    "title": "GsErKpi",
+    "type": "object"
+   },
+   "GsErScan": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "settled": {
+      "title": "Settled",
+      "type": "boolean"
+     },
+     "width": {
+      "title": "Width",
+      "type": "number"
+     }
+    },
+    "required": [
+     "width",
+     "iae",
+     "settled"
+    ],
+    "title": "GsErScan",
+    "type": "object"
+   },
+   "GsErSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kpis": {
+      "items": {
+       "$ref": "#/components/schemas/GsErKpi"
+      },
+      "title": "Kpis",
+      "type": "array"
+     },
+     "scan": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/GsErScan"
+      },
+      "title": "Scan",
+      "type": "array"
+     },
+     "zone": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Zone"
+     }
+    },
+    "required": [
+     "T_end",
+     "kpis"
+    ],
+    "title": "GsErSim",
+    "type": "object"
+   },
+   "GsInfo": {
+    "properties": {
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/LoopCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "filled": {
+      "default": false,
+      "title": "Filled",
+      "type": "boolean"
+     },
+     "fitted": {
+      "title": "Fitted",
+      "type": "boolean"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "inputs": {
+      "$ref": "#/components/schemas/GsInputs"
+     },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "issues": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Issues",
+      "type": "array"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "points": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/GsPoint"
+      },
+      "title": "Points",
+      "type": "array"
+     },
+     "spread": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Spread"
+     },
+     "stale": {
+      "title": "Stale",
+      "type": "boolean"
+     },
+     "table": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/PointRow"
+      },
+      "title": "Table",
+      "type": "array"
+     }
+    },
+    "required": [
+     "model",
+     "integ",
+     "inputs",
+     "fitted",
+     "stale"
+    ],
+    "title": "GsInfo",
+    "type": "object"
+   },
+   "GsInputs": {
+    "properties": {
+     "ctype": {
+      "title": "Ctype",
+      "type": "string"
+     },
+     "method": {
+      "title": "Method",
+      "type": "string"
+     },
+     "methods": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+     },
+     "ms": {
+      "title": "Ms",
+      "type": "number"
+     },
+     "ms_default": {
+      "title": "Ms Default",
+      "type": "number"
+     },
+     "n": {
+      "title": "N",
+      "type": "integer"
+     },
+     "ranges": {
+      "items": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "title": "Ranges",
+      "type": "array"
+     },
+     "ranges_auto": {
+      "title": "Ranges Auto",
+      "type": "boolean"
+     },
+     "tcf": {
+      "title": "Tcf",
+      "type": "number"
+     },
+     "tcf_default": {
+      "title": "Tcf Default",
+      "type": "number"
+     }
+    },
+    "required": [
+     "n",
+     "ranges",
+     "ranges_auto",
+     "method",
+     "methods",
+     "ctype",
+     "tcf",
+     "ms",
+     "tcf_default",
+     "ms_default"
+    ],
+    "title": "GsInputs",
+    "type": "object"
+   },
+   "GsPoint": {
+    "properties": {
+     "fit": {
+      "title": "Fit",
+      "type": "number"
+     },
+     "gain": {
+      "title": "Gain",
+      "type": "number"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/ParamRow"
+      },
+      "title": "Params",
+      "type": "array"
+     },
+     "td": {
+      "title": "Td",
+      "type": "number"
+     },
+     "ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ti"
+     },
+     "u": {
+      "title": "U",
+      "type": "number"
+     },
+     "x": {
+      "title": "X",
+      "type": "number"
+     }
+    },
+    "required": [
+     "index",
+     "x",
+     "u",
+     "fit",
+     "params",
+     "gain",
+     "ti",
+     "td"
+    ],
+    "title": "GsPoint",
+    "type": "object"
+   },
+   "GsPointKpi": {
+    "properties": {
+     "from_x": {
+      "title": "From X",
+      "type": "number"
+     },
+     "iae_fixed": {
+      "title": "Iae Fixed",
+      "type": "number"
+     },
+     "iae_sched": {
+      "title": "Iae Sched",
+      "type": "number"
+     },
+     "to_x": {
+      "title": "To X",
+      "type": "number"
+     }
+    },
+    "required": [
+     "from_x",
+     "to_x",
+     "iae_fixed",
+     "iae_sched"
+    ],
+    "title": "GsPointKpi",
+    "type": "object"
+   },
+   "GsSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kpis": {
+      "items": {
+       "$ref": "#/components/schemas/GsPointKpi"
+      },
+      "title": "Kpis",
+      "type": "array"
+     }
+    },
+    "required": [
+     "T_end",
+     "kpis"
+    ],
+    "title": "GsSim",
     "type": "object"
    },
    "HTTPValidationError": {
@@ -619,6 +2547,149 @@
     "title": "Layout",
     "type": "object"
    },
+   "LayoutInfo": {
+    "description": "Aktuální čtení tabulky: rozložení a sloupce (odhad, pokud nejsou zadané), sloupce tabulky a možnosti výběru.",
+    "properties": {
+     "c_tag": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Tag"
+     },
+     "c_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Time"
+     },
+     "c_val": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Val"
+     },
+     "default_layout": {
+      "default": "wide",
+      "enum": [
+       "wide",
+       "long",
+       "pairs"
+      ],
+      "title": "Default Layout",
+      "type": "string"
+     },
+     "layout": {
+      "default": "wide",
+      "enum": [
+       "wide",
+       "long",
+       "pairs"
+      ],
+      "title": "Layout",
+      "type": "string"
+     },
+     "row_dt": {
+      "default": 1.0,
+      "title": "Row Dt",
+      "type": "number"
+     },
+     "rows_mark": {
+      "default": "#row",
+      "title": "Rows Mark",
+      "type": "string"
+     },
+     "table_columns": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Table Columns",
+      "type": "array"
+     },
+     "time_columns": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Time Columns",
+      "type": "array"
+     },
+     "time_fmt": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Time Fmt"
+     },
+     "time_formats": {
+      "default": [
+       "auto",
+       "num",
+       "iso",
+       "cz",
+       "us",
+       "eu",
+       "mon",
+       "clock"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "title": "Time Formats",
+      "type": "array"
+     },
+     "time_note": {
+      "default": "",
+      "title": "Time Note",
+      "type": "string"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     },
+     "units": {
+      "default": [
+       "s",
+       "ms",
+       "min",
+       "h"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "title": "Units",
+      "type": "array"
+     }
+    },
+    "title": "LayoutInfo",
+    "type": "object"
+   },
    "Loop": {
     "properties": {
      "has_model": {
@@ -662,6 +2733,92 @@
      "name"
     ],
     "title": "Loop",
+    "type": "object"
+   },
+   "LoopCheck": {
+    "description": "Položka kontrolního seznamu struktury (app.guides): ok True / False / None = jen k ověření.",
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action"
+     },
+     "ok": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ok"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "ok",
+     "text"
+    ],
+    "title": "LoopCheck",
+    "type": "object"
+   },
+   "LoopHealth": {
+    "properties": {
+     "err": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Err"
+     },
+     "kpis": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kpis"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "problems": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/AuditProblem"
+      },
+      "title": "Problems",
+      "type": "array"
+     },
+     "score": {
+      "default": 0,
+      "title": "Score",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "ok"
+    ],
+    "title": "LoopHealth",
     "type": "object"
    },
    "LoopMode": {
@@ -716,6 +2873,150 @@
     "title": "LoopMode",
     "type": "object"
    },
+   "LoopRow": {
+    "properties": {
+     "active": {
+      "title": "Active",
+      "type": "boolean"
+     },
+     "health": {
+      "$ref": "#/components/schemas/LoopHealth"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "mv": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "params": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Params",
+      "type": "array"
+     },
+     "pos": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pos"
+     },
+     "pv": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv"
+     },
+     "set1": {
+      "$ref": "#/components/schemas/LoopSet"
+     },
+     "set2": {
+      "$ref": "#/components/schemas/LoopSet"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     }
+    },
+    "required": [
+     "index",
+     "name",
+     "active",
+     "set1",
+     "set2",
+     "health"
+    ],
+    "title": "LoopRow",
+    "type": "object"
+   },
+   "LoopSet": {
+    "properties": {
+     "gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gain"
+     },
+     "td": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Td"
+     },
+     "ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ti"
+     }
+    },
+    "title": "LoopSet",
+    "type": "object"
+   },
    "Loops": {
     "properties": {
      "active": {
@@ -737,12 +3038,83 @@
     "title": "Loops",
     "type": "object"
    },
+   "LoopsOverview": {
+    "properties": {
+     "active": {
+      "title": "Active",
+      "type": "integer"
+     },
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/LoopRow"
+      },
+      "title": "Loops",
+      "type": "array"
+     }
+    },
+    "required": [
+     "active",
+     "loops"
+    ],
+    "title": "LoopsOverview",
+    "type": "object"
+   },
+   "ModelInfo": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "params": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Params",
+      "type": "array"
+     },
+     "values": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Values",
+      "type": "array"
+     }
+    },
+    "required": [
+     "code",
+     "params",
+     "values"
+    ],
+    "title": "ModelInfo",
+    "type": "object"
+   },
+   "ModelOut": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/ParamRow"
+      },
+      "title": "Params",
+      "type": "array"
+     }
+    },
+    "required": [
+     "code",
+     "params"
+    ],
+    "title": "ModelOut",
+    "type": "object"
+   },
    "ModelRes": {
     "properties": {
      "checks": {
       "default": [],
       "items": {
-       "type": "string"
+       "$ref": "#/components/schemas/pidtools__api__model__Check"
       },
       "title": "Checks",
       "type": "array"
@@ -750,6 +3122,14 @@
      "code": {
       "title": "Code",
       "type": "string"
+     },
+     "dists": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/DistInfo"
+      },
+      "title": "Dists",
+      "type": "array"
      },
      "fit": {
       "anyOf": [
@@ -810,6 +3190,14 @@
       "default": false,
       "title": "Mixed",
       "type": "boolean"
+     },
+     "names": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Names",
+      "type": "array"
      },
      "nrmse": {
       "anyOf": [
@@ -1122,6 +3510,221 @@
     "title": "Note",
     "type": "object"
    },
+   "OvDefaults": {
+    "properties": {
+     "lim": {
+      "title": "Lim",
+      "type": "number"
+     },
+     "step": {
+      "title": "Step",
+      "type": "number"
+     }
+    },
+    "required": [
+     "step",
+     "lim"
+    ],
+    "title": "OvDefaults",
+    "type": "object"
+   },
+   "OvInfo": {
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "string"
+     },
+     "b": {
+      "title": "B",
+      "type": "string"
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/LoopCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/OvDefaults"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "loop": {
+      "title": "Loop",
+      "type": "integer"
+     },
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/CascadeLoopRef"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "mv_a": {
+      "title": "Mv A",
+      "type": "string"
+     },
+     "mv_b": {
+      "title": "Mv B",
+      "type": "string"
+     },
+     "mv_differs": {
+      "title": "Mv Differs",
+      "type": "boolean"
+     },
+     "sel": {
+      "title": "Sel",
+      "type": "string"
+     },
+     "sels": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Sels",
+      "type": "array"
+     }
+    },
+    "required": [
+     "loop",
+     "a",
+     "b",
+     "loops",
+     "sel",
+     "sels",
+     "defaults",
+     "mv_differs",
+     "mv_a",
+     "mv_b"
+    ],
+    "title": "OvInfo",
+    "type": "object"
+   },
+   "OvKpi": {
+    "properties": {
+     "peak": {
+      "title": "Peak",
+      "type": "number"
+     },
+     "peak_without": {
+      "title": "Peak Without",
+      "type": "number"
+     },
+     "share": {
+      "title": "Share",
+      "type": "number"
+     },
+     "switches": {
+      "title": "Switches",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "peak",
+     "peak_without",
+     "share",
+     "switches"
+    ],
+    "title": "OvKpi",
+    "type": "object"
+   },
+   "OvSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kpis": {
+      "$ref": "#/components/schemas/OvKpi"
+     },
+     "lim": {
+      "title": "Lim",
+      "type": "number"
+     },
+     "sel": {
+      "title": "Sel",
+      "type": "string"
+     },
+     "step": {
+      "title": "Step",
+      "type": "number"
+     }
+    },
+    "required": [
+     "sel",
+     "step",
+     "lim",
+     "T_end",
+     "kpis"
+    ],
+    "title": "OvSim",
+    "type": "object"
+   },
+   "OvSimReq": {
+    "properties": {
+     "lim": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lim"
+     },
+     "sel": {
+      "default": "min",
+      "enum": [
+       "min",
+       "max"
+      ],
+      "title": "Sel",
+      "type": "string"
+     },
+     "step": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Step"
+     }
+    },
+    "title": "OvSimReq",
+    "type": "object"
+   },
+   "ParamRow": {
+    "properties": {
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "name",
+     "value"
+    ],
+    "title": "ParamRow",
+    "type": "object"
+   },
    "Pid": {
     "properties": {
      "Kc": {
@@ -1145,11 +3748,44 @@
     "title": "Pid",
     "type": "object"
    },
+   "PointRow": {
+    "properties": {
+     "input": {
+      "title": "Input",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "values": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Values",
+      "type": "array"
+     }
+    },
+    "required": [
+     "input",
+     "values",
+     "unit"
+    ],
+    "title": "PointRow",
+    "type": "object"
+   },
    "Quality": {
     "properties": {
      "checks": {
       "items": {
-       "$ref": "#/components/schemas/Check"
+       "$ref": "#/components/schemas/pidtools__api__data__Check"
       },
       "title": "Checks",
       "type": "array"
@@ -1215,6 +3851,188 @@
      "b"
     ],
     "title": "Range",
+    "type": "object"
+   },
+   "RatioDesign": {
+    "properties": {
+     "air": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "air_loop": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Air Loop"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "impl_text": {
+      "title": "Impl Text",
+      "type": "string"
+     },
+     "sources": {
+      "items": {
+       "$ref": "#/components/schemas/RatioSource"
+      },
+      "title": "Sources",
+      "type": "array"
+     }
+    },
+    "required": [
+     "air_loop",
+     "air",
+     "sources",
+     "impl_text",
+     "checks"
+    ],
+    "title": "RatioDesign",
+    "type": "object"
+   },
+   "RatioIn": {
+    "properties": {
+     "R": {
+      "default": 1.2,
+      "maximum": 100.0,
+      "minimum": 0.01,
+      "title": "R",
+      "type": "number"
+     },
+     "air": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Air"
+     },
+     "air_loop": {
+      "anyOf": [
+       {
+        "minimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Air Loop"
+     },
+     "step": {
+      "default": 15.0,
+      "maximum": 50.0,
+      "minimum": -50.0,
+      "title": "Step",
+      "type": "number"
+     }
+    },
+    "title": "RatioIn",
+    "type": "object"
+   },
+   "RatioInfo": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/RatioIn"
+     },
+     "design": {
+      "$ref": "#/components/schemas/RatioDesign"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "defaults",
+     "design"
+    ],
+    "title": "RatioInfo",
+    "type": "object"
+   },
+   "RatioKpi": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "lam_min": {
+      "title": "Lam Min",
+      "type": "number"
+     },
+     "t_rich": {
+      "title": "T Rich",
+      "type": "number"
+     }
+    },
+    "required": [
+     "lam_min",
+     "t_rich",
+     "iae"
+    ],
+    "title": "RatioKpi",
+    "type": "object"
+   },
+   "RatioSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/RatioKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     },
+     "lam_min": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "title": "Lam Min",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "lam_min",
+     "kpis"
+    ],
+    "title": "RatioSim",
+    "type": "object"
+   },
+   "RatioSource": {
+    "properties": {
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "index",
+     "name"
+    ],
+    "title": "RatioSource",
     "type": "object"
    },
    "Recommendation": {
@@ -1294,6 +4112,116 @@
     "title": "ReportReq",
     "type": "object"
    },
+   "RgaInfo": {
+    "properties": {
+     "K": {
+      "default": [],
+      "items": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "title": "K",
+      "type": "array"
+     },
+     "L": {
+      "default": [],
+      "items": {
+       "items": {
+        "anyOf": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      "title": "L",
+      "type": "array"
+     },
+     "NI": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ni"
+     },
+     "advice": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Advice",
+      "type": "array"
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "known": {
+      "default": [],
+      "items": {
+       "items": {
+        "type": "boolean"
+       },
+       "type": "array"
+      },
+      "title": "Known",
+      "type": "array"
+     },
+     "mvs": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Mvs",
+      "type": "array"
+     },
+     "names": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Names",
+      "type": "array"
+     },
+     "pairing": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pairing"
+     },
+     "ready": {
+      "title": "Ready",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "ready"
+    ],
+    "title": "RgaInfo",
+    "type": "object"
+   },
    "Run": {
     "properties": {
      "a": {
@@ -1319,6 +4247,44 @@
      "kind"
     ],
     "title": "Run",
+    "type": "object"
+   },
+   "Scatter": {
+    "properties": {
+     "x": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "X",
+      "type": "array"
+     },
+     "y": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Y",
+      "type": "array"
+     }
+    },
+    "required": [
+     "x",
+     "y"
+    ],
+    "title": "Scatter",
     "type": "object"
    },
    "Scenario": {
@@ -1551,6 +4517,578 @@
     "title": "SimReq",
     "type": "object"
    },
+   "SmithController": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "title": "Ti",
+      "type": "number"
+     },
+     "notes": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Notes",
+      "type": "array"
+     }
+    },
+    "required": [
+     "Kc",
+     "Ti"
+    ],
+    "title": "SmithController",
+    "type": "object"
+   },
+   "SmithIae": {
+    "properties": {
+     "iae_load": {
+      "title": "Iae Load",
+      "type": "number"
+     },
+     "iae_sp": {
+      "title": "Iae Sp",
+      "type": "number"
+     }
+    },
+    "required": [
+     "iae_sp",
+     "iae_load"
+    ],
+    "title": "SmithIae",
+    "type": "object"
+   },
+   "SmithInfo": {
+    "properties": {
+     "basis_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Basis Text"
+     },
+     "controller": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SmithController"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "general_rows": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/GeneralRow"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "General Rows"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
+     "inputs": {
+      "$ref": "#/components/schemas/SmithInputs"
+     },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "mv_op": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv Op"
+     },
+     "opt_ready": {
+      "title": "Opt Ready",
+      "type": "boolean"
+     },
+     "pv_op": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv Op"
+     },
+     "ratio": {
+      "title": "Ratio",
+      "type": "number"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/SmithRow"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "values": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Values"
+     }
+    },
+    "required": [
+     "model",
+     "inputs",
+     "integ",
+     "ratio",
+     "opt_ready"
+    ],
+    "title": "SmithInfo",
+    "type": "object"
+   },
+   "SmithInputs": {
+    "properties": {
+     "ctype": {
+      "title": "Ctype",
+      "type": "string"
+     },
+     "ek": {
+      "title": "Ek",
+      "type": "number"
+     },
+     "et": {
+      "title": "Et",
+      "type": "number"
+     },
+     "eth": {
+      "title": "Eth",
+      "type": "number"
+     },
+     "manual": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Manual",
+      "type": "array"
+     },
+     "method": {
+      "title": "Method",
+      "type": "string"
+     },
+     "methods": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+     },
+     "tc": {
+      "title": "Tc",
+      "type": "number"
+     },
+     "tc_default": {
+      "title": "Tc Default",
+      "type": "number"
+     },
+     "tc_key": {
+      "title": "Tc Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "method",
+     "methods",
+     "ctype",
+     "tc",
+     "tc_default",
+     "tc_key",
+     "manual",
+     "ek",
+     "et",
+     "eth"
+    ],
+    "title": "SmithInputs",
+    "type": "object"
+   },
+   "SmithRow": {
+    "properties": {
+     "block": {
+      "title": "Block",
+      "type": "string"
+     },
+     "input": {
+      "title": "Input",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "block",
+     "input",
+     "value",
+     "unit"
+    ],
+    "title": "SmithRow",
+    "type": "object"
+   },
+   "SmithSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "controller": {
+      "$ref": "#/components/schemas/SmithController"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/SmithIae"
+      },
+      "title": "Kpis",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "controller",
+     "kpis"
+    ],
+    "title": "SmithSim",
+    "type": "object"
+   },
+   "SmithSimReq": {
+    "properties": {
+     "ek": {
+      "anyOf": [
+       {
+        "maximum": 200.0,
+        "minimum": -90.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ek"
+     },
+     "et": {
+      "anyOf": [
+       {
+        "maximum": 200.0,
+        "minimum": -90.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Et"
+     },
+     "eth": {
+      "anyOf": [
+       {
+        "maximum": 200.0,
+        "minimum": -90.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Eth"
+     }
+    },
+    "title": "SmithSimReq",
+    "type": "object"
+   },
+   "SplitCase": {
+    "properties": {
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "lower": {
+      "$ref": "#/components/schemas/SplitHalf"
+     },
+     "upper": {
+      "$ref": "#/components/schemas/SplitHalf"
+     }
+    },
+    "required": [
+     "b",
+     "lower",
+     "upper"
+    ],
+    "title": "SplitCase",
+    "type": "object"
+   },
+   "SplitDesign": {
+    "properties": {
+     "b0": {
+      "title": "B0",
+      "type": "number"
+     },
+     "bstar": {
+      "title": "Bstar",
+      "type": "number"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "corr": {
+      "title": "Corr",
+      "type": "number"
+     },
+     "gap": {
+      "title": "Gap",
+      "type": "number"
+     },
+     "impl_text": {
+      "title": "Impl Text",
+      "type": "string"
+     },
+     "mode": {
+      "enum": [
+       "opposite",
+       "sequence"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "new": {
+      "$ref": "#/components/schemas/SplitCase"
+     },
+     "now": {
+      "$ref": "#/components/schemas/SplitCase"
+     },
+     "valve_a": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "valve_b": {
+      "$ref": "#/components/schemas/ModelInfo"
+     }
+    },
+    "required": [
+     "mode",
+     "b0",
+     "gap",
+     "valve_a",
+     "valve_b",
+     "bstar",
+     "corr",
+     "now",
+     "new",
+     "impl_text",
+     "checks"
+    ],
+    "title": "SplitDesign",
+    "type": "object"
+   },
+   "SplitHalf": {
+    "properties": {
+     "k": {
+      "title": "K",
+      "type": "number"
+     },
+     "ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
+     },
+     "stable": {
+      "title": "Stable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "k",
+     "ms",
+     "stable"
+    ],
+    "title": "SplitHalf",
+    "type": "object"
+   },
+   "SplitIn": {
+    "properties": {
+     "b0": {
+      "default": 50.0,
+      "maximum": 99.0,
+      "minimum": 1.0,
+      "title": "B0",
+      "type": "number"
+     },
+     "gap": {
+      "default": 0.0,
+      "maximum": 20.0,
+      "minimum": -20.0,
+      "title": "Gap",
+      "type": "number"
+     },
+     "mode": {
+      "default": "opposite",
+      "enum": [
+       "opposite",
+       "sequence"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "valve_a": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valve A"
+     }
+    },
+    "title": "SplitIn",
+    "type": "object"
+   },
+   "SplitInfo": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/SplitIn"
+     },
+     "design": {
+      "$ref": "#/components/schemas/SplitDesign"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "defaults",
+     "design"
+    ],
+    "title": "SplitInfo",
+    "type": "object"
+   },
+   "SplitKpi": {
+    "properties": {
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "maxdev": {
+      "title": "Maxdev",
+      "type": "number"
+     },
+     "rev": {
+      "title": "Rev",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "iae",
+     "maxdev",
+     "rev"
+    ],
+    "title": "SplitKpi",
+    "type": "object"
+   },
+   "SplitSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "amp": {
+      "title": "Amp",
+      "type": "number"
+     },
+     "bstar": {
+      "title": "Bstar",
+      "type": "number"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/SplitKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "amp",
+     "bstar",
+     "kpis"
+    ],
+    "title": "SplitSim",
+    "type": "object"
+   },
    "SuggestReq": {
     "properties": {
      "method": {
@@ -1621,6 +5159,37 @@
      "method"
     ],
     "title": "Suggestion",
+    "type": "object"
+   },
+   "Tuned": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "title": "Ti",
+      "type": "number"
+     },
+     "notes": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Note"
+      },
+      "title": "Notes",
+      "type": "array"
+     }
+    },
+    "required": [
+     "Kc",
+     "Ti"
+    ],
+    "title": "Tuned",
     "type": "object"
    },
    "TuningInfo": {
@@ -1696,6 +5265,36 @@
     "title": "Uncertainty",
     "type": "object"
    },
+   "Validation": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+     },
+     "sigma_pv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sigma Pv"
+     }
+    },
+    "required": [
+     "code",
+     "metrics"
+    ],
+    "title": "Validation",
+    "type": "object"
+   },
    "ValidationError": {
     "properties": {
      "ctx": {
@@ -1734,6 +5333,182 @@
      "type"
     ],
     "title": "ValidationError",
+    "type": "object"
+   },
+   "ValueRow": {
+    "properties": {
+     "param": {
+      "title": "Param",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "param",
+     "value",
+     "unit"
+    ],
+    "title": "ValueRow",
+    "type": "object"
+   },
+   "VpcDesign": {
+    "properties": {
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "controller": {
+      "$ref": "#/components/schemas/Pid"
+     },
+     "impl_text": {
+      "title": "Impl Text",
+      "type": "string"
+     },
+     "loop_time": {
+      "title": "Loop Time",
+      "type": "number"
+     },
+     "mv2": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "surrogate": {
+      "$ref": "#/components/schemas/ModelInfo"
+     },
+     "tc": {
+      "title": "Tc",
+      "type": "number"
+     }
+    },
+    "required": [
+     "mv2",
+     "controller",
+     "surrogate",
+     "tc",
+     "loop_time",
+     "impl_text",
+     "checks"
+    ],
+    "title": "VpcDesign",
+    "type": "object"
+   },
+   "VpcIn": {
+    "properties": {
+     "d": {
+      "default": 35.0,
+      "maximum": 100.0,
+      "minimum": -100.0,
+      "title": "D",
+      "type": "number"
+     },
+     "factor": {
+      "default": 5.0,
+      "maximum": 30.0,
+      "minimum": 1.0,
+      "title": "Factor",
+      "type": "number"
+     },
+     "mv2": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv2"
+     },
+     "sp": {
+      "default": 50.0,
+      "maximum": 95.0,
+      "minimum": 5.0,
+      "title": "Sp",
+      "type": "number"
+     }
+    },
+    "title": "VpcIn",
+    "type": "object"
+   },
+   "VpcInfo": {
+    "properties": {
+     "defaults": {
+      "$ref": "#/components/schemas/VpcIn"
+     },
+     "design": {
+      "$ref": "#/components/schemas/VpcDesign"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     }
+    },
+    "required": [
+     "model",
+     "defaults",
+     "design"
+    ],
+    "title": "VpcInfo",
+    "type": "object"
+   },
+   "VpcKpi": {
+    "properties": {
+     "at_lim": {
+      "title": "At Lim",
+      "type": "number"
+     },
+     "iae": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "reserve": {
+      "title": "Reserve",
+      "type": "number"
+     }
+    },
+    "required": [
+     "iae",
+     "at_lim",
+     "reserve"
+    ],
+    "title": "VpcKpi",
+    "type": "object"
+   },
+   "VpcSim": {
+    "properties": {
+     "T_end": {
+      "title": "T End",
+      "type": "number"
+     },
+     "controller": {
+      "$ref": "#/components/schemas/Pid"
+     },
+     "kpis": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/VpcKpi"
+      },
+      "title": "Kpis",
+      "type": "object"
+     }
+    },
+    "required": [
+     "T_end",
+     "controller",
+     "kpis"
+    ],
+    "title": "VpcSim",
     "type": "object"
    },
    "Windows": {
@@ -2018,6 +5793,86 @@
      "Ti"
     ],
     "title": "WriteSet",
+    "type": "object"
+   },
+   "pidtools__api__apc_more__Check": {
+    "description": "Položka kontrolního seznamu struktury (app.guides): True splněno, False chybí, None připomínka.",
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action"
+     },
+     "state": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "State"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "state",
+     "text"
+    ],
+    "title": "Check",
+    "type": "object"
+   },
+   "pidtools__api__data__Check": {
+    "properties": {
+     "args": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "level": {
+      "title": "Level",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "key",
+     "level"
+    ],
+    "title": "Check",
+    "type": "object"
+   },
+   "pidtools__api__model__Check": {
+    "properties": {
+     "args": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key"
+    ],
+    "title": "Check",
     "type": "object"
    }
   }
@@ -2853,6 +6708,2588 @@
     ]
    }
   },
+  "/workspaces/{wid}/apc/cascade": {
+   "get": {
+    "description": "Kaskáda (aktivní smyčka = vnější): zdroj modelu vnitřní smyčky, ladění obou smyček, oddělení rychlostí.",
+    "operationId": "cascade_get_workspaces__wid__apc_cascade_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CascadeInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cascade Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/cascade/fit": {
+   "post": {
+    "description": "Model vnitřní smyčky z dat (úloha, P1D / P2D); výsledek se uloží, dále GET /apc/cascade (zdroj data).",
+    "operationId": "cascade_fit_workspaces__wid__apc_cascade_fit_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CascadeFitReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cascade Fit",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/cascade/reset": {
+   "post": {
+    "description": "Původní hodnoty: ruční model (K, T1, T2, θ), ladění vnitřní smyčky (SampleTime, τc) nebo vnější (τc).",
+    "operationId": "cascade_reset_workspaces__wid__apc_cascade_reset_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CascadeReset"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CascadeInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cascade Reset",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/cascade/simulate": {
+   "post": {
+    "description": "Skok SP vnější smyčky a poruchy obou smyček: stabilita, doba odezvy vnitřní smyčky, IAE vnější smyčky.",
+    "operationId": "cascade_simulate_workspaces__wid__apc_cascade_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CascadeSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cascade Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/cascade/simulate/curves": {
+   "post": {
+    "operationId": "cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp_o, pv_o in engineering units of PV, sp_i, pv_i, valve in %; 409 when the simulation is unstable"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cascade Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/decouple": {
+   "get": {
+    "description": "Rozvazbení 2×2 s druhou smyčkou projektu: RGA, parametry decouplerů pro PCS 7.",
+    "operationId": "dec_get_workspaces__wid__apc_decouple_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DecInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Dec Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/decouple/simulate": {
+   "post": {
+    "description": "Změny SP obou smyček bez rozvazbení, se statickými a s dynamickými decouplery: IAE v jednotkách PV.",
+    "operationId": "dec_simulate_workspaces__wid__apc_decouple_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DecSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DecSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Dec Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/decouple/simulate/curves": {
+   "post": {
+    "operationId": "dec_curves_workspaces__wid__apc_decouple_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DecSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp_a, pv_a_none, pv_a, sp_b, pv_b_none, pv_b, mv_a, mv_b in engineering units of the loops (pv_* with the chosen decoupler)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Dec Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff": {
+   "get": {
+    "description": "Dopředná vazba po měřených poruchách: nastavení, návrh podle modelu, hodnoty pro PIDConL.",
+    "operationId": "ff_get_workspaces__wid__apc_ff_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Get",
+    "tags": [
+     "apc"
+    ]
+   },
+   "put": {
+    "description": "Nastavení poruch po pořadí (částečné; null = beze změny) → ws.ff_state, čte ho i ladění.",
+    "operationId": "ff_put_workspaces__wid__apc_ff_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "items": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/FFDesignIn"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "title": "Body",
+        "type": "array"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Put",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff/reset": {
+   "post": {
+    "description": "Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou).",
+    "operationId": "ff_reset_workspaces__wid__apc_ff_reset_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/FFReset"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Reset",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff/simulate": {
+   "post": {
+    "description": "Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV.",
+    "operationId": "ff_simulate_workspaces__wid__apc_ff_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FFSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FFSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ff/simulate/curves": {
+   "post": {
+    "operationId": "ff_curves_workspaces__wid__apc_ff_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FFSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: pv_none, mv_none, pv_static, mv_static, pv_dynamic, mv_dynamic in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ff Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched": {
+   "get": {
+    "description": "Gain scheduling podle PV: úseky bodů, identifikované body, ladění v bodech, tabulka pro GainSched.",
+    "operationId": "gs_get_workspaces__wid__apc_gainsched_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched/auto": {
+   "post": {
+    "description": "Úseky bodů znovu z automatického návrhu (do gs_r1 …); body zůstanou, ale označí se jako zastaralé.",
+    "operationId": "gs_auto_workspaces__wid__apc_gainsched_auto_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Auto",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched/fit": {
+   "post": {
+    "description": "Identifikace modelu v úsecích bodů (úloha); úseky se uloží do gs_r*, body do gs_pts / gs_key.",
+    "operationId": "gs_fit_workspaces__wid__apc_gainsched_fit_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Fit",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched/reset": {
+   "post": {
+    "description": "Původní hodnoty ladění bodů: násobek τc = 1, Ms = 1,6.",
+    "operationId": "gs_reset_workspaces__wid__apc_gainsched_reset_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Reset",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched/simulate": {
+   "post": {
+    "description": "Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling.",
+    "operationId": "gs_simulate_workspaces__wid__apc_gainsched_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched/simulate/curves": {
+   "post": {
+    "operationId": "gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_fixed, pv_sched, mv_fixed, mv_sched, gain_fixed, gain_sched in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched_er": {
+   "get": {
+    "description": "Gain scheduling podle ER: vstupy (gs_er_*), největší bezpečný násobek k, tabulka pro GainSched.",
+    "operationId": "er_get_workspaces__wid__apc_gainsched_er_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsErInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Er Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched_er/reset": {
+   "post": {
+    "description": "Původní hodnoty: práh E = 5 % rozsahu PV, k = 2, skok SP = 20 % rozsahu PV, porucha 10 %.",
+    "operationId": "er_reset_workspaces__wid__apc_gainsched_er_reset_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsErInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Er Reset",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched_er/simulate": {
+   "post": {
+    "description": "Skok SP a porucha: jedna sada vs. scheduling podle ER vs. nejlepší řídicí pásmo ConZone (výpočet ~2 s,\nstejné vstupy se nepočítají znovu).",
+    "operationId": "er_simulate_workspaces__wid__apc_gainsched_er_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GsErSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Er Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
+   "post": {
+    "operationId": "er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_*, mv_*, gain_* for fixed and sched, pv_zone, mv_zone with ConZone, in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Er Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/override": {
+   "get": {
+    "description": "Override s druhou smyčkou projektu: výchozí scénář (skok SP hlavní smyčky, mez omezující smyčky).",
+    "operationId": "ov_get_workspaces__wid__apc_override_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "query",
+      "name": "sel",
+      "required": false,
+      "schema": {
+       "default": "min",
+       "enum": [
+        "min",
+        "max"
+       ],
+       "title": "Sel",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OvInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ov Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/override/simulate": {
+   "post": {
+    "description": "Simulace s výběrem MIN / MAX a bez něj; skok a mez chybějící v těle = výchozí scénář.",
+    "operationId": "ov_simulate_workspaces__wid__apc_override_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OvSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OvSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ov Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/override/simulate/curves": {
+   "post": {
+    "operationId": "ov_curves_workspaces__wid__apc_override_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "index of the second loop of the project (as in GET /loops)",
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "index of the second loop of the project (as in GET /loops)",
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OvSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ov Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio": {
+   "get": {
+    "description": "Poměrová regulace: výchozí vstupy, zdroje modelu vzduchu (ostatní smyčky) a model vzduchu.",
+    "operationId": "ratio_get_workspaces__wid__apc_ratio_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "air_loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "minimum": 0,
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Air Loop"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio/design": {
+   "post": {
+    "description": "Model vzduchu (zadaný / výchozí / z jiné smyčky), implementace a kontroly pro zadané vstupy.",
+    "operationId": "ratio_design_workspaces__wid__apc_ratio_design_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioDesign"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Design",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio/simulate": {
+   "post": {
+    "description": "Skok požadavku výkonu s křížovým omezením a bez: nejmenší λ, čas s λ < 1, IAE paliva.",
+    "operationId": "ratio_simulate_workspaces__wid__apc_ratio_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/ratio/simulate/curves": {
+   "post": {
+    "operationId": "ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: demand, fuel, air_r (air / R), air_r_plain, lam, lam_plain (flows in % of ranges)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Ratio Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
   "/workspaces/{wid}/apc/recommend": {
    "get": {
     "description": "Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).",
@@ -2929,6 +9366,1254 @@
     "summary": "Recommend",
     "tags": [
      "diagnostics"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/rga": {
+   "get": {
+    "description": "Interakce N×N: matice zesílení, RGA, Niederlinskiho index a doporučené párování ze smyček projektu.",
+    "operationId": "rga_get_workspaces__wid__apc_rga_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RgaInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Rga Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith": {
+   "get": {
+    "description": "Smithův prediktor: vstupy (z nastavení), regulátor, pracovní bod, hodnoty pro šablonu.",
+    "operationId": "smith_get_workspaces__wid__apc_smith_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SmithInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith/optimize": {
+   "post": {
+    "description": "Robustní optimalizace regulátoru prediktoru (úloha); výsledek se uloží, dále GET /apc/smith.",
+    "operationId": "smith_optimize_workspaces__wid__apc_smith_optimize_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Optimize",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith/simulate": {
+   "post": {
+    "description": "Skok SP a porucha na vstupu: PID (sada 2) vs. Smith na procesu s chybou modelu (ek, et, eth [%]).",
+    "operationId": "smith_simulate_workspaces__wid__apc_smith_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SmithSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SmithSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/smith/simulate/curves": {
+   "post": {
+    "operationId": "smith_curves_workspaces__wid__apc_smith_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SmithSimReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_pid, mv_pid, pv_smith, mv_smith in engineering units"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Smith Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split": {
+   "get": {
+    "description": "Split range: výchozí vstupy (model ventilu A podle režimu a b0) a vyvážený bod rozdělení, poloviny rozsahu.",
+    "operationId": "split_get_workspaces__wid__apc_split_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "mode",
+      "required": false,
+      "schema": {
+       "default": "opposite",
+       "enum": [
+        "opposite",
+        "sequence"
+       ],
+       "title": "Mode",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "b0",
+      "required": false,
+      "schema": {
+       "default": 50.0,
+       "maximum": 99,
+       "minimum": 1,
+       "title": "B0",
+       "type": "number"
+      }
+     },
+     {
+      "in": "query",
+      "name": "gap",
+      "required": false,
+      "schema": {
+       "default": 0.0,
+       "maximum": 20,
+       "minimum": -20,
+       "title": "Gap",
+       "type": "number"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SplitInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split/design": {
+   "post": {
+    "description": "Výsledky pro zadané vstupy: b*, zesílení a Ms obou polovin teď / s b*, hodnoty pro šablonu.",
+    "operationId": "split_design_workspaces__wid__apc_split_design_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SplitIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SplitDesign"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Design",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split/simulate": {
+   "post": {
+    "description": "Skok SP přes bod rozdělení se současným a vyváženým rozdělením: IAE, max. odchylka PV, změny směru.",
+    "operationId": "split_simulate_workspaces__wid__apc_split_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SplitIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SplitSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/split/simulate/curves": {
+   "post": {
+    "operationId": "split_curves_workspaces__wid__apc_split_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SplitIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_now, pv_new in engineering units; u_now, u_new, va, vb in % (output of the controller and valves)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Split Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc": {
+   "get": {
+    "description": "Regulace polohy ventilu: výchozí vstupy (model MV2) a návrh PI regulátoru VPC.",
+    "operationId": "vpc_get_workspaces__wid__apc_vpc_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VpcInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Get",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc/design": {
+   "post": {
+    "description": "Návrh regulátoru VPC pro zadaný model MV2, SP a násobek τc.",
+    "operationId": "vpc_design_workspaces__wid__apc_vpc_design_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VpcIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VpcDesign"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Design",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc/simulate": {
+   "post": {
+    "description": "Skokové zatížení s VPC a bez něj: IAE PV, čas MV1 v limitu, rezerva MV1.",
+    "operationId": "vpc_simulate_workspaces__wid__apc_vpc_simulate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VpcIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VpcSim"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Simulate",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/apc/vpc/simulate/curves": {
+   "post": {
+    "operationId": "vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VpcIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: sp, pv_off, pv_on in engineering units; mv1_off, mv1_on, mv2_on in %"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Vpc Curves",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
+  "/workspaces/{wid}/audit/analyse": {
+   "post": {
+    "description": "Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci.",
+    "operationId": "analyse_workspaces__wid__audit_analyse_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AuditReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Audit"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Analyse",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
+  "/workspaces/{wid}/audit/loops": {
+   "get": {
+    "description": "Smyčky v souboru: uložené v projektu, jinak (nebo s `propose`) návrh z názvů tagů.",
+    "operationId": "audit_loops_workspaces__wid__audit_loops_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "propose",
+      "required": false,
+      "schema": {
+       "default": false,
+       "title": "Propose",
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AuditLoops"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Audit Loops",
+    "tags": [
+     "audit"
     ]
    }
   },
@@ -3268,7 +10953,7 @@
   },
   "/workspaces/{wid}/diagnostics": {
    "get": {
-    "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí podle modelu).",
+    "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf\nMV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.",
     "operationId": "diagnostics_workspaces__wid__diagnostics_get",
     "parameters": [
      {
@@ -3561,6 +11246,79 @@
    }
   },
   "/workspaces/{wid}/layout": {
+   "get": {
+    "description": "Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.",
+    "operationId": "get_layout_workspaces__wid__layout_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LayoutInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Layout",
+    "tags": [
+     "data"
+    ]
+   },
    "put": {
     "operationId": "set_layout_workspaces__wid__layout_put",
     "parameters": [
@@ -3641,6 +11399,83 @@
     "summary": "Set Layout",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/live": {
+   "get": {
+    "description": "Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2.",
+    "operationId": "live_config_workspaces__wid__live_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Live Config Workspaces  Wid  Live Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Live Config",
+    "tags": [
+     "tuning"
     ]
    }
   },
@@ -3960,6 +11795,81 @@
     ]
    }
   },
+  "/workspaces/{wid}/loops/overview": {
+   "get": {
+    "description": "Smyčky projektu: sloupce, model, sady parametrů a stav (problémy podle přehledu smyček).",
+    "operationId": "loops_overview_workspaces__wid__loops_overview_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopsOverview"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Loops Overview",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
   "/workspaces/{wid}/loops/{index}": {
    "delete": {
     "operationId": "remove_loop_workspaces__wid__loops__index__delete",
@@ -4244,7 +12154,7 @@
       "content": {
        "application/octet-stream": {}
       },
-      "description": "app.signalpack.frame on the loop grid: pv, mv, model (all), model_mv, model_dv, full (whole record), residual"
+      "description": "app.signalpack.frame on the loop grid in engineering units: pv, mv, model (all), model_mv, model_dv, full (whole record), residual"
      },
      "422": {
       "content": {
@@ -4258,6 +12168,91 @@
      }
     },
     "summary": "Curves",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/workspaces/{wid}/model/dist": {
+   "put": {
+    "description": "Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí\ned|kód|d{j}|i; model se použije hned (bez dofitování).",
+    "operationId": "select_dist_workspaces__wid__model_dist_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DistSelect"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Select Dist",
     "tags": [
      "model"
     ]
@@ -4597,6 +12592,81 @@
      }
     },
     "summary": "Uncertainty",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/workspaces/{wid}/model/validation": {
+   "get": {
+    "description": "Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace\ns MV (ccf) s mezí `bound`, hodnocení.",
+    "operationId": "validation_workspaces__wid__model_validation_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Validation"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Validation",
     "tags": [
      "model"
     ]
