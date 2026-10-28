@@ -608,7 +608,7 @@ a Playwright.
 - Uložení a načtení projektu (soubor), report (náhled a stažení), čtení z OPC UA.
 
 **Skutečnost M21:**
-- Záložka Projekt (`ProjectTab.tsx`, id `project`):
+- Záložka Projekt (`ProjectTab.tsx`, id `project`; soubor projektu má od M23 příponu `.pidproj`, starší `.json` se otevře také):
   - uložení projektu stáhne soubor z `GET /project` (volba „uložit i data“ = `?data=`), otevření nahraje soubor
     přes `PUT /project` a zneplatní všechny dotazy prostoru; chybný soubor ukáže chybu a nic nezmění;
   - údaje o projektu a hlavička protokolu jsou nastavení `rep_plant`, `rep_author`, `rep_status`, `rep_comment`
@@ -699,25 +699,42 @@ a Playwright.
 - Dialogy: bez mostu a bez pluginu. UI stahuje přes `<a download>` (blob) a otevírá přes `<input type=file>`; WebView2
   obojí zvládá sám (výběr souboru, stahování s dialogem „Uložit jako“), takže web zůstává beze změny. Není to ověřené
   (viz níže); kdyby stahování nešlo, most je `save_file` / `open_file` + `@tauri-apps/api` v `ProjectTab.tsx`.
-- Jedna instance: druhé spuštění jen zobrazí a zaostří okno první. **Asociace přípony se nedělá:** projekty jsou
-  prosté `.json` (sdílené s Qt desktopem a Streamlitem, jejichž dialogy filtrují `*.json`); asociace `.json` by
-  zabrala všechny soubory JSON a vlastní přípona (`.pidproj`) není triviální a zpětně kompatibilní (mění dialogy
-  všech tří rozhraní). Projekt se otevírá tlačítkem „Načíst projekt“. `argv` druhé instance je v callbacku k dispozici;
-  chybí událost ve frontendu, která soubor otevře přes `PUT /workspaces/{id}/project`.
-- `pidtools-desktop --smoke [--smoke-log soubor]`: sidecar, READY, z Rustu `GET /health`, 401 bez tokenu, `GET /`
-  (rozhraní), `POST` / `GET` / `DELETE /workspaces`, kód 0, bez okna (na Windows je aplikace GUI program, proto log do
+- **Přípona projektu `.pidproj` (rozhodnuto 28. 10. 2026):** soubor projektu má novou příponu `.pidproj`, obsah je beze
+  změny JSON (`app.project`), starší `.json` se otevřou všude dál. Společné konstanty `EXT` / `OPEN_EXTS`, `is_project_path`
+  a `project_name` jsou v `app/project.py`. Ukládá se jako `.pidproj` ve všech rozhraních (Qt dialogy „PID Tools project
+  (*.pidproj)“ / „Older project (*.json)“, Streamlit `download_button` a `file_uploader(type=["pidproj","json"])`, React
+  `ProjectTab` a `accept=".pidproj,.json,application/json"`, `GET /project` s `Content-Disposition: …pidtools_projekt.pidproj`);
+  otevírá se obojí. Automatický záznam Qt desktopu (`autosave.json`) je interní a přípona se nemění. Texty (`proj_load`,
+  průvodce) a uživatelská dokumentace jsou upravené.
+- **Poklep na `.pidproj`:** `bundle.fileAssociations` (ext `pidproj`, název „PID Tools project“, role Editor, mimeType
+  `application/vnd.pidtools.project+json`) → NSIS zapíše asociaci (instalace `currentUser` = HKCU). Soubor přijde jako argument
+  příkazové řádky (první spuštění) nebo v `argv` callbacku single-instance (druhé spuštění). Rust (`openfile.rs`)
+  vybere první argument s příponou `.pidproj` / `.json`, přečte soubor a pošle ho `PUT /pending-open` (tokenem chráněné,
+  jedno místo, jen mimo týmový režim); pak stránce přes `eval` pošle událost `pidtools:pending-open` (nepotřebuje IPC,
+  capability zůstává prázdná). Frontend (`usePendingOpen`) volá `GET /pending-open` při startu a po události; je-li tam
+  projekt (200, jinak 204), přepne na záložku Projekt a otevře ho `PUT /workspaces/{id}/project` do svého prostoru
+  (zpráva „Projekt načten“ nebo chyba). První spuštění předá soubor ještě před navigací okna na rozhraní.
+- Jedna instance: druhé spuštění zaostří okno první a, má-li cestu k projektu, otevře ho v ní.
+- `pidtools-desktop --smoke [--smoke-log soubor] [--open projekt.pidproj]`: sidecar, READY, z Rustu `GET /health`, 401 bez tokenu, `GET /`
+  (rozhraní), `POST` / `GET` / `DELETE /workspaces`, s `--open` předání souboru jako při poklepu (`PUT` + `GET /pending-open`
+  vrátí tentýž soubor, podruhé 204), kód 0, bez okna (na Windows je aplikace GUI program, proto log do
   souboru).
-- Testy Rustu (`cargo test`, 9): řádek READY (platný i vadný), adresa, náhodný token, hledání programu, pořadí
-  složek, malý HTTP klient proti místnímu serveru, start proti falešným sidecarům (předčasný konec, časový limit, jiný
+- Testy Rustu (`cargo test`, 12): řádek READY (platný i vadný), adresa, náhodný token, hledání programu, pořadí
+  složek, malý HTTP klient proti místnímu serveru (i s tělem), cesta k projektu z argumentů (`.pidproj` i `.json`, velikost
+  písmen, ostatní argumenty se ignorují), předání souboru místnímu serveru, start proti falešným sidecarům (předčasný konec, časový limit, jiný
   token; jen Unix).
 - CI `.github/workflows/desktop.yml` (windows-latest; ruční spuštění, push i pull request s cestami `desktop/**`,
   soubory sidecaru a workflow): rozhraní, sidecar, `cargo check --locked` + `cargo test`, `tauri build --bundles
   nsis` (**bez podpisu**, označené místo pro M24), tichá instalace, `--smoke` **nainstalované** aplikace
-  (ověří rozložení `sidecar/_internal` vedle exe), kontrola, že nezůstal proces sidecaru, odinstalace, instalátor
+  (ověří rozložení `sidecar/_internal` vedle exe), kontrola zapsané asociace `.pidproj` (HKCU, příkaz otevření s
+  `pidtools-desktop.exe` a `%1`) a `--smoke --open` s ukázkovým `.pidproj`, kontrola, že nezůstal proces sidecaru, odinstalace, instalátor
   jako artefakt.
-- Ověřeno lokálně (Linux, Rust 1.97, webkit2gtk-4.1 2.52): `cargo check --tests`, `cargo test` (9 ok), `cargo build`
-  a `--smoke` proti sidecaru ze zdrojů (obálka `python -m pidtools.api.sidecar`): READY za 2,0 s, kód 0.
-- Neověřeno (jen CI / Windows): `tauri build` a NSIS instalátor; umístění zdrojů při instalaci (`<install>/sidecar`);
+- Ověřeno lokálně (Linux, Rust 1.97, webkit2gtk-4.1 2.52): `cargo check --tests`, `cargo test` (12 ok), `cargo build`
+  a `--smoke` (i s `--open` ukázkovým `.pidproj`) proti sidecaru ze zdrojů (obálka `python -m pidtools.api.sidecar`): READY za
+  1–2 s, kód 0.
+- Neověřeno (jen CI / Windows): `tauri build` a NSIS instalátor; skutečný zápis asociace `.pidproj` do registru (přesný název
+  třídy a podoba příkazu určuje šablona NSIS Tauri, CI čte třídu z výchozí hodnoty klíče) a poklep v Průzkumníku (první i
+  druhé spuštění, událost okna); umístění zdrojů při instalaci (`<install>/sidecar`);
   zabalený sidecar spuštěný z Rustu (rouru čte vlákno, `CREATE_NO_WINDOW` a potomci úloh bez okna konzole);
   WebView2: navigace na `http://127.0.0.1`, stažení a výběr souborů, chování bez nainstalovaného WebView2 (M24);
   skutečné okno (v Linuxu neotevřeno, bez displeje); jedna instance; ukončení sidecaru při zavření okna; start
@@ -726,7 +743,9 @@ a Playwright.
 ### M24 · Instalátor a release
 - NSIS instalátor pro uživatele bez admin práv. MSI pro správce (tichá instalace).
 - Varianty s WebView2 bootstrapperem a s pevným runtime pro uzavřené sítě.
-- Podpis Authenticode (R4). Release workflow na tag; dnešní `offline-package.yml` se nahradí.
+- Podpis Authenticode (R4): **zatím se nepodepisuje** (rozhodnuto 28. 10. 2026). Instalátor je nepodepsaný, SmartScreen
+  při spuštění hlásí neznámého vydavatele („Více informací“ → „Přesto spustit“), dokud nebude k dispozici certifikát;
+  v `desktop.yml` zůstává označené místo pro `signCommand`. Release workflow na tag; dnešní `offline-package.yml` se nahradí.
 
 ### M25 · Offline ověření
 Kontrolní seznam na čistém Windows 10 a 11 bez sítě:
@@ -792,7 +811,7 @@ K tomu kontrola, že aplikace nedělá žádné síťové požadavky mimo `127.0
 | R1 | Frontend | **rozhodnuto: React + TypeScript** (porovnání s Vue, Svelte, Angular a Python UI – 23. 10. 2026) | M12 |
 | R2 | Obal desktopu | Tauri 2 (záloha Electron) | M23 |
 | R3 | Přihlášení na webu | Cloudflare Access | M26 |
-| R4 | Podpis instalátoru | firemní certifikát, standardní (EV jen pokud trvá SmartScreen) | M24 |
+| R4 | Podpis instalátoru | **rozhodnuto: zatím bez podpisu (28. 10. 2026)** – instalátor zůstává nepodepsaný (SmartScreen hlásí neznámého vydavatele), podpis se doplní, až bude certifikát (firemní, standardní; EV jen pokud trvá SmartScreen) | M24 |
 | R5 | Zmrazení staré aplikace | desktop PySide6: jen opravy hned; Streamlit: jen opravy od M14 | M14 |
 | R6 | Cílová PC | Windows 10 / 11, instalace uživatelem, část bez internetu | M24 |
 

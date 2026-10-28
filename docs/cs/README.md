@@ -74,12 +74,12 @@ Stejné výpočty v okně bez prohlížeče – pro inženýrské stanice (Windo
 
 ```bash
 pip install -r requirements.txt -r requirements-desktop.txt
-python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.json
+python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.pidproj
 ```
 
 Data, Model (validace, nejistota), Ladění (srovnání metod, simulace scénáře), živá simulace, APC (kaskáda, dopředná
 vazba, rozvazbení, override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika
-provozu, více smyček v projektu, projekty (stejné soubory JSON jako webová aplikace) a protokol z ladění.
+provozu, více smyček v projektu, projekty (soubory `.pidproj` s obsahem JSON, společné s webovou aplikací; starší `.json` se otevřou také) a protokol z ladění.
 Pro Windows je jako instalátor (`PID-Tools-<verze>-setup.exe`, nabídka Start, bez práv správce) i jako přenosný ZIP
 (`PID Tools.exe`); webová aplikace offline je samostatný ZIP (`PID-Tools.bat`) – viz [Nasazení](nasazeni.md).
 

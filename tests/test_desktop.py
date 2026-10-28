@@ -513,6 +513,10 @@ def test_history_recent_and_sections(tmp_path):
     w.project.save(p)
     assert json.loads(p.read_text(encoding="utf-8"))["state"]["tune_hist"][0]["set"] == 2
     assert w.open_path(p) and w.recent()[0] == str(p) and len(w.state.history()) == 1
+    new = tmp_path / "proj.pidproj"                    # nová přípona i starší .json se otevřou jako projekt
+    new.write_bytes(p.read_bytes())
+    w.state.set(set2_gain=-1.0)
+    assert w.open_path(new) and len(w.state.history()) == 1 and w.state.get("set2_gain") != -1.0
     errs = []
     w.error = errs.append                              # bez modálního okna
     assert not w.open_path(tmp_path / "missing.csv") and errs

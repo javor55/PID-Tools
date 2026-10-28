@@ -8,7 +8,7 @@ import { DataMain, DataSide } from "./tabs/DataTab";
 import { DiagMain, DiagSide } from "./tabs/DiagTab";
 import { LiveMain } from "./tabs/LiveTab";
 import { LoopsMain, LoopsSide } from "./tabs/LoopsTab";
-import { ProjectMain, ProjectSide } from "./tabs/ProjectTab";
+import { ProjectMain, ProjectSide, usePendingOpen } from "./tabs/ProjectTab";
 import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TuningMain, TuningSide } from "./tabs/TuningTab";
 import { TABS, useUi } from "./store";
@@ -45,6 +45,7 @@ export default function App() {
   useEffect(() => { setLang(lang); document.documentElement.lang = lang; }, [lang]);
   useTheme();
   useWorkspace();
+  usePendingOpen();
   const cur = TABS.find((t) => t.id === tab) ?? TABS[0];
   return (
     <div className="shell">

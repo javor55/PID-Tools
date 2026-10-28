@@ -40,8 +40,9 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
   packs it with PyInstaller (onedir, no Qt / Streamlit, named `pidtools-api-<target triple>`); CI: `sidecar.yml`.
 - `desktop/` (Tauri 2, Rust) is the desktop window (`desktop/README.md`). It spawns the sidecar from a bundled resource
   folder (`--port 0 --token <random> --parent-pid`), waits for the READY line and navigates the window to
-  `http://127.0.0.1:<port>/#token=…`, so the UI comes from the sidecar and the window has no Tauri IPC. One instance,
-  no file association (projects are plain `.json`). `pidtools-desktop --smoke` is the headless self-test; CI:
+  `http://127.0.0.1:<port>/#token=…`, so the UI comes from the sidecar and the window has no Tauri IPC. One instance;
+  `.pidproj` is associated and a double-click hands the file to the sidecar (`PUT /pending-open`), from which the UI opens it
+  (older `.json` projects still open). `pidtools-desktop --smoke` is the headless self-test; CI:
   `desktop.yml` (NSIS installer, unsigned until M24).
 - `frontend/` (React + TypeScript, Vite) is the future single UI over the API. `npm run build` writes it to
   `pidtools/api/ui`, which the API serves at `/`. Types come from `openapi.json`, and CI builds and tests it.

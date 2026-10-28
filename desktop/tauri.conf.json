@@ -25,6 +25,15 @@
     "targets": ["nsis"],
     "icon": ["icons/icon.ico", "icons/icon.png"],
     "resources": { "../dist/pidtools-api": "sidecar" },
+    "fileAssociations": [
+      {
+        "ext": ["pidproj"],
+        "name": "PID Tools project",
+        "description": "PID Tools project",
+        "mimeType": "application/vnd.pidtools.project+json",
+        "role": "Editor"
+      }
+    ],
     "windows": {
       "nsis": { "installMode": "currentUser" }
     }

@@ -883,7 +883,7 @@ def _api_raw(server, path, page):
     return urllib.request.urlopen(req, timeout=60).read()
 
 
-def _open_project(page, raw, name="projekt.json"):
+def _open_project(page, raw, name="projekt.pidproj"):
     """Otevře projekt (soubor) v záložce Projekt a počká na potvrzení."""
     page.locator('[data-tab="project"]').click()
     page.set_input_files('[data-testid="proj-open"]', files=[{"name": name, "mimeType": "application/json", "buffer": raw}])
@@ -904,7 +904,7 @@ def test_project_save_open_report(page, server):
     with page.expect_download() as dl:
         page.locator('[data-testid="proj-save"]').click()
     saved = open(dl.value.path(), "rb").read()
-    assert dl.value.suggested_filename.endswith("_projekt.json")
+    assert dl.value.suggested_filename.endswith("_projekt.pidproj")
     assert saved == _api_raw(server, base + "/project?data=true", page)
     page.uncheck('[data-testid="proj-data"]')
     with page.expect_download() as dl2:
@@ -921,7 +921,9 @@ def test_project_save_open_report(page, server):
     import json
     again, orig = (json.loads(b) for b in (_api_raw(server, base + "/project?data=true", page), saved))
     assert again["data"] == orig["data"] and again["loops"] == orig["loops"] if "loops" in orig else again["data"] == orig["data"]
-    page.set_input_files('[data-testid="proj-open"]', files=[{"name": "x.json", "mimeType": "application/json", "buffer": b"nope"}])
+    assert page.locator('[data-testid="proj-open"]').get_attribute("accept") == ".pidproj,.json,application/json"
+    _open_project(page, saved, name="stary.json")          # starší přípona .json se otevře také
+    page.set_input_files('[data-testid="proj-open"]', files=[{"name": "x.pidproj", "mimeType": "application/json", "buffer": b"nope"}])
     page.wait_for_selector('[data-testid="proj-msg"].err')
     # report: hlavička z nastavení, náhled v izolovaném iframe, stažení = totéž
     _fill_enter(page, "set-rep_plant", "Kotelna K2")
@@ -993,6 +995,19 @@ def test_data_layout_units_ranges(page, server):
     assert lay["row_dt"] == 0.5 and lay["unit"] == "min" and lay["c_time"] == "#row"
     _open_project(page, backup)                         # původní stav (demo, modely, smyčky, nastavení)
     _until(lambda: _api(server, base, page)["pv"] == "LIC101.PV")
+    _quiet(page)
+
+
+def test_pending_project_opens_on_event(page, server):
+    """Poklep na .pidproj v okně desktopu: Rust vloží soubor do /pending-open a pošle stránce událost → projekt se otevře."""
+    _track(page)
+    raw = _api_raw(server, "/workspaces/{wid}/project?data=true", page)
+    req = urllib.request.Request(server + "/pending-open", data=raw, method="PUT", headers={"X-PID-Token": TOKEN})
+    assert urllib.request.urlopen(req, timeout=60).status == 204
+    page.evaluate("window.dispatchEvent(new Event('pidtools:pending-open'))")
+    page.wait_for_selector('[data-testid="proj-msg"].ok', timeout=60000)
+    req = urllib.request.Request(server + "/pending-open", headers={"X-PID-Token": TOKEN})
+    assert urllib.request.urlopen(req, timeout=60).status == 204          # vyzvednuto, místo je prázdné
     _quiet(page)
 
 

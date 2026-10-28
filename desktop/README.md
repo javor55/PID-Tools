@@ -36,11 +36,19 @@ pidtools-desktop.exe ──spawn──> sidecar/pidtools-api-<triple>.exe --port
   If testing on Windows shows a problem, the bridge would be `save_file(name, bytes)` / `open_file()` commands plus
   `@tauri-apps/api` and `window.__TAURI_INTERNALS__` detection in `ProjectTab.tsx` (not done).
 - **Single instance** (`tauri-plugin-single-instance`): a second launch focuses (and un-minimizes) the first window.
-- **File association: none.** Projects are plain `.json` (`app.project`, shared with the Qt desktop and Streamlit, whose
-  dialogs filter `*.json`). Associating `.json` would hijack every JSON file, and a new extension (`.pidproj`) would
-  break interchange with the other frontends and make the UI/API change as well, so it is not trivial. Opening a project
-  works through the *Load project* button. If a dedicated extension is wanted later, the single-instance callback
-  already receives `argv`; the missing part is a frontend event that opens the file via `PUT /workspaces/{id}/project`.
+- **File association `.pidproj`** (decided 28 Oct 2026). Project files get the extension `.pidproj`; the content is
+  unchanged JSON (`app.project`) and older `.json` projects still open everywhere (Qt, Streamlit, React UI, API).
+  `bundle.fileAssociations` (ext `pidproj`, name "PID Tools project", role Editor, vendor mime type) makes the NSIS
+  installer register it (per user, HKCU). Double-click = the path arrives as a command-line argument (first launch) or in
+  the `argv` of the single-instance callback (second launch). The window has no IPC, so the path is not handed to the page
+  directly: `openfile.rs` picks the first argument ending in `.pidproj` / `.json`, reads the file and sends it with
+  `PUT /pending-open` to the sidecar (token-protected, one slot, disabled in the team mode). Then it evals
+  `window.dispatchEvent(new Event('pidtools:pending-open'))` in the page (`eval` needs no permission). The UI
+  (`usePendingOpen` in `ProjectTab.tsx`) calls `GET /pending-open` on start and on that event; 200 returns the project and
+  empties the slot (204 = nothing pending), and the UI opens it into its own workspace with `PUT /workspaces/{id}/project`
+  and shows the Project tab. On first launch the file is delivered before the window navigates to the UI. A broken file is
+  reported by the UI like any other failed load. Not verifiable off Windows: the registry entries written by NSIS and the
+  Explorer double-click; CI checks the registry and runs `--smoke --open sample.pidproj`.
 - **Versions**: `tauri =2.12.3`, `tauri-build =2.7.2`, `tauri-plugin-single-instance =2.5.3` (latest releases at least two
   weeks old when written), CLI `@tauri-apps/cli@2.12.2`. `Cargo.lock` is committed; CI uses `--locked`.
 
@@ -61,13 +69,14 @@ npx @tauri-apps/cli@2.12.2 build --bundles nsis   # desktop/target/release/bundl
 `cargo check` works without a built sidecar (`build.rs` creates an empty `dist/pidtools-api`, because Tauri insists on
 the resource path existing). `cargo install tauri-cli --version "^2"` also works (`cargo tauri dev|build`).
 
-**Smoke test**: `pidtools-desktop --smoke [--smoke-log file]` starts the sidecar, waits for READY and checks from Rust
-`GET /health`, 401 without a token, `GET /` serves the UI, and `POST` / `GET` / `DELETE /workspaces`; exit code 0 means
-success. No window opens. With a hand-made sidecar: `PIDTOOLS_SIDECAR_DIR=<dir with pidtools-api> pidtools-desktop --smoke`.
+**Smoke test**: `pidtools-desktop --smoke [--smoke-log file] [--open project.pidproj]` starts the sidecar, waits for READY and checks from Rust
+`GET /health`, 401 without a token, `GET /` serves the UI, and `POST` / `GET` / `DELETE /workspaces`; with `--open` it delivers
+the file like a double-click and checks that `GET /pending-open` returns it once; exit code 0 means success. No window opens. With a hand-made sidecar: `PIDTOOLS_SIDECAR_DIR=<dir with pidtools-api> pidtools-desktop --smoke`.
 
 ## CI
 
 `.github/workflows/desktop.yml` (windows-latest): frontend, sidecar, `cargo check` + `cargo test`, `tauri build`
-(NSIS, **unsigned**, placeholder for M24), silent install into a temp directory, `--smoke` of the *installed* app (so
+(NSIS, **unsigned**: decision R4, no certificate for now; SmartScreen warns, placeholder for M24), silent install into a
+temp directory, check of the `.pidproj` association in the registry, `--smoke --open` of the *installed* app (so
 the real layout `sidecar/_internal` next to the exe is verified), a check that no sidecar process is left, uninstall,
 upload of the installer as an artifact.

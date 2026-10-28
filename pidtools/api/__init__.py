@@ -151,6 +151,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
     app.include_router(data.router(project, *_opt(team, ["max_upload"], [data.MAX_UPLOAD])), dependencies=[Depends(auth)])
     app.include_router(projects.router(project), dependencies=[Depends(auth)])
+    app.include_router(projects.pending_router(team is None), dependencies=[Depends(auth)])
     app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
     app.include_router(analysis.router(project), dependencies=[Depends(auth)])

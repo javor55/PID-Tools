@@ -131,7 +131,7 @@ docker run -d --name pid-tools-web --restart unless-stopped -p 127.0.0.1:8080:80
 
 - Nahraná data se zpracovávají jen v paměti serveru po dobu relace (a v mezipaměti výpočtů); aplikace nic
   nezapisuje na disk a nevolá žádné externí služby.
-- Webová aplikace rozpracovanou práci neukládá – uživatel si ji uloží jako projekt (soubor JSON).
+- Webová aplikace rozpracovanou práci neukládá – uživatel si ji uloží jako projekt (soubor `.pidproj`, obsah JSON).
 - Projekt (JSON) a protokol (HTML) se stahují do počítače uživatele. Protokol s volbou „grafy z internetu“ načítá
   knihovnu grafů z CDN při otevření; výchozí volba („vložené“) funguje offline.
 
