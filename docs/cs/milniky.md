@@ -46,7 +46,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☑ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☑ |
 | M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ◐ |
-| M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ☐ |
+| M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ◐ |
 | M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ☐ |
 | M25 | Offline ověření na čistém Windows | D | S | M24 | ☐ |
 | M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☑ |
@@ -678,6 +678,50 @@ a Playwright.
   - zobrazí UI;
   - otevírá a ukládá soubory přes systémové dialogy.
 - Jedna instance aplikace, otevření projektu poklepáním (asociace přípony).
+
+**Skutečnost M23:**
+- Složka `desktop/` (Tauri 2.12.3, Rust; ne `src-tauri/` – repozitář je Python + `frontend/`, CLI si `tauri.conf.json`
+  najde samo; žádné JS, CLI se spouští přes `npx @tauri-apps/cli@2.12.2`). Závislosti: `tauri`, `tauri-build`,
+  `tauri-plugin-single-instance`, `serde(_json)`, `getrandom`; verze jsou vydání starší než dva týdny, `Cargo.lock`
+  je v repozitáři. Bez pluginů shell a dialog.
+- Start: okno se hned otevře s úvodní stránkou (`desktop/ui/index.html`); vlákno najde sidecar, spustí ho
+  `--port 0 --token <24 náhodných bajtů, hex> --parent-pid <vlastní pid>`, čte stdout do řádku `PIDTOOLS_READY`
+  (limit 20 s, kontrola shody tokenu) a okno přepne (`navigate`) na `http://127.0.0.1:<port>/#token=<token>`. Rozhraní
+  tedy obsluhuje sidecar sám (jeden původ, bez CORS a CSP, stejné rozhraní jako v prohlížeči); okno nemá žádná
+  oprávnění Tauri (prázdná capability), stránka z 127.0.0.1 nemá IPC. Chyba (nenalezen, skončil před READY, časový
+  limit, jiný token) se zobrazí na úvodní stránce i s posledními řádky stderr sidecaru. Při ukončení aplikace
+  (`RunEvent::Exit`) se sidecar zabije, při pádu ho ukončí `--parent-pid`. Okno konzole sidecaru se potlačí
+  (`CREATE_NO_WINDOW`).
+- `_internal`: místo `externalBin` se celý onedir dodá jako zdroj `bundle.resources` (`../dist/pidtools-api` ->
+  `sidecar/`) a sidecar se spouští podle cesty. Důvod: `externalBin` jde do složky aplikace (na Linuxu `/usr/bin`),
+  zdroje jinam, takže sousedství `_internal` by nebylo zaručené. Hledá se `$PIDTOOLS_SIDECAR_DIR`, `<složka
+  aplikace>/sidecar`, `…/resources/sidecar`, `../dist/pidtools-api` (vývoj).
+- Dialogy: bez mostu a bez pluginu. UI stahuje přes `<a download>` (blob) a otevírá přes `<input type=file>`; WebView2
+  obojí zvládá sám (výběr souboru, stahování s dialogem „Uložit jako“), takže web zůstává beze změny. Není to ověřené
+  (viz níže); kdyby stahování nešlo, most je `save_file` / `open_file` + `@tauri-apps/api` v `ProjectTab.tsx`.
+- Jedna instance: druhé spuštění jen zobrazí a zaostří okno první. **Asociace přípony se nedělá:** projekty jsou
+  prosté `.json` (sdílené s Qt desktopem a Streamlitem, jejichž dialogy filtrují `*.json`); asociace `.json` by
+  zabrala všechny soubory JSON a vlastní přípona (`.pidproj`) není triviální a zpětně kompatibilní (mění dialogy
+  všech tří rozhraní). Projekt se otevírá tlačítkem „Načíst projekt“. `argv` druhé instance je v callbacku k dispozici;
+  chybí událost ve frontendu, která soubor otevře přes `PUT /workspaces/{id}/project`.
+- `pidtools-desktop --smoke [--smoke-log soubor]`: sidecar, READY, z Rustu `GET /health`, 401 bez tokenu, `GET /`
+  (rozhraní), `POST` / `GET` / `DELETE /workspaces`, kód 0, bez okna (na Windows je aplikace GUI program, proto log do
+  souboru).
+- Testy Rustu (`cargo test`, 9): řádek READY (platný i vadný), adresa, náhodný token, hledání programu, pořadí
+  složek, malý HTTP klient proti místnímu serveru, start proti falešným sidecarům (předčasný konec, časový limit, jiný
+  token; jen Unix).
+- CI `.github/workflows/desktop.yml` (windows-latest; ruční spuštění, push i pull request s cestami `desktop/**`,
+  soubory sidecaru a workflow): rozhraní, sidecar, `cargo check --locked` + `cargo test`, `tauri build --bundles
+  nsis` (**bez podpisu**, označené místo pro M24), tichá instalace, `--smoke` **nainstalované** aplikace
+  (ověří rozložení `sidecar/_internal` vedle exe), kontrola, že nezůstal proces sidecaru, odinstalace, instalátor
+  jako artefakt.
+- Ověřeno lokálně (Linux, Rust 1.97, webkit2gtk-4.1 2.52): `cargo check --tests`, `cargo test` (9 ok), `cargo build`
+  a `--smoke` proti sidecaru ze zdrojů (obálka `python -m pidtools.api.sidecar`): READY za 2,0 s, kód 0.
+- Neověřeno (jen CI / Windows): `tauri build` a NSIS instalátor; umístění zdrojů při instalaci (`<install>/sidecar`);
+  zabalený sidecar spuštěný z Rustu (rouru čte vlákno, `CREATE_NO_WINDOW` a potomci úloh bez okna konzole);
+  WebView2: navigace na `http://127.0.0.1`, stažení a výběr souborů, chování bez nainstalovaného WebView2 (M24);
+  skutečné okno (v Linuxu neotevřeno, bez displeje); jedna instance; ukončení sidecaru při zavření okna; start
+  celku na Windows. SmartScreen bude hlásit nepodepsaný instalátor (M24).
 
 ### M24 · Instalátor a release
 - NSIS instalátor pro uživatele bez admin práv. MSI pro správce (tichá instalace).

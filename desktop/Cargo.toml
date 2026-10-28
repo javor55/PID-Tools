@@ -1,0 +1,32 @@
+[package]
+name = "pidtools-desktop"
+version = "3.3.0-beta.1"
+description = "PID Tools – desktop window (Tauri 2) around the pidtools-api sidecar"
+edition = "2021"
+rust-version = "1.77"
+publish = false
+
+[lib]
+name = "pidtools_desktop_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pidtools-desktop"
+path = "src/main.rs"
+
+# verze Tauri: nejnovější vydání starší než dva týdny (viz README)
+[build-dependencies]
+tauri-build = { version = "=2.7.2", features = [] }
+
+[dependencies]
+tauri = { version = "=2.12.3", features = [] }
+tauri-plugin-single-instance = "=2.5.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+getrandom = "0.4"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

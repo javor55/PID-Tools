@@ -1,0 +1,106 @@
+# Desktop window (Tauri 2, M23) on Windows: frontend + sidecar + `tauri build` (NSIS), unit tests of the Rust part
+# and a smoke test of the INSTALLED app (silent install -> `pidtools-desktop.exe --smoke` -> uninstall).
+# The installer is NOT signed yet (Authenticode is M24).
+name: Desktop (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "desktop/**"
+      - "pidtools/api/sidecar.py"
+      - "tools/build_sidecar.py"
+      - "tools/pidtools_api.py"
+      - ".github/workflows/desktop.yml"
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "pidtools/api/sidecar.py"
+      - "tools/build_sidecar.py"
+      - "tools/pidtools_api.py"
+      - ".github/workflows/desktop.yml"
+
+permissions:
+  contents: read
+
+env:
+  TAURI_CLI: "@tauri-apps/cli@2.12.2"   # vydání starší než dva týdny; stejná hlavní řada jako crate tauri
+
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npx -y npm@11.21.0 ci --no-audit --no-fund
+
+      - name: Frontend build (-> pidtools/api/ui)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install sidecar build requirements
+        run: pip install -r requirements-api.txt pyinstaller==6.22.3
+
+      - name: Build the sidecar (-> dist/pidtools-api)
+        run: python tools/build_sidecar.py
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            desktop/target
+          key: desktop-${{ runner.os }}-${{ hashFiles('desktop/Cargo.lock') }}
+          restore-keys: desktop-${{ runner.os }}-
+
+      - name: cargo check + unit tests (ready line, URL, HTTP client)
+        working-directory: desktop
+        run: |
+          cargo check --locked --tests
+          cargo test --locked
+
+      - name: tauri build (NSIS; UNSIGNED)
+        working-directory: desktop
+        run: npx -y ${{ env.TAURI_CLI }} build --bundles nsis
+        # TODO(M24): Authenticode signing (bundle.windows.signCommand / certificateThumbprint from secrets),
+        # WebView2 bootstrapper vs. fixed runtime, MSI. Until then the installer is unsigned.
+
+      - name: Smoke test of the installed app (silent install, --smoke, uninstall)
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem desktop\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
+          Write-Host "installer: $($setup.Name) ($([math]::Round($setup.Length / 1MB)) MB)"
+          $dir = Join-Path $env:RUNNER_TEMP "pidtools-installed"
+          # NSIS: /S = tiše, /D= musí být poslední a bez uvozovek
+          Start-Process -FilePath $setup.FullName -ArgumentList "/S", "/D=$dir" -Wait
+          Get-ChildItem $dir | Format-Table Name, Length
+          if (-not (Test-Path "$dir\sidecar\_internal")) { throw "sidecar\_internal was not installed next to the app" }
+          $log = Join-Path $env:RUNNER_TEMP "smoke.log"
+          $p = Start-Process -FilePath "$dir\pidtools-desktop.exe" -ArgumentList "--smoke", "--smoke-log", $log `
+                 -Wait -PassThru -WindowStyle Hidden
+          Get-Content $log
+          if ($p.ExitCode -ne 0) { throw "Smoke test failed ($($p.ExitCode))" }
+          $left = Get-Process -Name "pidtools-api*" -ErrorAction SilentlyContinue
+          if ($left) { throw "sidecar survived the app" }
+          $un = Get-ChildItem "$dir\uninstall.exe" -ErrorAction SilentlyContinue
+          if ($un) { Start-Process -FilePath $un.FullName -ArgumentList "/S" -Wait }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pidtools-desktop-win64-unsigned
+          path: desktop/target/release/bundle/nsis/*-setup.exe
+          retention-days: 30

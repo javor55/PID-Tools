@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PID Tools",
+  "mainBinaryName": "pidtools-desktop",
+  "version": "3.3.0-beta.1",
+  "identifier": "cz.pidtools.desktop",
+  "build": { "frontendDist": "ui" },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "PID Tools",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 640,
+        "center": true
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "resources": { "../dist/pidtools-api": "sidecar" },
+    "windows": {
+      "nsis": { "installMode": "currentUser" }
+    }
+  }
+}
