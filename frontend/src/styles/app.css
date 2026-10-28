@@ -63,6 +63,7 @@ button { font: inherit; color: inherit; }
 .tbl input.num { width: 7em; }
 .trend-host { min-height: 300px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
+.grid2 > .span-all { grid-column: 1 / -1; }          /* karta přes celou šíři mřížky (rezidua) */
 .card h3 { font-size: 13px; margin: 0 0 8px; }
 input.num { width: 110px; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 2px 6px; font-family: var(--pid-mono); }
 .chart { margin: 0; }

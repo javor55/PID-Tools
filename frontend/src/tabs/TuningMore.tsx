@@ -48,7 +48,7 @@ export function ScenarioCard() {
   if (!sc.data) return null;
   const s = sc.data;
   const rows = s.rows as Row[];
-  const uPv = String(st.u_pv ?? ""), uMv = String(st.u_mv ?? "");
+  const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");          // bez jednotky aspoň název
   const targets = ["SP", "IN", "PV", ...(ws?.dists ?? []).map((_, j) => `M${j}`)];
   const tgLabel = (t: string) => (t.startsWith("M") ? `${T("tg_M")}: ${ws?.dists[+t.slice(1)] ?? t}` : T("tg_" + t));
   const put = async (body: Record<string, unknown>) => {
