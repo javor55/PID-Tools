@@ -2,6 +2,7 @@
 // TanStack Query (cache dotazů na API), sem patří jen to, co patří rozhraní.
 import { create } from "zustand";
 import type { JobInfo } from "./api/client";
+import type { components } from "./api/schema";
 
 export const TABS = [
   { id: "data", label: "tab1", milestone: "M13" },
@@ -23,6 +24,12 @@ function save(k: string, v: unknown) {
   try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* bez úložiště */ }
 }
 
+/** Úseky provozních dat v Diagnostice (A, B, porovnání) – podle záznamu (`key`), jen v prohlížeči jako v desktopu. */
+export interface DiagWin { key: string; a: [number, number]; b: [number, number]; cmp: boolean }
+
+/** Výsledek přehledu smyček (`POST /audit/analyse`) pro pracovní prostor – zůstane při přepnutí záložky. */
+export interface AuditState { wid: string; res: components["schemas"]["Audit"] }
+
 interface UiState {
   lang: "cs" | "en";
   theme: Theme;
@@ -30,6 +37,10 @@ interface UiState {
   apcTech: string;
   wid: string | null;
   jobs: Record<string, JobInfo>;
+  diag: DiagWin | null;
+  setDiag: (d: DiagWin) => void;
+  audit: AuditState | null;
+  setAudit: (a: AuditState | null) => void;
   setLang: (l: "cs" | "en") => void;
   setTheme: (t: Theme) => void;
   setTab: (t: TabId) => void;
@@ -46,6 +57,10 @@ export const useUi = create<UiState>((set) => ({
   apcTech: load("pid.apc", "ff"),
   wid: (() => { try { return sessionStorage.getItem("pid.wid"); } catch { return null; } })(),
   jobs: {},
+  diag: null,
+  setDiag: (diag) => set({ diag }),
+  audit: null,
+  setAudit: (audit) => set({ audit }),
   setLang: (lang) => { save("pid.lang", lang); set({ lang }); },
   setTheme: (theme) => { save("pid.theme", theme); set({ theme }); },
   setTab: (tab) => { save("pid.tab", tab); set({ tab }); },

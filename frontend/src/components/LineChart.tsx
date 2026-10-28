@@ -1,9 +1,10 @@
 // Jednoduchý graf průběhů (SVG) – odezvy ladění, frekvenční charakteristiky. Řady se zředí na ~1500 bodů.
 import { useMemo } from "react";
 
-// legend: false = bez položky v legendě; NaN v x nebo y přeruší čáru (body mimo rozsah se tak jen vynechají)
+// legend: false = bez položky v legendě; NaN v x nebo y přeruší čáru (body mimo rozsah se tak jen vynechají);
+// dots: body (kolečka o průměru `width`) místo čáry – fázové grafy a nelinearita
 export interface Series { name: string; x: ArrayLike<number>; y: ArrayLike<number>; color: string; dash?: string; width?: number;
-  legend?: boolean }
+  legend?: boolean; dots?: boolean }
 
 function ticks(lo: number, hi: number, n = 5): number[] {
   const span = hi - lo || 1;
@@ -42,7 +43,8 @@ export function LineChart({ series, height = 220, xLabel, yLabel, logX, testid, 
       for (let i = 0; i < n; i += step) {
         const x = s.x[i], y = s.y[i];
         if (!Number.isFinite(tx(x)) || !Number.isFinite(y)) { pen = false; continue; }
-        d += `${pen ? "L" : "M"}${sx(x).toFixed(1)},${sy(y).toFixed(1)}`; pen = true;
+        d += s.dots ? `M${sx(x).toFixed(1)},${sy(y).toFixed(1)}h0` : `${pen ? "L" : "M"}${sx(x).toFixed(1)},${sy(y).toFixed(1)}`;
+        pen = true;
       }
       return d;
     });
@@ -58,8 +60,8 @@ export function LineChart({ series, height = 220, xLabel, yLabel, logX, testid, 
           <text x={L - 4} y={sy(v) + 3} textAnchor="end">{+v.toPrecision(4)}</text></g>)}
         {xt.map((v) => <g key={v}><line x1={sx(v)} x2={sx(v)} y1={Tm} y2={H - B} className="grid" />
           <text x={sx(v)} y={H - B + 14} textAnchor="middle">{+v.toPrecision(4)}</text></g>)}
-        {series.map((s, i) => <path key={i} d={paths[i]} fill="none" stroke={s.color} strokeWidth={s.width ?? 1.6}
-          strokeDasharray={s.dash} vectorEffect="non-scaling-stroke" />)}
+        {series.map((s, i) => <path key={i} d={paths[i]} fill="none" stroke={s.color} strokeWidth={s.width ?? (s.dots ? 4 : 1.6)}
+          strokeDasharray={s.dash} strokeLinecap={s.dots ? "round" : undefined} vectorEffect="non-scaling-stroke" />)}
         {xLabel && <text x={W - R} y={H - 2} textAnchor="end" className="lab">{xLabel}</text>}
         {yLabel && <text x={4} y={Tm + 8} className="lab">{yLabel}</text>}
       </svg>

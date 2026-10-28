@@ -10,7 +10,8 @@ function hash(s: string): string {
 }
 
 export interface TrendHandlers {
-  onWins?: (w: { mode: string; wins: Record<string, [number, number][]>; common: [number, number] }) => void;
+  onWins?: (w: { mode: string; wins: Record<string, [number, number][]>; common: [number, number];
+    ab?: { a: [number, number]; b: [number, number] | null } }) => void;
   onMode?: (mode: string) => void;
 }
 

@@ -89,3 +89,40 @@ def test_loops(client):
 def test_invalid_project(client):
     wid = _ws(client)
     assert _put(client, wid, "{not json").status_code == 400
+
+
+def test_audit_loops_analyse_and_overview(client):
+    """Přehled smyček: návrh z tagů, analýza = app.audit, uložení do projektu, přehled smyček projektu."""
+    from pidtools.app import audit
+    wid = _ws(client)
+    assert client.get(f"/workspaces/{wid}/audit/loops").status_code == 409
+    client.post(f"/workspaces/{wid}/data/demo")
+    ws = client.app.state.store.get(wid).state
+    al = client.get(f"/workspaces/{wid}/audit/loops").json()
+    assert al["saved"] is False and al["loops"][0]["pv"] == "LIC101.PV" and al["loops"][0]["sp"] == "LIC101.SP"
+    res = client.post(f"/workspaces/{wid}/audit/analyse", json={}).json()
+    ref = audit.analyse(ws.sig, audit.propose(ws.sig.sigs, ws.sig.get), None, None)
+    assert [r["name"] for r in res["results"]] == [r["name"] for r in ref]
+    r0, q0 = res["results"][0], ref[0]
+    assert r0["ok"] and r0["score"] == q0["score"] and r0["kpis"]["std_e"] == pytest.approx(q0["kpis"]["std_e"])
+    assert [p["key"] for p in r0["problems"]] == [p for p, _ in q0["problems"]] and 100 < len(r0["t"]) <= 1500
+    assert res["common"] == []
+    assert client.get(f"/workspaces/{wid}/audit/loops").json()["saved"] is True          # analýza smyčky uloží
+    win = client.post(f"/workspaces/{wid}/audit/analyse", json={"a": 0, "b": 1000}).json()["results"][0]
+    assert win["t"][-1] == pytest.approx(1000, abs=2) and win["kpis"]["std_e"] != r0["kpis"]["std_e"]
+    short = client.post(f"/workspaces/{wid}/audit/analyse", json={"a": 0, "b": 10}).json()["results"][0]
+    assert short["ok"] is False and short["err"] == "err_short"
+    two = [dict(al["loops"][0], name="A"), dict(al["loops"][0], name="B", mv="FI100.Pritok")]
+    assert len(client.post(f"/workspaces/{wid}/audit/analyse", json={"loops": two}).json()["results"]) == 2
+    assert client.post(f"/workspaces/{wid}/audit/analyse", json={"loops": [dict(two[0], pv="X")]}).status_code == 422
+    assert client.post(f"/workspaces/{wid}/audit/analyse", json={"loops": []}).status_code == 422
+    # přehled smyček projektu
+    ov = client.get(f"/workspaces/{wid}/loops/overview").json()
+    assert ov["active"] == 0 and len(ov["loops"]) == 1 and ov["loops"][0]["active"] and ov["loops"][0]["model"] is None
+    d = audit.LoopDef(name="x", pv="LIC101.PV", mv="LIC101.MV", sp="LIC101.SP")
+    assert ov["loops"][0]["health"]["score"] == audit.analyse_loop(ws.sig, d)["score"] and ov["loops"][0]["health"]["ok"]
+    assert ov["loops"][0]["set1"]["gain"] == pytest.approx(ws.get("set1_gain"))
+    client.post(f"/workspaces/{wid}/loops", json={"name": "FIC100", "pv": "FI100.Pritok", "mv": "LIC101.MV"})
+    ov = client.get(f"/workspaces/{wid}/loops/overview").json()
+    assert [x["name"] for x in ov["loops"]] == ["LIC101.PV", "FIC100"] and ov["active"] == 1
+    assert [x["active"] for x in ov["loops"]] == [False, True] and ov["loops"][1]["sp"] is None

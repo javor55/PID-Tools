@@ -826,6 +826,183 @@ def test_apc_override_decouple_second_loop(page, server):
     _quiet(page)
 
 
+def _ensure_model(server, page):
+    """Diagnostika potřebuje model aktivní smyčky (předchozí testy ho mohou nechat jiný, nebo žádný)."""
+    base = "/workspaces/{wid}"
+    if _api(server, base + "/model", page).get("current") is None:
+        _api_send(server, "PATCH", base + "/settings", {"chosen": ["P1D"]}, page)
+        _job_done(server, page, _api_post(server, base + "/identify", {}, page))
+
+
+def _win_chip(page, i, value):
+    """Políčko úseku A v grafu (trend.js): i = 0 začátek, 1 konec; hodnota v jednotce osy."""
+    inp = page.locator(".pidw-chip input").nth(i)
+    inp.fill(str(value))
+    inp.press("Enter")
+    inp.blur()
+
+
+def test_diagnostics_tab(page, server):
+    """Diagnostika (M20): KPI, ventil, nelinearita a grafy = API; úsek A / B, porovnání a nastavení mění výsledky."""
+    _track(page)
+    _ensure_model(server, page)
+    base = "/workspaces/{wid}"
+    page.locator('[data-tab="diag"]').click()
+    page.wait_for_selector('[data-testid="diag-trend"] .pidw-card', timeout=60000)
+    ws = _api(server, base, page)
+    T = ws["duration"]
+    d = _api(server, f"{base}/diagnostics?a=0&b={T}", page)
+    k = d["kpis"]
+    for key, row in (("std_e", "std"), ("iae_h", "iae"), ("travel_h", "travel"), ("rev_h", "rev")):
+        _wait_sel(page, f'[data-testid="diag-kpi-{row}-a"]', k[key], 1e-3, 60000)
+    _wait_sel(page, '[data-testid="diag-kpi-lim-a"]', k["at_lim"], 1e-2)
+    assert page.locator('[data-testid="diag-kpi-harris-a"]').inner_text().strip() in (
+        "—", f"{k['harris']:.2f}") or _rel(float(page.locator('[data-testid="diag-kpi-harris-a"]').inner_text()), k["harris"], 1e-2)
+    assert page.locator('[data-testid="diag-kpi-std-b"]').count() == 0
+    # oscilace a ventil
+    osc = d["valve"]["osc"]
+    assert ("ok" in (page.locator('[data-testid="diag-osc"]').get_attribute("class") or "")) == (not osc["osc"])
+    assert (page.locator('[data-testid="diag-stic"]').count() == 1) == (d["valve"]["verdict"] is not None)
+    assert page.locator('[data-testid="diag-hyst"]').count() == (1 if ws["pos"] else 0)
+    assert page.locator('[data-testid="diag-ccf"] path').count() >= 1
+    # nelinearita: řádky a verdikt
+    page.locator('[data-testid="diag-view-nl"]').click()
+    nl = d["nonlinearity"]
+    assert nl is not None
+    if len(nl["gains"]) < 2 or nl["spread"] is None:                       # málo skoků MV v úseku identifikace
+        page.wait_for_selector('[data-testid="nl-few"]', timeout=30000)
+    else:
+        page.wait_for_selector('[data-testid="nl-table"]', timeout=30000)
+        assert page.locator('[data-testid="nl-table"] tbody tr').count() == len(nl["gains"])
+        assert (page.locator('[data-testid="nl-verdict"]').get_attribute("class") or "").count("warn") == (1 if nl["spread"] > 1.5 else 0)
+        assert page.locator('[data-testid="nl-to-gs"]').count() == (1 if nl["spread"] > 1.5 and not nl["integ"] else 0)
+        _wait_sel(page, '[data-testid="nl-row-0"] td:nth-child(5)', nl["gains"][0]["gain"], 1e-3)
+    # fázový graf: osa podle integračního procesu, přepnutí nastavení diag_integ
+    page.locator('[data-testid="diag-view-phase"]').click()
+    page.wait_for_selector('[data-testid="diag-phase"] text.lab')
+    has_deriv = page.evaluate("[...document.querySelectorAll('[data-testid=\"diag-phase\"] text.lab')]"
+                              ".some((e) => e.textContent.includes('dPV/dt'))")
+    assert has_deriv == d["integ"]
+    page.locator('[data-testid="set-diag_integ"]').click()
+    _until(lambda: _setting(server, page, "diag_integ") == (not d["integ"]))
+    page.wait_for_function("(w) => [...document.querySelectorAll('[data-testid=\"diag-phase\"] text.lab')]"
+                           ".some((e) => e.textContent.includes('dPV/dt')) === w", arg=not d["integ"], timeout=60000)
+    d2 = _api(server, f"{base}/diagnostics?a=0&b={T}", page)
+    assert d2["integ"] is (not d["integ"]) and d2["valve"]["stic"]["ratio"] != d["valve"]["stic"]["ratio"]
+    assert d2["phase"]["y"] != d["phase"]["y"]
+    page.locator('[data-testid="set-diag_integ"]').click()
+    _until(lambda: _setting(server, page, "diag_integ") == d["integ"])
+    # srovnání s úsekem B (výchozí druhá polovina záznamu)
+    page.locator('[data-testid="diag-cmp"]').check()
+    db = _api(server, f"{base}/diagnostics?a={T / 2}&b={T}", page)
+    _wait_sel(page, '[data-testid="diag-kpi-std-b"]', db["kpis"]["std_e"], 1e-3, 60000)
+    _wait_sel(page, '[data-testid="diag-kpi-iae-b"]', db["kpis"]["iae_h"], 1e-3)
+    assert db["kpis"]["std_e"] != k["std_e"]
+    # úsek A posunutý v grafu (políčka trend.js, jednotka osy min) → ukazatele z API pro nový úsek
+    unit = page.evaluate("/\\bmin\\b/.test(document.querySelector('.pidw-chip').innerText) ? 60 : 1")
+    a0 = 10 * unit
+    _win_chip(page, 0, 10)
+    da = _api(server, f"{base}/diagnostics?a={a0}&b={T}", page)
+    _wait_sel(page, '[data-testid="diag-kpi-std-a"]', da["kpis"]["std_e"], 1e-3, 60000)
+    page.locator('[data-testid="diag-cmp"]').uncheck()
+    page.wait_for_function("() => !document.querySelector('[data-testid=\"diag-kpi-std-b\"]')", timeout=30000)
+    # příliš krátký úsek: hlášení místo výsledků
+    _win_chip(page, 1, round((a0 + 50) / unit, 4))
+    page.wait_for_selector('[data-testid="diag-short"]', timeout=60000)
+    assert _api_status(server, f"{base}/diagnostics?a={a0}&b={a0 + 50}", page) == 422
+    _win_chip(page, 1, T / unit)
+    page.wait_for_function("() => !document.querySelector('[data-testid=\"diag-short\"]')", timeout=60000)
+    _quiet(page)
+
+
+def _api_status(server, path, page):
+    wid = page.evaluate("sessionStorage.getItem('pid.wid')")
+    req = urllib.request.Request(server + path.format(wid=wid), headers={"X-PID-Token": TOKEN})
+    try:
+        return urllib.request.urlopen(req, timeout=10).status
+    except urllib.error.HTTPError as e:
+        return e.code
+
+
+def test_loops_overview_add_switch_delete(page, server):
+    """Přehled smyček (M20): smyčky projektu = API, přidání druhé smyčky z rozhraní, přepnutí aktivní smyčky (obnoví
+    dotazy prostoru, výběr v záhlaví), návrat a odebrání; analýza souboru = API."""
+    _track(page)
+    base = "/workspaces/{wid}"
+    l0 = _api(server, base + "/loops", page)
+    n0, act0 = len(l0["loops"]), l0["active"]
+    page.locator('[data-tab="loops"]').click()
+    page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
+    ov = _api(server, base + "/loops/overview", page)
+    assert len(ov["loops"]) == n0 and page.locator('[data-testid="loops-table"] tbody tr').count() == n0
+    for r in ov["loops"]:
+        i = r["index"]
+        assert page.locator(f'[data-testid="loop-name-{i}"]').inner_text() == r["name"]
+        assert (page.locator(f'[data-testid="loop-row-{i}"]').get_attribute("data-active") == "true") == r["active"]
+        assert page.locator(f'[data-testid="loop-health-{i}"]').inner_text().strip()
+    assert "LIC101.PV" in page.locator('[data-testid="loops-table"]').inner_text()
+    assert page.locator('[data-testid="loop-delete-0"]').is_disabled() == (n0 < 2)
+    # přidání druhé smyčky se zvolenými sloupci
+    page.fill('[data-testid="loop-new-name"]', "FIC test")
+    page.select_option('[data-testid="loop-new-pv"]', "FI100.Pritok")
+    page.select_option('[data-testid="loop-new-mv"]', "LIC101.MV")
+    page.locator('[data-testid="loop-add"]').click()
+    lp = _until(lambda: (lambda x: x if len(x["loops"]) == n0 + 1 else None)(_api(server, base + "/loops", page)))
+    assert lp["active"] == n0 and lp["loops"][n0]["name"] == "FIC test" and lp["loops"][n0]["pv"] == "FI100.Pritok"
+    page.wait_for_selector(f'[data-testid="loop-row-{n0}"][data-active="true"]', timeout=30000)
+    assert page.locator(f'[data-testid="loop-health-{n0}"]').inner_text().strip()
+    ov = _api(server, base + "/loops/overview", page)
+    assert ov["loops"][n0]["pv"] == "FI100.Pritok" and ov["loops"][n0]["model"] is None
+    # výběr aktivní smyčky v záhlaví (od dvou smyček výš)
+    assert page.locator('[data-testid="loop-select"] option').count() == n0 + 1
+    assert page.locator('[data-testid="loop-select"]').input_value() == str(n0)
+    # přepnutí: ostatní dotazy prostoru se obnoví (sloupec PV na záložce Data)
+    page.locator(f'[data-testid="loop-activate-{act0}"]').click()
+    _until(lambda: _api(server, base + "/loops", page)["active"] == act0)
+    pv0 = _api(server, base, page)["pv"]
+    assert pv0 != "FI100.Pritok"
+    page.wait_for_selector(f'[data-testid="loop-row-{act0}"][data-active="true"]', timeout=30000)
+    page.locator('[data-tab="data"]').click()
+    page.wait_for_function("(v) => document.querySelector('[data-testid=\"col-pv\"]')?.value === v", arg=pv0, timeout=30000)
+    page.locator('[data-tab="loops"]').click()
+    page.locator(f'[data-testid="loop-activate-{n0}"]').click()
+    _until(lambda: _api(server, base + "/loops", page)["active"] == n0)
+    page.locator('[data-tab="data"]').click()
+    page.wait_for_function("() => document.querySelector('[data-testid=\"col-pv\"]')?.value === 'FI100.Pritok'", timeout=30000)
+    # přehled smyček souboru: analýza = API (nová smyčka má vlastní návrh z tagů)
+    page.locator('[data-tab="loops"]').click()
+    page.wait_for_selector('[data-testid="audit-defs"]')
+    page.locator('[data-testid="audit-run"]').click()
+    page.wait_for_selector('[data-testid="audit-table"]', timeout=60000)
+    res = _api_post(server, base + "/audit/analyse", {}, page)
+    assert page.locator('[data-testid="audit-table"] tbody tr').count() == len(res["results"])
+    assert page.locator('[data-testid="audit-row-0"]').inner_text().split("\t")[1] == res["results"][0]["name"]
+    assert int(page.locator('[data-testid="audit-score-0"]').inner_text()) == res["results"][0]["score"]
+    assert page.locator('[data-testid="audit-pv"] path').count() >= 1
+    assert (page.locator('[data-testid="audit-common-none"]').count() == 1) == (not res["common"])
+    # úprava smyček přehledu se uloží do projektu (audit_loops) a promítne do analýzy
+    page.locator('[data-testid="audit-add"]').click()
+    _until(lambda: len(_api(server, base + "/audit/loops", page)["loops"]) == len(res["results"]) + 1)
+    assert _api(server, base + "/audit/loops", page)["saved"] is True
+    page.select_option('[data-testid="audit-f-sp"]', "—")
+    _until(lambda: _api(server, base + "/audit/loops", page)["loops"][-1]["sp"] is None)
+    page.locator('[data-testid="audit-run"]').click()
+    page.wait_for_function("(n) => document.querySelectorAll('[data-testid=\"audit-table\"] tbody tr').length === n",
+                           arg=len(res["results"]) + 1, timeout=60000)
+    page.locator('[data-testid="audit-del"]').click()
+    _until(lambda: len(_api(server, base + "/audit/loops", page)["loops"]) == len(res["results"]))
+    _api_send(server, "PATCH", base + "/settings", {"audit_loops": []}, page)
+    # zpět na původní aktivní smyčku a odebrání přidané
+    page.locator(f'[data-testid="loop-activate-{act0}"]').click()
+    _until(lambda: _api(server, base + "/loops", page)["active"] == act0)
+    page.locator(f'[data-testid="loop-delete-{n0}"]').click()
+    lp = _until(lambda: (lambda x: x if len(x["loops"]) == n0 else None)(_api(server, base + "/loops", page)))
+    assert lp["active"] == act0 and "FIC test" not in [x["name"] for x in lp["loops"]]
+    page.wait_for_function("(n) => document.querySelectorAll('[data-testid=\"loops-table\"] tbody tr').length === n", arg=n0, timeout=30000)
+    assert page.locator('[data-testid="loop-select"]').count() == (1 if n0 > 1 else 0)
+    _quiet(page)
+
+
 def test_no_page_errors(page):
     """Během všech předchozích scénářů nevznikla na stránce žádná výjimka JS."""
     assert page.errors == []

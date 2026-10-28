@@ -2067,5 +2067,16 @@
  "ui_sc_add": "Add event",
  "ui_cas_outer": "Outer loop",
  "ui_cas_values": "Values for the CascadeControl template",
- "ui_gs_fit_pct": "Fit [%]"
+ "ui_gs_fit_pct": "Fit [%]",
+ "ui_lp_title": "Project loops",
+ "ui_lp_help": "All loops over one file. The active loop is the one the other tabs show; the status comes from the loop overview (whole record).",
+ "ui_lp_active": "Active",
+ "ui_lp_activate": "Activate",
+ "ui_lp_delete": "Delete",
+ "ui_lp_sets": "Sets (Gain / TI / TD)",
+ "ui_lp_new": "New loop",
+ "ui_lp_add_cols": "Add with selected columns",
+ "ui_lp_add_auto": "Add (columns guessed)",
+ "ui_lp_no_model": "no model",
+ "ui_lp_error": "The loop cannot be evaluated: {e}"
 }
