@@ -118,7 +118,9 @@ def serve(token=None, port=0, parent_pid=None, out=None, cors=()):
 
     def stop():
         server.should_exit = True
-        threading.Timer(GRACE_S, lambda: os._exit(0)).start()      # úloha / spojení nesmí ukončení zdržet
+        t = threading.Timer(GRACE_S, lambda: os._exit(0))         # úloha / spojení nesmí ukončení zdržet
+        t.daemon = True                                              # po korektním zastavení nečeká na časovač
+        t.start()
 
     threading.Thread(target=announce, name="pidtools-ready", daemon=True).start()
     if parent_pid:
