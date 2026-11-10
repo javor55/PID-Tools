@@ -2096,5 +2096,20 @@
  "ui_loops_group": "Loops of the project",
  "ui_help_tab": "Tab guide",
  "ui_theme": "Appearance",
- "ui_model_run": "Identify model"
+ "ui_model_run": "Identify model",
+ "ui_tuning_axis": "Time axis",
+ "ui_tuning_measure_hint": "Measure: click the chart – the first click sets t₁, the second t₂, the third starts again.",
+ "ui_tuning_from_to": "from → to",
+ "ui_tuning_at": "at time",
+ "ui_tuning_len": "Length",
+ "ui_tuning_from_plc": "[from PLC]",
+ "ui_tuning_pending": "calculated when clicked",
+ "ui_tuning_pending_opt": "calculated when clicked (a few seconds)",
+ "ui_tuning_method_desc": "About the method",
+ "ui_tuning_mv_limits": "MV limits",
+ "ui_tuning_reset_block": "↺ Default from PV/MV ranges",
+ "ui_tuning_help_method": "Optimization: finds the Gain/TI with the smallest IAE and overshoot for the given scenario. SIMC: fast, τc = θ. Lambda: you choose the closed-loop response time. AMIGO: robust (Ms ≈ 1.4). Averaging: for levels – lets PV drift within a band so that MV moves as little as possible.",
+ "ui_tuning_help_kpi": "t90: time from the SP step to 90 % of the change. Overshoot: in % of the SP change. Settling: return into the band. IAE: integral of absolute error (% · s). Max. deviation at disturbance: in PV units. MV travel: sum of MV changes – valve wear.",
+ "ui_tuning_help_scen": "SP: set-point step (controller input). DV: disturbance step (process input). The outputs are PV and MV. The length can be given in s, min or h; automatic = from the model.",
+ "ui_tuning_help_rob": "Ms: peak sensitivity, recommended ≤ 1.6 (≤ 2 acceptable). GM: gain margin, ≥ 2. PM: phase margin, ≥ 45°. Details in the Frequency analysis view."
 }
