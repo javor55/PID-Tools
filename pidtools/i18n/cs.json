@@ -2095,5 +2095,8 @@
  "ui_tabs": "Záložky",
  "ui_loops_group": "Smyčky projektu",
  "ui_help_tab": "Průvodce záložkou",
- "ui_theme": "Vzhled"
+ "ui_theme": "Vzhled",
+ "ui_diag_tag_osc": "oscilace",
+ "ui_diag_tag_stic": "stikce",
+ "ui_diag_tag_hyst": "hystereze"
 }

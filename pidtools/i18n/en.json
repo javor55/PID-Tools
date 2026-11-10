@@ -2095,5 +2095,8 @@
  "ui_tabs": "Tabs",
  "ui_loops_group": "Loops of the project",
  "ui_help_tab": "Tab guide",
- "ui_theme": "Appearance"
+ "ui_theme": "Appearance",
+ "ui_diag_tag_osc": "oscillation",
+ "ui_diag_tag_stic": "stiction",
+ "ui_diag_tag_hyst": "hysteresis"
 }

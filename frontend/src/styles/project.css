@@ -1,0 +1,9 @@
+/* Projekt a report – plátno s náhledem reportu a tlačítka projektu podle návrhu (Project.dc.html) */
+.rcanvas { background: var(--pid-soft); border-radius: 10px; padding: 24px; }
+.rcanvas .report-frame { display: block; max-width: 820px; margin: 0 auto; border: 0; border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .18); }
+.pbtns .btn { justify-content: center; }
+.scard-body .field textarea { min-height: 72px; }
+@media (max-width: 1100px) { .rcanvas { padding: 12px; } }
+.scard .field .seg button { white-space: normal; padding: 4px 8px; font-size: 12px; }
+.scard .field.wide .seg { display: flex; } .scard .field.wide .seg button { flex: 1; }
