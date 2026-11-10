@@ -1,0 +1,22 @@
+/* Diagnostika – tabulky a štítky podle návrhu (Diag.dc.html) */
+.ktbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
+.ktbl th, .ktbl td { padding: 5px 8px; border-bottom: 1px solid var(--pid-bg); }
+.ktbl thead th { border-bottom: 1px solid var(--pid-line); font-weight: 600; padding: 6px 8px; text-align: right; }
+.ktbl tbody th { text-align: left; font-weight: 400; }
+.ktbl td { text-align: right; font-family: var(--pid-mono); font-size: 12px; }
+.ktbl tr:last-child th, .ktbl tr:last-child td { border-bottom: 0; }
+.diag-scroll { overflow-x: auto; }
+.vrow { display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
+.vtag { flex: none; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+.vtag.warn { color: var(--pid-warn); border-color: var(--pid-warn); background: color-mix(in srgb, var(--pid-warn) 12%, transparent); }
+.vtag.ok { color: var(--pid-ok); border-color: var(--pid-ok); background: color-mix(in srgb, var(--pid-ok) 12%, transparent); }
+.vtag.err { color: var(--pid-err); border-color: var(--pid-err); background: color-mix(in srgb, var(--pid-err) 12%, transparent); }
+.vtag.info { color: var(--pid-accent); border-color: var(--pid-accent); background: var(--pid-accent-bg); }
+.diag-seg { display: grid; grid-template-columns: 56px 1fr 1fr; gap: 8px; align-items: center; }
+.diag-seg span { color: var(--pid-muted); font-size: 12px; }
+.diag-seg input[type="number"] { width: 100%; min-width: 0; border: 1px solid var(--pid-ctl); background: var(--pid-card); color: inherit;
+  border-radius: var(--pid-radius); padding: 5px 8px; font-family: var(--pid-mono); font-size: 13px; }
+.diag-cmp { display: flex; gap: 6px; align-items: center; font-size: 13px; padding-left: 64px; }
+.dnl { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 1100px) { .dnl { grid-template-columns: 1fr; } }
+.dcard > .seg { align-self: flex-start; }

@@ -6,12 +6,15 @@ import { ApiError, binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { series, unframe } from "../api/signals";
 import { LineChart, type Series } from "../components/LineChart";
+import { Card } from "../components/Card";
 import { CheckSetting } from "../components/Fields";
 import { Trend } from "../components/Trend";
+import { SideCard, Seg } from "../components/Ui";
 import { useSettings, useWs } from "../data";
 import { useT } from "../i18n";
 import { decimate, pick, range, timeUnit } from "../lib/series";
 import { type DiagWin, useUi } from "../store";
+import "../styles/diag.css";
 
 type Diagnostics = components["schemas"]["Diagnostics"];
 type Win = [number, number];
@@ -110,46 +113,23 @@ function Performance({ win }: { win: DiagWin }) {
   const cols: [string, string, Diagnostics | undefined][] = [["a", T("seg_a"), a.data]];
   if (win.cmp && b.data && !b.isError) cols.push(["b", T("seg_b"), b.data]);
   return (
-    <div className="card" data-testid="diag-perf">
-      <h3>{T("perf_title")}</h3>
-      <div className="muted small">{T("perf_help")}</div>
+    <Card title={T("perf_title")} help={T("perf_help")} testid="diag-perf">
       {a.isError ? <div className="warn small" data-testid="diag-short">{T("err_short")}</div> : (
-        <table className="tbl"><thead><tr><th />{cols.map(([id, n]) => <th key={id}>{n}</th>)}</tr></thead>
-          <tbody>{KPI_ROWS.map((r) => (
-            <tr key={r}><td>{label[r]}</td>
-              {cols.map(([id, , d]) => <td key={id} className="mono" data-testid={`diag-kpi-${r}-${id}`}>{d ? cell(d, r) : "…"}</td>)}</tr>))}
-          </tbody></table>)}
+        <div className="diag-scroll">
+          <table className="ktbl"><thead><tr><th scope="col" />{cols.map(([id, n]) => <th scope="col" key={id}>{n}</th>)}</tr></thead>
+            <tbody>{KPI_ROWS.map((r) => (
+              <tr key={r}><th scope="row">{label[r]}</th>
+                {cols.map(([id, , d]) => <td key={id} data-testid={`diag-kpi-${r}-${id}`}>{d ? cell(d, r) : "…"}</td>)}</tr>))}
+            </tbody></table>
+        </div>)}
       {win.cmp && b.isError && <div className="warn small">{T("seg_b")}: {T("err_short")}</div>}
-    </div>
+    </Card>
   );
 }
 
-function Valve({ d }: { d: Diagnostics }) {
-  const T = useT();
-  const st = useSettings().data ?? {};
-  const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");
-  const v = d.valve as { osc: { osc: boolean; period: number | null; amp: number | null; r: number | null };
-    stic: { ratio: number | null }; verdict: string | null };
-  const ws = useWs().data;
-  const hyst = d.hysteresis;
-  return (
-    <div className="card stack" data-testid="diag-valve">
-      <h3>{T("osc_title")}</h3>
-      {v.osc.osc
-        ? <div className="warn small" data-testid="diag-osc">〰 {T("osc_found", { p: f(v.osc.period, 0), a: g(v.osc.amp, 3), u: uPv, r: f(v.osc.r, 1) })}</div>
-        : <div className="ok small" data-testid="diag-osc">✓ {T("osc_none")}</div>}
-      {v.verdict && <div className={`small ${v.verdict === "likely" ? "err" : ""}`} data-testid="diag-stic">
-        {T("stic_" + v.verdict, { r: f(v.stic.ratio, 2) })}</div>}
-      {ws?.pos
-        ? <div className="small" data-testid="diag-hyst">{T("hyst")}: <b className="mono">{hyst === null || hyst === undefined ? "—" : `${g(Math.abs(hyst), 3)} ${uMv}`}</b></div>
-        : <div className="muted small">{T("pos_missing")}</div>}
-    </div>
-  );
-}
 
-const VIEWS = ["ccf", "phase", "pos", "nl"] as const;
 
-function NonlinearityView({ d, onGainSched }: { d: Diagnostics; onGainSched: () => void }) {
+function NonlinearityView({ d }: { d: Diagnostics }) {
   const T = useT();
   const ws = useWs().data;
   const nl = d.nonlinearity as null | { gains: { t: number; dmv: number; gain: number; ratio: number; from_e: number; to_e: number }[];
@@ -169,61 +149,80 @@ function NonlinearityView({ d, onGainSched }: { d: Diagnostics; onGainSched: () 
   const sp = nl.spread;
   return (
     <div className="stack">
-      <div className="row" style={{ alignItems: "flex-start" }}>
-        <div style={{ flex: "1 1 320px" }}>
-          <table className="tbl" data-testid="nl-table"><thead><tr><th>{T("nl_time")}</th><th>{T("nl_from")}</th><th>{T("nl_to")}</th>
-            <th>{T("nl_dir")}</th><th>{T("nl_gain")}</th><th>{T("nl_ratio")}</th></tr></thead>
+      <div className="dnl">
+        <div className="diag-scroll">
+          <table className="ktbl" data-testid="nl-table"><thead><tr><th scope="col" style={{ textAlign: "left" }}>{T("nl_time")}</th><th scope="col">{T("nl_from")}</th><th scope="col">{T("nl_to")}</th>
+            <th scope="col">{T("nl_dir")}</th><th scope="col">{T("nl_gain")}</th><th scope="col">{T("nl_ratio")}</th></tr></thead>
             <tbody>{gains.map((q, i) => (
-              <tr key={i} data-testid={`nl-row-${i}`}><td className="mono">{f(q.t, 0)}</td><td className="mono">{g(q.from_e, 4)}</td>
-                <td className="mono">{g(q.to_e, 4)}</td><td>{q.dmv > 0 ? "↑" : "↓"}</td><td className="mono">{g(q.gain, 4)}</td>
-                <td className="mono">{f(q.ratio, 2)}</td></tr>))}</tbody></table>
+              <tr key={i} data-testid={`nl-row-${i}`}><th scope="row">{f(q.t, 0)}</th><td>{g(q.from_e, 4)}</td>
+                <td>{g(q.to_e, 4)}</td><td>{q.dmv > 0 ? "↑" : "↓"}</td><td>{g(q.gain, 4)}</td>
+                <td>{f(q.ratio, 2)}</td></tr>))}</tbody></table>
         </div>
-        <div style={{ flex: "1 1 320px" }}>
-          <LineChart series={ser} height={260} xLabel={`MV${ws?.mv ? ` · ${ws.mv}` : ""}`} yLabel={nl.param} testid="nl-chart" />
+        <div>
+          <LineChart series={ser} height={240} xLabel={`MV${ws?.mv ? ` · ${ws.mv}` : ""}`} yLabel={nl.param} testid="nl-chart" />
         </div>
       </div>
       {sp > 1.5 ? <div className="warn small" data-testid="nl-verdict">⚠ {T("nl_warn", { s: f(sp, 1) })}</div>
         : <div className="ok small" data-testid="nl-verdict">✓ {T("nl_ok", { s: f(sp, 2) })}</div>}
-      {sp > 1.5 && !nl.integ && <div><button className="btn" onClick={onGainSched} data-testid="nl-to-gs">{T("nl_to_gs")}</button></div>}
       {ratio !== null && Math.abs(ratio - 1) > 0.3 && <div className="small" data-testid="nl-dir-warn">↕ {T("nl_dir_warn", { r: f(ratio, 2) })}</div>}
-      <div className="muted small">{T("nl_help")}</div>
     </div>
   );
 }
 
-function Charts({ d }: { d: Diagnostics }) {
+function Valve({ d }: { d: Diagnostics }) {
   const T = useT();
   const ws = useWs().data;
   const st = useSettings().data ?? {};
-  const setTab = useUi((s) => s.setTab);
-  const setApcTech = useUi((s) => s.setApcTech);
-  const [view, setView] = useState<(typeof VIEWS)[number]>("ccf");
-  const v = d.valve as { stic: { lags: number[]; ccf: (number | null)[] } };
+  const [view, setView] = useState<"ccf" | "phase" | "pos">("ccf");
+  const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");
+  const v = d.valve as { osc: { osc: boolean; period: number | null; amp: number | null; r: number | null };
+    stic: { ratio: number | null; lags: number[]; ccf: (number | null)[] }; verdict: string | null };
+  const hyst = d.hysteresis;
   const cur = view === "pos" && !d.position ? "ccf" : view;
   const mvLab = `MV${st.u_mv ? ` [${String(st.u_mv)}]` : ""}`;
-  const names = { ccf: d.integ ? T("ccf_title_d") : T("ccf_title"), phase: T("phase_title"), pos: T("pos_title"), nl: T("nl_title") };
+  const views = (["ccf", "phase", ...(d.position ? ["pos"] : [])]) as ("ccf" | "phase" | "pos")[];
+  const names = { ccf: d.integ ? T("ccf_title_d") : T("ccf_title"), phase: T("phase_title"), pos: T("pos_title") };
   return (
-    <div className="card stack" data-testid="diag-charts">
-      <div className="row" role="tablist">
-        {VIEWS.filter((x) => x !== "pos" || d.position).map((x) => (
-          <button key={x} role="tab" aria-selected={x === cur} className={x === cur ? "btn primary" : "btn"}
-            data-testid={`diag-view-${x}`} onClick={() => setView(x)}>{names[x]}</button>))}
-      </div>
+    <Card title={T("osc_title")} help={T("osc_help")} testid="diag-valve">
+      {v.osc.osc
+        ? <div className="vrow warn" data-testid="diag-osc"><span className="vtag warn">〰 {T("ui_diag_tag_osc")}</span>
+          <span>{T("osc_found", { p: f(v.osc.period, 0), a: g(v.osc.amp, 3), u: uPv, r: f(v.osc.r, 1) })}</span></div>
+        : <div className="vrow ok" data-testid="diag-osc"><span className="vtag ok">✓ {T("ui_diag_tag_osc")}</span><span>{T("osc_none")}</span></div>}
+      {v.verdict && <div className={`vrow ${v.verdict === "likely" ? "err" : ""}`} data-testid="diag-stic">
+        <span className={`vtag ${v.verdict === "likely" ? "err" : v.verdict === "unlikely" ? "ok" : "info"}`}>
+          {v.verdict === "unlikely" ? "✓" : v.verdict === "likely" ? "!" : "i"} {T("ui_diag_tag_stic")}</span>
+        <span>{T("stic_" + v.verdict, { r: f(v.stic.ratio, 2) })}</span></div>}
+      {ws?.pos
+        ? <div className="vrow" data-testid="diag-hyst"><span className="vtag info">i {T("ui_diag_tag_hyst")}</span>
+          <span>{T("hyst")}: <b className="mono">{hyst === null || hyst === undefined ? "—" : `${g(Math.abs(hyst), 3)} ${uMv}`}</b></span></div>
+        : <div className="muted small">{T("pos_missing")}</div>}
+      <Seg value={cur} options={views} onChange={setView} label={T("osc_title")} fmt={(x) => names[x]} small testid="diag-view" />
       {cur === "ccf" && (
-        <>
-          <LineChart series={[{ name: T("ccf"), x: v.stic.lags, y: v.stic.ccf.map((x) => x ?? NaN), color: "#1f5fa8" }]} height={260}
-            xLabel={T("lag_s")} yLabel={T("ccf")} testid="diag-ccf" />
-          <div className="muted small">{T("osc_help")}</div>
-        </>)}
+        <LineChart series={[{ name: T("ccf"), x: v.stic.lags, y: v.stic.ccf.map((x) => x ?? NaN), color: "#1f5fa8" }]} height={220}
+          xLabel={T("lag_s")} yLabel={T("ccf")} testid="diag-ccf" />)}
       {cur === "phase" && (
         <LineChart series={[{ name: "MV–PV", x: d.phase.x.map((x) => x ?? NaN), y: d.phase.y.map((x) => x ?? NaN), color: "#1f5fa8", dots: true, width: 3 }]}
-          height={300} xLabel={`${mvLab}${ws?.mv ? ` · ${ws.mv}` : ""}`} yLabel={d.integ ? "dPV/dt" : `PV${st.u_pv ? ` [${String(st.u_pv)}]` : ""}`}
+          height={260} xLabel={`${mvLab}${ws?.mv ? ` · ${ws.mv}` : ""}`} yLabel={d.integ ? "dPV/dt" : `PV${st.u_pv ? ` [${String(st.u_pv)}]` : ""}`}
           testid="diag-phase" />)}
       {cur === "pos" && d.position && (
         <LineChart series={[{ name: T("pos_title"), x: d.position.x.map((x) => x ?? NaN), y: d.position.y.map((x) => x ?? NaN), color: "#c2410c",
-          dots: true, width: 3 }]} height={300} xLabel={mvLab} yLabel={T("col_pos")} testid="diag-pos" />)}
-      {cur === "nl" && <NonlinearityView d={d} onGainSched={() => { setApcTech("gainsched"); setTab("apc"); }} />}
-    </div>
+          dots: true, width: 3 }]} height={260} xLabel={mvLab} yLabel={T("col_pos")} testid="diag-pos" />)}
+    </Card>
+  );
+}
+
+function Nonlinearity({ d }: { d: Diagnostics }) {
+  const T = useT();
+  const setTab = useUi((s) => s.setTab);
+  const setApcTech = useUi((s) => s.setApcTech);
+  const nl = d.nonlinearity as null | { spread: number | null; integ: boolean };
+  const gs = !!nl && nl.spread !== null && nl.spread > 1.5 && !nl.integ;
+  return (
+    <Card title={T("nl_title")} help={T("nl_help")} testid="diag-nl"
+      right={gs ? <button type="button" className="btn" onClick={() => { setApcTech("gainsched"); setTab("apc"); }}
+        data-testid="nl-to-gs">{T("nl_to_gs")}</button> : undefined}>
+      <NonlinearityView d={d} />
+    </Card>
   );
 }
 
@@ -238,9 +237,22 @@ export function DiagMain() {
       <RecordTrend win={win} />
       <Performance win={win} />
       {a.isError && a.error instanceof ApiError && a.error.status === 422 ? null : a.data && <Valve d={a.data} />}
-      {a.data && <Charts d={a.data} />}
+      {a.data && <Nonlinearity d={a.data} />}
     </div>
   );
+}
+
+/** Číselné pole meze úseku v jednotce osy (s / min / h); potvrzení Enter / opuštění pole. */
+function Bound({ label, v, unit, onSet }: { label: string; v: number; unit: { u: string; f: number }; onSet: (x: number) => void }) {
+  const cur = String(+(v / unit.f).toFixed(2));
+  const [txt, setTxt] = useState<string | null>(null);
+  const done = () => {
+    const x = Number(txt);
+    if (txt !== null && txt !== cur && txt.trim() !== "" && Number.isFinite(x)) onSet(x * unit.f);
+    setTxt(null);
+  };
+  return <input type="number" step="any" aria-label={`${label} [${unit.u}]`} value={txt ?? cur} onChange={(e) => setTxt(e.target.value)}
+    onBlur={done} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />;
 }
 
 export function DiagSide() {
@@ -250,20 +262,33 @@ export function DiagSide() {
   const setDiag = useUi((s) => s.setDiag);
   const a = useDiag(win?.a ?? null);
   if (!ws?.has_data || !win) return null;
+  const dur = ws.duration ?? 0, unit = timeUnit(dur);
+  const clamp = (w: Win): Win => {
+    const lo = Math.max(0, Math.min(w[0], w[1])), hi = Math.min(dur, Math.max(w[0], w[1]));
+    return hi - lo > 0 ? [lo, hi] : win.a;
+  };
   return (
-    <div className="stack">
-      <section>
-        <h3>{T("dk_sec_diag_seg")}</h3>
-        <div className="muted small">{T("diag_intro")} {T("diag_ab_hint")}</div>
-        <label className="small" title={T("h_perf_compare")}>
-          <input type="checkbox" checked={win.cmp} data-testid="diag-cmp" onChange={(e) => setDiag({ ...win, cmp: e.target.checked })} />{" "}
+    <>
+      <SideCard title={T("dk_sec_diag_seg")} help={T("diag_intro")} testid="diag-side-seg">
+        <div className="diag-seg">
+          <span>{T("seg_a")}</span>
+          <Bound label={`${T("seg_a")} od`} v={win.a[0]} unit={unit} onSet={(x) => setDiag({ ...win, a: clamp([x, win.a[1]]) })} />
+          <Bound label={`${T("seg_a")} do`} v={win.a[1]} unit={unit} onSet={(x) => setDiag({ ...win, a: clamp([win.a[0], x]) })} />
+          {win.cmp && <>
+            <span>{T("seg_b")}</span>
+            <Bound label={`${T("seg_b")} od`} v={win.b[0]} unit={unit} onSet={(x) => setDiag({ ...win, b: clamp([x, win.b[1]]) })} />
+            <Bound label={`${T("seg_b")} do`} v={win.b[1]} unit={unit} onSet={(x) => setDiag({ ...win, b: clamp([win.b[0], x]) })} />
+          </>}
+        </div>
+        <label className="diag-cmp" title={T("h_perf_compare")}>
+          <input type="checkbox" checked={win.cmp} data-testid="diag-cmp" onChange={(e) => setDiag({ ...win, cmp: e.target.checked })} />
           {T("perf_compare")}
         </label>
-      </section>
-      <section>
-        <h3>{T("diag_opts")}</h3>
+        <div className="muted small">{T("diag_ab_hint")}</div>
+      </SideCard>
+      <SideCard title={T("diag_opts")} testid="diag-side-opts">
         <CheckSetting k="diag_integ" label={T("diag_integ")} title={T("h_diag_integ")} def={a.data?.integ ?? false} />
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }

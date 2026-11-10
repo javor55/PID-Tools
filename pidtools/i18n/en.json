@@ -2116,5 +2116,8 @@
  "ui_apc_verify": "Verification (simulation)",
  "ui_apc_pcs_h": "The implementation steps follow the PCS 7 APL library; they appear in the report for the structures used.",
  "ui_apc_type": "Type",
- "ui_apc_scenario": "Verification scenario"
+ "ui_apc_scenario": "Verification scenario",
+ "ui_diag_tag_osc": "oscillation",
+ "ui_diag_tag_stic": "stiction",
+ "ui_diag_tag_hyst": "hysteresis"
 }

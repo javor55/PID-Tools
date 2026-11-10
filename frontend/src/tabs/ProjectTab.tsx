@@ -1,13 +1,16 @@
 // Záložka Projekt a report (M21): uložení / otevření projektu (soubor), údaje a volby protokolu, náhled protokolu
 // (HTML v izolovaném iframe) a jeho stažení.
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { create } from "zustand";
 import { ApiError, bytes, rawRequest } from "../api/client";
-import { SelectSetting, TextSetting } from "../components/Fields";
-import { useSettings } from "../data";
+import { Card } from "../components/Card";
+import { TextSetting } from "../components/Fields";
+import { PrimaryAction, SideCard, Seg } from "../components/Ui";
+import { usePatchSettings, useSettings } from "../data";
 import { useT } from "../i18n";
 import { useUi } from "../store";
+import "../styles/project.css";
 
 const SECTIONS = ["model", "tuning", "response", "apc", "signoff"] as const;
 const STATUSES = ["draft", "deployed", "verified"] as const;
@@ -76,24 +79,23 @@ export function ProjectMain() {
   const T = useT();
   const { html, busy, err } = useReport();
   const base = useBaseName();
+  const frame = useRef<HTMLIFrameElement>(null);
   return (
     <div className="stack">
-      <div className="card stack" data-testid="report-card">
-        <div className="row" style={{ alignItems: "center" }}>
-          <h3 style={{ margin: 0 }}>{T("rp_preview")}</h3>
-          {html && <button className="btn" style={{ marginLeft: "auto" }} data-testid="report-download"
-            onClick={() => saveAs(`${base}_protokol.html`, html, "text/html")}>{T("rep_dl")}</button>}
-        </div>
+      <Card title={T("rp_preview")} help={T("rp_pdf_hint")} testid="report-card"
+        right={html && <>
+          <button className="btn" data-testid="report-download" onClick={() => saveAs(`${base}_protokol.html`, html, "text/html")}>{T("rep_dl")}</button>
+          <button className="btn primary" data-testid="report-print" onClick={() => frame.current?.contentWindow?.print()}>{T("rp_print")}</button>
+        </>}>
         {err && <div className="err small" role="alert" data-testid="report-err">{err}</div>}
         {busy && <div className="muted small">{T("rp_building")}</div>}
-        {html
-          ? (<>
-            <div className="muted small">{T("rp_pdf_hint")}</div>
-            <iframe className="report-frame" title="report" sandbox="allow-scripts allow-modals" srcDoc={html}
-              data-testid="report-frame" />
-          </>)
-          : !busy && <div className="muted small" data-testid="report-hint">{T("rp_preview_hint")}</div>}
-      </div>
+        {!html && !busy && <div className="muted small" data-testid="report-hint">{T("rp_preview_hint")}</div>}
+      </Card>
+      {html && (
+        <div className="rcanvas">
+          <iframe ref={frame} className="report-frame" title="report" sandbox="allow-scripts allow-modals" srcDoc={html}
+            data-testid="report-frame" />
+        </div>)}
     </div>
   );
 }
@@ -116,14 +118,8 @@ function ProjectBox() {
     if (f && wid) await openProject(wid, await f.arrayBuffer(), qc, T);
   }
   return (
-    <section>
-      <h3>{T("proj_title")}</h3>
-      <div className="muted small">{T("pj_intro")}</div>
-      <label className="small" title={T("h_proj_inc")}>
-        <input type="checkbox" checked={withData} onChange={(e) => setWithData(e.target.checked)} data-testid="proj-data" />{" "}
-        {T("proj_include_data")}
-      </label>
-      <div className="row">
+    <SideCard title={T("proj_title")} help={T("pj_intro")} testid="proj-card">
+      <div className="row pbtns">
         <button className="btn primary" onClick={() => void save()} data-testid="proj-save">{T("proj_save")}</button>
         <label className="btn" title={T("h_proj_load")}>
           {T("proj_load")}
@@ -131,12 +127,17 @@ function ProjectBox() {
             onChange={(e) => { void open(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
       </div>
+      <label className="small" title={T("h_proj_inc")}>
+        <input type="checkbox" checked={withData} onChange={(e) => setWithData(e.target.checked)} data-testid="proj-data" />{" "}
+        {T("proj_include_data")}
+      </label>
       {msg && <div className={msg.err ? "err small" : "ok small"} role={msg.err ? "alert" : "status"} data-testid="proj-msg">{msg.text}</div>}
-    </section>
+      <div className="muted small">{T("proj_save_help")} {T("pj_load_hint")}</div>
+    </SideCard>
   );
 }
 
-function ReportBox() {
+function ReportBox({ pre }: { pre?: ReactNode }) {
   const T = useT();
   const wid = useUi((s) => s.wid);
   const st = useSettings().data ?? {};
@@ -156,38 +157,36 @@ function ReportBox() {
       rep.set({ busy: false, html: null, err: e instanceof ApiError ? (e.status === 409 ? T("need_model") : T(e.message)) : String(e) });
     }
   }
+  const patch = usePatchSettings();
+  const status = (STATUSES as readonly string[]).includes(String(st.rep_status)) ? String(st.rep_status) as (typeof STATUSES)[number] : "draft";
   return (
-    <section>
-      <h3>{T("rep_title")}</h3>
-      <div className="muted small">{T("rep_help")}</div>
-      <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} />
-      <TextSetting k="rep_author" label={T("rp_author")} />
-      <SelectSetting k="rep_status" label={T("rp_status")} options={STATUSES} def="draft" fmt={(v) => T("rp_st_" + v)} />
-      <TextSetting k="rep_comment" label={T("rep_comment")} placeholder={T("rp_comment_ph")} multiline />
-      <label className="field" title={T("h_rp_charts")}>
-        <span>{T("rp_charts")}</span>
-        <select value={charts} onChange={(e) => setCharts(e.target.value as "inline" | "cdn")} data-testid="rep-charts">
-          {(["inline", "cdn"] as const).map((v) => <option key={v} value={v}>{T("rp_ch_" + v)}</option>)}
-        </select>
-      </label>
-      <div className="small" title={T("h_rp_sections")} data-testid="rep-sections">
-        <div className="muted">{T("rp_sections")}</div>
+    <>
+      <PrimaryAction disabled={busy} onClick={() => void build()} testid="report-build">{T("rep_build")}</PrimaryAction>
+      {pre}
+      <SideCard title={T("rep_title")} help={T("rep_help")} testid="report-opts">
+        <div className="field"><span>{T("rp_status")}</span>
+          <Seg value={status} options={STATUSES} label={T("rp_status")} testid="set-rep_status" small fmt={(v) => T("rp_st_" + v)}
+            onChange={(v) => void patch({ rep_status: v })} /></div>
+        <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} />
+        <TextSetting k="rep_author" label={T("rp_author")} />
+        <div className="field wide" title={T("h_rp_charts")}><span>{T("rp_charts")}</span>
+          <Seg value={charts} options={["inline", "cdn"] as const} label={T("rp_charts")} testid="rep-charts" small
+            fmt={(v) => T("rp_ch_" + v)} onChange={setCharts} /></div>
+        <TextSetting k="rep_comment" label={T("rep_comment")} placeholder={T("rp_comment_ph")} multiline />
+      </SideCard>
+      <SideCard title={T("rp_sections")} help={T("h_rp_sections")} testid="rep-sections">
         {SECTIONS.map((s) => (
-          <label key={s} style={{ display: "block" }}>
+          <label key={s} className="small">
             <input type="checkbox" checked={secs.includes(s)} data-testid={`rep-sec-${s}`}
               onChange={(e) => setSecs(SECTIONS.filter((x) => (x === s ? e.target.checked : secs.includes(x))))} /> {T("rp_sec_" + s)}
           </label>))}
-      </div>
-      <button className="btn primary" disabled={busy} onClick={() => void build()} data-testid="report-build">{T("rep_build")}</button>
-    </section>
+      </SideCard>
+    </>
   );
 }
 
 export function ProjectSide() {
   return (
-    <div className="stack">
-      <ProjectBox />
-      <ReportBox />
-    </div>
+    <ReportBox pre={<ProjectBox />} />
   );
 }

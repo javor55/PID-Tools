@@ -998,7 +998,7 @@ def test_project_save_open_report(page, server):
     # report: hlavička z nastavení, náhled v izolovaném iframe, stažení = totéž
     _fill_enter(page, "set-rep_plant", "Kotelna K2")
     _until(lambda: _setting(server, page, "rep_plant") == "Kotelna K2")
-    page.select_option('[data-testid="set-rep_status"]', "deployed")
+    page.locator('[data-testid="set-rep_status"] [data-value="deployed"]').click()
     _until(lambda: _setting(server, page, "rep_status") == "deployed")
     page.locator('[data-testid="report-build"]').click()
     page.wait_for_selector('[data-testid="report-frame"]', timeout=120000)
@@ -1136,6 +1136,36 @@ def _win_chip(page, i, value):
     inp.blur()
 
 
+def test_diag_loops_project_card_structure(page, server):
+    """Struktura podle návrhu: karty hlavní plochy s nadpisem a „?“, pravý panel jen z karet, hlavní tlačítko nahoře."""
+    _track(page)
+    _ensure_model(server, page)
+    page.locator('[data-tab="diag"]').click()
+    page.wait_for_selector('[data-testid="diag-nl"]', timeout=60000)
+    assert page.locator('[data-testid="diag-perf"].dcard h2 .qm').count() == 1
+    assert page.locator('[data-testid="diag-valve"].dcard h2').count() == 1
+    assert page.locator('[data-testid="diag-nl"].dcard h2').count() == 1
+    assert page.locator("aside.side details.scard").count() >= 2
+    assert page.locator('aside.side [data-testid="diag-cmp"]').count() == 1
+    page.locator('[data-tab="loops"]').click()
+    page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
+    assert page.locator('[data-testid="loops-card"].dcard h2').count() == 1
+    assert page.locator("aside.side details.scard").count() >= 3
+    first = page.locator("aside.side > *:not(.side-all)").first
+    assert first.get_attribute("data-testid") == "audit-side-loops"
+    assert page.locator('aside.side button.btn.primary.big[data-testid="audit-run"]').count() == 1
+    page.locator('[data-testid="audit-run"]').click()
+    page.wait_for_selector('[data-testid="audit-rank"].dcard', timeout=60000)
+    assert page.locator('[data-testid="audit-score-0"]').count() == 1
+    page.locator('[data-tab="project"]').click()
+    page.wait_for_selector('[data-testid="proj-card"]')
+    assert page.locator("aside.side details.scard").count() >= 3
+    assert page.locator("aside.side > *:not(.side-all)").first.get_attribute("data-testid") == "report-build"
+    assert page.locator('[data-testid="set-rep_status"] button').count() == 3
+    assert page.locator('[data-testid="report-card"].dcard h2').count() == 1
+    _quiet(page)
+
+
 def test_diagnostics_tab(page, server):
     """Diagnostika (M20): KPI, ventil, nelinearita a grafy = API; úsek A / B, porovnání a nastavení mění výsledky."""
     _track(page)
@@ -1160,7 +1190,7 @@ def test_diagnostics_tab(page, server):
     assert page.locator('[data-testid="diag-hyst"]').count() == (1 if ws["pos"] else 0)
     assert page.locator('[data-testid="diag-ccf"] path').count() >= 1
     # nelinearita: řádky a verdikt
-    page.locator('[data-testid="diag-view-nl"]').click()
+    page.wait_for_selector('[data-testid="diag-nl"]')                       # nelinearita je vlastní karta pod oscilací
     nl = d["nonlinearity"]
     assert nl is not None
     if len(nl["gains"]) < 2 or nl["spread"] is None:                       # málo skoků MV v úseku identifikace
@@ -1172,7 +1202,7 @@ def test_diagnostics_tab(page, server):
         assert page.locator('[data-testid="nl-to-gs"]').count() == (1 if nl["spread"] > 1.5 and not nl["integ"] else 0)
         _wait_sel(page, '[data-testid="nl-row-0"] td:nth-child(5)', nl["gains"][0]["gain"], 1e-3)
     # fázový graf: osa podle integračního procesu, přepnutí nastavení diag_integ
-    page.locator('[data-testid="diag-view-phase"]').click()
+    page.locator('[data-testid="diag-view"] [data-value="phase"]').click()
     page.wait_for_selector('[data-testid="diag-phase"] text.lab')
     has_deriv = page.evaluate("[...document.querySelectorAll('[data-testid=\"diag-phase\"] text.lab')]"
                               ".some((e) => e.textContent.includes('dPV/dt'))")
@@ -1270,7 +1300,7 @@ def test_loops_overview_add_switch_delete(page, server):
     page.wait_for_selector('[data-testid="audit-table"]', timeout=60000)
     res = _api_post(server, base + "/audit/analyse", {}, page)
     assert page.locator('[data-testid="audit-table"] tbody tr').count() == len(res["results"])
-    assert page.locator('[data-testid="audit-row-0"]').inner_text().split("\t")[1] == res["results"][0]["name"]
+    assert page.locator('[data-testid="audit-row-0"]').inner_text().split("\t")[0] == res["results"][0]["name"]
     assert int(page.locator('[data-testid="audit-score-0"]').inner_text()) == res["results"][0]["score"]
     assert page.locator('[data-testid="audit-pv"] path').count() >= 1
     assert (page.locator('[data-testid="audit-common-none"]').count() == 1) == (not res["common"])

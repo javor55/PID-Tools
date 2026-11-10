@@ -147,3 +147,9 @@ dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
 .opc-list button.link { border: 0; background: transparent; cursor: pointer; padding: 0; text-align: left; color: inherit; }
 .opc-list button.link:hover { color: var(--pid-accent); }
 @media (max-width: 700px) { .opc-cols { grid-template-columns: 1fr; } }
+/* karta hlavní plochy (components/Card.tsx) – jako v návrhu */
+.dcard { border-radius: 10px; display: flex; flex-direction: column; gap: 8px; }
+.dcard .dhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.dcard .dhead h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.dcard .dright { margin-left: auto; font-size: 12px; color: var(--pid-muted); display: inline-flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.dcard .dnote { margin: 0; font-size: 12px; color: var(--pid-muted); }

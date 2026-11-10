@@ -2116,5 +2116,8 @@
  "ui_apc_verify": "Ověření (simulace)",
  "ui_apc_pcs_h": "Implementační kroky odpovídají knihovně PCS 7 APL; v reportu se objeví u použitých struktur.",
  "ui_apc_type": "Typ",
- "ui_apc_scenario": "Scénář ověření"
+ "ui_apc_scenario": "Scénář ověření",
+ "ui_diag_tag_osc": "oscilace",
+ "ui_diag_tag_stic": "stikce",
+ "ui_diag_tag_hyst": "hystereze"
 }

@@ -1,0 +1,28 @@
+/* Přehled smyček – tabulky, štítky a ukazatel skóre podle návrhu (Audit.dc.html) */
+.lscroll { overflow-x: auto; }
+.ltbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ltbl th, .ltbl td { padding: 6px 8px; border-bottom: 1px solid var(--pid-bg); text-align: left; vertical-align: middle; }
+.ltbl thead th { border-bottom: 1px solid var(--pid-line); font-weight: 600; white-space: nowrap; }
+.ltbl .r { text-align: right; }
+.ltbl td.mono { font-size: 12px; }
+.ltbl tr:last-child td { border-bottom: 0; }
+.ltbl tr.sel td { background: var(--pid-accent-bg); }
+.ltbl tr.pick { cursor: pointer; } .ltbl tr.pick:hover td { background: var(--pid-soft); }
+.ltbl.compact { font-size: 12px; } .ltbl.compact th, .ltbl.compact td { padding: 4px 6px; }
+.ltbl.compact td.mono { font-size: 11px; word-break: break-all; }
+.lsort { font: inherit; font-weight: 600; border: 0; background: transparent; padding: 0; cursor: pointer; color: inherit; white-space: nowrap; }
+.lsort span { color: var(--pid-muted); }
+.ltags .ltag { margin: 1px 4px 1px 0; }
+.ltags b.err { color: var(--pid-err); } .ltags b.warn { color: var(--pid-warn); }
+.ltag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+.ltag.err { color: var(--pid-err); border-color: var(--pid-err); background: color-mix(in srgb, var(--pid-err) 10%, transparent); }
+.ltag.warn { color: var(--pid-warn); border-color: var(--pid-warn); background: color-mix(in srgb, var(--pid-warn) 12%, transparent); }
+.ltag.ok { color: var(--pid-ok); border-color: var(--pid-ok); background: color-mix(in srgb, var(--pid-ok) 12%, transparent); }
+.lscore { display: inline-flex; align-items: center; gap: 8px; }
+.lbar { display: inline-block; width: 52px; height: 8px; border-radius: 4px; background: var(--pid-soft); overflow: hidden; }
+.lbar i { display: block; height: 100%; border-radius: 4px; background: var(--pid-muted); }
+.lbar i.err { background: var(--pid-err); } .lbar i.warn { background: var(--pid-warn); } .lbar i.ok { background: var(--pid-ok); }
+.lrow { display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
+.lrow .ltag { flex: none; }
+.lsub { font-size: 13px; margin: 6px 0 0; }
+.lbtns .btn { flex: 1; justify-content: center; }
