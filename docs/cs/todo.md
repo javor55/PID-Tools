@@ -22,8 +22,9 @@ Zjištěno 28. 10. 2026 porovnáním snímků (návrh vs. `frontend/`):
 
 Zbývá po sladění 10. 11. 2026:
 
-- [ ] **Živá simulace:** sdílený modul `pidtools/ui/static/live_ui.js` (i Streamlit) – nápověda „?“ u karet,
-      posuvníky SP / MV / poruchy, tabulka Sada 1 / Sada 2, značka poruchy a čára „teď“ v grafu.
+- [x] **Živá simulace** (10. 11.): sdílený modul `live_ui.js` překreslen podle návrhu (lišta, graf PV / MV se
+      značkami poruch a čárou „teď“, Ukazatele Sada 1 / Sada 2, karty s „?“); Streamlit má stejný vzhled.
+      Zbývá: rychlosti 10× / 50× / 200× z návrhu, porucha „přes model DV“ (engine ji nemá).
 - [ ] **APC:** štítky „nevhodné“ a „není potřeba“ – API vrací jen „doporučeno“ a „2. smyčka“.
 - [ ] **Diagnostika:** graf provozních dat jako jedna karta s úseky A / B (návrh), karta „Co dál“; θ pro Harrise.
 - [ ] **Data:** „Zoom / Měření“ nad prohlížečem, klik v grafu Celého náhledu skočí v tabulce; ruční čtení bez
