@@ -1436,6 +1436,14 @@
       "title": "Index",
       "type": "integer"
      },
+     "model_params": {
+      "default": [],
+      "items": {
+       "type": "number"
+      },
+      "title": "Model Params",
+      "type": "array"
+     },
      "name": {
       "title": "Name",
       "type": "string"
@@ -1485,6 +1493,11 @@
      "mv_unit": {
       "title": "Mv Unit",
       "type": "string"
+     },
+     "theta": {
+      "default": 0.0,
+      "title": "Theta",
+      "type": "number"
      }
     },
     "required": [

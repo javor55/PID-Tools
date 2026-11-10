@@ -7,11 +7,13 @@ import type { components } from "../../api/schema";
 import { unframe } from "../../api/signals";
 import { NumSetting, SelectSetting } from "../../components/Fields";
 import { LineChart } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { usePatchSettings, useSettings, useWs } from "../../data";
 import { useT } from "../../i18n";
 import { useJobRunner } from "../../jobs";
 import { useUi } from "../../store";
 import { Bold, type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
+import { ACard, VariantTable } from "./parts";
 
 type SmithInfo = components["schemas"]["SmithInfo"];
 type SmithSim = components["schemas"]["SmithSim"];
@@ -49,9 +51,8 @@ export function SmithSide() {
     setBusy(false);
   };
   return (
-    <div className="stack" data-testid="smith-side">
-      <section>
-        <h3>{T("apc_smith")}</h3>
+    <>
+      <SideCard title={T("apc_smith")} testid="smith-side">
         <SelectSetting k="apc_sm_method" label={T("sm_method")} options={inp.methods} def={inp.method} title={T("h_sm_method")}
           fmt={(m) => T("sm_m_" + m)} />
         <SelectSetting k="apc_sm_ct" label={T("ctrl_type")} options={CTYPES} def="PI" />
@@ -66,16 +67,15 @@ export function SmithSide() {
           </>
         )}
         {integ && <div className="warn small">⚠ {T("sm_integ")}</div>}
-      </section>
-      <section>
-        <h3>{T("sm_err")}</h3>
+      </SideCard>
+      <SideCard title={T("sm_err")}>
         <NumSetting k="apc_sm_ek" label={T("sm_err_k") + " [%]"} def={0} step={5} />
         <NumSetting k="apc_sm_et" label={T("sm_err_t") + " [%]"} def={0} step={5} />
         <NumSetting k="apc_sm_eth" label={T("sm_err_th") + " [%]"} def={0} step={5} />
         <button className="btn" data-testid="sm-err-reset" title={T("h_apc_reset")}
           onClick={() => void patch({ apc_sm_ek: 0, apc_sm_et: 0, apc_sm_eth: 0 })}>{T("apc_reset")}</button>
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -84,19 +84,17 @@ function ValuesCards({ d }: { d: SmithInfo }) {
   if (!d.rows || !d.general_rows) return null;
   return (
     <>
-      <div className="card stack" data-testid="sm-general">
-        <h3>{T("sm_gen_title")}</h3>
-        <table className="tbl"><thead><tr><th>{T("sm_gen_par")}</th><th>{T("sm_apl_value")}</th><th>{T("sm_apl_unit")}</th></tr></thead>
-          <tbody>{d.general_rows.map((r) => <tr key={r.key}><td>{T(r.key)}</td><td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>)}</tbody></table>
-        <div className="small muted"><Bold text={T("sm_gen_help")} /></div>
-      </div>
-      <div className="card stack" data-testid="sm-template">
-        <h3>{T("sm_apl_title")}</h3>
-        <table className="tbl"><thead><tr><th>{T("sm_apl_block")}</th><th>{T("sm_apl_input")}</th><th>{T("sm_apl_value")}</th>
+      <ACard title={T("sm_gen_title")} testid="sm-general">
+        <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("sm_gen_par")}</th><th>{T("sm_apl_value")}</th><th>{T("sm_apl_unit")}</th></tr></thead>
+          <tbody>{d.general_rows.map((r) => <tr key={r.key}><td>{T(r.key)}</td><td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>)}</tbody></table></div>
+        <p className="small muted"><Bold text={T("sm_gen_help")} /></p>
+      </ACard>
+      <ACard title={T("sm_apl_title")} help={T("ui_apc_pcs_h")} testid="sm-template">
+        <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("sm_apl_block")}</th><th>{T("sm_apl_input")}</th><th>{T("sm_apl_value")}</th>
           <th>{T("sm_apl_unit")}</th></tr></thead>
-          <tbody>{d.rows.map((r, i) => <tr key={i}><td>{r.block}</td><td>{r.input}</td><td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>)}</tbody></table>
-        <div className="small muted"><Bold text={T("sm_apl_note")} /></div>
-      </div>
+          <tbody>{d.rows.map((r, i) => <tr key={i}><td>{r.block}</td><td>{r.input}</td><td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>)}</tbody></table></div>
+        <p className="small muted"><Bold text={T("sm_apl_note")} /></p>
+      </ACard>
     </>
   );
 }
@@ -107,8 +105,6 @@ function SimCard({ d }: { d: SmithInfo }) {
   const st = useSettings().data ?? {};
   // vstupy simulace jsou v nastavení (API je čte samo); klíč je zneplatní při změně zadání i regulátoru
   const key = ["ws", wid, "apc", "smith-sim", d.inputs, d.controller];
-  const sim = useQuery({ queryKey: [...key, "kpi"], enabled: d.opt_ready, placeholderData: keepPreviousData, retry: false,
-    queryFn: () => request<SmithSim>("POST", `/workspaces/${wid}/apc/smith/simulate`, {}) });
   const cv = useQuery({ queryKey: [...key, "curves"], enabled: d.opt_ready, placeholderData: keepPreviousData, retry: false,
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/apc/smith/simulate/curves`, {})) });
   if (!d.opt_ready) return null;
@@ -117,19 +113,27 @@ function SimCard({ d }: { d: SmithInfo }) {
   const mv: CurveDef[] = [{ name: T("sm_pid"), key: "mv_pid", color: "#64748b", dash: "5 4" },
     { name: T("sm_smith"), key: "mv_smith", color: "#15803d" }];
   return (
-    <div className="card stack" data-testid="sm-sim">
-      <div className="small muted">{T("sm_help", { m: T("model_" + d.model) })}</div>
+    <ACard title={T("ui_apc_verify")} testid="sm-sim">
       <LineChart series={curveSeries(cv.data, pv)} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel={T("time_s")} testid="sm-pv" />
       <LineChart series={curveSeries(cv.data, mv)} height={140} yLabel={`MV ${String(st.u_mv ?? "")}`} xLabel={T("time_s")} testid="sm-mv" />
-      {sim.data && (
-        <table className="tbl" data-testid="sm-kpis">
-          <thead><tr><th>{T("setting")}</th><th>{T("iae_sp")}</th><th>{T("iae_load")}</th></tr></thead>
-          <tbody>{(["pid", "smith"] as const).map((k) => (
-            <tr key={k} data-testid={`sm-kpi-${k}`}><td>{T("sm_" + k)}</td><td className="mono">{num(sim.data.kpis[k]?.iae_sp)}</td>
-              <td className="mono">{num(sim.data.kpis[k]?.iae_load)}</td></tr>))}</tbody>
-        </table>
-      )}
-    </div>
+      <p className="small muted">{T("sm_help", { m: T("model_" + d.model) })}</p>
+    </ACard>
+  );
+}
+
+function KpiTable({ d }: { d: SmithInfo }) {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const key = ["ws", wid, "apc", "smith-sim", d.inputs, d.controller];
+  const sim = useQuery({ queryKey: [...key, "kpi"], enabled: d.opt_ready, placeholderData: keepPreviousData, retry: false,
+    queryFn: () => request<SmithSim>("POST", `/workspaces/${wid}/apc/smith/simulate`, {}) });
+  if (!d.opt_ready || !sim.data) return null;
+  const ks = sim.data.kpis;
+  const ks2 = ["pid", "smith"] as const;
+  return (
+    <VariantTable testid="sm-kpis" cols={ks2.map((k) => ({ key: k, label: T("sm_" + k) }))} rows={[
+      { key: "iae_sp", label: T("iae_sp"), best: "min", values: ks2.map((k) => ks[k]?.iae_sp) },
+      { key: "iae_load", label: T("iae_load"), best: "min", values: ks2.map((k) => ks[k]?.iae_load) }]} />
   );
 }
 
@@ -143,14 +147,16 @@ export function SmithMain() {
   const d = q.data;
   return (
     <div className="stack">
-      <div className="card stack" data-testid="sm-ctrl">
+      <SimCard d={d} />
+      <ACard title={T("ui_apc_result")} testid="sm-result">
+      <div className="stack" data-testid="sm-ctrl">
         <div className="small" data-testid="sm-ratio">{T("sm_ratio", { r: d.ratio.toFixed(2) })}</div>
         {d.controller ? (
           <>
-            <table className="tbl"><thead><tr><th>Gain</th><th>TI [s]</th><th>TD [s]</th></tr></thead>
-              <tbody><tr><td className="mono" data-testid="sm-kc">{num(d.controller.Kc)}</td>
-                <td className="mono" data-testid="sm-ti">{num(d.controller.Ti)}</td>
-                <td className="mono" data-testid="sm-td">{num(d.controller.Td)}</td></tr></tbody></table>
+            <table className="apc-vt"><thead><tr><th className="r">Gain</th><th className="r">TI [s]</th><th className="r">TD [s]</th></tr></thead>
+              <tbody><tr><td className="mono r" data-testid="sm-kc">{num(d.controller.Kc)}</td>
+                <td className="mono r" data-testid="sm-ti">{num(d.controller.Ti)}</td>
+                <td className="mono r" data-testid="sm-td">{num(d.controller.Td)}</td></tr></tbody></table>
             {d.controller.notes?.map((n) => <div key={n.key} className="small muted">{T(n.key, n.args as Record<string, unknown>)}</div>)}
           </>
         ) : <div className="muted small" data-testid="sm-need-opt">{T("ui_sm_need_opt")}</div>}
@@ -159,8 +165,9 @@ export function SmithMain() {
         )}
         {d.basis_text && <div className="small"><Bold text={d.basis_text} /></div>}
       </div>
+      <KpiTable d={d} />
+      </ACard>
       <ValuesCards d={d} />
-      <SimCard d={d} />
     </div>
   );
 }

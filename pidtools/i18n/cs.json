@@ -2111,5 +2111,10 @@
  "ui_tuning_help_method": "Optimalizace: hledá Gain/TI s nejmenším IAE a překmitem pro zadaný scénář. SIMC: rychlá, τc = θ. Lambda: zvolíte dobu odezvy uzavřené smyčky. AMIGO: robustní (Ms ≈ 1,4). Průměrovací: pro hladiny – nechá PV kolísat v pásmu, aby MV jezdila co nejméně.",
  "ui_tuning_help_kpi": "t90: čas od skoku SP do dosažení 90 % změny. Překmit: v % změny SP. Ustálení: návrat do pásma. IAE: integrál absolutní odchylky (% · s). Max. odchylka při poruše: v jednotkách PV. Pohyb MV: součet změn MV – opotřebení ventilu.",
  "ui_tuning_help_scen": "SP: skok žádané hodnoty (vstup regulátoru). DV: skok poruchy (vstup procesu). Výstupem je PV a MV. Délku lze zadat v s, min nebo h; automaticky = podle modelu.",
- "ui_tuning_help_rob": "Ms: max. citlivost, doporučeno ≤ 1,6 (≤ 2 přijatelné). GM: zisková bezpečnost, ≥ 2. PM: fázová bezpečnost, ≥ 45°. Podrobně ve Frekvenční analýze."
+ "ui_tuning_help_rob": "Ms: max. citlivost, doporučeno ≤ 1,6 (≤ 2 přijatelné). GM: zisková bezpečnost, ≥ 2. PM: fázová bezpečnost, ≥ 45°. Podrobně ve Frekvenční analýze.",
+ "ui_apc_result": "Výsledek",
+ "ui_apc_verify": "Ověření (simulace)",
+ "ui_apc_pcs_h": "Implementační kroky odpovídají knihovně PCS 7 APL; v reportu se objeví u použitých struktur.",
+ "ui_apc_type": "Typ",
+ "ui_apc_scenario": "Scénář ověření"
 }

@@ -1,11 +1,14 @@
 // Společné díly technik APC s více výsledky (kaskáda, gain scheduling, rozvazbení, override): kontrolní seznam struktury,
 // postup pro PCS 7, tabulka bodů, výběr druhé smyčky projektu (předává se jako ?loop=) a tlačítko původních hodnot.
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { create } from "zustand";
 import { ApiError, binary, request } from "../../api/client";
 import type { components } from "../../api/schema";
 import { unframe } from "../../api/signals";
 import { useT } from "../../i18n";
+import { Help } from "../../components/Ui";
 import { TABS, useUi } from "../../store";
 import { Bold, num, useApc } from "./common";
 
@@ -79,37 +82,96 @@ export function PairError({ err, loop }: { err: unknown; loop?: number }) {
   return <div className="card err">{String((err as Error)?.message ?? err)}</div>;
 }
 
-/** Kontrolní seznam struktury: ok = splněno, jinak upozornění / připomínka; akce „tab:…“ otevře záložku. */
+/** Místo v kartě „Průvodce“ (pravý panel), kam technika vykreslí kontrolní seznam; plní ho ApcSide. */
+export const useGuideSlot = create<{ el: HTMLElement | null; set: (e: HTMLElement | null) => void }>((set) => ({
+  el: null, set: (el) => set({ el }),
+}));
+
+/** Obsah vykreslený do karty Průvodce (kontrolní seznam „Co je potřeba“). */
+export function InGuide({ children }: { children: ReactNode }) {
+  const el = useGuideSlot((s) => s.el);
+  return el ? createPortal(children, el) : null;
+}
+
+/** Karta plochy podle návrhu: nadpis 15 px, volitelně „?“ a pravá část hlavičky. */
+export function ACard({ title, help, aside, testid, children }: { title: ReactNode; help?: string; aside?: ReactNode;
+  testid?: string; children: ReactNode }) {
+  return (
+    <section className="card apc-card" data-testid={testid}>
+      <div className="apc-card-h"><h2>{title}{help && <Help text={help} />}</h2>{aside}</div>
+      {children}
+    </section>
+  );
+}
+
+export interface VCol { key: string; label: string }
+export interface VRow {
+  key: string; label: string;
+  values: (number | string | null | undefined)[];            // pro každý sloupec; číslo se formátuje a může se zvýraznit
+  best?: "min" | "max";                                       // nejlepší číselná hodnota v řádku se zvýrazní
+  fmt?: (x: number) => string;
+  ids?: (string | undefined)[];                               // vlastní data-testid buněk (jinak <testid>-<sloupec>-<řádek>)
+}
+
+/**
+ * Tabulka variant jako v návrhu: sloupce = varianty (např. Bez FF / Statická / Dynamická), řádky = ukazatele,
+ * nejlepší hodnota v řádku zeleně. Buňka má `data-testid="<testid>-<sloupec>-<řádek>"`.
+ */
+export function VariantTable({ cols, rows, testid }: { cols: VCol[]; rows: VRow[]; testid: string }) {
+  return (
+    <div className="apc-tblwrap">
+      <table className="apc-vt" data-testid={testid}>
+        <thead><tr><th scope="col"></th>{cols.map((c) => <th key={c.key} scope="col" className="r">{c.label}</th>)}</tr></thead>
+        <tbody>{rows.map((r) => {
+          const nums = r.values.map((v) => (typeof v === "number" && Number.isFinite(v) ? v : null));
+          const ok = nums.filter((v): v is number => v !== null);
+          const target = r.best && ok.length > 1 && Math.max(...ok) !== Math.min(...ok) ? (r.best === "min" ? Math.min(...ok) : Math.max(...ok)) : null;
+          return (
+            <tr key={r.key} data-testid={`${testid}-row-${r.key}`}><th scope="row">{r.label}</th>
+              {r.values.map((v, i) => (
+                <td key={cols[i].key} className={"mono r" + (target !== null && nums[i] === target ? " best" : "")}
+                  data-testid={r.ids?.[i] ?? `${testid}-${cols[i].key}-${r.key}`}>
+                  {typeof v === "number" ? (r.fmt ? r.fmt(v) : num(v)) : (v ?? "–")}</td>))}
+            </tr>);
+        })}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Kontrolní seznam struktury (v kartě Průvodce): ok = splněno, jinak upozornění / připomínka; akce „tab:…“ otevře záložku. */
 export function Checks({ items }: { items: LoopCheck[] }) {
   const T = useT();
   const setTab = useUi((s) => s.setTab);
   if (!items.length) return null;
   return (
-    <div className="card stack" data-testid="apc-checks">
-      <ul className="checks">
-        {items.map((c, i) => {
-          const tab = c.action?.startsWith("tab:") ? TABS.find((t) => t.id === c.action!.slice(4)) : undefined;
-          return (
-            <li key={i} className={c.ok === true ? "ok" : c.ok === false ? "warn" : "muted"}>
-              {c.ok === true ? "✓" : c.ok === false ? "⚠" : "•"} <Bold text={c.text} />
-              {tab && <> <button className="btn" onClick={() => setTab(tab.id)}>{T("g_open", { m: T(tab.label) })}</button></>}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <InGuide>
+      <div className="stack" data-testid="apc-checks">
+        <b className="small">{T("g_checklist")}</b>
+        <ul className="checks">
+          {items.map((c, i) => {
+            const tab = c.action?.startsWith("tab:") ? TABS.find((t) => t.id === c.action!.slice(4)) : undefined;
+            return (
+              <li key={i} className={c.ok === true ? "ok" : c.ok === false ? "warn" : "muted"}>
+                {c.ok === true ? "✓" : c.ok === false ? "⚠" : "•"} <Bold text={c.text} />
+                {tab && <> <button className="btn" onClick={() => setTab(tab.id)}>{T("g_open", { m: T(tab.label) })}</button></>}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </InGuide>
   );
 }
 
-/** Postup pro PCS 7 (text API s **tučným** a řádky seznamu). */
+/** Postup pro PCS 7 (text API s **tučným** a řádky seznamu): podkarta „Hodnoty do PCS 7“ nebo samostatná karta. */
 export function Impl({ text, testid }: { text?: string | null; testid: string }) {
   const T = useT();
   if (!text) return null;
   return (
-    <div className="card stack" data-testid={testid}>
-      <h3>{T("g_impl")}</h3>
+    <ACard title={T("g_impl")} testid={testid}>
       <div className="small" style={{ whiteSpace: "pre-wrap" }}><Bold text={text} /></div>
-    </div>
+    </ACard>
   );
 }
 
@@ -118,7 +180,7 @@ export function PointTable({ rows, testid }: { rows: PointRow[]; testid: string 
   const T = useT();
   const n = rows[0]?.values.length ?? 0;
   return (
-    <table className="tbl" data-testid={testid}>
+    <table className="apc-vt" data-testid={testid}>
       <thead><tr><th>{T("gs_in")}</th>{Array.from({ length: n }, (_, i) => <th key={i}>{i + 1}</th>)}<th>{T("sm_apl_unit")}</th></tr></thead>
       <tbody>{rows.map((r) => (
         <tr key={r.input} data-testid={`${testid}-${r.input}`}><td>{r.input}</td>
@@ -130,7 +192,7 @@ export function PointTable({ rows, testid }: { rows: PointRow[]; testid: string 
 /** Regulátor (Gain, TI, TD) – tabulka s `data-testid` hodnot `<prefix>-kc|ti|td`. */
 export function PidRow({ c, prefix }: { c: { Kc: number; Ti: number; Td: number }; prefix: string }) {
   return (
-    <table className="tbl"><thead><tr><th>Gain</th><th>TI [s]</th><th>TD [s]</th></tr></thead>
+    <table className="apc-vt"><thead><tr><th>Gain</th><th>TI [s]</th><th>TD [s]</th></tr></thead>
       <tbody><tr><td className="mono" data-testid={`${prefix}-kc`}>{num(c.Kc)}</td>
         <td className="mono" data-testid={`${prefix}-ti`}>{num(c.Ti)}</td>
         <td className="mono" data-testid={`${prefix}-td`}>{num(c.Td)}</td></tr></tbody></table>

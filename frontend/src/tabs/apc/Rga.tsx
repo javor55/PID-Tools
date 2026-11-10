@@ -5,21 +5,21 @@ import { useWs } from "../../data";
 import { useT } from "../../i18n";
 import { Bold, num, useApc } from "./common";
 import { Checks, g } from "./moreCommon";
+import { ACard } from "./parts";
 
 type RgaInfo = components["schemas"]["RgaInfo"];
 
 function Matrix({ d, m, testid, title, mark }: { d: RgaInfo; m: (number | null)[][]; testid: string; title: string; mark?: boolean }) {
   const T = useT();
   return (
-    <div className="card stack">
-      <div className="small"><b>{title}</b></div>
-      <table className="tbl" data-testid={testid}>
-        <thead><tr><th></th>{d.mvs.map((mv) => <th key={mv}>{T("rga_mv")} {mv}</th>)}</tr></thead>
+    <ACard title={title}>
+      <table className="apc-vt" data-testid={testid}>
+        <thead><tr><th></th>{d.mvs.map((mv) => <th key={mv} className="r">{T("rga_mv")} {mv}</th>)}</tr></thead>
         <tbody>{d.names.map((n, i) => (
-          <tr key={n}><td>{n}</td>{m[i].map((x, j) => (
-            <td key={j} className="mono" data-testid={`${testid}-${i}-${j}`}>{mark && !d.known[i][j] ? "? " : ""}{num(x)}</td>))}</tr>))}</tbody>
+          <tr key={n}><th scope="row">{n}</th>{m[i].map((x, j) => (
+            <td key={j} className="mono r" data-testid={`${testid}-${i}-${j}`}>{mark && !d.known[i][j] ? "? " : ""}{num(x)}</td>))}</tr>))}</tbody>
       </table>
-    </div>
+    </ACard>
   );
 }
 
@@ -32,24 +32,24 @@ export function RgaMain() {
   const d = q.data;
   if (!d.ready) {
     return (
-      <div className="card stack" data-testid="rga-notready">
+      <ACard title={T("ui_apc_result")} testid="rga-notready">
         <div className="warn small">⚠️ {T("apc_need_loop")}</div>
         <Checks items={d.checks} testid="rga-checks" />
-      </div>
+      </ACard>
     );
   }
   const args = { a: d.names[0], b: d.names[1], mva: d.mvs[0], mvb: d.mvs[1] };
   return (
     <div className="stack">
-      <div className="card stack" data-testid="rga-result">
+      <ACard title={T("ui_apc_result")} testid="rga-result">
         {d.NI != null && <div className="small"><b>NI = <span data-testid="rga-ni">{g(d.NI)}</span></b></div>}
         {d.pairing && (
           <div className="small" data-testid="rga-pairing">{T("rga_pairing")}: {d.names.map((n, i) => `${n} ← ${d.mvs[d.pairing![i]]}`).join(", ")}</div>)}
         {d.advice.map((n) => <div key={n.key} className="small"><Bold text={T(n.key, { ...args, ...(n.args as Record<string, unknown>) })} /></div>)}
-      </div>
+      </ACard>
       <Matrix d={d} m={d.K} testid="rga-k" title={T("rga_k")} mark />
       <Matrix d={d} m={d.L} testid="rga-l" title={T("rga_l")} />
-      <div className="card stack"><Checks items={d.checks} testid="rga-checks" /></div>
+      <Checks items={d.checks} testid="rga-checks" />
     </div>
   );
 }

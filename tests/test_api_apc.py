@@ -63,6 +63,7 @@ def test_ff_default_roundtrip_reset(ws):
     assert d["name"] == s.c_d[0] and d["design"] == ref[0] and not d["edited"] and d["values"] == []
     assert d["defaults"] == pytest.approx({k: ref[0][k] for k in ("gain", "lead", "lag", "delay")})
     assert d["eng_gain"] == pytest.approx(ffm.eng_gain(ref[0]["gain"], s.MR))
+    assert d["model_params"] == pytest.approx(list(pdl[0])) and info["theta"] == pytest.approx(p[-1])
     # částečná změna → stav jako u desktopu (ffm.state)
     new = c.put(url, json=[{"use": True, "dyn": True, "gain": 1.5, "lag": 4.0}]).json()["dists"][0]
     assert new["design"] == dict(ref[0], use=True, dyn=True, gain=1.5, lag=4.0) and new["edited"]

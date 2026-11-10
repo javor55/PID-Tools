@@ -2111,5 +2111,10 @@
  "ui_tuning_help_method": "Optimization: finds the Gain/TI with the smallest IAE and overshoot for the given scenario. SIMC: fast, τc = θ. Lambda: you choose the closed-loop response time. AMIGO: robust (Ms ≈ 1.4). Averaging: for levels – lets PV drift within a band so that MV moves as little as possible.",
  "ui_tuning_help_kpi": "t90: time from the SP step to 90 % of the change. Overshoot: in % of the SP change. Settling: return into the band. IAE: integral of absolute error (% · s). Max. deviation at disturbance: in PV units. MV travel: sum of MV changes – valve wear.",
  "ui_tuning_help_scen": "SP: set-point step (controller input). DV: disturbance step (process input). The outputs are PV and MV. The length can be given in s, min or h; automatic = from the model.",
- "ui_tuning_help_rob": "Ms: peak sensitivity, recommended ≤ 1.6 (≤ 2 acceptable). GM: gain margin, ≥ 2. PM: phase margin, ≥ 45°. Details in the Frequency analysis view."
+ "ui_tuning_help_rob": "Ms: peak sensitivity, recommended ≤ 1.6 (≤ 2 acceptable). GM: gain margin, ≥ 2. PM: phase margin, ≥ 45°. Details in the Frequency analysis view.",
+ "ui_apc_result": "Result",
+ "ui_apc_verify": "Verification (simulation)",
+ "ui_apc_pcs_h": "The implementation steps follow the PCS 7 APL library; they appear in the report for the structures used.",
+ "ui_apc_type": "Type",
+ "ui_apc_scenario": "Verification scenario"
 }

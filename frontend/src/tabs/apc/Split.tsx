@@ -2,9 +2,11 @@
 // v hlavní ploše vyvážený bod, zesílení a Ms obou polovin, hodnoty pro šablonu, kontroly a simulace skoku SP přes b.
 import type { components } from "../../api/schema";
 import { LineChart } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { useSettings, useWs } from "../../data";
 import { useT } from "../../i18n";
-import { Bold, type CurveDef, curveSeries, num, useApc } from "./common";
+import { Bold, type CurveDef, curveSeries, useApc } from "./common";
+import { ACard, VariantTable } from "./parts";
 import { Checks, g, mergeBody, ModelEditor, NumField, useDesign, useEdits, useSim, ValueTable } from "./moreCommon";
 
 type SplitIn = components["schemas"]["SplitIn"];
@@ -29,9 +31,8 @@ export function SplitSide() {
   if (!q.data || !body || !design) return null;
   const aEdited = ov.valve_a !== undefined;
   return (
-    <div className="stack" data-testid="split-side">
-      <section>
-        <h3>{T("sr_setup")}</h3>
+    <>
+      <SideCard title={T("sr_setup")} testid="split-side">
         <label className="field"><span>{T("sr_mode")}</span>
           <select value={body.mode} data-testid="split-mode"
             onChange={(e) => put({ mode: e.target.value as SplitIn["mode"], valve_a: undefined })}>
@@ -42,13 +43,12 @@ export function SplitSide() {
           onCommit={(x) => put({ gap: x })} />
         <button className="btn" title={T("h_apc_reset")} data-testid="split-reset"
           disabled={ov.b0 === undefined && ov.gap === undefined} onClick={() => clear(["b0", "gap"])}>{T("apc_reset")}</button>
-      </section>
-      <section>
-        <h3>{T("sr_valve_a")}</h3>
+      </SideCard>
+      <SideCard title={T("sr_valve_a")}>
         <ModelEditor model={design.valve_a} values={body.valve_a ?? design.valve_a.values} edited={aEdited} testid="split-va"
           onChange={(p) => put({ valve_a: p })} onReset={() => clear(["valve_a"])} />
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -56,7 +56,7 @@ function Halves({ d }: { d: SplitDesign }) {
   const T = useT();
   const cell = (h: SplitDesign["now"]["lower"]) => `K ${g(h.k)} · Ms ${h.ms == null ? "–" : h.ms.toFixed(2)}${h.stable ? "" : " ⚠"}`;
   return (
-    <table className="tbl" data-testid="split-halves">
+    <table className="apc-vt" data-testid="split-halves">
       <thead><tr><th></th><th>{T("sr_lower")}</th><th>{T("sr_upper")}</th></tr></thead>
       <tbody>{(["now", "new"] as const).map((k) => (
         <tr key={k} data-testid={`split-half-${k}`}><td>{T("sr_" + k)} (b = {d[k].b.toFixed(0)} %)</td>
@@ -82,33 +82,30 @@ export function SplitMain() {
   const v: CurveDef[] = [{ name: T("sr_va"), key: "va", color: "#0891b2" }, { name: T("sr_vb"), key: "vb", color: "#1f5fa8" }];
   return (
     <div className="stack">
-      <div className="card stack" data-testid="split-result">
+      <ACard title={T("ui_apc_verify")} testid="split-sim">
+        <LineChart series={curveSeries(curves, pv)} height={220} yLabel={`PV ${upv}`} xLabel={T("time_s")} testid="split-pv" />
+        <LineChart series={curveSeries(curves, u)} height={140} yLabel={T("sr_u")} xLabel={T("time_s")} testid="split-u" />
+        <LineChart series={curveSeries(curves, v)} height={140} yLabel={T("sr_valves")} xLabel={T("time_s")} testid="split-valves" />
+      </ACard>
+      <ACard title={T("ui_apc_result")} testid="split-result">
         <div className="small"><Bold text={T("sr_result", { b: d.bstar.toFixed(1), lo: g(d.now.lower.k), up: g(d.now.upper.k),
           k: g(d.new.upper.k), f: g(d.corr) })} /></div>
         <Halves d={d} />
-      </div>
-      <div className="card stack" data-testid="split-template">
-        <h3>{T("sm_apl_title")}</h3>
+        {sim && (
+          <VariantTable testid="split-kpis" cols={(["now", "new"] as const).map((k) => ({ key: k, label: T("sr_" + k) }))} rows={[
+            { key: "iae", label: `IAE [${upv}·s]`, best: "min", values: (["now", "new"] as const).map((k) => sim.kpis[k]?.iae) },
+            { key: "maxdev", label: T("kpi_maxdev", { u: upv }), best: "min", values: (["now", "new"] as const).map((k) => sim.kpis[k]?.maxdev) },
+            { key: "rev", label: T("kpi_rev"), best: "min", values: (["now", "new"] as const).map((k) => sim.kpis[k]?.rev), fmt: String }]} />
+        )}
+      </ACard>
+      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="split-template">
         <ValueTable testid="split-val" rows={[
           { key: "b", name: "b*", value: d.bstar, unit: "%" },
           { key: "gap", name: T("sr_gap"), value: d.gap, unit: "%" },
           { key: "corr", name: "Gain ×", value: d.corr, unit: "–" }]} />
         <div className="small"><Bold text={d.impl_text} /></div>
-      </div>
-      <div className="card stack"><Checks items={d.checks} testid="split-checks" /></div>
-      <div className="card stack" data-testid="split-sim">
-        <LineChart series={curveSeries(curves, pv)} height={220} yLabel={`PV ${upv}`} xLabel={T("time_s")} testid="split-pv" />
-        <LineChart series={curveSeries(curves, u)} height={140} yLabel={T("sr_u")} xLabel={T("time_s")} testid="split-u" />
-        <LineChart series={curveSeries(curves, v)} height={140} yLabel={T("sr_valves")} xLabel={T("time_s")} testid="split-valves" />
-        {sim && (
-          <table className="tbl" data-testid="split-kpis">
-            <thead><tr><th>{T("setting")}</th><th>{`IAE [${upv}·s]`}</th><th>{T("kpi_maxdev", { u: upv })}</th><th>{T("kpi_rev")}</th></tr></thead>
-            <tbody>{(["now", "new"] as const).map((k) => (
-              <tr key={k} data-testid={`split-kpi-${k}`}><td>{T("sr_" + k)}</td><td className="mono">{num(sim.kpis[k]?.iae)}</td>
-                <td className="mono">{num(sim.kpis[k]?.maxdev)}</td><td className="mono">{sim.kpis[k]?.rev}</td></tr>))}</tbody>
-          </table>
-        )}
-      </div>
+      </ACard>
+      <Checks items={d.checks} testid="split-checks" />
     </div>
   );
 }
