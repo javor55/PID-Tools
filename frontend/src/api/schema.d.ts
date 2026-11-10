@@ -2360,6 +2360,11 @@ export interface components {
             eng_gain: number;
             /** Index */
             index: number;
+            /**
+             * Model Params
+             * @default []
+             */
+            model_params: number[];
             /** Name */
             name: string;
             /** Step */
@@ -2380,6 +2385,11 @@ export interface components {
             mv_range: number;
             /** Mv Unit */
             mv_unit: string;
+            /**
+             * Theta
+             * @default 0
+             */
+            theta: number;
         };
         /** FFKpi */
         FFKpi: {

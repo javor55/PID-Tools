@@ -3,10 +3,11 @@
 import { create } from "zustand";
 import type { components } from "../../api/schema";
 import { LineChart } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { useWs } from "../../data";
 import { useT } from "../../i18n";
-import { type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { Checks, Impl, LoopSelect, PairError, qs, usePair, useSim } from "./parts";
+import { type CurveDef, curveSeries, NumInput, useApc } from "./common";
+import { ACard, Checks, Impl, LoopSelect, PairError, qs, usePair, useSim, VariantTable } from "./parts";
 
 type OvInfo = components["schemas"]["OvInfo"];
 type OvSim = components["schemas"]["OvSim"];
@@ -29,13 +30,11 @@ export function OverrideSide() {
   const { step, lim, set } = useOv();
   const d = q.data;
   return (
-    <div className="stack" data-testid="override-side">
-      <section>
-        <h3>{T("apc_override_b")}</h3>
+    <>
+      <SideCard title={T("apc_override_b")} testid="override-side">
         <LoopSelect kind="override" label={T("apc_override_b")} current={d?.loop ?? loop} />
-      </section>
-      <section>
-        <h3>{T("ov_select")}</h3>
+      </SideCard>
+      <SideCard title={T("ov_select")}>
         <label className="field"><span>{T("ov_select")}</span>
           <select value={sel} data-testid="ov-sel" onChange={(e) => set({ sel: e.target.value as Sel, step: undefined, lim: undefined })}>
             {SELS.map((s) => <option key={s} value={s}>{T("ov_" + s)}</option>)}</select></label>
@@ -49,8 +48,8 @@ export function OverrideSide() {
         )}
         <button className="btn" data-testid="ov-reset" disabled={step === undefined && lim === undefined} title={T("h_apc_reset")}
           onClick={() => set({ step: undefined, lim: undefined })}>{T("apc_reset")}</button>
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -58,7 +57,7 @@ function SimCard({ d, loop }: { d: OvInfo; loop?: number }) {
   const T = useT();
   const { sel, step, lim } = useOv();
   const body = { sel, step, lim };
-  const { sim, cv } = useSim<OvSim>(["ov-sim", loop, body, d.defaults], "/apc/override/simulate", qs({ loop }), body);
+  const { cv } = useSim<OvSim>(["ov-sim", loop, body, d.defaults], "/apc/override/simulate", qs({ loop }), body);
   const without = T("ov_without");
   const pva: CurveDef[] = [{ name: "SP", key: "sp_a", color: "#9aa5b1", dash: "5 4" }, { name: without, key: "pv_a_without", color: "#64748b", dash: "2 3" },
     { name: d.a, key: "pv_a", color: "#1f5fa8" }];
@@ -67,20 +66,26 @@ function SimCard({ d, loop }: { d: OvInfo; loop?: number }) {
   const mv: CurveDef[] = [{ name: T("ov_out", { n: d.a }), key: "u_a", color: "#1f5fa8", dash: "5 4" },
     { name: T("ov_out", { n: d.b }), key: "u_b", color: "#7c3aed", dash: "5 4" }, { name: "MV", key: "mv", color: "#15803d" }];
   return (
-    <div className="card stack" data-testid="ov-sim">
-      <div className="small muted">{T("ov_sim_help", { b: d.b })}</div>
+    <ACard title={T("ui_apc_verify")} testid="ov-sim">
       <LineChart series={curveSeries(cv.data, pva)} height={200} yLabel={`PV ${d.a}`} xLabel={T("time_s")} testid="ov-pv-a" />
       <LineChart series={curveSeries(cv.data, pvb)} height={200} yLabel={`PV ${d.b}`} xLabel={T("time_s")} testid="ov-pv-b" />
       <LineChart series={curveSeries(cv.data, mv)} height={140} yLabel="MV" xLabel={T("time_s")} testid="ov-mv" />
-      {sim.data && (
-        <table className="tbl" data-testid="ov-kpis"><tbody>
-          <tr><td>{T("ov_peak", { n: d.b })}</td><td className="mono" data-testid="ov-peak">{num(sim.data.kpis.peak)}</td></tr>
-          <tr><td>{T("ov_peak", { n: d.b })} ({without})</td><td className="mono" data-testid="ov-peak-without">{num(sim.data.kpis.peak_without)}</td></tr>
-          <tr><td>{T("ov_time_b")} [%]</td><td className="mono" data-testid="ov-share">{(100 * sim.data.kpis.share).toFixed(0)}</td></tr>
-          <tr><td>{T("ov_switches")}</td><td className="mono" data-testid="ov-switches">{sim.data.kpis.switches}</td></tr>
-        </tbody></table>
-      )}
-    </div>
+      <p className="small muted">{T("ov_sim_help", { b: d.b })}</p>
+    </ACard>
+  );
+}
+
+function KpiTable({ d, loop }: { d: OvInfo; loop?: number }) {
+  const T = useT();
+  const { sel, step, lim } = useOv();
+  const { sim } = useSim<OvSim>(["ov-sim", loop, { sel, step, lim }, d.defaults], "/apc/override/simulate", qs({ loop }), { sel, step, lim });
+  if (!sim.data) return null;
+  const k = sim.data.kpis;
+  return (
+    <VariantTable testid="ov-kpis" cols={[{ key: "without", label: T("ov_without") }, { key: "with", label: T("apc_override") }]} rows={[
+      { key: "peak", label: T("ov_peak", { n: d.b }), best: "min", values: [k.peak_without, k.peak], ids: ["ov-peak-without", "ov-peak"] },
+      { key: "share", label: `${T("ov_time_b")} [%]`, values: [null, (100 * k.share).toFixed(0)], ids: [undefined, "ov-share"] },
+      { key: "switches", label: T("ov_switches"), values: [null, k.switches], ids: [undefined, "ov-switches"], fmt: String }]} />
   );
 }
 
@@ -94,11 +99,14 @@ export function OverrideMain() {
   const d = q.data;
   return (
     <div className="stack">
-      {d.mv_differs && (
-        <div className="card warn small" data-testid="ov-mv-differs">⚠ <b>{T("ov_mv_differs", { a: d.a, b: d.b, mva: d.mv_a, mvb: d.mv_b })}</b></div>)}
+      <SimCard d={d} loop={loop} />
+      <ACard title={T("ui_apc_result")} testid="ov-result">
+        {d.mv_differs && (
+          <div className="warn small" data-testid="ov-mv-differs">⚠ <b>{T("ov_mv_differs", { a: d.a, b: d.b, mva: d.mv_a, mvb: d.mv_b })}</b></div>)}
+        <KpiTable d={d} loop={loop} />
+      </ACard>
       <Impl text={d.impl_text} testid="ov-impl" />
       <Checks items={d.checks} />
-      <SimCard d={d} loop={loop} />
     </div>
   );
 }

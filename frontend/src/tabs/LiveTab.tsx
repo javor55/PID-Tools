@@ -7,6 +7,7 @@ import { request } from "../api/client";
 import mountLive from "../../../pidtools/ui/static/live_ui.js";
 import PIDLive from "../../../pidtools/ui/static/live_engine.js";
 import "../../../pidtools/ui/static/live.css";
+import "../styles/live.css";
 import { useWs } from "../data";
 import { useT } from "../i18n";
 import { useUi } from "../store";
@@ -43,8 +44,21 @@ export function LiveMain() {
           .then(() => qc.invalidateQueries({ queryKey: ["ws", wid] }));
       },
     });
+    // „Rozbalit vše / Sbalit vše“ nad kartami panelu (modul si je nekreslí; jen přepíná jeho <details>)
+    const side = host.querySelector(".lvs");
+    if (side) {
+      const bar = document.createElement("div");
+      bar.className = "lvs-all";
+      for (const [open, key, tid] of [[true, "side_expand_all", "live-expand"], [false, "side_collapse_all", "live-collapse"]] as const) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "link"; b.textContent = T(key); b.dataset.testid = tid;
+        b.onclick = () => side.querySelectorAll("details").forEach((d) => { d.open = open; });
+        bar.append(b);
+      }
+      side.prepend(bar);
+    }
     return () => { if (typeof cleanup === "function") cleanup(); host.replaceChildren(); };
-  }, [json, wid, qc, theme]);
+  }, [json, wid, qc, theme, T]);
 
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (cfg.isError) return <div className="card muted">{T("need_model")}</div>;

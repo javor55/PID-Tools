@@ -4,11 +4,12 @@ import { useState } from "react";
 import type { components } from "../../api/schema";
 import { NumSetting, SelectSetting } from "../../components/Fields";
 import { LineChart } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { usePatchSettings, useSettings, useWs } from "../../data";
 import { useT } from "../../i18n";
 import { useJobRunner } from "../../jobs";
 import { type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { Checks, Impl, PointTable, usePost, useSim } from "./parts";
+import { ACard, Checks, Impl, PointTable, usePost, useSim, VariantTable } from "./parts";
 
 type GsInfo = components["schemas"]["GsInfo"];
 type GsSim = components["schemas"]["GsSim"];
@@ -44,7 +45,7 @@ export function GainSchedSide() {
   const [err, setErr] = useState<string | null>(null);
   if (!q.data) return null;
   const { inputs: inp, integ } = q.data;
-  if (integ) return <div className="warn small" data-testid="gs-side-integ">⚠ {T("gs_integ")}</div>;
+  if (integ) return <SideCard title={T("dk_gs_points")}><div className="warn small" data-testid="gs-side-integ">⚠ {T("gs_integ")}</div></SideCard>;
   const fit = async () => {
     setBusy(true); setErr(null);
     try {
@@ -54,9 +55,8 @@ export function GainSchedSide() {
     setBusy(false);
   };
   return (
-    <div className="stack" data-testid="gs-side">
-      <section>
-        <h3>{T("dk_gs_points")}</h3>
+    <>
+      <SideCard title={T("dk_gs_points")} testid="gs-side">
         <SelectSetting k="gs_n" label={T("dk_gs_n")} options={NS} def={inp.n} />
         <Ranges inp={inp} />
         <div className="small muted">{T("gs_s1_help")}</div>
@@ -65,17 +65,16 @@ export function GainSchedSide() {
           <button className="btn primary" disabled={busy} data-testid="gs-fit" onClick={() => void fit()}>{T("dk_gs_fit")}</button>
         </div>
         {err && <div className="err small" data-testid="gs-fit-err">{err}</div>}
-      </section>
-      <section>
-        <h3>{T("method")}</h3>
+      </SideCard>
+      <SideCard title={T("method")}>
         <SelectSetting k="gs_m" label={T("method")} options={inp.methods} def={inp.method} fmt={(m) => T("m_" + m)} />
         <SelectSetting k="gs_ct" label={T("ctrl_type")} options={CTYPES} def={inp.ctype} />
         {inp.method === "SIMC" && <NumSetting k="gs_tcf" label={T("dk_gs_tcf")} def={inp.tcf_default} min={0.001} />}
         {inp.method === "OPT" && <NumSetting k="gs_ms" label={T("gs_ms")} def={inp.ms_default} min={1.05} />}
         <button className="btn" data-testid="gs-reset" title={T("h_apc_reset")}
           onClick={() => void post("/apc/gainsched/reset")}>{T("apc_reset")}</button>
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -85,41 +84,44 @@ const SERIES = (T: (k: string) => string, p: string): CurveDef[] => [
 function SimCard({ d }: { d: GsInfo }) {
   const T = useT();
   const st = useSettings().data ?? {};
-  const { sim, cv } = useSim<GsSim>(["gs-sim", d.inputs, d.points], "/apc/gainsched/simulate", "", {}, d.fitted);
+  const { cv } = useSim<GsSim>(["gs-sim", d.inputs, d.points], "/apc/gainsched/simulate", "", {}, d.fitted);
   if (!d.fitted) return null;
   const pv = [{ name: "SP", key: "sp", color: "#64748b", dash: "2 3" }, ...SERIES(T, "pv")];
   return (
-    <div className="card stack" data-testid="gs-sim">
-      <h3>{T("gs_sim_title")}</h3>
-      <div className="small muted">{T("gs_sim_help")}</div>
+    <ACard title={T("gs_sim_title")} testid="gs-sim">
       <LineChart series={curveSeries(cv.data, pv)} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel={T("time_s")} testid="gs-pv" />
       <LineChart series={curveSeries(cv.data, SERIES(T, "mv"))} height={140} yLabel={`MV ${String(st.u_mv ?? "")}`} xLabel={T("time_s")} testid="gs-mv" />
       <LineChart series={curveSeries(cv.data, SERIES(T, "gain"))} height={120} yLabel="Gain" xLabel={T("time_s")} testid="gs-gain" />
-      {sim.data && (
-        <table className="tbl" data-testid="gs-kpis">
-          <thead><tr><th>{T("gs_step")}</th><th>{T("gs_iae_fixed")}</th><th>{T("gs_iae_sched")}</th></tr></thead>
-          <tbody>{sim.data.kpis.map((k, i) => (
-            <tr key={i} data-testid={`gs-kpi-${i}`}><td>{num(k.from_x)} → {num(k.to_x)}</td>
-              <td className="mono">{num(k.iae_fixed)}</td><td className="mono">{num(k.iae_sched)}</td></tr>))}</tbody>
-        </table>
-      )}
-    </div>
+      <p className="small muted">{T("gs_sim_help")}</p>
+    </ACard>
+  );
+}
+
+function KpiTable({ d }: { d: GsInfo }) {
+  const T = useT();
+  const { sim } = useSim<GsSim>(["gs-sim", d.inputs, d.points], "/apc/gainsched/simulate", "", {}, d.fitted);
+  if (!d.fitted || !sim.data) return null;
+  const ks = sim.data.kpis;
+  return (
+    <VariantTable testid="gs-kpis" cols={[{ key: "fixed", label: T("gs_iae_fixed") }, { key: "sched", label: T("gs_iae_sched") }]}
+      rows={ks.map((k, i) => ({ key: String(i), label: `${T("gs_step")} ${num(k.from_x)} → ${num(k.to_x)}`, best: "min" as const,
+        values: [k.iae_fixed, k.iae_sched] }))} />
   );
 }
 
 function PointsCard({ d }: { d: GsInfo }) {
   const T = useT();
   return (
-    <div className="card stack" data-testid="gs-points">
-      <h3>{T("gs_s2")}</h3>
-      <table className="tbl">
+    <div className="stack" data-testid="gs-points">
+      <div className="apc-sub">{T("gs_s2")}</div>
+      <div className="apc-tblwrap"><table className="apc-vt">
         <thead><tr><th>{T("gs_pt")}</th><th>PV</th><th>MV</th><th>{T("ui_gs_fit_pct")}</th><th>Gain</th><th>TI [s]</th><th>TD [s]</th></tr></thead>
         <tbody>{d.points.map((p) => (
           <tr key={p.index} data-testid={`gs-point-${p.index}`}><td>{p.index + 1}</td><td className="mono">{num(p.x)}</td>
             <td className="mono">{num(p.u)}</td><td className="mono">{num(p.fit)}</td>
             <td className="mono" data-testid={`gs-gain-${p.index}`}>{num(p.gain)}</td>
             <td className="mono">{p.ti === null ? "–" : num(p.ti)}</td><td className="mono">{num(p.td)}</td></tr>))}</tbody>
-      </table>
+      </table></div>
       <div className="small" data-testid="gs-fits">{T("dk_gs_fits", { f: d.points.map((p) => `${p.fit.toFixed(0)} %`).join(", ") })}
         {d.filled && <> · {T("dk_gs_filled")}</>}</div>
       <div className="small muted">{T("gs_pts_help")}</div>
@@ -139,20 +141,22 @@ export function GainSchedMain() {
   }
   return (
     <div className="stack">
-      {d.stale && <div className="card warn small" data-testid="gs-stale">⚠ {T("gs_stale")}</div>}
-      {d.spread != null && <div className="card small" data-testid="gs-spread">{T("gs_spread", { s: num(d.spread) })}</div>}
-      {d.issues.map((k) => <div key={k} className="card warn small" data-testid="gs-issue">⚠ {T(k)}</div>)}
-      {!d.fitted && <div className="card muted" data-testid="gs-need-fit">{T("dk_gs_need")}</div>}
-      {d.fitted && <PointsCard d={d} />}
+      <SimCard d={d} />
+      <ACard title={T("ui_apc_result")} testid="gs-result">
+        {d.stale && <div className="warn small" data-testid="gs-stale">⚠ {T("gs_stale")}</div>}
+        {d.spread != null && <div className="small" data-testid="gs-spread">{T("gs_spread", { s: num(d.spread) })}</div>}
+        {d.issues.map((k) => <div key={k} className="warn small" data-testid="gs-issue">⚠ {T(k)}</div>)}
+        {!d.fitted && <div className="muted small" data-testid="gs-need-fit">{T("dk_gs_need")}</div>}
+        {d.fitted && <PointsCard d={d} />}
+        <KpiTable d={d} />
+      </ACard>
       {d.fitted && (
-        <div className="card stack" data-testid="gs-table-card">
-          <h3>{T("gs_tab_title")}</h3>
+        <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="gs-table-card">
           <PointTable rows={d.table} testid="gs-table" />
-        </div>
+        </ACard>
       )}
       <Impl text={d.impl_text} testid="gs-impl" />
       <Checks items={d.checks} />
-      <SimCard d={d} />
     </div>
   );
 }

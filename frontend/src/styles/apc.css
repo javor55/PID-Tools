@@ -1,0 +1,41 @@
+/* Záložka APC podle návrhu Apc.dc.html: karty plochy, štítky stavu, záložky struktur, tabulka variant. */
+.apc-card { padding: 12px 14px; }
+.apc-card-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px; }
+.apc-card-h h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.apc-card > .small, .apc-card > p { margin: 8px 0 0; }
+.apc-reco { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.apc-reco li, .apc-reco-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.apc-reco-row { margin-top: 8px; }
+.apc-reco li > span:last-child, .apc-reco-row > span:last-child { min-width: 0; }
+.apc-tag { flex: none; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+.apc-tag.ok { color: var(--pid-ok); background: rgba(34, 197, 94, .13); border-color: rgba(34, 197, 94, .45); }
+.apc-tag.bad { color: var(--pid-err); background: rgba(220, 38, 38, .1); border-color: rgba(220, 38, 38, .4); }
+.apc-tag.info { color: var(--pid-accent); background: var(--pid-accent-bg); border-color: var(--pid-accent); }
+/* záložky struktur */
+.apc-tabs { background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px; padding: 2px 8px; display: flex;
+  flex-wrap: wrap; gap: 2px; }
+.apc-tabs button { font: inherit; font-size: 13px; padding: 7px 8px; border: 0; border-bottom: 3px solid transparent; background: transparent;
+  color: var(--pid-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.apc-tabs button:hover { color: var(--pid-text); }
+.apc-tabs button.on { color: var(--pid-accent); font-weight: 600; border-bottom-color: var(--pid-accent); }
+.apc-link { align-self: flex-start; font-size: 12px; }
+.apc-note { color: var(--pid-warn); }
+.apc-check { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.apc-check input { width: 16px; height: 16px; }
+.apc-pill { font-size: 10px; white-space: nowrap; color: #9aa5b1; border: 1px solid var(--pid-line); border-radius: 999px; padding: 0 6px; font-weight: 400; }
+.apc-intro { margin: 0; }
+/* tabulka variant */
+.apc-tblwrap { overflow-x: auto; }
+.apc-vt { width: 100%; border-collapse: collapse; font-size: 13px; }
+.apc-vt th, .apc-vt td { padding: 5px 8px; border-bottom: 1px solid var(--pid-soft, var(--pid-line)); text-align: left; }
+.apc-vt thead th { padding: 6px 8px; border-bottom: 1px solid var(--pid-line); font-weight: 600; }
+.apc-vt tbody th { font-weight: 400; }
+.apc-vt tbody td { font-family: var(--pid-mono); font-size: 12px; }
+.apc-vt .r { text-align: right; }
+.apc-vt td.best { background: rgba(34, 197, 94, .16); font-weight: 500; }
+.apc-vt tr:last-child th, .apc-vt tr:last-child td { border-bottom: 0; }
+.apc-guide-slot { display: flex; flex-direction: column; gap: 8px; }
+.apc-guide-slot:empty { display: none; }
+.apc-sub { margin: 4px 0 0; font-size: 12px; font-weight: 600; }
+.scard-body .tbl, .scard-body .stack { width: 100%; }
+@media (max-width: 1000px) { .apc-reco li, .apc-reco-row { flex-direction: column; gap: 4px; } }

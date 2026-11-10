@@ -2,7 +2,7 @@
 // bez `Main` se zobrazí zástupný text (API ještě není).
 import { CascadeMain, CascadeSide } from "./Cascade";
 import { DecoupleMain, DecoupleSide } from "./Decouple";
-import { FeedforwardMain } from "./Feedforward";
+import { FeedforwardMain, FeedforwardSide } from "./Feedforward";
 import { GainSchedMain, GainSchedSide } from "./GainSched";
 import { GainSchedErMain, GainSchedErSide } from "./GainSchedEr";
 import { OverrideMain, OverrideSide } from "./Override";
@@ -15,7 +15,7 @@ import type { Technique } from "./common";
 
 export const TECHNIQUES: Technique[] = [
   { id: "cascade", label: "apc_cascade", intro: "cas_intro", Main: CascadeMain, Side: CascadeSide },
-  { id: "ff", label: "apc_ff", intro: "apc_intro_ff", Main: FeedforwardMain },
+  { id: "ff", label: "apc_ff", intro: "apc_intro_ff", Main: FeedforwardMain, Side: FeedforwardSide },
   { id: "decouple", label: "apc_decouple", intro: "apc_intro_decouple", Main: DecoupleMain, Side: DecoupleSide },
   { id: "override", label: "apc_override", intro: "apc_intro_override", Main: OverrideMain, Side: OverrideSide },
   { id: "smith", label: "apc_smith", intro: "apc_intro_smith", Main: SmithMain, Side: SmithSide },
