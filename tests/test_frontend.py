@@ -69,7 +69,7 @@ def page(server):
 
 def test_shell_tabs_and_connection(page):
     tabs = page.locator('[role="tab"]')
-    assert tabs.count() == 8
+    assert tabs.count() == 7                                 # Projekt a report je tlačítko v hlavičce
     assert tabs.first.inner_text() == "1 · Data"
     assert "version" in page.locator('[data-testid="api-ok"]').inner_text()
     assert any(m == "POST" and u.endswith("/workspaces") for m, u in page.requested)     # pracovní prostor
@@ -78,7 +78,14 @@ def test_shell_tabs_and_connection(page):
     assert page.locator('[data-testid="tab-model"]').count() == 1
 
 
+def _settings(page):
+    """Jazyk a vzhled jsou v rozbalovacím panelu „Nastavení“ v hlavičce."""
+    if not page.locator('[data-testid="settings"]').evaluate("e => e.open"):
+        page.locator('[data-testid="settings"] summary').click()
+
+
 def test_language_and_theme(page):
+    _settings(page)
     page.select_option('select[aria-label="Language"]', "cs")
     page.wait_for_function("() => document.querySelector('[data-tab=\"tuning\"]').innerText.includes('Ladění')")
     assert page.evaluate("document.documentElement.lang") == "cs"
@@ -88,7 +95,21 @@ def test_language_and_theme(page):
     assert bg == "rgb(11, 18, 32)"
     page.select_option('select[aria-label="theme"]', "light")
     page.select_option('select[aria-label="Jazyk"]', "en")
+    page.locator('[data-testid="settings"] summary').click()
 
+
+
+def test_header_help_and_side_cards(page):
+    """Hlavička podle návrhu: „?“ otevře průvodce aktivní záložkou; Projekt a report je tlačítko, ne záložka."""
+    page.locator('[data-tab="model"]').click()
+    page.locator('[data-testid="help-btn"]').click()
+    dlg = page.locator('[data-testid="help-dialog"]')
+    assert dlg.evaluate("e => e.open")
+    assert dlg.locator("section h3").count() >= 2 and dlg.locator("h2").inner_text()
+    page.keyboard.press("Escape")
+    assert not dlg.evaluate("e => e.open")
+    assert page.locator('nav.tabs [data-tab="project"]').count() == 0
+    assert page.locator('header [data-tab="project"]').count() == 1
 
 def test_offline_and_fonts(page, server):
     page.evaluate("document.fonts.ready")
@@ -1223,7 +1244,7 @@ def test_loops_overview_add_switch_delete(page, server):
     lp = _until(lambda: (lambda x: x if len(x["loops"]) == n0 else None)(_api(server, base + "/loops", page)))
     assert lp["active"] == act0 and "FIC test" not in [x["name"] for x in lp["loops"]]
     page.wait_for_function("(n) => document.querySelectorAll('[data-testid=\"loops-table\"] tbody tr').length === n", arg=n0, timeout=30000)
-    assert page.locator('[data-testid="loop-select"]').count() == (1 if n0 > 1 else 0)
+    assert page.locator('[data-testid="loop-select"] option').count() == n0          # výběr smyčky je v hlavičce vždy
     _quiet(page)
 
 

@@ -14,6 +14,8 @@ export const TABS = [
   { id: "loops", label: "tab7_audit", milestone: "M20" },
   { id: "project", label: "tab_project", milestone: "M21" },
 ] as const;
+/** Záložky v řádku pod hlavičkou; Projekt a report se otevírá tlačítkem v hlavičce (jako v návrhu). */
+export const NAV_TABS = TABS.filter((t) => t.id !== "project");
 export type TabId = (typeof TABS)[number]["id"];
 export type Theme = "system" | "light" | "dark";
 
@@ -47,6 +49,9 @@ interface UiState {
   setApcTech: (t: string) => void;
   setWid: (w: string | null) => void;
   putJob: (j: JobInfo) => void;
+  /** Příkaz kartám panelu „Rozbalit vše / Sbalit vše“ (n roste s každým kliknutím). */
+  sideCmd: { n: number; open: boolean };
+  sideAll: (open: boolean) => void;
   dropJob: (id: string) => void;
 }
 
@@ -67,5 +72,7 @@ export const useUi = create<UiState>((set) => ({
   setApcTech: (apcTech) => { save("pid.apc", apcTech); set({ apcTech }); },
   setWid: (wid) => { try { if (wid) sessionStorage.setItem("pid.wid", wid); else sessionStorage.removeItem("pid.wid"); } catch { /* */ } set({ wid }); },
   putJob: (j) => set((s) => ({ jobs: { ...s.jobs, [j.id]: j } })),
+  sideCmd: { n: 0, open: true },
+  sideAll: (open) => set((s) => ({ sideCmd: { n: s.sideCmd.n + 1, open } })),
   dropJob: (id) => set((s) => { const jobs = { ...s.jobs }; delete jobs[id]; return { jobs }; }),
 }));

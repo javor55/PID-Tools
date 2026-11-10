@@ -2089,5 +2089,11 @@
  "ui_lp_add_cols": "Add with selected columns",
  "ui_lp_add_auto": "Add (columns guessed)",
  "ui_lp_no_model": "no model",
- "ui_lp_error": "The loop cannot be evaluated: {e}"
+ "ui_lp_error": "The loop cannot be evaluated: {e}",
+ "ui_file_sum": "{f} · {n} samples · {ts} s · {d}",
+ "ui_loop_add_h": "Adds another loop from the same file – needed for cascade, decoupling, override and VPC.",
+ "ui_tabs": "Tabs",
+ "ui_loops_group": "Loops of the project",
+ "ui_help_tab": "Tab guide",
+ "ui_theme": "Appearance"
 }

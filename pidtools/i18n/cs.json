@@ -2089,5 +2089,11 @@
  "ui_lp_add_cols": "Přidat se zvolenými sloupci",
  "ui_lp_add_auto": "Přidat (sloupce se odhadnou)",
  "ui_lp_no_model": "bez modelu",
- "ui_lp_error": "Smyčku nelze vyhodnotit: {e}"
+ "ui_lp_error": "Smyčku nelze vyhodnotit: {e}",
+ "ui_file_sum": "{f} · {n} vzorků · {ts} s · {d}",
+ "ui_loop_add_h": "Přidá další smyčku ze stejného souboru – potřebná pro kaskádu, rozvazbení, override a VPC.",
+ "ui_tabs": "Záložky",
+ "ui_loops_group": "Smyčky projektu",
+ "ui_help_tab": "Průvodce záložkou",
+ "ui_theme": "Vzhled"
 }
