@@ -2095,5 +2095,20 @@
  "ui_tabs": "Záložky",
  "ui_loops_group": "Smyčky projektu",
  "ui_help_tab": "Průvodce záložkou",
- "ui_theme": "Vzhled"
+ "ui_theme": "Vzhled",
+ "ui_tuning_axis": "Časová osa",
+ "ui_tuning_measure_hint": "Měření: klikněte do grafu – první klik nastaví t₁, druhý t₂, třetí začne znovu.",
+ "ui_tuning_from_to": "z → na",
+ "ui_tuning_at": "v čase",
+ "ui_tuning_len": "Délka",
+ "ui_tuning_from_plc": "[z PLC]",
+ "ui_tuning_pending": "spočítá se po klepnutí",
+ "ui_tuning_pending_opt": "spočítá se po klepnutí (několik sekund)",
+ "ui_tuning_method_desc": "O metodě",
+ "ui_tuning_mv_limits": "Meze MV",
+ "ui_tuning_reset_block": "↺ Výchozí z rozsahů PV/MV",
+ "ui_tuning_help_method": "Optimalizace: hledá Gain/TI s nejmenším IAE a překmitem pro zadaný scénář. SIMC: rychlá, τc = θ. Lambda: zvolíte dobu odezvy uzavřené smyčky. AMIGO: robustní (Ms ≈ 1,4). Průměrovací: pro hladiny – nechá PV kolísat v pásmu, aby MV jezdila co nejméně.",
+ "ui_tuning_help_kpi": "t90: čas od skoku SP do dosažení 90 % změny. Překmit: v % změny SP. Ustálení: návrat do pásma. IAE: integrál absolutní odchylky (% · s). Max. odchylka při poruše: v jednotkách PV. Pohyb MV: součet změn MV – opotřebení ventilu.",
+ "ui_tuning_help_scen": "SP: skok žádané hodnoty (vstup regulátoru). DV: skok poruchy (vstup procesu). Výstupem je PV a MV. Délku lze zadat v s, min nebo h; automaticky = podle modelu.",
+ "ui_tuning_help_rob": "Ms: max. citlivost, doporučeno ≤ 1,6 (≤ 2 přijatelné). GM: zisková bezpečnost, ≥ 2. PM: fázová bezpečnost, ≥ 45°. Podrobně ve Frekvenční analýze."
 }

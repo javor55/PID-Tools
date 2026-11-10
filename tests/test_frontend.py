@@ -309,7 +309,10 @@ def test_tuning_tab(page, server):
     """Ladění: sady s robustností, návrh SIMC, zápis do Set 2, odezva scénáře a ukazatele, nastavení bloku."""
     page.locator('[data-tab="tuning"]').click()
     page.wait_for_selector('[data-testid="sets"] tbody tr')
-    assert page.locator('[data-testid="sets"] tbody tr').count() == 2
+    assert page.locator('[data-testid="sets"] tbody tr').count() == 3             # Gain, TI, TD × Návrh | Set 1 | Set 2
+    assert page.locator('[data-testid="card-method"] .seg [data-value="PI"]').count() == 1
+    assert page.locator('[data-testid="card-robust"] [data-testid^="tile-"]').count() == 3
+    assert page.locator('[data-testid="tun-view"] button').count() == 3
     page.select_option('[data-testid="method"]', "SIMC")
     page.locator('[data-testid="calc"]').click()
     page.wait_for_selector('[data-testid="sug-values"]')
@@ -319,10 +322,11 @@ def test_tuning_tab(page, server):
     page.wait_for_timeout(800)
     s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
     assert abs(s2["gain"] - sug["Kc"]) < 1e-9 and abs(s2["ti"] - sug["Ti"]) < 1e-9
-    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"kpis\"] tbody tr').length === 3",
-                           timeout=20000)                                       # Set 1, Set 2, návrh
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"kpis\"] thead th').length === 4",
+                           timeout=20000)                                       # řádek popisků + Set 1, Set 2, návrh
     page.wait_for_selector('[data-testid="resp-pv"] path', timeout=20000)
     assert page.locator('[data-testid="resp-pv"] path').count() >= 4
+    page.locator('[data-testid="card-block"] > summary').click()                     # Blok PIDConL je ve výchozím stavu sbalený
     page.locator('[data-testid="set-samp"]').fill("2")
     page.locator('[data-testid="set-samp"]').press("Enter")
     page.wait_for_timeout(600)
@@ -349,18 +353,35 @@ def test_tuning_scenario_compare_frequency(page, server):
     assert _api(server, "/workspaces/{wid}/scenario", page)["rows"][-1][3] == 2.5
     page.select_option('[data-testid="scen-kind"]', "sp")                     # zpět na výchozí
 
+    page.locator('[data-testid="tun-view"] [data-value="freq"]').click()
     page.wait_for_selector('[data-testid="freq-table"] tbody tr', timeout=20000)
     assert page.locator('[data-testid="freq-table"] tbody tr').count() >= 2
     assert page.locator('[data-testid="freq-mag"] path').count() >= 2
     assert page.locator('[data-testid="freq-nyq"] path').count() >= 2     # sady + kružnice Ms + kříž −1
 
+    page.locator('[data-testid="tun-view"] [data-value="time"]').click()
     page.locator('[data-testid="cmp-run"]').click()
     page.wait_for_selector('[data-testid="cmp-row"]', timeout=120000)
     assert page.locator('[data-testid="cmp-row"]').count() >= 3
     page.locator('[data-testid="cmp-row"]').first.click()
     page.wait_for_selector('[data-testid="sug-values"]')
+    page.locator('[data-testid="tun-view"] [data-value="freq"]').click()
     page.wait_for_function("() => document.querySelectorAll('[data-testid=\"freq-table\"] tbody tr').length === 3",
                            timeout=20000)                                       # Set 1, Set 2, návrh
+    page.locator('[data-testid="tun-view"] [data-value="time"]').click()
+
+
+def test_tuning_measure_cursors(page, server):
+    """Měření: klik do grafu nastaví t1, druhý t2 a ukáže Δt."""
+    page.locator('[data-tab="tuning"]').click()
+    page.wait_for_selector('[data-testid="resp-pv"] .tc-plot', timeout=20000)
+    page.locator('[data-testid="tun-measure"]').click()
+    box = page.locator('[data-testid="resp-pv"] .tc-plot').first.bounding_box()
+    page.mouse.click(box["x"] + box["width"] * 0.2, box["y"] + 40)
+    page.mouse.click(box["x"] + box["width"] * 0.5, box["y"] + 40)
+    page.wait_for_selector('[data-testid="measure-box"]')
+    assert "Δt" in page.locator('[data-testid="measure-box"]').inner_text()
+    page.locator('[data-testid="tun-measure"]').click()
 
 
 def test_tuning_spread(page, server):
