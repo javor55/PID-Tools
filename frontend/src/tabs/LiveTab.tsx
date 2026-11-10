@@ -34,8 +34,16 @@ export function LiveMain() {
   useEffect(() => {
     const host = box.current;
     if (!host || !json) return;
+    // texty nového vzhledu (karty, poruchy, ukazatele) z i18n; ostatní přicházejí v konfiguraci z API
+    const data = JSON.parse(json) as { labels: Record<string, string> };
+    for (const [k, v] of [["now", "now"], ["kpi_change", "change"], ["same", "same"], ["sec_dist", "sec_dist"],
+      ["dist_shape", "shape"], ["dist_where", "where"], ["dist_size", "size"], ["dist_period", "period"],
+      ["period_hint", "period_hint"], ["noise_pv", "noise_pv"], ["mv_man", "mv_man"], ["run_dist", "run_dist"],
+      ["mode_hint", "mode_hint"], ["sets_note", "sets_note"], ["dist_note", "dist_note"], ["h_mode", "h_mode"],
+      ["h_sets", "h_sets"], ["h_dist", "h_dist"], ["h_kpi", "h_kpi"], ["set1", "set1"], ["set2", "set2"],
+      ["reset", "reset"]] as const) data.labels[k] = T(`ui_live_${v}`);
     const cleanup = mountLive({
-      data: JSON.parse(json), parentElement: host,
+      data, parentElement: host,
       setTriggerValue: (name, value) => {
         if (name !== "apply") return;
         const v = value as { Gain: number; TI: number | null; TD: number | null };

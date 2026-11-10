@@ -1,5 +1,5 @@
-/* Živá simulace: vzhled okolo sdíleného modulu live_ui.js (ten se nemění) podle návrhu Live.dc.html – dva samostatně
-   rolující sloupce (plocha + panel 380 px), karty panelu jako SideCard, ovládací řádek, ukazatele. */
+/* Živá simulace: umístění sdíleného modulu live_ui.js (vzhled karet, přepínačů a tabulek má v sobě, podle návrhu
+   Live.dc.html) do stránky – dva samostatně rolující sloupce (plocha + panel 380 px) a „Rozbalit vše / Sbalit vše“. */
 .main:has(> .live-host) { padding: 0; overflow: hidden; }
 .live-host { margin: 0; height: 100%; }
 .live-host .pidlive { height: 100%; font-family: var(--pid-font, inherit); }
@@ -9,31 +9,6 @@
 .live-host .pidlive .lvs-all { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: -4px; }
 .live-host .pidlive .lvs-all button.link { border: 0; background: transparent; color: var(--pid-accent); padding: 0; font-size: 12px; }
 .live-host .pidlive .lvs-all button.link:hover { text-decoration: underline; }
-/* karty panelu: 15px nadpis, šipka vlevo, padding 14 */
-.live-host .pidlive .lvs details { padding: 14px; }
-.live-host .pidlive .lvs summary { padding: 0; font-size: 15px; gap: 8px; }
-.live-host .pidlive .lvs details[open] > summary { margin-bottom: 10px; }
-.live-host .pidlive .lvs summary::before { font-size: 12px; }
-.live-host .pidlive .lvs details > section { padding: 0; gap: 10px; }
-/* dlaždice SP / PV / MV */
-.live-host .pidlive .tile { padding: 8px; background: transparent; }
-.live-host .pidlive .tile .l { font-size: 11px; }
-.live-host .pidlive .tile .v { font-size: 18px; }
-.live-host .pidlive .tile:nth-child(2) .l, .live-host .pidlive .tile:nth-child(2) .v { color: var(--pid-accent); }
-/* ovládací řádek: zelené „Pozastavit“, větší tlačítko */
-.live-host .pidlive .bar { padding: 10px 14px; gap: 10px 18px; }
-.live-host .pidlive .bar button { font-size: 13px; padding: 6px 12px; }
-.live-host .pidlive .bar #run { font-size: 14px; padding: 7px 16px; border-radius: 8px; }
-.live-host .pidlive .bar .lab { font-size: 13px; }
-.live-host .pidlive .bar .segs button { font-size: 12px; padding: 5px 10px; }
-.live-host .pidlive .bar .mono { font-size: 13px; }
-.live-host .pidlive .bar .chip { font-size: 12px; padding: 3px 8px; }
-/* karty vlevo: nadpis 15px, tabulka ukazatelů 13 / 12 px, nejlepší hodnota zeleně */
-.live-host .pidlive .lvm .card { padding: 12px 14px; }
-.live-host .pidlive .chead .t { font-size: 15px; }
-.live-host .pidlive .lvm table { font-size: 13px; }
-.live-host .pidlive .lvm td { font-size: 12px; }
-.live-host .pidlive td.best { background: rgba(34, 197, 94, .16); font-weight: 500; }
 @media (max-width: 1000px) {
   .main:has(> .live-host) { overflow: auto; }
   .live-host, .live-host .pidlive, .live-host .pidlive .lvg { height: auto; }

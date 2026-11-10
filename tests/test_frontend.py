@@ -476,6 +476,30 @@ def test_live_tab(page, server):
     page.wait_for_selector('[data-testid="tab-data"]')
 
 
+def test_live_tab_design_structure(page, server):
+    """Živá simulace podle návrhu: ovládací řádek, karty „Průběh smyčky“ a „Ukazatele“, tři otevřené karty panelu."""
+    page.locator('[data-tab="live"]').click()
+    page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
+    assert page.locator("#speed button").count() == 5 and page.locator("#speed button.on").count() == 1
+    assert page.locator(".lvm .card .chead .t").count() == 2                         # Průběh smyčky, Ukazatele
+    assert page.locator("#legend .li").count() >= 3                                  # SP, PV, MV
+    assert page.locator("#kpi tr").first.locator("th").count() >= 2                  # prázdná buňka + sada
+    assert page.locator(".lvs > details").count() == 7
+    assert page.locator(".lvs > details[open]").count() == 3                         # režim, sady, poruchy
+    for sel in ("#tsp", "#tpv", "#tmv", "#mode", "#sps", "#spn", "#mvs", "#mvn", "#cmp", "#sets", "#dtype", "#dloc",
+                "#ds", "#pps", "#nzs", "#pulse"):
+        assert page.locator(f".lvs {sel}").count() == 1, sel
+    assert page.locator("#dtype button").count() == 5
+    page.locator("#run").click()
+    page.wait_for_function("() => /Pause|Pozastavit/.test(document.querySelector('#run').textContent)")
+    page.locator("#ds").fill("5")
+    page.locator("#ds").dispatch_event("change")
+    page.locator("#pulse").click()                                                   # vyvolá poruchu → řádek „Změna“
+    page.wait_for_function("() => /\\S/.test(document.querySelector('#kpi td.chg').textContent) "
+                           "&& document.querySelector('#kpi td.chg').textContent !== '–'")
+    page.locator("#run").click()
+
+
 def _rel(a, b, tol=2e-3):
     return abs(a - b) <= tol * max(1.0, abs(b))
 
