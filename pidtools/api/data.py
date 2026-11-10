@@ -365,6 +365,27 @@ def router(get_proj, max_upload=MAX_UPLOAD):
                                                        for k, lv, ar in q["checks"]],
                        snr=q.get("snr"), sigma=q.get("sigma"), n_steps=q.get("n_steps"))
 
+
+    @r.get("/loopmode", response_model=LoopMode)
+    def loopmode(wid: str):
+        """Úseky MAN / AUTO záznamu, podíl AUTO v úseku identifikace a použitý režim identifikace."""
+        ws = need_data(wid)
+        det = ws.loop_det()
+        return LoopMode(frac=det["frac"], runs=[Run(a=a, b=b, kind=k) for a, b, k in det["runs"]],
+                        auto_frac=ws.auto_frac(), effective=ws.id_mode_eff, mv_modes=ws.mv_modes(),
+                        set1_ok=ws.set1_ok)
+
+    @r.get("/compression", response_model=list[str])
+    def compression(wid: str):
+        """Upozornění na kompresi historianu (nepravidelné vzorky, opakované hodnoty)."""
+        return [str(x) for x in (need_data(wid).compression() or [])]
+
+    _quality_preview(r, need_data)
+    return r
+
+
+def _quality_preview(r, need_data):
+    """Kvalita dat, statistika a náhled tabulky po převzorkování (záložka Data, Celý náhled)."""
     @r.get("/dataquality", response_model=DataQuality)
     def dataquality(wid: str):
         """Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení)."""
@@ -373,7 +394,7 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         try:
             checks = _checks(ws)
         except Exception as ex:
-            raise _err(ex)
+            raise _err(ex) from ex
         cnt, usable = dq.summary(checks)
         return DataQuality(usable=usable, counts=cnt, checks=[
             DqCheck(id=c.id, status=c.status, res=c.res, args=_plain(c.args)) for c in checks])
@@ -406,7 +427,7 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         try:
             checks, cols, vals, dt, sel, n_warn, n_mv = _preview_rows(ws, filter)
         except Exception as ex:
-            raise _err(ex)
+            raise _err(ex) from ex
         if t is not None:
             offset = int(np.searchsorted(ws.t[sel], t))
         offset = max(0, min(offset, max(len(sel) - 1, 0)))
@@ -436,20 +457,3 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         pd.DataFrame(out).to_csv(buf, index=False, sep=";", decimal=",")
         return Response(buf.getvalue().encode("utf-8-sig"), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": 'attachment; filename="data_resampled.csv"'})
-
-    @r.get("/loopmode", response_model=LoopMode)
-    def loopmode(wid: str):
-        """Úseky MAN / AUTO záznamu, podíl AUTO v úseku identifikace a použitý režim identifikace."""
-        ws = need_data(wid)
-        det = ws.loop_det()
-        return LoopMode(frac=det["frac"], runs=[Run(a=a, b=b, kind=k) for a, b, k in det["runs"]],
-                        auto_frac=ws.auto_frac(), effective=ws.id_mode_eff, mv_modes=ws.mv_modes(),
-                        set1_ok=ws.set1_ok)
-
-    @r.get("/compression", response_model=list[str])
-    def compression(wid: str):
-        """Upozornění na kompresi historianu (nepravidelné vzorky, opakované hodnoty)."""
-        return [str(x) for x in (need_data(wid).compression() or [])]
-
-    return r
-
