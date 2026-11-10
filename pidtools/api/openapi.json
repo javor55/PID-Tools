@@ -855,6 +855,35 @@
     "title": "Columns",
     "type": "object"
    },
+   "DataQuality": {
+    "properties": {
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/DqCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "title": "Counts",
+      "type": "object"
+     },
+     "usable": {
+      "title": "Usable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "usable",
+     "counts",
+     "checks"
+    ],
+    "title": "DataQuality",
+    "type": "object"
+   },
    "DecDefaults": {
     "properties": {
      "amp_a": {
@@ -1272,6 +1301,41 @@
      "struct"
     ],
     "title": "DistSelect",
+    "type": "object"
+   },
+   "DqCheck": {
+    "description": "Jedna kontrola kvality dat (záložka Data): stav, klíče textů dq_<id>_name / _why, výsledek `res` s argumenty.",
+    "properties": {
+     "args": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "res": {
+      "title": "Res",
+      "type": "string"
+     },
+     "status": {
+      "enum": [
+       "ok",
+       "warn",
+       "info"
+      ],
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "status",
+     "res"
+    ],
+    "title": "DqCheck",
     "type": "object"
    },
    "FFDefaults": {
@@ -3794,6 +3858,138 @@
     "title": "PointRow",
     "type": "object"
    },
+   "Preview": {
+    "description": "Část tabulky po převzorkování (jako Celý náhled): řádky `offset` … `offset + len(rows)` z `total` po filtru.",
+    "properties": {
+     "Ts": {
+      "title": "Ts",
+      "type": "number"
+     },
+     "columns": {
+      "items": {
+       "$ref": "#/components/schemas/PreviewCol"
+      },
+      "title": "Columns",
+      "type": "array"
+     },
+     "n_all": {
+      "title": "N All",
+      "type": "integer"
+     },
+     "n_mv": {
+      "title": "N Mv",
+      "type": "integer"
+     },
+     "n_warn": {
+      "title": "N Warn",
+      "type": "integer"
+     },
+     "offset": {
+      "title": "Offset",
+      "type": "integer"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/PreviewRow"
+      },
+      "title": "Rows",
+      "type": "array"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "columns",
+     "total",
+     "n_all",
+     "offset",
+     "Ts",
+     "n_warn",
+     "n_mv",
+     "rows"
+    ],
+    "title": "Preview",
+    "type": "object"
+   },
+   "PreviewCol": {
+    "properties": {
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "role": {
+      "enum": [
+       "PV",
+       "MV",
+       "SP",
+       "DV",
+       "POS"
+      ],
+      "title": "Role",
+      "type": "string"
+     }
+    },
+    "required": [
+     "label",
+     "role"
+    ],
+    "title": "PreviewCol",
+    "type": "object"
+   },
+   "PreviewRow": {
+    "properties": {
+     "dt": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dt"
+     },
+     "i": {
+      "title": "I",
+      "type": "integer"
+     },
+     "notes": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+     },
+     "t": {
+      "title": "T",
+      "type": "number"
+     },
+     "v": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "V",
+      "type": "array"
+     }
+    },
+    "required": [
+     "i",
+     "t",
+     "v"
+    ],
+    "title": "PreviewRow",
+    "type": "object"
+   },
    "Quality": {
     "properties": {
      "checks": {
@@ -5100,6 +5296,74 @@
      "kpis"
     ],
     "title": "SplitSim",
+    "type": "object"
+   },
+   "StatRow": {
+    "properties": {
+     "max": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max"
+     },
+     "mean": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mean"
+     },
+     "min": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Min"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "role": {
+      "enum": [
+       "PV",
+       "MV",
+       "SP",
+       "DV"
+      ],
+      "title": "Role",
+      "type": "string"
+     },
+     "std": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Std"
+     }
+    },
+    "required": [
+     "name",
+     "role"
+    ],
+    "title": "StatRow",
     "type": "object"
    },
    "SuggestReq": {
@@ -11086,6 +11350,160 @@
     ]
    }
   },
+  "/workspaces/{wid}/dataquality": {
+   "get": {
+    "description": "Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení).",
+    "operationId": "dataquality_workspaces__wid__dataquality_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DataQuality"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Dataquality",
+    "tags": [
+     "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/datastats": {
+   "get": {
+    "description": "Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky).",
+    "operationId": "datastats_workspaces__wid__datastats_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/StatRow"
+         },
+         "title": "Response Datastats Workspaces  Wid  Datastats Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Datastats",
+    "tags": [
+     "data"
+    ]
+   }
+  },
   "/workspaces/{wid}/diagnostics": {
    "get": {
     "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf\nMV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.",
@@ -12889,6 +13307,207 @@
     "summary": "History",
     "tags": [
      "opcua"
+    ]
+   }
+  },
+  "/workspaces/{wid}/preview": {
+   "get": {
+    "description": "Tabulka po převzorkování po částech (Celý náhled): filtr řádků, od času `t` [s] (přepíše `offset`).",
+    "operationId": "preview_workspaces__wid__preview_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "offset",
+      "required": false,
+      "schema": {
+       "default": 0,
+       "title": "Offset",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "default": 200,
+       "maximum": 2000,
+       "minimum": 1,
+       "title": "Limit",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "filter",
+      "required": false,
+      "schema": {
+       "default": "all",
+       "enum": [
+        "all",
+        "warn",
+        "mv"
+       ],
+       "title": "Filter",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "t",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "T"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Preview"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Preview",
+    "tags": [
+     "data"
+    ]
+   }
+  },
+  "/workspaces/{wid}/preview/csv": {
+   "get": {
+    "description": "Celá tabulka po převzorkování jako CSV (středník, desetinná čárka).",
+    "operationId": "preview_csv_workspaces__wid__preview_csv_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Preview Csv",
+    "tags": [
+     "data"
     ]
    }
   },

@@ -126,3 +126,24 @@ def test_large_record_speed(client):
     assert w["has_data"] and len(sig["PV"][0]) == n and meta["decim"] == 1
     print(f"load {t1 - t0:.2f} s, signals {t2 - t1:.2f} s, {len(r.content) / 2 ** 20:.1f} MB")
     assert t2 - t1 < 2.0 and t1 - t0 < 6.0      # vlastní načtení ≈ 1 s, zbytek je předání 25 MB přes TestClient
+
+
+def test_data_quality_stats_preview(client):
+    """Záložka Data: kontroly kvality dat (dq_*), statistika veličin a tabulka Celého náhledu po částech."""
+    wid = _ws(client)
+    assert client.get(f"/workspaces/{wid}/dataquality").status_code == 409
+    client.post(f"/workspaces/{wid}/data/demo")
+    dq = client.get(f"/workspaces/{wid}/dataquality").json()
+    ids = [c["id"] for c in dq["checks"]]
+    assert ids[:2] == ["samp", "gaps"] and "indep" in ids and all(c["status"] in ("ok", "warn", "info") for c in dq["checks"])
+    assert sum(dq["counts"].values()) == len(dq["checks"]) and isinstance(dq["usable"], bool)
+    st = client.get(f"/workspaces/{wid}/datastats").json()
+    assert [r["role"] for r in st][:3] == ["PV", "MV", "SP"] and st[-1]["role"] == "DV" and st[0]["min"] < st[0]["max"]
+    p = client.get(f"/workspaces/{wid}/preview", params={"limit": 5}).json()
+    assert p["n_all"] == p["total"] == 3600 and len(p["rows"]) == 5 and len(p["rows"][0]["v"]) == len(p["columns"])
+    p2 = client.get(f"/workspaces/{wid}/preview", params={"t": 100.0, "limit": 3}).json()
+    assert p2["rows"][0]["t"] >= 100.0
+    mv = client.get(f"/workspaces/{wid}/preview", params={"filter": "mv", "limit": 2000}).json()
+    assert mv["total"] == mv["n_mv"] < 3600
+    csv = client.get(f"/workspaces/{wid}/preview/csv")
+    assert csv.headers["content-type"].startswith("text/csv") and csv.text.count("\n") == 3601

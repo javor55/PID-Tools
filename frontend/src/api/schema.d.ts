@@ -1177,6 +1177,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{wid}/dataquality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dataquality
+         * @description Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení).
+         */
+        get: operations["dataquality_workspaces__wid__dataquality_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/datastats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Datastats
+         * @description Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky).
+         */
+        get: operations["datastats_workspaces__wid__datastats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{wid}/diagnostics": {
         parameters: {
             query?: never;
@@ -1564,6 +1604,46 @@ export interface paths {
          * @description Historie vybraných uzlů (úloha) → data pracovního prostoru (nový projekt s jednou smyčkou).
          */
         post: operations["history_workspaces__wid__opc_history_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview
+         * @description Tabulka po převzorkování po částech (Celý náhled): filtr řádků, od času `t` [s] (přepíše `offset`).
+         */
+        get: operations["preview_workspaces__wid__preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{wid}/preview/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Csv
+         * @description Celá tabulka po převzorkování jako CSV (středník, desetinná čárka).
+         */
+        get: operations["preview_csv_workspaces__wid__preview_csv_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2144,6 +2224,17 @@ export interface components {
             /** Sp */
             sp?: string | null;
         };
+        /** DataQuality */
+        DataQuality: {
+            /** Checks */
+            checks: components["schemas"]["DqCheck"][];
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Usable */
+            usable: boolean;
+        };
         /** DecDefaults */
         DecDefaults: {
             /** Amp A */
@@ -2305,6 +2396,28 @@ export interface components {
             index: number;
             /** Struct */
             struct: string;
+        };
+        /**
+         * DqCheck
+         * @description Jedna kontrola kvality dat (záložka Data): stav, klíče textů dq_<id>_name / _why, výsledek `res` s argumenty.
+         */
+        DqCheck: {
+            /**
+             * Args
+             * @default {}
+             */
+            args: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: string;
+            /** Res */
+            res: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "warn" | "info";
         };
         /** FFDefaults */
         FFDefaults: {
@@ -3204,6 +3317,54 @@ export interface components {
             /** Values */
             values: (number | null)[];
         };
+        /**
+         * Preview
+         * @description Část tabulky po převzorkování (jako Celý náhled): řádky `offset` … `offset + len(rows)` z `total` po filtru.
+         */
+        Preview: {
+            /** Ts */
+            Ts: number;
+            /** Columns */
+            columns: components["schemas"]["PreviewCol"][];
+            /** N All */
+            n_all: number;
+            /** N Mv */
+            n_mv: number;
+            /** N Warn */
+            n_warn: number;
+            /** Offset */
+            offset: number;
+            /** Rows */
+            rows: components["schemas"]["PreviewRow"][];
+            /** Total */
+            total: number;
+        };
+        /** PreviewCol */
+        PreviewCol: {
+            /** Label */
+            label: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "PV" | "MV" | "SP" | "DV" | "POS";
+        };
+        /** PreviewRow */
+        PreviewRow: {
+            /** Dt */
+            dt?: string | null;
+            /** I */
+            i: number;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+            /** T */
+            t: number;
+            /** V */
+            v: (number | null)[];
+        };
         /** Quality */
         Quality: {
             /** Checks */
@@ -3666,6 +3827,24 @@ export interface components {
             kpis: {
                 [key: string]: components["schemas"]["SplitKpi"];
             };
+        };
+        /** StatRow */
+        StatRow: {
+            /** Max */
+            max?: number | null;
+            /** Mean */
+            mean?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "PV" | "MV" | "SP" | "DV";
+            /** Std */
+            std?: number | null;
         };
         /** SuggestReq */
         SuggestReq: {
@@ -6287,6 +6466,74 @@ export interface operations {
             };
         };
     };
+    dataquality_workspaces__wid__dataquality_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataQuality"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    datastats_workspaces__wid__datastats_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     diagnostics_workspaces__wid__diagnostics_get: {
         parameters: {
             query?: {
@@ -7069,6 +7316,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_workspaces__wid__preview_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+                filter?: "all" | "warn" | "mv";
+                t?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_csv_workspaces__wid__preview_csv_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
