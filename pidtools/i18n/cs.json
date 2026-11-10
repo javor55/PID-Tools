@@ -2095,5 +2095,6 @@
  "ui_tabs": "Záložky",
  "ui_loops_group": "Smyčky projektu",
  "ui_help_tab": "Průvodce záložkou",
- "ui_theme": "Vzhled"
+ "ui_theme": "Vzhled",
+ "ui_model_run": "Identifikovat model"
 }

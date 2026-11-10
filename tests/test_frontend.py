@@ -305,6 +305,21 @@ def test_model_residuals_and_dist_structs(page, server):
     _quiet(page)
 
 
+def test_model_side_structure(page, server):
+    """Model: panel podle návrhu – hlavní tlačítko nahoře, karta Struktura modelu, karta každého přenosu s Identif."""
+    page.locator('[data-tab="model"]').click()
+    page.wait_for_selector('[data-testid="params"]', timeout=30000)
+    side = page.locator(".side")
+    first = side.locator("> *").nth(1)
+    assert first.locator('[data-testid="identify"]').count() == 1               # tlačítko jako první blok panelu
+    assert side.locator('[data-testid="side-struct"]').count() == 1
+    assert side.locator('[data-testid="side-struct"] .seg button').count() == 3  # Auto / Samoregulační / Integrační
+    n_dv = len(_api(server, "/workspaces/{wid}", page)["dists"])
+    assert side.locator(".mcard details.scard").count() == 1 + n_dv
+    assert side.locator('[data-testid="params"] .mparams input[type="checkbox"]').count() >= 2   # sloupec Identif.
+    assert side.locator('[data-testid="side-validation"]').count() == 1
+
+
 def test_tuning_tab(page, server):
     """Ladění: sady s robustností, návrh SIMC, zápis do Set 2, odezva scénáře a ukazatele, nastavení bloku."""
     page.locator('[data-tab="tuning"]').click()
