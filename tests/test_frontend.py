@@ -152,7 +152,7 @@ def test_data_tab_viewer_columns_layout(page, server):
     """Data: ukázka → prohlížeč záznamu (sdílený viewer.js), kurzory a zoom, kvalita, sloupce, uložené rozložení."""
     import re
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-testid="load-demo"]').click()
+    page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
     page.wait_for_selector(".pidv-panel canvas", timeout=30000)
     page.wait_for_timeout(500)
     assert page.locator(".pidv-panel").count() >= 3 and page.locator(".pidv-sig").count() >= 4
@@ -190,6 +190,42 @@ def test_data_tab_viewer_columns_layout(page, server):
     assert _api(server, "/workspaces/{wid}", page)["sp"] == "LIC101.SP"
 
 
+def test_data_tab_design_structure(page, server):
+    """Data podle návrhu: karty panelu v pořadí, přepínač zdroje, DV jako štítky, Statistika, Kvalita dat pod záznamem
+    (odznak, počty, kontroly se stavem), Celý náhled s tabulkou a filtrem."""
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
+    page.wait_for_selector('[data-testid="dataquality"] li.dt-check', timeout=30000)
+    titles = page.locator("aside.side details.scard > summary h2").all_inner_texts()
+    assert [t.strip("? ") for t in titles][:4] == ["Data source", "Loop signals", "Statistics", "Units and ranges"]
+    assert [b.get_attribute("data-value") for b in page.locator('[data-testid="src-seg"] button').all()] == ["file", "demo", "opc"]
+    assert page.locator('[data-testid="data-info"]').inner_text().startswith("demo")
+    assert page.locator('[data-testid="dv-chip"]').count() == 1                           # FI100.Pritok jako štítek
+    assert page.locator('[data-testid="stats"] tbody tr').count() >= 4
+    assert page.locator('[data-testid="to-model"]').is_visible()
+    # Kvalita dat je pod záznamem, ne v panelu; stavy kontrol a počty
+    y_view, y_dq = (page.locator(f'[data-testid="{t}"]').bounding_box()["y"] for t in ("record-viewer", "dataquality"))
+    assert y_dq > y_view and page.locator("aside.side [data-testid=\"dataquality\"]").count() == 0
+    st = {c.get_attribute("data-status") for c in page.locator('[data-testid="dataquality"] li.dt-check').all()}
+    assert st <= {"ok", "warn", "info"} and "ok" in st
+    assert "fine" in page.locator('[data-testid="dq-counts"]').inner_text()
+    assert page.locator('[data-testid="dq-badge"]').inner_text().strip() != ""
+    # DV: odebrat a znovu přidat
+    page.locator('[data-testid="dv-chip"] button').click()
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"dv-chip\"]').length === 0")
+    page.select_option('[data-testid="col-d-add"]', "FI100.Pritok")
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"dv-chip\"]').length === 1")
+    # Celý náhled
+    page.locator('[data-testid="full-open"]').click()
+    page.wait_for_selector('[data-testid="full-table"] .dtf-row', timeout=20000)
+    n = page.locator('[data-testid="full-table"] .dtf-row').count()
+    assert 10 < n < 200
+    page.select_option('[data-testid="full-filter"]', "mv")
+    page.wait_for_function("(n) => document.querySelectorAll('[data-testid=\"full-table\"] .dtf-row').length < n", arg=n)
+    page.keyboard.press("Escape")
+    page.wait_for_selector('[data-testid="full-preview"]', state="detached", timeout=5000)
+
+
 def test_data_file_upload(page, server):
     page.set_input_files('[data-testid="load-file"]', os.path.join(ROOT, "tests", "data", "ff_example.csv"))
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('ff_example')")
@@ -201,7 +237,7 @@ def test_data_file_upload(page, server):
 def test_model_tab_identify(page, server):
     """Model: graf s úseky (sdílený trend.js), identifikace jako úloha, tabulka modelů, výběr, průběh modelu."""
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-testid="load-demo"]').click()
+    page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     page.locator('[data-tab="model"]').click()
     page.wait_for_selector('[data-testid="model-trend"] .pidw', timeout=20000)
@@ -991,13 +1027,13 @@ def test_data_layout_units_ranges(page, server):
     rows = ["Time,Tag,Value"] + [f"2024-02-13 13:{i // 60:02d}:{i % 60:02d},{t},{v}" for i in range(120)
                                  for t, v in (("A.PV", 50 + i % 7), ("A.MV", 40 + i // 10))]
     _csv_upload(page, "hist.csv", "\n".join(rows))
-    page.wait_for_function("() => (document.querySelector('[data-testid=\"lay-layout\"]') || {}).value === 'long'")
+    page.wait_for_function("() => document.querySelector('[data-testid=\"lay-layout\"] [aria-pressed=\"true\"]')?.dataset.value === 'long'")
     assert page.locator('[data-testid="layout-sec"]').get_attribute("open") is not None
     w = _api(server, base, page)
     assert w["layout"] == "long" and set(w["columns"]) == {"A.PV", "A.MV"}
     assert [page.locator(f'[data-testid="{t}"]').input_value() for t in ("lay-time", "lay-tag", "lay-val")] == ["Time", "Tag", "Value"]
     # společný čas nejde (tag není číslo): chyba v panelu, čtení zůstane
-    page.select_option('[data-testid="lay-layout"]', "wide")
+    page.locator('[data-testid="lay-layout"] [data-value="wide"]').click()
     page.wait_for_selector('[data-testid="lay-err"]')
     assert _api(server, base, page)["layout"] == "long"
     # tabulka bez času: co řádek, to vzorek s ruční periodou a jednotkou
@@ -1042,6 +1078,7 @@ def test_opc_dialog_history(page, server):
     url, stop = opc.test_server(port=_free_port(), n=300)
     try:
         page.locator('[data-tab="data"]').click()
+        page.locator('[data-testid="src-seg"] [data-value="opc"]').click()
         page.locator('[data-testid="opc-open"]').click()
         page.wait_for_selector('[data-testid="opc-dialog"]')
         page.fill('[data-testid="opc-url"]', "opc.tcp://127.0.0.1:1/x")
