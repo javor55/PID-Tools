@@ -855,6 +855,29 @@
     "title": "Columns",
     "type": "object"
    },
+   "Common": {
+    "properties": {
+     "duration": {
+      "title": "Duration",
+      "type": "number"
+     },
+     "end": {
+      "title": "End",
+      "type": "number"
+     },
+     "start": {
+      "title": "Start",
+      "type": "number"
+     }
+    },
+    "required": [
+     "start",
+     "end",
+     "duration"
+    ],
+    "title": "Common",
+    "type": "object"
+   },
    "DataQuality": {
     "properties": {
      "checks": {
@@ -2898,6 +2921,96 @@
     "title": "LoopHealth",
     "type": "object"
    },
+   "LoopMapping": {
+    "description": "Mapování smyčky. `norm_pv` / `norm_mv` = [dolní, horní] mez v jednotkách signálu; `cascade_to` = index podřazené smyčky.",
+    "properties": {
+     "cascade_to": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cascade To"
+     },
+     "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+     },
+     "has_data": {
+      "default": true,
+      "title": "Has Data",
+      "type": "boolean"
+     },
+     "index": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Index"
+     },
+     "norm_mv": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Norm Mv"
+     },
+     "norm_pv": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Norm Pv"
+     },
+     "roles": {
+      "$ref": "#/components/schemas/RolesBody",
+      "default": {
+       "dv": []
+      }
+     },
+     "sources": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Sources",
+      "type": "array"
+     },
+     "tag": {
+      "default": "",
+      "title": "Tag",
+      "type": "string"
+     }
+    },
+    "title": "LoopMapping",
+    "type": "object"
+   },
    "LoopMode": {
     "properties": {
      "auto_frac": {
@@ -4273,6 +4386,25 @@
     "title": "Recommendation",
     "type": "object"
    },
+   "Ref": {
+    "description": "Sloupec zdroje: `zdroj › sloupec`.",
+    "properties": {
+     "column": {
+      "title": "Column",
+      "type": "string"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     }
+    },
+    "required": [
+     "source",
+     "column"
+    ],
+    "title": "Ref",
+    "type": "object"
+   },
    "Refit": {
     "properties": {
      "code": {
@@ -4429,6 +4561,70 @@
      "ready"
     ],
     "title": "RgaInfo",
+    "type": "object"
+   },
+   "RolesBody": {
+    "properties": {
+     "dv": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Ref"
+      },
+      "title": "Dv",
+      "type": "array"
+     },
+     "mode": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Ref"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "mv": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Ref"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "pos": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Ref"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "pv": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Ref"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Ref"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "title": "RolesBody",
     "type": "object"
    },
    "Run": {
@@ -4652,6 +4848,66 @@
      "placeholder"
     ],
     "title": "SetInfo",
+    "type": "object"
+   },
+   "SignalStats": {
+    "properties": {
+     "count": {
+      "default": 0,
+      "title": "Count",
+      "type": "integer"
+     },
+     "max": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max"
+     },
+     "mean": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mean"
+     },
+     "min": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Min"
+     },
+     "missing": {
+      "default": 0,
+      "title": "Missing",
+      "type": "integer"
+     },
+     "std": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Std"
+     }
+    },
+    "title": "SignalStats",
     "type": "object"
    },
    "SimInfo": {
@@ -5063,6 +5319,399 @@
     "title": "SmithSimReq",
     "type": "object"
    },
+   "SourceInfo": {
+    "properties": {
+     "c_tag": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Tag"
+     },
+     "c_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Time"
+     },
+     "c_val": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Val"
+     },
+     "columns": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Columns",
+      "type": "array"
+     },
+     "end": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End"
+     },
+     "has_clock": {
+      "default": false,
+      "title": "Has Clock",
+      "type": "boolean"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "layout": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Layout"
+     },
+     "loaded": {
+      "default": true,
+      "title": "Loaded",
+      "type": "boolean"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "offset_s": {
+      "default": 0.0,
+      "title": "Offset S",
+      "type": "number"
+     },
+     "period": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period"
+     },
+     "row_dt": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Row Dt"
+     },
+     "rows": {
+      "default": 0,
+      "title": "Rows",
+      "type": "integer"
+     },
+     "sampling_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sampling S"
+     },
+     "start": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start"
+     },
+     "time_fmt": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Time Fmt"
+     },
+     "timezone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Timezone"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     },
+     "used_by": {
+      "default": [],
+      "items": {
+       "type": "integer"
+      },
+      "title": "Used By",
+      "type": "array"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "kind"
+    ],
+    "title": "SourceInfo",
+    "type": "object"
+   },
+   "SourceKind": {
+    "description": "Druh zdroje z registru: id, popis v jazyce odpovědi a schéma voleb čtení.",
+    "properties": {
+     "description": {
+      "title": "Description",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "params": {
+      "additionalProperties": true,
+      "title": "Params",
+      "type": "object"
+     }
+    },
+    "required": [
+     "id",
+     "description",
+     "params"
+    ],
+    "title": "SourceKind",
+    "type": "object"
+   },
+   "SourcePatch": {
+    "description": "Změna zdroje; zadané pole (i `null`) se změní, nezadané zůstane.",
+    "properties": {
+     "c_tag": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Tag"
+     },
+     "c_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Time"
+     },
+     "c_val": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C Val"
+     },
+     "layout": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Layout"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "offset_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Offset S"
+     },
+     "row_dt": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Row Dt"
+     },
+     "sampling_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sampling S"
+     },
+     "time_fmt": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Time Fmt"
+     },
+     "timezone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Timezone"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     }
+    },
+    "title": "SourcePatch",
+    "type": "object"
+   },
+   "Sources": {
+    "properties": {
+     "common": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Common"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kinds": {
+      "items": {
+       "$ref": "#/components/schemas/SourceKind"
+      },
+      "title": "Kinds",
+      "type": "array"
+     },
+     "origin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Origin"
+     },
+     "sources": {
+      "items": {
+       "$ref": "#/components/schemas/SourceInfo"
+      },
+      "title": "Sources",
+      "type": "array"
+     },
+     "time_grid": {
+      "$ref": "#/components/schemas/TimeGridBody"
+     }
+    },
+    "required": [
+     "sources",
+     "kinds",
+     "time_grid"
+    ],
+    "title": "Sources",
+    "type": "object"
+   },
    "SplitCase": {
     "properties": {
      "b": {
@@ -5366,6 +6015,31 @@
     "title": "StatRow",
     "type": "object"
    },
+   "SuggestBody": {
+    "properties": {
+     "apply": {
+      "default": false,
+      "title": "Apply",
+      "type": "boolean"
+     },
+     "source_ids": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Ids"
+     }
+    },
+    "title": "SuggestBody",
+    "type": "object"
+   },
    "SuggestReq": {
     "properties": {
      "method": {
@@ -5392,6 +6066,38 @@
      }
     },
     "title": "SuggestReq",
+    "type": "object"
+   },
+   "Suggested": {
+    "properties": {
+     "complete": {
+      "title": "Complete",
+      "type": "boolean"
+     },
+     "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+     },
+     "roles": {
+      "$ref": "#/components/schemas/RolesBody"
+     },
+     "tag": {
+      "title": "Tag",
+      "type": "string"
+     },
+     "via": {
+      "title": "Via",
+      "type": "string"
+     }
+    },
+    "required": [
+     "tag",
+     "roles",
+     "via",
+     "complete"
+    ],
+    "title": "Suggested",
     "type": "object"
    },
    "Suggestion": {
@@ -5436,6 +6142,203 @@
      "method"
     ],
     "title": "Suggestion",
+    "type": "object"
+   },
+   "Suggestions": {
+    "properties": {
+     "applied": {
+      "default": [],
+      "items": {
+       "type": "integer"
+      },
+      "title": "Applied",
+      "type": "array"
+     },
+     "loops": {
+      "items": {
+       "$ref": "#/components/schemas/Suggested"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "unused": {
+      "items": {
+       "$ref": "#/components/schemas/Ref"
+      },
+      "title": "Unused",
+      "type": "array"
+     },
+     "warnings": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+     }
+    },
+    "required": [
+     "loops",
+     "unused"
+    ],
+    "title": "Suggestions",
+    "type": "object"
+   },
+   "TimeGridBody": {
+    "description": "Společná časová mřížka: `overlap` (společný úsek) / `union`, ruční perioda [s], práh mezery [s].",
+    "properties": {
+     "gap_factor": {
+      "default": 5.0,
+      "title": "Gap Factor",
+      "type": "number"
+     },
+     "max_gap": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Gap"
+     },
+     "mode": {
+      "default": "overlap",
+      "title": "Mode",
+      "type": "string"
+     },
+     "period": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period"
+     }
+    },
+    "title": "TimeGridBody",
+    "type": "object"
+   },
+   "Trend": {
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "number"
+     },
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "cursors": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Cursors",
+      "type": "array"
+     },
+     "n": {
+      "title": "N",
+      "type": "integer"
+     },
+     "origin": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Origin"
+     },
+     "series": {
+      "items": {
+       "$ref": "#/components/schemas/TrendSeries"
+      },
+      "title": "Series",
+      "type": "array"
+     }
+    },
+    "required": [
+     "a",
+     "b",
+     "n",
+     "cursors",
+     "series"
+    ],
+    "title": "Trend",
+    "type": "object"
+   },
+   "TrendSeries": {
+    "properties": {
+     "at": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "At",
+      "type": "array"
+     },
+     "column": {
+      "title": "Column",
+      "type": "string"
+     },
+     "decimated": {
+      "title": "Decimated",
+      "type": "boolean"
+     },
+     "n_raw": {
+      "title": "N Raw",
+      "type": "integer"
+     },
+     "ref": {
+      "title": "Ref",
+      "type": "string"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "stats": {
+      "$ref": "#/components/schemas/SignalStats"
+     },
+     "t": {
+      "items": {
+       "type": "number"
+      },
+      "title": "T",
+      "type": "array"
+     },
+     "v": {
+      "items": {
+       "type": "number"
+      },
+      "title": "V",
+      "type": "array"
+     }
+    },
+    "required": [
+     "ref",
+     "source",
+     "column",
+     "t",
+     "v",
+     "n_raw",
+     "decimated",
+     "stats"
+    ],
+    "title": "TrendSeries",
     "type": "object"
    },
    "Tuned": {
@@ -6161,9 +7064,9 @@
  },
  "openapi": "3.1.0",
  "paths": {
-  "/health": {
+  "/api/v1/health": {
    "get": {
-    "operationId": "health_health_get",
+    "operationId": "health_api_v1_health_get",
     "responses": {
      "200": {
       "content": {
@@ -6182,9 +7085,9 @@
     ]
    }
   },
-  "/i18n/{lang}": {
+  "/api/v1/i18n/{lang}": {
    "get": {
-    "operationId": "texts_i18n__lang__get",
+    "operationId": "texts_api_v1_i18n__lang__get",
     "parameters": [
      {
       "in": "path",
@@ -6236,7 +7139,7 @@
          "additionalProperties": {
           "type": "string"
          },
-         "title": "Response Texts I18N  Lang  Get",
+         "title": "Response Texts Api V1 I18N  Lang  Get",
          "type": "object"
         }
        }
@@ -6260,9 +7163,9 @@
     ]
    }
   },
-  "/jobs/{jid}": {
+  "/api/v1/jobs/{jid}": {
    "get": {
-    "operationId": "job_get_jobs__jid__get",
+    "operationId": "job_get_api_v1_jobs__jid__get",
     "parameters": [
      {
       "in": "path",
@@ -6334,9 +7237,9 @@
     ]
    }
   },
-  "/jobs/{jid}/cancel": {
+  "/api/v1/jobs/{jid}/cancel": {
    "post": {
-    "operationId": "job_cancel_jobs__jid__cancel_post",
+    "operationId": "job_cancel_api_v1_jobs__jid__cancel_post",
     "parameters": [
      {
       "in": "path",
@@ -6408,10 +7311,10 @@
     ]
    }
   },
-  "/jobs/{jid}/events": {
+  "/api/v1/jobs/{jid}/events": {
    "get": {
     "description": "Průběh úlohy jako server-sent events (JobInfo při každé změně, konec u hotové / zrušené úlohy).",
-    "operationId": "job_events_jobs__jid__events_get",
+    "operationId": "job_events_api_v1_jobs__jid__events_get",
     "parameters": [
      {
       "in": "path",
@@ -6482,10 +7385,10 @@
     ]
    }
   },
-  "/jobs/{jid}/result": {
+  "/api/v1/jobs/{jid}/result": {
    "get": {
     "description": "Výsledek hotové úlohy jako JSON (u úloh nad pracovním prostorem jen vrácená hodnota metody).",
-    "operationId": "job_result_jobs__jid__result_get",
+    "operationId": "job_result_api_v1_jobs__jid__result_get",
     "parameters": [
      {
       "in": "path",
@@ -6555,9 +7458,9 @@
     ]
    }
   },
-  "/opc/available": {
+  "/api/v1/opc/available": {
    "get": {
-    "operationId": "available_opc_available_get",
+    "operationId": "available_api_v1_opc_available_get",
     "parameters": [
      {
       "in": "header",
@@ -6597,7 +7500,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "title": "Response Available Opc Available Get",
+         "title": "Response Available Api V1 Opc Available Get",
          "type": "boolean"
         }
        }
@@ -6621,10 +7524,10 @@
     ]
    }
   },
-  "/opc/browse": {
+  "/api/v1/opc/browse": {
    "post": {
     "description": "Podřízené uzly (výchozí: složka Objects).",
-    "operationId": "browse_opc_browse_post",
+    "operationId": "browse_api_v1_opc_browse_post",
     "parameters": [
      {
       "in": "header",
@@ -6677,7 +7580,7 @@
          "items": {
           "$ref": "#/components/schemas/Node"
          },
-         "title": "Response Browse Opc Browse Post",
+         "title": "Response Browse Api V1 Opc Browse Post",
          "type": "array"
         }
        }
@@ -6701,10 +7604,10 @@
     ]
    }
   },
-  "/opc/find": {
+  "/api/v1/opc/find": {
    "post": {
     "description": "Proměnné, jejichž cesta obsahuje text (např. „FIC101“).",
-    "operationId": "find_opc_find_post",
+    "operationId": "find_api_v1_opc_find_post",
     "parameters": [
      {
       "in": "header",
@@ -6757,7 +7660,7 @@
          "items": {
           "$ref": "#/components/schemas/Node"
          },
-         "title": "Response Find Opc Find Post",
+         "title": "Response Find Api V1 Opc Find Post",
          "type": "array"
         }
        }
@@ -6781,10 +7684,10 @@
     ]
    }
   },
-  "/pending-open": {
+  "/api/v1/pending-open": {
    "get": {
     "description": "Vyzvedne čekající projekt (a vyprázdní místo); 204, když žádný není.",
-    "operationId": "take_pending_pending_open_get",
+    "operationId": "take_pending_api_v1_pending_open_get",
     "parameters": [
      {
       "in": "header",
@@ -6847,7 +7750,7 @@
    },
    "put": {
     "description": "Uloží soubor projektu (obsah JSON) k otevření; kontroluje se až při otevření v prostoru.",
-    "operationId": "put_pending_pending_open_put",
+    "operationId": "put_pending_api_v1_pending_open_put",
     "parameters": [
      {
       "in": "header",
@@ -6903,9 +7806,9 @@
     ]
    }
   },
-  "/workspaces": {
+  "/api/v1/workspaces": {
    "post": {
-    "operationId": "ws_create_workspaces_post",
+    "operationId": "ws_create_api_v1_workspaces_post",
     "parameters": [
      {
       "in": "header",
@@ -6968,9 +7871,9 @@
     ]
    }
   },
-  "/workspaces/{wid}": {
+  "/api/v1/workspaces/{wid}": {
    "delete": {
-    "operationId": "ws_delete_workspaces__wid__delete",
+    "operationId": "ws_delete_api_v1_workspaces__wid__delete",
     "parameters": [
      {
       "in": "path",
@@ -7035,7 +7938,7 @@
     ]
    },
    "get": {
-    "operationId": "ws_get_workspaces__wid__get",
+    "operationId": "ws_get_api_v1_workspaces__wid__get",
     "parameters": [
      {
       "in": "path",
@@ -7107,10 +8010,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/cascade": {
+  "/api/v1/workspaces/{wid}/apc/cascade": {
    "get": {
     "description": "Kaskáda (aktivní smyčka = vnější): zdroj modelu vnitřní smyčky, ladění obou smyček, oddělení rychlostí.",
-    "operationId": "cascade_get_workspaces__wid__apc_cascade_get",
+    "operationId": "cascade_get_api_v1_workspaces__wid__apc_cascade_get",
     "parameters": [
      {
       "in": "path",
@@ -7201,10 +8104,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/cascade/fit": {
+  "/api/v1/workspaces/{wid}/apc/cascade/fit": {
    "post": {
     "description": "Model vnitřní smyčky z dat (úloha, P1D / P2D); výsledek se uloží, dále GET /apc/cascade (zdroj data).",
-    "operationId": "cascade_fit_workspaces__wid__apc_cascade_fit_post",
+    "operationId": "cascade_fit_api_v1_workspaces__wid__apc_cascade_fit_post",
     "parameters": [
      {
       "in": "path",
@@ -7286,10 +8189,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/cascade/reset": {
+  "/api/v1/workspaces/{wid}/apc/cascade/reset": {
    "post": {
     "description": "Původní hodnoty: ruční model (K, T1, T2, θ), ladění vnitřní smyčky (SampleTime, τc) nebo vnější (τc).",
-    "operationId": "cascade_reset_workspaces__wid__apc_cascade_reset_post",
+    "operationId": "cascade_reset_api_v1_workspaces__wid__apc_cascade_reset_post",
     "parameters": [
      {
       "in": "path",
@@ -7390,10 +8293,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/cascade/simulate": {
+  "/api/v1/workspaces/{wid}/apc/cascade/simulate": {
    "post": {
     "description": "Skok SP vnější smyčky a poruchy obou smyček: stabilita, doba odezvy vnitřní smyčky, IAE vnější smyčky.",
-    "operationId": "cascade_simulate_workspaces__wid__apc_cascade_simulate_post",
+    "operationId": "cascade_simulate_api_v1_workspaces__wid__apc_cascade_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -7484,9 +8387,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/cascade/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/cascade/simulate/curves": {
    "post": {
-    "operationId": "cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post",
+    "operationId": "cascade_curves_api_v1_workspaces__wid__apc_cascade_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -7573,10 +8476,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/decouple": {
+  "/api/v1/workspaces/{wid}/apc/decouple": {
    "get": {
     "description": "Rozvazbení 2×2 s druhou smyčkou projektu: RGA, parametry decouplerů pro PCS 7.",
-    "operationId": "dec_get_workspaces__wid__apc_decouple_get",
+    "operationId": "dec_get_api_v1_workspaces__wid__apc_decouple_get",
     "parameters": [
      {
       "in": "path",
@@ -7667,10 +8570,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/decouple/simulate": {
+  "/api/v1/workspaces/{wid}/apc/decouple/simulate": {
    "post": {
     "description": "Změny SP obou smyček bez rozvazbení, se statickými a s dynamickými decouplery: IAE v jednotkách PV.",
-    "operationId": "dec_simulate_workspaces__wid__apc_decouple_simulate_post",
+    "operationId": "dec_simulate_api_v1_workspaces__wid__apc_decouple_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -7771,9 +8674,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/decouple/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/decouple/simulate/curves": {
    "post": {
-    "operationId": "dec_curves_workspaces__wid__apc_decouple_simulate_curves_post",
+    "operationId": "dec_curves_api_v1_workspaces__wid__apc_decouple_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -7870,10 +8773,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ff": {
+  "/api/v1/workspaces/{wid}/apc/ff": {
    "get": {
     "description": "Dopředná vazba po měřených poruchách: nastavení, návrh podle modelu, hodnoty pro PIDConL.",
-    "operationId": "ff_get_workspaces__wid__apc_ff_get",
+    "operationId": "ff_get_api_v1_workspaces__wid__apc_ff_get",
     "parameters": [
      {
       "in": "path",
@@ -7946,7 +8849,7 @@
    },
    "put": {
     "description": "Nastavení poruch po pořadí (částečné; null = beze změny) → ws.ff_state, čte ho i ladění.",
-    "operationId": "ff_put_workspaces__wid__apc_ff_put",
+    "operationId": "ff_put_api_v1_workspaces__wid__apc_ff_put",
     "parameters": [
      {
       "in": "path",
@@ -8039,10 +8942,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ff/reset": {
+  "/api/v1/workspaces/{wid}/apc/ff/reset": {
    "post": {
     "description": "Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou).",
-    "operationId": "ff_reset_workspaces__wid__apc_ff_reset_post",
+    "operationId": "ff_reset_api_v1_workspaces__wid__apc_ff_reset_post",
     "parameters": [
      {
       "in": "path",
@@ -8131,10 +9034,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ff/simulate": {
+  "/api/v1/workspaces/{wid}/apc/ff/simulate": {
    "post": {
     "description": "Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV.",
-    "operationId": "ff_simulate_workspaces__wid__apc_ff_simulate_post",
+    "operationId": "ff_simulate_api_v1_workspaces__wid__apc_ff_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -8216,9 +9119,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ff/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/ff/simulate/curves": {
    "post": {
-    "operationId": "ff_curves_workspaces__wid__apc_ff_simulate_curves_post",
+    "operationId": "ff_curves_api_v1_workspaces__wid__apc_ff_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -8296,10 +9199,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched": {
+  "/api/v1/workspaces/{wid}/apc/gainsched": {
    "get": {
     "description": "Gain scheduling podle PV: úseky bodů, identifikované body, ladění v bodech, tabulka pro GainSched.",
-    "operationId": "gs_get_workspaces__wid__apc_gainsched_get",
+    "operationId": "gs_get_api_v1_workspaces__wid__apc_gainsched_get",
     "parameters": [
      {
       "in": "path",
@@ -8371,10 +9274,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched/auto": {
+  "/api/v1/workspaces/{wid}/apc/gainsched/auto": {
    "post": {
     "description": "Úseky bodů znovu z automatického návrhu (do gs_r1 …); body zůstanou, ale označí se jako zastaralé.",
-    "operationId": "gs_auto_workspaces__wid__apc_gainsched_auto_post",
+    "operationId": "gs_auto_api_v1_workspaces__wid__apc_gainsched_auto_post",
     "parameters": [
      {
       "in": "path",
@@ -8446,10 +9349,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched/fit": {
+  "/api/v1/workspaces/{wid}/apc/gainsched/fit": {
    "post": {
     "description": "Identifikace modelu v úsecích bodů (úloha); úseky se uloží do gs_r*, body do gs_pts / gs_key.",
-    "operationId": "gs_fit_workspaces__wid__apc_gainsched_fit_post",
+    "operationId": "gs_fit_api_v1_workspaces__wid__apc_gainsched_fit_post",
     "parameters": [
      {
       "in": "path",
@@ -8521,10 +9424,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched/reset": {
+  "/api/v1/workspaces/{wid}/apc/gainsched/reset": {
    "post": {
     "description": "Původní hodnoty ladění bodů: násobek τc = 1, Ms = 1,6.",
-    "operationId": "gs_reset_workspaces__wid__apc_gainsched_reset_post",
+    "operationId": "gs_reset_api_v1_workspaces__wid__apc_gainsched_reset_post",
     "parameters": [
      {
       "in": "path",
@@ -8596,10 +9499,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched/simulate": {
+  "/api/v1/workspaces/{wid}/apc/gainsched/simulate": {
    "post": {
     "description": "Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling.",
-    "operationId": "gs_simulate_workspaces__wid__apc_gainsched_simulate_post",
+    "operationId": "gs_simulate_api_v1_workspaces__wid__apc_gainsched_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -8671,9 +9574,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/gainsched/simulate/curves": {
    "post": {
-    "operationId": "gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post",
+    "operationId": "gs_curves_api_v1_workspaces__wid__apc_gainsched_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -8741,10 +9644,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched_er": {
+  "/api/v1/workspaces/{wid}/apc/gainsched_er": {
    "get": {
     "description": "Gain scheduling podle ER: vstupy (gs_er_*), největší bezpečný násobek k, tabulka pro GainSched.",
-    "operationId": "er_get_workspaces__wid__apc_gainsched_er_get",
+    "operationId": "er_get_api_v1_workspaces__wid__apc_gainsched_er_get",
     "parameters": [
      {
       "in": "path",
@@ -8816,10 +9719,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched_er/reset": {
+  "/api/v1/workspaces/{wid}/apc/gainsched_er/reset": {
    "post": {
     "description": "Původní hodnoty: práh E = 5 % rozsahu PV, k = 2, skok SP = 20 % rozsahu PV, porucha 10 %.",
-    "operationId": "er_reset_workspaces__wid__apc_gainsched_er_reset_post",
+    "operationId": "er_reset_api_v1_workspaces__wid__apc_gainsched_er_reset_post",
     "parameters": [
      {
       "in": "path",
@@ -8891,10 +9794,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched_er/simulate": {
+  "/api/v1/workspaces/{wid}/apc/gainsched_er/simulate": {
    "post": {
     "description": "Skok SP a porucha: jedna sada vs. scheduling podle ER vs. nejlepší řídicí pásmo ConZone (výpočet ~2 s,\nstejné vstupy se nepočítají znovu).",
-    "operationId": "er_simulate_workspaces__wid__apc_gainsched_er_simulate_post",
+    "operationId": "er_simulate_api_v1_workspaces__wid__apc_gainsched_er_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -8966,9 +9869,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
    "post": {
-    "operationId": "er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post",
+    "operationId": "er_curves_api_v1_workspaces__wid__apc_gainsched_er_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -9036,10 +9939,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/override": {
+  "/api/v1/workspaces/{wid}/apc/override": {
    "get": {
     "description": "Override s druhou smyčkou projektu: výchozí scénář (skok SP hlavní smyčky, mez omezující smyčky).",
-    "operationId": "ov_get_workspaces__wid__apc_override_get",
+    "operationId": "ov_get_api_v1_workspaces__wid__apc_override_get",
     "parameters": [
      {
       "in": "path",
@@ -9144,10 +10047,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/override/simulate": {
+  "/api/v1/workspaces/{wid}/apc/override/simulate": {
    "post": {
     "description": "Simulace s výběrem MIN / MAX a bez něj; skok a mez chybějící v těle = výchozí scénář.",
-    "operationId": "ov_simulate_workspaces__wid__apc_override_simulate_post",
+    "operationId": "ov_simulate_api_v1_workspaces__wid__apc_override_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -9248,9 +10151,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/override/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/override/simulate/curves": {
    "post": {
-    "operationId": "ov_curves_workspaces__wid__apc_override_simulate_curves_post",
+    "operationId": "ov_curves_api_v1_workspaces__wid__apc_override_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -9347,10 +10250,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ratio": {
+  "/api/v1/workspaces/{wid}/apc/ratio": {
    "get": {
     "description": "Poměrová regulace: výchozí vstupy, zdroje modelu vzduchu (ostatní smyčky) a model vzduchu.",
-    "operationId": "ratio_get_workspaces__wid__apc_ratio_get",
+    "operationId": "ratio_get_api_v1_workspaces__wid__apc_ratio_get",
     "parameters": [
      {
       "in": "path",
@@ -9439,10 +10342,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ratio/design": {
+  "/api/v1/workspaces/{wid}/apc/ratio/design": {
    "post": {
     "description": "Model vzduchu (zadaný / výchozí / z jiné smyčky), implementace a kontroly pro zadané vstupy.",
-    "operationId": "ratio_design_workspaces__wid__apc_ratio_design_post",
+    "operationId": "ratio_design_api_v1_workspaces__wid__apc_ratio_design_post",
     "parameters": [
      {
       "in": "path",
@@ -9524,10 +10427,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ratio/simulate": {
+  "/api/v1/workspaces/{wid}/apc/ratio/simulate": {
    "post": {
     "description": "Skok požadavku výkonu s křížovým omezením a bez: nejmenší λ, čas s λ < 1, IAE paliva.",
-    "operationId": "ratio_simulate_workspaces__wid__apc_ratio_simulate_post",
+    "operationId": "ratio_simulate_api_v1_workspaces__wid__apc_ratio_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -9609,9 +10512,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/ratio/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/ratio/simulate/curves": {
    "post": {
-    "operationId": "ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post",
+    "operationId": "ratio_curves_api_v1_workspaces__wid__apc_ratio_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -9689,10 +10592,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/recommend": {
+  "/api/v1/workspaces/{wid}/apc/recommend": {
    "get": {
     "description": "Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).",
-    "operationId": "recommend_workspaces__wid__apc_recommend_get",
+    "operationId": "recommend_api_v1_workspaces__wid__apc_recommend_get",
     "parameters": [
      {
       "in": "path",
@@ -9744,7 +10647,7 @@
          "items": {
           "$ref": "#/components/schemas/Recommendation"
          },
-         "title": "Response Recommend Workspaces  Wid  Apc Recommend Get",
+         "title": "Response Recommend Api V1 Workspaces  Wid  Apc Recommend Get",
          "type": "array"
         }
        }
@@ -9768,10 +10671,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/rga": {
+  "/api/v1/workspaces/{wid}/apc/rga": {
    "get": {
     "description": "Interakce N×N: matice zesílení, RGA, Niederlinskiho index a doporučené párování ze smyček projektu.",
-    "operationId": "rga_get_workspaces__wid__apc_rga_get",
+    "operationId": "rga_get_api_v1_workspaces__wid__apc_rga_get",
     "parameters": [
      {
       "in": "path",
@@ -9843,10 +10746,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/smith": {
+  "/api/v1/workspaces/{wid}/apc/smith": {
    "get": {
     "description": "Smithův prediktor: vstupy (z nastavení), regulátor, pracovní bod, hodnoty pro šablonu.",
-    "operationId": "smith_get_workspaces__wid__apc_smith_get",
+    "operationId": "smith_get_api_v1_workspaces__wid__apc_smith_get",
     "parameters": [
      {
       "in": "path",
@@ -9918,10 +10821,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/smith/optimize": {
+  "/api/v1/workspaces/{wid}/apc/smith/optimize": {
    "post": {
     "description": "Robustní optimalizace regulátoru prediktoru (úloha); výsledek se uloží, dále GET /apc/smith.",
-    "operationId": "smith_optimize_workspaces__wid__apc_smith_optimize_post",
+    "operationId": "smith_optimize_api_v1_workspaces__wid__apc_smith_optimize_post",
     "parameters": [
      {
       "in": "path",
@@ -9993,10 +10896,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/smith/simulate": {
+  "/api/v1/workspaces/{wid}/apc/smith/simulate": {
    "post": {
     "description": "Skok SP a porucha na vstupu: PID (sada 2) vs. Smith na procesu s chybou modelu (ek, et, eth [%]).",
-    "operationId": "smith_simulate_workspaces__wid__apc_smith_simulate_post",
+    "operationId": "smith_simulate_api_v1_workspaces__wid__apc_smith_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -10078,9 +10981,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/smith/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/smith/simulate/curves": {
    "post": {
-    "operationId": "smith_curves_workspaces__wid__apc_smith_simulate_curves_post",
+    "operationId": "smith_curves_api_v1_workspaces__wid__apc_smith_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -10158,10 +11061,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/split": {
+  "/api/v1/workspaces/{wid}/apc/split": {
    "get": {
     "description": "Split range: výchozí vstupy (model ventilu A podle režimu a b0) a vyvážený bod rozdělení, poloviny rozsahu.",
-    "operationId": "split_get_workspaces__wid__apc_split_get",
+    "operationId": "split_get_api_v1_workspaces__wid__apc_split_get",
     "parameters": [
      {
       "in": "path",
@@ -10271,10 +11174,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/split/design": {
+  "/api/v1/workspaces/{wid}/apc/split/design": {
    "post": {
     "description": "Výsledky pro zadané vstupy: b*, zesílení a Ms obou polovin teď / s b*, hodnoty pro šablonu.",
-    "operationId": "split_design_workspaces__wid__apc_split_design_post",
+    "operationId": "split_design_api_v1_workspaces__wid__apc_split_design_post",
     "parameters": [
      {
       "in": "path",
@@ -10356,10 +11259,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/split/simulate": {
+  "/api/v1/workspaces/{wid}/apc/split/simulate": {
    "post": {
     "description": "Skok SP přes bod rozdělení se současným a vyváženým rozdělením: IAE, max. odchylka PV, změny směru.",
-    "operationId": "split_simulate_workspaces__wid__apc_split_simulate_post",
+    "operationId": "split_simulate_api_v1_workspaces__wid__apc_split_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -10441,9 +11344,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/split/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/split/simulate/curves": {
    "post": {
-    "operationId": "split_curves_workspaces__wid__apc_split_simulate_curves_post",
+    "operationId": "split_curves_api_v1_workspaces__wid__apc_split_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -10521,10 +11424,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/vpc": {
+  "/api/v1/workspaces/{wid}/apc/vpc": {
    "get": {
     "description": "Regulace polohy ventilu: výchozí vstupy (model MV2) a návrh PI regulátoru VPC.",
-    "operationId": "vpc_get_workspaces__wid__apc_vpc_get",
+    "operationId": "vpc_get_api_v1_workspaces__wid__apc_vpc_get",
     "parameters": [
      {
       "in": "path",
@@ -10596,10 +11499,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/vpc/design": {
+  "/api/v1/workspaces/{wid}/apc/vpc/design": {
    "post": {
     "description": "Návrh regulátoru VPC pro zadaný model MV2, SP a násobek τc.",
-    "operationId": "vpc_design_workspaces__wid__apc_vpc_design_post",
+    "operationId": "vpc_design_api_v1_workspaces__wid__apc_vpc_design_post",
     "parameters": [
      {
       "in": "path",
@@ -10681,10 +11584,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/vpc/simulate": {
+  "/api/v1/workspaces/{wid}/apc/vpc/simulate": {
    "post": {
     "description": "Skokové zatížení s VPC a bez něj: IAE PV, čas MV1 v limitu, rezerva MV1.",
-    "operationId": "vpc_simulate_workspaces__wid__apc_vpc_simulate_post",
+    "operationId": "vpc_simulate_api_v1_workspaces__wid__apc_vpc_simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -10766,9 +11669,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/apc/vpc/simulate/curves": {
+  "/api/v1/workspaces/{wid}/apc/vpc/simulate/curves": {
    "post": {
-    "operationId": "vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post",
+    "operationId": "vpc_curves_api_v1_workspaces__wid__apc_vpc_simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -10846,10 +11749,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/audit/analyse": {
+  "/api/v1/workspaces/{wid}/audit/analyse": {
    "post": {
     "description": "Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci.",
-    "operationId": "analyse_workspaces__wid__audit_analyse_post",
+    "operationId": "analyse_api_v1_workspaces__wid__audit_analyse_post",
     "parameters": [
      {
       "in": "path",
@@ -10931,10 +11834,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/audit/loops": {
+  "/api/v1/workspaces/{wid}/audit/loops": {
    "get": {
     "description": "Smyčky v souboru: uložené v projektu, jinak (nebo s `propose`) návrh z názvů tagů.",
-    "operationId": "audit_loops_workspaces__wid__audit_loops_get",
+    "operationId": "audit_loops_api_v1_workspaces__wid__audit_loops_get",
     "parameters": [
      {
       "in": "path",
@@ -11016,9 +11919,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/columns": {
+  "/api/v1/workspaces/{wid}/columns": {
    "put": {
-    "operationId": "set_columns_workspaces__wid__columns_put",
+    "operationId": "set_columns_api_v1_workspaces__wid__columns_put",
     "parameters": [
      {
       "in": "path",
@@ -11100,10 +12003,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/compression": {
+  "/api/v1/workspaces/{wid}/compression": {
    "get": {
     "description": "Upozornění na kompresi historianu (nepravidelné vzorky, opakované hodnoty).",
-    "operationId": "compression_workspaces__wid__compression_get",
+    "operationId": "compression_api_v1_workspaces__wid__compression_get",
     "parameters": [
      {
       "in": "path",
@@ -11155,7 +12058,7 @@
          "items": {
           "type": "string"
          },
-         "title": "Response Compression Workspaces  Wid  Compression Get",
+         "title": "Response Compression Api V1 Workspaces  Wid  Compression Get",
          "type": "array"
         }
        }
@@ -11179,9 +12082,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/data/demo": {
+  "/api/v1/workspaces/{wid}/data/demo": {
    "post": {
-    "operationId": "load_demo_workspaces__wid__data_demo_post",
+    "operationId": "load_demo_api_v1_workspaces__wid__data_demo_post",
     "parameters": [
      {
       "in": "path",
@@ -11253,10 +12156,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/data/file": {
+  "/api/v1/workspaces/{wid}/data/file": {
    "post": {
     "description": "Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`.",
-    "operationId": "load_file_workspaces__wid__data_file_post",
+    "operationId": "load_file_api_v1_workspaces__wid__data_file_post",
     "parameters": [
      {
       "in": "path",
@@ -11350,10 +12253,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/dataquality": {
+  "/api/v1/workspaces/{wid}/dataquality": {
    "get": {
     "description": "Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení).",
-    "operationId": "dataquality_workspaces__wid__dataquality_get",
+    "operationId": "dataquality_api_v1_workspaces__wid__dataquality_get",
     "parameters": [
      {
       "in": "path",
@@ -11425,10 +12328,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/datastats": {
+  "/api/v1/workspaces/{wid}/datastats": {
    "get": {
     "description": "Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky).",
-    "operationId": "datastats_workspaces__wid__datastats_get",
+    "operationId": "datastats_api_v1_workspaces__wid__datastats_get",
     "parameters": [
      {
       "in": "path",
@@ -11480,7 +12383,7 @@
          "items": {
           "$ref": "#/components/schemas/StatRow"
          },
-         "title": "Response Datastats Workspaces  Wid  Datastats Get",
+         "title": "Response Datastats Api V1 Workspaces  Wid  Datastats Get",
          "type": "array"
         }
        }
@@ -11504,10 +12407,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/diagnostics": {
+  "/api/v1/workspaces/{wid}/diagnostics": {
    "get": {
     "description": "Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf\nMV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.",
-    "operationId": "diagnostics_workspaces__wid__diagnostics_get",
+    "operationId": "diagnostics_api_v1_workspaces__wid__diagnostics_get",
     "parameters": [
      {
       "in": "path",
@@ -11627,10 +12530,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/frequency": {
+  "/api/v1/workspaces/{wid}/frequency": {
    "post": {
     "description": "Frekvenční charakteristiky (otevřená smyčka L, citlivost S a T) pro sadu 1, 2 a návrh.",
-    "operationId": "frequency_workspaces__wid__frequency_post",
+    "operationId": "frequency_api_v1_workspaces__wid__frequency_post",
     "parameters": [
      {
       "in": "path",
@@ -11699,7 +12602,7 @@
          "items": {
           "$ref": "#/components/schemas/FreqSet"
          },
-         "title": "Response Frequency Workspaces  Wid  Frequency Post",
+         "title": "Response Frequency Api V1 Workspaces  Wid  Frequency Post",
          "type": "array"
         }
        }
@@ -11723,10 +12626,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/identify": {
+  "/api/v1/workspaces/{wid}/identify": {
    "post": {
     "description": "Identifikace zvolených modelů (úloha). Výsledek: GET /model.",
-    "operationId": "identify_workspaces__wid__identify_post",
+    "operationId": "identify_api_v1_workspaces__wid__identify_post",
     "parameters": [
      {
       "in": "path",
@@ -11798,10 +12701,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/layout": {
+  "/api/v1/workspaces/{wid}/layout": {
    "get": {
     "description": "Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.",
-    "operationId": "get_layout_workspaces__wid__layout_get",
+    "operationId": "get_layout_api_v1_workspaces__wid__layout_get",
     "parameters": [
      {
       "in": "path",
@@ -11873,7 +12776,7 @@
     ]
    },
    "put": {
-    "operationId": "set_layout_workspaces__wid__layout_put",
+    "operationId": "set_layout_api_v1_workspaces__wid__layout_put",
     "parameters": [
      {
       "in": "path",
@@ -11955,10 +12858,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/live": {
+  "/api/v1/workspaces/{wid}/live": {
    "get": {
     "description": "Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2.",
-    "operationId": "live_config_workspaces__wid__live_get",
+    "operationId": "live_config_api_v1_workspaces__wid__live_get",
     "parameters": [
      {
       "in": "path",
@@ -12008,7 +12911,7 @@
        "application/json": {
         "schema": {
          "additionalProperties": true,
-         "title": "Response Live Config Workspaces  Wid  Live Get",
+         "title": "Response Live Config Api V1 Workspaces  Wid  Live Get",
          "type": "object"
         }
        }
@@ -12032,10 +12935,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/loopmode": {
+  "/api/v1/workspaces/{wid}/loopmode": {
    "get": {
     "description": "Úseky MAN / AUTO záznamu, podíl AUTO v úseku identifikace a použitý režim identifikace.",
-    "operationId": "loopmode_workspaces__wid__loopmode_get",
+    "operationId": "loopmode_api_v1_workspaces__wid__loopmode_get",
     "parameters": [
      {
       "in": "path",
@@ -12107,9 +13010,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/loops": {
+  "/api/v1/workspaces/{wid}/loops": {
    "get": {
-    "operationId": "loops_workspaces__wid__loops_get",
+    "operationId": "loops_api_v1_workspaces__wid__loops_get",
     "parameters": [
      {
       "in": "path",
@@ -12182,7 +13085,7 @@
    },
    "post": {
     "description": "Další smyčka ze stejných dat (sloupce zadané, nebo odhadnuté mimo PV ostatních smyček).",
-    "operationId": "add_loop_workspaces__wid__loops_post",
+    "operationId": "add_loop_api_v1_workspaces__wid__loops_post",
     "parameters": [
      {
       "in": "path",
@@ -12264,9 +13167,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/loops/active": {
+  "/api/v1/workspaces/{wid}/loops/active": {
    "put": {
-    "operationId": "set_active_workspaces__wid__loops_active_put",
+    "operationId": "set_active_api_v1_workspaces__wid__loops_active_put",
     "parameters": [
      {
       "in": "path",
@@ -12348,10 +13251,184 @@
     ]
    }
   },
-  "/workspaces/{wid}/loops/overview": {
+  "/api/v1/workspaces/{wid}/loops/import": {
+   "post": {
+    "description": "Mapování z CSV (tělo; hlavička `loop, role, source, column`, volitelně `description`): role PV, SP, MV, pos, mode,\nDV (opakovatelná), `source` = id nebo název zdroje. Nepoužitelné řádky se přeskočí s varováním.\nS `apply` se úplné smyčky přidají do projektu.",
+    "operationId": "import_mapping_api_v1_workspaces__wid__loops_import_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "apply",
+      "required": false,
+      "schema": {
+       "default": false,
+       "title": "Apply",
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "text/csv": {
+       "schema": {
+        "type": "string"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Suggestions"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Import Mapping",
+    "tags": [
+     "loops"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/loops/mappings": {
+   "get": {
+    "description": "Mapování všech smyček (tabulka smyček záložky Zdroje a smyčky).",
+    "operationId": "mappings_api_v1_workspaces__wid__loops_mappings_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/LoopMapping"
+         },
+         "title": "Response Mappings Api V1 Workspaces  Wid  Loops Mappings Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Mappings",
+    "tags": [
+     "loops"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/loops/overview": {
    "get": {
     "description": "Smyčky projektu: sloupce, model, sady parametrů a stav (problémy podle přehledu smyček).",
-    "operationId": "loops_overview_workspaces__wid__loops_overview_get",
+    "operationId": "loops_overview_api_v1_workspaces__wid__loops_overview_get",
     "parameters": [
      {
       "in": "path",
@@ -12423,9 +13500,94 @@
     ]
    }
   },
-  "/workspaces/{wid}/loops/{index}": {
+  "/api/v1/workspaces/{wid}/loops/suggest": {
+   "post": {
+    "description": "Návrh smyček podle názvů tagů ve zdrojích (`TIC101.PV / .SP / .OUT`, PCS 7 `…/PV_Out`, DeltaV `…/PV.CV`,\njinak odhad podle slov v názvu). S `apply` se úplné smyčky přidají do projektu.",
+    "operationId": "suggest_api_v1_workspaces__wid__loops_suggest_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SuggestBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Suggestions"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Suggest",
+    "tags": [
+     "loops"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/loops/{index}": {
    "delete": {
-    "operationId": "remove_loop_workspaces__wid__loops__index__delete",
+    "operationId": "remove_loop_api_v1_workspaces__wid__loops__index__delete",
     "parameters": [
      {
       "in": "path",
@@ -12506,9 +13668,184 @@
     ]
    }
   },
-  "/workspaces/{wid}/model": {
+  "/api/v1/workspaces/{wid}/loops/{index}/mapping": {
    "get": {
-    "operationId": "get_model_workspaces__wid__model_get",
+    "operationId": "get_mapping_api_v1_workspaces__wid__loops__index__mapping_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "index",
+      "required": true,
+      "schema": {
+       "title": "Index",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopMapping"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Mapping",
+    "tags": [
+     "loops"
+    ]
+   },
+   "put": {
+    "description": "Nastaví role smyčky na sloupce zdrojů. Zdroje rolí určí data smyčky (jeden zdroj přímo, víc zdrojů složených\nna společnou mřížku); PV a MV jsou povinné. Při chybě (neznámý zdroj / sloupec, žádný překryv) zůstane\nsmyčka beze změny.",
+    "operationId": "put_mapping_api_v1_workspaces__wid__loops__index__mapping_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "index",
+      "required": true,
+      "schema": {
+       "title": "Index",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LoopMapping"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopMapping"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Mapping",
+    "tags": [
+     "loops"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/model": {
+   "get": {
+    "operationId": "get_model_api_v1_workspaces__wid__model_get",
     "parameters": [
      {
       "in": "path",
@@ -12580,10 +13917,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/crossval": {
+  "/api/v1/workspaces/{wid}/model/crossval": {
    "post": {
     "description": "Křížové ověření (úseky podle vstupů): fit bez každého úseku a shoda na něm – úloha.",
-    "operationId": "crossval_workspaces__wid__model_crossval_post",
+    "operationId": "crossval_api_v1_workspaces__wid__model_crossval_post",
     "parameters": [
      {
       "in": "path",
@@ -12655,10 +13992,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/curves": {
+  "/api/v1/workspaces/{wid}/model/curves": {
    "get": {
     "description": "Průběhy aktuálního modelu na mřížce smyčky (NaN mimo úseky) – binárně jako /signals.",
-    "operationId": "curves_workspaces__wid__model_curves_get",
+    "operationId": "curves_api_v1_workspaces__wid__model_curves_get",
     "parameters": [
      {
       "in": "path",
@@ -12726,10 +14063,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/dist": {
+  "/api/v1/workspaces/{wid}/model/dist": {
    "put": {
     "description": "Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí\ned|kód|d{j}|i; model se použije hned (bez dofitování).",
-    "operationId": "select_dist_workspaces__wid__model_dist_put",
+    "operationId": "select_dist_api_v1_workspaces__wid__model_dist_put",
     "parameters": [
      {
       "in": "path",
@@ -12811,10 +14148,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/refit": {
+  "/api/v1/workspaces/{wid}/model/refit": {
    "post": {
     "description": "Dofitování se zafixovanými parametry (zaškrtnutí fx|kód|i v nastavení, hodnoty ed|kód|i) – úloha.",
-    "operationId": "refit_workspaces__wid__model_refit_post",
+    "operationId": "refit_api_v1_workspaces__wid__model_refit_post",
     "parameters": [
      {
       "in": "path",
@@ -12896,10 +14233,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/reset": {
+  "/api/v1/workspaces/{wid}/model/reset": {
    "post": {
     "description": "Ruční úpravy parametrů modelu zpět na identifikované.",
-    "operationId": "reset_workspaces__wid__model_reset_post",
+    "operationId": "reset_api_v1_workspaces__wid__model_reset_post",
     "parameters": [
      {
       "in": "path",
@@ -12981,9 +14318,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/select": {
+  "/api/v1/workspaces/{wid}/model/select": {
    "put": {
-    "operationId": "select_workspaces__wid__model_select_put",
+    "operationId": "select_api_v1_workspaces__wid__model_select_put",
     "parameters": [
      {
       "in": "path",
@@ -13065,10 +14402,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/uncertainty": {
+  "/api/v1/workspaces/{wid}/model/uncertainty": {
    "post": {
     "description": "Nejistota modelu – bootstrap reziduí (n refitů) – úloha.",
-    "operationId": "uncertainty_workspaces__wid__model_uncertainty_post",
+    "operationId": "uncertainty_api_v1_workspaces__wid__model_uncertainty_post",
     "parameters": [
      {
       "in": "path",
@@ -13150,10 +14487,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/model/validation": {
+  "/api/v1/workspaces/{wid}/model/validation": {
    "get": {
     "description": "Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace\ns MV (ccf) s mezí `bound`, hodnocení.",
-    "operationId": "validation_workspaces__wid__model_validation_get",
+    "operationId": "validation_api_v1_workspaces__wid__model_validation_get",
     "parameters": [
      {
       "in": "path",
@@ -13225,10 +14562,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/opc/history": {
+  "/api/v1/workspaces/{wid}/opc/history": {
    "post": {
     "description": "Historie vybraných uzlů (úloha) → data pracovního prostoru (nový projekt s jednou smyčkou).",
-    "operationId": "history_workspaces__wid__opc_history_post",
+    "operationId": "history_api_v1_workspaces__wid__opc_history_post",
     "parameters": [
      {
       "in": "path",
@@ -13310,10 +14647,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/preview": {
+  "/api/v1/workspaces/{wid}/preview": {
    "get": {
     "description": "Tabulka po převzorkování po částech (Celý náhled): filtr řádků, od času `t` [s] (přepíše `offset`).",
-    "operationId": "preview_workspaces__wid__preview_get",
+    "operationId": "preview_api_v1_workspaces__wid__preview_get",
     "parameters": [
      {
       "in": "path",
@@ -13438,10 +14775,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/preview/csv": {
+  "/api/v1/workspaces/{wid}/preview/csv": {
    "get": {
     "description": "Celá tabulka po převzorkování jako CSV (středník, desetinná čárka).",
-    "operationId": "preview_csv_workspaces__wid__preview_csv_get",
+    "operationId": "preview_csv_api_v1_workspaces__wid__preview_csv_get",
     "parameters": [
      {
       "in": "path",
@@ -13511,10 +14848,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/project": {
+  "/api/v1/workspaces/{wid}/project": {
    "get": {
     "description": "Projekt jako soubor JSON (všechny smyčky; s daty, nebo bez nich).",
-    "operationId": "save_workspaces__wid__project_get",
+    "operationId": "save_api_v1_workspaces__wid__project_get",
     "parameters": [
      {
       "in": "path",
@@ -13593,7 +14930,7 @@
    },
    "put": {
     "description": "Načtení projektu (i starší verze); projekt bez dat použije data, která jsou v prostoru načtená.",
-    "operationId": "load_workspaces__wid__project_put",
+    "operationId": "load_api_v1_workspaces__wid__project_put",
     "parameters": [
      {
       "in": "path",
@@ -13675,10 +15012,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/quality": {
+  "/api/v1/workspaces/{wid}/quality": {
    "get": {
     "description": "Kvalita dat úseku (výchozí: úsek identifikace).",
-    "operationId": "quality_workspaces__wid__quality_get",
+    "operationId": "quality_api_v1_workspaces__wid__quality_get",
     "parameters": [
      {
       "in": "path",
@@ -13782,9 +15119,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/range": {
+  "/api/v1/workspaces/{wid}/range": {
    "put": {
-    "operationId": "set_range_workspaces__wid__range_put",
+    "operationId": "set_range_api_v1_workspaces__wid__range_put",
     "parameters": [
      {
       "in": "path",
@@ -13866,10 +15203,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/report": {
+  "/api/v1/workspaces/{wid}/report": {
    "post": {
     "description": "Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.",
-    "operationId": "report_workspaces__wid__report_post",
+    "operationId": "report_api_v1_workspaces__wid__report_post",
     "parameters": [
      {
       "in": "path",
@@ -13947,9 +15284,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/scenario": {
+  "/api/v1/workspaces/{wid}/scenario": {
    "get": {
-    "operationId": "get_scenario_workspaces__wid__scenario_get",
+    "operationId": "get_scenario_api_v1_workspaces__wid__scenario_get",
     "parameters": [
      {
       "in": "path",
@@ -14022,7 +15359,7 @@
    },
    "put": {
     "description": "Druh scénáře (předvolba), vlastní události [[čas, vstup, …]], SP z → na, délka simulace.",
-    "operationId": "set_scenario_workspaces__wid__scenario_put",
+    "operationId": "set_scenario_api_v1_workspaces__wid__scenario_put",
     "parameters": [
      {
       "in": "path",
@@ -14104,10 +15441,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/settings": {
+  "/api/v1/workspaces/{wid}/settings": {
    "get": {
     "description": "Nastavení smyčky (klíče jako v projektu).",
-    "operationId": "get_settings_workspaces__wid__settings_get",
+    "operationId": "get_settings_api_v1_workspaces__wid__settings_get",
     "parameters": [
      {
       "in": "path",
@@ -14157,7 +15494,7 @@
        "application/json": {
         "schema": {
          "additionalProperties": true,
-         "title": "Response Get Settings Workspaces  Wid  Settings Get",
+         "title": "Response Get Settings Api V1 Workspaces  Wid  Settings Get",
          "type": "object"
         }
        }
@@ -14182,7 +15519,7 @@
    },
    "patch": {
     "description": "Změna nastavení – jen klíče, které patří do projektu (app.project.is_state_key).",
-    "operationId": "patch_settings_workspaces__wid__settings_patch",
+    "operationId": "patch_settings_api_v1_workspaces__wid__settings_patch",
     "parameters": [
      {
       "in": "path",
@@ -14244,7 +15581,7 @@
        "application/json": {
         "schema": {
          "additionalProperties": true,
-         "title": "Response Patch Settings Workspaces  Wid  Settings Patch",
+         "title": "Response Patch Settings Api V1 Workspaces  Wid  Settings Patch",
          "type": "object"
         }
        }
@@ -14268,10 +15605,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/signals": {
+  "/api/v1/workspaces/{wid}/signals": {
    "get": {
     "description": "Signály binárně. raw = ze souboru bez převzorkování (všechny, nebo `names`); grid = převzorkované na periodu\nsmyčky (pv, mv, sp, d0, d1 …, valid) – na nich běží identifikace.",
-    "operationId": "signals_workspaces__wid__signals_get",
+    "operationId": "signals_api_v1_workspaces__wid__signals_get",
     "parameters": [
      {
       "in": "path",
@@ -14383,10 +15720,173 @@
     ]
    }
   },
-  "/workspaces/{wid}/simulate": {
+  "/api/v1/workspaces/{wid}/signals/trend": {
+   "get": {
+    "description": "Signály všech zdrojů na společné ose [s od nejdřívějšího zdroje]: zředěné na min / max po skupinách (špičky\nzůstanou), statistika v úseku `a`–`b` a hodnoty v časech kurzorů `at` (interpolace, v mezeře `null`).",
+    "operationId": "signals_trend_api_v1_workspaces__wid__signals_trend_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "`zdroj:sloupec`; bez zadání všechny",
+      "in": "query",
+      "name": "names",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "items": {
+          "type": "string"
+         },
+         "type": "array"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "`zdroj:sloupec`; bez zadání všechny",
+       "title": "Names"
+      }
+     },
+     {
+      "in": "query",
+      "name": "a",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "A"
+      }
+     },
+     {
+      "in": "query",
+      "name": "b",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "B"
+      }
+     },
+     {
+      "description": "skupin pro zředění",
+      "in": "query",
+      "name": "n",
+      "required": false,
+      "schema": {
+       "default": 1000,
+       "description": "skupin pro zředění",
+       "maximum": 20000,
+       "minimum": 10,
+       "title": "N",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "časy kurzorů [s]",
+      "in": "query",
+      "name": "at",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "items": {
+          "type": "number"
+         },
+         "type": "array"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "časy kurzorů [s]",
+       "title": "At"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Trend"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Signals Trend",
+    "tags": [
+     "sources"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/simulate": {
    "post": {
     "description": "Simulace scénáře se sadou 1 a 2 (a návrhem `preview`): ukazatele odezvy.",
-    "operationId": "simulate_workspaces__wid__simulate_post",
+    "operationId": "simulate_api_v1_workspaces__wid__simulate_post",
     "parameters": [
      {
       "in": "path",
@@ -14468,9 +15968,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/simulate/curves": {
+  "/api/v1/workspaces/{wid}/simulate/curves": {
    "post": {
-    "operationId": "simulate_curves_workspaces__wid__simulate_curves_post",
+    "operationId": "simulate_curves_api_v1_workspaces__wid__simulate_curves_post",
     "parameters": [
      {
       "in": "path",
@@ -14548,9 +16048,756 @@
     ]
    }
   },
-  "/workspaces/{wid}/tuning": {
+  "/api/v1/workspaces/{wid}/sources": {
    "get": {
-    "operationId": "info_workspaces__wid__tuning_get",
+    "description": "Zdroje dat projektu s časovými údaji, použitím ve smyčkách, společným úsekem a druhy zdrojů z registru.",
+    "operationId": "list_sources_api_v1_workspaces__wid__sources_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Sources"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "List Sources",
+    "tags": [
+     "sources"
+    ]
+   },
+   "post": {
+    "description": "Nový zdroj ze souboru (tělo požadavku; druh podle přípony, nebo `kind`) s volbami čtení a časovými údaji.",
+    "operationId": "add_source_api_v1_workspaces__wid__sources_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "file name (extension)",
+      "in": "query",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "description": "file name (extension)",
+       "title": "Name",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "kind",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Kind"
+      }
+     },
+     {
+      "in": "query",
+      "name": "layout",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Layout"
+      }
+     },
+     {
+      "in": "query",
+      "name": "time_fmt",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Time Fmt"
+      }
+     },
+     {
+      "in": "query",
+      "name": "unit",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Unit"
+      }
+     },
+     {
+      "in": "query",
+      "name": "c_time",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "C Time"
+      }
+     },
+     {
+      "in": "query",
+      "name": "c_tag",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "C Tag"
+      }
+     },
+     {
+      "in": "query",
+      "name": "c_val",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "C Val"
+      }
+     },
+     {
+      "in": "query",
+      "name": "row_dt",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Row Dt"
+      }
+     },
+     {
+      "in": "query",
+      "name": "timezone",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Timezone"
+      }
+     },
+     {
+      "in": "query",
+      "name": "offset_s",
+      "required": false,
+      "schema": {
+       "default": 0.0,
+       "title": "Offset S",
+       "type": "number"
+      }
+     },
+     {
+      "in": "query",
+      "name": "sampling_s",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Sampling S"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/octet-stream": {
+       "schema": {
+        "format": "binary",
+        "type": "string"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SourceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Add Source",
+    "tags": [
+     "sources"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/sources/{sid}": {
+   "delete": {
+    "description": "Odebere zdroj, který nepoužívá žádná role smyčky (jinak 409).",
+    "operationId": "delete_source_api_v1_workspaces__wid__sources__sid__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Source",
+    "tags": [
+     "sources"
+    ]
+   },
+   "get": {
+    "operationId": "get_source_api_v1_workspaces__wid__sources__sid__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SourceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Source",
+    "tags": [
+     "sources"
+    ]
+   },
+   "patch": {
+    "description": "Časové pásmo (IANA), posun [s], vlastní vzorkování [s], název a čtení tabulky; smyčky ze zdroje se přeskládají.",
+    "operationId": "patch_source_api_v1_workspaces__wid__sources__sid__patch",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SourcePatch"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SourceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Patch Source",
+    "tags": [
+     "sources"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/time-grid": {
+   "get": {
+    "operationId": "get_time_grid_api_v1_workspaces__wid__time_grid_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TimeGridBody"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Time Grid",
+    "tags": [
+     "sources"
+    ]
+   },
+   "put": {
+    "description": "Společná mřížka: překryv / sjednocení, ruční perioda vzorkování, práh mezery; smyčky se přeskládají.",
+    "operationId": "put_time_grid_api_v1_workspaces__wid__time_grid_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TimeGridBody"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TimeGridBody"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Time Grid",
+    "tags": [
+     "sources"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/tuning": {
+   "get": {
+    "operationId": "info_api_v1_workspaces__wid__tuning_get",
     "parameters": [
      {
       "in": "path",
@@ -14622,10 +16869,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/tuning/compare": {
+  "/api/v1/workspaces/{wid}/tuning/compare": {
    "post": {
     "description": "Porovnání všech metod a kritérií pro PI i PID (úloha; výsledek: GET /jobs/{id}/result).",
-    "operationId": "compare_workspaces__wid__tuning_compare_post",
+    "operationId": "compare_api_v1_workspaces__wid__tuning_compare_post",
     "parameters": [
      {
       "in": "path",
@@ -14697,10 +16944,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/tuning/sets/{n}": {
+  "/api/v1/workspaces/{wid}/tuning/sets/{n}": {
    "put": {
     "description": "Parametry do sady 1 (současné nastavení) nebo 2 (nové); log = záznam do historie ladění.",
-    "operationId": "write_set_workspaces__wid__tuning_sets__n__put",
+    "operationId": "write_set_api_v1_workspaces__wid__tuning_sets__n__put",
     "parameters": [
      {
       "in": "path",
@@ -14791,10 +17038,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/tuning/suggest": {
+  "/api/v1/workspaces/{wid}/tuning/suggest": {
    "post": {
     "description": "Návrh ladění metodou (výchozí: metoda uložená u modelu) s upozorněními a kontrolami věrohodnosti.",
-    "operationId": "suggest_workspaces__wid__tuning_suggest_post",
+    "operationId": "suggest_api_v1_workspaces__wid__tuning_suggest_post",
     "parameters": [
      {
       "in": "path",
@@ -14876,9 +17123,9 @@
     ]
    }
   },
-  "/workspaces/{wid}/windows": {
+  "/api/v1/workspaces/{wid}/windows": {
    "get": {
-    "operationId": "get_windows_workspaces__wid__windows_get",
+    "operationId": "get_windows_api_v1_workspaces__wid__windows_get",
     "parameters": [
      {
       "in": "path",
@@ -14951,7 +17198,7 @@
    },
    "put": {
     "description": "Úseky podle vstupů {vstup: [[od, do] s]} (MV a měřené poruchy), vyřazení dat {signál: [zap, min, max]}.",
-    "operationId": "set_windows_workspaces__wid__windows_put",
+    "operationId": "set_windows_api_v1_workspaces__wid__windows_put",
     "parameters": [
      {
       "in": "path",
@@ -15033,10 +17280,10 @@
     ]
    }
   },
-  "/workspaces/{wid}/windows/mode": {
+  "/api/v1/workspaces/{wid}/windows/mode": {
    "put": {
     "description": "Režim úseku MV (ručně / AUTO) pro kombinovanou identifikaci.",
-    "operationId": "set_mv_mode_workspaces__wid__windows_mode_put",
+    "operationId": "set_mv_mode_api_v1_workspaces__wid__windows_mode_put",
     "parameters": [
      {
       "in": "path",

@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 
 declare const process: { env: Record<string, string | undefined> };   // běží v Node (bez @types/node)
 const API = process.env.PID_API ?? "http://127.0.0.1:8765";
-const proxied = ["/health", "/i18n", "/workspaces", "/jobs", "/opc", "/fonts"];
+const proxied = ["/api", "/health", "/fonts"];
 
 export default defineConfig({
   plugins: [react()],

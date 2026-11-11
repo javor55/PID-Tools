@@ -25,7 +25,8 @@ function readToken(): string | null {
 
 let token: string | null = typeof window !== "undefined" ? readToken() : null;
 let lang = "en";
-const base = (typeof window !== "undefined" && window.__PID__?.api) || "";
+// Stabilní cesty API mají prefix /api/v1 (cesty bez prefixu jsou jen dočasný alias pro starší klienty).
+const base = ((typeof window !== "undefined" && window.__PID__?.api) || "") + "/api/v1";
 
 export function setLang(l: string) { lang = l; }
 export function setToken(t: string | null) { token = t; }

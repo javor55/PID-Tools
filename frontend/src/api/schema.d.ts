@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/health": {
+    "/api/v1/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,7 +12,7 @@ export interface paths {
             cookie?: never;
         };
         /** Health */
-        get: operations["health_health_get"];
+        get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -21,7 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/i18n/{lang}": {
+    "/api/v1/i18n/{lang}": {
         parameters: {
             query?: never;
             header?: never;
@@ -29,7 +29,7 @@ export interface paths {
             cookie?: never;
         };
         /** Texts */
-        get: operations["texts_i18n__lang__get"];
+        get: operations["texts_api_v1_i18n__lang__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -38,7 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}": {
+    "/api/v1/jobs/{jid}": {
         parameters: {
             query?: never;
             header?: never;
@@ -46,7 +46,7 @@ export interface paths {
             cookie?: never;
         };
         /** Job Get */
-        get: operations["job_get_jobs__jid__get"];
+        get: operations["job_get_api_v1_jobs__jid__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -55,7 +55,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}/cancel": {
+    "/api/v1/jobs/{jid}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -65,14 +65,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Job Cancel */
-        post: operations["job_cancel_jobs__jid__cancel_post"];
+        post: operations["job_cancel_api_v1_jobs__jid__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}/events": {
+    "/api/v1/jobs/{jid}/events": {
         parameters: {
             query?: never;
             header?: never;
@@ -83,7 +83,7 @@ export interface paths {
          * Job Events
          * @description Průběh úlohy jako server-sent events (JobInfo při každé změně, konec u hotové / zrušené úlohy).
          */
-        get: operations["job_events_jobs__jid__events_get"];
+        get: operations["job_events_api_v1_jobs__jid__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -92,7 +92,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}/result": {
+    "/api/v1/jobs/{jid}/result": {
         parameters: {
             query?: never;
             header?: never;
@@ -103,7 +103,7 @@ export interface paths {
          * Job Result
          * @description Výsledek hotové úlohy jako JSON (u úloh nad pracovním prostorem jen vrácená hodnota metody).
          */
-        get: operations["job_result_jobs__jid__result_get"];
+        get: operations["job_result_api_v1_jobs__jid__result_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -112,7 +112,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/opc/available": {
+    "/api/v1/opc/available": {
         parameters: {
             query?: never;
             header?: never;
@@ -120,7 +120,7 @@ export interface paths {
             cookie?: never;
         };
         /** Available */
-        get: operations["available_opc_available_get"];
+        get: operations["available_api_v1_opc_available_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -129,7 +129,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/opc/browse": {
+    "/api/v1/opc/browse": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,14 +142,14 @@ export interface paths {
          * Browse
          * @description Podřízené uzly (výchozí: složka Objects).
          */
-        post: operations["browse_opc_browse_post"];
+        post: operations["browse_api_v1_opc_browse_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/opc/find": {
+    "/api/v1/opc/find": {
         parameters: {
             query?: never;
             header?: never;
@@ -162,14 +162,14 @@ export interface paths {
          * Find
          * @description Proměnné, jejichž cesta obsahuje text (např. „FIC101“).
          */
-        post: operations["find_opc_find_post"];
+        post: operations["find_api_v1_opc_find_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/pending-open": {
+    "/api/v1/pending-open": {
         parameters: {
             query?: never;
             header?: never;
@@ -180,12 +180,12 @@ export interface paths {
          * Take Pending
          * @description Vyzvedne čekající projekt (a vyprázdní místo); 204, když žádný není.
          */
-        get: operations["take_pending_pending_open_get"];
+        get: operations["take_pending_api_v1_pending_open_get"];
         /**
          * Put Pending
          * @description Uloží soubor projektu (obsah JSON) k otevření; kontroluje se až při otevření v prostoru.
          */
-        put: operations["put_pending_pending_open_put"];
+        put: operations["put_pending_api_v1_pending_open_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -193,7 +193,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces": {
+    "/api/v1/workspaces": {
         parameters: {
             query?: never;
             header?: never;
@@ -203,14 +203,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ws Create */
-        post: operations["ws_create_workspaces_post"];
+        post: operations["ws_create_api_v1_workspaces_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}": {
+    "/api/v1/workspaces/{wid}": {
         parameters: {
             query?: never;
             header?: never;
@@ -218,17 +218,17 @@ export interface paths {
             cookie?: never;
         };
         /** Ws Get */
-        get: operations["ws_get_workspaces__wid__get"];
+        get: operations["ws_get_api_v1_workspaces__wid__get"];
         put?: never;
         post?: never;
         /** Ws Delete */
-        delete: operations["ws_delete_workspaces__wid__delete"];
+        delete: operations["ws_delete_api_v1_workspaces__wid__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade": {
+    "/api/v1/workspaces/{wid}/apc/cascade": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,7 +239,7 @@ export interface paths {
          * Cascade Get
          * @description Kaskáda (aktivní smyčka = vnější): zdroj modelu vnitřní smyčky, ladění obou smyček, oddělení rychlostí.
          */
-        get: operations["cascade_get_workspaces__wid__apc_cascade_get"];
+        get: operations["cascade_get_api_v1_workspaces__wid__apc_cascade_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -248,7 +248,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/fit": {
+    "/api/v1/workspaces/{wid}/apc/cascade/fit": {
         parameters: {
             query?: never;
             header?: never;
@@ -261,14 +261,14 @@ export interface paths {
          * Cascade Fit
          * @description Model vnitřní smyčky z dat (úloha, P1D / P2D); výsledek se uloží, dále GET /apc/cascade (zdroj data).
          */
-        post: operations["cascade_fit_workspaces__wid__apc_cascade_fit_post"];
+        post: operations["cascade_fit_api_v1_workspaces__wid__apc_cascade_fit_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/reset": {
+    "/api/v1/workspaces/{wid}/apc/cascade/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -281,14 +281,14 @@ export interface paths {
          * Cascade Reset
          * @description Původní hodnoty: ruční model (K, T1, T2, θ), ladění vnitřní smyčky (SampleTime, τc) nebo vnější (τc).
          */
-        post: operations["cascade_reset_workspaces__wid__apc_cascade_reset_post"];
+        post: operations["cascade_reset_api_v1_workspaces__wid__apc_cascade_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/simulate": {
+    "/api/v1/workspaces/{wid}/apc/cascade/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -301,14 +301,14 @@ export interface paths {
          * Cascade Simulate
          * @description Skok SP vnější smyčky a poruchy obou smyček: stabilita, doba odezvy vnitřní smyčky, IAE vnější smyčky.
          */
-        post: operations["cascade_simulate_workspaces__wid__apc_cascade_simulate_post"];
+        post: operations["cascade_simulate_api_v1_workspaces__wid__apc_cascade_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/cascade/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -318,14 +318,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Cascade Curves */
-        post: operations["cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post"];
+        post: operations["cascade_curves_api_v1_workspaces__wid__apc_cascade_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/decouple": {
+    "/api/v1/workspaces/{wid}/apc/decouple": {
         parameters: {
             query?: never;
             header?: never;
@@ -336,7 +336,7 @@ export interface paths {
          * Dec Get
          * @description Rozvazbení 2×2 s druhou smyčkou projektu: RGA, parametry decouplerů pro PCS 7.
          */
-        get: operations["dec_get_workspaces__wid__apc_decouple_get"];
+        get: operations["dec_get_api_v1_workspaces__wid__apc_decouple_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -345,7 +345,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/decouple/simulate": {
+    "/api/v1/workspaces/{wid}/apc/decouple/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -358,14 +358,14 @@ export interface paths {
          * Dec Simulate
          * @description Změny SP obou smyček bez rozvazbení, se statickými a s dynamickými decouplery: IAE v jednotkách PV.
          */
-        post: operations["dec_simulate_workspaces__wid__apc_decouple_simulate_post"];
+        post: operations["dec_simulate_api_v1_workspaces__wid__apc_decouple_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/decouple/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/decouple/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,14 +375,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Dec Curves */
-        post: operations["dec_curves_workspaces__wid__apc_decouple_simulate_curves_post"];
+        post: operations["dec_curves_api_v1_workspaces__wid__apc_decouple_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff": {
+    "/api/v1/workspaces/{wid}/apc/ff": {
         parameters: {
             query?: never;
             header?: never;
@@ -393,12 +393,12 @@ export interface paths {
          * Ff Get
          * @description Dopředná vazba po měřených poruchách: nastavení, návrh podle modelu, hodnoty pro PIDConL.
          */
-        get: operations["ff_get_workspaces__wid__apc_ff_get"];
+        get: operations["ff_get_api_v1_workspaces__wid__apc_ff_get"];
         /**
          * Ff Put
          * @description Nastavení poruch po pořadí (částečné; null = beze změny) → ws.ff_state, čte ho i ladění.
          */
-        put: operations["ff_put_workspaces__wid__apc_ff_put"];
+        put: operations["ff_put_api_v1_workspaces__wid__apc_ff_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -406,7 +406,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff/reset": {
+    "/api/v1/workspaces/{wid}/apc/ff/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -419,14 +419,14 @@ export interface paths {
          * Ff Reset
          * @description Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou).
          */
-        post: operations["ff_reset_workspaces__wid__apc_ff_reset_post"];
+        post: operations["ff_reset_api_v1_workspaces__wid__apc_ff_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff/simulate": {
+    "/api/v1/workspaces/{wid}/apc/ff/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -439,14 +439,14 @@ export interface paths {
          * Ff Simulate
          * @description Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV.
          */
-        post: operations["ff_simulate_workspaces__wid__apc_ff_simulate_post"];
+        post: operations["ff_simulate_api_v1_workspaces__wid__apc_ff_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/ff/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -456,14 +456,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ff Curves */
-        post: operations["ff_curves_workspaces__wid__apc_ff_simulate_curves_post"];
+        post: operations["ff_curves_api_v1_workspaces__wid__apc_ff_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched": {
+    "/api/v1/workspaces/{wid}/apc/gainsched": {
         parameters: {
             query?: never;
             header?: never;
@@ -474,7 +474,7 @@ export interface paths {
          * Gs Get
          * @description Gain scheduling podle PV: úseky bodů, identifikované body, ladění v bodech, tabulka pro GainSched.
          */
-        get: operations["gs_get_workspaces__wid__apc_gainsched_get"];
+        get: operations["gs_get_api_v1_workspaces__wid__apc_gainsched_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -483,7 +483,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/auto": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/auto": {
         parameters: {
             query?: never;
             header?: never;
@@ -496,14 +496,14 @@ export interface paths {
          * Gs Auto
          * @description Úseky bodů znovu z automatického návrhu (do gs_r1 …); body zůstanou, ale označí se jako zastaralé.
          */
-        post: operations["gs_auto_workspaces__wid__apc_gainsched_auto_post"];
+        post: operations["gs_auto_api_v1_workspaces__wid__apc_gainsched_auto_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/fit": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/fit": {
         parameters: {
             query?: never;
             header?: never;
@@ -516,14 +516,14 @@ export interface paths {
          * Gs Fit
          * @description Identifikace modelu v úsecích bodů (úloha); úseky se uloží do gs_r*, body do gs_pts / gs_key.
          */
-        post: operations["gs_fit_workspaces__wid__apc_gainsched_fit_post"];
+        post: operations["gs_fit_api_v1_workspaces__wid__apc_gainsched_fit_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/reset": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -536,14 +536,14 @@ export interface paths {
          * Gs Reset
          * @description Původní hodnoty ladění bodů: násobek τc = 1, Ms = 1,6.
          */
-        post: operations["gs_reset_workspaces__wid__apc_gainsched_reset_post"];
+        post: operations["gs_reset_api_v1_workspaces__wid__apc_gainsched_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/simulate": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -556,14 +556,14 @@ export interface paths {
          * Gs Simulate
          * @description Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling.
          */
-        post: operations["gs_simulate_workspaces__wid__apc_gainsched_simulate_post"];
+        post: operations["gs_simulate_api_v1_workspaces__wid__apc_gainsched_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -573,14 +573,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Gs Curves */
-        post: operations["gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post"];
+        post: operations["gs_curves_api_v1_workspaces__wid__apc_gainsched_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er": {
         parameters: {
             query?: never;
             header?: never;
@@ -591,7 +591,7 @@ export interface paths {
          * Er Get
          * @description Gain scheduling podle ER: vstupy (gs_er_*), největší bezpečný násobek k, tabulka pro GainSched.
          */
-        get: operations["er_get_workspaces__wid__apc_gainsched_er_get"];
+        get: operations["er_get_api_v1_workspaces__wid__apc_gainsched_er_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -600,7 +600,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er/reset": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -613,14 +613,14 @@ export interface paths {
          * Er Reset
          * @description Původní hodnoty: práh E = 5 % rozsahu PV, k = 2, skok SP = 20 % rozsahu PV, porucha 10 %.
          */
-        post: operations["er_reset_workspaces__wid__apc_gainsched_er_reset_post"];
+        post: operations["er_reset_api_v1_workspaces__wid__apc_gainsched_er_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er/simulate": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -634,14 +634,14 @@ export interface paths {
          * @description Skok SP a porucha: jedna sada vs. scheduling podle ER vs. nejlepší řídicí pásmo ConZone (výpočet ~2 s,
          *     stejné vstupy se nepočítají znovu).
          */
-        post: operations["er_simulate_workspaces__wid__apc_gainsched_er_simulate_post"];
+        post: operations["er_simulate_api_v1_workspaces__wid__apc_gainsched_er_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -651,14 +651,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Er Curves */
-        post: operations["er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post"];
+        post: operations["er_curves_api_v1_workspaces__wid__apc_gainsched_er_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/override": {
+    "/api/v1/workspaces/{wid}/apc/override": {
         parameters: {
             query?: never;
             header?: never;
@@ -669,7 +669,7 @@ export interface paths {
          * Ov Get
          * @description Override s druhou smyčkou projektu: výchozí scénář (skok SP hlavní smyčky, mez omezující smyčky).
          */
-        get: operations["ov_get_workspaces__wid__apc_override_get"];
+        get: operations["ov_get_api_v1_workspaces__wid__apc_override_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -678,7 +678,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/override/simulate": {
+    "/api/v1/workspaces/{wid}/apc/override/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -691,14 +691,14 @@ export interface paths {
          * Ov Simulate
          * @description Simulace s výběrem MIN / MAX a bez něj; skok a mez chybějící v těle = výchozí scénář.
          */
-        post: operations["ov_simulate_workspaces__wid__apc_override_simulate_post"];
+        post: operations["ov_simulate_api_v1_workspaces__wid__apc_override_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/override/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/override/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -708,14 +708,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ov Curves */
-        post: operations["ov_curves_workspaces__wid__apc_override_simulate_curves_post"];
+        post: operations["ov_curves_api_v1_workspaces__wid__apc_override_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio": {
+    "/api/v1/workspaces/{wid}/apc/ratio": {
         parameters: {
             query?: never;
             header?: never;
@@ -726,7 +726,7 @@ export interface paths {
          * Ratio Get
          * @description Poměrová regulace: výchozí vstupy, zdroje modelu vzduchu (ostatní smyčky) a model vzduchu.
          */
-        get: operations["ratio_get_workspaces__wid__apc_ratio_get"];
+        get: operations["ratio_get_api_v1_workspaces__wid__apc_ratio_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -735,7 +735,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio/design": {
+    "/api/v1/workspaces/{wid}/apc/ratio/design": {
         parameters: {
             query?: never;
             header?: never;
@@ -748,14 +748,14 @@ export interface paths {
          * Ratio Design
          * @description Model vzduchu (zadaný / výchozí / z jiné smyčky), implementace a kontroly pro zadané vstupy.
          */
-        post: operations["ratio_design_workspaces__wid__apc_ratio_design_post"];
+        post: operations["ratio_design_api_v1_workspaces__wid__apc_ratio_design_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio/simulate": {
+    "/api/v1/workspaces/{wid}/apc/ratio/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -768,14 +768,14 @@ export interface paths {
          * Ratio Simulate
          * @description Skok požadavku výkonu s křížovým omezením a bez: nejmenší λ, čas s λ < 1, IAE paliva.
          */
-        post: operations["ratio_simulate_workspaces__wid__apc_ratio_simulate_post"];
+        post: operations["ratio_simulate_api_v1_workspaces__wid__apc_ratio_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/ratio/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -785,14 +785,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ratio Curves */
-        post: operations["ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post"];
+        post: operations["ratio_curves_api_v1_workspaces__wid__apc_ratio_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/recommend": {
+    "/api/v1/workspaces/{wid}/apc/recommend": {
         parameters: {
             query?: never;
             header?: never;
@@ -803,7 +803,7 @@ export interface paths {
          * Recommend
          * @description Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).
          */
-        get: operations["recommend_workspaces__wid__apc_recommend_get"];
+        get: operations["recommend_api_v1_workspaces__wid__apc_recommend_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -812,7 +812,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/rga": {
+    "/api/v1/workspaces/{wid}/apc/rga": {
         parameters: {
             query?: never;
             header?: never;
@@ -823,7 +823,7 @@ export interface paths {
          * Rga Get
          * @description Interakce N×N: matice zesílení, RGA, Niederlinskiho index a doporučené párování ze smyček projektu.
          */
-        get: operations["rga_get_workspaces__wid__apc_rga_get"];
+        get: operations["rga_get_api_v1_workspaces__wid__apc_rga_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -832,7 +832,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith": {
+    "/api/v1/workspaces/{wid}/apc/smith": {
         parameters: {
             query?: never;
             header?: never;
@@ -843,7 +843,7 @@ export interface paths {
          * Smith Get
          * @description Smithův prediktor: vstupy (z nastavení), regulátor, pracovní bod, hodnoty pro šablonu.
          */
-        get: operations["smith_get_workspaces__wid__apc_smith_get"];
+        get: operations["smith_get_api_v1_workspaces__wid__apc_smith_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -852,7 +852,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith/optimize": {
+    "/api/v1/workspaces/{wid}/apc/smith/optimize": {
         parameters: {
             query?: never;
             header?: never;
@@ -865,14 +865,14 @@ export interface paths {
          * Smith Optimize
          * @description Robustní optimalizace regulátoru prediktoru (úloha); výsledek se uloží, dále GET /apc/smith.
          */
-        post: operations["smith_optimize_workspaces__wid__apc_smith_optimize_post"];
+        post: operations["smith_optimize_api_v1_workspaces__wid__apc_smith_optimize_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith/simulate": {
+    "/api/v1/workspaces/{wid}/apc/smith/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -885,14 +885,14 @@ export interface paths {
          * Smith Simulate
          * @description Skok SP a porucha na vstupu: PID (sada 2) vs. Smith na procesu s chybou modelu (ek, et, eth [%]).
          */
-        post: operations["smith_simulate_workspaces__wid__apc_smith_simulate_post"];
+        post: operations["smith_simulate_api_v1_workspaces__wid__apc_smith_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/smith/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -902,14 +902,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Smith Curves */
-        post: operations["smith_curves_workspaces__wid__apc_smith_simulate_curves_post"];
+        post: operations["smith_curves_api_v1_workspaces__wid__apc_smith_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split": {
+    "/api/v1/workspaces/{wid}/apc/split": {
         parameters: {
             query?: never;
             header?: never;
@@ -920,7 +920,7 @@ export interface paths {
          * Split Get
          * @description Split range: výchozí vstupy (model ventilu A podle režimu a b0) a vyvážený bod rozdělení, poloviny rozsahu.
          */
-        get: operations["split_get_workspaces__wid__apc_split_get"];
+        get: operations["split_get_api_v1_workspaces__wid__apc_split_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -929,7 +929,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split/design": {
+    "/api/v1/workspaces/{wid}/apc/split/design": {
         parameters: {
             query?: never;
             header?: never;
@@ -942,14 +942,14 @@ export interface paths {
          * Split Design
          * @description Výsledky pro zadané vstupy: b*, zesílení a Ms obou polovin teď / s b*, hodnoty pro šablonu.
          */
-        post: operations["split_design_workspaces__wid__apc_split_design_post"];
+        post: operations["split_design_api_v1_workspaces__wid__apc_split_design_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split/simulate": {
+    "/api/v1/workspaces/{wid}/apc/split/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -962,14 +962,14 @@ export interface paths {
          * Split Simulate
          * @description Skok SP přes bod rozdělení se současným a vyváženým rozdělením: IAE, max. odchylka PV, změny směru.
          */
-        post: operations["split_simulate_workspaces__wid__apc_split_simulate_post"];
+        post: operations["split_simulate_api_v1_workspaces__wid__apc_split_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/split/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -979,14 +979,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Split Curves */
-        post: operations["split_curves_workspaces__wid__apc_split_simulate_curves_post"];
+        post: operations["split_curves_api_v1_workspaces__wid__apc_split_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc": {
+    "/api/v1/workspaces/{wid}/apc/vpc": {
         parameters: {
             query?: never;
             header?: never;
@@ -997,7 +997,7 @@ export interface paths {
          * Vpc Get
          * @description Regulace polohy ventilu: výchozí vstupy (model MV2) a návrh PI regulátoru VPC.
          */
-        get: operations["vpc_get_workspaces__wid__apc_vpc_get"];
+        get: operations["vpc_get_api_v1_workspaces__wid__apc_vpc_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1006,7 +1006,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc/design": {
+    "/api/v1/workspaces/{wid}/apc/vpc/design": {
         parameters: {
             query?: never;
             header?: never;
@@ -1019,14 +1019,14 @@ export interface paths {
          * Vpc Design
          * @description Návrh regulátoru VPC pro zadaný model MV2, SP a násobek τc.
          */
-        post: operations["vpc_design_workspaces__wid__apc_vpc_design_post"];
+        post: operations["vpc_design_api_v1_workspaces__wid__apc_vpc_design_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc/simulate": {
+    "/api/v1/workspaces/{wid}/apc/vpc/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1039,14 +1039,14 @@ export interface paths {
          * Vpc Simulate
          * @description Skokové zatížení s VPC a bez něj: IAE PV, čas MV1 v limitu, rezerva MV1.
          */
-        post: operations["vpc_simulate_workspaces__wid__apc_vpc_simulate_post"];
+        post: operations["vpc_simulate_api_v1_workspaces__wid__apc_vpc_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/vpc/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -1056,14 +1056,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Vpc Curves */
-        post: operations["vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post"];
+        post: operations["vpc_curves_api_v1_workspaces__wid__apc_vpc_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/audit/analyse": {
+    "/api/v1/workspaces/{wid}/audit/analyse": {
         parameters: {
             query?: never;
             header?: never;
@@ -1076,14 +1076,14 @@ export interface paths {
          * Analyse
          * @description Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci.
          */
-        post: operations["analyse_workspaces__wid__audit_analyse_post"];
+        post: operations["analyse_api_v1_workspaces__wid__audit_analyse_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/audit/loops": {
+    "/api/v1/workspaces/{wid}/audit/loops": {
         parameters: {
             query?: never;
             header?: never;
@@ -1094,7 +1094,7 @@ export interface paths {
          * Audit Loops
          * @description Smyčky v souboru: uložené v projektu, jinak (nebo s `propose`) návrh z názvů tagů.
          */
-        get: operations["audit_loops_workspaces__wid__audit_loops_get"];
+        get: operations["audit_loops_api_v1_workspaces__wid__audit_loops_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1103,7 +1103,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/columns": {
+    "/api/v1/workspaces/{wid}/columns": {
         parameters: {
             query?: never;
             header?: never;
@@ -1112,7 +1112,7 @@ export interface paths {
         };
         get?: never;
         /** Set Columns */
-        put: operations["set_columns_workspaces__wid__columns_put"];
+        put: operations["set_columns_api_v1_workspaces__wid__columns_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1120,7 +1120,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/compression": {
+    "/api/v1/workspaces/{wid}/compression": {
         parameters: {
             query?: never;
             header?: never;
@@ -1131,7 +1131,7 @@ export interface paths {
          * Compression
          * @description Upozornění na kompresi historianu (nepravidelné vzorky, opakované hodnoty).
          */
-        get: operations["compression_workspaces__wid__compression_get"];
+        get: operations["compression_api_v1_workspaces__wid__compression_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1140,7 +1140,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/data/demo": {
+    "/api/v1/workspaces/{wid}/data/demo": {
         parameters: {
             query?: never;
             header?: never;
@@ -1150,14 +1150,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Load Demo */
-        post: operations["load_demo_workspaces__wid__data_demo_post"];
+        post: operations["load_demo_api_v1_workspaces__wid__data_demo_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/data/file": {
+    "/api/v1/workspaces/{wid}/data/file": {
         parameters: {
             query?: never;
             header?: never;
@@ -1170,14 +1170,14 @@ export interface paths {
          * Load File
          * @description Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`.
          */
-        post: operations["load_file_workspaces__wid__data_file_post"];
+        post: operations["load_file_api_v1_workspaces__wid__data_file_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/dataquality": {
+    "/api/v1/workspaces/{wid}/dataquality": {
         parameters: {
             query?: never;
             header?: never;
@@ -1188,7 +1188,7 @@ export interface paths {
          * Dataquality
          * @description Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení).
          */
-        get: operations["dataquality_workspaces__wid__dataquality_get"];
+        get: operations["dataquality_api_v1_workspaces__wid__dataquality_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1197,7 +1197,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/datastats": {
+    "/api/v1/workspaces/{wid}/datastats": {
         parameters: {
             query?: never;
             header?: never;
@@ -1208,7 +1208,7 @@ export interface paths {
          * Datastats
          * @description Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky).
          */
-        get: operations["datastats_workspaces__wid__datastats_get"];
+        get: operations["datastats_api_v1_workspaces__wid__datastats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1217,7 +1217,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/diagnostics": {
+    "/api/v1/workspaces/{wid}/diagnostics": {
         parameters: {
             query?: never;
             header?: never;
@@ -1229,7 +1229,7 @@ export interface paths {
          * @description Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf
          *     MV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.
          */
-        get: operations["diagnostics_workspaces__wid__diagnostics_get"];
+        get: operations["diagnostics_api_v1_workspaces__wid__diagnostics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1238,7 +1238,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/frequency": {
+    "/api/v1/workspaces/{wid}/frequency": {
         parameters: {
             query?: never;
             header?: never;
@@ -1251,14 +1251,14 @@ export interface paths {
          * Frequency
          * @description Frekvenční charakteristiky (otevřená smyčka L, citlivost S a T) pro sadu 1, 2 a návrh.
          */
-        post: operations["frequency_workspaces__wid__frequency_post"];
+        post: operations["frequency_api_v1_workspaces__wid__frequency_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/identify": {
+    "/api/v1/workspaces/{wid}/identify": {
         parameters: {
             query?: never;
             header?: never;
@@ -1271,14 +1271,14 @@ export interface paths {
          * Identify
          * @description Identifikace zvolených modelů (úloha). Výsledek: GET /model.
          */
-        post: operations["identify_workspaces__wid__identify_post"];
+        post: operations["identify_api_v1_workspaces__wid__identify_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/layout": {
+    "/api/v1/workspaces/{wid}/layout": {
         parameters: {
             query?: never;
             header?: never;
@@ -1289,9 +1289,9 @@ export interface paths {
          * Get Layout
          * @description Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.
          */
-        get: operations["get_layout_workspaces__wid__layout_get"];
+        get: operations["get_layout_api_v1_workspaces__wid__layout_get"];
         /** Set Layout */
-        put: operations["set_layout_workspaces__wid__layout_put"];
+        put: operations["set_layout_api_v1_workspaces__wid__layout_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1299,7 +1299,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/live": {
+    "/api/v1/workspaces/{wid}/live": {
         parameters: {
             query?: never;
             header?: never;
@@ -1310,7 +1310,7 @@ export interface paths {
          * Live Config
          * @description Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2.
          */
-        get: operations["live_config_workspaces__wid__live_get"];
+        get: operations["live_config_api_v1_workspaces__wid__live_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1319,7 +1319,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loopmode": {
+    "/api/v1/workspaces/{wid}/loopmode": {
         parameters: {
             query?: never;
             header?: never;
@@ -1330,7 +1330,7 @@ export interface paths {
          * Loopmode
          * @description Úseky MAN / AUTO záznamu, podíl AUTO v úseku identifikace a použitý režim identifikace.
          */
-        get: operations["loopmode_workspaces__wid__loopmode_get"];
+        get: operations["loopmode_api_v1_workspaces__wid__loopmode_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1339,7 +1339,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops": {
+    "/api/v1/workspaces/{wid}/loops": {
         parameters: {
             query?: never;
             header?: never;
@@ -1347,20 +1347,20 @@ export interface paths {
             cookie?: never;
         };
         /** Loops */
-        get: operations["loops_workspaces__wid__loops_get"];
+        get: operations["loops_api_v1_workspaces__wid__loops_get"];
         put?: never;
         /**
          * Add Loop
          * @description Další smyčka ze stejných dat (sloupce zadané, nebo odhadnuté mimo PV ostatních smyček).
          */
-        post: operations["add_loop_workspaces__wid__loops_post"];
+        post: operations["add_loop_api_v1_workspaces__wid__loops_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops/active": {
+    "/api/v1/workspaces/{wid}/loops/active": {
         parameters: {
             query?: never;
             header?: never;
@@ -1369,7 +1369,7 @@ export interface paths {
         };
         get?: never;
         /** Set Active */
-        put: operations["set_active_workspaces__wid__loops_active_put"];
+        put: operations["set_active_api_v1_workspaces__wid__loops_active_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1377,7 +1377,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops/overview": {
+    "/api/v1/workspaces/{wid}/loops/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Mapping
+         * @description Mapování z CSV (tělo; hlavička `loop, role, source, column`, volitelně `description`): role PV, SP, MV, pos, mode,
+         *     DV (opakovatelná), `source` = id nebo název zdroje. Nepoužitelné řádky se přeskočí s varováním.
+         *     S `apply` se úplné smyčky přidají do projektu.
+         */
+        post: operations["import_mapping_api_v1_workspaces__wid__loops_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/loops/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mappings
+         * @description Mapování všech smyček (tabulka smyček záložky Zdroje a smyčky).
+         */
+        get: operations["mappings_api_v1_workspaces__wid__loops_mappings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/loops/overview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1388,7 +1430,7 @@ export interface paths {
          * Loops Overview
          * @description Smyčky projektu: sloupce, model, sady parametrů a stav (problémy podle přehledu smyček).
          */
-        get: operations["loops_overview_workspaces__wid__loops_overview_get"];
+        get: operations["loops_overview_api_v1_workspaces__wid__loops_overview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1397,7 +1439,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops/{index}": {
+    "/api/v1/workspaces/{wid}/loops/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest
+         * @description Návrh smyček podle názvů tagů ve zdrojích (`TIC101.PV / .SP / .OUT`, PCS 7 `…/PV_Out`, DeltaV `…/PV.CV`,
+         *     jinak odhad podle slov v názvu). S `apply` se úplné smyčky přidají do projektu.
+         */
+        post: operations["suggest_api_v1_workspaces__wid__loops_suggest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/loops/{index}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1408,13 +1471,36 @@ export interface paths {
         put?: never;
         post?: never;
         /** Remove Loop */
-        delete: operations["remove_loop_workspaces__wid__loops__index__delete"];
+        delete: operations["remove_loop_api_v1_workspaces__wid__loops__index__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model": {
+    "/api/v1/workspaces/{wid}/loops/{index}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mapping */
+        get: operations["get_mapping_api_v1_workspaces__wid__loops__index__mapping_get"];
+        /**
+         * Put Mapping
+         * @description Nastaví role smyčky na sloupce zdrojů. Zdroje rolí určí data smyčky (jeden zdroj přímo, víc zdrojů složených
+         *     na společnou mřížku); PV a MV jsou povinné. Při chybě (neznámý zdroj / sloupec, žádný překryv) zůstane
+         *     smyčka beze změny.
+         */
+        put: operations["put_mapping_api_v1_workspaces__wid__loops__index__mapping_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model": {
         parameters: {
             query?: never;
             header?: never;
@@ -1422,7 +1508,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get Model */
-        get: operations["get_model_workspaces__wid__model_get"];
+        get: operations["get_model_api_v1_workspaces__wid__model_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1431,7 +1517,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/crossval": {
+    "/api/v1/workspaces/{wid}/model/crossval": {
         parameters: {
             query?: never;
             header?: never;
@@ -1444,14 +1530,14 @@ export interface paths {
          * Crossval
          * @description Křížové ověření (úseky podle vstupů): fit bez každého úseku a shoda na něm – úloha.
          */
-        post: operations["crossval_workspaces__wid__model_crossval_post"];
+        post: operations["crossval_api_v1_workspaces__wid__model_crossval_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/curves": {
+    "/api/v1/workspaces/{wid}/model/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -1462,7 +1548,7 @@ export interface paths {
          * Curves
          * @description Průběhy aktuálního modelu na mřížce smyčky (NaN mimo úseky) – binárně jako /signals.
          */
-        get: operations["curves_workspaces__wid__model_curves_get"];
+        get: operations["curves_api_v1_workspaces__wid__model_curves_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1471,7 +1557,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/dist": {
+    "/api/v1/workspaces/{wid}/model/dist": {
         parameters: {
             query?: never;
             header?: never;
@@ -1484,7 +1570,7 @@ export interface paths {
          * @description Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí
          *     ed|kód|d{j}|i; model se použije hned (bez dofitování).
          */
-        put: operations["select_dist_workspaces__wid__model_dist_put"];
+        put: operations["select_dist_api_v1_workspaces__wid__model_dist_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1492,7 +1578,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/refit": {
+    "/api/v1/workspaces/{wid}/model/refit": {
         parameters: {
             query?: never;
             header?: never;
@@ -1505,14 +1591,14 @@ export interface paths {
          * Refit
          * @description Dofitování se zafixovanými parametry (zaškrtnutí fx|kód|i v nastavení, hodnoty ed|kód|i) – úloha.
          */
-        post: operations["refit_workspaces__wid__model_refit_post"];
+        post: operations["refit_api_v1_workspaces__wid__model_refit_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/reset": {
+    "/api/v1/workspaces/{wid}/model/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -1525,14 +1611,14 @@ export interface paths {
          * Reset
          * @description Ruční úpravy parametrů modelu zpět na identifikované.
          */
-        post: operations["reset_workspaces__wid__model_reset_post"];
+        post: operations["reset_api_v1_workspaces__wid__model_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/select": {
+    "/api/v1/workspaces/{wid}/model/select": {
         parameters: {
             query?: never;
             header?: never;
@@ -1541,7 +1627,7 @@ export interface paths {
         };
         get?: never;
         /** Select */
-        put: operations["select_workspaces__wid__model_select_put"];
+        put: operations["select_api_v1_workspaces__wid__model_select_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1549,7 +1635,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/uncertainty": {
+    "/api/v1/workspaces/{wid}/model/uncertainty": {
         parameters: {
             query?: never;
             header?: never;
@@ -1562,14 +1648,14 @@ export interface paths {
          * Uncertainty
          * @description Nejistota modelu – bootstrap reziduí (n refitů) – úloha.
          */
-        post: operations["uncertainty_workspaces__wid__model_uncertainty_post"];
+        post: operations["uncertainty_api_v1_workspaces__wid__model_uncertainty_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/validation": {
+    "/api/v1/workspaces/{wid}/model/validation": {
         parameters: {
             query?: never;
             header?: never;
@@ -1581,7 +1667,7 @@ export interface paths {
          * @description Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace
          *     s MV (ccf) s mezí `bound`, hodnocení.
          */
-        get: operations["validation_workspaces__wid__model_validation_get"];
+        get: operations["validation_api_v1_workspaces__wid__model_validation_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1590,7 +1676,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/opc/history": {
+    "/api/v1/workspaces/{wid}/opc/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -1603,14 +1689,14 @@ export interface paths {
          * History
          * @description Historie vybraných uzlů (úloha) → data pracovního prostoru (nový projekt s jednou smyčkou).
          */
-        post: operations["history_workspaces__wid__opc_history_post"];
+        post: operations["history_api_v1_workspaces__wid__opc_history_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/preview": {
+    "/api/v1/workspaces/{wid}/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1621,7 +1707,7 @@ export interface paths {
          * Preview
          * @description Tabulka po převzorkování po částech (Celý náhled): filtr řádků, od času `t` [s] (přepíše `offset`).
          */
-        get: operations["preview_workspaces__wid__preview_get"];
+        get: operations["preview_api_v1_workspaces__wid__preview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1630,7 +1716,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/preview/csv": {
+    "/api/v1/workspaces/{wid}/preview/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -1641,7 +1727,7 @@ export interface paths {
          * Preview Csv
          * @description Celá tabulka po převzorkování jako CSV (středník, desetinná čárka).
          */
-        get: operations["preview_csv_workspaces__wid__preview_csv_get"];
+        get: operations["preview_csv_api_v1_workspaces__wid__preview_csv_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1650,7 +1736,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/project": {
+    "/api/v1/workspaces/{wid}/project": {
         parameters: {
             query?: never;
             header?: never;
@@ -1661,12 +1747,12 @@ export interface paths {
          * Save
          * @description Projekt jako soubor JSON (všechny smyčky; s daty, nebo bez nich).
          */
-        get: operations["save_workspaces__wid__project_get"];
+        get: operations["save_api_v1_workspaces__wid__project_get"];
         /**
          * Load
          * @description Načtení projektu (i starší verze); projekt bez dat použije data, která jsou v prostoru načtená.
          */
-        put: operations["load_workspaces__wid__project_put"];
+        put: operations["load_api_v1_workspaces__wid__project_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1674,7 +1760,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/quality": {
+    "/api/v1/workspaces/{wid}/quality": {
         parameters: {
             query?: never;
             header?: never;
@@ -1685,7 +1771,7 @@ export interface paths {
          * Quality
          * @description Kvalita dat úseku (výchozí: úsek identifikace).
          */
-        get: operations["quality_workspaces__wid__quality_get"];
+        get: operations["quality_api_v1_workspaces__wid__quality_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1694,7 +1780,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/range": {
+    "/api/v1/workspaces/{wid}/range": {
         parameters: {
             query?: never;
             header?: never;
@@ -1703,7 +1789,7 @@ export interface paths {
         };
         get?: never;
         /** Set Range */
-        put: operations["set_range_workspaces__wid__range_put"];
+        put: operations["set_range_api_v1_workspaces__wid__range_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1711,7 +1797,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/report": {
+    "/api/v1/workspaces/{wid}/report": {
         parameters: {
             query?: never;
             header?: never;
@@ -1724,14 +1810,14 @@ export interface paths {
          * Report
          * @description Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.
          */
-        post: operations["report_workspaces__wid__report_post"];
+        post: operations["report_api_v1_workspaces__wid__report_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/scenario": {
+    "/api/v1/workspaces/{wid}/scenario": {
         parameters: {
             query?: never;
             header?: never;
@@ -1739,12 +1825,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get Scenario */
-        get: operations["get_scenario_workspaces__wid__scenario_get"];
+        get: operations["get_scenario_api_v1_workspaces__wid__scenario_get"];
         /**
          * Set Scenario
          * @description Druh scénáře (předvolba), vlastní události [[čas, vstup, …]], SP z → na, délka simulace.
          */
-        put: operations["set_scenario_workspaces__wid__scenario_put"];
+        put: operations["set_scenario_api_v1_workspaces__wid__scenario_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1752,7 +1838,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/settings": {
+    "/api/v1/workspaces/{wid}/settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1763,7 +1849,7 @@ export interface paths {
          * Get Settings
          * @description Nastavení smyčky (klíče jako v projektu).
          */
-        get: operations["get_settings_workspaces__wid__settings_get"];
+        get: operations["get_settings_api_v1_workspaces__wid__settings_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1773,10 +1859,10 @@ export interface paths {
          * Patch Settings
          * @description Změna nastavení – jen klíče, které patří do projektu (app.project.is_state_key).
          */
-        patch: operations["patch_settings_workspaces__wid__settings_patch"];
+        patch: operations["patch_settings_api_v1_workspaces__wid__settings_patch"];
         trace?: never;
     };
-    "/workspaces/{wid}/signals": {
+    "/api/v1/workspaces/{wid}/signals": {
         parameters: {
             query?: never;
             header?: never;
@@ -1788,7 +1874,7 @@ export interface paths {
          * @description Signály binárně. raw = ze souboru bez převzorkování (všechny, nebo `names`); grid = převzorkované na periodu
          *     smyčky (pv, mv, sp, d0, d1 …, valid) – na nich běží identifikace.
          */
-        get: operations["signals_workspaces__wid__signals_get"];
+        get: operations["signals_api_v1_workspaces__wid__signals_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1797,7 +1883,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/simulate": {
+    "/api/v1/workspaces/{wid}/signals/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signals Trend
+         * @description Signály všech zdrojů na společné ose [s od nejdřívějšího zdroje]: zředěné na min / max po skupinách (špičky
+         *     zůstanou), statistika v úseku `a`–`b` a hodnoty v časech kurzorů `at` (interpolace, v mezeře `null`).
+         */
+        get: operations["signals_trend_api_v1_workspaces__wid__signals_trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1810,14 +1917,14 @@ export interface paths {
          * Simulate
          * @description Simulace scénáře se sadou 1 a 2 (a návrhem `preview`): ukazatele odezvy.
          */
-        post: operations["simulate_workspaces__wid__simulate_post"];
+        post: operations["simulate_api_v1_workspaces__wid__simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/simulate/curves": {
+    "/api/v1/workspaces/{wid}/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -1827,14 +1934,84 @@ export interface paths {
         get?: never;
         put?: never;
         /** Simulate Curves */
-        post: operations["simulate_curves_workspaces__wid__simulate_curves_post"];
+        post: operations["simulate_curves_api_v1_workspaces__wid__simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning": {
+    "/api/v1/workspaces/{wid}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description Zdroje dat projektu s časovými údaji, použitím ve smyčkách, společným úsekem a druhy zdrojů z registru.
+         */
+        get: operations["list_sources_api_v1_workspaces__wid__sources_get"];
+        put?: never;
+        /**
+         * Add Source
+         * @description Nový zdroj ze souboru (tělo požadavku; druh podle přípony, nebo `kind`) s volbami čtení a časovými údaji.
+         */
+        post: operations["add_source_api_v1_workspaces__wid__sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/sources/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Source */
+        get: operations["get_source_api_v1_workspaces__wid__sources__sid__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Source
+         * @description Odebere zdroj, který nepoužívá žádná role smyčky (jinak 409).
+         */
+        delete: operations["delete_source_api_v1_workspaces__wid__sources__sid__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Patch Source
+         * @description Časové pásmo (IANA), posun [s], vlastní vzorkování [s], název a čtení tabulky; smyčky ze zdroje se přeskládají.
+         */
+        patch: operations["patch_source_api_v1_workspaces__wid__sources__sid__patch"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/time-grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Time Grid */
+        get: operations["get_time_grid_api_v1_workspaces__wid__time_grid_get"];
+        /**
+         * Put Time Grid
+         * @description Společná mřížka: překryv / sjednocení, ruční perioda vzorkování, práh mezery; smyčky se přeskládají.
+         */
+        put: operations["put_time_grid_api_v1_workspaces__wid__time_grid_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning": {
         parameters: {
             query?: never;
             header?: never;
@@ -1842,7 +2019,7 @@ export interface paths {
             cookie?: never;
         };
         /** Info */
-        get: operations["info_workspaces__wid__tuning_get"];
+        get: operations["info_api_v1_workspaces__wid__tuning_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1851,7 +2028,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning/compare": {
+    "/api/v1/workspaces/{wid}/tuning/compare": {
         parameters: {
             query?: never;
             header?: never;
@@ -1864,14 +2041,14 @@ export interface paths {
          * Compare
          * @description Porovnání všech metod a kritérií pro PI i PID (úloha; výsledek: GET /jobs/{id}/result).
          */
-        post: operations["compare_workspaces__wid__tuning_compare_post"];
+        post: operations["compare_api_v1_workspaces__wid__tuning_compare_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning/sets/{n}": {
+    "/api/v1/workspaces/{wid}/tuning/sets/{n}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1883,7 +2060,7 @@ export interface paths {
          * Write Set
          * @description Parametry do sady 1 (současné nastavení) nebo 2 (nové); log = záznam do historie ladění.
          */
-        put: operations["write_set_workspaces__wid__tuning_sets__n__put"];
+        put: operations["write_set_api_v1_workspaces__wid__tuning_sets__n__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1891,7 +2068,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning/suggest": {
+    "/api/v1/workspaces/{wid}/tuning/suggest": {
         parameters: {
             query?: never;
             header?: never;
@@ -1904,14 +2081,14 @@ export interface paths {
          * Suggest
          * @description Návrh ladění metodou (výchozí: metoda uložená u modelu) s upozorněními a kontrolami věrohodnosti.
          */
-        post: operations["suggest_workspaces__wid__tuning_suggest_post"];
+        post: operations["suggest_api_v1_workspaces__wid__tuning_suggest_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/windows": {
+    "/api/v1/workspaces/{wid}/windows": {
         parameters: {
             query?: never;
             header?: never;
@@ -1919,12 +2096,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get Windows */
-        get: operations["get_windows_workspaces__wid__windows_get"];
+        get: operations["get_windows_api_v1_workspaces__wid__windows_get"];
         /**
          * Set Windows
          * @description Úseky podle vstupů {vstup: [[od, do] s]} (MV a měřené poruchy), vyřazení dat {signál: [zap, min, max]}.
          */
-        put: operations["set_windows_workspaces__wid__windows_put"];
+        put: operations["set_windows_api_v1_workspaces__wid__windows_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1932,7 +2109,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/windows/mode": {
+    "/api/v1/workspaces/{wid}/windows/mode": {
         parameters: {
             query?: never;
             header?: never;
@@ -1944,7 +2121,7 @@ export interface paths {
          * Set Mv Mode
          * @description Režim úseku MV (ručně / AUTO) pro kombinovanou identifikaci.
          */
-        put: operations["set_mv_mode_workspaces__wid__windows_mode_put"];
+        put: operations["set_mv_mode_api_v1_workspaces__wid__windows_mode_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2223,6 +2400,15 @@ export interface components {
             pv: string;
             /** Sp */
             sp?: string | null;
+        };
+        /** Common */
+        Common: {
+            /** Duration */
+            duration: number;
+            /** End */
+            end: number;
+            /** Start */
+            start: number;
         };
         /** DataQuality */
         DataQuality: {
@@ -2995,6 +3181,46 @@ export interface components {
              */
             score: number;
         };
+        /**
+         * LoopMapping
+         * @description Mapování smyčky. `norm_pv` / `norm_mv` = [dolní, horní] mez v jednotkách signálu; `cascade_to` = index podřazené smyčky.
+         */
+        LoopMapping: {
+            /** Cascade To */
+            cascade_to?: number | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Has Data
+             * @default true
+             */
+            has_data: boolean;
+            /** Index */
+            index?: number | null;
+            /** Norm Mv */
+            norm_mv?: number[] | null;
+            /** Norm Pv */
+            norm_pv?: number[] | null;
+            /**
+             * @default {
+             *       "dv": []
+             *     }
+             */
+            roles: components["schemas"]["RolesBody"];
+            /**
+             * Sources
+             * @default []
+             */
+            sources: string[];
+            /**
+             * Tag
+             * @default
+             */
+            tag: string;
+        };
         /** LoopMode */
         LoopMode: {
             /** Auto Frac */
@@ -3459,6 +3685,16 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * Ref
+         * @description Sloupec zdroje: `zdroj › sloupec`.
+         */
+        Ref: {
+            /** Column */
+            column: string;
+            /** Source */
+            source: string;
+        };
         /** Refit */
         Refit: {
             /** Code */
@@ -3535,6 +3771,19 @@ export interface components {
             /** Ready */
             ready: boolean;
         };
+        /** RolesBody */
+        RolesBody: {
+            /**
+             * Dv
+             * @default []
+             */
+            dv: components["schemas"]["Ref"][];
+            mode?: components["schemas"]["Ref"] | null;
+            mv?: components["schemas"]["Ref"] | null;
+            pos?: components["schemas"]["Ref"] | null;
+            pv?: components["schemas"]["Ref"] | null;
+            sp?: components["schemas"]["Ref"] | null;
+        };
         /** Run */
         Run: {
             /** A */
@@ -3599,6 +3848,27 @@ export interface components {
             td: number;
             /** Ti */
             ti: number;
+        };
+        /** SignalStats */
+        SignalStats: {
+            /**
+             * Count
+             * @default 0
+             */
+            count: number;
+            /** Max */
+            max?: number | null;
+            /** Mean */
+            mean?: number | null;
+            /** Min */
+            min?: number | null;
+            /**
+             * Missing
+             * @default 0
+             */
+            missing: number;
+            /** Std */
+            std?: number | null;
         };
         /** SimInfo */
         SimInfo: {
@@ -3738,6 +4008,122 @@ export interface components {
             /** Eth */
             eth?: number | null;
         };
+        /** SourceInfo */
+        SourceInfo: {
+            /** C Tag */
+            c_tag?: string | null;
+            /** C Time */
+            c_time?: string | null;
+            /** C Val */
+            c_val?: string | null;
+            /**
+             * Columns
+             * @default []
+             */
+            columns: string[];
+            /** End */
+            end?: number | null;
+            /**
+             * Has Clock
+             * @default false
+             */
+            has_clock: boolean;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Layout */
+            layout?: string | null;
+            /**
+             * Loaded
+             * @default true
+             */
+            loaded: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Offset S
+             * @default 0
+             */
+            offset_s: number;
+            /** Period */
+            period?: number | null;
+            /** Row Dt */
+            row_dt?: number | null;
+            /**
+             * Rows
+             * @default 0
+             */
+            rows: number;
+            /** Sampling S */
+            sampling_s?: number | null;
+            /** Start */
+            start?: number | null;
+            /** Time Fmt */
+            time_fmt?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /**
+             * Used By
+             * @default []
+             */
+            used_by: number[];
+        };
+        /**
+         * SourceKind
+         * @description Druh zdroje z registru: id, popis v jazyce odpovědi a schéma voleb čtení.
+         */
+        SourceKind: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * SourcePatch
+         * @description Změna zdroje; zadané pole (i `null`) se změní, nezadané zůstane.
+         */
+        SourcePatch: {
+            /** C Tag */
+            c_tag?: string | null;
+            /** C Time */
+            c_time?: string | null;
+            /** C Val */
+            c_val?: string | null;
+            /** Layout */
+            layout?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Offset S */
+            offset_s?: number | null;
+            /** Row Dt */
+            row_dt?: number | null;
+            /** Sampling S */
+            sampling_s?: number | null;
+            /** Time Fmt */
+            time_fmt?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** Sources */
+        Sources: {
+            common?: components["schemas"]["Common"] | null;
+            /** Kinds */
+            kinds: components["schemas"]["SourceKind"][];
+            /** Origin */
+            origin?: string | null;
+            /** Sources */
+            sources: components["schemas"]["SourceInfo"][];
+            time_grid: components["schemas"]["TimeGridBody"];
+        };
         /** SplitCase */
         SplitCase: {
             /** B */
@@ -3846,12 +4232,37 @@ export interface components {
             /** Std */
             std?: number | null;
         };
+        /** SuggestBody */
+        SuggestBody: {
+            /**
+             * Apply
+             * @default false
+             */
+            apply: boolean;
+            /** Source Ids */
+            source_ids?: string[] | null;
+        };
         /** SuggestReq */
         SuggestReq: {
             /** Method */
             method?: string | null;
             /** Tc */
             tc?: number | null;
+        };
+        /** Suggested */
+        Suggested: {
+            /** Complete */
+            complete: boolean;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            roles: components["schemas"]["RolesBody"];
+            /** Tag */
+            tag: string;
+            /** Via */
+            via: string;
         };
         /** Suggestion */
         Suggestion: {
@@ -3876,6 +4287,81 @@ export interface components {
              * @default []
              */
             notes: components["schemas"]["Note"][];
+        };
+        /** Suggestions */
+        Suggestions: {
+            /**
+             * Applied
+             * @default []
+             */
+            applied: number[];
+            /** Loops */
+            loops: components["schemas"]["Suggested"][];
+            /** Unused */
+            unused: components["schemas"]["Ref"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /**
+         * TimeGridBody
+         * @description Společná časová mřížka: `overlap` (společný úsek) / `union`, ruční perioda [s], práh mezery [s].
+         */
+        TimeGridBody: {
+            /**
+             * Gap Factor
+             * @default 5
+             */
+            gap_factor: number;
+            /** Max Gap */
+            max_gap?: number | null;
+            /**
+             * Mode
+             * @default overlap
+             */
+            mode: string;
+            /** Period */
+            period?: number | null;
+        };
+        /** Trend */
+        Trend: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+            /** Cursors */
+            cursors: number[];
+            /** N */
+            n: number;
+            /** Origin */
+            origin?: string | null;
+            /** Series */
+            series: components["schemas"]["TrendSeries"][];
+        };
+        /** TrendSeries */
+        TrendSeries: {
+            /**
+             * At
+             * @default []
+             */
+            at: (number | null)[];
+            /** Column */
+            column: string;
+            /** Decimated */
+            decimated: boolean;
+            /** N Raw */
+            n_raw: number;
+            /** Ref */
+            ref: string;
+            /** Source */
+            source: string;
+            stats: components["schemas"]["SignalStats"];
+            /** T */
+            t: number[];
+            /** V */
+            v: number[];
         };
         /** Tuned */
         Tuned: {
@@ -4164,7 +4650,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_health_get: {
+    health_api_v1_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4184,7 +4670,7 @@ export interface operations {
             };
         };
     };
-    texts_i18n__lang__get: {
+    texts_api_v1_i18n__lang__get: {
         parameters: {
             query?: never;
             header?: {
@@ -4220,7 +4706,7 @@ export interface operations {
             };
         };
     };
-    job_get_jobs__jid__get: {
+    job_get_api_v1_jobs__jid__get: {
         parameters: {
             query?: never;
             header?: {
@@ -4254,7 +4740,7 @@ export interface operations {
             };
         };
     };
-    job_cancel_jobs__jid__cancel_post: {
+    job_cancel_api_v1_jobs__jid__cancel_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4288,7 +4774,7 @@ export interface operations {
             };
         };
     };
-    job_events_jobs__jid__events_get: {
+    job_events_api_v1_jobs__jid__events_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4323,7 +4809,7 @@ export interface operations {
             };
         };
     };
-    job_result_jobs__jid__result_get: {
+    job_result_api_v1_jobs__jid__result_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4357,7 +4843,7 @@ export interface operations {
             };
         };
     };
-    available_opc_available_get: {
+    available_api_v1_opc_available_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4389,7 +4875,7 @@ export interface operations {
             };
         };
     };
-    browse_opc_browse_post: {
+    browse_api_v1_opc_browse_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4425,7 +4911,7 @@ export interface operations {
             };
         };
     };
-    find_opc_find_post: {
+    find_api_v1_opc_find_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4461,7 +4947,7 @@ export interface operations {
             };
         };
     };
-    take_pending_pending_open_get: {
+    take_pending_api_v1_pending_open_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4500,7 +4986,7 @@ export interface operations {
             };
         };
     };
-    put_pending_pending_open_put: {
+    put_pending_api_v1_pending_open_put: {
         parameters: {
             query?: never;
             header?: {
@@ -4530,7 +5016,7 @@ export interface operations {
             };
         };
     };
-    ws_create_workspaces_post: {
+    ws_create_api_v1_workspaces_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4562,7 +5048,7 @@ export interface operations {
             };
         };
     };
-    ws_get_workspaces__wid__get: {
+    ws_get_api_v1_workspaces__wid__get: {
         parameters: {
             query?: never;
             header?: {
@@ -4596,7 +5082,7 @@ export interface operations {
             };
         };
     };
-    ws_delete_workspaces__wid__delete: {
+    ws_delete_api_v1_workspaces__wid__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -4628,7 +5114,7 @@ export interface operations {
             };
         };
     };
-    cascade_get_workspaces__wid__apc_cascade_get: {
+    cascade_get_api_v1_workspaces__wid__apc_cascade_get: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4665,7 +5151,7 @@ export interface operations {
             };
         };
     };
-    cascade_fit_workspaces__wid__apc_cascade_fit_post: {
+    cascade_fit_api_v1_workspaces__wid__apc_cascade_fit_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4703,7 +5189,7 @@ export interface operations {
             };
         };
     };
-    cascade_reset_workspaces__wid__apc_cascade_reset_post: {
+    cascade_reset_api_v1_workspaces__wid__apc_cascade_reset_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4744,7 +5230,7 @@ export interface operations {
             };
         };
     };
-    cascade_simulate_workspaces__wid__apc_cascade_simulate_post: {
+    cascade_simulate_api_v1_workspaces__wid__apc_cascade_simulate_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4781,7 +5267,7 @@ export interface operations {
             };
         };
     };
-    cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post: {
+    cascade_curves_api_v1_workspaces__wid__apc_cascade_simulate_curves_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4818,7 +5304,7 @@ export interface operations {
             };
         };
     };
-    dec_get_workspaces__wid__apc_decouple_get: {
+    dec_get_api_v1_workspaces__wid__apc_decouple_get: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4855,7 +5341,7 @@ export interface operations {
             };
         };
     };
-    dec_simulate_workspaces__wid__apc_decouple_simulate_post: {
+    dec_simulate_api_v1_workspaces__wid__apc_decouple_simulate_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4896,7 +5382,7 @@ export interface operations {
             };
         };
     };
-    dec_curves_workspaces__wid__apc_decouple_simulate_curves_post: {
+    dec_curves_api_v1_workspaces__wid__apc_decouple_simulate_curves_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4937,7 +5423,7 @@ export interface operations {
             };
         };
     };
-    ff_get_workspaces__wid__apc_ff_get: {
+    ff_get_api_v1_workspaces__wid__apc_ff_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4971,7 +5457,7 @@ export interface operations {
             };
         };
     };
-    ff_put_workspaces__wid__apc_ff_put: {
+    ff_put_api_v1_workspaces__wid__apc_ff_put: {
         parameters: {
             query?: never;
             header?: {
@@ -5009,7 +5495,7 @@ export interface operations {
             };
         };
     };
-    ff_reset_workspaces__wid__apc_ff_reset_post: {
+    ff_reset_api_v1_workspaces__wid__apc_ff_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5047,7 +5533,7 @@ export interface operations {
             };
         };
     };
-    ff_simulate_workspaces__wid__apc_ff_simulate_post: {
+    ff_simulate_api_v1_workspaces__wid__apc_ff_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5085,7 +5571,7 @@ export interface operations {
             };
         };
     };
-    ff_curves_workspaces__wid__apc_ff_simulate_curves_post: {
+    ff_curves_api_v1_workspaces__wid__apc_ff_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5123,7 +5609,7 @@ export interface operations {
             };
         };
     };
-    gs_get_workspaces__wid__apc_gainsched_get: {
+    gs_get_api_v1_workspaces__wid__apc_gainsched_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5157,7 +5643,7 @@ export interface operations {
             };
         };
     };
-    gs_auto_workspaces__wid__apc_gainsched_auto_post: {
+    gs_auto_api_v1_workspaces__wid__apc_gainsched_auto_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5191,7 +5677,7 @@ export interface operations {
             };
         };
     };
-    gs_fit_workspaces__wid__apc_gainsched_fit_post: {
+    gs_fit_api_v1_workspaces__wid__apc_gainsched_fit_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5225,7 +5711,7 @@ export interface operations {
             };
         };
     };
-    gs_reset_workspaces__wid__apc_gainsched_reset_post: {
+    gs_reset_api_v1_workspaces__wid__apc_gainsched_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5259,7 +5745,7 @@ export interface operations {
             };
         };
     };
-    gs_simulate_workspaces__wid__apc_gainsched_simulate_post: {
+    gs_simulate_api_v1_workspaces__wid__apc_gainsched_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5293,7 +5779,7 @@ export interface operations {
             };
         };
     };
-    gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post: {
+    gs_curves_api_v1_workspaces__wid__apc_gainsched_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5327,7 +5813,7 @@ export interface operations {
             };
         };
     };
-    er_get_workspaces__wid__apc_gainsched_er_get: {
+    er_get_api_v1_workspaces__wid__apc_gainsched_er_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5361,7 +5847,7 @@ export interface operations {
             };
         };
     };
-    er_reset_workspaces__wid__apc_gainsched_er_reset_post: {
+    er_reset_api_v1_workspaces__wid__apc_gainsched_er_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5395,7 +5881,7 @@ export interface operations {
             };
         };
     };
-    er_simulate_workspaces__wid__apc_gainsched_er_simulate_post: {
+    er_simulate_api_v1_workspaces__wid__apc_gainsched_er_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5429,7 +5915,7 @@ export interface operations {
             };
         };
     };
-    er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post: {
+    er_curves_api_v1_workspaces__wid__apc_gainsched_er_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5463,7 +5949,7 @@ export interface operations {
             };
         };
     };
-    ov_get_workspaces__wid__apc_override_get: {
+    ov_get_api_v1_workspaces__wid__apc_override_get: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -5501,7 +5987,7 @@ export interface operations {
             };
         };
     };
-    ov_simulate_workspaces__wid__apc_override_simulate_post: {
+    ov_simulate_api_v1_workspaces__wid__apc_override_simulate_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -5542,7 +6028,7 @@ export interface operations {
             };
         };
     };
-    ov_curves_workspaces__wid__apc_override_simulate_curves_post: {
+    ov_curves_api_v1_workspaces__wid__apc_override_simulate_curves_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -5583,7 +6069,7 @@ export interface operations {
             };
         };
     };
-    ratio_get_workspaces__wid__apc_ratio_get: {
+    ratio_get_api_v1_workspaces__wid__apc_ratio_get: {
         parameters: {
             query?: {
                 air_loop?: number | null;
@@ -5619,7 +6105,7 @@ export interface operations {
             };
         };
     };
-    ratio_design_workspaces__wid__apc_ratio_design_post: {
+    ratio_design_api_v1_workspaces__wid__apc_ratio_design_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5657,7 +6143,7 @@ export interface operations {
             };
         };
     };
-    ratio_simulate_workspaces__wid__apc_ratio_simulate_post: {
+    ratio_simulate_api_v1_workspaces__wid__apc_ratio_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5695,7 +6181,7 @@ export interface operations {
             };
         };
     };
-    ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post: {
+    ratio_curves_api_v1_workspaces__wid__apc_ratio_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5733,7 +6219,7 @@ export interface operations {
             };
         };
     };
-    recommend_workspaces__wid__apc_recommend_get: {
+    recommend_api_v1_workspaces__wid__apc_recommend_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5767,7 +6253,7 @@ export interface operations {
             };
         };
     };
-    rga_get_workspaces__wid__apc_rga_get: {
+    rga_get_api_v1_workspaces__wid__apc_rga_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5801,7 +6287,7 @@ export interface operations {
             };
         };
     };
-    smith_get_workspaces__wid__apc_smith_get: {
+    smith_get_api_v1_workspaces__wid__apc_smith_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5835,7 +6321,7 @@ export interface operations {
             };
         };
     };
-    smith_optimize_workspaces__wid__apc_smith_optimize_post: {
+    smith_optimize_api_v1_workspaces__wid__apc_smith_optimize_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5869,7 +6355,7 @@ export interface operations {
             };
         };
     };
-    smith_simulate_workspaces__wid__apc_smith_simulate_post: {
+    smith_simulate_api_v1_workspaces__wid__apc_smith_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5907,7 +6393,7 @@ export interface operations {
             };
         };
     };
-    smith_curves_workspaces__wid__apc_smith_simulate_curves_post: {
+    smith_curves_api_v1_workspaces__wid__apc_smith_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5945,7 +6431,7 @@ export interface operations {
             };
         };
     };
-    split_get_workspaces__wid__apc_split_get: {
+    split_get_api_v1_workspaces__wid__apc_split_get: {
         parameters: {
             query?: {
                 mode?: "opposite" | "sequence";
@@ -5983,7 +6469,7 @@ export interface operations {
             };
         };
     };
-    split_design_workspaces__wid__apc_split_design_post: {
+    split_design_api_v1_workspaces__wid__apc_split_design_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6021,7 +6507,7 @@ export interface operations {
             };
         };
     };
-    split_simulate_workspaces__wid__apc_split_simulate_post: {
+    split_simulate_api_v1_workspaces__wid__apc_split_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6059,7 +6545,7 @@ export interface operations {
             };
         };
     };
-    split_curves_workspaces__wid__apc_split_simulate_curves_post: {
+    split_curves_api_v1_workspaces__wid__apc_split_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6097,7 +6583,7 @@ export interface operations {
             };
         };
     };
-    vpc_get_workspaces__wid__apc_vpc_get: {
+    vpc_get_api_v1_workspaces__wid__apc_vpc_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6131,7 +6617,7 @@ export interface operations {
             };
         };
     };
-    vpc_design_workspaces__wid__apc_vpc_design_post: {
+    vpc_design_api_v1_workspaces__wid__apc_vpc_design_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6169,7 +6655,7 @@ export interface operations {
             };
         };
     };
-    vpc_simulate_workspaces__wid__apc_vpc_simulate_post: {
+    vpc_simulate_api_v1_workspaces__wid__apc_vpc_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6207,7 +6693,7 @@ export interface operations {
             };
         };
     };
-    vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post: {
+    vpc_curves_api_v1_workspaces__wid__apc_vpc_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6245,7 +6731,7 @@ export interface operations {
             };
         };
     };
-    analyse_workspaces__wid__audit_analyse_post: {
+    analyse_api_v1_workspaces__wid__audit_analyse_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6283,7 +6769,7 @@ export interface operations {
             };
         };
     };
-    audit_loops_workspaces__wid__audit_loops_get: {
+    audit_loops_api_v1_workspaces__wid__audit_loops_get: {
         parameters: {
             query?: {
                 propose?: boolean;
@@ -6319,7 +6805,7 @@ export interface operations {
             };
         };
     };
-    set_columns_workspaces__wid__columns_put: {
+    set_columns_api_v1_workspaces__wid__columns_put: {
         parameters: {
             query?: never;
             header?: {
@@ -6357,7 +6843,7 @@ export interface operations {
             };
         };
     };
-    compression_workspaces__wid__compression_get: {
+    compression_api_v1_workspaces__wid__compression_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6391,7 +6877,7 @@ export interface operations {
             };
         };
     };
-    load_demo_workspaces__wid__data_demo_post: {
+    load_demo_api_v1_workspaces__wid__data_demo_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6425,7 +6911,7 @@ export interface operations {
             };
         };
     };
-    load_file_workspaces__wid__data_file_post: {
+    load_file_api_v1_workspaces__wid__data_file_post: {
         parameters: {
             query: {
                 /** @description file name (extension) */
@@ -6466,7 +6952,7 @@ export interface operations {
             };
         };
     };
-    dataquality_workspaces__wid__dataquality_get: {
+    dataquality_api_v1_workspaces__wid__dataquality_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6500,7 +6986,7 @@ export interface operations {
             };
         };
     };
-    datastats_workspaces__wid__datastats_get: {
+    datastats_api_v1_workspaces__wid__datastats_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6534,7 +7020,7 @@ export interface operations {
             };
         };
     };
-    diagnostics_workspaces__wid__diagnostics_get: {
+    diagnostics_api_v1_workspaces__wid__diagnostics_get: {
         parameters: {
             query?: {
                 a?: number | null;
@@ -6572,7 +7058,7 @@ export interface operations {
             };
         };
     };
-    frequency_workspaces__wid__frequency_post: {
+    frequency_api_v1_workspaces__wid__frequency_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6610,7 +7096,7 @@ export interface operations {
             };
         };
     };
-    identify_workspaces__wid__identify_post: {
+    identify_api_v1_workspaces__wid__identify_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6644,7 +7130,7 @@ export interface operations {
             };
         };
     };
-    get_layout_workspaces__wid__layout_get: {
+    get_layout_api_v1_workspaces__wid__layout_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6678,7 +7164,7 @@ export interface operations {
             };
         };
     };
-    set_layout_workspaces__wid__layout_put: {
+    set_layout_api_v1_workspaces__wid__layout_put: {
         parameters: {
             query?: never;
             header?: {
@@ -6716,7 +7202,7 @@ export interface operations {
             };
         };
     };
-    live_config_workspaces__wid__live_get: {
+    live_config_api_v1_workspaces__wid__live_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6752,7 +7238,7 @@ export interface operations {
             };
         };
     };
-    loopmode_workspaces__wid__loopmode_get: {
+    loopmode_api_v1_workspaces__wid__loopmode_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6786,7 +7272,7 @@ export interface operations {
             };
         };
     };
-    loops_workspaces__wid__loops_get: {
+    loops_api_v1_workspaces__wid__loops_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6820,7 +7306,7 @@ export interface operations {
             };
         };
     };
-    add_loop_workspaces__wid__loops_post: {
+    add_loop_api_v1_workspaces__wid__loops_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6858,7 +7344,7 @@ export interface operations {
             };
         };
     };
-    set_active_workspaces__wid__loops_active_put: {
+    set_active_api_v1_workspaces__wid__loops_active_put: {
         parameters: {
             query?: never;
             header?: {
@@ -6896,7 +7382,81 @@ export interface operations {
             };
         };
     };
-    loops_overview_workspaces__wid__loops_overview_get: {
+    import_mapping_api_v1_workspaces__wid__loops_import_post: {
+        parameters: {
+            query?: {
+                apply?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mappings_api_v1_workspaces__wid__loops_mappings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopMapping"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    loops_overview_api_v1_workspaces__wid__loops_overview_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6930,7 +7490,45 @@ export interface operations {
             };
         };
     };
-    remove_loop_workspaces__wid__loops__index__delete: {
+    suggest_api_v1_workspaces__wid__loops_suggest_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_loop_api_v1_workspaces__wid__loops__index__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -6965,7 +7563,81 @@ export interface operations {
             };
         };
     };
-    get_model_workspaces__wid__model_get: {
+    get_mapping_api_v1_workspaces__wid__loops__index__mapping_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopMapping"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_mapping_api_v1_workspaces__wid__loops__index__mapping_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoopMapping"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopMapping"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_api_v1_workspaces__wid__model_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6999,7 +7671,7 @@ export interface operations {
             };
         };
     };
-    crossval_workspaces__wid__model_crossval_post: {
+    crossval_api_v1_workspaces__wid__model_crossval_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7033,7 +7705,7 @@ export interface operations {
             };
         };
     };
-    curves_workspaces__wid__model_curves_get: {
+    curves_api_v1_workspaces__wid__model_curves_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7067,7 +7739,7 @@ export interface operations {
             };
         };
     };
-    select_dist_workspaces__wid__model_dist_put: {
+    select_dist_api_v1_workspaces__wid__model_dist_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7105,7 +7777,7 @@ export interface operations {
             };
         };
     };
-    refit_workspaces__wid__model_refit_post: {
+    refit_api_v1_workspaces__wid__model_refit_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7143,7 +7815,7 @@ export interface operations {
             };
         };
     };
-    reset_workspaces__wid__model_reset_post: {
+    reset_api_v1_workspaces__wid__model_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7181,7 +7853,7 @@ export interface operations {
             };
         };
     };
-    select_workspaces__wid__model_select_put: {
+    select_api_v1_workspaces__wid__model_select_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7219,7 +7891,7 @@ export interface operations {
             };
         };
     };
-    uncertainty_workspaces__wid__model_uncertainty_post: {
+    uncertainty_api_v1_workspaces__wid__model_uncertainty_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7257,7 +7929,7 @@ export interface operations {
             };
         };
     };
-    validation_workspaces__wid__model_validation_get: {
+    validation_api_v1_workspaces__wid__model_validation_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7291,7 +7963,7 @@ export interface operations {
             };
         };
     };
-    history_workspaces__wid__opc_history_post: {
+    history_api_v1_workspaces__wid__opc_history_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7329,7 +8001,7 @@ export interface operations {
             };
         };
     };
-    preview_workspaces__wid__preview_get: {
+    preview_api_v1_workspaces__wid__preview_get: {
         parameters: {
             query?: {
                 offset?: number;
@@ -7368,7 +8040,7 @@ export interface operations {
             };
         };
     };
-    preview_csv_workspaces__wid__preview_csv_get: {
+    preview_csv_api_v1_workspaces__wid__preview_csv_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7402,7 +8074,7 @@ export interface operations {
             };
         };
     };
-    save_workspaces__wid__project_get: {
+    save_api_v1_workspaces__wid__project_get: {
         parameters: {
             query?: {
                 data?: boolean;
@@ -7438,7 +8110,7 @@ export interface operations {
             };
         };
     };
-    load_workspaces__wid__project_put: {
+    load_api_v1_workspaces__wid__project_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7476,7 +8148,7 @@ export interface operations {
             };
         };
     };
-    quality_workspaces__wid__quality_get: {
+    quality_api_v1_workspaces__wid__quality_get: {
         parameters: {
             query?: {
                 a?: number | null;
@@ -7513,7 +8185,7 @@ export interface operations {
             };
         };
     };
-    set_range_workspaces__wid__range_put: {
+    set_range_api_v1_workspaces__wid__range_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7551,7 +8223,7 @@ export interface operations {
             };
         };
     };
-    report_workspaces__wid__report_post: {
+    report_api_v1_workspaces__wid__report_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7589,7 +8261,7 @@ export interface operations {
             };
         };
     };
-    get_scenario_workspaces__wid__scenario_get: {
+    get_scenario_api_v1_workspaces__wid__scenario_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7623,7 +8295,7 @@ export interface operations {
             };
         };
     };
-    set_scenario_workspaces__wid__scenario_put: {
+    set_scenario_api_v1_workspaces__wid__scenario_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7661,7 +8333,7 @@ export interface operations {
             };
         };
     };
-    get_settings_workspaces__wid__settings_get: {
+    get_settings_api_v1_workspaces__wid__settings_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7697,7 +8369,7 @@ export interface operations {
             };
         };
     };
-    patch_settings_workspaces__wid__settings_patch: {
+    patch_settings_api_v1_workspaces__wid__settings_patch: {
         parameters: {
             query?: never;
             header?: {
@@ -7739,7 +8411,7 @@ export interface operations {
             };
         };
     };
-    signals_workspaces__wid__signals_get: {
+    signals_api_v1_workspaces__wid__signals_get: {
         parameters: {
             query?: {
                 names?: string[] | null;
@@ -7777,7 +8449,50 @@ export interface operations {
             };
         };
     };
-    simulate_workspaces__wid__simulate_post: {
+    signals_trend_api_v1_workspaces__wid__signals_trend_get: {
+        parameters: {
+            query?: {
+                /** @description `zdroj:sloupec`; bez zadání všechny */
+                names?: string[] | null;
+                a?: number | null;
+                b?: number | null;
+                /** @description skupin pro zředění */
+                n?: number;
+                /** @description časy kurzorů [s] */
+                at?: number[] | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trend"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_api_v1_workspaces__wid__simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7815,7 +8530,7 @@ export interface operations {
             };
         };
     };
-    simulate_curves_workspaces__wid__simulate_curves_post: {
+    simulate_curves_api_v1_workspaces__wid__simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7853,7 +8568,272 @@ export interface operations {
             };
         };
     };
-    info_workspaces__wid__tuning_get: {
+    list_sources_api_v1_workspaces__wid__sources_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sources"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_source_api_v1_workspaces__wid__sources_post: {
+        parameters: {
+            query: {
+                /** @description file name (extension) */
+                name: string;
+                kind?: string | null;
+                layout?: string | null;
+                time_fmt?: string | null;
+                unit?: string | null;
+                c_time?: string | null;
+                c_tag?: string | null;
+                c_val?: string | null;
+                row_dt?: number | null;
+                timezone?: string | null;
+                offset_s?: number;
+                sampling_s?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_source_api_v1_workspaces__wid__sources__sid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_source_api_v1_workspaces__wid__sources__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_source_api_v1_workspaces__wid__sources__sid__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_time_grid_api_v1_workspaces__wid__time_grid_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGridBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_time_grid_api_v1_workspaces__wid__time_grid_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeGridBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGridBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    info_api_v1_workspaces__wid__tuning_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7887,7 +8867,7 @@ export interface operations {
             };
         };
     };
-    compare_workspaces__wid__tuning_compare_post: {
+    compare_api_v1_workspaces__wid__tuning_compare_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7921,7 +8901,7 @@ export interface operations {
             };
         };
     };
-    write_set_workspaces__wid__tuning_sets__n__put: {
+    write_set_api_v1_workspaces__wid__tuning_sets__n__put: {
         parameters: {
             query?: never;
             header?: {
@@ -7960,7 +8940,7 @@ export interface operations {
             };
         };
     };
-    suggest_workspaces__wid__tuning_suggest_post: {
+    suggest_api_v1_workspaces__wid__tuning_suggest_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7998,7 +8978,7 @@ export interface operations {
             };
         };
     };
-    get_windows_workspaces__wid__windows_get: {
+    get_windows_api_v1_workspaces__wid__windows_get: {
         parameters: {
             query?: never;
             header?: {
@@ -8032,7 +9012,7 @@ export interface operations {
             };
         };
     };
-    set_windows_workspaces__wid__windows_put: {
+    set_windows_api_v1_workspaces__wid__windows_put: {
         parameters: {
             query?: never;
             header?: {
@@ -8070,7 +9050,7 @@ export interface operations {
             };
         };
     };
-    set_mv_mode_workspaces__wid__windows_mode_put: {
+    set_mv_mode_api_v1_workspaces__wid__windows_mode_put: {
         parameters: {
             query?: never;
             header?: {
