@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Data (E3, plan v2): **several data sources and loop assembly** (`pidtools/app/domain`). A project has sources (CSV /
+  XLSX / TXT file, OPC UA) with a time zone, a time offset and an own sampling period, and loops whose roles (PV, SP, MV,
+  position, DV, mode) map to `source › column`, with NormPV / NormMV ranges, a description and a cascade link; a column
+  may be used by several loops. Several sources are merged on a common time grid (overlap or union, automatic or manual
+  period, gaps longer than a threshold are not bridged). A loop from one source calculates over its table as before and
+  the results do not change (golden cases also pass through the new path). Automatic loop suggestion from tag names
+  (`TIC101.PV / .SP / .OUT`, PCS 7 `…/PV_Out`, DeltaV `…/PV.CV`) and mapping import from CSV. The project file carries
+  `format` and `version` 3 (versions 1 and 2 open through a chain of migrations with identical results); a new `.pidproj`
+  stores the data in the sources, the old Streamlit app does not load its data.
+- API: every route has the stable prefix **`/api/v1`** (the only paths in `openapi.json`); the paths without the prefix
+  stay as a temporary alias. New: `/sources` (GET / POST / PATCH / DELETE), `/time-grid`, `/loops/{i}/mapping`,
+  `/loops/mappings`, `/loops/suggest`, `/loops/import`, `/signals/trend` (min / max decimation, statistics, cursor
+  values). The React UI calls `/api/v1`.
+- Development: a generic registry (`app/registry.py`), the layer-boundary test covers `app/domain`, a test that
+  `schema.d.ts` matches `openapi.json`.
 - Deployment (M26): the new web runs as one container for a team (`Dockerfile.web`) with sign-in through Cloudflare
   Access (or a trusted proxy header), per-user workspaces and jobs, limits (workspaces, jobs, upload size, idle
   expiry) and access / job logs – configured by `PIDTOOLS_*` environment variables, see `docs/deployment.md`.

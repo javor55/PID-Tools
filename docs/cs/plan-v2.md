@@ -80,7 +80,7 @@ s revizí a sloučením v hlavní session. Platí pro všechny etapy:
 - **Test pokrytí nápovědy:** každý ovládací prvek s popiskem má „?“ nebo `title`. Kontroluje Playwright nad
   všemi záložkami.
 
-### E3 – Datová vrstva: více zdrojů a skládání smyček (backend) · 4–5 dnů
+### E3 – Datová vrstva: více zdrojů a skládání smyček (backend) · 4–5 dnů · hotovo 11. 11. 2026
 
 - `app/sources.py`: seznam zdrojů. Každý zdroj má soubor (CSV / XLSX / TXT / OPC), rozvržení, časové pásmo, posun
   a vlastní vzorkování. Výstupem je **společná časová mřížka** (překryv, ruční perioda, mezery).

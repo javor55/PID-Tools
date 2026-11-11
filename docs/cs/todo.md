@@ -10,6 +10,16 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnutí na `ctrl_engine.js`
       patří do E9 spolu s načítáním profilu v prohlížeči. Další části (rychlostní algoritmus, externí reset, split range,
       3-step, PWM) jsou v registrech označené jako plánované (R3).
+- [x] **E3 – datová vrstva: více zdrojů a skládání smyček** (11. 11. 2026): `app/domain` (Project, Source, LoopSpec,
+      TimeGrid, verze formátu 3), registr zdrojů (CSV, TXT, XLSX, OPC), společná časová mřížka (posun, časové pásmo,
+      vlastní vzorkování, překryv / sjednocení, ruční perioda, mezery), návrh smyček z názvů tagů a import mapování z CSV,
+      řetěz migrací v1 → v2 → v3, `/api/v1` (staré cesty jako skrytý alias), API `/sources`, `/time-grid`,
+      `/loops/{i}/mapping`, `/loops/suggest`, `/loops/import`, `/signals/trend`. Zlaté případy projdou novou cestou beze
+      změny. Zbývá pro E4 (UI Data): obrazovky Zdroje a smyčky a Trendy nad těmito endpointy; stav smyčky (verdikt) do
+      seznamu smyček přijde s E5; načtení OPC UA jako dalšího zdroje (dnes `/opc/history` nahradí projekt jedním zdrojem);
+      výběr listu u XLSX; líné načítání sloupců velkých souborů (dnes se čte celá tabulka zdroje); odstranění aliasů bez
+      prefixu spolu s přechodem desktopu a `sidecar.py` na `/api/v1`; `PATCH` zdroje s jinými čtecími volbami přeskládá
+      smyčky, ale nafitované modely zahodí.
 
 ## Sladit nové UI (React) s návrhem
 

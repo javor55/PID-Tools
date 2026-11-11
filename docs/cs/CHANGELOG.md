@@ -2,6 +2,20 @@
 
 ## Nevydáno
 
+- Data (E3, plán v2): **více zdrojů dat a skládání smyček** (`pidtools/app/domain`). Projekt má zdroje (soubor CSV / XLSX /
+  TXT, OPC UA) s časovým pásmem, posunem a vlastním vzorkováním a smyčky s mapováním rolí (PV, SP, MV, poloha, DV, režim)
+  na `zdroj › sloupec`, rozsahy NormPV / NormMV, popisem a vazbou kaskády; jeden sloupec může být ve více smyčkách. Data
+  více zdrojů se skládají na společnou časovou mřížku (překryv nebo sjednocení, automatická nebo ruční perioda, mezery
+  dlouhé nad práh se nepřenášejí). Smyčka z jednoho zdroje počítá nad jeho tabulkou jako dřív, výsledky se nemění (zlaté
+  případy projdou i novou cestou). Automatický návrh smyček z názvů tagů (`TIC101.PV / .SP / .OUT`, PCS 7 `…/PV_Out`, DeltaV
+  `…/PV.CV`) a import mapování z CSV. Soubor projektu má `format` a `version` 3 (starší verze 1 a 2 se otevřou řetězcem
+  migrací bez změny výsledků); nový `.pidproj` nese data ve zdrojích, starý Streamlit ho s daty nenačte.
+- API: všechny cesty mají stabilní prefix **`/api/v1`** (jen ty jsou v `openapi.json`); cesty bez prefixu zůstávají jako
+  dočasný alias. Nové: `/sources` (GET / POST / PATCH / DELETE), `/time-grid`, `/loops/{i}/mapping`, `/loops/mappings`,
+  `/loops/suggest`, `/loops/import`, `/signals/trend` (zředění min / max, statistika, hodnoty v kurzorech). React
+  rozhraní volá `/api/v1`.
+- Vývoj: obecný registr (`app/registry.py`), test hranic vrstev pokrývá `app/domain`, test, že `schema.d.ts` odpovídá
+  `openapi.json`.
 - Regulátor (E1, plán v2): **obecný regulátor ze skládaných částí** `core/controller.py` řízený profilem
   (`pidtools/controllers`, soubor `.pidctrl` = JSON s `format` a `version`; registry formy ideální / paralelní / sériová,
   zdroje a filtru D, mrtvého pásma, anti-windupu podmíněná integrace / zpětný výpočet / bez). `PIDConL` v
