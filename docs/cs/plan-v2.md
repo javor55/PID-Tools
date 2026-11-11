@@ -328,3 +328,55 @@ Zápis by byl samostatný, výslovně schvalovaný modul.
 
 Práce na tomto: E3 (doména, registr zdrojů, verze formátů, `/api/v1`), E7 (registr profilů a metod), E10 (registr
 exportů a sekcí reportu, deník), CLI a dokumentace API po E5. Odhad navíc je asi 2–3 dny, rozložené do etap.
+
+## 8. Start další session (zadání)
+
+Spustit v prostředí **„PID-Tools“** (má povolené weby Siemens / Emerson kvůli manuálům). Větev:
+`claude/vibrant-newton-uul6ny` (případně nová z `main` po sloučení). Úvodní pokyn:
+
+> Pokračuj podle `docs/cs/plan-v2.md`: etapy E1 a E2 souběžně (agenti na levnějším modelu, já reviduji), pak E3.
+> Před UI prací načti aktuální návrh (artefakt, kap. 0). Dodržuj kap. 7.
+
+Desky návrhu pro etapy:
+
+| Etapa | Desky |
+|---|---|
+| E2 | Guide |
+| E4 | DataSources, DataTrends, Data |
+| E5 | Overview, DataDiag |
+| E6 | Main |
+| E8 | Regulator, RegLibrary, RegEditor, RegTest |
+| E9 | Apc, Live |
+| E10 | Project, ProjectLog, Start, Settings |
+
+### Kritéria dokončení
+
+**E1**
+
+- `core/controller.py` + `ctrl_engine.js` + profil `pcs7_pidconl`.
+- Zlaté případy (simulace, návrhy, robustnost, živá simulace) jsou bitově nebo do 1e-9 shodné s dneškem.
+- Shoda Python × JS < 1e-9.
+- Krok < 2 µs.
+- Celá sada testů zelená. UI beze změny.
+
+**E2**
+
+- Každý ovládací prvek s popiskem má „?“ (Playwright test pokrytí přes všechny záložky).
+- `Md` vykreslí tabulky.
+- `/guide/{tab}` + dialog Průvodce s kontrolním seznamem a akcemi.
+- APC FF / Smith / RGA mají kontrolní seznam i implementaci.
+
+**E3**
+
+- `app/domain` (Project, Source, LoopSpec, verze formátu) a registr zdrojů.
+- API `/api/v1/sources`, `/loops/{i}/mapping`, `/loops/suggest`, `/signals`.
+- Společná mřížka z více souborů (posun času, ruční perioda).
+- Starý `.pidproj` dává shodné výsledky.
+- Test hranic vrstev.
+
+Další etapy mají kritéria v kap. 3 (výstup každé etapy = funkční obrazovka podle desky návrhu + testy).
+
+### Otevřené vstupy od uživatele
+
+- Manuály DeltaV a Honeywell nahrát do `docs/manuals/` (mimo git; Siemens si stáhne session sama).
+- Název hlavní záložky: zatím „Data“.
