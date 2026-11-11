@@ -88,7 +88,7 @@ export function ModelEditor({ model, values, edited, onChange, onReset, testid, 
     <div className="stack" data-testid={testid}>
       <div className="small muted">{T("model_" + model.code)}</div>
       {model.params.map((n, i) => (
-        <label className="field" key={n}><span>{n}</span>
+        <label className="field" key={n} title={T("h_apc_second_model")}><span>{n}</span>
           <NumInput value={values[i] ?? 0} min={i ? 0 : undefined} disabled={disabled} testid={`${testid}-${i}`}
             onCommit={(x) => onChange(values.map((v, k) => (k === i ? (i ? Math.max(x, 0) : x) : v)))} /></label>))}
       {!disabled && <button className="btn" disabled={!edited} title={T("h_apc_reset")} data-testid={`${testid}-reset`}

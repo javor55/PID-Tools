@@ -251,7 +251,7 @@ function Bound({ label, v, unit, onSet }: { label: string; v: number; unit: { u:
     if (txt !== null && txt !== cur && txt.trim() !== "" && Number.isFinite(x)) onSet(x * unit.f);
     setTxt(null);
   };
-  return <input type="number" step="any" aria-label={`${label} [${unit.u}]`} value={txt ?? cur} onChange={(e) => setTxt(e.target.value)}
+  return <input type="number" step="any" aria-label={`${label} [${unit.u}]`} title={useT()("dk_segment_help")} value={txt ?? cur} onChange={(e) => setTxt(e.target.value)}
     onBlur={done} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />;
 }
 

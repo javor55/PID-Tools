@@ -35,14 +35,14 @@ export function OverrideSide() {
         <LoopSelect kind="override" label={T("apc_override_b")} current={d?.loop ?? loop} />
       </SideCard>
       <SideCard title={T("ov_select")}>
-        <label className="field"><span>{T("ov_select")}</span>
+        <label className="field" title={T("h_ov_select")}><span>{T("ov_select")}</span>
           <select value={sel} data-testid="ov-sel" onChange={(e) => set({ sel: e.target.value as Sel, step: undefined, lim: undefined })}>
             {SELS.map((s) => <option key={s} value={s}>{T("ov_" + s)}</option>)}</select></label>
         {d && (
           <>
-            <label className="field"><span>{T("dk_ov_step")}</span>
+            <label className="field" title={T("h_ov_step")}><span>{T("dk_ov_step")}</span>
               <NumInput value={step ?? d.defaults.step} testid="ov-step" onCommit={(x) => set({ step: x })} /></label>
-            <label className="field"><span>{T("dk_ov_limit")}</span>
+            <label className="field" title={T("h_ov_limit")}><span>{T("dk_ov_limit")}</span>
               <NumInput value={lim ?? d.defaults.lim} testid="ov-lim" onCommit={(x) => set({ lim: x })} /></label>
           </>
         )}

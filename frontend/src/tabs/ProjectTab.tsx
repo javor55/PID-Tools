@@ -165,18 +165,18 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
       {pre}
       <SideCard title={T("rep_title")} help={T("rep_help")} testid="report-opts">
         <div className="field"><span>{T("rp_status")}</span>
-          <Seg value={status} options={STATUSES} label={T("rp_status")} testid="set-rep_status" small fmt={(v) => T("rp_st_" + v)}
+          <Seg value={status} options={STATUSES} label={T("rp_status")} testid="set-rep_status" small help="h_rp_status" fmt={(v) => T("rp_st_" + v)}
             onChange={(v) => void patch({ rep_status: v })} /></div>
-        <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} />
-        <TextSetting k="rep_author" label={T("rp_author")} />
-        <div className="field wide" title={T("h_rp_charts")}><span>{T("rp_charts")}</span>
-          <Seg value={charts} options={["inline", "cdn"] as const} label={T("rp_charts")} testid="rep-charts" small
+        <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} help="h_rp_plant" />
+        <TextSetting k="rep_author" label={T("rp_author")} help="h_rp_author" />
+        <div className="field wide"><span>{T("rp_charts")}</span>
+          <Seg value={charts} options={["inline", "cdn"] as const} label={T("rp_charts")} testid="rep-charts" small help="h_rp_charts"
             fmt={(v) => T("rp_ch_" + v)} onChange={setCharts} /></div>
-        <TextSetting k="rep_comment" label={T("rep_comment")} placeholder={T("rp_comment_ph")} multiline />
+        <TextSetting k="rep_comment" label={T("rep_comment")} placeholder={T("rp_comment_ph")} help="h_rp_comment" multiline />
       </SideCard>
       <SideCard title={T("rp_sections")} help={T("h_rp_sections")} testid="rep-sections">
         {SECTIONS.map((s) => (
-          <label key={s} className="small">
+          <label key={s} className="small" title={T("h_rp_sec_" + s)}>
             <input type="checkbox" checked={secs.includes(s)} data-testid={`rep-sec-${s}`}
               onChange={(e) => setSecs(SECTIONS.filter((x) => (x === s ? e.target.checked : secs.includes(x))))} /> {T("rp_sec_" + s)}
           </label>))}

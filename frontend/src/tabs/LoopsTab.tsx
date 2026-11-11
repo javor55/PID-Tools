@@ -103,18 +103,18 @@ function ProjectLoops() {
         </table></div>)}
       <h3 className="lsub">{T("ui_lp_new")}</h3>
       <div className="row" style={{ alignItems: "center" }}>
-        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }}><span>{T("au_c_name")}</span>
+        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }} title={T("h_loop_tag")}><span>{T("au_c_name")}</span>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} data-testid="loop-new-name" /></label>
-        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }}><span>PV</span>
+        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }} title={T("h_pv")}><span>PV</span>
           <select value={pv ?? defPv} onChange={(e) => setPv(e.target.value)} data-testid="loop-new-pv">
             {cols.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }}><span>MV</span>
+        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }} title={T("h_mv")}><span>MV</span>
           <select value={mv ?? defMv} onChange={(e) => setMv(e.target.value)} data-testid="loop-new-mv">
             {cols.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }}><span>SP</span>
+        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }} title={T("h_sp")}><span>SP</span>
           <select value={sp} onChange={(e) => setSp(e.target.value)} data-testid="loop-new-sp">
             {[NONE, ...cols].map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }}><span>{T("pos_short")}</span>
+        <label className="field" style={{ gridTemplateColumns: "auto 1fr" }} title={T("h_pos")}><span>{T("pos_short")}</span>
           <select value={pos} onChange={(e) => setPos(e.target.value)} data-testid="loop-new-pos">
             {[NONE, ...cols].map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
         <button className="btn primary" onClick={() => void add(false)} data-testid="loop-add">{T("ui_lp_add_cols")}</button>
@@ -298,26 +298,26 @@ export function LoopsSide() {
                 <td>{r.integ ? "✓" : ""}</td><td className="r mono">{r.theta ?? ""}</td></tr>))}</tbody></table>)}
         {cur && (
           <>
-            <label className="field"><span>{T("au_c_name")}</span>
+            <label className="field" title={T("h_loop_tag")}><span>{T("au_c_name")}</span>
               <input type="text" key={idx} defaultValue={cur.name} data-testid="audit-f-name"
                 onBlur={(e) => { if (e.target.value !== cur.name) edit({ name: e.target.value.trim() }); }} /></label>
-            <label className="field"><span>PV</span>{sel_(cur.pv, false, (x) => edit({ pv: x ?? cur.pv }), "audit-f-pv")}</label>
-            <label className="field"><span>MV</span>{sel_(cur.mv, false, (x) => edit({ mv: x ?? cur.mv }), "audit-f-mv")}</label>
-            <label className="field"><span>SP</span>{sel_(cur.sp, true, (x) => edit({ sp: x }), "audit-f-sp")}</label>
-            <label className="field"><span>{T("pos_short")}</span>{sel_(cur.pos, true, (x) => edit({ pos: x }), "audit-f-pos")}</label>
+            <label className="field" title={T("h_pv")}><span>PV</span>{sel_(cur.pv, false, (x) => edit({ pv: x ?? cur.pv }), "audit-f-pv")}</label>
+            <label className="field" title={T("h_mv")}><span>MV</span>{sel_(cur.mv, false, (x) => edit({ mv: x ?? cur.mv }), "audit-f-mv")}</label>
+            <label className="field" title={T("h_sp")}><span>SP</span>{sel_(cur.sp, true, (x) => edit({ sp: x }), "audit-f-sp")}</label>
+            <label className="field" title={T("h_pos")}><span>{T("pos_short")}</span>{sel_(cur.pos, true, (x) => edit({ pos: x }), "audit-f-pos")}</label>
             <label className="field" title={T("au_theta_help")}><span>θ [s]</span>
               <input key={`t${idx}`} type="number" min={0} step="any" defaultValue={cur.theta ?? 0} data-testid="audit-f-theta"
                 onBlur={(e) => { const v = +e.target.value; edit({ theta: v > 0 ? v : null }); }} /></label>
-            <label className="small"><input type="checkbox" checked={cur.integ} data-testid="audit-f-integ"
+            <label className="small" title={T("h_diag_integ")}><input type="checkbox" checked={cur.integ} data-testid="audit-f-integ"
               onChange={(e) => edit({ integ: e.target.checked })} /> {T("au_c_integ")}</label>
           </>)}
       </SideCard>
       <SideCard title={T("au_sec_window")} testid="audit-side-window">
-        <Seg value={whole ? "whole" : "range"} options={["whole", "range"] as const} label={T("au_sec_window")} testid="audit-whole" stretch
+        <Seg value={whole ? "whole" : "range"} options={["whole", "range"] as const} label={T("au_sec_window")} testid="audit-whole" stretch help="h_au_window"
           fmt={(v) => (v === "whole" ? T("au_whole") : `${T("dk_from")} – ${T("dk_to")}`)} onChange={(v) => setWhole(v === "whole")} />
-        <label className="field"><span>{T("dk_from")}</span>
+        <label className="field" title={T("h_au_window")}><span>{T("dk_from")}</span>
           <input type="number" value={a} disabled={whole} data-testid="audit-a" onChange={(e) => setA(e.target.value)} /></label>
-        <label className="field"><span>{T("dk_to")}</span>
+        <label className="field" title={T("h_au_window")}><span>{T("dk_to")}</span>
           <input type="number" value={b ?? String(dur)} disabled={whole} data-testid="audit-b" onChange={(e) => setB(e.target.value)} /></label>
       </SideCard>
       <PrimaryAction disabled={busy || !recs.length} onClick={() => void run()} testid="audit-run">{T("au_run")}</PrimaryAction>

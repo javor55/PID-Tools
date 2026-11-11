@@ -70,9 +70,9 @@ export function SmithSide() {
         {integ && <div className="warn small">⚠ {T("sm_integ")}</div>}
       </SideCard>
       <SideCard title={T("sm_err")}>
-        <NumSetting k="apc_sm_ek" label={T("sm_err_k") + " [%]"} def={0} step={5} />
-        <NumSetting k="apc_sm_et" label={T("sm_err_t") + " [%]"} def={0} step={5} />
-        <NumSetting k="apc_sm_eth" label={T("sm_err_th") + " [%]"} def={0} step={5} />
+        <NumSetting k="apc_sm_ek" label={T("sm_err_k") + " [%]"} title={T("h_sm_err")} def={0} step={5} />
+        <NumSetting k="apc_sm_et" label={T("sm_err_t") + " [%]"} title={T("h_sm_err")} def={0} step={5} />
+        <NumSetting k="apc_sm_eth" label={T("sm_err_th") + " [%]"} title={T("h_sm_err")} def={0} step={5} />
         <button className="btn" data-testid="sm-err-reset" title={T("h_apc_reset")}
           onClick={() => void patch({ apc_sm_ek: 0, apc_sm_et: 0, apc_sm_eth: 0 })}>{T("apc_reset")}</button>
       </SideCard>

@@ -61,7 +61,7 @@ export function LoopSelect({ kind, label, current }: { kind: string; label: stri
   const setLoop = usePair((s) => s.setLoop);
   if (!loops.length) return <div className="muted small" data-testid={`apc-nootherloop-${kind}`}>{T("apc_need_loop")}</div>;
   return (
-    <label className="field"><span>{label}</span>
+    <label className="field" title={T("h_apc_loop")}><span>{label}</span>
       <select value={current ?? loops[0].index} data-testid={`apc-loop-${kind}`} onChange={(e) => setLoop(kind, +e.target.value)}>
         {loops.map((l) => <option key={l.index} value={l.index}>{l.name}{l.has_model ? "" : " (–)"}</option>)}</select>
     </label>

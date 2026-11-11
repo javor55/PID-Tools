@@ -1,13 +1,13 @@
 // Hlavička podle návrhu: název, aktivní smyčka a „+ Další smyčka“, souhrn dat; vpravo Projekt a report, Nastavení a „?“.
 // Pod ní řádek záložek s podtržením (Projekt a report není záložka, otevírá se tlačítkem).
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { api, request } from "../api/client";
+import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
-import { useT, useTexts } from "../i18n";
-import { NAV_TABS, type TabId, type Theme, useUi } from "../store";
-import { Md } from "./Ui";
+import { useT } from "../i18n";
+import { NAV_TABS, type Theme, useUi } from "../store";
+import { HelpButton } from "./Guide";
 
 type Loops = components["schemas"]["Loops"];
 
@@ -86,51 +86,6 @@ function Settings() {
         </label>
       </div>
     </details>
-  );
-}
-
-const GUIDE_KEY: Record<TabId, string> = {
-  data: "data", model: "model", tuning: "tuning", live: "live", apc: "apc", diag: "diag", loops: "audit", project: "project",
-};
-
-/** Nápověda „?“: průvodce aktivní záložkou (k čemu / kterou metodu kdy / tipy) a obecná nápověda. */
-function HelpButton() {
-  const T = useT();
-  const texts = useTexts() ?? {};
-  const tab = useUi((s) => s.tab);
-  const ref = useRef<HTMLDialogElement>(null);
-  const health = useQuery({ queryKey: ["health"], queryFn: api.health, retry: false });
-  const key = GUIDE_KEY[tab];
-  const parts = (["what", "choose", "tips"] as const).filter((p) => texts[`tg_${key}_${p}`]);
-  const title = texts[`tg_name_${key}`] ? T("tg_title", { m: T(`tg_name_${key}`) }) : T("tb_help");
-  useEffect(() => {
-    const f1 = (e: KeyboardEvent) => { if (e.key === "F1") { e.preventDefault(); ref.current?.showModal(); } };
-    window.addEventListener("keydown", f1);
-    return () => window.removeEventListener("keydown", f1);
-  }, []);
-  return (
-    <>
-      <button type="button" className="hbtn qbtn" aria-label={T("ui_help_tab")} title={T("h_tb_help")}
-        onClick={() => ref.current?.showModal()} data-testid="help-btn">?</button>
-      <dialog ref={ref} className="help" data-testid="help-dialog" onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
-        <div className="help-head">
-          <h2>{title}</h2>
-          <button type="button" className="btn" onClick={() => ref.current?.close()}>{T("ui_close")}</button>
-        </div>
-        {parts.map((p) => (
-          <section key={p}>
-            <h3>{T(`tg_tab_${p}`)}</h3>
-            <Md text={T(`tg_${key}_${p}`)} />
-          </section>
-        ))}
-        {[["guide_title", "guide_body"], ["gloss_title", "gloss_body"], ["about_title", "about_body"]].map(([h, b]) => (
-          <details key={h} className="sec">
-            <summary>{T(h)}</summary>
-            <Md text={T(b, { v: health.data?.version ?? "" })} />
-          </details>
-        ))}
-      </dialog>
-    </>
   );
 }
 

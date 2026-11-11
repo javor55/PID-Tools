@@ -60,13 +60,14 @@ export function Help({ text }: { text: string }) {
 }
 
 /** Přepínač (segmented control): jedna volba z několika, aktivní modře. */
-export function Seg<V extends string | number>({ value, options, onChange, label, fmt, stretch, testid, small, titles, help }: {
+export function Seg<V extends string | number>({ value, options, onChange, label, fmt, stretch, testid, small, titles, help, title }: {
   value: V; options: readonly V[]; onChange: (v: V) => void; label: string; fmt?: (v: V) => ReactNode;
   stretch?: boolean; testid?: string; small?: boolean; titles?: (v: V) => string | undefined;
   help?: string;                      // klíč překladu / text nápovědy: „?“ za přepínačem (a title skupiny)
+  title?: string;                     // jen title skupiny (když je „?“ jinde, např. v nadpisu karty)
 }) {
   const texts = useTexts();
-  const ht = help ? (texts?.[help] ?? help) : undefined;
+  const ht = help ? (texts?.[help] ?? help) : title;
   const group = (
     <div role="group" aria-label={label} title={ht} className={"seg" + (stretch ? " stretch" : "") + (small ? " small" : "")}
       data-testid={testid}>

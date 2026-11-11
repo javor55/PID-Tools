@@ -238,6 +238,17 @@ export default function (component) {
   </div>`;
   root.appendChild(el);
   const $ = (id) => el.querySelector("#" + id);
+  // nápověda ovládacích prvků (title): vysvětlení pod nadpisem karty (hint), jinak „?“ karty; lišta má vlastní texty
+  function helpTitles() {
+    el.querySelectorAll("details").forEach((d) => {
+      const h = d.querySelector(".hint"), q = d.querySelector("summary .qm");
+      const t = ((h && h.textContent) || (q && q.getAttribute("title")) || "").trim();
+      if (t) d.querySelectorAll("input, select, .segs, button.mini").forEach((c) => { if (!c.title) c.title = t; });
+    });
+    if (L.h_speed) $("speed").title = L.h_speed;
+    if (L.h_run) { $("run").title = L.h_run; $("reset").title = L.h_reset || L.h_run; }
+  }
+  helpTitles();
 
   function seg(id, opts, cur, onPick) {
     const box = $(id); box.innerHTML = "";
@@ -338,6 +349,7 @@ export default function (component) {
       num.onchange = () => { set(parseFloat(num.value) || 0, true); event(L.ev_tune); kpiReset(null); };
       box.appendChild(d);
     });
+    helpTitles();
   }
   $("run").onclick = () => { S.run = !S.run; last = null; labels(); };
   $("reset").onclick = () => { reset(); labels(); };

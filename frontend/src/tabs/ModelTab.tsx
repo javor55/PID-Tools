@@ -141,7 +141,7 @@ function ModelTable({ model }: { model?: ModelState }) {
           {model.results.map((r) => (
             <tr key={r.code} className={r.code === model.selected ? "sel" : ""}>
               <td><input type="radio" name="mcode" checked={r.code === model.selected} onChange={() => void select(r.code)}
-                aria-label={r.code} /></td>
+                aria-label={r.code} title={T("ms_cmp_pick")} /></td>
               <td>{T("model_" + r.code)}{r.mixed ? " · AUTO" : ""}</td>
               <td className="mono">{r.fit_live?.toFixed(1) ?? "–"}</td>
               <td className="mono">{r.nrmse?.toFixed(2) ?? "–"}</td>

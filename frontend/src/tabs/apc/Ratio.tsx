@@ -30,7 +30,7 @@ export function RatioSide() {
   return (
     <>
       <SideCard title={T("ra_air")} testid="ratio-side">
-        <label className="field"><span>{T("ra_src")}</span>
+        <label className="field" title={T("h_ra_src")}><span>{T("ra_src")}</span>
           <select value={body.air_loop ?? ""} data-testid="ratio-src"
             onChange={(e) => put({ air_loop: e.target.value === "" ? undefined : +e.target.value, air: undefined })}>
             <option value="">{T("ra_manual")}</option>

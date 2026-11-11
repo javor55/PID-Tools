@@ -400,7 +400,7 @@ export function ModelSide() {
       <SideCard title={T("models")} help={T("h_models")} testid="side-models">
         <div className="checks-grid">
           {MODELS.map((c) => (
-            <label key={c} className="small">
+            <label key={c} className="small" title={T("h_models")}>
               <input type="checkbox" checked={chosen.includes(c)} data-testid={`chk-${c}`}
                 onChange={(e) => void patch({ chosen: e.target.checked ? [...chosen, c] : chosen.filter((y) => y !== c) })} />
               {" "}{T("model_" + c)}
@@ -416,14 +416,14 @@ export function ModelSide() {
           {["none", "medium", "high"].map((x) => <option key={x} value={x}>{T("dl_" + x)}</option>)}
         </select>
         <div className="small muted">{T("dl_desc_" + level).replace(/\*\*/g, "")}</div>
-        <label className="field"><span>{T("dist_strength")}</span>
+        <label className="field"><span className="lbl">{T("dist_strength")}<Help text={T("h_dist_strength")} /></span>
           <input type="range" min={1} max={10} disabled={level === "none"} value={Number(st.dist_strength ?? 4)}
             onChange={(e) => void patch({ dist_strength: +e.target.value })} />
         </label>
       </SideCard>
 
       <SideCard title={T("id_stic")} help={T("h_id_stic")} testid="side-stic" defaultOpen={false}>
-        <label className="small"><input type="checkbox" checked={!!st.id_stic}
+        <label className="small" title={T("h_id_stic")}><input type="checkbox" checked={!!st.id_stic}
           onChange={(e) => void patch({ id_stic: e.target.checked })} /> {T("id_stic")}</label>
       </SideCard>
 

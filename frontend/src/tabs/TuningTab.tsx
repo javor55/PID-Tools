@@ -64,11 +64,11 @@ export function TuningMain() {
       <div className="tn-bar">
         <div className="tn-barrow">
           <Seg<View> value={view} options={["time", "freq", "all"]} onChange={(v) => set({ view: v })} label={T("tn_view")}
-            fmt={(v) => T("tn_view_" + v)} testid="tun-view" />
+            fmt={(v) => T("tn_view_" + v)} testid="tun-view" help="h_tn_view" />
           <span className="tn-cmp" dangerouslySetInnerHTML={{ __html: T("tn_cmp_line", { a: T("dk_suggest"), b: T("set_2") }) }} />
           <div className="tn-right tn-axis">
             <span>{T("ui_tuning_axis")}</span>
-            <select value={unit} aria-label={T("time_unit")} data-testid="tun-unit" onChange={(e) => set({ unit: e.target.value as Unit })}>
+            <select value={unit} aria-label={T("time_unit")} title={T("h_chart_tunit")} data-testid="tun-unit" onChange={(e) => set({ unit: e.target.value as Unit })}>
               <option value="auto">auto ({unitOf("auto", T_end)})</option>
               {(["s", "min", "h"] as const).map((x) => <option key={x} value={x}>{x}</option>)}
             </select>
