@@ -19,7 +19,9 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       seznamu smyček přijde s E5; načtení OPC UA jako dalšího zdroje (dnes `/opc/history` nahradí projekt jedním zdrojem);
       výběr listu u XLSX; líné načítání sloupců velkých souborů (dnes se čte celá tabulka zdroje); odstranění aliasů bez
       prefixu spolu s přechodem desktopu a `sidecar.py` na `/api/v1`; `PATCH` zdroje s jinými čtecími volbami přeskládá
-      smyčky, ale nafitované modely zahodí.
+      smyčky, ale nafitované modely zahodí. **Kompatibilita:** projekt v3 s daty z nového UI otevře starý Streamlit bez
+      dat (data jsou ve `sources`, ne v `data`); vlastní soubory v2 Streamlit ukládá i čte dál. Do vypnutí Streamlitu
+      (M28) případně doplnit čtení `sources` ve `ui/project.py`.
 
 ## Sladit nové UI (React) s návrhem
 
