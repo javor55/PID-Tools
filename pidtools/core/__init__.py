@@ -6,6 +6,7 @@ Moduly:
   identification  – fit modelů z dat, stikce, neměřené poruchy, hodnocení modelu, nejistota
   tuning          – pravidla ladění a optimalizace
   robustness      – kmitočtová analýza smyčky (Ms, GM, PM), šum MV
+  controller      – obecný regulátor podle profilu (pidtools.controllers), PIDConL je jeho předvolba
   simulation      – simulace PIDConL (dávková, kaskáda, živá)
   gainsched       – plánování parametrů PID podle pracovního bodu (blok GainSched)
   diagnostics     – diagnostika provozu, kvalita dat, úseky, nelinearita, plán testu
@@ -18,6 +19,7 @@ from .models import (MODELS, DIST_PARAMS, DIST_STRUCTS, DIST_FIELDS, pd_full, pd
 from .identification import (fit_model, auto_th, fit_with_stiction, flat_inputs, identify, model_metrics,
                              bootstrap_models, norm_factors, rescale_fit)
 from .robustness import loop_tf, is_stable, robustness, hf_gain, mv_noise
+from .controller import Controller, Profile
 from .simulation import (ProcStep, PIDConL, Valve, valve_char_fn, pidconl_sim_full, pidconl_sim, cascade_sim,
                          LiveLoop, iae)
 from .tuning import (integ_gain, default_tc, tune, ff_gain, d_advice, optimize_migo, closed_loop_steps,

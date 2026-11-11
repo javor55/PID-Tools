@@ -268,7 +268,7 @@ def _tuning():
     for n, k in sim["kpis"].items():
         if k:
             _put(out, f"tuning/kpi{n}", {a: b for a, b in k.items() if not isinstance(b, dict)})
-    for i, (nm, r) in enumerate(sim["extra"]):
+    for i, (_nm, r) in enumerate(sim["extra"]):
         _put(out, f"tuning/extra{i}", {k: r[k] for k in ("PV", "MV")})
     # robustnost a frekvenční charakteristika návrhu
     from pidtools.app import frequency as fq

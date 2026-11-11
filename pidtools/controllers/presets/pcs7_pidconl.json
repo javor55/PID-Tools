@@ -1,0 +1,48 @@
+{
+  "format": "pidctrl",
+  "version": 1,
+  "id": "pcs7_pidconl",
+  "name": "Siemens PCS 7 APL PIDConL",
+  "vendor": "Siemens",
+  "system": "PCS 7",
+  "block": "PIDConL (APL)",
+  "verification": {
+    "status": "unverified",
+    "note": "Dnešní model aplikace. Ověřit DiffGain a anti-windup proti manuálu APL (regulatory.md, kap. 10)."
+  },
+  "structure": {
+    "normalisation": {"kind": "percent"},
+    "sp": {"rate_limit": true},
+    "pv": {"filter": "lag1"},
+    "error": {
+      "deadband": {"modes": {"spojité": "continuous", "skokové": "step"}, "other": "step"}
+    },
+    "form": "ideal",
+    "p": {"weight": true},
+    "i": {"enabled": true},
+    "d": {"source": "error_or_pv", "filter": "td_over_n"},
+    "antiwindup": "clamp_conditional",
+    "algorithm": "position",
+    "output": {"limits": true, "rate_limit": true, "control_zone": true},
+    "ff": {"mode": "add"},
+    "tracking": {"mode": "bumpless_integral"}
+  },
+  "params": [
+    {"key": "Gain", "role": "Kc", "name": "Gain", "unit": "-", "required": true},
+    {"key": "TI", "role": "Ti", "name": "TI", "unit": "s", "required": true, "nullable": true},
+    {"key": "TD", "role": "Td", "name": "TD", "unit": "s", "required": true},
+    {"key": "DiffGain", "role": "N", "name": "DiffGain", "unit": "-", "default": 5.0},
+    {"key": "SampleTime", "role": "Ts", "name": "SampleTime", "unit": "s", "required": true},
+    {"key": "PropFacSP", "role": "b", "name": "PropFacSP", "unit": "-", "range": [0.0, 1.0],
+     "alias": {"key": "PropFbk", "true": 0.0, "false": 1.0}, "default": 1.0},
+    {"key": "DiffFbk", "role": "d_on_pv", "name": "DiffFbk", "default": false},
+    {"key": "DeadBand", "role": "deadband", "name": "DeadBand", "unit": "%", "default": 0.0},
+    {"key": "DbMode", "role": "deadband_mode", "name": "DbMode", "default": "spojité"},
+    {"key": "MV_Lo", "role": "mv_lo", "name": "MV_Lo", "unit": "%", "default": "-inf"},
+    {"key": "MV_Hi", "role": "mv_hi", "name": "MV_Hi", "unit": "%", "default": "inf"},
+    {"key": "PVFilt", "role": "pv_filter", "name": "PVFilt", "unit": "s", "default": 0.0},
+    {"key": "MVRate", "role": "mv_rate", "name": "MVRate", "unit": "%/s", "default": 0.0},
+    {"key": "SPRate", "role": "sp_rate", "name": "SPRate", "unit": "%/s", "default": 0.0},
+    {"key": "ConZone", "role": "con_zone", "name": "ConZone", "unit": "%", "default": 0.0}
+  ]
+}

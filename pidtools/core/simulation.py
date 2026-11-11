@@ -7,8 +7,9 @@ Všechny veličiny PV, SP, MV jsou v % normovacích rozsahů.
 """
 import numpy as np
 
+from .controller import Controller, preset_profile
 from .models import MODELS, simulate_dist
-from .util import lag as _lag, propfac
+from .util import lag as _lag
 
 __all__ = ["ProcStep", "PIDConL", "Valve", "valve_char_fn", "pidconl_sim_full", "pidconl_sim", "cascade_sim",
            "LiveLoop", "iae"]
@@ -52,112 +53,21 @@ class ProcStep:
             self.z += self.p[0] * self.x1 * self.h
 
 
-def _deadband(e, db, mode):
-    if db <= 0 or abs(e) >= db:
-        return e - np.sign(e) * db if (db > 0 and mode == "spojité") else e
-    return 0.0
-
-
-class PIDConL:
+class PIDConL(Controller):
     """
     Regulátor PIDConL krok po kroku: ideální tvar, D s filtrem TD/DiffGain, P a D volitelně jen z PV,
     deadband, limity a rychlost MV s anti-windupem, rampa SP, filtr PV, dopředná vazba a bezrázové přepínání.
+    Tenký obal obecného regulátoru (`core.controller`) s dodaným profilem `pcs7_pidconl`
+    (`pidtools/controllers/presets/pcs7_pidconl.json`); výsledky jsou stejné jako u dřívější samostatné třídy.
     `step` se volá v každém kroku simulace h; regulátor počítá každých round(SampleTime/h) kroků.
     ctrl: Gain, TI, TD, DiffGain, SampleTime, PropFacSP (0–1), DiffFbk, DeadBand [%], DbMode, MV_Lo, MV_Hi [%],
           PVFilt [s], MVRate [%/s], SPRate [%/s], ConZone [%] (řídicí pásmo: |ER| > ConZone → MV na limit,
           po návratu do pásma regulátor pokračuje bezrázově z limitu; 0 = vypnuto)
+    Metody: init(sp, y_meas, u0, ff), step(sp, y_meas, ff), track(sp, y_meas, u_man, ff), set_tuning(Gain, TI, TD).
     """
 
     def __init__(self, ctrl, h):
-        self.h = h
-        self.m = max(1, int(round(ctrl["SampleTime"] / h)))
-        self.Tc = self.m * h
-        self.lo, self.hi = ctrl.get("MV_Lo", -np.inf), ctrl.get("MV_Hi", np.inf)
-        self.db, self.dbm = ctrl.get("DeadBand", 0.0), ctrl.get("DbMode", "spojité")
-        self.b, self.dfb = propfac(ctrl), ctrl.get("DiffFbk", False)
-        self.Tpv = ctrl.get("PVFilt", 0.0) or 0.0
-        self.apv = np.exp(-h / self.Tpv) if self.Tpv > 0 else 0.0
-        self.rate = ctrl.get("MVRate", 0.0) or 0.0
-        self.sprate = ctrl.get("SPRate", 0.0) or 0.0
-        self.cz = ctrl.get("ConZone", 0.0) or 0.0
-        self.N = max(ctrl.get("DiffGain", 5.0), 1e-6)
-        self._set_gains(ctrl["Gain"], ctrl["TI"], ctrl["TD"])
-        self.k = 0
-        self.dem = 0.0
-
-    def _set_gains(self, Kc, Ti, Td):
-        self.Kc, self.Ti, self.Td = Kc, Ti, Td
-        self.use_i = Ti is not None and np.isfinite(Ti) and Ti > 0
-        self.Tf = Td / self.N if Td > 0 else 0.0
-
-    def _p_term(self, e):
-        # PropFacSP: váha SP v P složce – P = Gain·(b·ER − (1 − b)·PV); zbytek P působí jen z PV (zpětná vazba)
-        return self.Kc * (self.b * e - (1.0 - self.b) * self.yf)
-
-    def init(self, sp, y_meas, u0, ff=0.0):
-        """Bezrázový start: I složka se nastaví tak, aby výstup byl u0."""
-        self.yf = y_meas
-        self.spr = sp
-        e = _deadband(self.spr - self.yf, self.db, self.dbm)
-        self.I = u0 - self._p_term(e) - ff
-        self.D = 0.0
-        self.xd_prev = -self.yf if self.dfb else e
-        self.u = self.u_prev = u0
-
-    def set_tuning(self, Gain, TI, TD):
-        """Změna parametrů za běhu bez rázu výstupu (přepočet I složky)."""
-        e = _deadband(self.spr - self.yf, self.db, self.dbm)
-        P_old = self._p_term(e)
-        self._set_gains(Gain, TI, TD)
-        self.I += P_old - self._p_term(e)
-
-    def track(self, sp, y_meas, u_man, ff=0.0):
-        """Ruční režim: výstup = u_man, regulátor sleduje (bezrázový přechod do automatu)."""
-        self.yf = self.apv * self.yf + (1 - self.apv) * y_meas if self.Tpv > 0 else y_meas
-        self.spr = sp
-        e = _deadband(self.spr - self.yf, self.db, self.dbm)
-        self.xd_prev = -self.yf if self.dfb else e
-        self.D = 0.0
-        self.I = u_man - self._p_term(e) - ff
-        self.u = self.u_prev = u_man
-        self.k += 1
-        return u_man
-
-    def step(self, sp, y_meas, ff=0.0):
-        self.yf = self.apv * self.yf + (1 - self.apv) * y_meas if self.Tpv > 0 else y_meas
-        if self.k % self.m == 0:
-            Tc = self.Tc
-            if self.sprate > 0:
-                self.spr = self.spr + float(np.clip(sp - self.spr, -self.sprate * Tc, self.sprate * Tc))
-            else:
-                self.spr = sp
-            e = _deadband(self.spr - self.yf, self.db, self.dbm)
-            P = self._p_term(e)
-            xd = -self.yf if self.dfb else e      # D z regulační odchylky za deadbandem (DiffToFbk = 0) nebo z −PV
-            if self.Td > 0:
-                self.D = self.Tf / (self.Tf + Tc) * self.D + self.Kc * self.Td / (self.Tf + Tc) * (xd - self.xd_prev)
-            self.xd_prev = xd
-            if self.cz > 0 and abs(e) > self.cz and np.isfinite(self.lo) and np.isfinite(self.hi):
-                # řídicí pásmo: mimo pásmo MV na limit, I sleduje (bezrázový návrat do regulace)
-                u = self.hi if e * (1.0 if self.Kc >= 0 else -1.0) > 0 else self.lo
-                if self.rate > 0:
-                    u = float(np.clip(u, self.u_prev - self.rate * Tc, self.u_prev + self.rate * Tc))
-                self.I = u - P - self.D - ff
-                self.u = self.u_prev = u
-                self.k += 1
-                return self.u
-            inc = self.Kc * Tc / self.Ti * e if self.use_i else 0.0
-            u_un = P + self.I + inc + self.D + ff
-            self.dem = max(self.dem, abs(u_un - self.u_prev))
-            u = min(max(u_un, self.lo), self.hi)
-            if self.rate > 0:
-                u = float(np.clip(u, self.u_prev - self.rate * Tc, self.u_prev + self.rate * Tc))
-            # anti-windup: při omezení (limit nebo rychlost) integruj jen směrem, který omezení uvolňuje
-            if u == u_un or (u_un > u and inc < 0) or (u_un < u and inc > 0):
-                self.I += inc
-            self.u = self.u_prev = u
-        self.k += 1
-        return self.u
+        super().__init__(preset_profile("pcs7_pidconl"), ctrl, h)
 
 
 def valve_char_fn(gains):

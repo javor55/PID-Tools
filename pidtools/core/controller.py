@@ -1,0 +1,386 @@
+"""
+Obecný regulátor (E1, docs/cs/regulatory.md § 3–4): kanonický řetězec částí řízený profilem.
+
+Profil (`pidtools.controllers`, JSON `.pidctrl`) vybere z registrů jednotlivé části – formu (ideální / paralelní /
+sériová), zdroj a filtr D, režim mrtvého pásma, anti-windup, algoritmus – a přiřadí názvy parametrů bloku
+(`Gain`, `TI` …) rolím regulátoru (`Kc`, `Ti` …). Rozhraní je stejné jako u dřívějšího `PIDConL`:
+`init(sp, y_meas, u0, ff)`, `step(sp, y_meas, ff)`, `track(sp, y_meas, u_man, ff)`, `set_tuning(...)`.
+
+Pořadí výpočtu jednoho kroku (kanonické, každá část vypnutelná):
+  PV filtr → SP rampa → odchylka s mrtvým pásmem → P (váha b) → D (zdroj, filtr) → regulační zóna →
+  součet P + I + D + FF → omezení a rychlost výstupu → anti-windup → integrace.
+
+Krok je psaný pro rychlost: koeficienty se přepočítají při změně ladění, ve `step` jsou jen obyčejná čísla.
+Veličiny jsou v % normovacích rozsahů (normování na jednotky obstarává vrstva `app`).
+Další části (rychlostní algoritmus, externí reset, split range, 3-step, PWM, vlastní rovnice) doplní fáze R3 a R4
+přidáním položek do registrů níže.
+"""
+import math
+
+import numpy as np
+
+from ..controllers import load_preset, parse_profile
+
+__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "preset_profile"]
+
+_INF = math.inf
+
+
+class Registry:
+    """Registr částí regulátoru: id → implementace (plán v2, kap. 7: rozšíření = přidat položku, ne větvit kód)."""
+
+    def __init__(self, name):
+        self.name = name
+        self.items = {}
+
+    def register(self, key, planned=False):
+        def deco(obj):
+            self.items[key] = (obj, planned)
+            return obj
+        return deco
+
+    def get(self, key):
+        if key not in self.items:
+            raise ValueError(f"{self.name}: neznámá položka '{key}' (známé: {', '.join(sorted(self.items))})")
+        obj, planned = self.items[key]
+        if planned:
+            raise NotImplementedError(f"{self.name}: '{key}' je v návrhu a bude doplněno (fáze R3 / R4)")
+        return obj
+
+
+FORMS = Registry("forma")
+DEADBANDS = Registry("mrtvé pásmo")
+D_SOURCES = Registry("zdroj D")
+D_FILTERS = Registry("filtr D")
+ANTIWINDUPS = Registry("anti-windup")
+ALGORITHMS = Registry("algoritmus")
+NORMALISATIONS = Registry("normování")
+PV_FILTERS = Registry("filtr PV")
+REGISTRIES = dict(forms=FORMS, deadbands=DEADBANDS, d_sources=D_SOURCES, d_filters=D_FILTERS,
+                  antiwindups=ANTIWINDUPS, algorithms=ALGORITHMS, normalisations=NORMALISATIONS,
+                  pv_filters=PV_FILTERS)
+
+
+# ================================================================ registry: formy
+# Forma převede trojici ladicích hodnot (role níže) na ideální Kc, Ti, Td; Ti = None / ∞ / ≤ 0 = bez I složky.
+@FORMS.register("ideal")
+def _form_ideal(a, b, c):
+    return a, b, c
+
+
+_form_ideal.roles = ("Kc", "Ti", "Td")
+
+
+@FORMS.register("parallel")
+def _form_parallel(kp, ki, kd):
+    """Paralelní: u = Kp·e + Ki·∫e + Kd·de/dt → Kc = Kp, Ti = Kp / Ki, Td = Kd / Kp."""
+    if kp == 0:
+        raise ValueError("paralelní forma: Kp = 0 nelze převést na ideální tvar")
+    return kp, (kp / ki if ki and ki > 0 else None), kd / kp
+
+
+_form_parallel.roles = ("Kp", "Ki", "Kd")
+
+
+@FORMS.register("series")
+def _form_series(kc, ti, td):
+    """Sériová (interaktivní): Kc' = Kc (1 + Td / Ti), Ti' = Ti + Td, Td' = Ti Td / (Ti + Td). Filtr D se nepřepočítává."""
+    if ti is None or not (ti > 0) or not math.isfinite(ti):
+        return kc, ti, td
+    return kc * (1.0 + td / ti), ti + td, ti * td / (ti + td)
+
+
+_form_series.roles = ("Kc", "Ti", "Td")
+
+
+# ================================================================ registry: mrtvé pásmo
+@DEADBANDS.register("continuous")
+def _db_continuous(db):
+    """Spojité: uvnitř pásma 0, mimo odchylka zmenšená o šířku pásma."""
+    def f(e):
+        if abs(e) >= db:
+            return e - (1.0 if e > 0 else -1.0) * db
+        return 0.0
+    return f
+
+
+@DEADBANDS.register("step")
+def _db_step(db):
+    """Skokové: uvnitř pásma 0, mimo odchylka beze změny."""
+    def f(e):
+        return e if abs(e) >= db else 0.0
+    return f
+
+
+# ================================================================ registry: zdroj a filtr D
+D_SOURCES.register("error")(lambda params: 0)          # 0 = D z (zpracované) odchylky
+D_SOURCES.register("pv")(lambda params: 1)             # 1 = D z −PV
+D_SOURCES.register("error_or_pv")(lambda params: 1 if params.get("d_on_pv") else 0)
+
+
+@D_FILTERS.register("td_over_n")
+def _df_td_over_n(params, Td):
+    """Časová konstanta filtru Tf = Td / N (DiffGain, PCS 7)."""
+    N = max(params.get("N", 5.0), 1e-6)
+    return Td / N if Td > 0 else 0.0
+
+
+@D_FILTERS.register("none")
+def _df_none(params, Td):
+    return 0.0
+
+
+@D_FILTERS.register("fixed")
+def _df_fixed(params, Td):
+    """Pevná časová konstanta Tf (role `Tf`)."""
+    return float(params.get("Tf", 0.0)) if Td > 0 else 0.0
+
+
+# ================================================================ registry: anti-windup
+# Funkce (i_old, inc, u_un, u, k_aw) → nové I; u_un = neomezený součet, u = výstup po omezení.
+@ANTIWINDUPS.register("clamp_conditional")
+def _aw_clamp(i_old, inc, u_un, u, k_aw):
+    """Podmíněná integrace: při omezení se integruje jen směrem, který omezení uvolňuje."""
+    if u == u_un or (u_un > u and inc < 0) or (u_un < u and inc > 0):
+        return i_old + inc
+    return i_old
+
+
+@ANTIWINDUPS.register("back_calculation")
+def _aw_backcalc(i_old, inc, u_un, u, k_aw):
+    """Zpětný výpočet: I += inc + (u − u_un) · Ts / Tt (k_aw = Ts / Tt, role `Tt`)."""
+    return i_old + inc + (u - u_un) * k_aw
+
+
+@ANTIWINDUPS.register("none")
+def _aw_none(i_old, inc, u_un, u, k_aw):
+    return i_old + inc
+
+
+ANTIWINDUPS.register("external_reset", planned=True)(None)
+
+
+# ================================================================ registry: ostatní části
+ALGORITHMS.register("position")(True)
+ALGORITHMS.register("velocity", planned=True)(None)
+NORMALISATIONS.register("percent")(True)                # PV i MV v % rozsahů (rozsahy obstarává vrstva app)
+NORMALISATIONS.register("engineering", planned=True)(None)
+PV_FILTERS.register("lag1")(True)
+PV_FILTERS.register("none")(False)
+
+
+# ================================================================ profil
+class Profile:
+    """Přeložený profil: volby částí ze `structure` a tabulka parametrů (klíč bloku → role)."""
+
+    def __init__(self, data):
+        data = parse_profile(data)
+        self.data, self.id = data, data["id"]
+        st = data["structure"]
+        self.form = st.get("form", "ideal")
+        self.form_fn = FORMS.get(self.form)
+        self.tuning_roles = self.form_fn.roles
+        self.d_source = D_SOURCES.get(st.get("d", {}).get("source", "error"))
+        self.d_filter = D_FILTERS.get(st.get("d", {}).get("filter", "td_over_n"))
+        self.antiwindup = ANTIWINDUPS.get(st.get("antiwindup", "clamp_conditional"))
+        ALGORITHMS.get(st.get("algorithm", "position"))
+        NORMALISATIONS.get(st.get("normalisation", {}).get("kind", "percent"))
+        self.pv_lag = bool(PV_FILTERS.get(st.get("pv", {}).get("filter", "lag1")))
+        db = st.get("error", {}).get("deadband")
+        self.db_modes = (db or {}).get("modes", {})
+        self.db_other = (db or {}).get("other", "step")
+        for m in list(self.db_modes.values()) + [self.db_other]:
+            DEADBANDS.get(m)
+        out = st.get("output", {})
+        self.use_rate, self.use_zone = bool(out.get("rate_limit")), bool(out.get("control_zone"))
+        self.use_sp_rate = bool(st.get("sp", {}).get("rate_limit"))
+        self.params = []                # (klíč, role, výchozí, povinný, může být None, rozsah, alias)
+        for p in data["params"]:
+            self.params.append((p["key"], p["role"], _num(p.get("default")), bool(p.get("required")),
+                                bool(p.get("nullable")), p.get("range"), p.get("alias")))
+
+    def resolve(self, ctrl):
+        """Slovník bloku (klíče jako Gain, TI) → hodnoty podle rolí (Kc, Ti …); chybějící = výchozí, povinné = KeyError."""
+        out = {}
+        for key, role, default, required, nullable, rng, alias in self.params:
+            v = ctrl.get(key)
+            if v is None and alias is not None and ctrl.get(alias["key"]) is not None:
+                v = alias["true"] if ctrl.get(alias["key"]) else alias["false"]
+            if v is None:
+                if nullable and key in ctrl:        # např. TI = None: bez I složky
+                    out[role] = None
+                    continue
+                if required:
+                    raise KeyError(key)
+                v = default
+            out[role] = float(min(max(v, rng[0]), rng[1])) if rng is not None else v
+        return out
+
+
+def _num(v):
+    """Číslo z JSON; "inf" / "-inf" jako řetězce pro nekonečno."""
+    if isinstance(v, str) and v.lstrip("+-") == "inf":
+        return -_INF if v.startswith("-") else _INF
+    return v
+
+
+# ================================================================ regulátor
+class Controller:
+    """
+    Regulátor krok po kroku podle profilu. `ctrl` je slovník parametrů v názvech bloku (jako `block_ctrl` /
+    `set_ctrl` z app.loop), `h` krok simulace [s]; regulátor počítá každých round(SampleTime / h) kroků.
+    Stav: yf (PV po filtru), spr (SP po rampě), I, D, u, dem (největší požadovaná změna výstupu za výpočet).
+    """
+
+    def __init__(self, profile, ctrl, h):
+        prof = profile if isinstance(profile, Profile) else Profile(profile)
+        self.profile = prof
+        P = prof.resolve(ctrl)
+        self._params = P
+        self.h = h
+        self.m = max(1, int(round(P["Ts"] / h)))
+        self.Tc = Tc = self.m * h
+        self.lo, self.hi = P["mv_lo"], P["mv_hi"]
+        db = P["deadband"]
+        self._db = None
+        if db > 0:
+            name = prof.db_modes.get(P["deadband_mode"], prof.db_other)
+            self._db = DEADBANDS.get(name)(db)
+        self.b = P["b"]
+        self._omb = 1.0 - self.b
+        self._dsrc = prof.d_source(P)
+        Tpv = (P["pv_filter"] or 0.0) if prof.pv_lag else 0.0
+        self._lag = Tpv > 0
+        self._apv = float(np.exp(-h / Tpv)) if Tpv > 0 else 0.0
+        self._bpv = 1 - self._apv
+        self._rate = (P["mv_rate"] or 0.0) if prof.use_rate else 0.0
+        self._sprate = (P["sp_rate"] or 0.0) if prof.use_sp_rate else 0.0
+        self._rlim, self._slim = self._rate * Tc, self._sprate * Tc
+        cz = (P["con_zone"] or 0.0) if prof.use_zone else 0.0
+        self._cz = cz if (cz > 0 and math.isfinite(self.lo) and math.isfinite(self.hi)) else 0.0
+        self._aw = prof.antiwindup
+        self._k_aw = Tc / P["Tt"] if P.get("Tt") else 0.0
+        self.k = 0
+        self.dem = 0.0
+        self.set_tuning(*(P[r] for r in prof.tuning_roles), _bumpless=False)
+
+    # ---- ladění
+    def _set_gains(self, a, b, c):
+        Kc, Ti, Td = self.profile.form_fn(a, b, c)
+        Tc = self.Tc
+        self.Kc, self.Ti, self.Td = Kc, Ti, Td
+        self.use_i = Ti is not None and math.isfinite(Ti) and Ti > 0
+        self.Tf = Tf = self.profile.d_filter(self._params, Td)
+        self._ki = Kc * Tc / Ti if self.use_i else 0.0
+        self._use_d = Td > 0
+        self._ad = Tf / (Tf + Tc) if self._use_d else 0.0
+        self._kd = Kc * Td / (Tf + Tc) if self._use_d else 0.0
+        self._ksign = 1.0 if Kc >= 0 else -1.0
+
+    def set_tuning(self, *tuning, _bumpless=True):
+        """Změna parametrů za běhu (v rolích formy: ideální Gain, TI, TD) bez rázu výstupu (přepočet I složky)."""
+        if _bumpless:
+            e = self._err()
+            P_old = self._p_term(e)
+        self._set_gains(*tuning)
+        if _bumpless:
+            self.I += P_old - self._p_term(e)
+
+    # ---- části
+    def _err(self):
+        e = self.spr - self.yf
+        return self._db(e) if self._db is not None else e
+
+    def _p_term(self, e):
+        # váha b: P = Kc · (b · e − (1 − b) · PV); zbytek P působí jen z PV (b = 1 čistá odchylka, b = 0 jen PV)
+        return self.Kc * (self.b * e - self._omb * self.yf)
+
+    def _xd(self, e):
+        return -self.yf if self._dsrc else e
+
+    # ---- rozhraní
+    def init(self, sp, y_meas, u0, ff=0.0):
+        """Bezrázový start: I složka se nastaví tak, aby výstup byl u0."""
+        self.yf = y_meas
+        self.spr = sp
+        e = self._err()
+        self.I = u0 - self._p_term(e) - ff
+        self.D = 0.0
+        self.xd_prev = self._xd(e)
+        self.u = self.u_prev = u0
+
+    def track(self, sp, y_meas, u_man, ff=0.0):
+        """Ruční režim: výstup = u_man, regulátor sleduje (bezrázový přechod do automatu)."""
+        self.yf = self._apv * self.yf + self._bpv * y_meas if self._lag else y_meas
+        self.spr = sp
+        e = self._err()
+        self.xd_prev = self._xd(e)
+        self.D = 0.0
+        self.I = u_man - self._p_term(e) - ff
+        self.u = self.u_prev = u_man
+        self.k += 1
+        return u_man
+
+    def step(self, sp, y_meas, ff=0.0):
+        """Jeden krok simulace; vrací výstup (MV). Mezi výpočty (SampleTime > h) drží poslední hodnotu."""
+        yf = self.yf = self._apv * self.yf + self._bpv * y_meas if self._lag else y_meas
+        k = self.k
+        self.k = k + 1
+        if k % self.m:
+            return self.u
+        spr = self.spr
+        if self._sprate > 0:
+            lim = self._slim
+            spr = spr + float(min(max(sp - spr, -lim), lim))
+        else:
+            spr = sp
+        self.spr = spr
+        e = spr - yf
+        if self._db is not None:
+            e = self._db(e)
+        Kc = self.Kc
+        P = Kc * (self.b * e - self._omb * yf)
+        xd = -yf if self._dsrc else e
+        if self._use_d:
+            self.D = D = self._ad * self.D + self._kd * (xd - self.xd_prev)
+        else:
+            D = self.D
+        self.xd_prev = xd
+        u_prev = self.u_prev
+        cz = self._cz
+        if cz > 0 and abs(e) > cz:
+            # regulační zóna: mimo pásmo MV na limit, I sleduje (bezrázový návrat do regulace)
+            u = self.hi if e * self._ksign > 0 else self.lo
+            if self._rate > 0:
+                rl = self._rlim
+                u = float(min(max(u, u_prev - rl), u_prev + rl))
+            self.I = u - P - D - ff
+            self.u = self.u_prev = u
+            return u
+        inc = self._ki * e if self.use_i else 0.0
+        u_un = P + self.I + inc + D + ff
+        dem = abs(u_un - u_prev)
+        if dem > self.dem:
+            self.dem = dem
+        u = min(max(u_un, self.lo), self.hi)
+        if self._rate > 0:
+            rl = self._rlim
+            u = float(min(max(u, u_prev - rl), u_prev + rl))
+        self.I = self._aw(self.I, inc, u_un, u, self._k_aw)
+        self.u = self.u_prev = u
+        return u
+
+
+_profiles = {}
+
+
+def preset_profile(preset_id):
+    """Přeložený profil dodané předvolby (např. 'pcs7_pidconl'), vytvořený jednou a sdílený."""
+    if preset_id not in _profiles:
+        _profiles[preset_id] = Profile(load_preset(preset_id))
+    return _profiles[preset_id]
+
+
+def controller_from_preset(preset_id, ctrl, h):
+    """Regulátor z dodané předvolby."""
+    return Controller(preset_profile(preset_id), ctrl, h)
