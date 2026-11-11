@@ -7,7 +7,7 @@ import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { series } from "../api/signals";
 import { CheckSetting, NumSetting, SelectSetting } from "../components/Fields";
-import { Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
+import { LabelHelp, Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
 import { useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { dur } from "../lib/format";
@@ -216,9 +216,7 @@ function KpiCard({ k, freq, info, sug, dec }: { k: Record<string, Kpi>; freq: Fr
   );
 }
 
-function Qm({ text }: { text: string }) {
-  return <span className="qm" role="img" aria-label={text} title={text}>?</span>;
-}
+const Qm = LabelHelp;
 
 // ---------------------------------------------------------------- pravý panel
 type Pid3 = { Kc: number; Ti: number; Td: number };

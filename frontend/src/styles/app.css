@@ -60,8 +60,18 @@ details.scard > summary h2 { margin: 0; font-size: 15px; font-weight: 600; flex:
 details.scard > summary .chev { color: #9aa5b1; font-size: 12px; width: 12px; transition: transform .15s; }
 details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .scard-body { display: flex; flex-direction: column; gap: 8px; }
-.qm { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
-  border: 1px solid var(--pid-ctl); color: var(--pid-muted); font-size: 12px; font-weight: 600; cursor: help; flex: none; }
+.qm-wrap { display: inline-flex; vertical-align: middle; margin-left: 4px; }
+.qm { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; padding: 0;
+  border: 1px solid #9aa5b1; background: var(--pid-card); color: var(--pid-muted); font: inherit; font-size: 12px; font-weight: 600;
+  cursor: help; flex: none; }
+.qm:hover, .qm:focus-visible, .qm[aria-expanded="true"] { border-color: var(--pid-accent); color: var(--pid-accent); }
+.qm-bubble { position: fixed; z-index: 60; width: 320px; max-width: calc(100vw - 16px); background: var(--pid-card); color: var(--pid-text);
+  border: 1px solid var(--pid-line); border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, .25); padding: 8px 10px; font-size: 12px;
+  line-height: 1.4; font-weight: 400; white-space: normal; text-align: left; }
+.lbl { display: inline-flex; align-items: center; min-width: 0; }
+.seg-help { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
+.seg-help.stretch { display: flex; }
+.seg-help.stretch > .seg { flex: 1; }
 /* přepínač (segmented control) */
 .seg { display: inline-flex; border: 1px solid var(--pid-ctl); border-radius: 8px; overflow: hidden; max-width: 100%; }
 .seg.stretch { display: flex; }
@@ -153,3 +163,10 @@ dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
 .dcard .dhead h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .dcard .dright { margin-left: auto; font-size: 12px; color: var(--pid-muted); display: inline-flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 .dcard .dnote { margin: 0; font-size: 12px; color: var(--pid-muted); }
+.chk-help { display: inline-flex; align-items: center; gap: 2px; }
+.md h4 { margin: 10px 0 4px; font-size: 13px; }
+.md-table { overflow-x: auto; margin: 0 0 8px; }
+.md table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.md th { text-align: left; font-weight: 500; color: var(--pid-muted); padding: 5px 8px; border-bottom: 1px solid var(--pid-line); }
+.md td { padding: 6px 8px; border-top: 1px solid var(--pid-soft); vertical-align: top; }
+.md td:first-child { font-weight: 600; }
