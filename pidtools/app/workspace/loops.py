@@ -1,25 +1,35 @@
 """
-Projekt: víc smyček nad jedním datovým souborem (každá má vlastní sloupce, rozsahy, model, ladění a APC).
-Formát souboru je stejný jako ve webové aplikaci (app.project): záznam aktivní smyčky nahoře, „loops“ a „active“.
+Projekt: víc smyček nad zdroji dat (každá má vlastní sloupce, rozsahy, model, ladění a APC). Zdroje (soubory, OPC UA),
+mapování rolí smyček a společná časová mřížka jsou v `app.domain` a `app.workspace.sources`; `Workspace` zůstává
+fasádou výpočtů jedné smyčky. Formát souboru (app.project, verze 3): záznam aktivní smyčky nahoře, „loops“, „active“,
+„sources“ a „time_grid“; starší soubory se při otevření převedou migrací.
 """
 from .. import project as prj
-from ..dataset import on_grid
+from ..domain import migrate_project
+from ..domain.model import FORMAT, VERSION, TimeGrid
+from ..domain.model import Project as DomainProject
 from ..guess import guess_roles
 from . import Workspace
+from .sources import SourceRT, SourcesMixin, embedded_frame
 
 
-class Project:
+class Project(SourcesMixin):
     def __init__(self):
         self.loops = [Workspace()]
         self.active = 0
+        self.sources = []                 # [SourceRT] – zdroje dat (app.workspace.sources)
+        self.time_grid = TimeGrid()       # společná časová mřížka více zdrojů
 
     @property
     def state(self):
         return self.loops[self.active]
 
     # ---- data (společná pro všechny smyčky)
-    def _reset_to(self, ls):
-        self.loops, self.active = [ls], 0
+    def _reset_to(self, ls, kind=None):
+        self.loops, self.active, self.sources = [ls], 0, []
+        self.sync()                       # tabulka smyčky se stane jediným zdrojem
+        if kind and self.sources:
+            self.sources[0].src.kind = kind
 
     def load_file(self, path):
         ls = Workspace()
@@ -31,11 +41,11 @@ class Project:
         ls.load_demo()
         self._reset_to(ls)
 
-    def load_frame(self, df, name):
-        """Data z tabulky (např. z OPC UA) – nový projekt s jednou smyčkou."""
+    def load_frame(self, df, name, kind=None):
+        """Data z tabulky (např. z OPC UA) – nový projekt s jednou smyčkou a jedním zdrojem (druh podle `kind`)."""
         ls = Workspace()
         ls.load_frame(df, name)
-        self._reset_to(ls)
+        self._reset_to(ls, kind)
 
     # ---- smyčky
     def names(self):
@@ -46,9 +56,13 @@ class Project:
         src = self.state
         if not src.has_data:
             return None
+        self.sync()
         ls = Workspace()
-        ls.time_fmt, ls.unit = src.time_fmt, src.unit
-        ls.load_frame(src.df, src.fname, src.layout)
+        ls.time_fmt, ls.unit, ls.ts_user = src.time_fmt, src.unit, src.ts_user
+        ls.origin_hint, ls.merged_df = src.origin_hint, src.merged_df
+        ls.load_frame(src.df, src.fname, src.layout, c_time=src.c_time, c_tag=src.c_tag, c_val=src.c_val,
+                      row_dt=src.row_dt)
+        ls.src_ids, ls.name_refs = list(src.src_ids), dict(src.name_refs)
         g = guess_roles(ls.sig.sigs, ls.sig.get, [x.c_pv for x in self.loops])
         ls.set_columns(g["pv"], g["mv"], g["sp"] or "—", [], g["pos"] or "—")
         ls.set(lang=src.get("lang"))
@@ -78,24 +92,26 @@ class Project:
 
     # ---- soubor projektu
     def to_project(self, include_data=False):
+        """Soubor projektu verze 3: záznam aktivní smyčky, smyčky se `spec`, zdroje (s daty) a časová mřížka."""
+        self.sync()
         recs = []
-        for ls in self.loops:
+        for i, ls in enumerate(self.loops):
             r = ls.to_project(False)
             for k in ("version", "fname"):
                 r.pop(k, None)
+            r["spec"] = self.loop_spec(i).to_dict()
             recs.append(r)
         act = self.state
-        proj = dict(version=prj.PROJECT_VERSION, fname=act.fname, **recs[self.active])
+        proj = dict(version=VERSION, format=FORMAT, fname=act.fname, **recs[self.active])
         if len(self.loops) > 1:
             proj["loops"] = recs
             proj["active"] = self.active + 1
-        if include_data and act.has_data:
-            proj["data"] = act.to_project(True)["data"]
-            cols = proj["data"]["cols"]
-            for ls in self.loops:        # sloupce ostatních smyček na mřížce aktivní smyčky
-                for c in [ls.c_pv, ls.c_mv, ls.c_sp, *ls.c_d]:
-                    if c and c != "—" and str(c) not in cols and c in act.sig.sigs:
-                        cols[str(c)] = on_grid(act.sig, act.grid, c, zoh=(c == ls.c_mv))
+        used = {}                                       # sloupce zdrojů, které používá nějaká role (ukládají se jen ty)
+        for i in range(len(self.loops)):
+            for ref in self.loop_spec(i).roles.refs():
+                used.setdefault(ref.source_id, []).append(ref.column)
+        proj["sources"] = [rt.to_dict(include_data, list(dict.fromkeys(used.get(rt.id, [])))) for rt in self.sources]
+        proj["time_grid"] = self.time_grid.to_dict()
         return proj
 
     def save(self, path, include_data=True):
@@ -103,15 +119,48 @@ class Project:
             f.write(prj.serialize_project(self.to_project(include_data)))
 
     def apply_project(self, proj):
+        """
+        Obnova projektu libovolné verze (starší se převedou migrací). Zdroje s uloženými daty se načtou z projektu;
+        projekt bez dat použije data, která jsou v projektu načtená (podle názvu zdroje, jinak podle pořadí).
+        """
+        proj = migrate_project(proj)
+        dom = DomainProject.from_dict(proj)
+        self.sync()
+        keep = list(self.sources)
+        rts = []
+        for k, (src, sd) in enumerate(zip(dom.sources, proj["sources"])):
+            if sd.get("data"):
+                df, origin = embedded_frame(sd["data"])
+                rts.append(SourceRT(src, df, origin))
+                continue
+            old = next((r for r in keep if r.src.name == src.name), keep[k] if k < len(keep) else None)
+            if old is None and keep:
+                old = keep[0]
+            rts.append(SourceRT(src, old.df if old else None, old.origin if old else None))
+            if old is not None:                                 # data a čtení tabulky podle původního souboru
+                src.name, src.options = old.src.name, dict(old.src.options)
         recs, act = prj.loop_records(proj)
-        keep = self.state if self.state.has_data else None
+        self.sources, self.time_grid = rts, dom.time_grid
         loops = []
-        for rec in recs:
+        for rec, spec in zip(recs, dom.loops):
             ls = Workspace()
-            if not rec.get("data") and keep is not None:       # projekt bez dat → data, která jsou načtená
-                ls.time_fmt, ls.unit = keep.time_fmt, keep.unit
-                ls.load_frame(keep.df, keep.fname, keep.layout)
+            ids = list(dict.fromkeys(r.source_id for r in spec.roles.refs())) or [rts[0].id if rts else None]
+            if ids[0] is not None and all(self.rt(i).df is not None for i in ids):
+                ts = rec.get("tag", "")
+                emb = self.rt(ids[0]).src.data.embedded and len(ids) == 1
+                self._feed(ls, ids, fname=f"project|{ts}" if emb else None)
+                inv = {v: k for k, v in ls.name_refs.items()}
+                mp = dict(rec.get("map") or {})
+                for key, ref in (("c_pv", spec.roles.pv), ("c_mv", spec.roles.mv), ("c_sp", spec.roles.sp),
+                                 ("c_pos", spec.roles.pos)):
+                    if ref in inv:
+                        mp[key] = inv[ref]
+                if all(r in inv for r in spec.roles.dv):
+                    mp["c_d"] = [inv[r] for r in spec.roles.dv]
+                rec = {**rec, "map": mp}
             ls.apply_project(rec)
+            ls.extra = dict(description=spec.description, mode=spec.roles.mode.to_dict() if spec.roles.mode else None,
+                            cascade_to=spec.cascade_to)
             loops.append(ls)
         self.loops, self.active = loops, act
 

@@ -6,7 +6,13 @@ Záznam smyčky: tag, state (nastavení – klíče STATE_KEYS a s prefixy STATE
 poruchy, poloha), ranges (úsek identifikace „id“ a validace „val“), windows (úseky podle vstupů {vstup: [[od, do] s]}
 a vyřazení dat {signál: [zap, min, max]} + tolerance), ff (dopředné vazby), fit (nafitované modely).
 Volitelně data: {"cols": {název: hodnoty}} na společné časové mřížce „t_s“.
+
+Verze 3 (app.domain, `format` = "pidtools.project") přidává `sources` (zdroje dat s uloženými daty `sources[i].data`),
+`time_grid` a u každé smyčky `spec` (mapování rolí na `zdroj › sloupec`, rozsahy, popis, kaskáda). Záznam smyčky a klíče
+výše zůstávají (starší verze aplikace je čtou), jen `data` na nejvyšší úrovni už se nepíše. Starší verze (1, 2) se při
+otevření převedou řetězcem migrací `app.domain.migrate`. `PROJECT_VERSION` je verze záznamu smyčky (`Workspace.to_project`).
 """
+import hashlib
 import json
 
 import numpy as np
@@ -151,20 +157,40 @@ def loop_records(proj):
     return recs, min(max(int(proj.get("active", 1)), 1), len(recs)) - 1
 
 
+def _round_cols(cols, time_key=None):
+    """Pole dat → seznamy zaokrouhlené na 6 platných číslic (čas zdroje na 10: dlouhý záznam by jinak ztratil krok)."""
+    def r(a, digits):
+        return [None if not np.isfinite(x) else float(f"{x:.{digits}g}") for x in np.asarray(a, float)]
+    return {k: r(v, 10 if k == time_key else 6) for k, v in cols.items()}
+
+
 def serialize_project(proj):
-    """Projekt → JSON text; pole dat zaokrouhlená na 6 platných číslic."""
+    """Projekt → JSON text; pole dat zaokrouhlená na 6 platných číslic (data zdrojů verze 3 s otiskem SHA-256)."""
     proj = dict(proj)
     if "data" in proj:
-        def r6(a):
-            return [None if not np.isfinite(x) else float(f"{x:.6g}") for x in np.asarray(a, float)]
-        proj["data"] = {"cols": {k: r6(v) for k, v in proj["data"]["cols"].items()}}
+        proj["data"] = {"cols": _round_cols(proj["data"]["cols"])}
+    if proj.get("sources"):
+        srcs = []
+        for s in proj["sources"]:
+            if s.get("data"):
+                cols = _round_cols(s["data"]["cols"], "t_s")
+                digest = hashlib.sha256(json.dumps(cols, separators=(",", ":")).encode("utf-8")).hexdigest()
+                s = dict(s, data=dict(s["data"], cols=cols), data_ref=dict(s.get("data_ref") or {}, sha256=digest))
+            srcs.append(s)
+        proj["sources"] = srcs
     return json.dumps(proj, ensure_ascii=False)
 
 
 def load_project(text):
     """JSON text → projekt (slovník); data jako pole numpy (None → NaN)."""
     proj = json.loads(text)
+
+    def arrays(data):
+        data = dict(data)
+        data["cols"] = {k: np.array([np.nan if x is None else x for x in v], float) for k, v in data["cols"].items()}
+        return data
     if "data" in proj:
-        proj["data"] = {"cols": {k: np.array([np.nan if x is None else x for x in v], float)
-                                 for k, v in proj["data"]["cols"].items()}}
+        proj["data"] = arrays(proj["data"])
+    if "sources" in proj:
+        proj["sources"] = [dict(s, data=arrays(s["data"])) if s.get("data") else s for s in proj["sources"]]
     return proj

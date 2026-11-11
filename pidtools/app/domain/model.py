@@ -35,21 +35,22 @@ def _num(v, what, none=True):
 
 @dataclass
 class DataRef:
-    """Odkaz na data zdroje: kam patří (`file` – nahraný soubor, `opc` – záznam z OPC UA, `embedded` – uložená
-    v projektu) a otisk pro kontrolu, že jde o tytéž hodnoty."""
-    kind: str = "embedded"
+    """Odkud data zdroje jsou (`file` – nahraný soubor, `opc` – záznam z OPC UA, `demo`), kolik má řádků, otisk
+    uložených dat a zda jsou data uložená v tomto souboru projektu (`embedded`)."""
+    kind: str = "file"
     name: str = ""
     rows: int = 0
     sha256: str | None = None
+    embedded: bool = False
 
     def to_dict(self):
-        return dict(kind=self.kind, name=self.name, rows=self.rows, sha256=self.sha256)
+        return dict(kind=self.kind, name=self.name, rows=self.rows, sha256=self.sha256, embedded=self.embedded)
 
     @classmethod
     def from_dict(cls, d):
         d = d or {}
-        return cls(kind=str(d.get("kind", "embedded")), name=str(d.get("name", "")), rows=int(d.get("rows") or 0),
-                   sha256=d.get("sha256"))
+        return cls(kind=str(d.get("kind", "file")), name=str(d.get("name", "")), rows=int(d.get("rows") or 0),
+                   sha256=d.get("sha256"), embedded=bool(d.get("embedded", False)))
 
 
 @dataclass

@@ -2203,5 +2203,7 @@
  "src_p_c_time": "Time column",
  "src_p_c_tag": "Tag name column (long layout)",
  "src_p_c_val": "Value column (long layout)",
- "src_p_row_dt": "Sample period when the file has no time [in time units]"
+ "src_p_row_dt": "Sample period when the file has no time [in time units]",
+ "err_loop_roles": "A loop needs at least PV and MV.",
+ "err_loop_index": "Invalid cascade loop: {i}."
 }

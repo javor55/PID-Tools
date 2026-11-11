@@ -46,7 +46,7 @@ def _v2_to_v3(proj):
     name = fname.split("|")[0] or "data"
     data = out.pop("data", None)
     src = Source(id="s1", name=name, kind=kind_for(name), options=dict(layout="wide") if data else {},
-                 data=DataRef(kind="embedded" if data else "file", name=name,
+                 data=DataRef(kind="file", name=name, embedded=bool(data),
                               rows=len(next(iter(data["cols"].values()))) if data and data.get("cols") else 0))
     sd = src.to_dict()
     if data:

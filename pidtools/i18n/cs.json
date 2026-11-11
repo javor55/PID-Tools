@@ -2203,5 +2203,7 @@
  "src_p_c_time": "Sloupec času",
  "src_p_c_tag": "Sloupec s názvem tagu (rozvržení long)",
  "src_p_c_val": "Sloupec s hodnotou (rozvržení long)",
- "src_p_row_dt": "Perioda vzorků, když soubor nemá čas [v jednotkách času]"
+ "src_p_row_dt": "Perioda vzorků, když soubor nemá čas [v jednotkách času]",
+ "err_loop_roles": "Smyčka potřebuje alespoň PV a MV.",
+ "err_loop_index": "Neplatná smyčka kaskády: {i}."
 }

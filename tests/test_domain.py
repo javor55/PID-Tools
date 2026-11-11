@@ -224,7 +224,7 @@ def test_migrate_golden_project_v2():
     p = domain.migrate_project(_load("golden/tic001.json"))
     assert p["format"] == "pidtools.project" and p["version"] == 3
     assert len(p["sources"]) == 1 and p["sources"][0]["id"] == "s1" and p["sources"][0]["data"]["cols"]
-    assert p["sources"][0]["kind"] == "csv" and p["sources"][0]["data_ref"]["kind"] == "embedded"
+    assert p["sources"][0]["kind"] == "csv" and p["sources"][0]["data_ref"]["embedded"] is True
     assert "data" not in p
     spec = LoopSpec.from_dict(p["spec"])
     assert str(spec.roles.pv) == "s1:TIC001_PV" and spec.tag == "TIC001"
@@ -237,7 +237,7 @@ def test_migrate_v1_applies_state_migration():
     assert raw["version"] == 1
     p = domain.migrate_project(raw)
     assert p["version"] == 3 and raw["version"] == 1                      # vstup se nemění
-    assert p["sources"][0]["data_ref"]["kind"] in ("file", "embedded") and p["sources"][0]["name"] == "example4.xlsx"
+    assert p["sources"][0]["data_ref"]["kind"] == "file" and p["sources"][0]["name"] == "example4.xlsx"
     assert p["sources"][0]["kind"] == "xlsx"
     if "pfb" in raw["state"]:
         assert "propfac" in p["state"]
