@@ -3,6 +3,14 @@
 **Hlavní plán od 11. 11. 2026: [plan-v2.md](plan-v2.md)** – nové UI v2 (Data se zdroji a diagnostikou, knihovna
 regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sladění s návrhem v1 a jsou v plánu zařazené.
 
+## Plán v2
+
+- [x] **E1 – jádro regulátoru R1** (11. 11. 2026): `core/controller.py`, profil `pcs7_pidconl`, `ctrl_engine.js`, zlaté
+      případy, benchmark kroku, test hranic vrstev. Zbývá z návrhu: živá simulace v prohlížeči stále používá vlastní
+      `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnutí na `ctrl_engine.js`
+      patří do E9 spolu s načítáním profilu v prohlížeči. Další části (rychlostní algoritmus, externí reset, split range,
+      3-step, PWM) jsou v registrech označené jako plánované (R3).
+
 ## Sladit nové UI (React) s návrhem
 
 Návrh: artefakt „PID Tools – nový návrh UI (všechny záložky)“, https://claude.ai/artifact/QuLnUL4JG1Y6jKfAGcmhD9

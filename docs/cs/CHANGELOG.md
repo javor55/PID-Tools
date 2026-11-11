@@ -2,6 +2,15 @@
 
 ## Nevydáno
 
+- Regulátor (E1, plán v2): **obecný regulátor ze skládaných částí** `core/controller.py` řízený profilem
+  (`pidtools/controllers`, soubor `.pidctrl` = JSON s `format` a `version`; registry formy ideální / paralelní / sériová,
+  zdroje a filtru D, mrtvého pásma, anti-windupu podmíněná integrace / zpětný výpočet / bez). `PIDConL` v
+  `core.simulation` je tenký obal s dodaným profilem `pcs7_pidconl`; veřejné rozhraní a klíče bloku (`block_ctrl`,
+  `set_ctrl`) se nemění a výsledky jsou stejné jako dřív (zlaté případy bit po bitu, max. odchylka 0). Krok regulátoru
+  je přibližně 0,7–1,1 µs. Stejný interpret v JS: `ui/static/ctrl_engine.js` (shoda s Pythonem na ~50 signálech
+  < 1e-9; živá simulace zatím zůstává na `live_engine.js`). Nové testy: zlaté případy regulátoru
+  (`tools/golden_controller.py`, `tests/golden/controller_golden.npz`), Python × JS, hranice vrstev (`core` neimportuje
+  `app` ani `api`). Beze změny v rozhraní.
 - Nasazení (M26): nový web běží jako jeden kontejner pro tým (`Dockerfile.web`) s přihlášením přes Cloudflare Access
   (nebo důvěryhodnou hlavičku proxy), pracovními prostory a úlohami po uživatelích, limity (prostory, úlohy, velikost
   nahrání, vypršení nečinnosti) a logy požadavků a úloh – nastavuje se proměnnými `PIDTOOLS_*`, viz

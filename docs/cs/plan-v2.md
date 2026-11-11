@@ -56,7 +56,7 @@ s revizí a sloučením v hlavní session. Platí pro všechny etapy:
 - i18n CZ / EN, „?“ u každého nového pole (test pokrytí z E2).
 - Aktualizovat `todo.md` a `CHANGELOG.md`.
 
-### E1 – Jádro regulátoru R1 (backend, stopa A) · 3–4 dny
+### E1 – Jádro regulátoru R1 (backend, stopa A) · 3–4 dny · hotovo 11. 11. 2026
 
 - `pidtools/core/controller.py`: obecný regulátor ze skládaných částí podle `regulatory.md` § 4, v kanonickém
   pořadí. Rozhraní: `init / step / track / set_tuning`, stejné jako dnešní `PIDConL`.
