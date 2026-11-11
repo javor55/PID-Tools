@@ -164,7 +164,7 @@ def parse_mapping_csv(raw, sources):
     by_name = {**{sid: sid for sid, _n, _c in sources}, **{name: sid for sid, name, _c in sources}}
     loops, warns, order = {}, [], []
     for n, row in enumerate(rows[1:], start=2):
-        def cell(k):
+        def cell(k, row=row):
             i = h.get(k)
             return row[i].strip() if i is not None and i < len(row) else ""
         tag, role, col, sid = cell("loop"), cell("role").lower(), cell("column"), cell("source")

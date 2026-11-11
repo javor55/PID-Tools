@@ -244,7 +244,8 @@ def test_migrate_v1_applies_state_migration():
 
 
 def test_migrate_multi_loop_and_idempotent_and_newer():
-    rec = lambda tag, pv: dict(tag=tag, state={}, map=dict(c_pv=pv, c_mv="MV", c_sp="—", c_d=["D"], c_pos="—"))
+    def rec(tag, pv):
+        return dict(tag=tag, state={}, map=dict(c_pv=pv, c_mv="MV", c_sp="—", c_d=["D"], c_pos="—"))
     proj = dict(version=2, fname="x.csv", **rec("A", "PV1"), loops=[rec("A", "PV1"), rec("B", "PV2")], active=2,
                 data={"cols": {"t_s": [0, 1, 2], "PV1": [1, 2, 3], "PV2": [1, 2, 3], "MV": [1, 1, 1], "D": [0, 0, 0]}})
     p = domain.migrate_project(proj)
