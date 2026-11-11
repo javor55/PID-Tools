@@ -259,3 +259,72 @@ Nápověda: 88 existujících klíčů je nezapojených. Týkají se:
 
 Vhodné (B): toasty, interaktivní grafy, výška grafů a časová jednotka, statistika a původní soubor v náhledu, CSV
 export ladění, tabulka robustnosti, frekvenční sloupce a další drobnosti. Jsou rozepsané u etap E4, E6, E8 a E9.
+
+## 7. Architektura a rozšiřitelnost (platí pro všechny etapy)
+
+Dnešní základ zůstává. Vrstvy jsou oddělené:
+
+- `core`: čistá numerika bez UI a bez stavu
+- `app`: workflow a projekt
+- `api`: FastAPI s OpenAPI, token (desktop) nebo týmový režim (web)
+- `frontend`: typy generované z OpenAPI
+
+Plán v2 tyto vrstvy nemění, jen do nich přidává. Aby aplikace zůstala rozšiřitelná a šla napojit na jiné systémy,
+platí tato pravidla.
+
+**Doménový model místo „boha“ Workspace.** Etapa E3 zavede jasné objekty v `app/domain/` (dataclasses, serializace
+do JSON). `Workspace` zůstane jako fasáda pro výpočty jedné smyčky, ale stav projektu bude v doméně:
+
+```
+Project → Sources[] · Loops[ LoopSpec (mapování), Model, ControllerProfile, Tuning, Apc ] · Journal[ Snapshot ]
+```
+
+**Registry místo větvení `if`.** Rozšíření = přidat položku do registru, ne upravit kód na pěti místech:
+
+| Registr | Příklady položek |
+|---|---|
+| zdroje dat | CSV, XLSX, OPC UA, později PI Web API / historian REST |
+| profily regulátorů | `.pidctrl` |
+| metody ladění | |
+| techniky APC | |
+| pravidla verdiktu diagnostiky | |
+| formáty exportu | PCS 7 / TIA / DeltaV / CSV |
+| sekce reportu | |
+
+Každá položka má id, popis (i18n), schéma parametrů a test.
+
+**Verzované formáty souborů.** `.pidproj`, `.pidctrl` a snímek deníku mají `format` a `version` a migrace
+(`migrate_state` rozšířit na řetězec migrací s testy na vzorových souborech starých verzí). Snímek deníku je
+neměnný a nese verzi aplikace a profilu.
+
+**Stabilní API pro externí systémy.**
+
+- Prefix `/api/v1` (staré cesty dočasně jako alias).
+- OpenAPI publikované v repozitáři a kontrolované testem.
+- Dlouhé výpočty jako úlohy (`/jobs`) s průběhem.
+- Bez změn se zpětnou nekompatibilitou bez nové verze.
+
+Díky tomu jde aplikaci volat i bez UI (skript, MES/CMMS, Jupyter, jiný nástroj).
+
+**Python balíček jako knihovna.**
+
+- `pidtools.core` a `pidtools.app.domain` půjdou použít přímo, např. dávková diagnostika všech smyček z noční úlohy.
+- Přidat malé CLI (`python -m pidtools triage data.csv --mapping loops.csv --out report.html`).
+
+**Integrace s řídicími systémy jen čtením a exportem.** Aplikace nezapisuje do DCS/PLC. Integrace jsou:
+
+- čtení: OPC UA, historian, CSV
+- export parametrů ve formátu pro hromadný import
+- report a deník
+
+Zápis by byl samostatný, výslovně schvalovaný modul.
+
+**Kontroly v CI.**
+
+- Hranice vrstev: `core` neimportuje `app` ani `api`, `app` neimportuje `api` (test importů).
+- Shoda OpenAPI s typy frontendu.
+- Migrace formátů.
+- Zlaté případy výsledků.
+
+Práce na tomto: E3 (doména, registr zdrojů, verze formátů, `/api/v1`), E7 (registr profilů a metod), E10 (registr
+exportů a sekcí reportu, deník), CLI a dokumentace API po E5. Odhad navíc je asi 2–3 dny, rozložené do etap.
