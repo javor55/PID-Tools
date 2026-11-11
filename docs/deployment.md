@@ -20,8 +20,9 @@ same computations and the same project files.
 
 ## Public instance
 
-<https://pidtools.streamlit.app/> – updated automatically from the repository branch it is deployed from (usually
-`main`). Nothing to install. Access can be restricted to invited users in the app settings on Streamlit Community
+<https://pidtools.streamlit.app/> – deployed from the branch **`streamlit`** (the current Streamlit app, frozen
+since 11 Nov 2026) and updated automatically on every push to it. `main` is the development branch of the new UI
+(API, React, desktop) – fixes of the Streamlit app go to `streamlit`. Nothing to install. Access can be restricted to invited users in the app settings on Streamlit Community
 Cloud (subject to the terms of the service). Before uploading plant data there, check that your company rules allow
 it.
 

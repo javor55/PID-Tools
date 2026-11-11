@@ -15,8 +15,9 @@ stanice). Obě používají stejné výpočty a stejné projektové soubory.
 
 ## Veřejná instance
 
-<https://pidtools.streamlit.app/> – aktualizuje se automaticky z větve repozitáře, ze které je nasazená
-(obvykle `main`). Nic se neinstaluje.
+<https://pidtools.streamlit.app/> – nasazená z větve **`streamlit`** (současná aplikace Streamlit, zmražená od
+11. 11. 2026), aktualizuje se automaticky při každém pushi do ní. `main` je vývojová větev nového UI (API, React,
+desktop) – opravy aplikace Streamlit patří do větve `streamlit`. Nic se neinstaluje.
 Přístup lze v nastavení aplikace na Streamlit Community Cloud omezit na pozvané uživatele (podle podmínek služby).
 Než tam nahrajete provozní data, ověřte, že to pravidla vaší firmy dovolují.
 
