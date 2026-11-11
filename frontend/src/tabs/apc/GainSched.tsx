@@ -61,7 +61,7 @@ export function GainSchedSide() {
         <Ranges inp={inp} />
         <div className="small muted">{T("gs_s1_help")}</div>
         <div className="row">
-          <button className="btn" data-testid="gs-auto" onClick={() => void post("/apc/gainsched/auto")}>{T("gs_auto")}</button>
+          <button className="btn" data-testid="gs-auto" title={T("h_gs_auto")} onClick={() => void post("/apc/gainsched/auto")}>{T("gs_auto")}</button>
           <button className="btn primary" disabled={busy} data-testid="gs-fit" onClick={() => void fit()}>{T("dk_gs_fit")}</button>
         </div>
         {err && <div className="err small" data-testid="gs-fit-err">{err}</div>}

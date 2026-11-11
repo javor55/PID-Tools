@@ -10,7 +10,10 @@ import urllib.request
 import pytest
 
 pytest.importorskip("playwright.sync_api")
-from test_frontend import TOKEN, page, server  # noqa: E402,F401  (fixtury serveru a prohlížeče)
+import test_frontend as _tf  # noqa: E402
+
+TOKEN = _tf.TOKEN
+server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
 
 APC_TECHS = ["cascade", "ff", "decouple", "override", "smith", "gainsched", "gs_er", "split", "vpc", "ratio", "rga"]
 TABS = ["data", "model", "tuning", "live", "apc", "diag", "loops", "project"]
@@ -160,10 +163,10 @@ FIND_GAPS = """() => {
     n++;
     const labs = [...(c.labels || [])];
     const lab = c.closest('label');
-    const row = c.closest('.trow, .field, .apc-check, .chk-help, .mrow, .row');
+    const row = c.closest('.trow, .field, .apc-check, .chk-help, .mrow');
     const th = c.closest('td, th') && c.closest('table') ? c.closest('table').querySelector('th[title], th .qm') : null;
     const ok = filled(c) || filled(lab) || qm(lab) || labs.some((l) => filled(l) || qm(l)) || qm(row) || !!th || filled(row)
-      || qm(c.parentElement) || qm(c.parentElement && c.parentElement.parentElement) || filled(c.closest('.chk-help'));
+      || filled(c.closest('.chk-help'));
     if (!ok) gaps.push(name(c));
   }
   for (const g of document.querySelectorAll('main div.seg, aside div.seg, main .segs, aside .segs')) {
@@ -171,7 +174,7 @@ FIND_GAPS = """() => {
     n++;
     const bts = [...g.querySelectorAll('button')];
     const ok = filled(g) || bts.length > 0 && bts.every(filled) || qm(g.parentElement) || g.parentElement.classList.contains('seg-help')
-      || qm(g.closest('.trow, .field, .mrow, .row')) || filled(g.closest('.trow, .field, .mrow, .row'));
+      || qm(g.closest('.trow, .field, .mrow')) || filled(g.closest('.trow, .field, .mrow'));
     if (!ok) gaps.push('seg ' + (g.dataset.testid || '') + ' "' + (g.getAttribute('aria-label') || '') + '"');
   }
   return { gaps, n };
@@ -222,3 +225,64 @@ def test_help_coverage_apc_structures(prepared, tech):
     gaps = _gaps(pg, tech)
     assert COUNTS[tech] >= (0 if tech == "rga" else 1), tech            # RGA nemá vstupy
     assert not gaps, json.dumps({tech: gaps}, indent=1, ensure_ascii=False)
+
+
+def _sweep_select(pg, sel, label):
+    """Projde všechny hodnoty výběru (jiné metody / režimy ukazují jiná pole) a vrátí mezery; nakonec vrátí první hodnotu."""
+    gaps = {}
+    vals = pg.eval_on_selector_all(f"{sel} option", "els => els.map(e => e.value)")
+    orig = pg.eval_on_selector(sel, "e => e.value")
+    for v in vals:
+        pg.select_option(sel, v)
+        pg.wait_for_timeout(500)
+        _open_all_cards(pg)
+        g = _gaps(pg, f"{label}={v}")
+        if g:
+            gaps[f"{label}={v}"] = g
+    pg.select_option(sel, orig)
+    pg.wait_for_timeout(300)
+    return gaps
+
+
+def _sweep_seg(pg, seg, label):
+    gaps = {}
+    vals = pg.eval_on_selector_all(f'[data-testid="{seg}"] button', "els => els.map(e => e.dataset.value)")
+    cur = pg.eval_on_selector(f'[data-testid="{seg}"]', "e => e.querySelector('[aria-pressed=true]').dataset.value")
+    for v in vals:
+        pg.locator(f'[data-testid="{seg}"] [data-value="{v}"]').click()
+        pg.wait_for_timeout(500)
+        _open_all_cards(pg)
+        g = _gaps(pg, f"{label}={v}")
+        if g:
+            gaps[f"{label}={v}"] = g
+    pg.locator(f'[data-testid="{seg}"] [data-value="{cur}"]').click()
+    pg.wait_for_timeout(300)
+    return gaps
+
+
+def test_help_coverage_variants(prepared):
+    """Pole, která se objeví až při jiné metodě / režimu (průměrování, optimalizace, PID, kaskáda z dat, Smith …)."""
+    pg = prepared
+    bad = {}
+    pg.locator('[data-tab="tuning"]').click()
+    pg.wait_for_selector('[data-testid="method"]')
+    bad |= _sweep_select(pg, '[data-testid="method"]', "method")
+    pg.select_option('[data-testid="method"]', "OPT")
+    pg.wait_for_timeout(500)
+    bad |= _sweep_select(pg, '[data-testid="set-opt_crit"]', "opt_crit")
+    bad |= _sweep_seg(pg, "set-ctype", "ctype")
+    pg.select_option('[data-testid="method"]', "SIMC")
+    bad |= _sweep_seg(pg, "tun-view", "view")
+    pg.locator('[data-testid="tun-view"] [data-value="time"]').click()
+    for tech, sel in (("cascade", "set-cas_src"), ("smith", "set-apc_sm_method"), ("gainsched", "set-gs_m"),
+                      ("split", "split-mode"), ("ratio", "ratio-src"), ("decouple", "dec-dtype"), ("override", "ov-sel")):
+        pg.locator('[data-tab="apc"]').click()
+        pg.locator(f'[data-testid="apc-tech-{tech}"]').click()
+        pg.wait_for_selector(f'[data-testid="apc-{tech}"]')
+        pg.wait_for_timeout(1200)
+        bad |= _sweep_select(pg, f'[data-testid="{sel}"]', f"{tech}:{sel}")
+    pg.locator('[data-testid="apc-tech-ff"]').click()
+    pg.wait_for_selector('[data-testid="apc-ff"]')
+    pg.wait_for_timeout(800)
+    bad |= _sweep_seg(pg, "ff-dyn-0", "ff-dyn")
+    assert not bad, json.dumps(bad, indent=1, ensure_ascii=False)

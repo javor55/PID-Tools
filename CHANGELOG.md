@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Help and guides (E2, plan v2): a **"?" next to every field** (`LabelHelp`: a button with a bubble, closed by Esc /
+  blur, text also in `title`) in `NumSetting`, `SelectSetting`, `CheckSetting`, `TextSetting` and the `Seg` switch;
+  previously unused help texts are wired (data layout and time, Norm, tag, uncertainty, CV, scenario and events,
+  PIDConL block, FF, Smith, GS, override, RGA …) and new texts were added where missing. A browser coverage test
+  (`tests/test_frontend_help.py`) walks all tabs, APC structures and their variants and checks that every labelled
+  control has a "?" or a `title`. `Md` renders GitHub-style tables. New API `GET /workspaces/{wid}/guide/{tab}`
+  (steps, a checklist computed live from the project state with action buttons, "which choice when" tables, glossary;
+  logic in `app/guides.py`) and the **Guide** dialog from the design ("?" in the header or F1; Steps, Checklist,
+  Table, Glossary cards and search; an action switches the tab and focuses the field). APC: feedforward, Smith
+  predictor and RGA have a checklist and a PCS 7 implementation (`checks`, `impl_text` in the API). Numerical
+  results are unchanged.
 - Deployment (M26): the new web runs as one container for a team (`Dockerfile.web`) with sign-in through Cloudflare
   Access (or a trusted proxy header), per-user workspaces and jobs, limits (workspaces, jobs, upload size, idle
   expiry) and access / job logs – configured by `PIDTOOLS_*` environment variables, see `docs/deployment.md`.

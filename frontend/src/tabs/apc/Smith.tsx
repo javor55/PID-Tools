@@ -22,13 +22,14 @@ type SmithSim = components["schemas"]["SmithSim"];
 const CTYPES = ["PI", "PID"] as const;
 
 function ManualInputs({ inp }: { inp: SmithInfo["inputs"] }) {
+  const T = useT();
   const patch = usePatchSettings();
   const cur = ((useSettings().data ?? {}).apc_sm_man as number[] | undefined) ?? inp.manual;
   const set = (i: number, x: number) => void patch({ apc_sm_man: cur.map((v, k) => (k === i ? x : v)) });
   const lab = ["Gain", "TI [s]", "TD [s]"];
   return (
     <>{lab.map((l, i) => (i < 2 || inp.ctype === "PID") && (
-      <label className="field" key={l}><span>{l}</span>
+      <label className="field" key={l} title={T("h_sm_man")}><span>{l}</span>
         <NumInput value={cur[i]} min={i ? 0 : undefined} testid={`set-apc_sm_man-${i}`} onCommit={(x) => set(i, x)} /></label>))}</>
   );
 }
@@ -56,7 +57,7 @@ export function SmithSide() {
       <SideCard title={T("apc_smith")} testid="smith-side">
         <SelectSetting k="apc_sm_method" label={T("sm_method")} options={inp.methods} def={inp.method} title={T("h_sm_method")}
           fmt={(m) => T("sm_m_" + m)} />
-        <SelectSetting k="apc_sm_ct" label={T("ctrl_type")} options={CTYPES} def="PI" />
+        <SelectSetting k="apc_sm_ct" label={T("ctrl_type")} help="h_ctype" options={CTYPES} def="PI" />
         {tcOn && <NumSetting k={inp.tc_key} label={T("sm_tc")} def={inp.tc_default} min={0.001} title={T("h_sm_tc")} />}
         {tcOn && <button className="btn" data-testid="sm-tc-reset" title={T("h_apc_reset")}
           onClick={() => void patch({ [inp.tc_key]: inp.tc_default })}>{T("apc_reset")}</button>}

@@ -11,6 +11,14 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       patří do E9 spolu s načítáním profilu v prohlížeči. Další části (rychlostní algoritmus, externí reset, split range,
       3-step, PWM) jsou v registrech označené jako plánované (R3).
 
+- [x] **E2 – nápověda a průvodci** (11. 11. 2026): `LabelHelp` („?“ s bublinou) v polích a `Seg`, zapojené nápovědy
+      (kap. 6 plánu), `Md` s tabulkami, `GET /workspaces/{wid}/guide/{tab}` + dialog Průvodce (F1, kontrolní seznam
+      s akcemi, tabulky, slovníček, hledání), APC FF / Smith / RGA s kontrolním seznamem a implementací, Playwright test
+      pokrytí nápovědy (všechny záložky, struktury APC a jejich varianty). Zbývá: nápovědy, které patří k funkcím, jež
+      v React UI ještě nejsou (proces a ventil, ruční perioda, validace na jiném úseku, CV, kaskáda z dat – h_cas_sep /
+      h_cas_t63, viewer `vw_*`), se zapojí s příslušnými etapami (E4, E6, E8, E9); kontrolní seznam „Živá simulace
+      ověřena“ zůstává připomínkou (běh simulace se na serveru neeviduje).
+
 ## Sladit nové UI (React) s návrhem
 
 Návrh: artefakt „PID Tools – nový návrh UI (všechny záložky)“, https://claude.ai/artifact/QuLnUL4JG1Y6jKfAGcmhD9

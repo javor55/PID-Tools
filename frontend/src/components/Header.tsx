@@ -43,7 +43,7 @@ function Loops() {
   if (!ws?.has_data || !loops) return null;
   return (
     <div className="hloops" role="group" aria-label={T("ui_loops_group")}>
-      <select aria-label={T("dk_loop")} title={T("dk_loop")} value={loops.active} data-testid="loop-select"
+      <select aria-label={T("dk_loop")} title={T("h_loop_sel")} value={loops.active} data-testid="loop-select"
         onChange={(e) => void pick(+e.target.value)}>
         {loops.loops.map((l) => <option key={l.index} value={l.index}>{l.name || T("loop_n", { n: l.index + 1 })}</option>)}
       </select>

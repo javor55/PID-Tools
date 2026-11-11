@@ -11,6 +11,16 @@
   < 1e-9; živá simulace zatím zůstává na `live_engine.js`). Nové testy: zlaté případy regulátoru
   (`tools/golden_controller.py`, `tests/golden/controller_golden.npz`), Python × JS, hranice vrstev (`core` neimportuje
   `app` ani `api`). Beze změny v rozhraní.
+- Nápověda a průvodci (E2, plán v2): **„?“ u každého pole** (`LabelHelp`: tlačítko s bublinou, Esc / opuštění zavře,
+  text i v `title`) v `NumSetting`, `SelectSetting`, `CheckSetting`, `TextSetting` a v přepínači `Seg`; zapojené dříve
+  nepoužité texty nápovědy (rozvržení a čas dat, Norm, tag, nejistota, CV, scénář a události, blok PIDConL, FF,
+  Smith, GS, override, RGA …) a nové texty tam, kde chyběly. Test pokrytí v prohlížeči (`tests/test_frontend_help.py`)
+  projde všechny záložky, struktury APC i jejich varianty a hlídá, že každý ovládací prvek s popiskem má „?“ nebo
+  `title`. `Md` umí tabulky v zápisu GitHub. Nové API `GET /workspaces/{wid}/guide/{tab}` (postup, kontrolní seznam
+  počítaný živě ze stavu projektu s tlačítky akcí, tabulky „která volba kdy“, slovníček; logika v `app/guides.py`) a
+  dialog **Průvodce** podle návrhu (? v hlavičce nebo F1; karty Postup, Kontrolní seznam, Tabulka, Slovníček, hledání;
+  akce přepne záložku a zaostří prvek). APC: dopředná vazba, Smithův prediktor a RGA mají kontrolní seznam a
+  implementaci v PCS 7 (`checks`, `impl_text` v API). Výpočty se nemění.
 - Nasazení (M26): nový web běží jako jeden kontejner pro tým (`Dockerfile.web`) s přihlášením přes Cloudflare Access
   (nebo důvěryhodnou hlavičku proxy), pracovními prostory a úlohami po uživatelích, limity (prostory, úlohy, velikost
   nahrání, vypršení nečinnosti) a logy požadavků a úloh – nastavuje se proměnnými `PIDTOOLS_*`, viz

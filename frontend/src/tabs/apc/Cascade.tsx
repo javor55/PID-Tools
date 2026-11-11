@@ -27,9 +27,10 @@ function ManualInputs({ inp }: { inp: CascadeInfo["inputs"] }) {
   const post = usePost();
   const loop = usePair((s) => s.loops.cascade);
   const keys = [["cas_k", "K", undefined], ["cas_t1", "T1 [s]", 0.001], ["cas_t2", "T2 [s]", 0], ["cas_th", "θ [s]", 0]] as const;
+  const hk: Record<string, string> = { cas_k: "h_cas_k", cas_t1: "h_cas_t1", cas_t2: "h_cas_t2", cas_th: "h_cas_th" };
   return (
     <>
-      {keys.map(([k, l, min], i) => <NumSetting key={k} k={k} label={l} def={inp.manual[i]} min={min} />)}
+      {keys.map(([k, l, min], i) => <NumSetting key={k} k={k} label={l} def={inp.manual[i]} min={min} help={hk[k]} />)}
       <button className="btn" data-testid="cas-reset-manual" title={T("h_apc_reset")}
         onClick={() => void post(`/apc/cascade/reset${qs({ loop })}`, { part: "manual" })}>{T("apc_reset")}</button>
     </>
@@ -87,15 +88,15 @@ export function CascadeSide() {
         {inp.source === "data" && <DataInputs inp={inp} />}
       </SideCard>
       <SideCard title={T("cas_inner_tune")}>
-        <SelectSetting k="cas_im" label={T("method")} options={inp.methods} def={inp.inner_method} fmt={(m) => T("m_" + m)} />
-        <NumSetting k="cas_samp" label={T("cas_samp")} def={inp.samp_i} min={0.001} />
+        <SelectSetting k="cas_im" label={T("method")} help="h_cas_method" options={inp.methods} def={inp.inner_method} fmt={(m) => T("m_" + m)} />
+        <NumSetting k="cas_samp" label={T("cas_samp")} help="sampletime_help" def={inp.samp_i} min={0.001} />
         {inp.inner_method === "SIMC" && <NumSetting k="cas_tci" label={T("tc")} def={inp.tci_default} min={0.001} title={T("tc_help")} />}
         <button className="btn" data-testid="cas-reset-inner" disabled={!inp.tci_edited && sameSamp} title={T("h_apc_reset")}
           onClick={() => reset("inner")}>{T("apc_reset")}</button>
       </SideCard>
       <SideCard title={T("cas_outer_tune")}>
-        <SelectSetting k="cas_om" label={T("method")} options={inp.methods} def={inp.outer_method} fmt={(m) => T("m_" + m)} />
-        <SelectSetting k="cas_oct" label={T("ctrl_type")} options={CTYPES} def={inp.outer_ctype} />
+        <SelectSetting k="cas_om" label={T("method")} help="h_cas_method" options={inp.methods} def={inp.outer_method} fmt={(m) => T("m_" + m)} />
+        <SelectSetting k="cas_oct" label={T("ctrl_type")} help="h_ctype" options={CTYPES} def={inp.outer_ctype} />
         {inp.outer_method === "SIMC" && inp.tco_default != null && (
           <NumSetting k="cas_tco" label={T("tc")} def={inp.tco_default} min={0.001} title={T("tc_help")} />)}
         <button className="btn" data-testid="cas-reset-outer" disabled={!inp.tco_edited} title={T("h_apc_reset")}
