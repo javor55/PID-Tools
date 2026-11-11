@@ -53,6 +53,7 @@ def pyinstaller(out, triple):
            "--add-data", f"{ui}{sep}pidtools/api/ui",
            "--add-data", f"{ROOT / 'static' / 'fonts'}{sep}static/fonts",
            "--add-data", f"{ROOT / 'pidtools' / 'i18n' / '*.json'}{sep}pidtools/i18n",
+           "--add-data", f"{ROOT / 'pidtools' / 'controllers' / 'presets' / '*.json'}{sep}pidtools/controllers/presets",
            "--paths", str(ROOT)]
     icon = ROOT / "pidtools" / "assets" / "icon.ico"
     if sys.platform == "win32" and icon.exists():

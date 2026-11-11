@@ -170,11 +170,13 @@ pidtools/
     identification.py      fit modelů, stikce, neměřené poruchy, hodnocení, nejistota, přepočet rozsahů
     tuning.py              pravidla ladění a optimalizace
     robustness.py          kmitočtová analýza (stabilita, Ms, GM, PM), šum MV
-    simulation.py          PIDConL / ventil / proces krok po kroku (dávková, kaskáda, živá)
+    controller.py          obecný regulátor podle profilu (registry částí: forma, D, mrtvé pásmo, anti-windup)
+    simulation.py          PIDConL (obal obecného regulátoru) / ventil / proces krok po kroku (dávková, kaskáda, živá)
     apc.py                 rozvazbení (RGA), override, Smithův prediktor, návrh dopředné vazby
     gainsched.py           gain scheduling (blok GainSched), řídicí pásmo
     diagnostics.py         výkon smyčky, oscilace, stikce, kvalita dat, úseky, nelinearita
     demo.py, util.py
+  controllers/             profily regulátorů (.pidctrl, JSON) a jejich načtení; list vrstev, bez závislostí; presets/
   app/                     aplikační vrstva – pracovní postup společný všem frontendům, bez UI frameworku
     dataio.py guess.py     načtení dat, čas, převzorkování, odhad rolí PV/MV/SP
     dataset.py             rozložení tabulky (společný čas, čas u veličiny, dlouhý formát) → společná mřížka
@@ -193,7 +195,8 @@ pidtools/
   desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): main.py, tabs/ (stav: app/workspace)
     context.py             Ctx – data sdílená záložkami v jednom běhu
     loops.py               více smyček v projektu (snímky stavu, přepínání)
-    static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py)
+    static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py), ctrl_engine.js =
+                           obecný regulátor podle profilu (stejný interpret jako core/controller.py)
     pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics, project, guides,
                            apc/ (jeden modul na strukturu)
 tests/                     pytest: jádro, aplikační vrstva, celá aplikace (AppTest), načítání dat, smyčky, APC
