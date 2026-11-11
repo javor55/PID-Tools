@@ -1,0 +1,44 @@
+/* Průvodce záložky (dialog, F1) podle návrhu Guide.dc.html */
+dialog.help.guide { width: min(900px, calc(100vw - 32px)); max-height: min(86vh, 820px); padding: 0; overflow: hidden;
+  border-radius: 12px; box-shadow: 0 20px 60px rgba(15, 23, 42, .35); }
+dialog.help.guide[open] { display: flex; flex-direction: column; }
+dialog.guide .help-head { justify-content: flex-start; padding: 14px 20px 0; margin: 0; }
+dialog.guide .help-head h2 { font-size: 18px; font-weight: 600; }
+.g-sub { font-size: 12px; color: var(--pid-muted); }
+.g-close { margin-left: auto; font: inherit; font-size: 18px; width: 30px; height: 30px; border: 1px solid var(--pid-ctl);
+  background: var(--pid-card); color: var(--pid-text); border-radius: 6px; cursor: pointer; }
+.g-tabs { display: flex; gap: 4px; padding: 0 20px; margin-top: 8px; border-bottom: 1px solid var(--pid-soft); flex-wrap: wrap; }
+.g-tabs button { font: inherit; font-size: 14px; padding: 9px 14px; border: 0; background: transparent; margin-bottom: -1px; cursor: pointer;
+  color: var(--pid-muted); border-bottom: 3px solid transparent; }
+.g-tabs button[aria-selected="true"] { color: var(--pid-accent); font-weight: 600; border-bottom-color: var(--pid-accent); }
+.g-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--pid-warn); margin-left: 6px; vertical-align: middle; }
+.g-body { padding: 16px 20px; overflow-y: auto; flex: 1 1 auto; min-height: 220px; }
+.g-col h3, .g-results h3 { margin: 12px 0 4px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.g-col h3:first-child { margin-top: 0; }
+.g-count { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--pid-warn); }
+ol.g-steps { list-style: none; margin: 0; padding: 0; }
+.g-steps li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--pid-soft); font-size: 13px; }
+.g-n { width: 24px; height: 24px; border-radius: 50%; background: var(--pid-accent); color: #fff; font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; flex: none; }
+.g-txt .md p { margin: 0; }
+.g-txt .g-sub { color: var(--pid-muted); }
+.g-check { background: var(--pid-side); border: 1px solid var(--pid-soft); border-radius: 10px; padding: 12px 14px; }
+.g-check ul { list-style: none; margin: 0; padding: 0; }
+.g-check li { display: flex; gap: 8px; align-items: flex-start; padding: 7px 0; border-top: 1px solid var(--pid-soft); font-size: 13px; }
+.g-check li:first-child { border-top: 0; }
+.g-mark { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none;
+  font-size: 12px; font-weight: 700; background: var(--pid-soft); color: var(--pid-muted); }
+.g-check li.ok .g-mark { background: #e5f3e8; color: var(--pid-ok); }
+.g-check li.warn .g-mark { background: #fdf0dd; color: var(--pid-warn); }
+.g-ctext { flex: 1; min-width: 0; }
+.g-check .btn { flex: none; font-size: 12px; padding: 3px 8px; }
+.g-gloss { margin: 0; }
+.g-gloss > div { display: grid; grid-template-columns: 170px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--pid-soft); font-size: 13px; }
+.g-gloss dt { font-weight: 600; } .g-gloss dd { margin: 0; } .g-gloss dd .md p { margin: 0; }
+.g-results ul { margin: 0; padding-left: 18px; font-size: 13px; } .g-results li { margin-bottom: 4px; }
+.g-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 20px; border-top: 1px solid var(--pid-soft);
+  flex-wrap: wrap; }
+.g-foot input { font: inherit; font-size: 13px; width: 280px; max-width: 100%; padding: 6px 8px; border: 1px solid var(--pid-ctl);
+  border-radius: 6px; background: var(--pid-card); color: var(--pid-text); }
+.guide-pulse { outline: 3px solid var(--pid-accent); outline-offset: 2px; border-radius: 4px; transition: outline-color .3s; }
+@media (max-width: 640px) { .g-gloss > div { grid-template-columns: 1fr; } }

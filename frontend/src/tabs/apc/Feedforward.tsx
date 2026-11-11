@@ -12,7 +12,8 @@ import { useWs } from "../../data";
 import { useT } from "../../i18n";
 import { useUi } from "../../store";
 import { type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { ACard, VariantTable } from "./parts";
+import { Checks } from "./moreCommon";
+import { ACard, Impl, VariantTable } from "./parts";
 
 type FFInfo = components["schemas"]["FFInfo"];
 type FFDist = components["schemas"]["FFDist"];
@@ -81,16 +82,17 @@ function DistCard({ d, info, put, reset, several }: { d: FFDist; info: FFInfo; p
   const g = (x: number) => +x.toPrecision(4);
   const nm = d.name;
   const field = (key: "gain" | "lead" | "lag" | "delay", label: string, min?: number) => (
-    <label className="field" key={key}><span>{label}</span>
+    <label className="field" key={key} title={T("h_ff_" + key)}><span>{label}</span>
       <NumInput value={d.design[key]} min={min} testid={`ff-${key}-${d.index}`} onCommit={(x) => put(d.index, { [key]: x })} />
     </label>);
   return (
     <SideCard title={T("ff_dist_title", { d: nm })} testid={`ff-dist-${d.index}`} help={T("h_ff_gain")}
       aside={d.edited ? <span className="warn small" data-testid={`ff-edited-${d.index}`}>{T("ui_edited")}</span> : undefined}>
-      <label className="apc-check"><input type="checkbox" checked={d.design.use} data-testid={`ff-use-${d.index}`}
+      <label className="apc-check" title={T("h_ff_use")}><input type="checkbox" checked={d.design.use} data-testid={`ff-use-${d.index}`}
         onChange={(e) => put(d.index, { use: e.target.checked })} /> {T("ff_use", { d: nm })}</label>
       <div className="field"><span>{T("ui_apc_type")}</span>
         <Seg value={d.design.dyn ? "dyn" : "static"} options={TYPES} label={T("ui_apc_type")} testid={`ff-dyn-${d.index}`} small
+          help="h_ff_dyn"
           fmt={(v) => T(v === "dyn" ? "ff_dynamic" : "ff_static")} titles={(v) => (v === "dyn" ? T("h_ff_dyn") : undefined)}
           onChange={(v) => put(d.index, { dyn: v === "dyn" })} /></div>
       {field("gain", T("ff_gain", { d: nm }))}
@@ -124,10 +126,10 @@ export function FeedforwardSide() {
       {info.dists.map((d) => <DistCard key={d.index} d={d} info={info} put={(i, p) => void put(i, p)}
         reset={(i) => void reset(i)} several={info.dists.length > 1} />)}
       <SideCard title={T("ui_apc_scenario")} testid="ff-scenario">
-        <label className="field"><span>{T("ff_sim_dist")}</span>
+        <label className="field" title={T("h_ff_sim_dist")}><span>{T("ff_sim_dist")}</span>
           <select value={j} data-testid="ff-sim-dist" onChange={(e) => set({ sel: +e.target.value })}>
             {info.dists.map((d) => <option key={d.index} value={d.index}>{d.name}</option>)}</select></label>
-        <label className="field"><span>{T("ff_step", { d: dd.name })}</span>
+        <label className="field" title={T("h_ff_step")}><span>{T("ff_step", { d: dd.name })}</span>
           <NumInput value={steps[j] ?? dd.step} testid="ff-sim-step" onCommit={(x) => set({ step: [j, x] })} /></label>
       </SideCard>
     </>
@@ -192,11 +194,20 @@ export function FeedforwardMain() {
   const { q, info } = useFf();
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (!info) return <div className="card muted">{q.isError ? T("need_model") : "…"}</div>;
-  if (!info.dists.length) return <div className="card muted" data-testid="ff-none">{T("ff_need_dist")}</div>;
+  if (!info.dists.length) {
+    return (
+      <div className="stack">
+        <div className="card muted" data-testid="ff-none">{T("ff_need_dist")}</div>
+        <Checks items={info.checks} testid="ff-checks" />
+      </div>
+    );
+  }
   return (
     <div className="stack">
       <SimCards info={info} />
       <PcsCard info={info} />
+      <Impl text={info.impl_text} testid="ff-impl" />
+      <Checks items={info.checks} testid="ff-checks" />
     </div>
   );
 }

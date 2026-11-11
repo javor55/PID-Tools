@@ -7,7 +7,7 @@ import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { series } from "../api/signals";
 import { CheckSetting, NumSetting, SelectSetting } from "../components/Fields";
-import { Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
+import { LabelHelp, Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
 import { useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { dur } from "../lib/format";
@@ -64,11 +64,11 @@ export function TuningMain() {
       <div className="tn-bar">
         <div className="tn-barrow">
           <Seg<View> value={view} options={["time", "freq", "all"]} onChange={(v) => set({ view: v })} label={T("tn_view")}
-            fmt={(v) => T("tn_view_" + v)} testid="tun-view" />
+            fmt={(v) => T("tn_view_" + v)} testid="tun-view" help="h_tn_view" />
           <span className="tn-cmp" dangerouslySetInnerHTML={{ __html: T("tn_cmp_line", { a: T("dk_suggest"), b: T("set_2") }) }} />
           <div className="tn-right tn-axis">
             <span>{T("ui_tuning_axis")}</span>
-            <select value={unit} aria-label={T("time_unit")} data-testid="tun-unit" onChange={(e) => set({ unit: e.target.value as Unit })}>
+            <select value={unit} aria-label={T("time_unit")} title={T("h_chart_tunit")} data-testid="tun-unit" onChange={(e) => set({ unit: e.target.value as Unit })}>
               <option value="auto">auto ({unitOf("auto", T_end)})</option>
               {(["s", "min", "h"] as const).map((x) => <option key={x} value={x}>{x}</option>)}
             </select>
@@ -216,9 +216,7 @@ function KpiCard({ k, freq, info, sug, dec }: { k: Record<string, Kpi>; freq: Fr
   );
 }
 
-function Qm({ text }: { text: string }) {
-  return <span className="qm" role="img" aria-label={text} title={text}>?</span>;
-}
+const Qm = LabelHelp;
 
 // ---------------------------------------------------------------- pravý panel
 type Pid3 = { Kc: number; Ti: number; Td: number };
@@ -270,7 +268,7 @@ export function TuningSide() {
   return (
     <div className="tn-side">
       <SideCard title={T("tn_sec_method")} help={T("ui_tuning_help_method")} testid="card-method">
-        <label className="trow"><span>{T("method")}</span>
+        <label className="trow" title={T("method_help")}><span>{T("method")}</span>
           <select value={m} onChange={(e) => set({ method: e.target.value })} data-testid="method">
             {info.data.methods.map((x) => <option key={x} value={x}>{T("m_" + x)}</option>)}
           </select></label>
@@ -278,8 +276,8 @@ export function TuningSide() {
           <Seg<"PI" | "PID"> value={ctype} options={["PI", "PID"]} onChange={(v) => void patch({ ctype: v })} label={T("ctrl_type")}
             small testid="set-ctype" titles={() => T("h_ctype")} /></div>
         {m === "AVG" && <>
-          <NumRow k="avg_dpv" label={T("avg_dpv", { u: uPv })} def={+(0.1 * PR).toPrecision(3)} />
-          <NumRow k="avg_dmv" label={T("avg_dmv", { u: uMv })} def={+(0.1 * MR).toPrecision(3)} />
+          <NumRow k="avg_dpv" label={T("avg_dpv", { u: uPv })} def={+(0.1 * PR).toPrecision(3)} help={T("h_avg_dpv")} />
+          <NumRow k="avg_dmv" label={T("avg_dmv", { u: uMv })} def={+(0.1 * MR).toPrecision(3)} help={T("avg_dmv_help")} />
         </>}
         {m === "OPT" && <>
           <label className="trow"><span>{T("opt_crit")}</span>
@@ -295,7 +293,7 @@ export function TuningSide() {
           <div className="trow"><span>{T("opt_ms")}</span>
             <Seg<number> value={Number(st.opt_ms ?? 1.6)} options={[1.4, 1.6, 1.8, 2.0]} onChange={(v) => void patch({ opt_ms: v })}
               label={T("opt_ms")} small fmt={(x) => x.toFixed(1)} testid="set-opt_ms" titles={() => T("opt_ms_help")} /></div>
-          {ctype === "PID" && <NumRow k="opt_noise" label={T("opt_noise", { u: uMv })} def={+(0.01 * MR).toPrecision(3)} />}
+          {ctype === "PID" && <NumRow k="opt_noise" label={T("opt_noise", { u: uMv })} def={+(0.01 * MR).toPrecision(3)} help={T("opt_noise_help")} />}
           <CheckSetting k="opt_robust" label={T("opt_robust")} title={T("h_opt_robust_corner")} />
         </>}
         {adv?.rec && <div className="tn-note" data-testid="d-advice"><b>{adv.rec}</b>{adv.key ? ` — ${T(adv.key)}` : ""}</div>}
@@ -378,18 +376,18 @@ export function TuningSide() {
 
 // ---- prvky panelu
 /** Číselné nastavení s popiskem vlevo (řádek karty Metoda ladění). */
-function NumRow({ k, label, def }: { k: string; label: string; def: number }) {
-  return <div className="trow"><span>{label}</span><NumBare k={k} def={def} min={1e-9} /></div>;
+function NumRow({ k, label, def, help }: { k: string; label: string; def: number; help?: string }) {
+  return <div className="trow"><span className="lbl">{label}{help && <Qm text={help} />}</span><NumBare k={k} def={def} min={1e-9} label={label} /></div>;
 }
 
 /** Číselné pole navázané na klíč nastavení; uloží se po opuštění pole / Enter. */
-function NumBare({ k, def, min, step, label }: { k: string; def?: number; min?: number; step?: number; label?: string }) {
+function NumBare({ k, def, min, step, label, title }: { k: string; def?: number; min?: number; step?: number; label?: string; title?: string }) {
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
   const cur = st[k] ?? def ?? "";
   const ref = useRef<HTMLInputElement>(null);
   return (
-    <input ref={ref} type="number" step={step ?? "any"} min={min} className="tn-in" aria-label={label}
+    <input ref={ref} type="number" step={step ?? "any"} min={min} className="tn-in" aria-label={label} title={title}
       key={`${k}-${String(cur)}`} defaultValue={typeof cur === "number" ? +cur.toPrecision(6) : String(cur)} data-testid={`set-${k}`}
       onBlur={(e) => { const v = e.target.value; if (v !== "" && Number.isFinite(+v) && +v !== Number(cur)) void patch({ [k]: +v }); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
@@ -442,8 +440,8 @@ function BlockSettings({ model }: { model: ModelState | undefined }) {
   const g = (lab: string, a: [string, number | undefined, string?], b?: [string, number | undefined, string?], title?: string) => (
     <>
       <span className="tn-lab" title={title}>{lab}</span>
-      <NumBare k={a[0]} def={a[1]} label={a[2] ?? `${lab} ${a[0]}`} />
-      {b ? <NumBare k={b[0]} def={b[1]} label={b[2] ?? `${lab} ${b[0]}`} /> : <span />}
+      <NumBare k={a[0]} def={a[1]} label={a[2] ?? `${lab} ${a[0]}`} title={title} />
+      {b ? <NumBare k={b[0]} def={b[1]} label={b[2] ?? `${lab} ${b[0]}`} title={title} /> : <span />}
     </>
   );
   return (
@@ -452,16 +450,16 @@ function BlockSettings({ model }: { model: ModelState | undefined }) {
         {g("NormPV", ["pv_lo", 0, "NormPV Low"], ["pv_hi", 100, "NormPV High"], T("h_normpv"))}
         {g("NormMV", ["mv_lo", 0, "NormMV Low"], ["mv_hi", 100, "NormMV High"], T("h_normmv"))}
         {g(T("ui_tuning_mv_limits"), ["mvl_lo", Number(st.mv_lo ?? 0), "MV_LoLim"], ["mvl_hi", Number(st.mv_hi ?? 100), "MV_HiLim"], T("h_mvlim"))}
-        {g(T("sampletime"), ["samp", 1, "SampleTime"])}
-        {g("DiffGain", ["diffgain", 5])}
+        {g(T("sampletime"), ["samp", 1, "SampleTime"], undefined, T("sampletime_help"))}
+        {g("DiffGain", ["diffgain", 5], undefined, T("diffgain_help"))}
         {g("PropFacSP", ["propfac", 1], undefined, T("pfb_help"))}
       </div>
       <button type="button" className="tn-btn small" data-testid="blk-reset" title={T("h_mvlim")}
         onClick={() => void patch({ mvl_lo: Number(st.mv_lo ?? 0), mvl_hi: Number(st.mv_hi ?? 100) })}>{T("ui_tuning_reset_block")}</button>
       <CheckSetting k="dfb" label={T("dfb")} def title={T("h_dfb")} />
-      <h3 className="tn-h3">{T("blk_elems")}</h3>
+      <h3 className="tn-h3">{T("blk_elems")}<Qm text={T("h_blk_elems")} /></h3>
       <NumSetting k="db" label={T("deadband")} min={0} title={T("h_deadband")} />
-      <SelectSetting k="db_mode" label={T("db_mode")} options={["cont", "step"] as const} def="cont" fmt={(x) => T("db_" + x)} />
+      <SelectSetting k="db_mode" label={T("db_mode")} help="h_db_mode" options={["cont", "step"] as const} def="cont" fmt={(x) => T("db_" + x)} />
       <NumSetting k="pvfilt" label={T("pvfilt")} min={0} title={T("h_pvfilt")} />
       <NumSetting k="mvrate" label={T("mvrate", { u: uMv })} min={0} title={T("h_mvrate")} />
       <NumSetting k="sprate" label={T("sprate", { u: uPv })} min={0} title={T("h_sprate")} />

@@ -226,7 +226,8 @@ def web_config(*, model, samp, pv0, mv0, set1, set2, plant, pv_rng, mv_rng, u_pv
         dark=dict(pv="#60a5fa", sp="#9aa5b1", mv="#fb923c", set1="#94a3b8", set2="#4ade80", dist="#a78bfa",
                   event="#fbbf24", acc="#60a5fa"))
     cfg["labels"].update({k: T("lv_" + k) for k in _LV_KEYS})
-    cfg["labels"].update(blk=summary, desc=T("live_sim_desc"), help=T("live_help"))
+    cfg["labels"].update(blk=summary, desc=T("live_sim_desc"), help=T("live_help"), h_speed=T("h_live_speed"),
+                         h_run=T("h_live_run"), h_reset=T("h_live_reset"))
     return cfg
 
 

@@ -35,12 +35,12 @@ export function DecoupleSide() {
         <LoopSelect kind="decouple" label={T("apc_decouple_b")} current={q.data?.loop ?? loop} />
       </SideCard>
       <SideCard title={T("dec_type")}>
-        <label className="field"><span>{T("dec_type")}</span>
+        <label className="field" title={T("h_dec_type")}><span>{T("dec_type")}</span>
           <select value={dtype} data-testid="dec-dtype" onChange={(e) => set({ dtype: e.target.value as DType })}>
             {DTYPES.map((t) => <option key={t} value={t}>{T("dec_" + t)}</option>)}</select></label>
-        <label className="field"><span>SP A [%]</span>
+        <label className="field" title={T("h_dec_step")}><span>SP A [%]</span>
           <NumInput value={ampA} testid="dec-amp-a" onCommit={(x) => set({ ampA: Math.max(-100, Math.min(100, x)) })} /></label>
-        <label className="field"><span>SP B [%]</span>
+        <label className="field" title={T("h_dec_step")}><span>SP B [%]</span>
           <NumInput value={ampB} testid="dec-amp-b" onCommit={(x) => set({ ampB: Math.max(-100, Math.min(100, x)) })} /></label>
         <button className="btn" data-testid="dec-reset" disabled={dtype === "dyn" && ampA === 5 && ampB === 5} title={T("h_apc_reset")}
           onClick={() => set({ dtype: "dyn", ampA: 5, ampB: 5 })}>{T("apc_reset")}</button>

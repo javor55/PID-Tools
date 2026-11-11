@@ -11,12 +11,12 @@ import "../styles/data.css";
 type LayoutInfo = components["schemas"]["LayoutInfo"];
 type Layout = components["schemas"]["Layout"];
 
-function Pick({ label, value, options, onChange, testid }: {
-  label: string; value: string; options: { v: string; text: string }[]; onChange: (v: string) => void; testid: string;
+function Pick({ label, value, options, onChange, testid, title }: {
+  label: string; value: string; options: { v: string; text: string }[]; onChange: (v: string) => void; testid: string; title?: string;
 }) {
   return (
     <>
-      <label htmlFor={testid}>{label}</label>
+      <label htmlFor={testid} title={title}>{label}</label>
       <select id={testid} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testid}>
         {!options.some((o) => o.v === value) && <option value={value}>{value}</option>}
         {options.map((o) => <option key={o.v} value={o.v}>{o.text}</option>)}
@@ -90,21 +90,21 @@ export function ManualRead() {
       <summary title={T("h_read_manual")}>{T("ui_data_manual")}</summary>
       <div className="dt-grid">
         <span>{T("layout")}</span>
-        <Seg value={L.layout ?? "wide"} options={LAYOUTS} label={T("layout")} stretch small testid="lay-layout"
+        <Seg value={L.layout ?? "wide"} options={LAYOUTS} label={T("layout")} stretch small testid="lay-layout" help="h_layout"
           fmt={(v) => T(`ui_data_lay_${v}`)} titles={titles} onChange={(v) => void apply({ layout: v }, false)} />
         {L.layout === "wide" && (
-          <Pick label={T("col_time")} value={L.c_time ?? L.rows_mark} testid="lay-time"
+          <Pick label={T("col_time")} value={L.c_time ?? L.rows_mark} testid="lay-time" title={T("h_lay_time")}
             options={[{ v: L.rows_mark, text: T("time_rows") }, ...cols]} onChange={(v) => void apply({ c_time: v })} />)}
         {L.layout === "long" && (<>
-          <Pick label={T("col_time")} value={L.c_time ?? ""} options={cols} testid="lay-time" onChange={(v) => void apply({ c_time: v })} />
-          <Pick label={T("col_tag")} value={L.c_tag ?? ""} options={cols} testid="lay-tag" onChange={(v) => void apply({ c_tag: v })} />
-          <Pick label={T("col_value")} value={L.c_val ?? ""} options={cols} testid="lay-val" onChange={(v) => void apply({ c_val: v })} />
+          <Pick label={T("col_time")} value={L.c_time ?? ""} options={cols} testid="lay-time" title={T("h_lay_time")} onChange={(v) => void apply({ c_time: v })} />
+          <Pick label={T("col_tag")} value={L.c_tag ?? ""} options={cols} testid="lay-tag" title={T("h_lay_tag")} onChange={(v) => void apply({ c_tag: v })} />
+          <Pick label={T("col_value")} value={L.c_val ?? ""} options={cols} testid="lay-val" title={T("h_lay_val")} onChange={(v) => void apply({ c_val: v })} />
         </>)}
         {L.layout === "wide" && rows && <RowDt value={L.row_dt} onCommit={(v) => void apply({ row_dt: v })} />}
         {!(L.layout === "wide" && rows) && (
-          <Pick label={T("time_fmt")} value={L.time_fmt ?? "auto"} testid="lay-fmt"
+          <Pick label={T("time_fmt")} value={L.time_fmt ?? "auto"} testid="lay-fmt" title={T("h_time_fmt")}
             options={L.time_formats.map((v) => ({ v, text: T("tf_" + v) }))} onChange={(v) => void apply({ time_fmt: v })} />)}
-        <Pick label={T("time_unit")} value={L.unit ?? "s"} testid="lay-unit"
+        <Pick label={T("time_unit")} value={L.unit ?? "s"} testid="lay-unit" title={T("time_unit_help")}
           options={L.units.map((v) => ({ v, text: v }))} onChange={(v) => void apply({ unit: v })} />
         {L.layout === "wide" && rows && (
           <div className="dt-p full" data-testid="lay-note">
@@ -130,13 +130,13 @@ function BareText({ k, label, placeholder, title }: { k: string; label: string; 
   );
 }
 
-function BareNum({ k, label, extra }: { k: string; label: string; extra: Record<string, unknown> }) {
+function BareNum({ k, label, extra, title }: { k: string; label: string; extra: Record<string, unknown>; title?: string }) {
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
   const [v, setV] = useState<string | null>(null);
   const cur = st[k] ?? "";
   return (
-    <input type="number" step="any" aria-label={label} data-testid={`set-${k}`}
+    <input type="number" step="any" aria-label={label} title={title} data-testid={`set-${k}`}
       value={v ?? (typeof cur === "number" ? +cur.toPrecision(6) : String(cur))} onChange={(e) => setV(e.target.value)}
       onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v)) void patch({ [k]: +v, ...extra }); setV(null); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
@@ -157,12 +157,12 @@ export function UnitsBody() {
             <span className={`lab role-${k.toUpperCase()}`}>{k.toUpperCase()}</span>
             <BareText k={`u_${k}`} label={T(`unit_${k}`)} placeholder={k === "pv" ? "m, °C, bar…" : undefined} title={T("h_unit")} />
             <span className="rng">
-              <BareNum k={`${k}_lo`} label={T("ui_range_lo", { v: k.toUpperCase() })} extra={{ [`${k}_rng_user`]: true }} />–
-              <BareNum k={`${k}_hi`} label={T("ui_range_hi", { v: k.toUpperCase() })} extra={{ [`${k}_rng_user`]: true }} />
+              <BareNum k={`${k}_lo`} label={T("ui_range_lo", { v: k.toUpperCase() })} extra={{ [`${k}_rng_user`]: true }} title={T("h_norm")} />–
+              <BareNum k={`${k}_hi`} label={T("ui_range_hi", { v: k.toUpperCase() })} extra={{ [`${k}_rng_user`]: true }} title={T("h_norm")} />
             </span>
           </div>))}
         <span className="lab">Tag</span>
-        <span style={{ gridColumn: "2 / -1" }}><BareText k="loop_tag" label="Tag" /></span>
+        <span style={{ gridColumn: "2 / -1" }}><BareText k="loop_tag" label="Tag" title={T("h_loop_tag")} /></span>
       </div>
       {(["pv", "mv"] as const).filter(bad).map((k) => <div key={k} className="dt-read err" role="alert">{T("err_range_blk")}</div>)}
       <p className="dt-p" style={{ marginTop: 8 }}>{T("norm_where", {

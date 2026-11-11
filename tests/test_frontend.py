@@ -68,7 +68,7 @@ def page(server):
 
 
 def test_shell_tabs_and_connection(page):
-    tabs = page.locator('[role="tab"]')
+    tabs = page.locator('nav.tabs [role="tab"]')
     assert tabs.count() == 7                                 # Projekt a report je tlačítko v hlavičce
     assert tabs.first.inner_text() == "1 · Data"
     assert "version" in page.locator('[data-testid="api-ok"]').inner_text()

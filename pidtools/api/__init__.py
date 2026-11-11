@@ -27,8 +27,8 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL
-from . import (analysis, apc, apc_loops, apc_more, audit, data, deploy, mapping, model, opcua, projects, sources,
-               tuning)
+from . import (analysis, apc, apc_loops, apc_more, audit, data, deploy, guide, mapping, model, opcua, projects,
+               sources, tuning)
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -96,7 +96,7 @@ def _routers(project, jobs, team):
     return [data.router(project, *max_upload), projects.router(project), projects.pending_router(team is None),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
             tuning.router(project, jobs), analysis.router(project), audit.router(project), apc.router(project, jobs),
-            apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs)]
+            apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs), guide.router(project)]
 
 
 def _include(app, routers, system, auth):

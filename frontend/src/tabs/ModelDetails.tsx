@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { request } from "../api/client";
 import type { components } from "../api/schema";
+import { Help } from "../components/Ui";
 import { useSettings, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { useJobRunner } from "../jobs";
@@ -73,14 +74,15 @@ export function ModelDetails({ model }: { model: ModelState }) {
             `${c} ${v.map((x) => (x === null ? "–" : x.toFixed(0))).join(" / ")}`).join(" · ")}</div>
         )}
         <div className="row">
+          {st.win_mode === "inputs" && <Help text={T("h_cv")} />}
           {st.win_mode === "inputs" && <button className="btn" data-testid="crossval-run"
             onClick={() => void run("/model/crossval", undefined, T("cv_run"))}>{T("cv_run")}</button>}
         </div>
       </div>
       <div className="card" data-testid="uncertainty">
-        <h3>{T("unc_title")}</h3>
+        <h3>{T("unc_title")} <Help text={T("unc_help")} /></h3>
         <div className="row">
-          <label className="small">{T("unc_n")} <input className="num" type="number" min={3} max={100} value={n}
+          <label className="small">{T("unc_n")} <Help text={T("h_unc_n")} /> <input className="num" type="number" min={3} max={100} value={n}
             onChange={(e) => setN(Math.max(3, Math.min(100, +e.target.value || 15)))} /></label>
           <button className="btn" data-testid="unc-run"
             onClick={() => void run("/model/uncertainty", { n }, T("unc_running"))}>{T("unc_run")}</button>

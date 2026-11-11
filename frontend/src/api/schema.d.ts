@@ -1258,6 +1258,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/guide/{tab}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Guide Get
+         * @description Průvodce záložky; kontrolní seznam se počítá ze stavu aktivní smyčky (data, model, sady, Ms, projekt …).
+         */
+        get: operations["guide_get_api_v1_workspaces__wid__guide__tab__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/identify": {
         parameters: {
             query?: never;
@@ -2676,8 +2696,15 @@ export interface components {
         };
         /** FFInfo */
         FFInfo: {
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
             /** Dists */
             dists: components["schemas"]["FFDist"][];
+            /** Impl Text */
+            impl_text?: string | null;
             /** Model */
             model: string;
             /** Mv Range */
@@ -2784,6 +2811,13 @@ export interface components {
             unit: string;
             /** Value */
             value: number;
+        };
+        /** GlossaryItem */
+        GlossaryItem: {
+            /** Term */
+            term: string;
+            /** Text */
+            text: string;
         };
         /** GsErInfo */
         GsErInfo: {
@@ -2969,6 +3003,65 @@ export interface components {
             T_end: number;
             /** Kpis */
             kpis: components["schemas"]["GsPointKpi"][];
+        };
+        /** Guide */
+        Guide: {
+            /** Checklist */
+            checklist: components["schemas"]["GuideCheck"][];
+            /** Glossary */
+            glossary: components["schemas"]["GlossaryItem"][];
+            /** Intro */
+            intro: string;
+            /** Steps */
+            steps: components["schemas"]["GuideStep"][];
+            /**
+             * Tab
+             * @enum {string}
+             */
+            tab: "data" | "model" | "tuning" | "apc" | "live" | "diag" | "loops" | "project";
+            /** Tables */
+            tables: components["schemas"]["GuideTable"][];
+            /** Tips */
+            tips: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * GuideAction
+         * @description Tlačítko u položky seznamu: přepnout záložku a případně skočit na prvek (data-testid).
+         */
+        GuideAction: {
+            /** Label */
+            label: string;
+            /** Tab */
+            tab: string;
+            /** Target */
+            target?: string | null;
+        };
+        /** GuideCheck */
+        GuideCheck: {
+            action?: components["schemas"]["GuideAction"] | null;
+            /**
+             * Ok
+             * @enum {string}
+             */
+            ok: "ok" | "warn" | "todo";
+            /** Text */
+            text: string;
+        };
+        /** GuideStep */
+        GuideStep: {
+            /** Text */
+            text: string;
+            /** Title */
+            title: string;
+        };
+        /** GuideTable */
+        GuideTable: {
+            /** Md */
+            md: string;
+            /** Title */
+            title: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -3751,6 +3844,8 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /** Impl Text */
+            impl_text?: string | null;
             /**
              * Known
              * @default []
@@ -3930,6 +4025,11 @@ export interface components {
         SmithInfo: {
             /** Basis Text */
             basis_text?: string | null;
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
             controller?: components["schemas"]["SmithController"] | null;
             /** General Rows */
             general_rows?: components["schemas"]["GeneralRow"][] | null;
@@ -7083,6 +7183,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FreqSet"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guide_get_api_v1_workspaces__wid__guide__tab__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                tab: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Guide"];
                 };
             };
             /** @description Validation Error */

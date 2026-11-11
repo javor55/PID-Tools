@@ -28,11 +28,11 @@ export function useApc<T>(part: string, path: string) {
 }
 
 /** Číselné pole: hodnota se potvrdí opuštěním pole nebo Enterem; do té doby se drží rozepsaný text. */
-export function NumInput({ value, onCommit, testid, min, disabled }: { value: number; onCommit: (x: number) => void;
-  testid?: string; min?: number; disabled?: boolean }) {
+export function NumInput({ value, onCommit, testid, min, disabled, title }: { value: number; onCommit: (x: number) => void;
+  testid?: string; min?: number; disabled?: boolean; title?: string }) {
   const [v, setV] = useState<string | null>(null);
   return (
-    <input type="number" step="any" min={min} disabled={disabled} data-testid={testid}
+    <input type="number" step="any" min={min} disabled={disabled} title={title} data-testid={testid}
       value={v ?? +value.toPrecision(6)} onChange={(e) => setV(e.target.value)}
       onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v) && +v !== value) onCommit(+v); setV(null); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />

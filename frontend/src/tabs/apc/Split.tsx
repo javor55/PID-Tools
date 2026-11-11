@@ -33,7 +33,7 @@ export function SplitSide() {
   return (
     <>
       <SideCard title={T("sr_setup")} testid="split-side">
-        <label className="field"><span>{T("sr_mode")}</span>
+        <label className="field" title={T("h_sr_mode")}><span>{T("sr_mode")}</span>
           <select value={body.mode} data-testid="split-mode"
             onChange={(e) => put({ mode: e.target.value as SplitIn["mode"], valve_a: undefined })}>
             {MODES.map((m) => <option key={m} value={m}>{T("sr_" + m)}</option>)}</select></label>

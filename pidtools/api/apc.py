@@ -13,12 +13,14 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from ..app import feedforward as ffm
-from ..app import signalpack
+from ..app import guides, signalpack
 from ..app.apc import feedforward as aff
 from ..app.apc import smith as asm
 from ..app.apc.common import tchar
 from ..core import MODELS
+from ..core.apc import smith_apl
 from ..i18n import T
+from .apc_more import Check, _checks
 from .common import JobInfo, job_info
 from .data import _plain
 from .tuning import Note, Pid
@@ -75,6 +77,8 @@ class FFInfo(BaseModel):
     mv_unit: str
     mv_range: float
     dists: list[FFDist]
+    checks: list[Check] = []     # kontrolní seznam (app.guides.apc_ff)
+    impl_text: str | None = None  # implementace v PCS 7 (šablona FfwdDisturbCompensat)
 
 
 class FFReset(BaseModel):
@@ -104,6 +108,11 @@ def _ff_step(ws, j):
     return float(f"{((span if math.isfinite(span) else 1.0) / 2 or 1.0):.3g}")
 
 
+def _rec(ws):
+    """Minimální záznam aktivní smyčky pro kontroly struktur (app.guides)."""
+    return dict(name=str(ws.get("loop_tag") or ws.c_pv), model=ws.model, c_mv=ws.c_mv)
+
+
 def _ff_info(ws):
     code, p, pdl = ws.model
     des = ffm.design(code, p, pdl, ws.ff_state)
@@ -119,7 +128,9 @@ def _ff_info(ws):
                           defaults=FFDefaults(gain=g, lead=tl, lag=tg, delay=dl),
                           eng_gain=float(ffm.eng_gain(d["gain"], ws.MR)), step=_ff_step(ws, j), values=vals,
                           model_params=[float(x) for x in pd]))
-    return FFInfo(model=code, theta=float(p[-1]), mv_unit=u_mv, mv_range=float(ws.MR), dists=out)
+    names = [str(x) for x in ws.c_d] if pdl else []
+    return FFInfo(model=code, theta=float(p[-1]), mv_unit=u_mv, mv_range=float(ws.MR), dists=out,
+                  checks=_checks(guides.apc_ff(_rec(ws), names, des if pdl else [], p)), impl_text=T("g_impl_ff"))
 
 
 def _ff_run(ws, body):
@@ -194,6 +205,7 @@ class SmithInfo(BaseModel):
     mv_op: float | None = None
     basis_text: str | None = None
     impl_text: str | None = None
+    checks: list[Check] = []     # kontrolní seznam (app.guides.apc_smith)
     general_rows: list[GeneralRow] | None = None
     values: dict | None = None   # výsledek smith_apl
     rows: list[SmithRow] | None = None
@@ -289,8 +301,12 @@ def _smith_info(ws):
     r = _smith_ctrl(ws, inp)
     ratio = p[-1] / max(tchar((code, p)), 1e-9)
     extra = {} if integ else _smith_values(ws, inp, r)
+    th_lag = 0.0 if integ else float(smith_apl(p, ws.PR, ws.MR, 0.0, 0.0)["th_lag"])
+    if not integ and extra.get("impl_text") and code == "P2D":
+        extra["impl_text"] += "\n\n" + T("g_impl_smith_p2d", t1=f"{p[1]:.4g}", t2=f"{p[2]:.4g}")
     return SmithInfo(model=code, inputs=inp, integ=integ, ratio=float(ratio), opt_ready=r is not None,
-                     controller=None if r is None else _ctrl_out(r), **extra)
+                     controller=None if r is None else _ctrl_out(r),
+                     checks=_checks(guides.apc_smith(_rec(ws), integ, float(ratio), th_lag)), **extra)
 
 
 def _smith_run(ws, body):

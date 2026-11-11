@@ -1,5 +1,6 @@
 // Společné prvky vzhledu podle návrhu (artefakt „PID Tools – nový návrh UI“): karta panelu, přepínač, nápověda „?“.
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
+import { useTexts } from "../i18n";
 import { useUi } from "../store";
 
 /**
@@ -27,18 +28,48 @@ export function SideCard({ title, help, children, testid, defaultOpen = true, as
   );
 }
 
-/** Kulatý „?“ s nápovědou v bublině (title) – jako u polí v návrhu. */
+/**
+ * Kulaté „?“ s nápovědou k popisku pole: tlačítko (aria-label + title), kliknutí nebo Enter / mezerník otevře bublinu,
+ * Esc nebo opuštění ji zavře. `text` je klíč překladu nebo rovnou text. Bublina je `position: fixed` (neořízne ji karta).
+ */
+export function LabelHelp({ text }: { text: string }) {
+  const texts = useTexts();
+  const t = texts?.[text] ?? text;
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const id = useId();
+  const btn = useRef<HTMLButtonElement>(null);
+  if (!t) return null;
+  const close = () => setPos(null);
+  const toggle = () => {
+    if (pos) return close();
+    const r = btn.current?.getBoundingClientRect();
+    if (r) setPos({ x: Math.max(8, Math.min(r.left, window.innerWidth - 328)), y: r.bottom + 6 });
+  };
+  return (
+    <span className="qm-wrap">
+      <button ref={btn} type="button" className="qm" aria-label={t} title={t} aria-expanded={pos !== null} aria-describedby={pos ? id : undefined}
+        data-help="" onClick={toggle} onBlur={close} onKeyDown={(e) => { if (e.key === "Escape" && pos) { e.stopPropagation(); e.preventDefault(); close(); } }}>?</button>
+      {pos && <span id={id} role="tooltip" className="qm-bubble" style={{ left: pos.x, top: pos.y }}>{t}</span>}
+    </span>
+  );
+}
+
+/** Starší název: „?“ s nápovědou (např. v nadpisu karty). */
 export function Help({ text }: { text: string }) {
-  return <span className="qm" role="img" aria-label={text} title={text}>?</span>;
+  return <LabelHelp text={text} />;
 }
 
 /** Přepínač (segmented control): jedna volba z několika, aktivní modře. */
-export function Seg<V extends string | number>({ value, options, onChange, label, fmt, stretch, testid, small, titles }: {
+export function Seg<V extends string | number>({ value, options, onChange, label, fmt, stretch, testid, small, titles, help, title }: {
   value: V; options: readonly V[]; onChange: (v: V) => void; label: string; fmt?: (v: V) => ReactNode;
   stretch?: boolean; testid?: string; small?: boolean; titles?: (v: V) => string | undefined;
+  help?: string;                      // klíč překladu / text nápovědy: „?“ za přepínačem (a title skupiny)
+  title?: string;                     // jen title skupiny (když je „?“ jinde, např. v nadpisu karty)
 }) {
-  return (
-    <div role="group" aria-label={label} className={"seg" + (stretch ? " stretch" : "") + (small ? " small" : "")}
+  const texts = useTexts();
+  const ht = help ? (texts?.[help] ?? help) : title;
+  const group = (
+    <div role="group" aria-label={label} title={ht} className={"seg" + (stretch ? " stretch" : "") + (small ? " small" : "")}
       data-testid={testid}>
       {options.map((o) => (
         <button key={String(o)} type="button" aria-pressed={o === value} title={titles?.(o)}
@@ -48,6 +79,8 @@ export function Seg<V extends string | number>({ value, options, onChange, label
       ))}
     </div>
   );
+  if (!help) return group;
+  return <span className={"seg-help" + (stretch ? " stretch" : "")}>{group}<LabelHelp text={help} /></span>;
 }
 
 /** Hlavní tlačítko záložky nahoře v panelu (např. „Identifikovat model“). */
@@ -77,19 +110,69 @@ function inline(s: string, key = 0): ReactNode[] {
   return out;
 }
 
-export function Md({ text }: { text: string }) {
-  const blocks = text.replace(/\r/g, "").split(/\n\s*\n/);
+// ---- tabulky v zápisu GitHub: záhlaví | oddělovač |---|:---:|---:| | řádky (zarovnání je volitelné)
+const SEP = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+
+function cells(line: string): string[] {
+  const t = line.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "");
+  return t.split(/(?<!\\)\|/).map((c) => c.replace(/\\\|/g, "|").trim());
+}
+
+type Align = "left" | "center" | "right" | undefined;
+const alignOf = (c: string): Align => (c.startsWith(":") && c.endsWith(":") ? "center" : c.endsWith(":") ? "right" : c.startsWith(":") ? "left" : undefined);
+
+function Table({ head, align, rows, k }: { head: string[]; align: Align[]; rows: string[][]; k: number }) {
   return (
-    <div className="md">
-      {blocks.map((b, bi) => {
-        const lines = b.split("\n").filter((l) => l.trim());
-        if (lines.length && lines.every((l) => /^\s*[-*] /.test(l)))
-          return <ul key={bi}>{lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*[-*] /, ""), i)}</li>)}</ul>;
-        if (lines.length && lines.every((l) => /^\s*\d+\. /.test(l)))
-          return <ol key={bi}>{lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*\d+\. /, ""), i)}</li>)}</ol>;
-        if (/^#+ /.test(b)) return <h4 key={bi}>{inline(b.replace(/^#+ /, ""))}</h4>;
-        return <p key={bi}>{lines.map((l, i) => <span key={i}>{i > 0 && <br />}{inline(l, i)}</span>)}</p>;
-      })}
+    <div className="md-table" key={k}>
+      <table>
+        <thead><tr>{head.map((h, i) => <th key={i} style={{ textAlign: align[i] }}>{inline(h, i)}</th>)}</tr></thead>
+        <tbody>{rows.map((r, ri) => (
+          <tr key={ri}>{head.map((_, i) => <td key={i} style={{ textAlign: align[i] }}>{inline(r[i] ?? "", i)}</td>)}</tr>))}</tbody>
+      </table>
     </div>
   );
+}
+
+function textBlock(lines: string[], bi: number): ReactNode {
+  if (!lines.length) return null;
+  if (lines.every((l) => /^\s*[-*] /.test(l)))
+    return <ul key={bi}>{lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*[-*] /, ""), i)}</li>)}</ul>;
+  if (lines.every((l) => /^\s*\d+\. /.test(l)))
+    return <ol key={bi}>{lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*\d+\. /, ""), i)}</li>)}</ol>;
+  return <p key={bi}>{lines.map((l, i) => <span key={i}>{i > 0 && <br />}{inline(l, i)}</span>)}</p>;
+}
+
+/** Blok řádků → uzly: tabulky (záhlaví + oddělovač) a zbytek jako odstavce / seznamy. */
+function block(lines: string[], bi: number): ReactNode[] {
+  const out: ReactNode[] = [];
+  let buf: string[] = [];
+  const flush = () => { if (buf.length) out.push(textBlock(buf, bi * 1000 + out.length)); buf = []; };
+  for (let i = 0; i < lines.length; i++) {
+    if (/^#+ /.test(lines[i])) {
+      flush();
+      out.push(<h4 key={bi * 1000 + out.length}>{inline(lines[i].replace(/^#+ /, ""))}</h4>);
+      continue;
+    }
+    if (lines[i].includes("|") && i + 1 < lines.length && SEP.test(lines[i + 1]) && lines[i + 1].includes("-")) {
+      const head = cells(lines[i]);
+      const sep = cells(lines[i + 1]);
+      if (sep.length === head.length) {
+        flush();
+        const rows: string[][] = [];
+        let j = i + 2;
+        while (j < lines.length && lines[j].includes("|")) rows.push(cells(lines[j++]));
+        out.push(<Table key={bi * 1000 + out.length} k={bi} head={head} align={sep.map(alignOf)} rows={rows} />);
+        i = j - 1;
+        continue;
+      }
+    }
+    buf.push(lines[i]);
+  }
+  flush();
+  return out;
+}
+
+export function Md({ text }: { text: string }) {
+  const blocks = text.replace(/\r/g, "").split(/\n\s*\n/);
+  return <div className="md">{blocks.map((b, bi) => block(b.split("\n").filter((l) => l.trim()), bi))}</div>;
 }

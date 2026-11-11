@@ -37,6 +37,7 @@ function Num({ label, value, onCommit, step, testid, help }: { label: string; va
 /** Řádek parametru karty přenosu: název | hodnota | jednotka | Identif. (zaškrtnuto = odhaduje se z dat). */
 function ParamRow({ label, edKey, fxKey, value, unit, help, signed }: { label: string; edKey: string; fxKey: string;
   value: number; unit: string; help: string; signed: boolean }) {
+  const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const st = useSettings().data ?? {};
@@ -51,12 +52,12 @@ function ParamRow({ label, edKey, fxKey, value, unit, help, signed }: { label: s
     <>
       <label className="mp-name" title={help}>{label}</label>
       <input className="num" type="number" step="any" min={signed ? undefined : 0} value={v ?? +cur.toPrecision(6)}
-        data-testid={`ed-${edKey}`} aria-label={label}
+        data-testid={`ed-${edKey}`} aria-label={label} title={help}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v)) void patch({ [edKey]: +v }); setV(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       <span className="mp-unit">{unit}</span>
-      <input type="checkbox" checked={!st[fxKey]} aria-label={`Identif. ${label}`} data-testid={`fx-${fxKey}`}
+      <input type="checkbox" checked={!st[fxKey]} aria-label={`Identif. ${label}`} title={T("h_ms_identif")} data-testid={`fx-${fxKey}`}
         onChange={(e) => void patch({ [fxKey]: !e.target.checked })} />
     </>
   );
@@ -238,19 +239,20 @@ function Exclusion({ info }: { info: WindowsInfo }) {
 
 function ExclRow({ n, on, lo, hi, set }: { n: string; on: boolean; lo: number; hi: number;
   set: (n: string, i: 0 | 1 | 2, v: boolean | number) => void }) {
+  const T = useT();
   const [a, setA] = useState<string | null>(null);
   const [b, setB] = useState<string | null>(null);
   const commit = (v: string | null, i: 1 | 2) => { if (v !== null && v !== "" && Number.isFinite(+v)) set(n, i, +v); };
   return (
     <>
       <b className="mp-name">{n}</b>
-      <input className="num" type="number" step="any" value={a ?? +lo.toPrecision(5)} aria-label={`${n} min`}
+      <input className="num" type="number" step="any" value={a ?? +lo.toPrecision(5)} aria-label={`${n} min`} title={T("excl_intro")}
         onChange={(e) => setA(e.target.value)} onBlur={() => { commit(a, 1); setA(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-      <input className="num" type="number" step="any" value={b ?? +hi.toPrecision(5)} aria-label={`${n} max`}
+      <input className="num" type="number" step="any" value={b ?? +hi.toPrecision(5)} aria-label={`${n} max`} title={T("excl_intro")}
         onChange={(e) => setB(e.target.value)} onBlur={() => { commit(b, 2); setB(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-      <input type="checkbox" checked={on} aria-label={`${n} ${on ? "on" : "off"}`} onChange={(e) => set(n, 0, e.target.checked)} />
+      <input type="checkbox" checked={on} aria-label={`${n} ${on ? "on" : "off"}`} title={T("excl_intro")} onChange={(e) => set(n, 0, e.target.checked)} />
     </>
   );
 }
@@ -357,7 +359,7 @@ export function ModelSide() {
       </div>
 
       <SideCard title={T("idm")} help={T("h_idm")} testid="side-idm">
-        <select value={idMode} onChange={(e) => void patch({ id_mode: e.target.value })} data-testid="id-mode" aria-label={T("idm")}>
+        <select value={idMode} onChange={(e) => void patch({ id_mode: e.target.value })} data-testid="id-mode" aria-label={T("idm")} title={T("h_idm")}>
           {["auto", "open", "cl"].map((m) => <option key={m} value={m}>{T("idm_" + m)}</option>)}
         </select>
         {lm.data && <div className="small muted" data-testid="lm-status">
@@ -371,7 +373,7 @@ export function ModelSide() {
             <div className="small muted">{T("mix_title")}</div>
             {mvWins.map((w, i) => (
               <label className="field" key={i}><span>MV {i + 1}</span>
-                <select value={windows.data?.mv_modes?.[i] ?? "man"} disabled={idMode !== "auto"}
+                <select value={windows.data?.mv_modes?.[i] ?? "man"} disabled={idMode !== "auto"} title={T("h_mix")}
                   onChange={(e) => void setMode(i, e.target.value)} data-testid={`mv-mode-${i}`}>
                   <option value="man">{T("mix_man")}</option><option value="auto">{T("mix_auto")}</option>
                 </select>
@@ -400,7 +402,7 @@ export function ModelSide() {
       <SideCard title={T("models")} help={T("h_models")} testid="side-models">
         <div className="checks-grid">
           {MODELS.map((c) => (
-            <label key={c} className="small">
+            <label key={c} className="small" title={T("h_models")}>
               <input type="checkbox" checked={chosen.includes(c)} data-testid={`chk-${c}`}
                 onChange={(e) => void patch({ chosen: e.target.checked ? [...chosen, c] : chosen.filter((y) => y !== c) })} />
               {" "}{T("model_" + c)}
@@ -412,18 +414,18 @@ export function ModelSide() {
       </SideCard>
 
       <SideCard title={T("dist_level")} help={T("h_dist_level")} testid="side-unmeasured" defaultOpen={false}>
-        <select value={level} onChange={(e) => void patch({ dist_level: e.target.value })} aria-label={T("dist_level")}>
+        <select value={level} onChange={(e) => void patch({ dist_level: e.target.value })} aria-label={T("dist_level")} title={T("h_dist_level")}>
           {["none", "medium", "high"].map((x) => <option key={x} value={x}>{T("dl_" + x)}</option>)}
         </select>
         <div className="small muted">{T("dl_desc_" + level).replace(/\*\*/g, "")}</div>
-        <label className="field"><span>{T("dist_strength")}</span>
+        <label className="field"><span className="lbl">{T("dist_strength")}<Help text={T("h_dist_strength")} /></span>
           <input type="range" min={1} max={10} disabled={level === "none"} value={Number(st.dist_strength ?? 4)}
             onChange={(e) => void patch({ dist_strength: +e.target.value })} />
         </label>
       </SideCard>
 
       <SideCard title={T("id_stic")} help={T("h_id_stic")} testid="side-stic" defaultOpen={false}>
-        <label className="small"><input type="checkbox" checked={!!st.id_stic}
+        <label className="small" title={T("h_id_stic")}><input type="checkbox" checked={!!st.id_stic}
           onChange={(e) => void patch({ id_stic: e.target.checked })} /> {T("id_stic")}</label>
       </SideCard>
 

@@ -13,7 +13,8 @@ import { useT } from "../../i18n";
 import { useJobRunner } from "../../jobs";
 import { useUi } from "../../store";
 import { Bold, type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { ACard, VariantTable } from "./parts";
+import { Checks } from "./moreCommon";
+import { ACard, Impl, VariantTable } from "./parts";
 
 type SmithInfo = components["schemas"]["SmithInfo"];
 type SmithSim = components["schemas"]["SmithSim"];
@@ -21,13 +22,14 @@ type SmithSim = components["schemas"]["SmithSim"];
 const CTYPES = ["PI", "PID"] as const;
 
 function ManualInputs({ inp }: { inp: SmithInfo["inputs"] }) {
+  const T = useT();
   const patch = usePatchSettings();
   const cur = ((useSettings().data ?? {}).apc_sm_man as number[] | undefined) ?? inp.manual;
   const set = (i: number, x: number) => void patch({ apc_sm_man: cur.map((v, k) => (k === i ? x : v)) });
   const lab = ["Gain", "TI [s]", "TD [s]"];
   return (
     <>{lab.map((l, i) => (i < 2 || inp.ctype === "PID") && (
-      <label className="field" key={l}><span>{l}</span>
+      <label className="field" key={l} title={T("h_sm_man")}><span>{l}</span>
         <NumInput value={cur[i]} min={i ? 0 : undefined} testid={`set-apc_sm_man-${i}`} onCommit={(x) => set(i, x)} /></label>))}</>
   );
 }
@@ -55,7 +57,7 @@ export function SmithSide() {
       <SideCard title={T("apc_smith")} testid="smith-side">
         <SelectSetting k="apc_sm_method" label={T("sm_method")} options={inp.methods} def={inp.method} title={T("h_sm_method")}
           fmt={(m) => T("sm_m_" + m)} />
-        <SelectSetting k="apc_sm_ct" label={T("ctrl_type")} options={CTYPES} def="PI" />
+        <SelectSetting k="apc_sm_ct" label={T("ctrl_type")} help="h_ctype" options={CTYPES} def="PI" />
         {tcOn && <NumSetting k={inp.tc_key} label={T("sm_tc")} def={inp.tc_default} min={0.001} title={T("h_sm_tc")} />}
         {tcOn && <button className="btn" data-testid="sm-tc-reset" title={T("h_apc_reset")}
           onClick={() => void patch({ [inp.tc_key]: inp.tc_default })}>{T("apc_reset")}</button>}
@@ -69,9 +71,9 @@ export function SmithSide() {
         {integ && <div className="warn small">⚠ {T("sm_integ")}</div>}
       </SideCard>
       <SideCard title={T("sm_err")}>
-        <NumSetting k="apc_sm_ek" label={T("sm_err_k") + " [%]"} def={0} step={5} />
-        <NumSetting k="apc_sm_et" label={T("sm_err_t") + " [%]"} def={0} step={5} />
-        <NumSetting k="apc_sm_eth" label={T("sm_err_th") + " [%]"} def={0} step={5} />
+        <NumSetting k="apc_sm_ek" label={T("sm_err_k") + " [%]"} title={T("h_sm_err")} def={0} step={5} />
+        <NumSetting k="apc_sm_et" label={T("sm_err_t") + " [%]"} title={T("h_sm_err")} def={0} step={5} />
+        <NumSetting k="apc_sm_eth" label={T("sm_err_th") + " [%]"} title={T("h_sm_err")} def={0} step={5} />
         <button className="btn" data-testid="sm-err-reset" title={T("h_apc_reset")}
           onClick={() => void patch({ apc_sm_ek: 0, apc_sm_et: 0, apc_sm_eth: 0 })}>{T("apc_reset")}</button>
       </SideCard>
@@ -168,6 +170,8 @@ export function SmithMain() {
       <KpiTable d={d} />
       </ACard>
       <ValuesCards d={d} />
+      <Impl text={d.impl_text} testid="sm-impl" />
+      <Checks items={d.checks} testid="sm-checks" />
     </div>
   );
 }

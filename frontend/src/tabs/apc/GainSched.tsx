@@ -30,8 +30,8 @@ function Ranges({ inp }: { inp: GsInfo["inputs"] }) {
       <thead><tr><th>{T("gs_pt")}</th><th>{T("dk_from")}</th><th>{T("dk_to")}</th></tr></thead>
       <tbody>{inp.ranges.map((r, i) => (
         <tr key={i}><td>{i + 1}</td>
-          <td><NumInput value={r[0]} testid={`gs-r${i + 1}-from`} onCommit={(x) => put(i, 0, x)} /></td>
-          <td><NumInput value={r[1]} testid={`gs-r${i + 1}-to`} onCommit={(x) => put(i, 1, x)} /></td></tr>))}</tbody>
+          <td><NumInput value={r[0]} testid={`gs-r${i + 1}-from`} title={T("h_gs_range")} onCommit={(x) => put(i, 0, x)} /></td>
+          <td><NumInput value={r[1]} testid={`gs-r${i + 1}-to`} title={T("h_gs_range")} onCommit={(x) => put(i, 1, x)} /></td></tr>))}</tbody>
     </table>
   );
 }
@@ -57,20 +57,20 @@ export function GainSchedSide() {
   return (
     <>
       <SideCard title={T("dk_gs_points")} testid="gs-side">
-        <SelectSetting k="gs_n" label={T("dk_gs_n")} options={NS} def={inp.n} />
+        <SelectSetting k="gs_n" label={T("dk_gs_n")} options={NS} def={inp.n} help="h_gs_n" />
         <Ranges inp={inp} />
         <div className="small muted">{T("gs_s1_help")}</div>
         <div className="row">
-          <button className="btn" data-testid="gs-auto" onClick={() => void post("/apc/gainsched/auto")}>{T("gs_auto")}</button>
+          <button className="btn" data-testid="gs-auto" title={T("h_gs_auto")} onClick={() => void post("/apc/gainsched/auto")}>{T("gs_auto")}</button>
           <button className="btn primary" disabled={busy} data-testid="gs-fit" onClick={() => void fit()}>{T("dk_gs_fit")}</button>
         </div>
         {err && <div className="err small" data-testid="gs-fit-err">{err}</div>}
       </SideCard>
       <SideCard title={T("method")}>
-        <SelectSetting k="gs_m" label={T("method")} options={inp.methods} def={inp.method} fmt={(m) => T("m_" + m)} />
-        <SelectSetting k="gs_ct" label={T("ctrl_type")} options={CTYPES} def={inp.ctype} />
-        {inp.method === "SIMC" && <NumSetting k="gs_tcf" label={T("dk_gs_tcf")} def={inp.tcf_default} min={0.001} />}
-        {inp.method === "OPT" && <NumSetting k="gs_ms" label={T("gs_ms")} def={inp.ms_default} min={1.05} />}
+        <SelectSetting k="gs_m" label={T("method")} help="h_gs_m" options={inp.methods} def={inp.method} fmt={(m) => T("m_" + m)} />
+        <SelectSetting k="gs_ct" label={T("ctrl_type")} help="h_ctype" options={CTYPES} def={inp.ctype} />
+        {inp.method === "SIMC" && <NumSetting k="gs_tcf" label={T("dk_gs_tcf")} help="h_gs_tcf" def={inp.tcf_default} min={0.001} />}
+        {inp.method === "OPT" && <NumSetting k="gs_ms" label={T("gs_ms")} help="h_gs_ms" def={inp.ms_default} min={1.05} />}
         <button className="btn" data-testid="gs-reset" title={T("h_apc_reset")}
           onClick={() => void post("/apc/gainsched/reset")}>{T("apc_reset")}</button>
       </SideCard>
