@@ -6,12 +6,30 @@
  */
 export default function (component) {
   "use strict";
-  const CFG = component.data, root = component.parentElement, E = window.PIDLive, L = CFG.labels;
+  const CFG = component.data, root = component.parentElement, E = window.PIDLive;
+  // texty nového vzhledu, které web_config nezná (hostitel je může přepsat v CFG.labels); jinak podle jazyka z desetinného znaku
+  const FB = {
+    cs: { now: "teď", kpi_change: "Změna", same: "stejná", run_dist: "Vyvolat poruchu", dist_shape: "Tvar", dist_where: "Kam",
+          dist_size: "Velikost", dist_period: "Perioda", period_hint: "jen u sinusu a pulsu", noise_pv: "Šum PV σ", mv_man: "Ruční MV",
+          mode_hint: "Ruční MV je aktivní v režimu MAN; přepnutí je beznárazové jako na faceplatu.",
+          sets_note: "Sady se převezmou z Ladění při přepnutí na tuto záložku.",
+          dist_note: "Porucha začne působit po stisknutí „Vyvolat poruchu“ (puls vyšle jeden puls); tvar a místo určují, jak smyčku zasáhne.",
+          h_mode: "", h_sets: "", h_dist: "", h_kpi: "" },
+    en: { now: "now", kpi_change: "Change", same: "same", run_dist: "Apply disturbance", dist_shape: "Shape", dist_where: "Where",
+          dist_size: "Size", dist_period: "Period", period_hint: "sine and pulse only", noise_pv: "PV noise σ", mv_man: "Manual MV",
+          mode_hint: "Manual MV is active in MAN mode; switching is bumpless, as on a faceplate.",
+          sets_note: "The sets are taken from Tuning when you switch to this tab.",
+          dist_note: "The disturbance starts when you press “Apply disturbance” (pulse sends one pulse); shape and place set how it hits the loop.",
+          h_mode: "", h_sets: "", h_dist: "", h_kpi: "" } };
+  const L = Object.assign({}, FB[CFG.decimal === "," ? "cs" : "en"], CFG.labels);
   const store = (window.__pidLive = window.__pidLive || {});
   const PR = CFG.pv_hi - CFG.pv_lo, MR = CFG.mv_hi - CFG.mv_lo;
   const EP = (x) => CFG.pv_lo + x * PR / 100, EM = (x) => CFG.mv_lo + x * MR / 100;
   const P = (x) => (x - CFG.pv_lo) / PR * 100, M = (x) => (x - CFG.mv_lo) / MR * 100;
-  const fmt = (v) => !isFinite(v) ? "–" : Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) < 1e-9 ? "0" : String(+v.toPrecision(4));
+  const dcm = (t) => t.replace(".", CFG.decimal);
+  const fmt = (v) => !isFinite(v) ? "–" : dcm(Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) < 1e-9 ? "0" : String(+v.toPrecision(4)));
+  const tile = (v) => !isFinite(v) ? "–" : dcm(Math.abs(v) >= 1000 ? v.toFixed(0) : v.toPrecision(4));      // dlaždice: pevný počet míst (15,00)
+  const clock = (s) => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
   const WINDOWS = ["auto", 60, 300, 900, 3600];
   const MAXWIN = Math.max(CFG.window, 3600);
   const REC = Math.max(1, Math.ceil(MAXWIN / CFG.h / 20000));          // ukládá se každý REC-tý krok
@@ -33,7 +51,7 @@ export default function (component) {
       sp: EP(CFG.pv0), mv: EM(CFG.mv0),
       tune: Object.assign({}, CFG.sets["2"]), setsKey: "",
       noise: CFG.noise0, pvf: CFG.pvf0,
-      dist: { type: "step", loc: "in", A: 0, Pp: CFG.dist_p0, t0: 0, d0: 0, x: 0, pulseUntil: -1 },
+      dist: { type: "step", loc: "in", A: 0, pend: 0, Pp: CFG.dist_p0, t0: 0, d0: 0, x: 0, pulseUntil: -1 },
       plant: { k: 1, t: 1, th: 1, stic: CFG.plant.Stic || 0 },
       view: null, events: [], t: 0, acc: 0, tick: 0, loops: null, bufs: null, kpi: null, seed: 7,
     };
@@ -154,6 +172,10 @@ export default function (component) {
   if (old) old.remove();
   const el = document.createElement("div");
   el.className = "pidlive";
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const qm = (t) => (t ? `<span class="qm" role="img" aria-label="${esc(t)}" title="${esc(t)}">?</span>` : "");
+  const card = (open, title, help, body) => `<details${open ? " open" : ""}><summary><span class="st">${title}</span>${qm(help)}</summary><section>${body}</section></details>`;
+  const pu = (u) => (u ? " [" + u + "]" : "");
   el.innerHTML = `
   <div class="lvg">
   <div class="lvm">
@@ -161,56 +183,57 @@ export default function (component) {
       <button id="run"></button><button id="reset">↺ ${L.reset}</button>
       <span class="lab">${L.lspeed}</span><div class="segs" id="speed"></div>
       <span class="mono" id="tnow"></span><span class="sp"></span>
-      <span class="chip" id="chip"></span><span class="lab" id="chipt"></span>
+      <span class="chipbox"><span class="chip" id="chip"></span><span class="lab" id="chipt"></span></span>
     </div>
     <div class="card">
-      <div class="chead"><span class="t">${L.chart}</span><span class="n" id="read"></span></div>
-      <div class="cvwrap"><canvas id="cv" style="height:${CFG.ch}px"></canvas><div id="tip"></div></div>
-      <div class="hint">${L.desc} ${L.help}</div>
+      <div class="chead"><span class="t">${L.chart}</span>${qm(L.desc + " " + L.help)}<span class="n" id="read"></span><span class="legend" id="legend"></span></div>
+      <div class="cvwrap"><canvas id="cv" style="height:${Math.round(CFG.ch * 0.76)}px"></canvas><div id="tip"></div></div>
     </div>
     <div class="card">
-      <div class="chead"><span class="t">${L.kpi_title}</span><span class="n">${L.kpi_note}</span></div>
-      <table id="kpi"></table>
+      <div class="chead"><span class="t">${L.kpi_title}</span>${qm(L.h_kpi)}<span class="n">${L.kpi_note}</span></div>
+      <table id="kpi" class="kpi"></table>
     </div>
     <div class="hint">${L.blk}</div>
   </div>
   <div class="lvs">
-  <details open><summary>${L.sec_mode}</summary><section>
-    <div class="tiles"><div class="tile"><div class="l">SP</div><div class="v" id="tsp"></div></div>
-      <div class="tile"><div class="l">PV</div><div class="v" id="tpv"></div></div>
+  ${card(true, L.sec_mode, L.h_mode, `
+    <div class="tiles"><div class="tile sp"><div class="l">SP</div><div class="v" id="tsp"></div></div>
+      <div class="tile pv"><div class="l">PV</div><div class="v" id="tpv"></div></div>
       <div class="tile mv"><div class="l">MV</div><div class="v" id="tmv"></div></div></div>
     <div class="lrow"><span class="lab">${L.lmode}</span><div class="segs" id="mode"></div></div>
-    <div class="sl" id="spbox"><div class="top"><span class="lab">${L.lsp}</span><span class="val" id="spv"></span></div><input type="range" id="sps"></div>
-    <div class="sl" id="mvbox"><div class="top"><span class="lab">${L.lmv}</span><span class="val" id="mvv"></span></div><input type="range" id="mvs"></div>
-    <div class="sl"><div class="top"><span class="lab" id="ldist"></span><span><span class="val" id="dv"></span> <button class="mini" id="d0" title="${L.d0}">0</button></span></div><input type="range" id="ds"></div>
-  </section></details>
-  <details open><summary>${L.lcmp}</summary><section>
+    <div class="lrow" id="spbox"><span class="lab">SP${esc(pu(CFG.u_pv))}</span><div class="pair"><input type="range" id="sps"><input class="num" type="number" step="any" id="spn"></div></div>
+    <div class="lrow" id="mvbox"><span class="lab">${L.mv_man}${esc(pu(CFG.u_mv))}</span><div class="pair"><input type="range" id="mvs"><input class="num" type="number" step="any" id="mvn"></div></div>
+    <div class="hint">${L.mode_hint}</div>`)}
+  ${card(true, L.lcmp, L.h_sets, `
     <label class="chk"><input type="checkbox" id="cmp"> ${L.compare}</label>
     <div class="lrow" id="setgrp"><span class="lab">${L.lset}</span><div class="segs" id="set"></div></div>
-  </section></details>
-  <details><summary>${L.sec_tune}</summary><section>
+    <table class="sets" id="sets"></table>
+    <div class="hint">${L.sets_note}</div>`)}
+  ${card(true, L.sec_dist, L.h_dist, `
+    <div class="lrow stack"><span class="lab">${L.dist_shape}</span><div class="segs" id="dtype"></div></div>
+    <div class="lrow"><span class="lab">${L.dist_where}</span><select id="dloc"></select></div>
+    <div class="lrow"><span class="lab" id="ldist"></span><div class="pair"><input class="num" type="number" step="any" id="ds"><button class="mini" id="d0" title="${esc(L.d0)}">0</button></div></div>
+    <div class="lrow"><span class="lab" id="lpp"></span><input class="num" type="number" step="any" id="pps"></div>
+    <div class="lrow"><span class="lab">${L.noise_pv}</span><input class="num" type="number" step="any" id="nzs"></div>
+    <div class="lrow"><span></span><button id="pulse" class="trigger">${L.run_dist}</button></div>
+    <div class="hint">${L.dist_note}</div>`)}
+  ${card(false, L.sec_tune, "", `
         <div class="tune" id="tune"></div>
         <div class="btns"><button id="apply" class="primary">${L.apply}</button><button id="revert">${L.revert}</button></div>
-        <div class="hint">${L.tune_hint}</div></section></details>
-  <details><summary>${L.sec_dist}</summary><section>
-        <div class="lab">${L.dist_type}</div><div class="segs" id="dtype"></div>
-        <div class="lab">${L.dist_loc}</div><div class="segs" id="dloc"></div>
-        <div class="sl"><div class="top"><span class="lab" id="lpp"></span><span class="val" id="ppv"></span></div><input type="range" id="pps"></div>
-        <button id="pulse">${L.pulse_go}</button></section></details>
-  <details><summary>${L.sec_meas}</summary><section>
-        <div class="sl"><div class="top"><span class="lab">${L.noise}</span><span class="val" id="nzv"></span></div><input type="range" id="nzs"></div>
+        <div class="hint">${L.tune_hint}</div>`)}
+  ${card(false, L.sec_meas, "", `
         <div class="sl"><div class="top"><span class="lab">${L.pvf}</span><span class="val" id="pfv"></span></div><input type="range" id="pfs"></div>
-        <div class="hint">${L.meas_hint}</div></section></details>
-  <details><summary>${L.sec_plant}</summary><section>
+        <div class="hint">${L.meas_hint}</div>`)}
+  ${card(false, L.sec_plant, "", `
         <div class="sl"><div class="top"><span class="lab">${L.pk}</span><span class="val" id="pkv"></span></div><input type="range" id="pks"></div>
         <div class="sl"><div class="top"><span class="lab">${L.pt}</span><span class="val" id="ptv"></span></div><input type="range" id="pts"></div>
         <div class="sl"><div class="top"><span class="lab">${L.pth}</span><span class="val" id="pthv"></span></div><input type="range" id="pths"></div>
         <div class="sl"><div class="top"><span class="lab">${L.stic}</span><span class="val" id="stv"></span></div><input type="range" id="sts"></div>
-        <div class="hint">${L.plant_hint}</div></section></details>
-  <details><summary>${L.sec_view}</summary><section>
+        <div class="hint">${L.plant_hint}</div>`)}
+  ${card(false, L.sec_view, "", `
         <div class="lab">${L.window}</div><div class="segs" id="win"></div>
         <div class="btns"><button id="csv">⤓ CSV</button><button id="png">⤓ PNG</button></div>
-        <div class="hint">${L.view_hint}</div></section></details>
+        <div class="hint">${L.view_hint}</div>`)}
   </div>
   </div>`;
   root.appendChild(el);
@@ -221,54 +244,75 @@ export default function (component) {
     opts.forEach((o) => {
       const b = document.createElement("button");
       b.textContent = o[1]; b.className = "seg" + (String(o[0]) === String(cur) ? " on" : "");
+      b.setAttribute("aria-pressed", String(o[0]) === String(cur));
       b.onclick = () => { onPick(o[0]); seg(id, opts, o[0], onPick); };
       box.appendChild(b);
     });
   }
-  function slider(id, lo, hi, val, step, onInput, onChange) {
-    const s = $(id); s.min = lo; s.max = hi; s.step = step || (hi - lo) / 1000; s.value = val;
-    s.oninput = () => { onInput(parseFloat(s.value)); labels(); };
+  // posuvník (volitelně s číselným polem: obojí se synchronizuje)
+  function slider(id, lo, hi, val, step, onInput, onChange, numId) {
+    const s = $(id), n = numId ? $(numId) : null;
+    s.min = lo; s.max = hi; s.step = step || (hi - lo) / 1000; s.value = val;
+    if (n) { n.min = lo; n.max = hi; n.value = +val.toPrecision(6); }
+    s.oninput = () => { if (n) n.value = +parseFloat(s.value).toPrecision(6); onInput(parseFloat(s.value)); labels(); };
     s.onchange = () => { if (onChange) onChange(parseFloat(s.value)); labels(); };
+    if (n) n.onchange = () => {
+      const v = Math.max(lo, Math.min(hi, parseFloat(n.value)));
+      if (!isFinite(v)) { n.value = +parseFloat(s.value).toPrecision(6); return; }
+      s.value = v; n.value = +v.toPrecision(6); onInput(v); if (onChange) onChange(v); labels();
+    };
   }
+  function setNum(id, v) { const n = $(id); if (n && document.activeElement !== n) n.value = +v.toPrecision(5); }
+  const sgn = (v) => (v > 0 ? "+" : "") + fmt(v).replace("-", "−");
   function labels() {
-    $("spv").textContent = fmt(S.sp) + " " + CFG.u_pv;
-    $("mvv").textContent = fmt(S.mv) + " " + CFG.u_mv;
     const du = S.dist.loc === "in" ? CFG.u_mv : CFG.u_pv;
-    $("ldist").textContent = (S.dist.type === "random" ? L.dist_sigma : L.dist_amp) + " · " + (S.dist.loc === "in" ? L.loc_in : L.loc_out);
-    $("dv").textContent = (S.dist.A >= 0 ? "+" : "") + fmt(S.dist.A) + " " + du;
-    $("mvs").disabled = S.auto; $("mvbox").classList.toggle("dis", S.auto);
-    $("sps").disabled = !S.auto; $("spbox").classList.toggle("dis", !S.auto);   // MAN: SP zašedlá, AUTO: MV zašedlá
+    $("ldist").textContent = (S.dist.type === "random" ? L.dist_sigma : L.dist_size) + pu(du);
+    $("mvs").disabled = $("mvn").disabled = S.auto; $("mvbox").classList.toggle("dis", S.auto);
+    $("sps").disabled = $("spn").disabled = !S.auto; $("spbox").classList.toggle("dis", !S.auto);   // MAN: SP zašedlá, AUTO: MV zašedlá
     liveFields();
-    $("lpp").textContent = L["pp_" + S.dist.type] || L.pp_step;
-    $("ppv").textContent = fmt(S.dist.Pp) + " s";
-    $("pps").disabled = S.dist.type === "step"; $("pulse").style.display = S.dist.type === "pulse" ? "" : "none";
-    $("nzv").textContent = fmt(S.noise) + " " + CFG.u_pv;
+    const stepT = S.dist.type === "step";
+    $("lpp").textContent = stepT ? L.dist_period : (L["pp_" + S.dist.type] || L.dist_period);
+    $("pps").disabled = stepT; $("pps").placeholder = stepT ? L.period_hint : "";
+    if (stepT) $("pps").value = ""; else setNum("pps", S.dist.Pp);
     $("pfv").textContent = fmt(S.pvf) + " s";
     $("pkv").textContent = "× " + S.plant.k.toFixed(2);
     $("ptv").textContent = "× " + S.plant.t.toFixed(2);
     $("pthv").textContent = "× " + S.plant.th.toFixed(2);
     $("stv").textContent = fmt(S.plant.stic) + " " + CFG.u_mv;
-    $("run").textContent = S.run ? "❚❚ " + L.pause : "▶ " + L.start;
+    $("run").textContent = S.run ? "⏸ " + L.pause : "▶ " + L.start;
     $("run").className = S.run ? "go" : "primary";
     $("setgrp").style.display = S.compare ? "none" : "";
     $("chip").textContent = (S.auto ? "✓ " : "") + (S.auto ? "AUTO" : "MAN");
     $("chip").className = "chip" + (S.auto ? "" : " man");
     $("chipt").textContent = S.compare ? L.both_run : (S.set === "1" ? L.set1 : L.set2);
     $("cmp").checked = S.compare;
+    setsTable(); legend();
+  }
+  function setsTable() {
+    const t2 = setOf("2"), t1 = CFG.sets["1"], v = (x) => (x === null || x === undefined ? "0" : fmt(x).replace("-", "−"));
+    const row = (nm, c) => `<tr><td>${nm}</td><td>${v(c.Gain)}</td><td>${v(c.TI)}</td><td>${v(c.TD)}</td></tr>`;
+    $("sets").innerHTML = `<tr><th></th><th>${L.gain}</th><th>TI [s]</th><th>TD [s]</th></tr>` + row(L.set1, t1) + row(L.set2, t2);
+  }
+  function legend() {
+    if (!theme) return;
+    const it = (name, c, w, dash) => `<span class="li"><i style="border-top:${w}px ${dash ? "dashed" : "solid"} ${c}"></i>${name}</span>`;
+    $("legend").innerHTML = it("SP", theme.sp, 2, true) + (S.compare ? it(L.set1, theme.set1, 2, true) + it(L.set2, theme.set2, 3, false)
+      : it("PV", theme.pv, 3, false) + it("MV", theme.mv, 3, false));
   }
   function liveFields() {
-    // zašedlý posuvník ukazuje živou hodnotu: v AUTO MV ze simulace, v MAN žádanou hodnotu
+    // zašedlé pole ukazuje živou hodnotu: v AUTO MV ze simulace, v MAN žádanou hodnotu
     const nm = Object.keys(S.bufs)[0], b = nm && S.bufs[nm];
-    if (S.auto && b && b.n) {
-      const mv = EM(b.MV[at(b, b.n - 1)]);
-      $("mvs").value = mv; $("mvv").textContent = fmt(mv) + " " + CFG.u_mv;
-    }
+    if (S.auto && b && b.n) { const mv = EM(b.MV[at(b, b.n - 1)]); $("mvs").value = mv; setNum("mvn", mv); }
+    if (!S.auto && b && b.n) { const sp = EP(b.SP[at(b, b.n - 1)]); $("sps").value = sp; setNum("spn", sp); }
   }
-  function distSlider() {
-    const span = S.dist.loc === "in" ? MR / 2 : PR / 2;
-    S.dist.A = Math.max(-span, Math.min(span, S.dist.A));
-    slider("ds", S.dist.type === "random" ? 0 : -span, span, S.dist.A, span / 500, (v) => { S.dist.A = v; },
-           (v) => { distChanged(); event(L.ev_dist + " " + fmt(v)); kpiReset(null); });
+  function distInput() {
+    const span = S.dist.loc === "in" ? MR / 2 : PR / 2, n = $("ds"), lo = S.dist.type === "random" ? 0 : -span;
+    S.dist.pend = Math.max(lo, Math.min(span, S.dist.pend || 0));
+    n.min = lo; n.max = span; n.value = +S.dist.pend.toPrecision(6);
+    n.onchange = () => {
+      const v = parseFloat(n.value);
+      S.dist.pend = Math.max(lo, Math.min(span, isFinite(v) ? v : 0)); n.value = +S.dist.pend.toPrecision(6);
+    };
   }
   function tuneInputs() {
     const box = $("tune"), base = CFG.sets["2"];
@@ -276,18 +320,18 @@ export default function (component) {
     [["Gain", L.gain, Math.abs(base.Gain) * 0.05, Math.abs(base.Gain) * 5],
      ["TI", "TI [s]", Math.max((base.TI || 100) * 0.05, CFG.h), (base.TI || 100) * 5],
      ["TD", "TD [s]", 0, Math.max(base.TD * 4, (base.TI || 100) / 2)]].forEach(([k, lab, lo, hi]) => {
-      const sgn = k === "Gain" && base.Gain < 0 ? -1 : 1;
+      const sg = k === "Gain" && base.Gain < 0 ? -1 : 1;
       const d = document.createElement("div"); d.className = "sl";
       d.innerHTML = `<div class="top"><span class="lab">${lab}</span><input class="num" type="number" step="any"></div><input type="range">`;
       const num = d.querySelector(".num"), rng = d.querySelector("input[type=range]");
       const val = () => (S.tune[k] === null ? 0 : S.tune[k]);
       rng.min = lo; rng.max = hi; rng.step = (hi - lo) / 500; rng.value = Math.abs(val()); num.value = +val().toPrecision(4);
       const set = (v, fromNum) => {
-        S.tune[k] = k === "Gain" ? sgn * Math.abs(v) : Math.max(0, v);
+        S.tune[k] = k === "Gain" ? sg * Math.abs(v) : Math.max(0, v);
         if (k === "TI" && S.tune.TI <= 0) S.tune.TI = null;
         if (!fromNum) num.value = +S.tune[k].toPrecision(4);
         else rng.value = Math.abs(S.tune[k] || 0);
-        retune();
+        retune(); setsTable();
       };
       rng.oninput = () => set(parseFloat(rng.value), false);
       rng.onchange = () => { event(L.ev_tune); kpiReset(null); };
@@ -295,34 +339,55 @@ export default function (component) {
       box.appendChild(d);
     });
   }
-
   $("run").onclick = () => { S.run = !S.run; last = null; labels(); };
   $("reset").onclick = () => { reset(); labels(); };
   $("cmp").onchange = () => { S.compare = $("cmp").checked; reset(); labels(); };
   seg("speed", CFG.speeds.map((v) => [v, v + "×"]), S.speed, (v) => (S.speed = v));
   seg("set", [["1", L.set1], ["2", L.set2]], S.set, (v) => {
     const lp = S.loops[S.set]; S.loops = { [v]: lp }; S.bufs = { [v]: S.bufs[S.set] }; S.kpi = { [v]: S.kpi[S.set] };
-    S.set = v; lp.setTuning(setOf(v)); event(L.ev_set + " " + (v === "1" ? L.set1 : L.set2)); kpiReset(null);
+    S.set = v; lp.setTuning(setOf(v)); event(L.ev_set + " " + (v === "1" ? L.set1 : L.set2)); kpiReset(null); labels();
   });
   seg("mode", [["AUTO", "AUTO"], ["MAN", "MAN"]], S.auto ? "AUTO" : "MAN", (v) => {
     S.auto = v === "AUTO";
-    if (!S.auto) { const b = S.bufs[Object.keys(S.bufs)[0]]; S.mv = EM(b.MV[at(b, b.n - 1)]); $("mvs").value = S.mv; }
+    if (!S.auto) { const b = S.bufs[Object.keys(S.bufs)[0]]; S.mv = EM(b.MV[at(b, b.n - 1)]); $("mvs").value = S.mv; setNum("mvn", S.mv); }
     event(v); kpiReset(null); labels();
   });
   slider("sps", CFG.pv_lo, CFG.pv_hi, S.sp, PR / 1000, (v) => (S.sp = v), (v) => {
-    const st = P(v) - (S.lastSp === undefined ? CFG.pv0 : P(S.lastSp)); S.lastSp = v;
-    event("SP " + fmt(v)); kpiReset(st);
-  });
-  slider("mvs", CFG.mv_lo, CFG.mv_hi, S.mv, MR / 1000, (v) => (S.mv = v), (v) => { event("MV " + fmt(v)); kpiReset(null); });
-  distSlider();
-  $("d0").onclick = () => { S.dist.A = 0; $("ds").value = 0; distChanged(); event(L.ev_dist + " 0"); kpiReset(null); labels(); };
+    const prevSp = S.lastSp === undefined ? EP(CFG.pv0) : S.lastSp, st = P(v) - P(prevSp); if (v === prevSp) return;
+    S.lastSp = v;
+    event("SP " + fmt(prevSp) + " → " + fmt(v)); kpiReset(st);
+  }, "spn");
+  slider("mvs", CFG.mv_lo, CFG.mv_hi, S.mv, MR / 1000, (v) => (S.mv = v), (v) => { event("MV " + fmt(v)); kpiReset(null); }, "mvn");
+  distInput();
+  // porucha: velikost se zadá do pole, působit začne až „Vyvolat poruchu“ (u pulzu vyšle jeden puls)
+  $("pulse").onclick = () => {
+    S.dist.A = S.dist.pend || 0; distChanged();
+    if (S.dist.type === "pulse") S.dist.pulseUntil = S.t + S.dist.Pp;
+    event(L.ev_dist + " " + sgn(S.dist.A)); kpiReset(null); labels();
+  };
+  $("d0").onclick = () => {
+    S.dist.A = 0; S.dist.pend = 0; $("ds").value = 0; S.dist.pulseUntil = -1; distChanged();
+    event(L.ev_dist + " 0"); kpiReset(null); labels();
+  };
   seg("dtype", ["step", "ramp", "sine", "random", "pulse"].map((k) => [k, L["dt_" + k]]), S.dist.type, (v) => {
-    S.dist.type = v; distSlider(); distChanged(); event(L["dt_" + v]); kpiReset(null); labels();
+    S.dist.type = v; distInput(); distChanged(); labels();
   });
-  seg("dloc", [["in", L.loc_in], ["out", L.loc_out]], S.dist.loc, (v) => { S.dist.loc = v; distSlider(); distChanged(); labels(); });
-  slider("pps", CFG.h * 2, CFG.dist_pmax, S.dist.Pp, CFG.dist_pmax / 500, (v) => (S.dist.Pp = v), () => distChanged());
-  $("pulse").onclick = () => { S.dist.pulseUntil = S.t + S.dist.Pp; event(L.dt_pulse); kpiReset(null); };
-  slider("nzs", 0, 0.05 * PR, S.noise, PR / 20000, (v) => { S.noise = v; applyMeas(); }, () => event(L.noise + " " + fmt(S.noise)));
+  [["in", L.loc_in], ["out", L.loc_out]].forEach((o) => {
+    const op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; $("dloc").appendChild(op);
+  });
+  $("dloc").value = S.dist.loc;
+  $("dloc").onchange = () => { S.dist.loc = $("dloc").value; distInput(); distChanged(); labels(); };
+  $("pps").onchange = () => {
+    const v = parseFloat($("pps").value);
+    if (isFinite(v)) S.dist.Pp = Math.max(CFG.h * 2, Math.min(CFG.dist_pmax, v));
+    distChanged(); labels();
+  };
+  $("nzs").value = +S.noise.toPrecision(6);
+  $("nzs").onchange = () => {
+    const v = parseFloat($("nzs").value);
+    S.noise = Math.max(0, Math.min(0.05 * PR, isFinite(v) ? v : 0)); $("nzs").value = +S.noise.toPrecision(6);
+    applyMeas(); event(L.noise_pv + " " + fmt(S.noise));
+  };
   slider("pfs", 0, CFG.pvf_max, S.pvf, CFG.pvf_max / 500, (v) => { S.pvf = v; applyMeas(); }, () => event(L.pvf + " " + fmt(S.pvf)));
   slider("pks", 0.5, 2, S.plant.k, 0.01, (v) => { S.plant.k = v; applyPlant(); }, () => event(L.pk + " ×" + S.plant.k.toFixed(2)));
   slider("pts", 0.5, 2, S.plant.t, 0.01, (v) => { S.plant.t = v; applyPlant(); }, () => event(L.pt + " ×" + S.plant.t.toFixed(2)));
@@ -358,28 +423,37 @@ export default function (component) {
 
   // ---------------------------------------------------------------- graf
   const cv = $("cv"), g = cv.getContext("2d"), tip = $("tip");
+  const MONO = "'IBM Plex Mono', ui-monospace, monospace";
+  const LEFT = 46;                                                      // šířka sloupce s popisky osy y
   let yr = {}, mouse = null, drag = null, theme = null, themeAt = 0, last = null, raf = 0;
   function readTheme() {
     const app = document.querySelector(".stApp") || document.body, cs = getComputedStyle(app);
     const m = (cs.backgroundColor || "").match(/\d+(\.\d+)?/g) || [255, 255, 255];
     const dark = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) < 128;
-    theme = Object.assign({ text: cs.color, muted: dark ? "#94a3b8" : "#6b7280",
-                            grid: dark ? "rgba(148,163,184,0.18)" : "rgba(100,116,139,0.15)" }, dark ? CFG.dark : CFG.light);
+    const old = theme && theme.dark;
+    theme = Object.assign({ text: cs.color, muted: dark ? "#94a3b8" : "#52606d", dark: dark,
+                            grid: dark ? "rgba(148,163,184,0.16)" : "rgba(100,116,139,0.14)",
+                            frame: dark ? "#3b4a63" : "#c3ccd6", base: dark ? "#26324a" : "#e5e9ef" }, dark ? CFG.dark : CFG.light);
+    // vzhled podle návrhu: SP černě čárkovaně, sada 1 šedá čárkovaně, sada 2 fialová, MV oranžově, události tyrkysově
+    theme.sp = theme.text;
+    theme.set1 = dark ? "#94a3b8" : "#9aa5b1"; theme.set2 = dark ? "#a78bfa" : "#7c3aed";
+    theme.mv = dark ? "#fb923c" : "#c2410c"; theme.event = dark ? "#2dd4bf" : "#0d9488";
     el.style.setProperty("--acc", theme.acc);
     el.classList.toggle("dark", dark);
+    if (old !== dark) legend();
   }
   function nice(lo, hi, n) {
     const raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
     const st = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag, dec = Math.max(0, -Math.floor(Math.log10(st) + 1e-9)), out = [];
-    for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9 * Math.abs(st); v += st) out.push([v, v.toFixed(dec)]);
+    for (let v = Math.ceil(lo / st) * st; v <= hi + 1e-9 * Math.abs(st); v += st) out.push([v, v.toFixed(dec).replace(".", CFG.decimal)]);
     return out;
   }
   function span() { return S.win === "auto" ? CFG.window : S.win; }
-  function xRange() {
+  function xRange() {                                                   // celé okno; čas „teď“ putuje zleva doprava, pak graf jede
     if (S.view) return S.view;
     const nm = Object.keys(S.bufs)[0], b = S.bufs[nm], tEnd = b.t[at(b, b.n - 1)], W = span();
     const t0 = Math.max(0, tEnd - W);
-    return [t0, t0 + Math.min(W, Math.max(tEnd - t0, W / 8))];
+    return [t0, t0 + W];
   }
   function firstIdx(b, t) {           // binární hledání prvního vzorku s časem ≥ t
     let lo = 0, hi = b.n - 1;
@@ -391,24 +465,25 @@ export default function (component) {
     if (!W) return;
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-    g.font = "11px " + CFG.font; g.textBaseline = "middle";
+    g.font = "11px " + MONO; g.textBaseline = "middle";
     const nms = Object.keys(S.bufs), xr = xRange();
     const hasD = nms.some((n) => { const b = S.bufs[n]; for (let k = Math.max(0, b.n - 2000); k < b.n; k++) if (b.D[at(b, k)] !== 0) return true; return false; }) || S.dist.A !== 0;
-    const left = 58, right = 12, top = 22, bottom = 28, gap = 22, plotW = W - left - right;
-    const hAll = H - top - bottom - gap * (hasD ? 2 : 1), fr = hasD ? [0.55, 0.3, 0.15] : [0.62, 0.38];
+    const left = LEFT, right = 6, top = 4, bottom = 26, gap = 8, plotW = W - left - right;
+    const hAll = H - top - bottom - gap, fr = [0.645, 0.355];
     const col = (n) => (S.compare ? (n === "1" ? theme.set1 : theme.set2) : null);
-    const pvSeries = [{ key: "SP", f: EP, c: theme.sp, w: 1.5, dash: [6, 4], name: "SP", nm: nms[0] }]
-      .concat(nms.map((n) => ({ key: "PV", f: EP, c: col(n) || theme.pv, w: 2, name: S.compare ? "PV " + L["set" + n] : "PV", nm: n })));
-    const mvSeries = nms.map((n) => ({ key: "MV", f: EM, c: col(n) || (S.set === "1" ? theme.set1 : theme.set2), w: 1.8,
-                                     name: S.compare ? "MV " + L["set" + n] : "MV", nm: n }))
-      .concat(S.plant.stic > 0 && !S.compare ? [{ key: "V", f: EM, c: theme.mv, w: 1.2, dash: [2, 3], name: L.valve, nm: nms[0] }] : []);
-    const panels = [{ id: "pv", title: CFG.lab_pv, series: pvSeries, minSpan: 0.02 * PR },
-                    { id: "mv", title: CFG.lab_mv, series: mvSeries, minSpan: 0.02 * MR }];
-    if (hasD) panels.push({ id: "d", title: L.dist_short, series: [{ key: "D", f: (x) => x, c: theme.dist, w: 1.4, name: L.dist_short, nm: nms[0] }],
-                            minSpan: 0.02 * (S.dist.loc === "in" ? MR : PR) });
+    const dash1 = (n) => (S.compare && n === "1" ? [5, 3] : []);
+    const pvSeries = [{ key: "SP", f: EP, c: theme.sp, w: 1.5, dash: [6, 4], nm: nms[0] }]
+      .concat(nms.map((n) => ({ key: "PV", f: EP, c: col(n) || theme.pv, w: S.compare && n === "1" ? 1.8 : 2.4, dash: dash1(n), nm: n })));
+    const mvSeries = nms.map((n) => ({ key: "MV", f: EM, c: S.compare && n === "1" ? theme.set1 : theme.mv, w: S.compare && n === "1" ? 1.6 : 2,
+                                     dash: dash1(n), nm: n }))
+      .concat(S.plant.stic > 0 && !S.compare ? [{ key: "V", f: EM, c: theme.mv, w: 1.2, dash: [2, 3], nm: nms[0] }] : []);
+    const panels = [{ id: "pv", title: "PV", tc: theme.acc, series: pvSeries, minSpan: 0.02 * PR },
+                    { id: "mv", title: "MV", tc: theme.mv, series: mvSeries, minSpan: 0.02 * MR }];
     let y0 = top;
     panels.forEach((pn, i) => { pn.y0 = y0; pn.h = hAll * fr[i]; y0 += pn.h + gap; });
     const X = (t) => left + (t - xr[0]) / Math.max(xr[1] - xr[0], 1e-9) * plotW;
+    const bNow = S.bufs[nms[0]], tNow = bNow.t[at(bNow, bNow.n - 1)];
+    const xNow = X(tNow), yTop = panels[0].y0, yBot = panels[1].y0 + panels[1].h;
 
     panels.forEach((pn) => {
       // rozsah osy y: rozšíření hned, zúžení plynule (graf neposkakuje)
@@ -424,18 +499,24 @@ export default function (component) {
       else { cur[0] = lo < cur[0] ? lo : cur[0] + (lo - cur[0]) * 0.04; cur[1] = hi > cur[1] ? hi : cur[1] + (hi - cur[1]) * 0.04; }
       const r = yr[pn.id], Y = (v) => pn.y0 + pn.h - (v - r[0]) / (r[1] - r[0]) * pn.h;
       pn.Y = Y;
+      // oblast, která ještě nenastala (vpravo od „teď“), jemně zašedlá
+      if (xNow < left + plotW) { g.fillStyle = theme.dark ? "rgba(148,163,184,0.07)" : "rgba(100,116,139,0.07)"; g.fillRect(xNow, pn.y0, left + plotW - xNow, pn.h); }
       g.strokeStyle = theme.grid; g.fillStyle = theme.muted; g.lineWidth = 1; g.setLineDash([]);
-      nice(r[0], r[1], pn.id === "d" ? 2 : 4).forEach((tk) => {
+      nice(r[0], r[1], 4).forEach((tk) => {
         const y = Math.round(Y(tk[0])) + 0.5;
+        if (y < pn.y0 + 4 || y > pn.y0 + pn.h - 2) return;
         g.beginPath(); g.moveTo(left, y); g.lineTo(left + plotW, y); g.stroke();
         g.textAlign = "right"; g.fillText(tk[1], left - 6, y);
       });
-      g.save(); g.translate(13, pn.y0 + pn.h / 2); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.fillText(pn.title, 0, 0); g.restore();
+      g.strokeStyle = theme.frame; g.beginPath(); g.moveTo(left + 0.5, pn.y0); g.lineTo(left + 0.5, pn.y0 + pn.h); g.stroke();
+      g.strokeStyle = theme.base; g.beginPath(); g.moveTo(left, Math.round(pn.y0 + pn.h) + 0.5); g.lineTo(left + plotW, Math.round(pn.y0 + pn.h) + 0.5); g.stroke();
+      g.font = "600 11px " + (CFG.font || "sans-serif"); g.fillStyle = pn.tc; g.textAlign = "left"; g.fillText(pn.title, 0, pn.y0 + 6);
+      g.font = "11px " + MONO;
       g.save(); g.beginPath(); g.rect(left, pn.y0, plotW, pn.h); g.clip();
       pn.series.forEach((s) => {
         const b = S.bufs[s.nm], i0 = Math.max(0, firstIdx(b, xr[0]) - 1);
         let i1 = b.n; const cnt = i1 - i0, stride = Math.max(1, Math.floor(cnt / (plotW * 1.5)));
-        g.strokeStyle = s.c; g.lineWidth = s.w; g.setLineDash(s.dash || []); g.beginPath();
+        g.strokeStyle = s.c; g.lineWidth = s.w; g.setLineDash(s.dash || []); g.lineJoin = "round"; g.beginPath();
         let first = true;
         for (let k = i0; k < i1; k += stride) {
           let mn = Infinity, mx = -Infinity;
@@ -448,38 +529,41 @@ export default function (component) {
         g.stroke();
       });
       g.restore();
-      let lx = left + 4; g.textAlign = "left";
-      pn.series.forEach((s) => {
-        g.strokeStyle = s.c; g.lineWidth = s.w; g.setLineDash(s.dash || []);
-        g.beginPath(); g.moveTo(lx, pn.y0 - 10); g.lineTo(lx + 18, pn.y0 - 10); g.stroke();
-        g.setLineDash([]); g.fillStyle = theme.text; g.fillText(s.name, lx + 22, pn.y0 - 10);
-        lx += 32 + g.measureText(s.name).width;
-      });
     });
-    // značky událostí
-    const yTop = panels[0].y0, yBot = panels[panels.length - 1].y0 + panels[panels.length - 1].h;
+    // značky událostí (poruchy, změny SP…): tyrkysová čárkovaná čára přes oba grafy a popisek
     let lastX = -1e9;
-    g.font = "10px " + CFG.font;
+    g.font = "11px " + (CFG.font || "sans-serif");
     S.events.forEach((ev) => {
       if (ev.t < xr[0] || ev.t > xr[1]) return;
       const x = Math.round(X(ev.t)) + 0.5;
-      g.strokeStyle = theme.event; g.lineWidth = 1; g.setLineDash([3, 3]);
+      g.strokeStyle = theme.event; g.lineWidth = 1; g.setLineDash([3, 4]);
       g.beginPath(); g.moveTo(x, yTop); g.lineTo(x, yBot); g.stroke(); g.setLineDash([]);
       if (x - lastX > 70) {
         g.fillStyle = theme.event; g.textAlign = "left";
-        g.fillText(ev.text, Math.min(x + 3, left + plotW - g.measureText(ev.text).width), yTop + 8);
+        g.fillText(ev.text, Math.min(x + 5, left + plotW - g.measureText(ev.text).width), yTop + 9);
         lastX = x;
       }
     });
-    g.font = "11px " + CFG.font;
-    // časová osa
-    g.fillStyle = theme.muted; g.textAlign = "center"; g.strokeStyle = theme.grid;
-    nice(xr[0], xr[1], 6).forEach((tk) => {
-      const x = Math.round(X(tk[0])) + 0.5;
-      g.beginPath(); g.moveTo(x, top); g.lineTo(x, yBot); g.stroke();
-      g.fillText(tk[1], x, yBot + 11);
+    // „teď“: svislá černá čára a čas
+    if (xNow >= left && xNow <= left + plotW + 1) {
+      g.strokeStyle = theme.text; g.lineWidth = 2; g.setLineDash([]);
+      g.beginPath(); g.moveTo(Math.round(xNow) + 0.5, yTop); g.lineTo(Math.round(xNow) + 0.5, yBot); g.stroke();
+      g.fillStyle = theme.text; g.font = "11px " + (CFG.font || "sans-serif");
+      const lab = L.now + " · " + clock(tNow), lw = g.measureText(lab).width;
+      g.textAlign = xNow + lw + 12 > left + plotW ? "right" : "left";
+      g.fillText(lab, g.textAlign === "left" ? xNow + 5 : xNow - 5, yTop + 9);
+    }
+    g.lineWidth = 1;
+    // časová osa (minuty, u krátkého okna sekundy)
+    const mins = (xr[1] - xr[0]) >= 120, sc = mins ? 60 : 1, unit = mins ? "min" : "s";
+    g.font = "11px " + MONO; g.fillStyle = theme.muted; g.textAlign = "center";
+    const endTxt = unit + (S.view ? " · " + L.zoomed : ""), ew = g.measureText(endTxt).width;
+    nice(xr[0] / sc, xr[1] / sc, 6).forEach((tk) => {
+      const x = left + (tk[0] * sc - xr[0]) / Math.max(xr[1] - xr[0], 1e-9) * plotW;
+      if (x < left - 1 || x > left + plotW - ew - 14) return;
+      g.fillText(tk[1], Math.max(x, left + 6), yBot + 13);
     });
-    g.textAlign = "right"; g.fillText(L.time + (S.view ? " · " + L.zoomed : ""), left + plotW, yBot + 23);
+    g.textAlign = "right"; g.fillText(endTxt, left + plotW, yBot + 13);
     // výběr pro přiblížení
     if (drag && drag.x1 !== undefined) {
       g.fillStyle = "rgba(100,116,139,0.15)";
@@ -490,7 +574,7 @@ export default function (component) {
     if (mouse && mouse.x >= left && mouse.x <= left + plotW && !drag) {
       const t = xr[0] + (mouse.x - left) / plotW * (xr[1] - xr[0]);
       const b0 = S.bufs[nms[0]], k = Math.min(b0.n - 1, firstIdx(b0, t));
-      if (b0.n) {
+      if (b0.n && t <= tNow + 1e-9) {
         const x = X(b0.t[at(b0, k)]);
         g.strokeStyle = theme.muted; g.setLineDash([]); g.beginPath(); g.moveTo(x + 0.5, yTop); g.lineTo(x + 0.5, yBot); g.stroke();
         let html = `<b>${fmt(b0.t[at(b0, k)])} s</b><br>SP ${fmt(EP(b0.SP[at(b0, k)]))}`;
@@ -501,11 +585,11 @@ export default function (component) {
       }
     }
     // aktuální hodnoty a ukazatele kvality
-    const b = S.bufs[nms[0]], j = at(b, b.n - 1);
+    const b = bNow, j = at(b, b.n - 1);
     $("read").textContent = L.read.replace("{t}", fmt(b.t[j])).replace("{pv}", fmt(EP(b.PV[j]))).replace("{sp}", fmt(EP(b.SP[j]))).replace("{mv}", fmt(EM(b.MV[j])));
-    $("tnow").textContent = "t = " + fmt(b.t[j]) + " s";
-    $("tsp").textContent = fmt(EP(b.SP[j])); $("tpv").textContent = fmt(EP(b.PV[j]));
-    $("tmv").textContent = fmt(EM(b.MV[j])) + (CFG.u_mv ? " " + CFG.u_mv : "");
+    $("tnow").textContent = "t = " + (b.t[j] < 60 ? fmt(b.t[j]) + " s" : clock(b.t[j]) + " min");
+    $("tsp").textContent = tile(EP(b.SP[j])); $("tpv").textContent = tile(EP(b.PV[j]));
+    $("tmv").textContent = tile(EM(b.MV[j])) + (CFG.u_mv ? " " + CFG.u_mv : "");
     // ukazatele: řádek = ukazatel, sloupec = sada; lepší (menší) hodnota v řádku zvýrazněná
     const K = {};
     nms.forEach((n) => {
@@ -517,12 +601,19 @@ export default function (component) {
               [settled ? kp.out - kp.t0 : NaN, settled ? fmt(kp.out - kp.t0) + " s" : "…"],
               [kp.travel * MR / 100, fmt(kp.travel * MR / 100) + " " + CFG.u_mv]];
     });
-    const names = [L.kpi_since, "IAE", L.kpi_maxdev, L.kpi_over, L.kpi_settle, L.kpi_travel];
-    let rows = "<tr><th></th>" + nms.map((n) => `<th><span class="dot" style="background:${col(n) || theme.pv}"></span>${L["set" + n]}</th>`).join("") + "</tr>";
+    const kp0 = S.kpi[nms[0]];
+    const chg = kp0 ? S.events.filter((e) => Math.abs(e.t - kp0.t0) < 1e-9).map((e) => e.text).join(", ") || "–" : "–";
+    const names = [L.kpi_change, "IAE [" + (CFG.u_pv || "PV") + " · s]", L.kpi_maxdev, L.kpi_over, L.kpi_settle, L.kpi_travel];
+    let rows = "<tr><th></th>" + nms.map((n) => `<th>${L["set" + n]}</th>`).join("") + "</tr>";
     names.forEach((nmK, r) => {
+      if (r === 0) {
+        const since = K[nms[0]] ? L.kpi_since + ": " + clock(K[nms[0]][0][0]) : "";
+        rows += `<tr><td title="${esc(since)}">${nmK}</td>` + nms.map((n, i) => `<td class="chg">${i === 0 ? esc(chg) : L.same}</td>`).join("") + "</tr>";
+        return;
+      }
       const vals = nms.map((n) => (K[n] ? K[n][r] : [NaN, "–"]));
       const fin = vals.map((v) => v[0]).filter((v) => isFinite(v));
-      const best = r > 0 && fin.length > 1 && Math.min(...fin) !== Math.max(...fin) ? Math.min(...fin) : null;
+      const best = fin.length > 1 && Math.min(...fin) !== Math.max(...fin) ? Math.min(...fin) : null;
       rows += `<tr><td>${nmK}</td>` + vals.map((v) => `<td class="${best !== null && v[0] === best ? "best" : ""}">${v[1]}</td>`).join("") + "</tr>";
     });
     $("kpi").innerHTML = rows;

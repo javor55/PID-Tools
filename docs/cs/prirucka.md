@@ -36,7 +36,7 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
 
 ## Horní lišta
 
-- **Projekt** – označení smyčky (tag) a načtení uloženého projektu (JSON).
+- **Projekt** – označení smyčky (tag) a načtení uloženého projektu (`.pidproj`; starší `.json` se otevře také).
 - **Nápověda** – postup, glosář a informace o aplikaci.
 - **Nastavení** – jazyk (čeština / angličtina) a výška grafů. Světlý / tmavý vzhled v menu ⋮ › Settings.
 - **Datová lišta** – zdroj dat (**Soubor**, **Ukázka**, **Projekt**), souhrn dat (počet vzorků, perioda, rozsahy)
@@ -195,7 +195,7 @@ Nahoře je **doporučení** podle modelů a vazeb mezi smyčkami projektu. Každ
 
 ## 6 · Projekt a report
 
-- **Projekt** – uloží všechny smyčky, modely, ladění a nastavení APC, volitelně i data (soubor JSON). Načtete ho
+- **Projekt** – uloží všechny smyčky, modely, ladění a nastavení APC, volitelně i data (soubor `.pidproj`, obsah JSON). Načtete ho
   v horní liště *Projekt*.
 - **Protokol z ladění** – zařízení, autor, stav, komentář, výběr sekcí (model, ladění, odezva, APC, podpisy);
   grafy vložené (funguje offline) nebo z internetu (menší soubor). Stáhne se jako HTML; do PDF přes *Tisk › Uložit

@@ -31,7 +31,7 @@ def render(ctx):
                           horizontal_alignment="right", key="pid_hbtns"):
             with st.popover(T("tb_project"), width="content"):
                 st.text_input(T("loop_tag"), key="loop_tag", placeholder="LIC101", help=T("h_loop_tag"))
-                st.file_uploader(T("proj_load"), type=["json"], key="proj_up", help=T("h_proj_load"),
+                st.file_uploader(T("proj_load"), type=["pidproj", "json"], key="proj_up", help=T("h_proj_load"),
                                  on_change=load_project_file)
                 if ss.get("proj_err"):
                     st.error(T("err_proj", ex=ss.pop("proj_err")))

@@ -9,6 +9,7 @@ import { unframe } from "../../api/signals";
 import { useT } from "../../i18n";
 import { useUi } from "../../store";
 import { NumInput, num } from "./common";
+import { InGuide } from "./parts";
 
 export type ModelInfo = components["schemas"]["ModelInfo"];
 export type Check = components["schemas"]["pidtools__api__apc_more__Check"];
@@ -96,13 +97,19 @@ export function ModelEditor({ model, values, edited, onChange, onReset, testid, 
   );
 }
 
-/** Kontrolní seznam struktury: ✅ splněno, ⬜ chybí, ℹ️ připomínka (jako app.guides.icon). */
+/** Kontrolní seznam struktury (v kartě Průvodce): ✅ splněno, ⬜ chybí, ℹ️ připomínka (jako app.guides.icon). */
 export function Checks({ items, testid }: { items: Check[]; testid: string }) {
+  const T = useT();
   return (
-    <ul className="checks" data-testid={testid}>
-      {items.map((c, i) => <li key={i} className={c.state === false ? "warn" : undefined}>
-        {c.state ? "✅" : c.state === false ? "⬜" : "ℹ️"} {c.text}</li>)}
-    </ul>
+    <InGuide>
+      <div className="stack">
+        <b className="small">{T("g_checklist")}</b>
+        <ul className="checks" data-testid={testid}>
+          {items.map((c, i) => <li key={i} className={c.state === false ? "warn" : undefined}>
+            {c.state ? "✅" : c.state === false ? "⬜" : "ℹ️"} {c.text}</li>)}
+        </ul>
+      </div>
+    </InGuide>
   );
 }
 
@@ -110,7 +117,7 @@ export function Checks({ items, testid }: { items: Check[]; testid: string }) {
 export function ValueTable({ rows, testid }: { rows: { key: string; name: string; value: number; unit: string }[]; testid: string }) {
   const T = useT();
   return (
-    <table className="tbl" data-testid={testid}>
+    <table className="apc-vt" data-testid={testid}>
       <thead><tr><th>{T("sm_gen_par")}</th><th>{T("sm_apl_value")}</th><th>{T("sm_apl_unit")}</th></tr></thead>
       <tbody>{rows.map((r) => (
         <tr key={r.key}><td>{r.name}</td><td className="mono" data-testid={`${testid}-${r.key}`}>{num(r.value)}</td><td>{r.unit}</td></tr>))}</tbody>

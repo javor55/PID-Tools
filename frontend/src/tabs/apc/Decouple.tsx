@@ -3,10 +3,11 @@
 import { create } from "zustand";
 import type { components } from "../../api/schema";
 import { LineChart } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { useWs } from "../../data";
 import { useT } from "../../i18n";
 import { Bold, type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { Checks, Impl, LoopSelect, PairError, qs, usePair, useSim } from "./parts";
+import { ACard, Checks, Impl, LoopSelect, PairError, qs, usePair, useSim, VariantTable } from "./parts";
 
 type DecInfo = components["schemas"]["DecInfo"];
 type DecSim = components["schemas"]["DecSim"];
@@ -29,13 +30,11 @@ export function DecoupleSide() {
   const { loop, q } = useInfo();
   const { dtype, ampA, ampB, set } = useDec();
   return (
-    <div className="stack" data-testid="decouple-side">
-      <section>
-        <h3>{T("apc_decouple_b")}</h3>
+    <>
+      <SideCard title={T("apc_decouple_b")} testid="decouple-side">
         <LoopSelect kind="decouple" label={T("apc_decouple_b")} current={q.data?.loop ?? loop} />
-      </section>
-      <section>
-        <h3>{T("dec_type")}</h3>
+      </SideCard>
+      <SideCard title={T("dec_type")}>
         <label className="field"><span>{T("dec_type")}</span>
           <select value={dtype} data-testid="dec-dtype" onChange={(e) => set({ dtype: e.target.value as DType })}>
             {DTYPES.map((t) => <option key={t} value={t}>{T("dec_" + t)}</option>)}</select></label>
@@ -45,8 +44,8 @@ export function DecoupleSide() {
           <NumInput value={ampB} testid="dec-amp-b" onCommit={(x) => set({ ampB: Math.max(-100, Math.min(100, x)) })} /></label>
         <button className="btn" data-testid="dec-reset" disabled={dtype === "dyn" && ampA === 5 && ampB === 5} title={T("h_apc_reset")}
           onClick={() => set({ dtype: "dyn", ampA: 5, ampB: 5 })}>{T("apc_reset")}</button>
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -54,29 +53,35 @@ function SimCard({ d, loop }: { d: DecInfo; loop?: number }) {
   const T = useT();
   const { dtype, ampA, ampB } = useDec();
   const body = { dtype, amp_a: ampA, amp_b: ampB };
-  const { sim, cv } = useSim<DecSim>(["dec-sim", loop, d.params, body], "/apc/decouple/simulate", qs({ loop }), body, d.ok);
+  const { cv } = useSim<DecSim>(["dec-sim", loop, d.params, body], "/apc/decouple/simulate", qs({ loop }), body, d.ok);
   if (!d.ok) return null;
   const chart = (sp: string, none: string, pv: string, name: string, color: string): CurveDef[] => [
     { name: "SP", key: sp, color: "#9aa5b1", dash: "5 4" }, { name: T("dec_without"), key: none, color: "#64748b", dash: "2 3" },
     { name: name, key: pv, color }];
   const mv: CurveDef[] = [{ name: `MV ${d.a}`, key: "mv_a", color: "#1f5fa8" }, { name: `MV ${d.b}`, key: "mv_b", color: "#7c3aed" }];
   return (
-    <div className="card stack" data-testid="dec-sim">
-      <div className="small muted">{T("dec_sim_help")}</div>
+    <ACard title={T("ui_apc_verify")} testid="dec-sim">
       <LineChart series={curveSeries(cv.data, chart("sp_a", "pv_a_none", "pv_a", d.a, "#1f5fa8"))} height={200} yLabel={`PV ${d.a}`}
         xLabel={T("time_s")} testid="dec-pv-a" />
       <LineChart series={curveSeries(cv.data, chart("sp_b", "pv_b_none", "pv_b", d.b, "#7c3aed"))} height={200} yLabel={`PV ${d.b}`}
         xLabel={T("time_s")} testid="dec-pv-b" />
       <LineChart series={curveSeries(cv.data, mv)} height={140} yLabel="MV" xLabel={T("time_s")} testid="dec-mv" />
-      {sim.data && (
-        <table className="tbl" data-testid="dec-kpis">
-          <thead><tr><th>{T("dec_variant")}</th><th>IAE {d.a}</th><th>IAE {d.b}</th></tr></thead>
-          <tbody>{sim.data.kpis.map((k) => (
-            <tr key={k.variant} data-testid={`dec-kpi-${k.variant}`}><td>{T("dec_" + k.variant)}</td>
-              <td className="mono">{num(k.iae_a)}</td><td className="mono">{num(k.iae_b)}</td></tr>))}</tbody>
-        </table>
-      )}
-    </div>
+      <p className="small muted">{T("dec_sim_help")}</p>
+    </ACard>
+  );
+}
+
+function KpiTable({ d, loop }: { d: DecInfo; loop?: number }) {
+  const T = useT();
+  const { dtype, ampA, ampB } = useDec();
+  const body = { dtype, amp_a: ampA, amp_b: ampB };
+  const { sim } = useSim<DecSim>(["dec-sim", loop, d.params, body], "/apc/decouple/simulate", qs({ loop }), body, d.ok);
+  if (!d.ok || !sim.data) return null;
+  const ks = sim.data.kpis;
+  return (
+    <VariantTable testid="dec-kpis" cols={ks.map((k) => ({ key: k.variant, label: T("dec_" + k.variant) }))} rows={[
+      { key: "a", label: `IAE ${d.a}`, best: "min", values: ks.map((k) => k.iae_a) },
+      { key: "b", label: `IAE ${d.b}`, best: "min", values: ks.map((k) => k.iae_b) }]} />
   );
 }
 
@@ -90,26 +95,28 @@ export function DecoupleMain() {
   const d = q.data;
   return (
     <div className="stack">
-      <div className="card stack" data-testid="dec-rga">
-        {d.ok ? <div className="small"><b>RGA λ₁₁ = <span className="mono" data-testid="dec-lam">{num(d.lam)}</span></b></div>
-          : <div className="warn small" data-testid="dec-need-cross">⚠ <Bold text={d.advice ?? ""} /></div>}
-        {d.ok && d.advice && <div className="small" data-testid="dec-advice"><Bold text={d.advice} /></div>}
-      </div>
-      {d.ok && (
-        <div className="card stack" data-testid="dec-params">
-          <h3>{T("dec_params")}</h3>
-          <table className="tbl"><thead><tr><th>{T("dec_path")}</th><th>{T("dec_gain_pct")}</th><th>{T("dec_gain_eng")}</th><th>Lead [s]</th>
-            <th>Lag [s]</th><th>{T("ff_delay")}</th></tr></thead>
-            <tbody>{d.params.map((p, i) => (
-              <tr key={i} data-testid={`dec-param-${i}`}><td>{p.source_mv} → MV {p.target}</td><td className="mono">{num(p.gain)}</td>
-                <td className="mono">{num(p.gain_eng)}</td><td className="mono">{num(p.lead)}</td><td className="mono">{num(p.lag)}</td>
-                <td className="mono">{num(p.delay)}</td></tr>))}</tbody></table>
-          <div className="small muted">{T("dec_params_help")}</div>
+      <SimCard d={d} loop={loop} />
+      <ACard title={T("ui_apc_result")} testid="dec-result">
+        <div className="stack" data-testid="dec-rga">
+          {d.ok ? <div className="small"><b>RGA λ₁₁ = <span className="mono" data-testid="dec-lam">{num(d.lam)}</span></b></div>
+            : <div className="warn small" data-testid="dec-need-cross">⚠ <Bold text={d.advice ?? ""} /></div>}
+          {d.ok && d.advice && <div className="small" data-testid="dec-advice"><Bold text={d.advice} /></div>}
         </div>
+        <KpiTable d={d} loop={loop} />
+      </ACard>
+      {d.ok && (
+        <ACard title={T("dec_params")} help={T("ui_apc_pcs_h")} testid="dec-params">
+          <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("dec_path")}</th><th className="r">{T("dec_gain_pct")}</th>
+            <th className="r">{T("dec_gain_eng")}</th><th className="r">Lead [s]</th><th className="r">Lag [s]</th><th className="r">{T("ff_delay")}</th></tr></thead>
+            <tbody>{d.params.map((p, i) => (
+              <tr key={i} data-testid={`dec-param-${i}`}><th scope="row">{p.source_mv} → MV {p.target}</th><td className="mono r">{num(p.gain)}</td>
+                <td className="mono r">{num(p.gain_eng)}</td><td className="mono r">{num(p.lead)}</td><td className="mono r">{num(p.lag)}</td>
+                <td className="mono r">{num(p.delay)}</td></tr>))}</tbody></table></div>
+          <p className="small muted">{T("dec_params_help")}</p>
+        </ACard>
       )}
       <Impl text={d.impl_text} testid="dec-impl" />
       <Checks items={d.checks} />
-      <SimCard d={d} loop={loop} />
     </div>
   );
 }

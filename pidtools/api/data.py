@@ -84,6 +84,54 @@ class Quality(BaseModel):
     n_steps: int | None = None
 
 
+class DqCheck(BaseModel):
+    """Jedna kontrola kvality dat (záložka Data): stav, klíče textů dq_<id>_name / _why, výsledek `res` s argumenty."""
+    id: str
+    status: Literal["ok", "warn", "info"]
+    res: str
+    args: dict = {}
+
+
+class DataQuality(BaseModel):
+    usable: bool
+    counts: dict[str, int]
+    checks: list[DqCheck]
+
+
+class StatRow(BaseModel):
+    name: str
+    role: Literal["PV", "MV", "SP", "DV"]
+    min: float | None = None
+    max: float | None = None
+    mean: float | None = None
+    std: float | None = None
+
+
+class PreviewCol(BaseModel):
+    label: str
+    role: Literal["PV", "MV", "SP", "DV", "POS"]
+
+
+class PreviewRow(BaseModel):
+    i: int                                   # pořadí vzorku (od 1)
+    t: float                                 # čas od začátku [s]
+    dt: str | None = None                    # datum a čas, když má záznam hodiny
+    v: list[float | None]                    # hodnoty ve sloupcích `columns`
+    notes: list[str] = []                    # id kontrol Kvality dat s upozorněním ve vzorku
+
+
+class Preview(BaseModel):
+    """Část tabulky po převzorkování (jako Celý náhled): řádky `offset` … `offset + len(rows)` z `total` po filtru."""
+    columns: list[PreviewCol]
+    total: int
+    n_all: int
+    offset: int
+    Ts: float
+    n_warn: int
+    n_mv: int
+    rows: list[PreviewRow]
+
+
 class Run(BaseModel):
     a: float
     b: float
@@ -151,7 +199,45 @@ def _err(ex):
     raise HTTPException(400, str(ex.args[0]) if ex.args else type(ex).__name__) from ex
 
 
-def router(get_proj):
+def _checks(ws):
+    """Kontroly kvality dat podle záznamu a rozsahů (stejné volání jako Streamlit)."""
+    from ..app import quality as dq
+    g = ws.grid
+    pv_rng, mv_rng = (ws.pv_lo, ws.pv_hi), (ws.mv_lo, ws.mv_hi)
+    if not (pv_rng[1] > pv_rng[0] and mv_rng[1] > mv_rng[0]):
+        pv_rng, mv_rng = (0.0, 100.0), (0.0, 100.0)
+    return dq.check_all(ws.sig.t_all, ws.sig.get(ws.c_pv), ws.sig.get(ws.c_mv), g.Ts, g.pv_e, g.mv_e, g.dists,
+                        [str(c) for c in ws.c_d], pv_rng, mv_rng,
+                        (float(ws.get("mvl_lo", ws.mv_lo)), float(ws.get("mvl_hi", ws.mv_hi))))
+
+
+def _preview_frame(ws):
+    """(sloupce, matice hodnot [n × k], datum a čas nebo None)."""
+    import pandas as pd
+    from ..app.dataset import on_grid
+    g = ws.grid
+    cols, vals = [PreviewCol(label=f"PV · {ws.c_pv}", role="PV"), PreviewCol(label=f"MV · {ws.c_mv}", role="MV")], \
+        [g.pv_e, g.mv_e]
+    if g.has_sp:
+        cols.append(PreviewCol(label=f"SP · {ws.c_sp}", role="SP"))
+        vals.append(g.sp_e)
+    for nm, d in zip(ws.c_d, g.dists):
+        cols.append(PreviewCol(label=str(nm), role="DV"))
+        vals.append(d)
+    if ws.c_pos not in (None, "", "—"):
+        cols.append(PreviewCol(label=str(ws.c_pos), role="POS"))
+        vals.append(on_grid(ws.sig, g, ws.c_pos))
+    dt = None
+    if ws.sig.origin is not None:
+        dt = (ws.sig.origin + pd.to_timedelta(g.t + g.T0, unit="s")).strftime("%Y-%m-%d %H:%M:%S.%f").str[:-3].to_numpy()
+    return cols, np.column_stack([np.asarray(v, float) for v in vals]), dt
+
+
+def _num(x):
+    return float(x) if np.isfinite(x) else None
+
+
+def router(get_proj, max_upload=MAX_UPLOAD):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["data"])
 
     def get_ws(wid):
@@ -176,8 +262,10 @@ def router(get_proj):
                         name: Annotated[str, Query(description="file name (extension)")]):
         """Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`."""
         p = get_proj(wid)
+        if int(request.headers.get("content-length") or 0) > max_upload:      # velké tělo se ani nečte
+            raise HTTPException(413, "file too large")
         raw = await request.body()
-        if len(raw) > MAX_UPLOAD:
+        if len(raw) > max_upload:
             raise HTTPException(413, "file too large")
         try:
             p.load_frame(read_table(name, raw), name)
@@ -277,6 +365,7 @@ def router(get_proj):
                                                        for k, lv, ar in q["checks"]],
                        snr=q.get("snr"), sigma=q.get("sigma"), n_steps=q.get("n_steps"))
 
+
     @r.get("/loopmode", response_model=LoopMode)
     def loopmode(wid: str):
         """Úseky MAN / AUTO záznamu, podíl AUTO v úseku identifikace a použitý režim identifikace."""
@@ -291,5 +380,80 @@ def router(get_proj):
         """Upozornění na kompresi historianu (nepravidelné vzorky, opakované hodnoty)."""
         return [str(x) for x in (need_data(wid).compression() or [])]
 
+    _quality_preview(r, need_data)
     return r
 
+
+def _quality_preview(r, need_data):
+    """Kvalita dat, statistika a náhled tabulky po převzorkování (záložka Data, Celý náhled)."""
+    @r.get("/dataquality", response_model=DataQuality)
+    def dataquality(wid: str):
+        """Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení)."""
+        from ..app import quality as dq
+        ws = need_data(wid)
+        try:
+            checks = _checks(ws)
+        except Exception as ex:
+            raise _err(ex) from ex
+        cnt, usable = dq.summary(checks)
+        return DataQuality(usable=usable, counts=cnt, checks=[
+            DqCheck(id=c.id, status=c.status, res=c.res, args=_plain(c.args)) for c in checks])
+
+    @r.get("/datastats", response_model=list[StatRow])
+    def datastats(wid: str):
+        """Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky)."""
+        from ..app.dataset import stats
+        ws = need_data(wid)
+        roles = {"PV": "PV", "MV": "MV", "SP": "SP"}
+        return [StatRow(name=n, role=roles.get(n, "DV"), min=_num(a), max=_num(b), mean=_num(m), std=_num(sd))
+                for n, a, b, m, sd in stats(ws.grid, ws.c_d)]
+
+    def _preview_rows(ws, flt):
+        from ..app import quality as dq
+        checks = _checks(ws)
+        cols, vals, dt = _preview_frame(ws)
+        n = len(ws.t)
+        warn = dq.warn_mask(checks, n)
+        mvch = np.r_[False, np.abs(np.diff(ws.grid.mv_e)) > 1e-9]
+        idx = np.arange(n)
+        sel = idx[warn] if flt == "warn" else idx[mvch] if flt == "mv" else idx
+        return checks, cols, vals, dt, sel, int(warn.sum()), int(mvch.sum())
+
+    @r.get("/preview", response_model=Preview)
+    def preview(wid: str, offset: int = 0, limit: Annotated[int, Query(ge=1, le=2000)] = 200,
+                filter: Literal["all", "warn", "mv"] = "all", t: float | None = None):
+        """Tabulka po převzorkování po částech (Celý náhled): filtr řádků, od času `t` [s] (přepíše `offset`)."""
+        ws = need_data(wid)
+        try:
+            checks, cols, vals, dt, sel, n_warn, n_mv = _preview_rows(ws, filter)
+        except Exception as ex:
+            raise _err(ex) from ex
+        if t is not None:
+            offset = int(np.searchsorted(ws.t[sel], t))
+        offset = max(0, min(offset, max(len(sel) - 1, 0)))
+        part = sel[offset:offset + limit]
+        notes = {i: [] for i in part.tolist()}
+        for c in checks:
+            if c.mask is not None and len(c.mask) == len(ws.t):
+                for i in part[np.asarray(c.mask, bool)[part]].tolist():
+                    notes[i].append(c.id)
+        rows = [PreviewRow(i=int(i) + 1, t=float(ws.t[i]), dt=None if dt is None else str(dt[i]),
+                           v=[_num(x) for x in vals[i]], notes=notes[int(i)]) for i in part]
+        return Preview(columns=cols, total=len(sel), n_all=len(ws.t), offset=offset, Ts=float(ws.grid.Ts), n_warn=n_warn,
+                       n_mv=n_mv, rows=rows)
+
+    @r.get("/preview/csv")
+    def preview_csv(wid: str):
+        """Celá tabulka po převzorkování jako CSV (středník, desetinná čárka)."""
+        import io
+        import pandas as pd
+        ws = need_data(wid)
+        cols, vals, dt = _preview_frame(ws)
+        out = {"t [s]": ws.t}
+        if dt is not None:
+            out["datetime"] = dt
+        out.update({c.label: vals[:, j] for j, c in enumerate(cols)})
+        buf = io.StringIO()
+        pd.DataFrame(out).to_csv(buf, index=False, sep=";", decimal=",")
+        return Response(buf.getvalue().encode("utf-8-sig"), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": 'attachment; filename="data_resampled.csv"'})

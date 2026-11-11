@@ -1,0 +1,32 @@
+/* Záložka Model: panel podle návrhu (hlavní tlačítko, karty přenosů s barvou vstupu, tabulka parametrů). */
+.side-primary { display: flex; flex-direction: column; gap: 8px; }
+.side-primary .small { font-size: 12px; }
+.mformula { margin: 0; font-family: var(--pid-mono); font-size: 13px; }
+.mlabel { display: flex; align-items: center; gap: 6px; }
+.mcard details.scard { border-top: 4px solid var(--mc); }
+.mfit { font-size: 12px; color: var(--pid-muted); white-space: nowrap; }
+.msrc { font-size: 12px; color: var(--pid-muted); margin-top: -2px; }
+.mrow { display: flex; align-items: center; gap: 8px; }
+.mrow > label { font-size: 12px; color: var(--pid-muted); }
+.mrow > select { flex: 1; min-width: 0; border: 1px solid var(--pid-ctl); background: var(--pid-card); color: inherit;
+  border-radius: var(--pid-radius); padding: 5px 6px; font: inherit; font-size: 13px; }
+.mrow .dis { opacity: .5; pointer-events: none; }
+.mparams, .mexcl { display: grid; gap: 6px 8px; align-items: center; }
+.mparams { grid-template-columns: auto 1fr auto auto; }
+.mexcl { grid-template-columns: auto 1fr 1fr auto; }
+.mparams .num, .mexcl .num { width: 100%; min-width: 0; padding: 5px 8px; font-size: 13px; }
+.mp-head { font-size: 12px; color: var(--pid-muted); text-align: center; white-space: nowrap; }
+.mparams > .mp-head { grid-column: 4; }
+.mp-name { font-size: 13px; }
+.mp-unit { font-size: 11px; color: var(--pid-muted); white-space: nowrap; }
+.mparams input[type="checkbox"], .mexcl input[type="checkbox"] { width: 16px; height: 16px; justify-self: center; }
+.mbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.scard-body > select { border: 1px solid var(--pid-ctl); background: var(--pid-card); color: inherit; border-radius: var(--pid-radius);
+  padding: 5px 6px; font: inherit; font-size: 13px; }
+.mval { display: flex; flex-direction: column; gap: 4px; }
+.mval-row { display: flex; justify-content: space-between; font-size: 13px; }
+/* hlavní plocha: porovnání typů přenosu */
+.mcmp > h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.mcmp-head { display: inline-block; font-size: 12px; font-weight: 600; margin: 6px 0 4px; padding: 2px 8px;
+  border-left: 4px solid var(--mc); background: var(--pid-soft); border-radius: 3px; }
+.mcmp-sec { margin-top: 8px; }

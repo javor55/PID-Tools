@@ -18,3 +18,7 @@ _smoke.ini
 
 # sestavené rozhraní (frontend: npm run build)
 pidtools/api/ui/
+
+# desktop (Tauri)
+desktop/target/
+desktop/gen/

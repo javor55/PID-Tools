@@ -126,3 +126,51 @@ def test_audit_loops_analyse_and_overview(client):
     ov = client.get(f"/workspaces/{wid}/loops/overview").json()
     assert [x["name"] for x in ov["loops"]] == ["LIC101.PV", "FIC100"] and ov["active"] == 1
     assert [x["active"] for x in ov["loops"]] == [False, True] and ov["loops"][1]["sp"] is None
+
+
+def test_project_download_name_and_extensions(client):
+    """Soubor projektu: výchozí přípona .pidproj (Content-Disposition), obsah JSON; helpery přípon."""
+    from pidtools.app import project as prj
+    wid = _ws(client)
+    r = client.get(f"/workspaces/{wid}/project")
+    assert r.headers["content-disposition"] == 'attachment; filename="pidtools_projekt.pidproj"'
+    assert prj.EXT == ".pidproj" and prj.OPEN_EXTS == (".pidproj", ".json")
+    assert prj.project_name("K2") == "K2_projekt.pidproj"
+    assert prj.is_project_path("a/B.PIDPROJ") and prj.is_project_path("x.json") and not prj.is_project_path("d.csv")
+
+
+def test_both_extensions_load(client, tmp_path):
+    """Stejný obsah v souboru .pidproj i .json: app vrstva i API ho načtou stejně."""
+    from pidtools.app import project as prj
+    raw = open(os.path.join(HERE, "golden", "tic001.json"), encoding="utf-8").read()
+    for name in ("a.pidproj", "a.json"):
+        f = tmp_path / name
+        f.write_text(raw, encoding="utf-8")
+        assert prj.is_project_path(f)
+        text = f.read_text(encoding="utf-8")
+        assert prj.serialize_project(prj.load_project(text)) == prj.serialize_project(prj.load_project(raw))
+        assert _put(client, _ws(client), text).status_code == 200
+
+
+def test_pending_open_roundtrip(client):
+    """/pending-open: Rust vloží soubor, rozhraní ho vyzvedne jednou a otevře do prostoru."""
+    assert client.get("/pending-open").status_code == 204
+    text = open(os.path.join(HERE, "golden", "tic001.json"), "rb").read()
+    assert client.put("/pending-open", content=text).status_code == 204
+    r = client.get("/pending-open")
+    assert r.status_code == 200 and r.content == text
+    assert client.get("/pending-open").status_code == 204          # vyzvednutím se vyprázdní
+    assert _put(client, _ws(client), r.content.decode("utf-8")).status_code == 200
+    client.put("/pending-open", content=b"nope")                  # vadný obsah se pozná až při otevření
+    assert _put(client, _ws(client), client.get("/pending-open").content.decode("utf-8")).status_code == 400
+
+
+def test_pending_open_needs_token_and_is_off_in_team_mode():
+    from pidtools.api.deploy import DeployConfig
+    with TestClient(create_app(token="s3")) as c:
+        assert c.put("/pending-open", content=b"{}").status_code == 401
+        assert c.put("/pending-open", content=b"{}", headers={"X-PID-Token": "s3"}).status_code == 204
+    team = DeployConfig(auth="header", trust_header=True)
+    with TestClient(create_app(team=team)) as c:
+        assert c.put("/pending-open", content=b"{}", headers={"X-Forwarded-Email": "a@b.cz"}).status_code == 403
+        assert c.get("/pending-open", headers={"X-Forwarded-Email": "a@b.cz"}).status_code == 204

@@ -3,3 +3,4 @@
 -r requirements.txt
 fastapi==0.161.1
 uvicorn==0.50.2
+PyJWT[crypto]==2.13.0      # Cloudflare Access JWT verification (team mode only); brings cryptography

@@ -12,6 +12,19 @@ import json
 import numpy as np
 
 PROJECT_VERSION = 2
+EXT = ".pidproj"                      # výchozí přípona souboru projektu (obsah je JSON, stejný jako dřív)
+OPEN_EXTS = (EXT, ".json")            # otevřít jde i starší projekt `.json`
+
+
+def is_project_path(path):
+    """Soubor vypadá jako projekt (přípona `.pidproj` nebo starší `.json`)."""
+    return str(path).lower().endswith(OPEN_EXTS)
+
+
+def project_name(base):
+    """Název souboru ke stažení / uložení: `<base>_projekt.pidproj`."""
+    return f"{base}_projekt{EXT}"
+
 STATE_KEYS = [
     "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "pv_rng_user", "mv_rng_user", "plot_h", "chart_tunit",
     # blok PIDConL a sady parametrů

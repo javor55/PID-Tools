@@ -11,6 +11,7 @@ import re
 
 import streamlit as st
 
+from ...app.project import project_name
 from ...i18n import T
 from .. import loops
 from ..project import gather_project, serialize_project
@@ -40,7 +41,7 @@ def render(ctx):
             tog(st, T("proj_include_data"), True, "proj_inc", help=T("h_proj_inc"))
             payload = gather_project(ctx, bool(ss.get("proj_inc", True)))
             ss["_proj_payload"] = payload
-            st.download_button(T("proj_save"), lambda p=payload: serialize_project(p), f"{base}_projekt.json",
+            st.download_button(T("proj_save"), lambda p=payload: serialize_project(p), project_name(base),
                                "application/json", type="primary", width="stretch", on_click="ignore")
             st.caption(T("proj_save_help") + " " + T("pj_load_hint"))
         rr = (0.8, 2.2)

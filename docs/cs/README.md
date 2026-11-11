@@ -8,7 +8,8 @@ navrhne parametry regulátoru, ukáže jejich robustnost a očekávané chován�
 přesně nastavit v PCS 7. Metody platí obecně pro průmyslové PID regulátory; terminologie, struktura regulátoru
 a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **APL**.
 
-- **Online:** <https://pidtools.streamlit.app/> (veřejná instance – viz [Data a bezpečnost](#data-a-bezpečnost))
+- **Online:** <https://pidtools.streamlit.app/> (veřejná instance aplikace Streamlit, nasazená z větve `streamlit` –
+  viz [Data a bezpečnost](#data-a-bezpečnost)); v `main` se vyvíjí nové UI
 - **Dokumentace:** [Uživatelská příručka](prirucka.md) · [Metody](metody.md) ·
   [Implementace v PCS 7](pcs7.md) · [Nasazení a provoz](nasazeni.md) · [Změny](CHANGELOG.md)
 
@@ -74,12 +75,12 @@ Stejné výpočty v okně bez prohlížeče – pro inženýrské stanice (Windo
 
 ```bash
 pip install -r requirements.txt -r requirements-desktop.txt
-python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.json
+python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.pidproj
 ```
 
 Data, Model (validace, nejistota), Ladění (srovnání metod, simulace scénáře), živá simulace, APC (kaskáda, dopředná
 vazba, rozvazbení, override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika
-provozu, více smyček v projektu, projekty (stejné soubory JSON jako webová aplikace) a protokol z ladění.
+provozu, více smyček v projektu, projekty (soubory `.pidproj` s obsahem JSON, společné s webovou aplikací; starší `.json` se otevřou také) a protokol z ladění.
 Pro Windows je jako instalátor (`PID-Tools-<verze>-setup.exe`, nabídka Start, bez práv správce) i jako přenosný ZIP
 (`PID Tools.exe`); webová aplikace offline je samostatný ZIP (`PID-Tools.bat`) – viz [Nasazení](nasazeni.md).
 

@@ -8,7 +8,7 @@ import { DataMain, DataSide } from "./tabs/DataTab";
 import { DiagMain, DiagSide } from "./tabs/DiagTab";
 import { LiveMain } from "./tabs/LiveTab";
 import { LoopsMain, LoopsSide } from "./tabs/LoopsTab";
-import { ProjectMain, ProjectSide } from "./tabs/ProjectTab";
+import { ProjectMain, ProjectSide, usePendingOpen } from "./tabs/ProjectTab";
 import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TuningMain, TuningSide } from "./tabs/TuningTab";
 import { TABS, useUi } from "./store";
@@ -42,9 +42,11 @@ export default function App() {
   const T = useT();
   const lang = useUi((s) => s.lang);
   const tab = useUi((s) => s.tab);
+  const sideAll = useUi((s) => s.sideAll);
   useEffect(() => { setLang(lang); document.documentElement.lang = lang; }, [lang]);
   useTheme();
   useWorkspace();
+  usePendingOpen();
   const cur = TABS.find((t) => t.id === tab) ?? TABS[0];
   return (
     <div className="shell">
@@ -56,8 +58,11 @@ export default function App() {
             : cur.id === "diag" ? <DiagMain /> : cur.id === "loops" ? <LoopsMain />
             : <ProjectMain />}
         </main>
-        {cur.id !== "live" && <aside className="side">
-          <h2>{T("ui_settings")}</h2>
+        {cur.id !== "live" && <aside className="side" aria-label={T("ui_settings")}>
+          <div className="side-all">
+            <button type="button" className="link" onClick={() => sideAll(true)} data-testid="side-expand">{T("side_expand_all")}</button>
+            <button type="button" className="link" onClick={() => sideAll(false)} data-testid="side-collapse">{T("side_collapse_all")}</button>
+          </div>
           {cur.id === "data" ? <DataSide /> : cur.id === "model" ? <ModelSide /> : cur.id === "tuning" ? <TuningSide />
             : cur.id === "apc" ? <ApcSide /> : cur.id === "diag" ? <DiagSide /> : cur.id === "loops" ? <LoopsSide />
             : <ProjectSide />}

@@ -37,7 +37,7 @@ export function ModelResiduals({ model }: { model: ModelState }) {
   const msgs = m ? [T("eval_st_" + m.status), m.frac_ccf > 0.2 ? T("eval_ccf_bad") : m.frac_acf > 0.5 ? T("eval_acf_bad") : T("eval_res_ok")] : [];
   const lags = (n: number, start: number) => Array.from({ length: n }, (_, i) => (i + start) * m!.lag_step);
   return (
-    <div className="card" data-testid="residuals">
+    <div className="card span-all" data-testid="residuals">
       <h3>{T("resid")}</h3>
       {resid && <div data-testid="resid-chart" data-n={resid.n}><LineChart series={resid.s} height={180} xLabel="t [s]" /></div>}
       {m && (

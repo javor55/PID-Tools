@@ -1,0 +1,159 @@
+/* Záložka Data podle návrhu (Data.dc.html, DataImportFull.dc.html): hlavní plocha a karty panelu. */
+:root {
+  --dt-ok: #2f6f3e; --dt-ok-bg: #e6f4ea; --dt-ok-bd: #a8d5b5;
+  --dt-warn: #8a4b00; --dt-warn-bg: #fff4dc; --dt-warn-bd: #f2c46d;
+  --dt-info: #1f5fa8; --dt-info-bg: #eaf2fb; --dt-info-bd: #9ec1e6;
+  --dt-dv: #0b7a70; --dt-row: #eef1f5; --dt-drop-bg: #f3f8fd;
+}
+:root[data-theme="dark"] {
+  --dt-ok: #6fcf8a; --dt-ok-bg: rgba(34, 197, 94, .14); --dt-ok-bd: rgba(34, 197, 94, .45);
+  --dt-warn: #f5b454; --dt-warn-bg: rgba(245, 158, 11, .16); --dt-warn-bd: rgba(245, 158, 11, .5);
+  --dt-info: #7db3ee; --dt-info-bg: rgba(96, 165, 250, .14); --dt-info-bd: rgba(96, 165, 250, .45);
+  --dt-dv: #2dd4bf; --dt-row: #1c2740; --dt-drop-bg: rgba(96, 165, 250, .08);
+}
+
+/* ---- hlavní plocha */
+.dt-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dt-top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.dt-top .dt-note { font-size: 12px; color: var(--pid-muted); flex: 1; min-width: 200px; }
+.dt-linkbtn { font: inherit; font-size: 13px; font-weight: 500; padding: 6px 12px; border: 1px solid var(--pid-accent);
+  color: var(--pid-accent); background: transparent; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.dt-linkbtn:hover { background: var(--pid-accent-bg); }
+.dt-card { background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px; padding: 12px 14px; }
+.dt-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 4px; }
+.dt-head h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.dt-head .dt-sub { font-size: 12px; color: var(--pid-muted); }
+.dt-head .dt-end { margin-left: auto; }
+.dt-badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--dt-ok-bd);
+  color: var(--dt-ok); background: var(--dt-ok-bg); }
+.dt-badge.bad { border-color: var(--dt-warn-bd); color: var(--dt-warn); background: var(--dt-warn-bg); }
+ul.dt-checks { list-style: none; margin: 0; padding: 0; }
+.dt-check { display: grid; grid-template-columns: 24px minmax(140px, 220px) minmax(0, 1fr); gap: 4px 12px; align-items: start;
+  padding: 8px 0; border-bottom: 1px solid var(--dt-row); }
+.dt-check:last-child { border-bottom: 0; }
+.dt-ic { width: 20px; height: 20px; border-radius: 50%; border: 1px solid; font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; }
+.dt-ok .dt-ic { background: var(--dt-ok-bg); border-color: var(--dt-ok-bd); color: var(--dt-ok); }
+.dt-warn .dt-ic { background: var(--dt-warn-bg); border-color: var(--dt-warn-bd); color: var(--dt-warn); }
+.dt-info .dt-ic { background: var(--dt-info-bg); border-color: var(--dt-info-bd); color: var(--dt-info); }
+.dt-name { font-size: 13px; font-weight: 500; }
+.dt-res { font-family: var(--pid-mono); font-size: 12px; overflow-wrap: anywhere; }
+.dt-ok .dt-res { color: var(--dt-ok); } .dt-warn .dt-res { color: var(--dt-warn); } .dt-info .dt-res { color: var(--dt-info); }
+.dt-why { display: block; font-size: 12px; color: var(--pid-muted); margin-top: 2px; }
+.dt-ident { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--pid-line); }
+.dt-ident h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dt-ident ul { margin: 0; padding-left: 18px; font-size: 12px; }
+.dt-ident .dt-lm { font-size: 12px; color: var(--pid-muted); margin-top: 4px; }
+.dt-scroll { overflow-x: auto; }
+table.dt-prev { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px; }
+.dt-prev th { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--pid-line); font-weight: 600; }
+.dt-prev th:first-child, .dt-prev td:first-child { text-align: left; }
+.dt-prev th small { display: block; font-weight: 400; font-size: 11px; color: var(--pid-muted); }
+.dt-prev td { padding: 5px 8px; border-bottom: 1px solid var(--dt-row); text-align: right; font-family: var(--pid-mono); font-size: 12px; }
+.dt-prev td:first-child { font-family: var(--pid-mono); color: var(--pid-muted); }
+.role-PV { color: var(--pid-pv); } .role-MV { color: var(--pid-mv); } .role-SP { color: var(--pid-sp); }
+.role-DV { color: var(--dt-dv); } .role-POS { color: #7c3aed; }
+
+/* ---- plocha pro přetažení souboru (bez dat) */
+.dt-drop { border: 2px dashed var(--dt-info-bd); background: var(--dt-drop-bg); border-radius: 12px; padding: 48px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; min-height: 320px; justify-content: center; }
+.dt-drop.over { border-color: var(--pid-accent); background: var(--pid-accent-bg); }
+.dt-drop h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.dt-drop p { margin: 0; max-width: 560px; color: var(--pid-muted); font-size: 13px; }
+.dt-pagedrop { position: fixed; inset: 0; z-index: 50; background: rgba(31, 95, 168, .12); border: 3px dashed var(--pid-accent);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; color: var(--pid-accent);
+  pointer-events: none; }
+
+/* ---- panel: zdroj dat */
+.dt-filebox { border: 1px dashed var(--dt-info-bd); background: var(--dt-drop-bg); border-radius: 8px; padding: 8px 10px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.dt-filebox b { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.dt-filebox span { font-size: 12px; color: var(--pid-muted); }
+.dt-filebox .btn { margin-left: auto; font-size: 12px; padding: 3px 8px; }
+.dt-read { margin: 0; font-size: 12px; color: var(--dt-ok); }
+.dt-read.err { color: var(--pid-err); }
+.dt-p { margin: 0; font-size: 12px; color: var(--pid-muted); }
+details.dt-manual { border: 0; padding: 0; }
+details.dt-manual > summary { cursor: pointer; font-size: 13px; color: var(--pid-text); list-style: none; display: flex; gap: 6px; }
+details.dt-manual > summary::before { content: "▸"; font-size: 11px; line-height: 20px; color: var(--pid-muted); }
+details.dt-manual[open] > summary::before { content: "▾"; }
+details.dt-manual > summary::-webkit-details-marker { display: none; }
+details.dt-manual > .dt-grid { margin-top: 8px; }
+.dt-grid { display: grid; grid-template-columns: minmax(70px, 110px) minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+.dt-grid > label, .dt-grid > span { font-size: 13px; color: var(--pid-muted); }
+.dt-grid .full { grid-column: 1 / -1; }
+.dt-grid input[type="number"], .dt-grid input[type="text"], .dt-grid select, .dt-ctl {
+  font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--pid-ctl); border-radius: 6px;
+  background: var(--pid-card); color: inherit; min-width: 0; width: 100%; }
+
+/* ---- panel: signály smyčky */
+.dt-sig { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px 8px; align-items: center; }
+.dt-sig > label, .dt-sig > span.lab { font-size: 13px; font-weight: 600; }
+.dt-sig select { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--pid-ctl); border-radius: 6px;
+  background: var(--pid-card); color: inherit; min-width: 0; width: 100%; }
+.dt-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dt-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 4px 3px 9px; border-radius: 999px;
+  border: 1px solid var(--dt-dv); color: var(--dt-dv); background: color-mix(in srgb, var(--dt-dv) 10%, transparent); }
+.dt-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px; }
+.dt-pill { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px dashed var(--pid-ctl); background: var(--pid-card);
+  color: var(--pid-muted); border-radius: 999px; cursor: pointer; width: auto; }
+select.dt-pill { appearance: none; padding-right: 10px; }
+.dt-pill:hover { border-color: var(--pid-accent); color: var(--pid-accent); }
+
+/* ---- panel: statistika, jednotky */
+table.dt-stat { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dt-stat th, .dt-stat td { padding: 4px 0; text-align: right; }
+.dt-stat thead th { font-weight: 500; color: var(--pid-muted); border-bottom: 1px solid var(--pid-soft); }
+.dt-stat tbody th { text-align: left; font-weight: 600; }
+.dt-stat td { font-family: var(--pid-mono); }
+.dt-rng { margin: 8px 0 0; font-size: 12px; color: var(--dt-warn); }
+.dt-rng.ok { color: var(--dt-ok); }
+.dt-units { display: grid; grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1.3fr); gap: 8px; align-items: center; }
+.dt-units .h { font-size: 12px; color: var(--pid-muted); }
+.dt-units .lab { font-size: 13px; font-weight: 600; }
+.dt-units input { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--pid-ctl); border-radius: 6px;
+  background: var(--pid-card); color: inherit; min-width: 0; width: 100%; }
+.dt-units .rng { display: flex; align-items: center; gap: 4px; color: var(--pid-muted); }
+.dt-units .rng input { font-family: var(--pid-mono); font-size: 12px; padding: 6px 4px; text-align: right; }
+
+/* ---- Celý náhled (okno) */
+dialog.dt-full { width: min(1400px, 96vw); height: min(900px, 94vh); max-width: none; max-height: none; padding: 0; border: 0;
+  border-radius: 14px; background: var(--pid-card); color: var(--pid-text); overflow: hidden; }
+dialog.dt-full[open] { display: flex; flex-direction: column; }
+dialog.dt-full::backdrop { background: rgba(59, 70, 82, .85); }
+.dtf-head { display: flex; align-items: center; gap: 8px 16px; padding: 14px 18px; border-bottom: 1px solid var(--pid-line); flex-wrap: wrap; }
+.dtf-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.dtf-head .dt-sub { font-size: 12px; color: var(--pid-muted); }
+.dtf-head .dt-end { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.dtf-x { font: inherit; font-size: 18px; width: 32px; height: 32px; border: 1px solid var(--pid-ctl); background: var(--pid-card);
+  border-radius: 8px; cursor: pointer; line-height: 1; }
+.dtf-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.dtf-body.charts { grid-template-columns: 1fr; } .dtf-body.table { grid-template-columns: 1fr; }
+.dtf-body.charts .dtf-tab, .dtf-body.table .dtf-charts { display: none; }
+.dtf-charts { overflow: auto; padding: 12px 16px; min-width: 0; border-right: 1px solid var(--pid-line); }
+.dtf-tab { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 12px 16px; gap: 10px; }
+.dtf-ctl { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.dtf-ctl label { font-size: 13px; color: var(--pid-muted); }
+.dtf-ctl input, .dtf-ctl select { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--pid-ctl); border-radius: 6px;
+  background: var(--pid-card); color: inherit; }
+.dtf-ctl input { width: 110px; font-family: var(--pid-mono); }
+.dtf-ctl .btn { margin-left: auto; }
+.dtf-scroll { flex: 1; min-height: 160px; overflow: auto; border: 1px solid var(--pid-line); border-radius: 8px; position: relative; }
+.dtf-thead, .dtf-row { display: grid; align-items: center; font-size: 12px; padding: 0 8px; gap: 8px; }
+.dtf-thead { position: sticky; top: 0; z-index: 2; height: 28px; background: var(--pid-side); border-bottom: 1px solid var(--pid-line); font-weight: 500; color: var(--pid-muted); }
+.dtf-thead span, .dtf-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dtf-thead .num, .dtf-row .num { text-align: right; font-family: var(--pid-mono); }
+.dtf-row { position: absolute; left: 0; right: 0; height: 24px; border-bottom: 1px solid var(--dt-row); }
+.dtf-row .i { color: var(--pid-muted); text-align: right; font-family: var(--pid-mono); }
+.dtf-row .tm { font-family: var(--pid-mono); }
+.dtf-row.warn { background: var(--dt-warn-bg); }
+.dtf-row.warn .nt { color: var(--dt-warn); }
+.dtf-row.cur { outline: 2px solid #d97706; outline-offset: -2px; }
+.dtf-foot { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; font-size: 12px; color: var(--pid-muted); }
+.dtf-leg::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px;
+  background: var(--dt-warn-bg); border: 1px solid var(--dt-warn-bd); border-radius: 3px; }
+@media (max-width: 1100px) {
+  .dtf-body { grid-template-columns: 1fr; overflow: auto; display: block; }
+  .dtf-charts { overflow: visible; border-right: 0; }
+  .dtf-tab { min-height: 460px; height: 100%; }
+}

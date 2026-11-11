@@ -7,6 +7,7 @@ import { request } from "../api/client";
 import mountLive from "../../../pidtools/ui/static/live_ui.js";
 import PIDLive from "../../../pidtools/ui/static/live_engine.js";
 import "../../../pidtools/ui/static/live.css";
+import "../styles/live.css";
 import { useWs } from "../data";
 import { useT } from "../i18n";
 import { useUi } from "../store";
@@ -33,8 +34,16 @@ export function LiveMain() {
   useEffect(() => {
     const host = box.current;
     if (!host || !json) return;
+    // texty nového vzhledu (karty, poruchy, ukazatele) z i18n; ostatní přicházejí v konfiguraci z API
+    const data = JSON.parse(json) as { labels: Record<string, string> };
+    for (const [k, v] of [["now", "now"], ["kpi_change", "change"], ["same", "same"], ["sec_dist", "sec_dist"],
+      ["dist_shape", "shape"], ["dist_where", "where"], ["dist_size", "size"], ["dist_period", "period"],
+      ["period_hint", "period_hint"], ["noise_pv", "noise_pv"], ["mv_man", "mv_man"], ["run_dist", "run_dist"],
+      ["mode_hint", "mode_hint"], ["sets_note", "sets_note"], ["dist_note", "dist_note"], ["h_mode", "h_mode"],
+      ["h_sets", "h_sets"], ["h_dist", "h_dist"], ["h_kpi", "h_kpi"], ["set1", "set1"], ["set2", "set2"],
+      ["reset", "reset"]] as const) data.labels[k] = T(`ui_live_${v}`);
     const cleanup = mountLive({
-      data: JSON.parse(json), parentElement: host,
+      data, parentElement: host,
       setTriggerValue: (name, value) => {
         if (name !== "apply") return;
         const v = value as { Gain: number; TI: number | null; TD: number | null };
@@ -43,8 +52,21 @@ export function LiveMain() {
           .then(() => qc.invalidateQueries({ queryKey: ["ws", wid] }));
       },
     });
+    // „Rozbalit vše / Sbalit vše“ nad kartami panelu (modul si je nekreslí; jen přepíná jeho <details>)
+    const side = host.querySelector(".lvs");
+    if (side) {
+      const bar = document.createElement("div");
+      bar.className = "lvs-all";
+      for (const [open, key, tid] of [[true, "side_expand_all", "live-expand"], [false, "side_collapse_all", "live-collapse"]] as const) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "link"; b.textContent = T(key); b.dataset.testid = tid;
+        b.onclick = () => side.querySelectorAll("details").forEach((d) => { d.open = open; });
+        bar.append(b);
+      }
+      side.prepend(bar);
+    }
     return () => { if (typeof cleanup === "function") cleanup(); host.replaceChildren(); };
-  }, [json, wid, qc, theme]);
+  }, [json, wid, qc, theme, T]);
 
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (cfg.isError) return <div className="card muted">{T("need_model")}</div>;

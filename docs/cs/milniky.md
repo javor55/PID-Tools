@@ -45,11 +45,11 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M19 | APC | C | L | M11, M16 | ☑ |
 | M20 | Diagnostika a Přehled smyček | C | M | M11, M13 | ☑ |
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☑ |
-| M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ☐ |
-| M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ☐ |
+| M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ◐ |
+| M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ◐ |
 | M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ☐ |
 | M25 | Offline ověření na čistém Windows | D | S | M24 | ☐ |
-| M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☐ |
+| M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☑ |
 | M27 | Parita a pilot | E | M | M13–M21, M25 | ☐ |
 | M28 | Vypnutí staré aplikace, verze 4.0 | E | M | M27 | ☐ |
 
@@ -608,7 +608,7 @@ a Playwright.
 - Uložení a načtení projektu (soubor), report (náhled a stažení), čtení z OPC UA.
 
 **Skutečnost M21:**
-- Záložka Projekt (`ProjectTab.tsx`, id `project`):
+- Záložka Projekt (`ProjectTab.tsx`, id `project`; soubor projektu má od M23 příponu `.pidproj`, starší `.json` se otevře také):
   - uložení projektu stáhne soubor z `GET /project` (volba „uložit i data“ = `?data=`), otevření nahraje soubor
     přes `PUT /project` a zneplatní všechny dotazy prostoru; chybný soubor ukáže chybu a nic nezmění;
   - údaje o projektu a hlavička protokolu jsou nastavení `rep_plant`, `rep_author`, `rep_status`, `rep_comment`
@@ -642,6 +642,36 @@ a Playwright.
 
 **Hotovo když:** zabalený backend nastartuje do 4 s a projde smoke testem.
 
+**Skutečnost M22:**
+- Vstup `pidtools/api/sidecar.py` (`python -m pidtools.api.sidecar`, zabalený `tools/pidtools_api.py`): `--port`
+  (0 = volný port; soket se otevře předem a předá serveru, takže mezi výběrem a startem není okno), `--token`
+  (jinak náhodný), `--parent-pid`, `--smoke`. Poslouchá jen na 127.0.0.1. Po startu serveru vypíše jediný řádek
+  `PIDTOOLS_READY {"port": …, "token": "…", "version": "…"}` (čte ho obal okna, `parse_ready`).
+- `--parent-pid`: vlákno každých 0,5 s zkouší rodiče (Windows `OpenProcess` + `WaitForSingleObject` přes ctypes,
+  POSIX `os.kill(pid, 0)` a změna rodiče; `psutil` v závislostech není). Zmizí-li, server se korektně zastaví (úlohy
+  se ukončí s ním), po 5 s se proces ukončí natvrdo.
+- Úlohy: `freeze_support()` hned na začátku vstupního skriptu, před těžkými importy; start „spawn“ zůstává
+  (`app.jobs`), podproces zmrazeného programu se vrátí do role úlohy. `_bare_main()` zůstává beze změny.
+- `tools/build_sidecar.py`: PyInstaller onedir -> `dist/pidtools-api/`; program se jmenuje podle konvence Tauri 2
+  `externalBin` `<název>-<cílová trojice>` (`pidtools-api-x86_64-pc-windows-msvc.exe`,
+  `pidtools-api-x86_64-unknown-linux-gnu`; `--target-triple` přepíše). Data: `pidtools/api/ui`, `static/fonts`, i18n
+  JSON; `plotly` včetně dat (protokol). Vyloučeno: PySide6, pyqtgraph, Streamlit a jeho závislosti, `pidtools.desktop`,
+  `pidtools.ui`. Pro Tauri: `externalBin` bere jeden soubor, složku `_internal` je třeba přidat jako `resources`
+  (řeší M23).
+- `--smoke` zabaleného programu: volný port, `/health`, workspace, demo, identifikace jako úloha do konce, protokol
+  (HTML > 10 kB), kód 0.
+- Změřeno (Linux, Python 3.11, PyInstaller 6.22.3): start do řádku READY 1,3 s (z kódu 1,7 s; z `main` 0,2 s po
+  importech), onedir 237 MB (98 MB po zabalení tar.gz), smoke test 12 s (z toho identifikace 8 s), po zabití rodiče
+  sidecar skončí za ~2,3 s. Úloha v zabaleném programu proběhla (spawn zmrazeného programu na Linuxu funguje).
+- CI `.github/workflows/sidecar.yml` (windows-latest; ruční spuštění a pull request s cestami `pidtools/**`,
+  `frontend/**`, `tools/build_sidecar.py`): sestaví rozhraní i sidecar, spustí `--smoke`, `tests/test_sidecar.py -k
+  frozen` (start, token, ukončení s rodičem) a nahraje onedir jako artefakt.
+- Testy `tests/test_sidecar.py`: řádek READY, volný port, hlídání rodiče (bez sestavení); spuštěný program z kódu i
+  zabalený (přeskočí se, není-li `dist/` nebo `PIDTOOLS_SIDECAR_EXE`).
+- Zbývá: běh na Windows (zmrazený `multiprocessing` a `OpenProcess`) ověří až první běh CI, lokálně ověřeno jen na
+  Linuxu; změřit start na Windows (cíl < 4 s; antivirus první spuštění zpomalí); zmenšení onedir (scipy a numpy tvoří
+  většinu); při tvrdém ukončení sidecaru (kill) mohou osiřet procesy běžících úloh.
+
 ### M23 · Okno desktopu (Tauri)
 - Tauri 2:
   - spustí sidecar na volném portu s náhodným tokenem;
@@ -649,10 +679,73 @@ a Playwright.
   - otevírá a ukládá soubory přes systémové dialogy.
 - Jedna instance aplikace, otevření projektu poklepáním (asociace přípony).
 
+**Skutečnost M23:**
+- Složka `desktop/` (Tauri 2.12.3, Rust; ne `src-tauri/` – repozitář je Python + `frontend/`, CLI si `tauri.conf.json`
+  najde samo; žádné JS, CLI se spouští přes `npx @tauri-apps/cli@2.12.2`). Závislosti: `tauri`, `tauri-build`,
+  `tauri-plugin-single-instance`, `serde(_json)`, `getrandom`; verze jsou vydání starší než dva týdny, `Cargo.lock`
+  je v repozitáři. Bez pluginů shell a dialog.
+- Start: okno se hned otevře s úvodní stránkou (`desktop/ui/index.html`); vlákno najde sidecar, spustí ho
+  `--port 0 --token <24 náhodných bajtů, hex> --parent-pid <vlastní pid>`, čte stdout do řádku `PIDTOOLS_READY`
+  (limit 20 s, kontrola shody tokenu) a okno přepne (`navigate`) na `http://127.0.0.1:<port>/#token=<token>`. Rozhraní
+  tedy obsluhuje sidecar sám (jeden původ, bez CORS a CSP, stejné rozhraní jako v prohlížeči); okno nemá žádná
+  oprávnění Tauri (prázdná capability), stránka z 127.0.0.1 nemá IPC. Chyba (nenalezen, skončil před READY, časový
+  limit, jiný token) se zobrazí na úvodní stránce i s posledními řádky stderr sidecaru. Při ukončení aplikace
+  (`RunEvent::Exit`) se sidecar zabije, při pádu ho ukončí `--parent-pid`. Okno konzole sidecaru se potlačí
+  (`CREATE_NO_WINDOW`).
+- `_internal`: místo `externalBin` se celý onedir dodá jako zdroj `bundle.resources` (`../dist/pidtools-api` ->
+  `sidecar/`) a sidecar se spouští podle cesty. Důvod: `externalBin` jde do složky aplikace (na Linuxu `/usr/bin`),
+  zdroje jinam, takže sousedství `_internal` by nebylo zaručené. Hledá se `$PIDTOOLS_SIDECAR_DIR`, `<složka
+  aplikace>/sidecar`, `…/resources/sidecar`, `../dist/pidtools-api` (vývoj).
+- Dialogy: bez mostu a bez pluginu. UI stahuje přes `<a download>` (blob) a otevírá přes `<input type=file>`; WebView2
+  obojí zvládá sám (výběr souboru, stahování s dialogem „Uložit jako“), takže web zůstává beze změny. Není to ověřené
+  (viz níže); kdyby stahování nešlo, most je `save_file` / `open_file` + `@tauri-apps/api` v `ProjectTab.tsx`.
+- **Přípona projektu `.pidproj` (rozhodnuto 28. 10. 2026):** soubor projektu má novou příponu `.pidproj`, obsah je beze
+  změny JSON (`app.project`), starší `.json` se otevřou všude dál. Společné konstanty `EXT` / `OPEN_EXTS`, `is_project_path`
+  a `project_name` jsou v `app/project.py`. Ukládá se jako `.pidproj` ve všech rozhraních (Qt dialogy „PID Tools project
+  (*.pidproj)“ / „Older project (*.json)“, Streamlit `download_button` a `file_uploader(type=["pidproj","json"])`, React
+  `ProjectTab` a `accept=".pidproj,.json,application/json"`, `GET /project` s `Content-Disposition: …pidtools_projekt.pidproj`);
+  otevírá se obojí. Automatický záznam Qt desktopu (`autosave.json`) je interní a přípona se nemění. Texty (`proj_load`,
+  průvodce) a uživatelská dokumentace jsou upravené.
+- **Poklep na `.pidproj`:** `bundle.fileAssociations` (ext `pidproj`, název „PID Tools project“, role Editor, mimeType
+  `application/vnd.pidtools.project+json`) → NSIS zapíše asociaci (instalace `currentUser` = HKCU). Soubor přijde jako argument
+  příkazové řádky (první spuštění) nebo v `argv` callbacku single-instance (druhé spuštění). Rust (`openfile.rs`)
+  vybere první argument s příponou `.pidproj` / `.json`, přečte soubor a pošle ho `PUT /pending-open` (tokenem chráněné,
+  jedno místo, jen mimo týmový režim); pak stránce přes `eval` pošle událost `pidtools:pending-open` (nepotřebuje IPC,
+  capability zůstává prázdná). Frontend (`usePendingOpen`) volá `GET /pending-open` při startu a po události; je-li tam
+  projekt (200, jinak 204), přepne na záložku Projekt a otevře ho `PUT /workspaces/{id}/project` do svého prostoru
+  (zpráva „Projekt načten“ nebo chyba). První spuštění předá soubor ještě před navigací okna na rozhraní.
+- Jedna instance: druhé spuštění zaostří okno první a, má-li cestu k projektu, otevře ho v ní.
+- `pidtools-desktop --smoke [--smoke-log soubor] [--open projekt.pidproj]`: sidecar, READY, z Rustu `GET /health`, 401 bez tokenu, `GET /`
+  (rozhraní), `POST` / `GET` / `DELETE /workspaces`, s `--open` předání souboru jako při poklepu (`PUT` + `GET /pending-open`
+  vrátí tentýž soubor, podruhé 204), kód 0, bez okna (na Windows je aplikace GUI program, proto log do
+  souboru).
+- Testy Rustu (`cargo test`, 12): řádek READY (platný i vadný), adresa, náhodný token, hledání programu, pořadí
+  složek, malý HTTP klient proti místnímu serveru (i s tělem), cesta k projektu z argumentů (`.pidproj` i `.json`, velikost
+  písmen, ostatní argumenty se ignorují), předání souboru místnímu serveru, start proti falešným sidecarům (předčasný konec, časový limit, jiný
+  token; jen Unix).
+- CI `.github/workflows/desktop.yml` (windows-latest; ruční spuštění, push i pull request s cestami `desktop/**`,
+  soubory sidecaru a workflow): rozhraní, sidecar, `cargo check --locked` + `cargo test`, `tauri build --bundles
+  nsis` (**bez podpisu**, označené místo pro M24), tichá instalace, `--smoke` **nainstalované** aplikace
+  (ověří rozložení `sidecar/_internal` vedle exe), kontrola zapsané asociace `.pidproj` (HKCU, příkaz otevření s
+  `pidtools-desktop.exe` a `%1`) a `--smoke --open` s ukázkovým `.pidproj`, kontrola, že nezůstal proces sidecaru, odinstalace, instalátor
+  jako artefakt.
+- Ověřeno lokálně (Linux, Rust 1.97, webkit2gtk-4.1 2.52): `cargo check --tests`, `cargo test` (12 ok), `cargo build`
+  a `--smoke` (i s `--open` ukázkovým `.pidproj`) proti sidecaru ze zdrojů (obálka `python -m pidtools.api.sidecar`): READY za
+  1–2 s, kód 0.
+- Neověřeno (jen CI / Windows): `tauri build` a NSIS instalátor; skutečný zápis asociace `.pidproj` do registru (přesný název
+  třídy a podoba příkazu určuje šablona NSIS Tauri, CI čte třídu z výchozí hodnoty klíče) a poklep v Průzkumníku (první i
+  druhé spuštění, událost okna); umístění zdrojů při instalaci (`<install>/sidecar`);
+  zabalený sidecar spuštěný z Rustu (rouru čte vlákno, `CREATE_NO_WINDOW` a potomci úloh bez okna konzole);
+  WebView2: navigace na `http://127.0.0.1`, stažení a výběr souborů, chování bez nainstalovaného WebView2 (M24);
+  skutečné okno (v Linuxu neotevřeno, bez displeje); jedna instance; ukončení sidecaru při zavření okna; start
+  celku na Windows. SmartScreen bude hlásit nepodepsaný instalátor (M24).
+
 ### M24 · Instalátor a release
 - NSIS instalátor pro uživatele bez admin práv. MSI pro správce (tichá instalace).
 - Varianty s WebView2 bootstrapperem a s pevným runtime pro uzavřené sítě.
-- Podpis Authenticode (R4). Release workflow na tag; dnešní `offline-package.yml` se nahradí.
+- Podpis Authenticode (R4): **zatím se nepodepisuje** (rozhodnuto 28. 10. 2026). Instalátor je nepodepsaný, SmartScreen
+  při spuštění hlásí neznámého vydavatele („Více informací“ → „Přesto spustit“), dokud nebude k dispozici certifikát;
+  v `desktop.yml` zůstává označené místo pro `signCommand`. Release workflow na tag; dnešní `offline-package.yml` se nahradí.
 
 ### M25 · Offline ověření
 Kontrolní seznam na čistém Windows 10 a 11 bez sítě:
@@ -669,6 +762,33 @@ K tomu kontrola, že aplikace nedělá žádné síťové požadavky mimo `127.0
 - Přihlášení (R3): Cloudflare Access nebo OIDC.
 - Pracovní prostor na uživatele, limity velikosti souborů a počtu úloh, vypršení nečinnosti, logy.
 - Návod v `docs/deployment.md`.
+
+**Skutečnost M26:**
+- Týmový režim se zapíná proměnnými prostředí `PIDTOOLS_*` (modul `pidtools/api/deploy.py`, `DeployConfig.from_env`);
+  výchozí režim `token` (desktop) zůstává beze změny. `create_app(team=…)` přepne ověření, vlastnictví a limity;
+  `pidtools/api/__main__.py` zůstal nedotčený, kontejner se spouští `python -m pidtools.api.serve`.
+- Přihlášení (R3): `PIDTOOLS_AUTH=cloudflare` ověřuje JWT z hlavičky `Cf-Access-Jwt-Assertion` (RS256, vydavatel
+  `https://<tým>.cloudflareaccess.com`, audience tag, platnost) podle JWKS týmu; klíče se drží v paměti (1 h, nové `kid`
+  = nové stažení nejvýš jednou za minutu), chybějící / neplatný token → 401, nedostupné klíče → 503. Záložní režim
+  `header` (OIDC / jiné proxy) věří hlavičce s uživatelem jen s výslovným `PIDTOOLS_TRUST_USER_HEADER=1` (hlavička
+  není podepsaná – riziko je v návodu). Nová závislost: `PyJWT[crypto]==2.13.0` v `requirements-api.txt` (RS256 potřebuje
+  `cryptography`; jen pro týmový režim, import je líný). Podpis JWT jsme nepsali ručně.
+- Uživatelé: pracovní prostor (`WorkspaceStore.create/get/delete(owner=…)`) a úloha (`TeamJobs`) patří tomu, kdo je
+  vytvořil; cizí ID dává 404 (včetně `/jobs/{id}`, `cancel`, `result`, `events`). Limity: prostory na uživatele (nový uvolní jeho nejdéle nepoužitý),
+  čekající + běžící úlohy na uživatele (429), velikost nahrání (413, podle `Content-Length` ještě před čtením těla; parametr
+  `data.router(max_upload=…)`), vypršení nečinnosti `PIDTOOLS_WORKSPACE_TTL`.
+- Logy (modul `logging`): `pidtools.access` – řádek na požadavek (uživatel, metoda, cesta, stav, ms), `pidtools.jobs` –
+  odeslání, start a konec úlohy s uživatelem; úroveň `PIDTOOLS_LOG_LEVEL`, `/health` jen na úrovni DEBUG.
+- Kontejner `Dockerfile.web` (vícestupňový: Node 24 sestaví UI, běh na Pythonu 3.11 slim bez Qt a Streamlitu, uživatel
+  bez práv, `HEALTHCHECK` na `/health`, `PORT`, uvicorn s `proxy_headers`; základní obrazy připnuté tagem i digestem)
+  a `.dockerignore`. Starý `Dockerfile` (Streamlit) zůstává do M28. Obraz se sestavil a prošel zkouškou: zdraví,
+  prostor, demo, identifikace (úloha), report, izolace uživatelů a limit.
+- Testy `tests/test_api_team.py`: JWT s lokálním RSA klíčem a falešným JWKS (bez sítě; špatná audience / vydavatel /
+  platnost / podpis / `kid` / algoritmus, rotace klíčů, výpadek), izolace prostorů i úloh, limity, volitelnost režimu
+  `header`, nezměněný desktop, uživatel v lozích. Návod `docs/deployment.md` (a stručně `docs/cs/nasazeni.md`).
+- Zbývá: běží jediný proces (prostory a úlohy jsou v paměti, po restartu se ztratí; víc replik by vyžadovalo sdílené
+  úložiště); žádná role správce ani kvóty na objem dat; ověření proti skutečnému Cloudflare Access se nedělalo (jen
+  proti lokálně podepsaným tokenům).
 
 ---
 
@@ -691,7 +811,7 @@ K tomu kontrola, že aplikace nedělá žádné síťové požadavky mimo `127.0
 | R1 | Frontend | **rozhodnuto: React + TypeScript** (porovnání s Vue, Svelte, Angular a Python UI – 23. 10. 2026) | M12 |
 | R2 | Obal desktopu | Tauri 2 (záloha Electron) | M23 |
 | R3 | Přihlášení na webu | Cloudflare Access | M26 |
-| R4 | Podpis instalátoru | firemní certifikát, standardní (EV jen pokud trvá SmartScreen) | M24 |
+| R4 | Podpis instalátoru | **rozhodnuto: zatím bez podpisu (28. 10. 2026)** – instalátor zůstává nepodepsaný (SmartScreen hlásí neznámého vydavatele), podpis se doplní, až bude certifikát (firemní, standardní; EV jen pokud trvá SmartScreen) | M24 |
 | R5 | Zmrazení staré aplikace | desktop PySide6: jen opravy hned; Streamlit: jen opravy od M14 | M14 |
 | R6 | Cílová PC | Windows 10 / 11, instalace uživatelem, část bez internetu | M24 |
 

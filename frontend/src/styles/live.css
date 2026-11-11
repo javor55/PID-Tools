@@ -1,0 +1,17 @@
+/* Živá simulace: umístění sdíleného modulu live_ui.js (vzhled karet, přepínačů a tabulek má v sobě, podle návrhu
+   Live.dc.html) do stránky – dva samostatně rolující sloupce (plocha + panel 380 px) a „Rozbalit vše / Sbalit vše“. */
+.main:has(> .live-host) { padding: 0; overflow: hidden; }
+.live-host { margin: 0; height: 100%; }
+.live-host .pidlive { height: 100%; font-family: var(--pid-font, inherit); }
+.live-host .pidlive .lvg { height: 100%; grid-template-columns: minmax(0, 1fr) 380px; gap: 0; align-items: stretch; }
+.live-host .pidlive .lvm { overflow-y: auto; padding: 16px 16px 32px 24px; min-height: 0; }
+.live-host .pidlive .lvs { overflow-y: auto; margin-top: 0; min-height: 0; padding: 12px 24px 32px 16px; background: var(--pid-side); }
+.live-host .pidlive .lvs-all { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: -4px; }
+.live-host .pidlive .lvs-all button.link { border: 0; background: transparent; color: var(--pid-accent); padding: 0; font-size: 12px; }
+.live-host .pidlive .lvs-all button.link:hover { text-decoration: underline; }
+@media (max-width: 1000px) {
+  .main:has(> .live-host) { overflow: auto; }
+  .live-host, .live-host .pidlive, .live-host .pidlive .lvg { height: auto; }
+  .live-host .pidlive .lvg { grid-template-columns: 1fr; }
+  .live-host .pidlive .lvm, .live-host .pidlive .lvs { overflow: visible; }
+}

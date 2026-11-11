@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PID Tools</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, "Segoe UI", sans-serif; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: Canvas; color: CanvasText; }
+  main { max-width: 38rem; padding: 0 1.5rem; text-align: center; }
+  h1 { font-weight: 600; font-size: 1.5rem; }
+  .spin { width: 2rem; height: 2rem; margin: 1.5rem auto; border: 3px solid #8884; border-top-color: #2f6fdb;
+          border-radius: 50%; animation: r 0.9s linear infinite; }
+  @keyframes r { to { transform: rotate(360deg); } }
+  pre { text-align: left; white-space: pre-wrap; background: #8881; padding: 0.75rem; border-radius: 6px;
+        max-height: 40vh; overflow: auto; font-size: 0.8rem; }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>PID Tools</h1>
+  <div id="busy"><div class="spin" role="progressbar"></div><p>Starting the backend… / Spouštím výpočetní jádro…</p></div>
+  <div id="fail" hidden>
+    <p><strong>The backend did not start. / Výpočetní jádro nenastartovalo.</strong></p>
+    <p id="msg"></p>
+    <pre id="detail"></pre>
+  </div>
+</main>
+<script>
+  // Volá obal (Rust) přes window.eval: window.__pidFail(zpráva, podrobnosti)
+  window.__pidFail = function (msg, detail) {
+    document.getElementById("busy").hidden = true;
+    document.getElementById("fail").hidden = false;
+    document.getElementById("msg").textContent = msg;
+    document.getElementById("detail").textContent = detail || "";
+  };
+</script>
+</body>
+</html>

@@ -2,9 +2,11 @@
 // požadavku; v hlavní ploše implementace, kontroly a simulace skoku výkonu bez křížového omezení / s ním.
 import type { components } from "../../api/schema";
 import { LineChart, type Series } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { useWs } from "../../data";
 import { useT } from "../../i18n";
-import { Bold, type CurveDef, curveSeries, num, useApc } from "./common";
+import { Bold, type CurveDef, curveSeries, useApc } from "./common";
+import { ACard, VariantTable } from "./parts";
 import { Checks, g, mergeBody, ModelEditor, NumField, useDesign, useEdits, useSim, ValueTable } from "./moreCommon";
 
 type RatioIn = components["schemas"]["RatioIn"];
@@ -26,9 +28,8 @@ export function RatioSide() {
   if (!q.data || !body || !design) return null;
   const manual = body.air_loop == null;
   return (
-    <div className="stack" data-testid="ratio-side">
-      <section>
-        <h3>{T("ra_air")}</h3>
+    <>
+      <SideCard title={T("ra_air")} testid="ratio-side">
         <label className="field"><span>{T("ra_src")}</span>
           <select value={body.air_loop ?? ""} data-testid="ratio-src"
             onChange={(e) => put({ air_loop: e.target.value === "" ? undefined : +e.target.value, air: undefined })}>
@@ -36,16 +37,15 @@ export function RatioSide() {
             {design.sources.map((s) => <option key={s.index} value={s.index}>{s.name}</option>)}</select></label>
         <ModelEditor model={design.air} values={body.air ?? design.air.values} edited={ov.air !== undefined} testid="ratio-air"
           disabled={!manual} onChange={(p) => put({ air: p })} onReset={() => clear(["air"])} />
-      </section>
-      <section>
-        <h3>{T("ra_setup")}</h3>
+      </SideCard>
+      <SideCard title={T("ra_setup")}>
         <NumField label={T("ra_R")} value={body.R} lo={0.01} hi={100} testid="ratio-R" title={T("h_ra_R")} onCommit={(x) => put({ R: x })} />
         <NumField label={T("ra_step")} value={body.step} lo={-50} hi={50} testid="ratio-step" title={T("h_ra_step")}
           onCommit={(x) => put({ step: x })} />
         <button className="btn" title={T("h_apc_reset")} data-testid="ratio-reset"
           disabled={ov.R === undefined && ov.step === undefined} onClick={() => clear(["R", "step"])}>{T("apc_reset")}</button>
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -63,29 +63,29 @@ export function RatioMain() {
     { name: T("ra_plain"), key: "lam_plain", color: "#64748b", dash: "5 4" }];
   const lamS: Series[] = curveSeries(curves, lam);
   if (lamS.length) lamS.push({ name: "λ = 1", x: lamS[0].x, y: Array.from(lamS[0].x, () => 1), color: "#dc2626", dash: "5 4" });
+  const V = ["plain", "cross"] as const;
   return (
     <div className="stack">
-      {sim && <div className="card small" data-testid="ratio-result"><Bold text={T("ra_result", {
-        a: sim.lam_min.plain.toFixed(3), b: sim.lam_min.cross.toFixed(3) })} /></div>}
-      <div className="card stack" data-testid="ratio-template">
-        <h3>{T("sm_apl_title")}</h3>
+      <ACard title={T("ui_apc_verify")} testid="ratio-sim">
+        <LineChart series={flows} height={220} yLabel={T("ra_flows")} xLabel={T("time_s")} testid="ratio-flows" />
+        <LineChart series={lamS} height={140} yLabel="λ" xLabel={T("time_s")} testid="ratio-lam" />
+      </ACard>
+      <ACard title={T("ui_apc_result")} testid="ratio-res">
+        {sim && <div className="small" data-testid="ratio-result"><Bold text={T("ra_result", {
+          a: sim.lam_min.plain.toFixed(3), b: sim.lam_min.cross.toFixed(3) })} /></div>}
+        {sim && (
+          <VariantTable testid="ratio-kpis" cols={V.map((k) => ({ key: k, label: T("ra_" + k) }))} rows={[
+            { key: "lam_min", label: T("ra_lam_min"), best: "max", values: V.map((k) => sim.kpis[k]?.lam_min) },
+            { key: "t_rich", label: T("ra_t_rich"), best: "min", values: V.map((k) => sim.kpis[k]?.t_rich) },
+            { key: "iae", label: T("ra_iae"), best: "min", values: V.map((k) => sim.kpis[k]?.iae) }]} />
+        )}
+      </ACard>
+      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="ratio-template">
         <ValueTable testid="ratio-val" rows={[{ key: "R", name: "R", value: body.R, unit: "%/%" }]} />
         <div className="small"><Bold text={d.impl_text} /></div>
         <div className="small muted">{T("model_" + d.air.code)}: {d.air.params.map((n, i) => `${n} = ${g(d.air.values[i], 4)}`).join(", ")}</div>
-      </div>
-      <div className="card stack"><Checks items={d.checks} testid="ratio-checks" /></div>
-      <div className="card stack" data-testid="ratio-sim">
-        <LineChart series={flows} height={220} yLabel={T("ra_flows")} xLabel={T("time_s")} testid="ratio-flows" />
-        <LineChart series={lamS} height={140} yLabel="λ" xLabel={T("time_s")} testid="ratio-lam" />
-        {sim && (
-          <table className="tbl" data-testid="ratio-kpis">
-            <thead><tr><th>{T("setting")}</th><th>{T("ra_lam_min")}</th><th>{T("ra_t_rich")}</th><th>{T("ra_iae")}</th></tr></thead>
-            <tbody>{(["plain", "cross"] as const).map((k) => (
-              <tr key={k} data-testid={`ratio-kpi-${k}`}><td>{T("ra_" + k)}</td><td className="mono">{num(sim.kpis[k]?.lam_min)}</td>
-                <td className="mono">{num(sim.kpis[k]?.t_rich)}</td><td className="mono">{num(sim.kpis[k]?.iae)}</td></tr>))}</tbody>
-          </table>
-        )}
-      </div>
+      </ACard>
+      <Checks items={d.checks} testid="ratio-checks" />
     </div>
   );
 }

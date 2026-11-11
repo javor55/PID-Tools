@@ -8,7 +8,8 @@ model, proposes controller parameters, shows their robustness and expected behav
 stating exactly what to set in PCS 7. The methods apply to industrial PID controllers in general; terminology,
 controller structure and implementation steps follow the **PIDConL** block and the templates of the **APL** library.
 
-- **Online:** <https://pidtools.streamlit.app/> (public instance – see [Data and security](#data-and-security))
+- **Online:** <https://pidtools.streamlit.app/> (public instance of the Streamlit app, deployed from the branch `streamlit`
+  – see [Data and security](#data-and-security)); `main` develops the new UI
 - **Documentation:** [User guide](docs/user-guide.md) · [Methods](docs/methods.md) ·
   [Implementation in PCS 7](docs/pcs7.md) · [Deployment](docs/deployment.md) · [Changelog](CHANGELOG.md)
 - The user interface is in **English and Czech** (Settings › Language). Czech documentation: [docs/cs](docs/cs/README.md).
@@ -81,7 +82,7 @@ The same computations as a desktop window without a browser – for engineering 
 
 ```bash
 pip install -r requirements.txt -r requirements-desktop.txt
-python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.json
+python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.pidproj
 ```
 
 Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,

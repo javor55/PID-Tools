@@ -14,32 +14,8 @@ type ModelState = components["schemas"]["ModelState"];
 type ModelRes = components["schemas"]["ModelRes"];
 type Validation = components["schemas"]["Validation"];
 
-function ParamRow({ label, edKey, fxKey, value }: { label: string; edKey: string; fxKey: string; value: number }) {
-  const wid = useUi((s) => s.wid);
-  const qc = useQueryClient();
-  const st = useSettings().data ?? {};
-  const [v, setV] = useState<string | null>(null);
-  const patch = async (p: Record<string, unknown>) => {
-    qc.setQueryData<Record<string, unknown>>(["ws", wid, "settings"], (old) => ({ ...(old ?? {}), ...p }));
-    await request("PATCH", `/workspaces/${wid}/settings`, p);
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-  };
-  const cur = Number(st[edKey] ?? value);
-  return (
-    <tr>
-      <td>{label}</td>
-      <td><input className="num" type="number" step="any" value={v ?? +cur.toPrecision(6)} data-testid={`ed-${edKey}`}
-        onChange={(e) => setV(e.target.value)}
-        onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v)) void patch({ [edKey]: +v }); setV(null); }}
-        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></td>
-      <td><input type="checkbox" checked={!!st[fxKey]} aria-label={`fix ${label}`} data-testid={`fx-${fxKey}`}
-        onChange={(e) => void patch({ [fxKey]: e.target.checked })} /></td>
-    </tr>
-  );
-}
-
 // Porovnání struktur přenosu měřené poruchy (FIT jen jejích parametrů) a výběr jiné struktury
-function DistCompare({ code, j, d }: { code: string; j: number; d: ModelRes["dists"][number] }) {
+export function DistCompare({ code, j, d }: { code: string; j: number; d: ModelRes["dists"][number] }) {
   const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
@@ -49,7 +25,6 @@ function DistCompare({ code, j, d }: { code: string; j: number; d: ModelRes["dis
   };
   return (
     <div data-testid={`dist-cmp-${j}`}>
-      <div className="small">{T("dkind")} · {d.name}</div>
       {d.flat && <div className="muted small">{T("ms_dv_flat")}</div>}
       <table className="tbl"><thead><tr><th>{T("ms_cmp_type")}</th><th>FIT [%]</th><th /><th /></tr></thead><tbody>
         {d.cmp.map((c) => (
@@ -67,8 +42,6 @@ function DistCompare({ code, j, d }: { code: string; j: number; d: ModelRes["dis
 
 export function ModelDetails({ model }: { model: ModelState }) {
   const T = useT();
-  const wid = useUi((s) => s.wid);
-  const qc = useQueryClient();
   const run = useJobRunner();
   const st = useSettings().data ?? {};
   const val = useWsQuery<Validation>("validation", "/model/validation", !!model.current && !model.stale);
@@ -77,37 +50,12 @@ export function ModelDetails({ model }: { model: ModelState }) {
   if (!r || !model.current) return null;
   const cur = model.current as { code: string; p: number[]; pdl: number[][] };
   const code = r.code;
-  const reset = async () => {
-    await request("POST", `/workspaces/${wid}/model/reset`, { code });
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-  };
   const m = val.data?.metrics as Record<string, number> | undefined;
   const unc = model.uncertainty as { code: string; ps: number[][] } | null | undefined;
   const q = (a: number[], f: number) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(f * (s.length - 1) + 0.5))]; };
 
   return (
     <div className="grid2">
-      <div className="card" data-testid="params">
-        <h3>{T("dk_params")} · {T("model_" + code)}</h3>
-        <table className="tbl"><thead><tr><th /><th /><th>{T("fix")}</th></tr></thead><tbody>
-          {r.names.map((nm, i) => <ParamRow key={nm} label={nm} edKey={`ed|${code}|${i}`} fxKey={`fx|${code}|${i}`}
-            value={cur.p[i]} />)}
-          {r.dists.map((d, j) => d.fields.map(([fname, idx]) => (
-            <ParamRow key={`${j}-${idx}`} label={`${fname} (${d.name})`} edKey={`ed|${code}|d${j}|${idx}`}
-              fxKey={`fx|${code}|d${j}|${idx}`} value={Number(st[`ed|${code}|d${j}|${idx}`] ?? 0)} />)))}
-        </tbody></table>
-        <div className="row">
-          <button className="btn" data-testid="refit" onClick={() => void run("/model/refit", { code }, T("refit"))}>{T("refit")}</button>
-          <button className="btn" data-testid="reset" onClick={() => void reset()}>{T("dk_reset")}</button>
-        </div>
-      </div>
-      {r.dists.some((d) => d.cmp.length > 0) && (
-        <div className="card" data-testid="dist-cmp">
-          <h3>{T("ms_cmp")} · {T("dkind")}</h3>
-          {r.dists.map((d, j) => d.cmp.length > 0 && <DistCompare key={j} code={code} j={j} d={d} />)}
-          <div className="muted small">{T("ms_cmp_dv_note")}</div>
-        </div>
-      )}
       <div className="card" data-testid="validation">
         <h3>{T("val_title")}</h3>
         {m ? (

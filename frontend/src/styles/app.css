@@ -5,22 +5,73 @@ button { font: inherit; color: inherit; }
 .mono { font-family: var(--pid-mono); font-variant-numeric: tabular-nums; }
 
 .shell { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
-.header { display: flex; align-items: center; gap: 18px; padding: 8px 16px; background: var(--pid-card);
-  border-bottom: 1px solid var(--pid-line); }
-.header h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; }
-.tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
-.tab { border: 0; background: transparent; padding: 6px 10px; border-radius: var(--pid-radius); cursor: pointer;
-  color: var(--pid-muted); white-space: nowrap; }
-.tab:hover { background: var(--pid-soft); color: var(--pid-text); }
-.tab[aria-selected="true"] { background: var(--pid-accent-bg); color: var(--pid-accent); font-weight: 600; }
-.tools { display: flex; gap: 6px; align-items: center; }
+/* ---- hlavička a záložky (návrh: bílý pruh, dva řádky, záložky s podtržením) */
+.header { background: var(--pid-card); border-bottom: 1px solid var(--pid-line); padding: 12px 24px 0; }
+.hrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; justify-content: space-between; }
+.hleft { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; min-width: 0; }
+.hright { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.header h1 { font-size: 20px; font-weight: 600; margin: 0; white-space: nowrap; }
+.hloops { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hloops select { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 8px; border: 1px solid var(--pid-ctl);
+  border-radius: var(--pid-radius); background: var(--pid-card); color: inherit; max-width: 320px; }
+.hsum { font-size: 12px; color: var(--pid-muted); }
+.hbtn { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--pid-ctl); background: var(--pid-card);
+  border-radius: var(--pid-radius); color: var(--pid-text); cursor: pointer; list-style: none; white-space: nowrap; }
+.hbtn.small { font-size: 12px; padding: 5px 10px; }
+.hbtn:hover { border-color: var(--pid-accent); color: var(--pid-accent); }
+.hbtn[aria-pressed="true"] { border-color: var(--pid-accent); color: var(--pid-accent); background: var(--pid-accent-bg); }
+.hbtn:disabled { opacity: .55; cursor: default; }
+.qbtn { font-weight: 600; }
+.tabs { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+.tab { border: 0; border-bottom: 3px solid transparent; background: transparent; padding: 10px 14px 7px; font-size: 14px;
+  cursor: pointer; color: var(--pid-muted); white-space: nowrap; }
+.tab:hover { color: var(--pid-text); }
+.tab[aria-selected="true"] { color: var(--pid-accent); font-weight: 600; border-bottom-color: var(--pid-accent); }
+details.pop { position: relative; }
+details.pop > summary::-webkit-details-marker { display: none; }
+.pop-body { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 300px; background: var(--pid-card);
+  border: 1px solid var(--pid-line); border-radius: 10px; padding: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, .15);
+  display: flex; flex-direction: column; gap: 8px; }
+dialog.help { width: min(760px, 94vw); max-height: 86vh; padding: 18px 22px; border: 1px solid var(--pid-line);
+  border-radius: 10px; background: var(--pid-card); color: var(--pid-text); }
+dialog.help::backdrop { background: rgba(0, 0, 0, .35); }
+.help-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.help-head h2 { font-size: 17px; margin: 0; }
+dialog.help h3 { font-size: 14px; margin: 14px 0 4px; }
+dialog.help details.sec { margin-top: 8px; }
+.md p { margin: 0 0 8px; } .md ul, .md ol { margin: 0 0 8px; padding-left: 20px; } .md li { margin-bottom: 3px; }
+.md code { font-family: var(--pid-mono); font-size: 12px; background: var(--pid-soft); padding: 0 3px; border-radius: 3px; }
 .tools select, .tools button { border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius);
   padding: 3px 8px; cursor: pointer; }
 
-.body { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
-.main { overflow: auto; padding: var(--pid-gap) 16px; min-width: 0; }
-.side { overflow: auto; background: var(--pid-side); border-left: 1px solid var(--pid-line); padding: var(--pid-gap); }
-.side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--pid-muted); margin: 0 0 8px; }
+.body { display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+.main { overflow: auto; padding: 16px 16px 32px 24px; min-width: 0; }
+.side { overflow: auto; background: var(--pid-side); border-left: 1px solid var(--pid-line); padding: 12px 24px 32px 16px;
+  display: flex; flex-direction: column; gap: 12px; }
+.side-all { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: -4px; }
+button.link { font: inherit; font-size: 12px; border: 0; background: transparent; color: var(--pid-accent); padding: 0; cursor: pointer; }
+button.link:hover { text-decoration: underline; }
+/* karta panelu (sbalitelná) */
+details.scard { background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 10px; padding: 14px; }
+details.scard > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+details.scard > summary::-webkit-details-marker { display: none; }
+details.scard[open] > summary { margin-bottom: 10px; }
+details.scard > summary h2 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; min-width: 0; }
+details.scard > summary .chev { color: #9aa5b1; font-size: 12px; width: 12px; transition: transform .15s; }
+details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
+.scard-body { display: flex; flex-direction: column; gap: 8px; }
+.qm { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--pid-ctl); color: var(--pid-muted); font-size: 12px; font-weight: 600; cursor: help; flex: none; }
+/* přepínač (segmented control) */
+.seg { display: inline-flex; border: 1px solid var(--pid-ctl); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg.stretch { display: flex; }
+.seg button { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; border-left: 1px solid var(--pid-ctl);
+  background: var(--pid-card); color: var(--pid-text); cursor: pointer; white-space: nowrap; }
+.seg.small button { font-size: 12px; padding: 4px 10px; }
+.seg.stretch button { flex: 1; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--pid-accent); color: #fff; font-weight: 500; }
+.btn.big { width: 100%; justify-content: center; font-size: 15px; font-weight: 600; padding: 12px 16px; border-radius: 8px; }
 .card { background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: var(--pid-radius); padding: 12px 14px; }
 .muted { color: var(--pid-muted); }
 
@@ -63,6 +114,7 @@ button { font: inherit; color: inherit; }
 .tbl input.num { width: 7em; }
 .trend-host { min-height: 300px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
+.grid2 > .span-all { grid-column: 1 / -1; }          /* karta přes celou šíři mřížky (rezidua) */
 .card h3 { font-size: 13px; margin: 0 0 8px; }
 input.num { width: 110px; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 2px 6px; font-family: var(--pid-mono); }
 .chart { margin: 0; }
@@ -95,3 +147,9 @@ dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
 .opc-list button.link { border: 0; background: transparent; cursor: pointer; padding: 0; text-align: left; color: inherit; }
 .opc-list button.link:hover { color: var(--pid-accent); }
 @media (max-width: 700px) { .opc-cols { grid-template-columns: 1fr; } }
+/* karta hlavní plochy (components/Card.tsx) – jako v návrhu */
+.dcard { border-radius: 10px; display: flex; flex-direction: column; gap: 8px; }
+.dcard .dhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.dcard .dhead h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.dcard .dright { margin-left: auto; font-size: 12px; color: var(--pid-muted); display: inline-flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.dcard .dnote { margin: 0; font-size: 12px; color: var(--pid-muted); }

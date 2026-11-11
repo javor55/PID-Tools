@@ -66,10 +66,12 @@ class FFDist(BaseModel):
     eng_gain: float              # zesílení v jednotkách MV na jednotku poruchy (vstup FFwd)
     step: float                  # výchozí skok poruchy pro ověření (polovina rozkmitu)
     values: list[ValueRow] = []  # hodnoty pro PIDConL (jen zapnutá porucha)
+    model_params: list[float] = []  # model poruchy → PV: [Kd, Td, θd] (jednotky PV na jednotku poruchy, s)
 
 
 class FFInfo(BaseModel):
     model: str
+    theta: float = 0.0           # dopravní zpoždění procesu MV → PV [s]
     mv_unit: str
     mv_range: float
     dists: list[FFDist]
@@ -115,8 +117,9 @@ def _ff_info(ws):
         vals = [ValueRow(param=a, value=float(v), unit=u) for a, v, u in rows[j][1]] if j in rows else []
         out.append(FFDist(index=j, name=str(ws.c_d[j]), design=FFDesign(**d), edited=j in edited,
                           defaults=FFDefaults(gain=g, lead=tl, lag=tg, delay=dl),
-                          eng_gain=float(ffm.eng_gain(d["gain"], ws.MR)), step=_ff_step(ws, j), values=vals))
-    return FFInfo(model=code, mv_unit=u_mv, mv_range=float(ws.MR), dists=out)
+                          eng_gain=float(ffm.eng_gain(d["gain"], ws.MR)), step=_ff_step(ws, j), values=vals,
+                          model_params=[float(x) for x in pd]))
+    return FFInfo(model=code, theta=float(p[-1]), mv_unit=u_mv, mv_range=float(ws.MR), dists=out)
 
 
 def _ff_run(ws, body):

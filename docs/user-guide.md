@@ -37,7 +37,7 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
 
 ## Top bar
 
-- **Project** – loop label (tag) and loading of a saved project (JSON).
+- **Project** – loop label (tag) and loading of a saved project (`.pidproj`; older `.json` projects open too).
 - **Help** – how to proceed, glossary and *About* (version, disclaimer, data handling).
 - **Settings** – language (English / Czech) and chart height. Light / dark theme in the ⋮ menu › Settings.
 - **Data bar** – data source (**File**, **Demo**, **Project**), data summary (samples, period, ranges) and the
@@ -195,7 +195,7 @@ of the benefit and values for the APL templates – see [Implementation in PCS 7
 
 ## 6 · Project & report
 
-- **Save project** – saves all loops, models, tuning and APC settings, optionally the data (JSON file). Load it in
+- **Save project** – saves all loops, models, tuning and APC settings, optionally the data (`.pidproj` file, JSON content). Load it in
   the top bar under *Project*.
 - **Tuning protocol (report)** – plant, author, status, comment, choice of sections (model, tuning, response, APC,
   sign-off); charts embedded (works offline) or loaded from the internet (smaller file). Downloaded as HTML; to PDF

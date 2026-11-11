@@ -4,11 +4,12 @@ import { useState } from "react";
 import type { components } from "../../api/schema";
 import { NumSetting, SelectSetting } from "../../components/Fields";
 import { LineChart } from "../../components/LineChart";
+import { SideCard } from "../../components/Ui";
 import { useSettings, useWs } from "../../data";
 import { useT } from "../../i18n";
 import { useJobRunner } from "../../jobs";
 import { type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { Checks, Impl, LoopSelect, PairError, PidRow, qs, usePair, usePost, useSim } from "./parts";
+import { ACard, Checks, Impl, LoopSelect, PairError, PidRow, qs, usePair, usePost, useSim } from "./parts";
 
 type CascadeInfo = components["schemas"]["CascadeInfo"];
 type ModelOut = components["schemas"]["ModelOut"];
@@ -78,32 +79,29 @@ export function CascadeSide() {
   const reset = (part: string) => void post(`/apc/cascade/reset${qs({ loop })}`, { part });
   const sameSamp = Math.abs(inp.samp_i - inp.samp_default) < 1e-9;
   return (
-    <div className="stack" data-testid="cascade-side">
-      <section>
-        <h3>{T("cas_inner")}</h3>
+    <>
+      <SideCard title={T("cas_inner")} testid="cascade-side">
         <SelectSetting k="cas_src" label={T("cas_src")} options={inp.sources} def={inp.source} fmt={(s) => T("cas_src_" + s)} />
         {inp.source === "loop" && <LoopSelect kind="cascade" label={T("cas_iloop")} current={inp.loop ?? undefined} />}
         {inp.source === "manual" && <ManualInputs inp={inp} />}
         {inp.source === "data" && <DataInputs inp={inp} />}
-      </section>
-      <section>
-        <h3>{T("cas_inner_tune")}</h3>
+      </SideCard>
+      <SideCard title={T("cas_inner_tune")}>
         <SelectSetting k="cas_im" label={T("method")} options={inp.methods} def={inp.inner_method} fmt={(m) => T("m_" + m)} />
         <NumSetting k="cas_samp" label={T("cas_samp")} def={inp.samp_i} min={0.001} />
         {inp.inner_method === "SIMC" && <NumSetting k="cas_tci" label={T("tc")} def={inp.tci_default} min={0.001} title={T("tc_help")} />}
         <button className="btn" data-testid="cas-reset-inner" disabled={!inp.tci_edited && sameSamp} title={T("h_apc_reset")}
           onClick={() => reset("inner")}>{T("apc_reset")}</button>
-      </section>
-      <section>
-        <h3>{T("cas_outer_tune")}</h3>
+      </SideCard>
+      <SideCard title={T("cas_outer_tune")}>
         <SelectSetting k="cas_om" label={T("method")} options={inp.methods} def={inp.outer_method} fmt={(m) => T("m_" + m)} />
         <SelectSetting k="cas_oct" label={T("ctrl_type")} options={CTYPES} def={inp.outer_ctype} />
         {inp.outer_method === "SIMC" && inp.tco_default != null && (
           <NumSetting k="cas_tco" label={T("tc")} def={inp.tco_default} min={0.001} title={T("tc_help")} />)}
         <button className="btn" data-testid="cas-reset-outer" disabled={!inp.tco_edited} title={T("h_apc_reset")}
           onClick={() => reset("outer")}>{T("apc_reset")}</button>
-      </section>
-    </div>
+      </SideCard>
+    </>
   );
 }
 
@@ -117,16 +115,15 @@ const ROW_LABEL: Record<string, string> = { inner: "cas_inner", outer: "ui_cas_o
 function ValuesCard({ d }: { d: CascadeInfo }) {
   const T = useT();
   return (
-    <div className="card stack" data-testid="cas-values">
-      <h3>{T("ui_cas_values")}</h3>
-      <table className="tbl"><thead><tr><th>{T("sm_apl_block")}</th><th>{T("sm_gen_par")}</th><th>{T("sm_apl_value")}</th>
+    <ACard title={T("ui_cas_values")} help={T("ui_apc_pcs_h")} testid="cas-values">
+      <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("sm_apl_block")}</th><th>{T("sm_gen_par")}</th><th>{T("sm_apl_value")}</th>
         <th>{T("sm_apl_unit")}</th></tr></thead>
         <tbody>{d.rows.map((r) => {
           const [blk, par] = r.param.split(".");
           return <tr key={r.param} data-testid={`cas-row-${r.param}`}><td>{T(ROW_LABEL[blk] ?? blk)}</td><td>{par}</td>
             <td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>;
-        })}</tbody></table>
-    </div>
+        })}</tbody></table></div>
+    </ACard>
   );
 }
 
@@ -145,8 +142,7 @@ function SimCard({ d, loop }: { d: CascadeInfo; loop?: number }) {
   const valve: CurveDef[] = [{ name: T("cas_valve"), key: "valve", color: "#15803d" }];
   const unstable = sim.data && !sim.data.ok;
   return (
-    <div className="card stack" data-testid="cas-sim">
-      <div className="small muted">{T("cas_sim_help")}</div>
+    <ACard title={T("ui_apc_verify")} testid="cas-sim">
       {unstable ? <div className="err small" data-testid="cas-unstable">⛔ {T("err_sim_unstable", { n: T("apc_cascade") })}</div> : (
         <>
           <LineChart series={curveSeries(cv.data, pvo)} height={200} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel={T("time_s")} testid="cas-pv" />
@@ -154,14 +150,26 @@ function SimCard({ d, loop }: { d: CascadeInfo; loop?: number }) {
           <LineChart series={curveSeries(cv.data, valve)} height={120} yLabel={T("cas_valve_pct")} xLabel={T("time_s")} testid="cas-valve" />
         </>
       )}
+      <p className="small muted">{T("cas_sim_help")}</p>
+    </ACard>
+  );
+}
+
+function KpiCard({ d, loop }: { d: CascadeInfo; loop?: number }) {
+  const T = useT();
+  const { sim } = useSim<CascadeSim>(["cas-sim", loop, d.inputs, d.inner, d.outer, d.inner_model], "/apc/cascade/simulate", qs({ loop }),
+    {}, !!d.inner_model);
+  if (!d.inner_model || !sim.data) return null;
+  return (
+    <>
       {sim.data && (
-        <table className="tbl" data-testid="cas-kpis"><tbody>
-          <tr><td>{T("cas_t63")} [s]</td><td className="mono" data-testid="cas-sim-t63">{num(sim.data.t63)}</td></tr>
-          <tr><td>{T("cas_sep")}</td><td className="mono" data-testid="cas-sim-sep">{num(sim.data.separation)}</td></tr>
-          {sim.data.ok && <tr><td>{T("iae_sp")} ({T("cas_pv_o")})</td><td className="mono" data-testid="cas-sim-iae">{num(sim.data.iae_outer)}</td></tr>}
+        <table className="apc-vt" data-testid="cas-kpis"><tbody>
+          <tr><th scope="row">{T("cas_t63")} [s]</th><td className="mono r" data-testid="cas-sim-t63">{num(sim.data.t63)}</td></tr>
+          <tr><th scope="row">{T("cas_sep")}</th><td className="mono r" data-testid="cas-sim-sep">{num(sim.data.separation)}</td></tr>
+          {sim.data.ok && <tr><th scope="row">{T("iae_sp")} ({T("cas_pv_o")})</th><td className="mono r" data-testid="cas-sim-iae">{num(sim.data.iae_outer)}</td></tr>}
         </tbody></table>
       )}
-    </div>
+    </>
   );
 }
 
@@ -176,31 +184,34 @@ export function CascadeMain() {
   const nm = d.inputs.loops.find((l) => l.index === d.inputs.loop)?.name ?? "";
   return (
     <div className="stack">
-      <div className="card stack" data-testid="cas-models">
-        {d.inner_note && <div className="warn small" data-testid="cas-inner-note">⚠ {d.inner_note}</div>}
-        {d.inner_model ? <ModelLine m={d.inner_model} label={d.inputs.source === "loop" ? `${T("cas_inner")} (${nm})` : T("cas_inner")} />
-          : !d.inner_note && <div className="muted small" data-testid="cas-need-inner">{T("cas_need_inner")}</div>}
-        {d.inner_fit && <div className="small" data-testid="cas-fit-info">{T("cas_inner_fit", { m: T("model_" + d.inner_fit.model.code),
-          f: d.inner_fit.fit.toFixed(1), p: d.inner_fit.model.params.map((p) => `${p.name} = ${num(p.value)}`).join(", ") })}</div>}
-        {d.outer_model && <div className="small" data-testid="cas-outer-model">{T("cas_outer_model", { m: T("model_" + d.outer_model.code),
-          p: d.outer_model.params.map((p) => `${p.name} = ${num(p.value)}`).join(", ") })}</div>}
-      </div>
-      {d.inner && d.outer && (
-        <div className="card stack" data-testid="cas-tuning">
-          <h3>{T("cas_inner")}</h3>
-          <PidRow c={d.inner} prefix="cas-inner" />
-          <div className="small">{T("cas_t63")}: <b className="mono" data-testid="cas-t63">{num(d.t63)}</b> s</div>
-          <h3>{T("cas_outer_tune")}</h3>
-          <PidRow c={d.outer} prefix="cas-outer" />
-          {d.outer.notes?.map((n) => <div key={n.key} className="small muted">{T(n.key, n.args as Record<string, unknown>)}</div>)}
-          <div className="small">{T("cas_sep")}: <b className="mono" data-testid="cas-sep">{num(d.separation)}</b>×</div>
-          {d.sep_warn && <div className="warn small" data-testid="cas-sep-warn">⚠ {T("cas_sep_warn")}</div>}
+      <SimCard d={d} loop={loop} />
+      <ACard title={T("ui_apc_result")} testid="cas-result">
+        <div className="stack" data-testid="cas-models">
+          {d.inner_note && <div className="warn small" data-testid="cas-inner-note">⚠ {d.inner_note}</div>}
+          {d.inner_model ? <ModelLine m={d.inner_model} label={d.inputs.source === "loop" ? `${T("cas_inner")} (${nm})` : T("cas_inner")} />
+            : !d.inner_note && <div className="muted small" data-testid="cas-need-inner">{T("cas_need_inner")}</div>}
+          {d.inner_fit && <div className="small" data-testid="cas-fit-info">{T("cas_inner_fit", { m: T("model_" + d.inner_fit.model.code),
+            f: d.inner_fit.fit.toFixed(1), p: d.inner_fit.model.params.map((p) => `${p.name} = ${num(p.value)}`).join(", ") })}</div>}
+          {d.outer_model && <div className="small" data-testid="cas-outer-model">{T("cas_outer_model", { m: T("model_" + d.outer_model.code),
+            p: d.outer_model.params.map((p) => `${p.name} = ${num(p.value)}`).join(", ") })}</div>}
         </div>
-      )}
+        {d.inner && d.outer && (
+          <div className="stack" data-testid="cas-tuning">
+            <div className="apc-sub">{T("cas_inner")}</div>
+            <PidRow c={d.inner} prefix="cas-inner" />
+            <div className="small">{T("cas_t63")}: <b className="mono" data-testid="cas-t63">{num(d.t63)}</b> s</div>
+            <div className="apc-sub">{T("cas_outer_tune")}</div>
+            <PidRow c={d.outer} prefix="cas-outer" />
+            {d.outer.notes?.map((n) => <div key={n.key} className="small muted">{T(n.key, n.args as Record<string, unknown>)}</div>)}
+            <div className="small">{T("cas_sep")}: <b className="mono" data-testid="cas-sep">{num(d.separation)}</b>×</div>
+            {d.sep_warn && <div className="warn small" data-testid="cas-sep-warn">⚠ {T("cas_sep_warn")}</div>}
+          </div>
+        )}
+        <KpiCard d={d} loop={loop} />
+      </ACard>
       {d.rows.length > 0 && <ValuesCard d={d} />}
       <Impl text={d.impl_text} testid="cas-impl" />
       <Checks items={d.checks} />
-      <SimCard d={d} loop={loop} />
     </div>
   );
 }

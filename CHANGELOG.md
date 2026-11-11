@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Deployment (M26): the new web runs as one container for a team (`Dockerfile.web`) with sign-in through Cloudflare
+  Access (or a trusted proxy header), per-user workspaces and jobs, limits (workspaces, jobs, upload size, idle
+  expiry) and access / job logs – configured by `PIDTOOLS_*` environment variables, see `docs/deployment.md`.
+  The desktop / token mode is unchanged.
 - CSV loading: large files are parsed only once (the decimal comma is detected on the first lines) – about 5× faster
   for 1 million rows.
 - Development: the CZ / EN texts are in `pidtools/i18n/cs.json` and `en.json` (one source, also for the future TS UI).
