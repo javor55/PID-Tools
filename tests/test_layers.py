@@ -65,3 +65,18 @@ def test_core_import_does_not_load_upper_layers():
             "['pidtools','ui'],['pidtools','desktop'])]; print(','.join(bad)); sys.exit(1 if bad else 0)")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_domain_is_checked_and_does_not_load_api():
+    """`app/domain` je pod kontrolou hranic (app neimportuje api) a jeho import za běhu nenačte api ani rozhraní."""
+    import subprocess
+    import sys
+    checked = {os.path.relpath(p, ROOT) for p in _files("app")}
+    domain = {os.path.join("app", "domain", f) for f in ("model.py", "timegrid.py", "registry.py", "suggest.py",
+                                                         "migrate.py", "trend.py")}
+    assert domain <= checked
+    code = ("import sys, pidtools.app.domain, pidtools.app.workspace.loops; "
+            "bad = [m for m in sys.modules if m.split('.')[:2] in (['pidtools','api'],['pidtools','ui'],"
+            "['pidtools','desktop'])]; print(','.join(bad)); sys.exit(1 if bad else 0)")
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
