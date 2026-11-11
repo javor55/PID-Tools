@@ -1,5 +1,8 @@
 # Úkoly
 
+**Hlavní plán od 11. 11. 2026: [plan-v2.md](plan-v2.md)** – nové UI v2 (Data se zdroji a diagnostikou, knihovna
+regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sladění s návrhem v1 a jsou v plánu zařazené.
+
 ## Sladit nové UI (React) s návrhem
 
 Návrh: artefakt „PID Tools – nový návrh UI (všechny záložky)“, https://claude.ai/artifact/QuLnUL4JG1Y6jKfAGcmhD9
