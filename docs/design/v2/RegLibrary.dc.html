@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Nastavení – knihovna regulátorů</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#1f5fa8}a:hover{color:#174a85}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #1f2933; background: #eef1f5; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="background: #ffffff; border-bottom: 1px solid #d7dde5; padding: 12px 24px 0 24px">
+<div style="display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap">
+<a href="Regulator.dc.html" style="font-size: 13px; text-decoration: none; padding: 6px 12px; border: 1px solid #c3ccd6; border-radius: 6px; color: #1f2933">← Zpět do projektu</a>
+<h1 style="margin: 0; font-size: 20px; font-weight: 600">Nastavení</h1>
+<span style="font-size: 12px; color: #52606d">platí pro celou aplikaci a všechny projekty</span>
+</div>
+<nav aria-label="Oddíly nastavení" style="display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap">
+<span style="padding: 10px 14px; font-size: 14px; color: #52606d">Obecné</span>
+<span style="padding: 10px 14px; font-size: 14px; color: #52606d">Vzhled a jazyk</span>
+<span style="padding: 10px 14px; font-size: 14px; color: #1f5fa8; font-weight: 600; border-bottom: 3px solid #1f5fa8">Regulátory</span>
+<span style="padding: 10px 14px; font-size: 14px; color: #52606d">Výchozí hodnoty nových smyček</span>
+</nav>
+</header>
+
+<div style="flex: 1 1 auto; width: 100%; max-width: 1440px; margin: 0 auto; padding: 16px 24px 32px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<aside aria-label="Knihovna" style="flex: 1 1 320px; max-width: 360px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a href="RegEditor.dc.html" style="flex: 1; text-align: center; font-size: 13px; text-decoration: none; padding: 7px 10px; border-radius: 6px; background: #1f5fa8; color: #ffffff; font-weight: 600">+ Nový regulátor</a>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Import</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Export</button>
+</div>
+<input aria-label="Hledat regulátor" placeholder="Hledat (výrobce, blok, systém)…" style="font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<section style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 10px 0 4px">
+<h2 style="margin: 0 14px 6px; font-size: 13px; font-weight: 600; color: #52606d">{{g.title}}</h2>
+<sc-for list="{{g.items}}" as="it" hint-placeholder-count="4">
+<button type="button" onClick="{{it.pick}}" style="{{it.style}}">
+<span style="flex: 1; min-width: 0">
+<span style="display: block; font-size: 13px; font-weight: 500">{{it.name}}</span>
+<span style="display: block; font-size: 11px; color: #52606d">{{it.sub}}</span>
+</span>
+<span style="{{it.tagStyle}}">{{it.tag}}</span>
+</button>
+</sc-for>
+</section>
+</sc-for>
+</aside>
+
+<main aria-label="Detail regulátoru" style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap">
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 12px; color: #52606d">{{cur.vendor}}</div>
+<h2 style="margin: 2px 0 0; font-size: 20px; font-weight: 600">{{cur.name}}</h2>
+<div style="font-size: 12px; color: #52606d; margin-top: 4px">{{cur.source}}</div>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="{{cur.tagStyle}}">{{cur.tag}}</span>
+<span style="{{cur.testStyle}}">{{cur.test}}</span>
+</div>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a href="RegEditor.dc.html" style="font-size: 13px; text-decoration: none; padding: 7px 12px; border-radius: 6px; background: #1f5fa8; color: #ffffff; font-weight: 600">{{cur.editLabel}}</a>
+<a href="RegTest.dc.html" style="font-size: 13px; text-decoration: none; padding: 7px 12px; border-radius: 6px; border: 1px solid #1f5fa8; color: #1f5fa8">Spustit test použitelnosti</a>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Výchozí pro nové smyčky</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Exportovat .pidctrl</button>
+</div>
+<nav aria-label="Karty detailu" style="display: flex; gap: 4px; border-bottom: 1px solid #e5e9ef; flex-wrap: wrap">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<button type="button" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</nav>
+
+<sc-if value="{{show.eq}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; background: #f6f8fa; border: 1px solid #e5e9ef; border-radius: 8px; padding: 12px 14px; white-space: pre-line">{{cur.eq}}</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{cur.facts}}" as="f" hint-placeholder-count="4">
+<div style="border: 1px solid #e5e9ef; border-radius: 8px; padding: 8px 10px"><div style="font-size: 12px; color: #52606d">{{f.k}}</div><div style="font-size: 13px; font-weight: 500">{{f.v}}</div></div>
+</sc-for>
+</div>
+<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px">
+<span style="padding: 6px 8px; border: 1px solid #9aa5b1; border-radius: 6px; background: #f6f8fa">SP · rampa · filtr</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #1f5fa8; border-radius: 6px; background: #eaf2fb">odchylka · mrtvé pásmo</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #1f5fa8; border-radius: 6px; background: #eaf2fb">P · I · D</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #0d9488; border-radius: 6px; background: #e6f6f4">+ FF</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #c2410c; border-radius: 6px; background: #fff4ed">meze · rychlost · anti-windup</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #9aa5b1; border-radius: 6px; background: #f6f8fa">MV</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{show.par}}" hint-placeholder-val="{{false}}">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1.4fr) minmax(0, 0.8fr); gap: 6px 12px; font-size: 13px">
+<span style="font-size: 12px; color: #52606d">Název na faceplatu</span><span style="font-size: 12px; color: #52606d">Jednotka</span><span style="font-size: 12px; color: #52606d">Převod na obecný PID</span><span style="font-size: 12px; color: #52606d">Meze</span>
+<sc-for list="{{cur.params}}" as="p" hint-placeholder-count="4">
+<span style="font-family: 'IBM Plex Mono', monospace">{{p.n}}</span><span>{{p.u}}</span><span style="font-family: 'IBM Plex Mono', monospace; color: #52606d">{{p.c}}</span><span style="color: #52606d">{{p.r}}</span>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{show.fn}}" hint-placeholder-val="{{false}}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{cur.fns}}" as="f" hint-placeholder-count="6">
+<div style="display: flex; gap: 8px; align-items: flex-start; border: 1px solid #e5e9ef; border-radius: 8px; padding: 8px 10px">
+<span style="{{f.dot}}">{{f.mark}}</span>
+<span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 500">{{f.n}}</span><span style="display: block; font-size: 12px; color: #52606d">{{f.d}}</span></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{show.io}}" hint-placeholder-val="{{false}}">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-size: 13px">
+<sc-for list="{{cur.io}}" as="s" hint-placeholder-count="6">
+<div style="display: flex; gap: 8px; border: 1px solid #e5e9ef; border-radius: 8px; padding: 8px 10px"><span style="font-family: 'IBM Plex Mono', monospace; width: 110px; flex: none">{{s.n}}</span><span style="color: #52606d">{{s.d}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{show.test}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+<div>Poslední test: <b>{{cur.test}}</b> · 12 kontrol · 10. 11. 2026</div>
+<a href="RegTest.dc.html" style="font-size: 13px">Otevřít výsledek testu →</a>
+</div>
+</sc-if>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 'pidconl', tab: 'eq' }; }
+  renderVals() {
+    const tagCss = (c, bg) => 'font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: ' + c + '; background: ' + bg + '; white-space: nowrap';
+    const OK = ['ověřeno', tagCss('#2f7a3f', '#e5f3e8')], NV = ['neověřeno', tagCss('#b45309', '#fdf0e1')], MY = ['vlastní', tagCss('#6d28d9', '#f1ebfd')];
+    const fnsBase = [
+      ['P jen z PV / váha b', 'PropFacSP 0–1'], ['D jen z PV', 'DiffToFbk'], ['Filtr D', 'TD / DiffGain'], ['Mrtvé pásmo', 'DeadBand, spojité / skokové'],
+      ['Regulační zóna', 'ConZone – mimo pásmo MV na mez'], ['Anti-windup', 'zastavení integrace na mezi'], ['Meze a rychlost MV', 'MV_HiLim / LoLim, rychlost'],
+      ['Rampa SP', 'SP_RateUp / Down'], ['Dopředná vazba', 'DisturbVar'], ['Tracking', 'MV_Trk, MV_TrkOn'],
+    ];
+    const L = {
+      pidconl: { g: 0, vendor: 'Siemens · PCS 7 · APL', name: 'PIDConL', sub: 'PCS 7 APL', tag: OK, test: 'Vhodný pro ladění', source: 'Zdroj: APL Function Manual (verze a strana se doplní při ověření)',
+        eq: 'MV = Gain · [ PropFacSP·SP − PV + 1/(TI·s)·ER − TD·s/(1 + TD·s/DiffGain)·PV ] + DisturbVar',
+        facts: [{ k: 'Forma', v: 'ideální (ISA)' }, { k: 'Normování', v: '% rozsahu NormPV / NormMV' }, { k: 'Algoritmus', v: 'polohový' }, { k: 'Vzorkování', v: 'SampleTime' }],
+        params: [{ n: 'Gain', u: '–', c: 'Kc = Gain', r: '±1e6' }, { n: 'TI', u: 's', c: 'Ti = TI', r: '0 = bez I' }, { n: 'TD', u: 's', c: 'Td = TD', r: '≥ 0' }, { n: 'DiffGain', u: '–', c: 'N = DiffGain', r: '1–20' }, { n: 'PropFacSP', u: '–', c: 'b = PropFacSP', r: '0–1' }],
+        io: [{ n: 'SP, PV', d: 'žádaná a měřená' }, { n: 'MV', d: 'výstup' }, { n: 'DisturbVar', d: 'dopředná vazba' }, { n: 'MV_Trk / MV_TrkOn', d: 'sledování' }, { n: 'MV_HiLim / LoLim', d: 'meze výstupu' }, { n: 'ModLiOp', d: 'MAN / AUTO' }] },
+      compact: { g: 0, vendor: 'Siemens · TIA Portal', name: 'PID_Compact', sub: 'S7-1200 / S7-1500', tag: NV, test: 'Neotestováno', source: 'Čeká na ověření proti manuálu PID control (TIA)',
+        eq: 'y = Kp · [ (b·w − x) + 1/(TI·s)·(w − x) + TD·s/(a·TD·s + 1)·(c·w − x) ]',
+        facts: [{ k: 'Forma', v: 'ideální (ISA)' }, { k: 'Normování', v: 'ověřit (inženýrské jednotky?)' }, { k: 'Algoritmus', v: 'ověřit' }, { k: 'Vzorkování', v: 'Cycle' }],
+        params: [{ n: 'Gain', u: 'ověřit', c: 'Kc = Gain · rozsah', r: '' }, { n: 'Ti', u: 's', c: 'Ti = Ti', r: '' }, { n: 'Td', u: 's', c: 'Td = Td', r: '' }, { n: 'TdFiltRatio', u: '–', c: 'N = 1 / a', r: '' }, { n: 'PWeighting', u: '–', c: 'b', r: '0–1' }, { n: 'DWeighting', u: '–', c: 'c', r: '0–1' }],
+        io: [{ n: 'Setpoint, Input', d: 'žádaná a měřená' }, { n: 'Output', d: 'výstup' }, { n: 'Disturbance', d: 'dopředná vazba' }, { n: 'ManualEnable', d: 'ruční režim' }] },
+      contc: { g: 0, vendor: 'Siemens · STEP 7', name: 'FB41 CONT_C', sub: 'S7-300 / 400', tag: NV, test: 'Neotestováno', source: 'Čeká na ověření proti manuálu Standard PID Control',
+        eq: 'LMN = GAIN · [ ER + 1/(TI·s)·ER + TD·s/(TM_LAG·s + 1)·ER ]',
+        facts: [{ k: 'Forma', v: 'ideální (ověřit)' }, { k: 'Normování', v: 'PV_FAC, PV_OFF, LMN_FAC' }, { k: 'Algoritmus', v: 'polohový' }, { k: 'Vzorkování', v: 'CYCLE' }],
+        params: [{ n: 'GAIN', u: '–', c: 'Kc', r: '' }, { n: 'TI', u: 'TIME', c: 'Ti', r: '' }, { n: 'TD', u: 'TIME', c: 'Td', r: '' }, { n: 'TM_LAG', u: 'TIME', c: 'N = TD / TM_LAG', r: '' }],
+        io: [{ n: 'SP_INT, PV_IN', d: 'žádaná a měřená' }, { n: 'LMN', d: 'výstup' }, { n: 'DISV', d: 'dopředná vazba' }, { n: 'P_SEL, I_SEL, D_SEL', d: 'zapnutí složek' }] },
+      deltav: { g: 1, vendor: 'Emerson · DeltaV', name: 'PID (FORM Standard / Series)', sub: 'DeltaV DCS', tag: NV, test: 'Neotestováno', source: 'Čeká na DeltaV Books Online – PID function block',
+        eq: 'OUT = GAIN · [ β·SP − PV + 1/(RESET·s)·e + RATE·s/(1 + α·RATE·s)·(γ·SP − PV) ]',
+        facts: [{ k: 'Forma', v: 'Standard / Series' }, { k: 'Normování', v: '% PV_SCALE / OUT_SCALE' }, { k: 'Anti-windup', v: 'externí reset (BKCAL)' }, { k: 'Struktura', v: 'STRUCTURE (P, D na chybě / PV)' }],
+        params: [{ n: 'GAIN', u: '–', c: 'Kc = GAIN', r: '' }, { n: 'RESET', u: 's/rep', c: 'Ti = RESET', r: '' }, { n: 'RATE', u: 's', c: 'Td = RATE', r: '' }, { n: 'BETA / GAMMA', u: '–', c: 'b / c', r: '0–1' }],
+        io: [{ n: 'SP, IN', d: 'žádaná a měřená' }, { n: 'OUT', d: 'výstup' }, { n: 'FF_VAL', d: 'dopředná vazba' }, { n: 'BKCAL_IN', d: 'externí reset' }, { n: 'TRK_VAL', d: 'sledování' }] },
+      honey: { g: 1, vendor: 'Honeywell · Experion PKS', name: 'PID (rovnice A–E)', sub: 'Experion / TDC', tag: NV, test: 'Neotestováno', source: 'Čeká na manuál Experion – PID block',
+        eq: 'rovnice A: P, I, D na chybě · B: D na PV · C: P a D na PV  (doplní se z manuálu)',
+        facts: [{ k: 'Forma', v: 'interaktivní / neinteraktivní' }, { k: 'Normování', v: 'ověřit' }, { k: 'Nelinearita', v: 'gap, nelineární zesílení' }, { k: 'Volba', v: 'CTLEQN' }],
+        params: [{ n: 'K', u: '–', c: 'Kc', r: '' }, { n: 'T1', u: 'min', c: 'Ti = 60·T1', r: '' }, { n: 'T2', u: 'min', c: 'Td = 60·T2', r: '' }],
+        io: [{ n: 'SP, PV', d: 'žádaná a měřená' }, { n: 'OP', d: 'výstup' }] },
+      isa: { g: 1, vendor: 'Obecný', name: 'ISA ideální (2DOF)', sub: 'učebnicový', tag: OK, test: 'Vhodný pro ladění', source: 'Odvozeno – bez vazby na výrobce',
+        eq: 'u = Kc · [ b·r − y + 1/(Ti·s)·e + Td·s/(1 + Td·s/N)·(c·r − y) ]',
+        facts: [{ k: 'Forma', v: 'ideální' }, { k: 'Normování', v: '% rozsahu' }, { k: 'Algoritmus', v: 'polohový' }, { k: 'Vzorkování', v: 'volitelné' }],
+        params: [{ n: 'Kc', u: '–', c: 'Kc', r: '' }, { n: 'Ti', u: 's', c: 'Ti', r: '' }, { n: 'Td', u: 's', c: 'Td', r: '' }, { n: 'N', u: '–', c: 'N', r: '' }],
+        io: [{ n: 'r, y', d: 'žádaná a měřená' }, { n: 'u', d: 'výstup' }] },
+      k2: { g: 2, vendor: 'Vlastní · Delta PLC', name: 'Kotelna K2 – PID_K2', sub: 'ruční rovnice · gap pásmo', tag: MY, test: 'Jen optimalizací', source: 'Vytvořeno z „ISA ideální“, upraveno ručně 10. 11. 2026',
+        eq: 'vlastní program (12 řádků) – P na PV, gap pásmo se sníženým zesílením, back-calculation',
+        facts: [{ k: 'Forma', v: 'ideální' }, { k: 'Nelinearita', v: 'gap pásmo' }, { k: 'Anti-windup', v: 'back-calculation' }, { k: 'Mapování', v: 'Kp, Ti, Td' }],
+        params: [{ n: 'Kp', u: '–', c: 'Kc = Kp', r: '' }, { n: 'Ti', u: 's', c: 'Ti', r: '' }, { n: 'Td', u: 's', c: 'Td', r: '' }, { n: 'Gap / Kgap', u: '% / –', c: '–', r: '' }],
+        io: [{ n: 'SP, PV', d: 'žádaná a měřená' }, { n: 'MV', d: 'výstup' }, { n: 'FF', d: 'dopředná vazba' }] },
+    };
+    const sel = this.state.sel, cur0 = L[sel];
+    const titles = ['Předvolby – Siemens', 'Předvolby – ostatní a obecné', 'Moje regulátory'];
+    const groups = titles.map((title, gi) => ({ title, items: Object.keys(L).filter((k) => L[k].g === gi).map((k) => ({
+      name: L[k].name, sub: L[k].sub, tag: L[k].tag[0], tagStyle: L[k].tag[1],
+      pick: () => this.setState({ sel: k }),
+      style: 'display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; font: inherit; padding: 8px 14px; border: 0; cursor: pointer; ' + (k === sel ? 'background: #eaf2fb; box-shadow: inset 3px 0 0 #1f5fa8;' : 'background: #ffffff;') })) }));
+    const T = [['eq', 'Rovnice'], ['par', 'Parametry a jednotky'], ['fn', 'Speciální funkce'], ['io', 'Vstupy a výstupy'], ['test', 'Test']];
+    const tabs = T.map(([id, label]) => ({ label, pick: () => this.setState({ tab: id }),
+      style: 'font: inherit; font-size: 13px; padding: 8px 12px; border: 0; background: transparent; cursor: pointer; margin-bottom: -1px; ' + (this.state.tab === id ? 'color: #1f5fa8; font-weight: 600; border-bottom: 3px solid #1f5fa8;' : 'color: #52606d; border-bottom: 3px solid transparent;') }));
+    const test = cur0.test;
+    const testStyle = tagCss(test.startsWith('Vhodný') ? '#2f7a3f' : test.startsWith('Jen') ? '#b45309' : '#52606d', test.startsWith('Vhodný') ? '#e5f3e8' : test.startsWith('Jen') ? '#fdf0e1' : '#eef1f5');
+    const fns = fnsBase.map(([n, d], i) => ({ n, d, mark: i < 7 || sel === 'pidconl' ? '✓' : '–',
+      dot: 'width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; flex: none; ' + (i < 7 || sel === 'pidconl' ? 'background: #e5f3e8; color: #2f7a3f;' : 'background: #eef1f5; color: #9aa5b1;') }));
+    const cur = { ...cur0, tag: cur0.tag[0], tagStyle: cur0.tag[1], test, testStyle, fns,
+      editLabel: cur0.g === 2 ? 'Upravit' : 'Vytvořit vlastní z této předvolby' };
+    const t = this.state.tab;
+    return { groups, tabs, cur, show: { eq: t === 'eq', par: t === 'par', fn: t === 'fn', io: t === 'io', test: t === 'test' } };
+  }
+}
+</script>
+</body>
+</html>

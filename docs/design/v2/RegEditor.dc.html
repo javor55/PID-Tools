@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Editor regulátoru</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#1f5fa8}a:hover{color:#174a85}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #1f2933; background: #eef1f5; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="background: #ffffff; border-bottom: 1px solid #d7dde5; padding: 12px 24px; display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap">
+<a href="RegLibrary.dc.html" style="font-size: 13px; text-decoration: none; padding: 6px 12px; border: 1px solid #c3ccd6; border-radius: 6px; color: #1f2933">← Knihovna</a>
+<div style="min-width: 0">
+<div style="font-size: 12px; color: #52606d">Nastavení › Regulátory › vlastní (vychází z ISA ideální)</div>
+<h1 style="margin: 0; font-size: 20px; font-weight: 600">Kotelna K2 – PID_K2</h1>
+</div>
+<div role="group" aria-label="Způsob úprav" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden; margin-left: 12px">
+<button type="button" onClick="{{toCompose}}" style="{{modeCompose}}">Skládání</button>
+<button type="button" onClick="{{toCode}}" style="{{modeCode}}">Rovnice (text)</button>
+</div>
+<div style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap">
+<a href="RegTest.dc.html" style="font-size: 13px; text-decoration: none; padding: 7px 12px; border: 1px solid #1f5fa8; color: #1f5fa8; border-radius: 6px">Úplný test použitelnosti</a>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 14px; border: 1px solid #1f5fa8; background: #1f5fa8; color: #ffffff; border-radius: 6px; font-weight: 600">Uložit do knihovny</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; width: 100%; max-width: 1440px; margin: 0 auto; padding: 16px 24px 32px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<section aria-label="Úpravy" style="flex: 1 1 460px; max-width: 560px; display: flex; flex-direction: column; gap: 12px">
+
+<sc-if value="{{compose}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="5">
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">{{sec.title}}</h2>
+<sc-for list="{{sec.groups}}" as="g" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #52606d">{{g.label}}</span>
+<div role="group" aria-label="{{g.label}}" style="display: flex; flex-wrap: wrap; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<sc-for list="{{g.opts}}" as="o" hint-placeholder-count="3">
+<button type="button" onClick="{{o.pick}}" style="{{o.style}}">{{o.label}}</button>
+</sc-for>
+</div>
+</div>
+</sc-for>
+<sc-for list="{{sec.fields}}" as="f" hint-placeholder-count="0">
+<div style="display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px"><span style="color: #52606d">{{f.k}}</span><span style="padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px">{{f.v}}</span></div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{code}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 8px"><h2 style="margin: 0; font-size: 15px; font-weight: 600; flex: 1">Program regulátoru (jeden krok výpočtu)</h2><span style="font-size: 12px; color: #2f7a3f">✓ přeloženo</span></div>
+<pre style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; line-height: 1.6; background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre">{{src}}</pre>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px">
+<span style="color: #52606d">Vložit:</span>
+<sc-for list="{{snips}}" as="s" hint-placeholder-count="8"><span style="font-family: 'IBM Plex Mono', monospace; padding: 2px 8px; border: 1px solid #c3ccd6; border-radius: 999px; background: #f6f8fa">{{s}}</span></sc-for>
+</div>
+</div>
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Mapování pro ladění pravidly</h2>
+<p style="margin: 0; font-size: 12px; color: #52606d">Jak se návrh v obecném tvaru (Kc, Ti, Td, b, c, N) převede na parametry programu. Bez mapování lze ladit jen optimalizací.</p>
+<div style="display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 6px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">
+<span>Kp</span><span style="padding: 4px 8px; border: 1px solid #c3ccd6; border-radius: 6px">= Kc</span>
+<span>Ti</span><span style="padding: 4px 8px; border: 1px solid #c3ccd6; border-radius: 6px">= Ti</span>
+<span>Td</span><span style="padding: 4px 8px; border: 1px solid #c3ccd6; border-radius: 6px">= Td</span>
+<span>N</span><span style="padding: 4px 8px; border: 1px solid #c3ccd6; border-radius: 6px">= N</span>
+</div>
+</div>
+</div>
+</sc-if>
+</section>
+
+<section aria-label="Náhled a kontroly" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Rovnice</h2>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; background: #f6f8fa; border: 1px solid #e5e9ef; border-radius: 8px; padding: 12px 14px; white-space: pre-line">{{eq}}</div>
+<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px">
+<span style="padding: 6px 8px; border: 1px solid #9aa5b1; border-radius: 6px; background: #f6f8fa">SP</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #1f5fa8; border-radius: 6px; background: #eaf2fb">{{blkE}}</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #1f5fa8; border-radius: 6px; background: #eaf2fb">{{blkP}}</span>
+<span style="padding: 6px 8px; border: 1px solid #1f5fa8; border-radius: 6px; background: #eaf2fb">I · chyba</span>
+<span style="padding: 6px 8px; border: 1px solid #1f5fa8; border-radius: 6px; background: #eaf2fb">{{blkD}}</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #c2410c; border-radius: 6px; background: #fff4ed">{{blkOut}}</span><span style="color: #9aa5b1">→</span>
+<span style="padding: 6px 8px; border: 1px solid #9aa5b1; border-radius: 6px; background: #f6f8fa">MV</span>
+</div>
+</div>
+
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Rychlé kontroly</h2>
+<span style="font-size: 12px; color: #52606d">po každé změně · úplný test 12 kontrol na tlačítko nahoře</span>
+</div>
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="5">
+<div style="display: flex; gap: 10px; align-items: flex-start">
+<span style="{{c.dot}}">{{c.mark}}</span>
+<span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 500">{{c.n}}</span><span style="display: block; font-size: 12px; color: #52606d">{{c.d}}</span></span>
+</div>
+</sc-for>
+</div>
+
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Přepočet návrhu</h2>
+<span style="font-size: 12px; color: #52606d">ukázka: SIMC v obecném tvaru Kc 2 · Ti 60 s · Td 10 s</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; font-size: 13px">
+<span style="font-size: 12px; color: #52606d">Parametr bloku</span><span style="font-size: 12px; color: #52606d">Jednotka</span><span style="font-size: 12px; color: #52606d; text-align: right">Hodnota</span>
+<sc-for list="{{conv}}" as="c" hint-placeholder-count="3">
+<span style="font-family: 'IBM Plex Mono', monospace">{{c.name}}</span><span style="color: #52606d">{{c.unit}}</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right; color: #6d28d9; font-weight: 600">{{c.val}}</span>
+</sc-for>
+</div>
+<sc-if value="{{warn}}" hint-placeholder-val="{{false}}"><p style="margin: 0; font-size: 12px; color: #b45309; background: #fff8ef; border-radius: 6px; padding: 6px 8px">{{warn}}</p></sc-if>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { mode: 'compose', form: 'ideal', p: 'pv', d: 'pv', f: 'n', gain: 'k', ti: 's', db: 'gap', nl: 'none', aw: 'bc', alg: 'pos', out: 'one' }; }
+  renderVals() {
+    const s = this.state;
+    const btn = 'font: inherit; font-size: 12px; padding: 5px 10px; border: 0; border-left: 1px solid #c3ccd6; cursor: pointer; ';
+    const grp = (key, label, opts) => ({ label, opts: opts.map(([v, l], i) => ({ label: l, pick: () => this.setState({ [key]: v }),
+      style: btn + (i === 0 ? 'border-left: 0; ' : '') + (s[key] === v ? 'background: #1f5fa8; color: #ffffff;' : 'background: #ffffff; color: #1f2933;') })) });
+    const sections = [
+      { title: '1 · Struktura PID', fields: [], groups: [
+        grp('form', 'Forma', [['ideal', 'ideální (ISA)'], ['par', 'paralelní'], ['ser', 'sériová (interaktivní)']]),
+        grp('p', 'Akce P', [['e', 'na chybě'], ['pv', 'jen PV'], ['w', 'váha b'], ['off', 'bez P']]),
+        grp('d', 'Akce D', [['e', 'na chybě'], ['pv', 'jen PV'], ['w', 'váha c'], ['off', 'bez D']]),
+        grp('f', 'Filtr D', [['n', 'Td / N'], ['tf', 'pevná Tf'], ['a', 'α · Td'], ['none', 'bez filtru']]) ] },
+      { title: '2 · Parametry a jednotky', fields: [{ k: 'Názvy na faceplatu', v: 'Kp · Ti · Td · N' }], groups: [
+        grp('gain', 'Zesílení jako', [['k', 'K [–]'], ['pb', 'pásmo P [%]'], ['eng', 'inž. jednotky']]),
+        grp('ti', 'Integrace jako', [['s', 'Ti [s]'], ['min', 'Ti [min]'], ['rpm', 'opak./min'], ['spr', 's/opak.'], ['ki', 'Ki']]) ] },
+      { title: '3 · Odchylka a nelinearity', fields: [{ k: 'Šířka pásma / zesílení v něm', v: '0,5 % · 0,3' }], groups: [
+        grp('db', 'Mrtvé pásmo', [['none', 'žádné'], ['zero', 'nulová zóna'], ['cont', 'spojité'], ['gap', 'gap se sníženým zesílením']]),
+        grp('nl', 'Nelineární zesílení', [['none', 'žádné'], ['sq', 'kvadrát odchylky'], ['tab', 'tabulka (gain scheduling)']]) ] },
+      { title: '4 · Integrace a algoritmus', fields: [{ k: 'Vzorkování', v: '0,1 s' }], groups: [
+        grp('aw', 'Anti-windup', [['clamp', 'zastavení na mezi'], ['bc', 'back-calculation'], ['ext', 'externí reset']]),
+        grp('alg', 'Algoritmus', [['pos', 'polohový'], ['vel', 'rychlostní']]) ] },
+      { title: '5 · Výstup a vstupy', fields: [{ k: 'Meze / rychlost MV', v: '0–100 % · 5 %/s' }, { k: 'Dopředná vazba', v: 'FF1 · zesílení + lead-lag' }, { k: 'Tracking / MAN', v: 'ano · bezrázově' }], groups: [
+        grp('out', 'Výstup', [['one', 'spojitý'], ['split', 'split range / ohřev–chlazení'], ['step', '3-step (motor)'], ['pwm', 'PWM']]) ] },
+    ];
+    const pIn = s.p === 'e' ? 'e' : s.p === 'pv' ? '(−y)' : s.p === 'w' ? '(b·r − y)' : '';
+    const dIn = s.d === 'e' ? 'e' : s.d === 'pv' ? '(−y)' : '(c·r − y)';
+    const dF = s.f === 'n' ? 'Td·s/(1 + Td·s/N)' : s.f === 'tf' ? 'Td·s/(1 + Tf·s)' : s.f === 'a' ? 'Td·s/(1 + α·Td·s)' : 'Td·s';
+    const kk = s.db === 'gap' ? 'K·g(e)' : 'K';
+    let eq;
+    if (s.form === 'par') eq = 'u = ' + (s.p === 'off' ? '' : 'Kp·' + pIn + ' + ') + 'Ki/s·e' + (s.d === 'off' ? '' : ' + Kd·s/(1 + Tf·s)·' + dIn) + ' + FF';
+    else if (s.form === 'ser') eq = "u = K′·(1 + 1/(Ti′·s))" + (s.d === 'off' ? '' : "·(1 + Td′·s/(1 + Td′·s/N))") + '·e + FF';
+    else eq = 'u = ' + kk + ' · [ ' + (s.p === 'off' ? '' : pIn + ' + ') + '1/(Ti·s)·e' + (s.d === 'off' ? '' : ' + ' + dF + '·' + dIn) + ' ] + FF';
+    if (s.db === 'gap') eq += '\ng(e) = Kgap pro |e| < Gap, jinak 1';
+    const src = [
+      'param Kp   = 1.0   "Zesílení"          [-]',
+      'param Ti   = 60    "Integrační čas"    [s]  min 0.1',
+      'param Td   = 0     "Derivační čas"     [s]',
+      'param N    = 10    "Filtr D"           [-]',
+      'param Gap  = 0.5   "Šířka gap pásma"   [%]',
+      'param Kgap = 0.3   "Zesílení v pásmu"  [-]',
+      'state I    = 0',
+      'state Df   = 0',
+      '',
+      'e   = SP - PV',
+      'kg  = abs(e) < Gap ? Kgap : 1',
+      'P   = Kp * kg * (-PV)',
+      'Df  = lag(Df, Td * ddt(-PV), Td / N)',
+      'v   = P + I + Kp * Df + FF',
+      'MV  = clamp(v, MV_LO, MV_HI)',
+      'I   = I + Kp*kg/Ti * e * dt + (MV - v) * dt / Ti',
+    ].join('\n');
+    const mk = (st) => 'width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex: none; ' +
+      (st === 'ok' ? 'background: #e5f3e8; color: #2f7a3f;' : st === 'w' ? 'background: #fdf0e1; color: #b45309;' : 'background: #fde8e8; color: #b91c1c;');
+    const C = [
+      ['ok', 'Překlad', 'syntaxe, deklarace, výstup MV, jednotky'],
+      ['ok', 'Klid a směr', 'při e = 0 MV stojí; kladná odchylka zvyšuje MV (nepřímá akce)'],
+      ['ok', 'Ustálená odchylka', 'skok SP v uzavřené smyčce → nulová odchylka (I složka)'],
+      [s.db === 'gap' ? 'w' : 'ok', 'Linearita', s.db === 'gap' ? 'gap pásmo – odezva závisí na velikosti odchylky; robustnost (Ms) platí mimo pásmo' : 'lineární – pravidla i Ms přesně'],
+      [s.form === 'ser' ? 'w' : 'ok', 'Mapování pro ladění', s.form === 'ser' ? 'sériová forma: přesný přepočet jen pro Ti ≥ 4·Td' : 'pravidla SIMC / Lambda / AMIGO lze přepočítat'],
+    ];
+    const checks = C.map(([st, n, d]) => ({ n, d, mark: st === 'ok' ? '✓' : st === 'w' ? '!' : '✗', dot: mk(st) }));
+    const K = 2, Ti = 60, Td = s.d === 'off' ? 0 : 10;
+    let k = K, ti = Ti, td = Td, warn = '';
+    if (s.form === 'ser' && Td > 0) {
+      const q = 1 - 4 * Td / Ti, r = Math.sqrt(Math.max(q, 0));
+      k = K / 2 * (1 + r); ti = Ti / 2 * (1 + r); td = Ti / 2 * (1 - r);
+      if (q < 0) warn = 'Ti < 4·Td: sériová forma návrh přesně neumí – použije se nejbližší proveditelný.';
+    }
+    const f = (x, d) => x.toFixed(d).replace('.', ',');
+    const conv = [];
+    if (s.form === 'par') { conv.push({ name: 'Kp', unit: '–', val: f(K, 2) }, { name: 'Ki', unit: '1/s', val: f(K / Ti, 4) }); if (Td) conv.push({ name: 'Kd', unit: 's', val: f(K * Td, 1) }); }
+    else {
+      conv.push(s.gain === 'pb' ? { name: 'PB', unit: '%', val: f(100 / k, 1) } : s.gain === 'eng' ? { name: 'Kp', unit: 'MV/PV', val: 'podle rozsahů' } : { name: 'Kp', unit: '–', val: f(k, 2) });
+      conv.push(s.ti === 'min' ? { name: 'Ti', unit: 'min', val: f(ti / 60, 2) } : s.ti === 'rpm' ? { name: 'R', unit: 'opak./min', val: f(60 / ti, 2) }
+        : s.ti === 'ki' ? { name: 'Ki', unit: '1/s', val: f(k / ti, 4) } : { name: 'Ti', unit: s.ti === 'spr' ? 's/opak.' : 's', val: f(ti, 1) });
+      if (Td) conv.push({ name: 'Td', unit: s.ti === 'min' ? 'min' : 's', val: s.ti === 'min' ? f(td / 60, 3) : f(td, 1) });
+    }
+    const on = 'font: inherit; font-size: 13px; padding: 6px 14px; border: 0; background: #1f5fa8; color: #ffffff; cursor: pointer;';
+    const off = 'font: inherit; font-size: 13px; padding: 6px 14px; border: 0; background: #ffffff; color: #1f2933; cursor: pointer;';
+    return { sections, src, eq, checks, conv, warn,
+      snips: ['clamp(x, lo, hi)', 'lag(s, x, T)', 'ddt(x)', 'deadband(x, w)', 'gap(x, w, k)', 'rate(s, x, up, dn)', 'lead_lag(s, x, T1, T2)', 'table(x, X, Y)'],
+      compose: s.mode === 'compose', code: s.mode === 'code',
+      toCompose: () => this.setState({ mode: 'compose' }), toCode: () => this.setState({ mode: 'code' }),
+      modeCompose: s.mode === 'compose' ? on : off, modeCode: (s.mode === 'code' ? on : off) + ' border-left: 1px solid #c3ccd6;',
+      blkE: 'odchylka' + (s.db === 'none' ? '' : ' · ' + (s.db === 'gap' ? 'gap pásmo' : 'mrtvé pásmo')),
+      blkP: s.p === 'off' ? 'bez P' : 'P · ' + (s.p === 'e' ? 'chyba' : s.p === 'pv' ? 'jen PV' : 'váha b'),
+      blkD: s.d === 'off' ? 'bez D' : 'D · ' + (s.d === 'e' ? 'chyba' : s.d === 'pv' ? 'jen PV' : 'váha c'),
+      blkOut: { one: 'meze', split: 'split range', step: '3-step motor', pwm: 'PWM' }[s.out] + ' · ' + { clamp: 'zastavení I', bc: 'back-calc.', ext: 'ext. reset' }[s.aw] };
+  }
+}
+</script>
+</body>
+</html>

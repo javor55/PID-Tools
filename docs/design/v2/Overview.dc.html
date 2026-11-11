@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Přehled smyček – triage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#1f5fa8}a:hover{color:#174a85}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #1f2933; background: #eef1f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box">
+
+<header style="background: #ffffff; border-bottom: 1px solid #d7dde5; padding: 12px 24px 0 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; min-width: 0">
+<h1 style="margin: 0; font-size: 20px; font-weight: 600">PID Tools</h1>
+<div role="group" aria-label="Smyčky projektu" style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<select aria-label="Aktivní smyčka" title="Aktivní smyčka – Model, Ladění, Živá simulace a deník pracují vždy s ní. Seznam je seskupený podle verdiktu diagnostiky; u každé smyčky je vidět rozpracovaný stav." style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0; max-width: 460px; font-weight: 600"><optgroup label="K ladění"><option selected>TIC101 · Reaktor K2 – teplota — model ✓ · návrh v1</option><option>FIC205 · Chladivo – průtok — kaskáda, podřazená · ladit první</option><option>TIC102 · Sušárna – teplota — kaskáda, nadřazená · čeká na FIC205</option></optgroup><optgroup label="Nejdřív ventil / porucha"><option>FIC120 · Pára – průtok — stikce 1,8 %</option><option>TIC330 · Ohřev – teplota — porucha z PIC310</option></optgroup><optgroup label="Nelineární"><option>PIC310 · Kolona – tlak — gain scheduling</option></optgroup><optgroup label="V pořádku"><option>LIC101 · Sušení – hladina — v3 ověřeno v provozu ✓</option><option>FIC501 · Odtah – průtok — bez zásahu</option></optgroup><optgroup label="Málo dat"><option>LIC402 · Zásobník – hladina — jen 12 % AUTO</option></optgroup></select>
+<span style="font-size: 12px; padding: 3px 10px; border-radius: 999px; background: #e8f0fa; color: #1f5fa8; font-weight: 500; white-space: nowrap">model ✓ · návrh v1</span>
+<a href="DataSources.dc.html" title="Smyčky se přidávají a skládají v Data › Zdroje a smyčky (i z více souborů)." style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none; font-size: 12px; padding: 5px 10px">+ Smyčka</a>
+</div>
+<span style="font-size: 12px; color: #52606d">3 soubory · 9 smyček · uloženo 10:32</span>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a href="Project.dc.html" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none">Projekt a report</a>
+<a href="Settings.dc.html" title="Nastavení aplikace platná pro všechny projekty: knihovna regulátorů, jazyk, vzhled, jednotky, výchozí hodnoty." style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none">Nastavení</a>
+<button type="button" aria-label="Nápověda k záložce (F1)" title="Průvodce k této záložce – co dělá, postup, kontrolní seznam, tipy (F1)" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none; font-weight: 600">?</button>
+</div>
+</div>
+<nav aria-label="Záložky" style="display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap"><a href="DataSources.dc.html" aria-current="page" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #1f5fa8; font-weight: 600; border-bottom: 3px solid #1f5fa8">1 · Data</a><a href="Main.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">2 · Model</a><a href="Regulator.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">3 · Ladění</a><a href="Apc.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">4 · APC</a><a href="Live.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">5 · Živá simulace</a></nav>
+<div role="group" aria-label="Podzáložky Data" style="display: flex; gap: 6px; padding: 8px 0 10px 0; flex-wrap: wrap; align-items: center; border-top: 1px solid #eef1f5"><a href="DataSources.dc.html" style="text-decoration: none; font-size: 12px; padding: 4px 12px; border-radius: 999px; background: #ffffff; color: #3e4c59; border: 1px solid #c3ccd6">Zdroje a smyčky</a><a href="DataTrends.dc.html" style="text-decoration: none; font-size: 12px; padding: 4px 12px; border-radius: 999px; background: #ffffff; color: #3e4c59; border: 1px solid #c3ccd6">Trendy</a><a href="Data.dc.html" style="text-decoration: none; font-size: 12px; padding: 4px 12px; border-radius: 999px; background: #ffffff; color: #3e4c59; border: 1px solid #c3ccd6">Kvalita dat</a><a href="Overview.dc.html" aria-current="page" style="text-decoration: none; font-size: 12px; padding: 4px 12px; border-radius: 999px; background: #1f5fa8; color: #ffffff; font-weight: 500">Diagnostika</a><span style="width: 1px; height: 20px; background: #d7dde5; margin: 0 6px"></span><div role="group" aria-label="Rozsah diagnostiky" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden"><a href="Overview.dc.html" style="text-decoration: none; font-size: 12px; padding: 4px 10px; color: #ffffff; background: #1f5fa8">Všechny smyčky</a><a href="DataDiag.dc.html" style="text-decoration: none; font-size: 12px; padding: 4px 10px; color: #1f2933; background: #ffffff; border-left: 1px solid #c3ccd6">Detail smyčky</a></div></div>
+</header>
+
+<div style="flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 0 0 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; box-sizing: border-box; overflow-y: auto">
+
+<main aria-label="Přehled smyček (roluje samostatně)" style="flex: 999 1 640px; min-width: 0; height: 100%; overflow-y: auto; padding: 16px 4px 32px 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+<div style="background: #eaf2fb; border: 1px solid #9ec1e6; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #174a85; display: flex; gap: 10px; align-items: flex-start"><span aria-hidden="true" style="font-weight: 600">i</span><span><b>Triage po načtení dat.</b> Pro každou z 9 smyček přehled řekne, co s ní dělat jako první – ladit, opravit ventil, zapojit APC, nebo nechat být. Hodnoty jsou ilustrační.</span></div>
+<section aria-label="Souhrn verdiktů" style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 8px"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">9 smyček podle verdiktu<button type="button" aria-label="Nápověda: 9 smyček podle verdiktu" title="Dlaždice sčítají smyčky podle verdiktu. Kliknutím tabulku vyfiltrujete, dalším kliknutím filtr zrušíte." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2><button type="button" onClick="{{clearFilter}}" style="font: inherit; font-size: 12px; border: 0; background: transparent; color: #1f5fa8; padding: 0; cursor: pointer; margin-left: auto">Zrušit filtr</button></div>
+<div role="group" aria-label="Filtr podle verdiktu" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="6"><button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="{{t.style}}"><span style="font-size: 22px; font-weight: 600; line-height: 1.1">{{t.count}}</span><span style="font-size: 12px; font-weight: 600">{{t.label}}</span><span style="font-size: 11px; opacity: .8">{{t.sub}}</span></button></sc-for>
+</div>
+</section>
+<section aria-label="Kde začít" style="background: #ffffff; border: 1px solid #d7dde5; border-left: 4px solid #1f5fa8; border-radius: 10px; padding: 12px 14px">
+<h2 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Kde začít<button type="button" aria-label="Nápověda: Kde začít" title="Pořadí zásahů podle toho, co ostatní kroky ovlivňuje: nejdřív mechanické závady (ventil), pak poruchy ze sousedních smyček, pak ladění a nakonec pokročilé řízení." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2>
+<ol style="margin: 0; padding-left: 20px; font-size: 13px; display: flex; flex-direction: column; gap: 4px">
+<li><b>Opravte ventil FIC120</b> (stikce 1,8 %) – ladění kmitání neodstraní. <a href="DataDiag.dc.html">Detail diagnostiky</a></li>
+<li><b>Nalaďte FIC205 a pak TIC102</b> – kaskáda, podřazená smyčka první. <a href="Regulator.dc.html">Otevřít v Ladění</a></li>
+<li><b>PIC310</b>: nelineární proces, zvažte <a href="Apc.dc.html">gain scheduling</a>; TIC330 s ním kmitá společně a po jeho vyřešení se uklidní.</li>
+<li>Nalaďte TIC101; u LIC402 nahrajte delší záznam v AUTO.</li></ol>
+</section>
+<section aria-label="Smyčky a verdikty" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Smyčky a verdikty<button type="button" aria-label="Nápověda: Smyčky a verdikty" title="Výkon: skóre 0–100 z Harrisova indexu a IAE, jen z úseků v AUTO. Ventil: odhad stikce / hystereze z poměru MV a PV. Nelinearita: poměr nejvyššího a nejnižšího lokálního zesílení. Verdikt vychází z prahů v panelu Kritéria verdiktu." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2><span style="font-size: 12px; color: #52606d">řazeno podle priority zásahu</span>
+</div>
+<div style="overflow-x: auto"><table style="width: 100%; min-width: 1240px; border-collapse: collapse; font-size: 13px"><thead><tr><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Smyčka</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Režim (% AUTO)</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Výkon</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Oscilace</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Ventil (stikce / hystereze)</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Nelinearita</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Kvalita dat</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Verdikt</th><th scope="col" style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #d7dde5; font-weight: 600; font-size: 12px; white-space: nowrap">Doporučení</th></tr></thead><tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="9"><tr onClick="{{r.pick}}" style="{{r.rowStyle}}">
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; min-width: 130px"><div style="font-weight: 600">{{r.name}}</div><div style="font-size: 11px; color: #52606d">{{r.desc}}</div></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; min-width: 90px; font-family: 'IBM Plex Mono', monospace; font-size: 12px"><span style="{{r.autoStyle}}">{{r.auto}} %</span><div style="height: 4px; background: #e5e9ef; border-radius: 2px; margin-top: 3px"><div style="{{r.autoBar}}"></div></div></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; min-width: 110px; font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{r.score}}<div style="height: 6px; background: #e5e9ef; border-radius: 3px; margin-top: 3px"><div style="{{r.scoreBar}}"></div></div><div style="font-size: 11px; color: #52606d">Harris {{r.harris}}</div></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; font-size: 12px"><span style="{{r.oscStyle}}">{{r.osc}}</span></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; font-family: 'IBM Plex Mono', monospace; font-size: 12px"><span style="{{r.valveStyle}}">{{r.valve}}</span></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; font-family: 'IBM Plex Mono', monospace; font-size: 12px"><span style="{{r.nlStyle}}">{{r.nl}}</span></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; font-family: 'IBM Plex Mono', monospace; font-size: 12px">{{r.dq}}</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; min-width: 150px"><sc-if value="{{r.cascade}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 16 16" width="14" height="14" aria-label="Kaskáda" role="img" style="vertical-align: -2px; margin-right: 4px"><title>Kaskáda: TIC102 (master) ↔ FIC205 (podřazená)</title><path d="M6.5 9.5l3-3M7 4.5l1-1a2.8 2.8 0 014 4l-1 1M9 11.5l-1 1a2.8 2.8 0 01-4-4l1-1" fill="none" stroke="#1f5fa8" stroke-width="1.5" stroke-linecap="round"></path></svg></sc-if><span style="{{r.tagStyle}}">{{r.verdict}}</span></td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; min-width: 260px; font-size: 12px"><div style="margin-bottom: 4px">{{r.rec}}</div><a href="{{r.href}}" style="{{r.btnStyle}}">{{r.btn}}</a></td>
+</tr></sc-for>
+</tbody></table></div>
+<p style="margin: 8px 0 0 0; font-size: 12px; color: #52606d">Zobrazeno {{shown}} z 9 smyček · řazeno podle priority zásahu. Kliknutím na řádek zobrazíte detail s důvody verdiktu.</p>
+</section>
+<section aria-label="Společná oscilace" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Společná oscilace více smyček<button type="button" aria-label="Nápověda: Společná oscilace více smyček" title="Smyčky se stejnou periodou oscilace se navzájem ovlivňují; zdroj je obvykle drhnoucí ventil nebo nelineární / příliš ostře naladěná smyčka." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2>
+</div>
+<div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px"><span style="font-size: 12px; color: #8a4b00; background: #fff4dc; border: 1px solid #f2c46d; padding: 3px 8px; border-radius: 999px; white-space: nowrap">! společná oscilace</span><span>Společná oscilace s periodou <b>3,5 min (210 s)</b>: PIC310, TIC330 – pravděpodobný zdroj <b>PIC310</b> (nelinearita 2,1×). Řeší se u zdroje: nejdřív PIC310, TIC330 neladit – po zásahu se uklidní.</span></div>
+</section>
+<section aria-label="Detail" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Detail · {{sel.name}}<button type="button" aria-label="Nápověda: Důvody verdiktu" title="Každý řádek ukazuje jedno zjištění: ✓ v pořádku, ! překročený práh. Verdikt vychází z prahů v panelu Kritéria verdiktu." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2>
+<span style="{{sel.tagStyle}}">{{sel.verdict}}</span>
+<a href="Main.dc.html" style="margin-left: auto; font-size: 13px; padding: 6px 12px; border: 1px solid #1f5fa8; color: #1f5fa8; border-radius: 6px; text-decoration: none; font-weight: 500">Otevřít jako smyčku projektu</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; margin-bottom: 10px">
+<sc-for list="{{sel.evidence}}" as="e" hint-placeholder-count="5"><div style="display: flex; gap: 10px; align-items: flex-start"><span style="{{e.style}}">{{e.tag}}</span><span>{{e.text}}</span></div></sc-for>
+</div>
+<sc-if value="{{sel.showChart}}" hint-placeholder-val="{{true}}"><div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px">
+<div style="position: relative; height: 110px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d"><span style="position: absolute; right: 0; top: 20%; transform: translateY(-50%)">+</span><span style="position: absolute; right: 0; top: 80%; transform: translateY(-50%)">−</span><span style="position: absolute; left: 0; top: 0; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; color: #1f5fa8">PV</span></div>
+<div style="position: relative; height: 110px; border-left: 1px solid #c3ccd6; border-bottom: 1px solid #e5e9ef"><svg viewBox="0 0 1000 120" preserveAspectRatio="none" width="100%" height="110" aria-hidden="true" style="display: block"><path d="M0,60 L0,42 L25,78 L50,42 L75,78 L100,42 L125,78 L150,42 L175,78 L200,42 L225,78 L250,42 L275,78 L300,42 L325,78 L350,42 L375,78 L400,42 L425,78 L450,42 L475,78 L500,42 L525,78 L550,42 L575,78 L600,42 L625,78 L650,42 L675,78 L700,42 L725,78 L750,42 L775,78 L800,42 L825,78 L850,42 L875,78 L900,42 L925,78 L950,42 L975,78 L1000,42" fill="none" stroke="#1f5fa8" stroke-width="1.6" vector-effect="non-scaling-stroke"></path></svg></div>
+<div style="position: relative; height: 90px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d"><span style="position: absolute; right: 0; top: 20%; transform: translateY(-50%)">+</span><span style="position: absolute; right: 0; top: 80%; transform: translateY(-50%)">−</span><span style="position: absolute; left: 0; top: 0; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; color: #c2410c">MV</span></div>
+<div style="position: relative; height: 90px; border-left: 1px solid #c3ccd6; border-bottom: 1px solid #c3ccd6"><svg viewBox="0 0 1000 110" preserveAspectRatio="none" width="100%" height="90" aria-hidden="true" style="display: block"><path d="M0,55 L0,32.5 L10,41.5 L20,50.5 L30,59.5 L40,68.5 L50,32.5 L60,41.5 L70,50.5 L80,59.5 L90,68.5 L100,32.5 L110,41.5 L120,50.5 L130,59.5 L140,68.5 L150,32.5 L160,41.5 L170,50.5 L180,59.5 L190,68.5 L200,32.5 L210,41.5 L220,50.5 L230,59.5 L240,68.5 L250,32.5 L260,41.5 L270,50.5 L280,59.5 L290,68.5 L300,32.5 L310,41.5 L320,50.5 L330,59.5 L340,68.5 L350,32.5 L360,41.5 L370,50.5 L380,59.5 L390,68.5 L400,32.5 L410,41.5 L420,50.5 L430,59.5 L440,68.5 L450,32.5 L460,41.5 L470,50.5 L480,59.5 L490,68.5 L500,32.5 L510,41.5 L520,50.5 L530,59.5 L540,68.5 L550,32.5 L560,41.5 L570,50.5 L580,59.5 L590,68.5 L600,32.5 L610,41.5 L620,50.5 L630,59.5 L640,68.5 L650,32.5 L660,41.5 L670,50.5 L680,59.5 L690,68.5 L700,32.5 L710,41.5 L720,50.5 L730,59.5 L740,68.5 L750,32.5 L760,41.5 L770,50.5 L780,59.5 L790,68.5 L800,32.5 L810,41.5 L820,50.5 L830,59.5 L840,68.5 L850,32.5 L860,41.5 L870,50.5 L880,59.5 L890,68.5 L900,32.5 L910,41.5 L920,50.5 L930,59.5 L940,68.5 L950,32.5 L960,41.5 L970,50.5 L980,59.5 L990,68.5 L1000,32.5" fill="none" stroke="#c2410c" stroke-width="1.6" vector-effect="non-scaling-stroke"></path></svg></div>
+<span></span><div style="position: relative; height: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d"><span style="position: absolute; left: 0">0</span><span style="position: absolute; left: 25%; transform: translateX(-50%)">10</span><span style="position: absolute; left: 50%; transform: translateX(-50%)">20</span><span style="position: absolute; left: 75%; transform: translateX(-50%)">30</span><span style="position: absolute; right: 0">40 min</span></div>
+</div><p style="margin: 8px 0 0 0; font-size: 12px; color: #52606d">Hranatá PV a trojúhelníková MV – typický obraz stikce ventilu. Přeladění ji neodstraní; nejdřív ventil.</p></sc-if>
+</section>
+</main>
+
+<aside aria-label="Nastavení přehledu (roluje samostatně)" style="flex: 1 1 360px; max-width: 100%; height: 100%; overflow-y: auto; padding: 16px 24px 32px 4px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; border-left: 1px solid #d7dde5; background: #f6f8fa">
+<div style="display: flex; justify-content: flex-end; gap: 10px; font-size: 12px; margin-bottom: -4px"><button type="button" style="font: inherit; font-size: 12px; border: 0; background: transparent; color: #1f5fa8; padding: 0; cursor: pointer">Rozbalit vše</button><button type="button" style="font: inherit; font-size: 12px; border: 0; background: transparent; color: #1f5fa8; padding: 0; cursor: pointer">Sbalit vše</button></div>
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Analyzované období<button type="button" aria-label="Nápověda: Analyzované období" title="Společný překryv: všechny smyčky se hodnotí ve stejném čase, takže jsou srovnatelné a lze hledat společné oscilace. Vlastní rozsah: každá smyčka v celém svém záznamu." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2></div></summary>
+<div style="display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; font-size: 13px"><span style="color: #52606d">Období</span><div role="group" aria-label="Období" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden; justify-self: start"><button type="button" aria-pressed="true" style="font: inherit; font-size: 12px; padding: 5px 10px; border: 0; background: #1f5fa8; color: #ffffff; font-weight: 500">Společný překryv</button><button type="button" style="font: inherit; font-size: 12px; padding: 5px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">Vlastní rozsah</button></div><span style="color: #52606d">Od</span><input aria-label="Od" value="1.10. 6:00" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0;"><span style="color: #52606d">Do</span><input aria-label="Do" value="1.10. 14:00" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0;"></div><p style="margin: 8px 0 0 0; font-size: 12px; color: #52606d">Společný překryv: všechny smyčky z 3 souborů se hodnotí ve stejném čase (8 h), takže se dají srovnávat a hledat společné oscilace. Při „Vlastním rozsahu“ se každá smyčka hodnotí v celém svém záznamu.</p>
+</details>
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Kritéria verdiktu<button type="button" aria-label="Nápověda: Kritéria verdiktu" title="Prahy, podle kterých se smyčce přiřadí verdikt. Harris &lt; 0,5: smyčka je daleko od minimálního rozptylu. Stikce &gt; 0,5 %: ventil už kazí regulaci. Nelinearita &gt; 1,5×: zesílení kolísá víc než o polovinu. Min. AUTO: při nižším podílu AUTO se výkon nehodnotí." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button></h2></div></summary>
+<div style="display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; font-size: 13px"><span style="color: #52606d">Harris index &lt;</span><div style="display: flex; align-items: center; gap: 6px"><input aria-label="Práh Harrisova indexu" value="0,5" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0; width: 70px; font-family: 'IBM Plex Mono', monospace"><span style="color: #52606d"></span></div><span style="color: #52606d">Stikce &gt;</span><div style="display: flex; align-items: center; gap: 6px"><input aria-label="Práh stikce" value="0,5" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0; width: 70px; font-family: 'IBM Plex Mono', monospace"><span style="color: #52606d">%</span></div><span style="color: #52606d">Nelinearita &gt;</span><div style="display: flex; align-items: center; gap: 6px"><input aria-label="Práh nelinearity" value="1,5" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0; width: 70px; font-family: 'IBM Plex Mono', monospace"><span style="color: #52606d">×</span></div><span style="color: #52606d">Min. AUTO</span><div style="display: flex; align-items: center; gap: 6px"><input aria-label="Minimální podíl AUTO" value="30" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0; width: 70px; font-family: 'IBM Plex Mono', monospace"><span style="color: #52606d">%</span></div></div><p style="margin: 8px 0 0 0; font-size: 12px; color: #52606d">Po změně prahu se verdikty přepočítají a tabulka se přeřadí.</p>
+</details>
+<button type="button" style="font: inherit; font-size: 15px; font-weight: 600; padding: 12px 16px; background: #1f5fa8; color: #ffffff; border: 0; border-radius: 10px">Přepočítat verdikty</button>
+<details style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Jak číst přehled</h2></div></summary>
+<ul style="margin: 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 4px">
+<li>Verdikt říká, <b>co dělat dřív</b>: ventil a cizí porucha před laděním, ladění před APC.</li>
+<li>Výkon se počítá jen z úseků v AUTO; smyčka s méně než 30 % AUTO se nehodnotí.</li>
+<li>Společná oscilace se řeší u zdroje – ostatní smyčky se pak uklidní samy.</li>
+<li>Kaskádu laďte od podřazené smyčky k nadřazené.</li></ul>
+</details>
+<a href="DataSources.dc.html" style="font-size: 12px; color: #1f5fa8; align-self: flex-start">Smyčky a soubory se spravují v Data › Zdroje a smyčky</a>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'all', sel: 'FIC120' }; }
+  renderVals() {
+    const tag = (c, bg, bd) => 'font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; display: inline-block; color: ' + c + '; background: ' + bg + '; border: 1px solid ' + bd;
+    const V = {
+      ladit: { label: 'Ladit', c: '#174a85', bg: '#eaf2fb', bd: '#9ec1e6' },
+      kask: { label: 'Kaskáda – ladit podřazenou první', c: '#174a85', bg: '#eaf2fb', bd: '#9ec1e6' },
+      valve: { label: 'Nejdřív ventil', c: '#9b1c1c', bg: '#fde8e8', bd: '#f5b5b5' },
+      ok: { label: 'V pořádku', c: '#2f6f3e', bg: '#e6f4ea', bd: '#a8d5b5' },
+      nl: { label: 'Nelineární – gain scheduling', c: '#5b21b6', bg: '#f1ebfd', bd: '#cdb8f3' },
+      low: { label: 'Málo dat v AUTO', c: '#52606d', bg: '#eef1f5', bd: '#c3ccd6' },
+      ext: { label: 'Porucha z jiné smyčky', c: '#9a4a00', bg: '#fff0df', bd: '#f4b97a' },
+    };
+    const G = { ladit: 'ladit', kask: 'ladit', valve: 'valve', ext: 'valve', ok: 'ok', nl: 'nl', low: 'low' };
+    const R = 'color: #9b1c1c; font-weight: 600', A = 'color: #8a4b00; font-weight: 600', P = 'color: #5b21b6; font-weight: 600', M = 'color: #52606d', N = '';
+    const ev = (k, t) => ({ tag: k === 'ok' ? '✓ v pořádku' : k === 'w' ? '! pozor' : k === 'i' ? 'i info' : '! překročeno', text: t, style: tag(k === 'ok' ? '#2f6f3e' : k === 'i' ? '#1f5fa8' : '#8a4b00', k === 'ok' ? '#e6f4ea' : k === 'i' ? '#eaf2fb' : '#fff4dc', k === 'ok' ? '#a8d5b5' : k === 'i' ? '#9ec1e6' : '#f2c46d') });
+    const L = [
+      { name: 'FIC120', desc: 'Přívod suroviny – průtok', auto: 94, score: 22, harris: '0,31', osc: '4,2 min', os: A, valve: 'stikce 1,8 %', vs: R, nl: '1,2×', ns: N, dq: '97 %', v: 'valve',
+        rec: 'Stikce ventilu 1,8 % – ladění kmitání neodstraní. Nejdřív opravte ventil, pak znovu vyhodnoťte.', btn: 'Detail diagnostiky', href: 'DataDiag.dc.html', chart: true,
+        e: [ev('x', 'Stikce ventilu 1,8 % (práh 0,5 %) – MV má trojúhelníkový, PV hranatý průběh.'), ev('x', 'Pravidelná oscilace PV s periodou 4,2 min, pravidelnost 0,71.'), ev('w', 'Harris 0,31 (práh 0,5) – příčinou je ventil, přeladění by situaci nezlepšilo.'), ev('ok', 'Režim: 94 % času v AUTO, výkon lze hodnotit.'), ev('ok', 'Kvalita dat 97 %, bez zamrzlých úseků.'), ev('ok', 'Nelinearita 1,2× (práh 1,5×).')] },
+      { name: 'PIC310', desc: 'Parní kolektor – tlak', auto: 89, score: 44, harris: '0,52', osc: '3,5 min', os: A, valve: '0,3 %', vs: N, nl: '2,1×', ns: P, dq: '96 %', v: 'nl',
+        rec: 'Zesílení procesu kolísá 2,1× – jedna sada parametrů nestačí. Zvažte gain scheduling; zdroj společné oscilace s TIC330.', btn: 'APC › Gain scheduling', href: 'Apc.dc.html',
+        e: [ev('x', 'Nelinearita 2,1× (práh 1,5×) – lokální zesílení se mění s pracovním bodem.'), ev('w', 'Oscilace s periodou 3,5 min je společná s TIC330; zdrojem je PIC310.'), ev('ok', 'Ventil bez znaků stikce (0,3 %, práh 0,5 %).'), ev('ok', 'Režim: 89 % AUTO, kvalita dat 96 %.')] },
+      { name: 'TIC330', desc: 'Chladič – výstupní teplota', auto: 90, score: 38, harris: '0,36', osc: '3,5 min', os: A, valve: '0,3 %', vs: N, nl: '1,2×', ns: N, dq: '95 %', v: 'ext',
+        rec: 'Kmitá společně s PIC310 (perioda 210 s) – příčina je tam. Neladit; nejdřív řešte PIC310.', btn: 'Detail diagnostiky', href: 'DataDiag.dc.html',
+        e: [ev('x', 'Společná oscilace s PIC310, perioda 210 s (3,5 min), korelace 0,86.'), ev('w', 'Harris 0,36 je zkreslen cizí poruchou – vlastní ladění není příčina.'), ev('ok', 'Ventil bez znaků stikce (0,3 %).'), ev('ok', 'Režim: 90 % AUTO, kvalita dat 95 %.')] },
+      { name: 'FIC205', desc: 'Průtok chladiva · podřazená TIC102', auto: 93, score: 33, harris: '0,29', osc: 'ne', os: M, valve: '0,4 %', vs: N, nl: '1,3×', ns: N, dq: '99 %', v: 'ladit', cascade: true,
+        rec: 'Podřazená smyčka kaskády TIC102 – pomalé dosažení SP. Nalaďte jako první.', btn: 'Otevřít v Ladění', href: 'Regulator.dc.html',
+        e: [ev('x', 'Harris 0,29 (práh 0,5) – pomalá odezva na změny SP.'), ev('i', 'Podřazená smyčka kaskády s TIC102 – ladí se před nadřazenou.'), ev('ok', 'Ventil v pořádku (stikce 0,4 %, práh 0,5 %).'), ev('ok', 'Režim: 93 % AUTO, kvalita dat 99 %.')] },
+      { name: 'TIC102', desc: 'Plášť K2 – teplota · master', auto: 91, score: 47, harris: '0,44', osc: 'ne', os: M, valve: '0,3 %', vs: N, nl: '1,2×', ns: N, dq: '97 %', v: 'kask', cascade: true,
+        rec: 'Nadřazená smyčka kaskády s FIC205. Až po naladění podřazené smyčky.', btn: 'Otevřít v Ladění', href: 'Regulator.dc.html',
+        e: [ev('i', 'Master kaskády, podřazená smyčka FIC205 se ještě neladila.'), ev('x', 'Harris 0,44 (práh 0,5) – ladění má smysl.'), ev('ok', 'Ventil v pořádku, nelinearita 1,2×.'), ev('ok', 'Režim: 91 % AUTO, kvalita dat 97 %.')] },
+      { name: 'TIC101', desc: 'Reaktor K2 – teplota', auto: 96, score: 41, harris: '0,38', osc: 'ne', os: M, valve: '0,2 %', vs: N, nl: '1,1×', ns: N, dq: '98 %', v: 'ladit',
+        rec: 'Pomalá odezva a překmit 14 % po změně SP; ventil v pořádku. Přeladění zlepší výkon.', btn: 'Otevřít v Ladění', href: 'Regulator.dc.html',
+        e: [ev('x', 'Harris 0,38 (práh 0,5) – smyčka je daleko od minimálního rozptylu.'), ev('x', 'Překmit 14 % po změně SP, ustálení 38 min.'), ev('ok', 'Ventil v pořádku (stikce 0,2 %, práh 0,5 %).'), ev('ok', 'Nelinearita 1,1×, režim 96 % AUTO, kvalita dat 98 %.')] },
+      { name: 'LIC402', desc: 'Zásobník – hladina', auto: 12, score: null, harris: '–', osc: '–', os: M, valve: 'pohyb OK', vs: N, nl: '–', ns: M, dq: '94 %', v: 'low',
+        rec: 'Jen 12 % záznamu v AUTO (min. 30 %) – výkon nelze hodnotit. Nahrajte delší záznam v AUTO.', btn: 'Zdroje a smyčky', href: 'DataSources.dc.html',
+        e: [ev('x', 'Jen 12 % záznamu v AUTO (min. 30 %) – výkon regulace nelze hodnotit.'), ev('ok', 'Kvalita dat 94 %; pohyb ventilu v MAN bez zvláštností.'), ev('i', 'Hodnotí se jen kvalita dat a pohyb ventilu; oscilace a nelinearita se v MAN nepočítají.')] },
+      { name: 'LIC101', desc: 'Sušení – hladina', auto: 98, score: 86, harris: '0,74', osc: 'ne', os: M, valve: '0,1 %', vs: N, nl: '1,0×', ns: N, dq: '100 %', v: 'ok',
+        rec: 'Nic nedělat – regulace odpovídá.', btn: 'Detail diagnostiky', href: 'DataDiag.dc.html',
+        e: [ev('ok', 'Harris 0,74 – blízko minimálního rozptylu.'), ev('ok', 'Bez oscilace, stikce 0,1 %, nelinearita 1,0×.'), ev('ok', 'Režim: 98 % AUTO, kvalita dat 100 %.')] },
+      { name: 'FIC501', desc: 'Odvod kondenzátu – průtok', auto: 97, score: 79, harris: '0,68', osc: 'ne', os: M, valve: '0,2 %', vs: N, nl: '1,1×', ns: N, dq: '99 %', v: 'ok',
+        rec: 'Nic nedělat – regulace odpovídá.', btn: 'Detail diagnostiky', href: 'DataDiag.dc.html',
+        e: [ev('ok', 'Harris 0,68 – výkon v normě.'), ev('ok', 'Bez oscilace, stikce 0,2 %, nelinearita 1,1×.'), ev('ok', 'Režim: 97 % AUTO, kvalita dat 99 %.')] },
+    ];
+    const f = this.state.f, sel = this.state.sel;
+    const shownL = L.filter((x) => f === 'all' || G[x.v] === f);
+    const col = (s) => s == null ? '#9aa5b1' : s < 35 ? '#c0392b' : s < 60 ? '#d98a00' : '#2f7a3f';
+    const rows = shownL.map((x) => {
+      const t = V[x.v];
+      const btnOk = x.v === 'ok';
+      return { name: x.name, desc: x.desc, cascade: !!x.cascade, auto: x.auto, harris: x.harris,
+        autoStyle: x.auto < 30 ? 'color: #52606d; font-weight: 600; background: #eef1f5; padding: 0 4px; border-radius: 4px' : '',
+        autoBar: 'height: 4px; border-radius: 2px; width: ' + x.auto + '%; background: ' + (x.auto < 30 ? '#9aa5b1' : '#1f5fa8'),
+        score: x.score == null ? 'nelze hodnotit' : x.score,
+        scoreBar: 'height: 6px; border-radius: 3px; width: ' + (x.score == null ? 0 : x.score) + '%; background: ' + col(x.score),
+        osc: x.osc, oscStyle: x.os, valve: x.valve, valveStyle: x.vs, nl: x.nl, nlStyle: x.ns, dq: x.dq,
+        verdict: t.label, tagStyle: tag(t.c, t.bg, t.bd), rec: x.rec, btn: x.btn, href: x.href,
+        btnStyle: 'font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 500; white-space: nowrap; ' + (btnOk ? 'border: 1px solid #c3ccd6; color: #3e4c59; background: #ffffff' : 'border: 1px solid #1f5fa8; color: #1f5fa8; background: #ffffff'),
+        rowStyle: 'cursor: pointer;' + (x.name === sel ? ' background: #eaf2fb;' : ''),
+        pick: () => this.setState({ sel: x.name }) };
+    });
+    const cnt = (k) => L.filter((x) => G[x.v] === k).length;
+    const T = [
+      ['all', 'Všechny', 9, 'smyček v přehledu', '#1f2933', '#ffffff', '#c3ccd6'],
+      ['ladit', 'Ladit', cnt('ladit'), 'vč. kaskády', '#174a85', '#eaf2fb', '#9ec1e6'],
+      ['valve', 'Nejdřív ventil', cnt('valve'), '1× stikce, 1× cizí porucha', '#9b1c1c', '#fde8e8', '#f5b5b5'],
+      ['ok', 'V pořádku', cnt('ok'), 'nic nedělat', '#2f6f3e', '#e6f4ea', '#a8d5b5'],
+      ['nl', 'Nelineární', cnt('nl'), 'gain scheduling', '#5b21b6', '#f1ebfd', '#cdb8f3'],
+      ['low', 'Málo dat v AUTO', cnt('low'), 'výkon nelze hodnotit', '#52606d', '#eef1f5', '#c3ccd6'],
+    ];
+    const tiles = T.map(([k, label, count, sub, c, bg, bd]) => ({ label, count, sub, pressed: f === k,
+      style: 'font: inherit; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer; color: ' + c + '; background: ' + bg + '; border: ' + (f === k ? '2px solid ' + c : '1px solid ' + bd) + (f === k ? '; padding: 7px 9px' : ''),
+      pick: () => this.setState({ f: f === k ? 'all' : k }) }));
+    const s = L.find((x) => x.name === sel) || L[0], st = V[s.v];
+    return { tiles, rows, shown: shownL.length, clearFilter: () => this.setState({ f: 'all' }),
+      sel: { name: s.name, verdict: st.label, tagStyle: tag(st.c, st.bg, st.bd), evidence: s.e, showChart: !!s.chart } };
+  }
+}
+</script>
+</body>
+</html>

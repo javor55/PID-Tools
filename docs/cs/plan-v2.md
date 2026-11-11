@@ -4,7 +4,7 @@ Stav: **schváleno k realizaci** (11. 11. 2026).
 
 Výchozí podklady:
 
-- Návrh UI: artefakt „PID Tools – nový návrh UI“, verze 37: https://claude.ai/artifact/QuLnUL4JG1Y6jKfAGcmhD9.
+- Návrh UI: artefakt „PID Tools – nový návrh UI“, verze 37: https://claude.ai/artifact/QuLnUL4JG1Y6jKfAGcmhD9. Kopie desek je v repozitáři: [docs/design/v2](../design/v2/README.md).
   Před každou etapou načíst jeho aktuální verzi.
 - Technický návrh regulátorů: [regulatory.md](regulatory.md).
 - Audit parity se Streamlitem: kapitola 6 tohoto dokumentu.
