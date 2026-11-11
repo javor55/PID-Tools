@@ -482,7 +482,8 @@ def test_live_tab_design_structure(page, server):
     page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
     assert page.locator("#speed button").count() == 5 and page.locator("#speed button.on").count() == 1
     assert page.locator(".lvm .card .chead .t").count() == 2                         # Průběh smyčky, Ukazatele
-    assert page.locator("#legend .li").count() >= 3                                  # SP, PV, MV
+    # legendu vykreslí až první synchronizace stavu po načtení modulu – počkat na ni, ne ji hned číst
+    page.wait_for_function("() => document.querySelectorAll('#legend .li').length >= 3", timeout=20000)  # SP, PV, MV
     assert page.locator("#kpi tr").first.locator("th").count() >= 2                  # prázdná buňka + sada
     assert page.locator(".lvs > details").count() == 7
     assert page.locator(".lvs > details[open]").count() == 3                         # režim, sady, poruchy
