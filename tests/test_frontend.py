@@ -1051,7 +1051,7 @@ def test_project_save_open_report(page, server):
     assert _api(server, base + "/loops", page) == l0
     import json
     again, orig = (json.loads(b) for b in (_api_raw(server, base + "/project?data=true", page), saved))
-    assert again["data"] == orig["data"] and again["loops"] == orig["loops"] if "loops" in orig else again["data"] == orig["data"]
+    assert again["sources"] == orig["sources"] and again.get("loops") == orig.get("loops")     # projekt verze 3: data ve zdrojích
     assert page.locator('[data-testid="proj-open"]').get_attribute("accept") == ".pidproj,.json,application/json"
     _open_project(page, saved, name="stary.json")          # starší přípona .json se otevře také
     page.set_input_files('[data-testid="proj-open"]', files=[{"name": "x.pidproj", "mimeType": "application/json", "buffer": b"nope"}])
