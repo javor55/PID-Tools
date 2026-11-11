@@ -7,6 +7,7 @@ Položka seznamu: (stav, text, akce) – stav True (splněno) / False (chybí) /
 akce je identifikátor, který si frontend převede na tlačítko: "tab:<záložka>", "add_loop", nebo None.
 Frontend sestaví z vlastního stavu `GuideState`; výpočty kontrol jsou zde, aby se obě verze nerozcházely.
 """
+import re
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -83,7 +84,7 @@ def _data(g):
     default_rng = tuple(g.norm) == (0.0, 100.0, 0.0, 100.0)
     return [(True, T("tgc_data_loaded", n=g.n_samples, ts=f"{g.Ts:.3g}"), None),
             (g.c_pv != g.c_mv, T("tgc_data_cols", pv=g.c_pv, mv=g.c_mv), None),
-            (None if default_rng else True, T("tgc_data_ranges"), "tab:tuning")]
+            (None if default_rng else True, T("tgc_data_ranges"), Act("tab:tuning", "set-pv_hi", T("tgb_ranges")))]
 
 
 def _model_checks(g):
@@ -111,17 +112,19 @@ def _tuning(g):
     out = [_model(g)]
     if g.model is None or g.set2_ctrl is None:
         return out
-    out.append((None if tuple(g.set1[:2]) == (1.0, 100.0) else True, T("tgc_tune_set1"), None))
-    out.append((None, T("tgc_tune_block"), None))
+    out.append((None if tuple(g.set1[:2]) == (1.0, 100.0) else True, T("tgc_tune_set1"),
+                Act("tab:tuning", "set1-gain", T("tgb_set1"))))
+    out.append((None, T("tgc_tune_block"), Act("tab:tuning", "set-pv_hi", T("tgb_block"))))
     try:
         rb = robustness(g.model[0], list(g.model[1]), {k: v for k, v in g.set2_ctrl.items() if k not in ("FF", "FF_LL")})
         ms = rb["Ms"]
         ok = rb["stable"] and np.isfinite(ms)
         out.append((True if ok and ms <= 1.8 else (None if ok and ms <= 2.0 else False),
-                    T("tgc_tune_ms", m=f"{ms:.2f}" if ok else "∞"), None))
+                    T("tgc_tune_ms", m=f"{ms:.2f}" if ok else "∞"), Act("tab:tuning", "method", T("tgb_method"))))
     except Exception:
         pass
-    out.append((None if tuple(g.set2) == tuple(g.set1) else True, T("tgc_tune_set2"), None))
+    out.append((None if tuple(g.set2) == tuple(g.set1) else True, T("tgc_tune_set2"),
+                Act("tab:tuning", "calc", T("tgb_calc"))))
     out.append((None, T("tgc_tune_verify"), "tab:live"))
     return out
 
@@ -269,3 +272,146 @@ def checks(key, g):
 def icon(ok):
     """Textová ikona stavu pro jednoduchá rozhraní."""
     return "✅" if ok else ("⬜" if ok is False else "ℹ️")
+
+
+# ================================================================ průvodce záložky jako data (UI-nezávislé)
+# Stejný obsah pro API (GET /workspaces/{wid}/guide/{tab}), desktop i web: postup, kontrolní seznam podle stavu
+# projektu, tabulky „která volba kdy“ (markdown) a slovníček. Texty jsou v i18n (tg_*, gloss_body).
+GUIDE_TABS = ("data", "model", "tuning", "apc", "live", "diag", "loops", "project")
+_KEY = {"loops": "audit"}                      # klíč textů průvodce záložky (tg_<klíč>_*)
+_TAB_BUTTON = {"model": "g_btn_model", "data": "tgb_data", "tuning": "tgb_tuning", "live": "tgb_live"}
+
+
+class Act(str):
+    """Akce kontroly („tab:<záložka>“ …) s volitelným cílem na záložce (data-testid prvku) a popiskem tlačítka."""
+    target = None
+    label = None
+
+    def __new__(cls, action, target=None, label=None):
+        o = super().__new__(cls, action)
+        o.target, o.label = target, label
+        return o
+
+
+def tab_key(tab):
+    """Klíč textů průvodce pro záložku API (loops → audit)."""
+    return _KEY.get(tab, tab)
+
+
+def action_info(a):
+    """Akce kontroly → {"tab", "target", "label"} nebo None. add_loop → záložka Data, cíl „add-loop“."""
+    if not a:
+        return None
+    tab, target, label = None, getattr(a, "target", None), getattr(a, "label", None)
+    if a == "add_loop":
+        tab, target, label = "data", target or "add-loop", label or T("loop_add")
+    elif a.startswith("tab:"):
+        tab = a[4:]
+    elif a.startswith("loop:"):
+        _, lid, tab = a.split(":", 2)
+        target = target or f"loop:{lid}"
+    if not tab:
+        return None
+    if label is None:
+        label = T(_TAB_BUTTON[tab]) if tab in _TAB_BUTTON else T("dk_help_go")
+    return {"tab": tab, "target": target, "label": label}
+
+
+def check_status(ok):
+    """True → „ok“ (splněno), False → „warn“ (vyžaduje pozornost), None → „todo“ (ještě neprovedeno / připomínka)."""
+    return "ok" if ok is True else ("warn" if ok is False else "todo")
+
+
+def _strip_md(s):
+    return s.replace("**", "").replace("`", "").strip()
+
+
+def parse_steps(md):
+    """Číslované (nebo odrážkové) kroky z markdownu → [{"title", "text"}]; název = tučný začátek / první věta."""
+    items = re.findall(r"^\s*\d+\.\s+(.+)$", md, flags=re.M) or re.findall(r"^\s*[-*]\s+(.+)$", md, flags=re.M)
+    out = []
+    for it in items:
+        m = re.match(r"\*\*(.+?)\*\*\s*[:–-]\s*(.+)$", it)               # „**Název** – text“
+        if not m:
+            m = re.match(r"(.{4,110}?)(?:(?<=[^\W\d_]{4})(?:\.\s+(?=[^\W\d_a-zěščřžýáíéúůďťň])|:\s+)|\s+[–-]\s+)(.+)$", it)
+        title, text = (m.group(1), m.group(2)) if m else (it, "")
+        out.append({"title": _strip_md(title).rstrip(".:"), "text": text})
+    return out
+
+
+def intro_of(md):
+    """Úvod („K čemu: …“) – text před „Postup“ / prvním číslovaným krokem."""
+    m = re.search(r"^\s*(\*\*(?:Postup|Procedure)\*\*|\d+\.\s)", md, flags=re.M)
+    return (md[:m.start()] if m else md).strip()
+
+
+def parse_sections(md, default_title=""):
+    """Markdown „která volba kdy“ → [{"title", "md"}]: oddíl začíná řádkem jen s **tučným** nadpisem (nebo je jediný)."""
+    out, cur = [], None
+    for line in md.split("\n"):
+        m = re.fullmatch(r"\s*\*\*([^*]+)\*\*\s*", line)
+        if m:
+            cur = {"title": m.group(1).strip(), "lines": []}
+            out.append(cur)
+            continue
+        if cur is None:
+            cur = {"title": default_title, "lines": []}
+            out.append(cur)
+        cur["lines"].append(line)
+    return [{"title": s["title"], "md": "\n".join(s["lines"]).strip()} for s in out if "".join(s["lines"]).strip()]
+
+
+def parse_glossary(md):
+    """Slovníček „- **pojem** – vysvětlení“ → [{"term", "text"}]."""
+    out = []
+    for it in re.findall(r"^\s*[-*]\s+(.+)$", md, flags=re.M):
+        m = re.match(r"\*\*(.+?)\*\*\s*[–-]\s*(.+)$", it)
+        out.append({"term": m.group(1), "text": m.group(2)} if m else {"term": "", "text": it})
+    return out
+
+
+def state_of(proj):
+    """GuideState z projektu (app.workspace.loops.Project): vše počítané živě ze stavu aktivní smyčky."""
+    s = proj.state
+    names = proj.names()
+    name, n_loops = str(names[proj.active]), len(names)
+    if not s.has_data:
+        return GuideState(loop_name=name, n_loops=n_loops)
+    q = s.quality() or {}
+    m = s.model
+    fit = None
+    if m is not None and s.fit:
+        fit = (s.fit.get("res", {}).get(m[0]) or {}).get("fit")
+    ts, _, _, _ = s.segment()
+    set2_ctrl = None
+    if m is not None:
+        try:
+            set2_ctrl = s.set_ctrl(2)
+        except Exception:
+            set2_ctrl = None
+    return GuideState(
+        loop_name=name, n_samples=len(s.t), Ts=float(s.grid.Ts), c_pv=str(s.c_pv), c_mv=str(s.c_mv), norm=s.norm,
+        dq=q, model=m, fit=fit, stale=bool(s.stale), t_seg=float(ts[-1]) if len(ts) else 0.0, val_status=s.val_status,
+        set1=tuple(float(s.get(f"set1_{k}", d)) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
+        set2=tuple(float(s.get(f"set2_{k}", d)) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
+        set2_ctrl=set2_ctrl, n_loops=n_loops, report=None, plant_meta=bool(s.get("rep_plant")))
+
+
+def guide(tab, g):
+    """
+    Průvodce záložky jako data: {"tab", "title", "intro", "steps", "checklist", "tables", "tips", "glossary"}.
+    checklist: [{"ok": "ok"|"warn"|"todo", "text", "action": {"tab", "target", "label"} | None}] – podle stavu `g`.
+    """
+    key = tab_key(tab)
+    what = T(f"tg_{key}_what") if has(f"tg_{key}_what") else ""
+    choose = T(f"tg_{key}_choose") if has(f"tg_{key}_choose") else ""
+    tips = T(f"tg_{key}_tips") if has(f"tg_{key}_tips") else ""
+    chk = checks(key, g) if g.n_samples else []
+    if not g.n_samples and key != "project":
+        chk = [(False, T("ui_no_data"), Act("tab:data"))]
+    return {
+        "tab": tab, "title": title(key), "intro": intro_of(what), "steps": parse_steps(what),
+        "checklist": [{"ok": check_status(ok), "text": text, "action": action_info(act)} for ok, text, act in chk],
+        "tables": parse_sections(choose, T("tg_tab_choose")) if choose else [], "tips": tips,
+        "glossary": parse_glossary(T("gloss_body")),
+    }

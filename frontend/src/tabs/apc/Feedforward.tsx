@@ -12,7 +12,8 @@ import { useWs } from "../../data";
 import { useT } from "../../i18n";
 import { useUi } from "../../store";
 import { type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { ACard, VariantTable } from "./parts";
+import { Checks } from "./moreCommon";
+import { ACard, Impl, VariantTable } from "./parts";
 
 type FFInfo = components["schemas"]["FFInfo"];
 type FFDist = components["schemas"]["FFDist"];
@@ -192,11 +193,20 @@ export function FeedforwardMain() {
   const { q, info } = useFf();
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (!info) return <div className="card muted">{q.isError ? T("need_model") : "…"}</div>;
-  if (!info.dists.length) return <div className="card muted" data-testid="ff-none">{T("ff_need_dist")}</div>;
+  if (!info.dists.length) {
+    return (
+      <div className="stack">
+        <div className="card muted" data-testid="ff-none">{T("ff_need_dist")}</div>
+        <Checks items={info.checks} testid="ff-checks" />
+      </div>
+    );
+  }
   return (
     <div className="stack">
       <SimCards info={info} />
       <PcsCard info={info} />
+      <Impl text={info.impl_text} testid="ff-impl" />
+      <Checks items={info.checks} testid="ff-checks" />
     </div>
   );
 }

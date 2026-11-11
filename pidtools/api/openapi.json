@@ -1539,12 +1539,31 @@
    },
    "FFInfo": {
     "properties": {
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
      "dists": {
       "items": {
        "$ref": "#/components/schemas/FFDist"
       },
       "title": "Dists",
       "type": "array"
+     },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
      },
      "model": {
       "title": "Model",
@@ -1878,6 +1897,24 @@
      "unit"
     ],
     "title": "GeneralRow",
+    "type": "object"
+   },
+   "GlossaryItem": {
+    "properties": {
+     "term": {
+      "title": "Term",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "term",
+     "text"
+    ],
+    "title": "GlossaryItem",
     "type": "object"
    },
    "GsErInfo": {
@@ -2378,6 +2415,175 @@
      "kpis"
     ],
     "title": "GsSim",
+    "type": "object"
+   },
+   "Guide": {
+    "properties": {
+     "checklist": {
+      "items": {
+       "$ref": "#/components/schemas/GuideCheck"
+      },
+      "title": "Checklist",
+      "type": "array"
+     },
+     "glossary": {
+      "items": {
+       "$ref": "#/components/schemas/GlossaryItem"
+      },
+      "title": "Glossary",
+      "type": "array"
+     },
+     "intro": {
+      "title": "Intro",
+      "type": "string"
+     },
+     "steps": {
+      "items": {
+       "$ref": "#/components/schemas/GuideStep"
+      },
+      "title": "Steps",
+      "type": "array"
+     },
+     "tab": {
+      "enum": [
+       "data",
+       "model",
+       "tuning",
+       "apc",
+       "live",
+       "diag",
+       "loops",
+       "project"
+      ],
+      "title": "Tab",
+      "type": "string"
+     },
+     "tables": {
+      "items": {
+       "$ref": "#/components/schemas/GuideTable"
+      },
+      "title": "Tables",
+      "type": "array"
+     },
+     "tips": {
+      "title": "Tips",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "tab",
+     "title",
+     "intro",
+     "steps",
+     "checklist",
+     "tables",
+     "tips",
+     "glossary"
+    ],
+    "title": "Guide",
+    "type": "object"
+   },
+   "GuideAction": {
+    "description": "Tlačítko u položky seznamu: přepnout záložku a případně skočit na prvek (data-testid).",
+    "properties": {
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "tab": {
+      "title": "Tab",
+      "type": "string"
+     },
+     "target": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target"
+     }
+    },
+    "required": [
+     "tab",
+     "label"
+    ],
+    "title": "GuideAction",
+    "type": "object"
+   },
+   "GuideCheck": {
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/GuideAction"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "ok": {
+      "enum": [
+       "ok",
+       "warn",
+       "todo"
+      ],
+      "title": "Ok",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "ok",
+     "text"
+    ],
+    "title": "GuideCheck",
+    "type": "object"
+   },
+   "GuideStep": {
+    "properties": {
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "title",
+     "text"
+    ],
+    "title": "GuideStep",
+    "type": "object"
+   },
+   "GuideTable": {
+    "properties": {
+     "md": {
+      "title": "Md",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "title",
+     "md"
+    ],
+    "title": "GuideTable",
     "type": "object"
    },
    "HTTPValidationError": {
@@ -4379,6 +4585,17 @@
       "title": "Checks",
       "type": "array"
      },
+     "impl_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impl Text"
+     },
      "known": {
       "default": [],
       "items": {
@@ -4787,6 +5004,14 @@
        }
       ],
       "title": "Basis Text"
+     },
+     "checks": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__apc_more__Check"
+      },
+      "title": "Checks",
+      "type": "array"
      },
      "controller": {
       "anyOf": [
@@ -11720,6 +11945,90 @@
     "summary": "Frequency",
     "tags": [
      "tuning"
+    ]
+   }
+  },
+  "/workspaces/{wid}/guide/{tab}": {
+   "get": {
+    "description": "Průvodce záložky; kontrolní seznam se počítá ze stavu aktivní smyčky (data, model, sady, Ms, projekt …).",
+    "operationId": "guide_get_workspaces__wid__guide__tab__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "tab",
+      "required": true,
+      "schema": {
+       "title": "Tab",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Guide"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Guide Get",
+    "tags": [
+     "guide"
     ]
    }
   },

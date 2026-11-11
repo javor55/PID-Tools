@@ -5,7 +5,7 @@ import { useWs } from "../../data";
 import { useT } from "../../i18n";
 import { Bold, num, useApc } from "./common";
 import { Checks, g } from "./moreCommon";
-import { ACard } from "./parts";
+import { ACard, Impl } from "./parts";
 
 type RgaInfo = components["schemas"]["RgaInfo"];
 
@@ -32,10 +32,13 @@ export function RgaMain() {
   const d = q.data;
   if (!d.ready) {
     return (
-      <ACard title={T("ui_apc_result")} testid="rga-notready">
-        <div className="warn small">⚠️ {T("apc_need_loop")}</div>
-        <Checks items={d.checks} testid="rga-checks" />
-      </ACard>
+      <div className="stack">
+        <ACard title={T("ui_apc_result")} testid="rga-notready">
+          <div className="warn small">⚠️ {T("apc_need_loop")}</div>
+          <Checks items={d.checks} testid="rga-checks" />
+        </ACard>
+        <Impl text={d.impl_text} testid="rga-impl" />
+      </div>
     );
   }
   const args = { a: d.names[0], b: d.names[1], mva: d.mvs[0], mvb: d.mvs[1] };
@@ -49,6 +52,7 @@ export function RgaMain() {
       </ACard>
       <Matrix d={d} m={d.K} testid="rga-k" title={T("rga_k")} mark />
       <Matrix d={d} m={d.L} testid="rga-l" title={T("rga_l")} />
+      <Impl text={d.impl_text} testid="rga-impl" />
       <Checks items={d.checks} testid="rga-checks" />
     </div>
   );

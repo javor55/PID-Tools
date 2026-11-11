@@ -13,7 +13,8 @@ import { useT } from "../../i18n";
 import { useJobRunner } from "../../jobs";
 import { useUi } from "../../store";
 import { Bold, type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
-import { ACard, VariantTable } from "./parts";
+import { Checks } from "./moreCommon";
+import { ACard, Impl, VariantTable } from "./parts";
 
 type SmithInfo = components["schemas"]["SmithInfo"];
 type SmithSim = components["schemas"]["SmithSim"];
@@ -168,6 +169,8 @@ export function SmithMain() {
       <KpiTable d={d} />
       </ACard>
       <ValuesCards d={d} />
+      <Impl text={d.impl_text} testid="sm-impl" />
+      <Checks items={d.checks} testid="sm-checks" />
     </div>
   );
 }

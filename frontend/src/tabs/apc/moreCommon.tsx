@@ -7,7 +7,7 @@ import { binary, request } from "../../api/client";
 import type { components } from "../../api/schema";
 import { unframe } from "../../api/signals";
 import { useT } from "../../i18n";
-import { useUi } from "../../store";
+import { TABS, useUi } from "../../store";
 import { NumInput, num } from "./common";
 import { InGuide } from "./parts";
 
@@ -100,13 +100,20 @@ export function ModelEditor({ model, values, edited, onChange, onReset, testid, 
 /** Kontrolní seznam struktury (v kartě Průvodce): ✅ splněno, ⬜ chybí, ℹ️ připomínka (jako app.guides.icon). */
 export function Checks({ items, testid }: { items: Check[]; testid: string }) {
   const T = useT();
+  const setTab = useUi((s) => s.setTab);
   return (
     <InGuide>
       <div className="stack">
         <b className="small">{T("g_checklist")}</b>
         <ul className="checks" data-testid={testid}>
-          {items.map((c, i) => <li key={i} className={c.state === false ? "warn" : undefined}>
-            {c.state ? "✅" : c.state === false ? "⬜" : "ℹ️"} {c.text}</li>)}
+          {items.map((c, i) => {
+            const tab = c.action?.startsWith("tab:") ? TABS.find((t) => t.id === c.action!.slice(4)) : undefined;
+            return (
+              <li key={i} className={c.state === false ? "warn" : undefined}>
+                {c.state ? "✅" : c.state === false ? "⬜" : "ℹ️"} {c.text}
+                {tab && c.state !== true && <> <button type="button" className="btn" onClick={() => setTab(tab.id)}>{T("g_open", { m: T(tab.label) })}</button></>}
+              </li>);
+          })}
         </ul>
       </div>
     </InGuide>
