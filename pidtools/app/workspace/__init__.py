@@ -51,6 +51,7 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
         self.rng = (0.0, 0.0)
         self.fit = None              # {"res": {kód: výsledek}, "dnames": [...], "key": ...}
         self.ff_state = []
+        self.controller = None       # kopie profilu regulátoru smyčky (dict .pidctrl); None = výchozí PIDConL
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
         self.val_status = None       # výsledek validace pro průvodce: 0 dobrá, 1 stejný úsek, 2 špatná
         self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
