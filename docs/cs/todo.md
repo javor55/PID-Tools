@@ -136,3 +136,5 @@ na čistém Windows bez sítě – ruční test), M27 (pilot), M28 (vypnutí sta
 - [ ] **Všechny smyčky:** sloupec Ventil ukazuje surovou hodnotu stikce („stic 0.000078“) – zobrazit v % rozsahu MV
       a s textem; šrafování MAN v grafu Detailu smyčky; uložit výsledek triáže do projektu; prahy i v Nastavení ›
       Diagnostika.
+- [ ] **Řádek „Pracujete na“** ukazuje regulátor jako kanonické Kc/Ti ze Sady 1 i u jiného profilu než PIDConL – zobrazit
+      název profilu a parametry v jednotkách bloku (E8).
