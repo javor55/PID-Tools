@@ -8,14 +8,24 @@ vrací převod nejbližší proveditelný návrh, varování a robustnost skute�
 U nelineárních profilů (R3: gap, nelineární zesílení, 3-step, PWM) se robustnost počítá na linearizované části a návrh
 má příznak `approximate`; pravidla pak dávají jen výchozí bod a rozhoduje simulace / optimalizace.
 """
+import json
 import math
+from functools import lru_cache
 
 from .. import core
-from ..controllers import canonical_to_profile, profile_to_canonical
-from ..core.controller import nonlinear_parts
+from ..controllers import canonical_to_profile, load_preset, profile_to_canonical
+from ..core.controller import make_profile, nonlinear_parts
 from .tuning import suggest
 
-__all__ = ["canonical_ctrl", "profile_robustness", "profile_values", "suggest_for_profile", "to_canonical"]
+__all__ = ["block_params", "canon_of_ctrl", "canonical_ctrl", "compiled", "loop_ctrl", "profile_robustness", "profile_robustness_fn",
+           "profile_values", "suggest_for_profile", "to_canonical", "tuning_params", "DEFAULT_ID"]
+
+DEFAULT_ID = "pcs7_pidconl"
+# role bloku → klíč konfigurace PIDConL (app.loop.block_ctrl); parametry profilu těchto rolí se doplní do simulace
+_BLOCK_ROLES = dict(Ts="SampleTime", deadband="DeadBand", deadband_mode="DbMode", mv_lo="MV_Lo", mv_hi="MV_Hi",
+                    pv_filter="PVFilt", mv_rate="MVRate", sp_rate="SPRate")
+_PIDCONL_KEYS = {"Gain", "TI", "TD", "DiffGain", "PropFacSP", "DiffFbk", "SampleTime", "DeadBand", "DbMode", "MV_Lo",
+                 "MV_Hi", "PVFilt", "MVRate", "SPRate", "ConZone"}
 
 
 def profile_values(profile, rule, n=5.0, ranges=None):
@@ -60,3 +70,61 @@ def profile_robustness(profile, code, p, values, base=None, ranges=None):
     ctrl = dict(base or {}, **values, _ranges=ranges)
     return core.robustness_for(profile)(code, p, ctrl)
 
+
+
+def profile_data(profile):
+    """Profil smyčky jako dict (None = výchozí PIDConL)."""
+    return profile or load_preset(DEFAULT_ID)
+
+
+@lru_cache(maxsize=16)
+def _compiled(text):
+    return make_profile(json.loads(text))
+
+
+def compiled(profile):
+    """Přeložený profil (s pamětí – překlad se pro stejný obsah nedělá znovu)."""
+    return _compiled(json.dumps(profile_data(profile), sort_keys=True))
+
+
+def tuning_params(profile):
+    """Parametry profilu, které tvoří sadu ladění (Gain / TI / TD u PIDConL; Kp / Ki / Kd u paralelní formy …)."""
+    roles = set(compiled(profile).tuning_roles)
+    return [p for p in profile_data(profile)["params"] if p["role"] in roles]
+
+
+def block_params(profile):
+    """Ostatní parametry profilu = nastavení bloku (vzorkování, meze, filtry, rychlosti, mrtvé pásmo …)."""
+    roles = set(compiled(profile).tuning_roles)
+    return [p for p in profile_data(profile)["params"] if p["role"] not in roles]
+
+
+def canon_of_ctrl(ctrl):
+    """Konfigurace PIDConL (Gain, TI, TD, DiffGain, PropFacSP, DiffFbk) → kanonický PID {Kc, Ti, Td, b, c, N}."""
+    ti = ctrl.get("TI")
+    return dict(Kc=ctrl["Gain"], Ti=ti if ti and ti > 0 else math.inf, Td=ctrl["TD"], b=ctrl.get("PropFacSP", 1.0),
+                c=0.0 if ctrl.get("DiffFbk", True) else 1.0, N=ctrl.get("DiffGain", 5.0))
+
+
+def loop_ctrl(profile, ctrl, ranges=None):
+    """
+    Konfigurace PIDConL (sada + blok + prvky simulace) → slovník v názvech parametrů profilu pro `Controller`
+    (`pidconl_sim_full(..., profile=)`, `profile_robustness`). Ladění se převede přes mapování, ostatní role bloku
+    (vzorkování, meze, filtr PV, rychlosti, mrtvé pásmo) se doplní podle klíčů profilu; klíče mimo blok (FF, Stic,
+    ValveChar, Noise …) se předají beze změny.
+    """
+    data = profile_data(profile)
+    out = dict(canonical_to_profile(data, canon_of_ctrl(ctrl), ranges)["values"])
+    for p in data["params"]:
+        src = _BLOCK_ROLES.get(p["role"])
+        if p["key"] not in out and src in ctrl:
+            out[p["key"]] = ctrl[src]
+    out.update({k: v for k, v in ctrl.items() if k not in _PIDCONL_KEYS})
+    if ranges:
+        out["_ranges"] = ranges
+    return out
+
+
+def profile_robustness_fn(profile):
+    """`robustness_fn(code, p, ctrl)` pro `app.tuning.set_metrics`: ctrl v názvech parametrů profilu."""
+    return core.robustness_for(profile_data(profile))
