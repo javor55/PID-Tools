@@ -8,6 +8,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
+from ..app import journal as jr
 from ..app import report as rpt
 from ..app.apc import recommend as reco
 from ..core import MODELS
@@ -44,6 +45,7 @@ class ReportReq(BaseModel):
     meta: dict = {}
     sections: list[str] = list(rpt.SECTIONS)
     chart_mode: Literal["inline", "cdn"] = "inline"
+    ab: dict | None = None            # úseky A / B z diagnostiky [s]: {"a": [od, do], "b": [od, do]} (sekce Ověření v provozu)
 
 
 def _scatter(xy):
@@ -115,10 +117,16 @@ def router(get_proj):
         p = get_proj(wid)
         if p.state.model is None:
             raise HTTPException(409, "no model")
-        bad = [s for s in body.sections if s not in rpt.SECTIONS]
+        bad = [s for s in body.sections if s not in rpt.ALL_SECTIONS]
         if bad:
             raise HTTPException(422, f"unknown section: {', '.join(bad)}")
-        html = p.report_html(body.meta, body.sections, body.chart_mode)
+        ab = None
+        if body.ab:
+            try:
+                ab = jr.ab_kpis(p.state, [float(x) for x in body.ab["a"]], [float(x) for x in body.ab["b"]])
+            except (KeyError, TypeError, ValueError) as ex:
+                raise HTTPException(422, f"invalid A/B segments: {ex}") from ex
+        html = p.report_html(body.meta, body.sections, body.chart_mode, ab)
         return Response(html, media_type="text/html")
 
     return r

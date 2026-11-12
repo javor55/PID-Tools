@@ -14,6 +14,97 @@
     "title": "Active",
     "type": "object"
    },
+   "AttachmentData": {
+    "properties": {
+     "author": {
+      "title": "Author",
+      "type": "string"
+     },
+     "data_b64": {
+      "title": "Data B64",
+      "type": "string"
+     },
+     "desc": {
+      "default": "",
+      "title": "Desc",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "mime": {
+      "title": "Mime",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "size": {
+      "title": "Size",
+      "type": "integer"
+     },
+     "when": {
+      "title": "When",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "mime",
+     "size",
+     "when",
+     "author",
+     "data_b64"
+    ],
+    "title": "AttachmentData",
+    "type": "object"
+   },
+   "AttachmentInfo": {
+    "properties": {
+     "author": {
+      "title": "Author",
+      "type": "string"
+     },
+     "desc": {
+      "default": "",
+      "title": "Desc",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "mime": {
+      "title": "Mime",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "size": {
+      "title": "Size",
+      "type": "integer"
+     },
+     "when": {
+      "title": "When",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "mime",
+     "size",
+     "when",
+     "author"
+    ],
+    "title": "AttachmentInfo",
+    "type": "object"
+   },
    "Audit": {
     "properties": {
      "common": {
@@ -1141,6 +1232,30 @@
     "title": "Common",
     "type": "object"
    },
+   "Compare": {
+    "properties": {
+     "a": {
+      "$ref": "#/components/schemas/SnapshotSummary"
+     },
+     "b": {
+      "$ref": "#/components/schemas/SnapshotSummary"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/DiffRow"
+      },
+      "title": "Rows",
+      "type": "array"
+     }
+    },
+    "required": [
+     "a",
+     "b",
+     "rows"
+    ],
+    "title": "Compare",
+    "type": "object"
+   },
    "CompareModel": {
     "properties": {
      "code": {
@@ -1940,6 +2055,42 @@
      "phase"
     ],
     "title": "Diagnostics",
+    "type": "object"
+   },
+   "DiffRow": {
+    "properties": {
+     "a": {
+      "anyOf": [
+       {},
+       {
+        "type": "null"
+       }
+      ],
+      "title": "A"
+     },
+     "b": {
+      "anyOf": [
+       {},
+       {
+        "type": "null"
+       }
+      ],
+      "title": "B"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "section": {
+      "title": "Section",
+      "type": "string"
+     }
+    },
+    "required": [
+     "section",
+     "key"
+    ],
+    "title": "DiffRow",
     "type": "object"
    },
    "DistCmp": {
@@ -3486,6 +3637,34 @@
     "title": "History",
     "type": "object"
    },
+   "HistoryItem": {
+    "properties": {
+     "author": {
+      "title": "Author",
+      "type": "string"
+     },
+     "note": {
+      "default": "",
+      "title": "Note",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "when": {
+      "title": "When",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status",
+     "when",
+     "author"
+    ],
+    "title": "HistoryItem",
+    "type": "object"
+   },
    "JobInfo": {
     "properties": {
      "cached": {
@@ -3555,6 +3734,30 @@
      "created"
     ],
     "title": "JobInfo",
+    "type": "object"
+   },
+   "JournalList": {
+    "properties": {
+     "snapshots": {
+      "items": {
+       "$ref": "#/components/schemas/SnapshotSummary"
+      },
+      "title": "Snapshots",
+      "type": "array"
+     },
+     "statuses": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Statuses",
+      "type": "array"
+     }
+    },
+    "required": [
+     "snapshots",
+     "statuses"
+    ],
+    "title": "JournalList",
     "type": "object"
    },
    "Layout": {
@@ -3780,6 +3983,34 @@
      }
     },
     "title": "LayoutInfo",
+    "type": "object"
+   },
+   "LiveRun": {
+    "properties": {
+     "kpi": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Kpi",
+      "type": "object"
+     },
+     "struct": {
+      "default": "pid",
+      "title": "Struct",
+      "type": "string"
+     },
+     "when": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "When"
+     }
+    },
+    "title": "LiveRun",
     "type": "object"
    },
    "Loop": {
@@ -4874,6 +5105,34 @@
     "title": "Narrow",
     "type": "object"
    },
+   "NewAttachment": {
+    "properties": {
+     "data_b64": {
+      "title": "Data B64",
+      "type": "string"
+     },
+     "desc": {
+      "default": "",
+      "title": "Desc",
+      "type": "string"
+     },
+     "mime": {
+      "default": "application/octet-stream",
+      "title": "Mime",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "data_b64"
+    ],
+    "title": "NewAttachment",
+    "type": "object"
+   },
    "NewController": {
     "properties": {
      "from_id": {
@@ -4959,6 +5218,36 @@
     "title": "NewLoop",
     "type": "object"
    },
+   "NewSnapshot": {
+    "properties": {
+     "label": {
+      "default": "",
+      "title": "Label",
+      "type": "string"
+     },
+     "loop": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Loop"
+     },
+     "note": {
+      "default": "",
+      "title": "Note",
+      "type": "string"
+     }
+    },
+    "title": "NewSnapshot",
+    "type": "object"
+   },
    "Node": {
     "properties": {
      "is_var": {
@@ -5004,6 +5293,29 @@
      "key"
     ],
     "title": "Note",
+    "type": "object"
+   },
+   "NoteItem": {
+    "properties": {
+     "author": {
+      "title": "Author",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "when": {
+      "title": "When",
+      "type": "string"
+     }
+    },
+    "required": [
+     "when",
+     "author",
+     "text"
+    ],
+    "title": "NoteItem",
     "type": "object"
    },
    "OvDefaults": {
@@ -5946,6 +6258,18 @@
    },
    "ReportReq": {
     "properties": {
+     "ab": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ab"
+     },
      "chart_mode": {
       "default": "inline",
       "enum": [
@@ -5977,6 +6301,30 @@
      }
     },
     "title": "ReportReq",
+    "type": "object"
+   },
+   "Restored": {
+    "properties": {
+     "autosave": {
+      "$ref": "#/components/schemas/SnapshotSummary"
+     },
+     "data_changed": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Data Changed",
+      "type": "array"
+     },
+     "snapshot": {
+      "$ref": "#/components/schemas/SnapshotSummary"
+     }
+    },
+    "required": [
+     "snapshot",
+     "autosave",
+     "data_changed"
+    ],
+    "title": "Restored",
     "type": "object"
    },
    "RgaInfo": {
@@ -6473,6 +6821,39 @@
      }
     },
     "title": "ScenarioSet",
+    "type": "object"
+   },
+   "SectionInfo": {
+    "properties": {
+     "available": {
+      "title": "Available",
+      "type": "boolean"
+     },
+     "default": {
+      "title": "Default",
+      "type": "boolean"
+     },
+     "help": {
+      "title": "Help",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "title": {
+      "title": "Title",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "title",
+     "help",
+     "default",
+     "available"
+    ],
+    "title": "SectionInfo",
     "type": "object"
    },
    "Select": {
@@ -7112,6 +7493,311 @@
      }
     },
     "title": "SmithSimReq",
+    "type": "object"
+   },
+   "SnapshotDetail": {
+    "properties": {
+     "app_version": {
+      "title": "App Version",
+      "type": "string"
+     },
+     "attachments": {
+      "items": {
+       "$ref": "#/components/schemas/AttachmentInfo"
+      },
+      "title": "Attachments",
+      "type": "array"
+     },
+     "author": {
+      "title": "Author",
+      "type": "string"
+     },
+     "content": {
+      "additionalProperties": true,
+      "title": "Content",
+      "type": "object"
+     },
+     "controller": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Controller"
+     },
+     "created": {
+      "title": "Created",
+      "type": "string"
+     },
+     "history": {
+      "items": {
+       "$ref": "#/components/schemas/HistoryItem"
+      },
+      "title": "History",
+      "type": "array"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "live": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live"
+     },
+     "loop": {
+      "title": "Loop",
+      "type": "string"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "n_attachments": {
+      "title": "N Attachments",
+      "type": "integer"
+     },
+     "n_notes": {
+      "title": "N Notes",
+      "type": "integer"
+     },
+     "notes": {
+      "items": {
+       "$ref": "#/components/schemas/NoteItem"
+      },
+      "title": "Notes",
+      "type": "array"
+     },
+     "results": {
+      "additionalProperties": true,
+      "title": "Results",
+      "type": "object"
+     },
+     "sets": {
+      "additionalProperties": true,
+      "title": "Sets",
+      "type": "object"
+     },
+     "sha256": {
+      "title": "Sha256",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "v": {
+      "title": "V",
+      "type": "integer"
+     },
+     "verified": {
+      "title": "Verified",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "id",
+     "loop",
+     "v",
+     "created",
+     "author",
+     "kind",
+     "label",
+     "status",
+     "app_version",
+     "sha256",
+     "verified",
+     "n_notes",
+     "n_attachments",
+     "sets",
+     "results",
+     "history",
+     "notes",
+     "attachments",
+     "content"
+    ],
+    "title": "SnapshotDetail",
+    "type": "object"
+   },
+   "SnapshotPatch": {
+    "properties": {
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "status_note": {
+      "default": "",
+      "title": "Status Note",
+      "type": "string"
+     }
+    },
+    "title": "SnapshotPatch",
+    "type": "object"
+   },
+   "SnapshotSummary": {
+    "properties": {
+     "app_version": {
+      "title": "App Version",
+      "type": "string"
+     },
+     "author": {
+      "title": "Author",
+      "type": "string"
+     },
+     "controller": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Controller"
+     },
+     "created": {
+      "title": "Created",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "live": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live"
+     },
+     "loop": {
+      "title": "Loop",
+      "type": "string"
+     },
+     "model": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
+     },
+     "n_attachments": {
+      "title": "N Attachments",
+      "type": "integer"
+     },
+     "n_notes": {
+      "title": "N Notes",
+      "type": "integer"
+     },
+     "results": {
+      "additionalProperties": true,
+      "title": "Results",
+      "type": "object"
+     },
+     "sets": {
+      "additionalProperties": true,
+      "title": "Sets",
+      "type": "object"
+     },
+     "sha256": {
+      "title": "Sha256",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     },
+     "v": {
+      "title": "V",
+      "type": "integer"
+     },
+     "verified": {
+      "title": "Verified",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "id",
+     "loop",
+     "v",
+     "created",
+     "author",
+     "kind",
+     "label",
+     "status",
+     "app_version",
+     "sha256",
+     "verified",
+     "n_notes",
+     "n_attachments",
+     "sets",
+     "results"
+    ],
+    "title": "SnapshotSummary",
     "type": "object"
    },
    "SourceInfo": {
@@ -8119,6 +8805,27 @@
      "unused"
     ],
     "title": "Suggestions",
+    "type": "object"
+   },
+   "SummaryReq": {
+    "properties": {
+     "findings": {
+      "default": [],
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Findings",
+      "type": "array"
+     },
+     "meta": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Meta",
+      "type": "object"
+     }
+    },
+    "title": "SummaryReq",
     "type": "object"
    },
    "ThresholdInfo": {
@@ -16513,6 +17220,909 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/journal": {
+   "get": {
+    "description": "Snímky deníku (nové první), případně jen jedné smyčky nebo stavu.",
+    "operationId": "listing_api_v1_workspaces__wid__journal_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "loop",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Loop"
+      }
+     },
+     {
+      "in": "query",
+      "name": "status",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JournalList"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Listing",
+    "tags": [
+     "journal"
+    ]
+   },
+   "post": {
+    "description": "Uloží neměnný snímek stavu smyčky (výchozí aktivní).",
+    "operationId": "create_api_v1_workspaces__wid__journal_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NewSnapshot"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SnapshotDetail"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/compare": {
+   "get": {
+    "description": "Strukturovaný rozdíl dvou snímků (změněné parametry, modely, výsledky).",
+    "operationId": "compare_api_v1_workspaces__wid__journal_compare_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "a",
+      "required": true,
+      "schema": {
+       "title": "A",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "b",
+      "required": true,
+      "schema": {
+       "title": "B",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Compare"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Compare",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/live": {
+   "post": {
+    "description": "„Zapsat výsledek do deníku“ ze živé simulace: snímek aktivní smyčky s výsledky běhu.",
+    "operationId": "live_api_v1_workspaces__wid__journal_live_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LiveRun"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SnapshotDetail"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Live",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/{sid}": {
+   "get": {
+    "operationId": "detail_api_v1_workspaces__wid__journal__sid__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SnapshotDetail"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Detail",
+    "tags": [
+     "journal"
+    ]
+   },
+   "patch": {
+    "description": "Změna stavu (Návrh → Nasazeno → Ověřeno / Zamítnuto, s historií) a / nebo nová poznámka.",
+    "operationId": "patch_api_v1_workspaces__wid__journal__sid__patch",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SnapshotPatch"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SnapshotDetail"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Patch",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/{sid}/attachments": {
+   "post": {
+    "description": "Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu).",
+    "operationId": "attach_api_v1_workspaces__wid__journal__sid__attachments_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NewAttachment"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AttachmentInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Attach",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/{sid}/attachments/{aid}": {
+   "get": {
+    "operationId": "attachment_api_v1_workspaces__wid__journal__sid__attachments__aid__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "aid",
+      "required": true,
+      "schema": {
+       "title": "Aid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AttachmentData"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Attachment",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/{sid}/report": {
+   "post": {
+    "description": "Report ze snímku (jazyk podle `?lang=`): z uložených hodnot, ne z aktuálního stavu.",
+    "operationId": "report_api_v1_workspaces__wid__journal__sid__report_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReportReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "text/html": {}
+      },
+      "description": "report from a journal snapshot (HTML)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Report",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/journal/{sid}/restore": {
+   "post": {
+    "description": "„Otevřít tento stav“: obnoví smyčku ze snímku; aktuální stav se předtím uloží jako „autosave před obnovením“.",
+    "operationId": "restore_api_v1_workspaces__wid__journal__sid__restore_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sid",
+      "required": true,
+      "schema": {
+       "title": "Sid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Restored"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Restore",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/layout": {
    "get": {
     "description": "Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.",
@@ -19714,6 +21324,166 @@
     "summary": "Report",
     "tags": [
      "diagnostics"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/report/sections": {
+   "get": {
+    "description": "Registr sekcí reportu (id, název a nápověda v jazyce požadavku, výchozí, dostupnost podle projektu).",
+    "operationId": "sections_api_v1_workspaces__wid__report_sections_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/SectionInfo"
+         },
+         "title": "Response Sections Api V1 Workspaces  Wid  Report Sections Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Sections",
+    "tags": [
+     "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/report/summary": {
+   "post": {
+    "description": "Souhrnný report všech smyček projektu (audit / triáž): model, sada 2, Ms, stav v deníku, nález.",
+    "operationId": "summary_api_v1_workspaces__wid__report_summary_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SummaryReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "text/html": {}
+      },
+      "description": "summary report of all loops (HTML)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Summary",
+    "tags": [
+     "journal"
     ]
    }
   },
