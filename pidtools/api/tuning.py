@@ -271,6 +271,20 @@ def _freq(code, p, sets):
     return out
 
 
+def _live_cascade(ws, proj):
+    """Návrh kaskády z APC (jen čtení; stejný výpočet jako záložka APC) pro živou simulaci, nebo None."""
+    from .apc_loops import _cas_state
+    try:
+        _, inner, _n, c = _cas_state(ws, proj, None)
+    except Exception:
+        return None
+    if c is None or inner is None:
+        return None
+    src = ws.get("cas_src") or "manual"
+    return dict(inner=dict(code=c["ci"], p=[float(x) for x in c["pi"]], ctrl=live.ctrl_js(c["ictrl"])),
+                octrl=c["octrl"], source=str(src))
+
+
 def router(get_proj, jobs):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["tuning"])
 
@@ -398,6 +412,7 @@ def router(get_proj, jobs):
     @r.get("/live", response_model=dict)
     def live_config(wid: str):
         """Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2."""
-        return _plain(live.web_config_ws(need_model(wid)))
+        ws = need_model(wid)
+        return _plain(live.web_config_ws(ws, _live_cascade(ws, get_proj(wid))))
 
     return r
