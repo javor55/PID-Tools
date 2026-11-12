@@ -31,6 +31,17 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       `test_api_ctl_program.py` (shoda Python × JS < 1e-9). Zbývá: UI editoru (E8 / R6), `delay(x, T)`, hystereze,
       nelineární regulátory v optimalizaci přímo nad parametry profilu, robustnost programu jen přes mapovaný PID,
       `init` stavu neumí seznam `[…]` v `table` (řádek `state` bere `[…]` jako jednotku).
+- [x] **E8-A – UI knihovny regulátorů** (12. 11. 2026): `frontend/src/settings/` – celostránkové Nastavení z hlavičky
+      (tlačítko „Všechna nastavení…“ v rozbalovacím panelu; oddíly Obecné a Regulátory), **Knihovna** (skupiny Siemens /
+      ostatní / Moje, hledání, štítky, záložky Rovnice · Parametry · Speciální funkce · Vstupy a výstupy · Test, Import /
+      Export `.pidctrl`), **Editor** (Skládání z částí `/controllers/parts` + Rovnice (text) s číslováním řádků, značkami
+      chyb z `/controllers/compile`, vkládáním úryvků, živou rovnicí, schématem, rychlými kontrolami a přepočtem návrhu
+      přes `/map`) a **Test použitelnosti** (verdikt, 12 kontrol, tisk a uložení protokolu). Texty `rg_ui_*`. Testy:
+      `frontend/tests/ctl.test.ts`, `tests/test_frontend_controllers.py`, pokrytí nápovědy v `test_frontend_help.py`.
+      Zbývá: „Výchozí pro nové smyčky“ se pamatuje jen v prohlížeči (API volbu výchozího nemá; napojí E8-B / E10),
+      výsledek testu se pamatuje jen v prohlížeči, ostatní oddíly Nastavení z návrhu (grafy, diagnostika, simulace,
+      projekt, report, připojení), skládání → text je jen šablona programu (převod skladby na rovnice nemá backend),
+      úprava tabulky pro `table` a mapování `map` jako formulář, upozornění na neuložené změny.
 - [x] **E4-C – Data › Trendy** (12. 11. 2026): `frontend/src/tabs/data/TrendsView.tsx` + `trends/` (strom signálů podle
       smyček / zdrojů s hledáním, panely 1 / na smyčku / na veličinu, osy Y podle veličiny nebo jedna sdílená, kurzory A / B
       s odečtem a statistikou, přehledový pruh, zoom kolečkem a tažením, vypočtený signál ze vzorců `viewer_an.js`, export
