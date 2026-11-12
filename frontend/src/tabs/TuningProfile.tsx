@@ -154,7 +154,7 @@ export function PlantBody() {
       <div className="tn-vchar" data-testid="plant-vchar">
         {p.vchar.map((g, i) => (
           <label key={i} className="tn-vc"><span className="tn-sub">{10 * i}–{10 * i + 10}</span>
-            <input type="number" step="any" min={0} className="tn-setin" data-testid={`vchar-${i}`} key={`${i}-${g}`} defaultValue={+g.toPrecision(4)}
+            <input type="number" step="any" min={0} className="tn-setin" data-testid={`vchar-${i}`} title={T("h_vchar")} key={`${i}-${g}`} defaultValue={+g.toPrecision(4)}
               aria-label={`${T("vchar_gain")} ${10 * i}–${10 * i + 10} ${uMv}`}
               onBlur={(e) => { const x = e.target.value; if (x !== "" && Number.isFinite(+x) && +x >= 0 && +x !== g) void put({ vchar: p.vchar.map((v, j) => (j === i ? +x : v)) }); }}
               onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></label>))}
