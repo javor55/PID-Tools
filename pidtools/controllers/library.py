@@ -51,6 +51,12 @@ def validate_profile(data):
     try:
         data = parse_profile(data)
     except ValueError as ex:
+        if isinstance(data, dict) and data.get("kind") == "program":       # chyby překladu s řádkem a sloupcem
+            from .program import ProgramErrors, compile_program
+            try:
+                compile_program(data.get("source") if isinstance(data.get("source"), str) else "")
+            except ProgramErrors as pe:
+                return [dict(path=f"source:{e.line}:{e.col}", message=f"{e.code} {e.info}") for e in pe.errors]
         return [dict(path="", message=str(ex))]
     bad = []
 

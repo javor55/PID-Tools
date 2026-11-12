@@ -94,7 +94,8 @@ def robustness_for(profile):
     (seznam částí): platí kolem pracovního bodu.
     """
     from .controller import ideal_ctrl, nonlinear_parts
-    parts = nonlinear_parts(profile)
+    from .program import is_program
+    parts = ["program"] if is_program(profile) else nonlinear_parts(profile)     # rovnice: jen mapovaný PID, přibližně
 
     def fn(code, p, ctrl):
         r = robustness(code, p, dict(ctrl, **ideal_ctrl(profile, ctrl)))

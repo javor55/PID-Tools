@@ -23,6 +23,8 @@ def parse_profile(data):
     while ver < VERSION:
         data = MIGRATIONS[ver](data)
         ver = data["version"]
+    if data.get("kind") == "program":              # vlastní rovnice (R4): parametry i strom se odvodí ze zdroje
+        data = _program_profile(data)
     for k in ("id", "structure", "params"):
         if k not in data:
             raise ValueError(f"profil regulátoru nemá položku '{k}'")
@@ -31,6 +33,18 @@ def parse_profile(data):
         if len(set(roles)) != len(roles) or not all(isinstance(r, str) for r in roles):
             raise ValueError("role parametrů profilu musí být jedinečné")
     return data
+
+
+def _program_profile(data):
+    """Profil `kind = program`: `source` je závazný, `program` (strom) a `params` se z něj odvodí (kopie profilu)."""
+    from .program import ProgramErrors, compile_program, program_params
+    if not isinstance(data.get("source"), str) or not data["source"].strip():
+        raise ValueError("profil typu program nemá zdrojový text (source)")
+    try:
+        prog = compile_program(data["source"])["program"]
+    except ProgramErrors as ex:
+        raise ValueError(f"program: {ex}") from ex
+    return dict(data, structure=data.get("structure") or {}, params=program_params(prog), program=prog)
 
 
 def load_profile(path):

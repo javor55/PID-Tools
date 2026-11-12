@@ -230,6 +230,7 @@
 
   /* ---- regulátor */
   function Controller(profile, ctrl, h) {
+    if (isProgram(profile)) return new ProgramController(profile, ctrl, h);     // vlastní rovnice (R4)
     var prof = profile instanceof Profile ? profile : new Profile(profile);
     this.profile = prof;
     var P = prof.resolve(ctrl);
@@ -358,7 +359,172 @@
     return u;
   };
 
-  var api = { Profile: Profile, Controller: Controller, profile: function (d) { return new Profile(d); },
+  /* ---- vlastní rovnice (R4): strom výrazů z pidtools/controllers/program.py (`profile.program`), bez eval */
+  function pdiv(a, b) { return b !== 0 ? a / b : 0.0; }
+  function ppow(a, b) { var r = Math.pow(a, b); return isFinite(r) ? r : 0.0; }
+  var PURE_FN = {
+    min: function (a) { return Math.min.apply(null, a); }, max: function (a) { return Math.max.apply(null, a); },
+    abs: function (a) { return Math.abs(a[0]); },
+    sign: function (a) { return a[0] > 0 ? 1.0 : (a[0] < 0 ? -1.0 : 0.0); },
+    sqrt: function (a) { return a[0] > 0 ? Math.sqrt(a[0]) : 0.0; },
+    exp: function (a) { return Math.exp(Math.min(a[0], 700.0)); },
+    log: function (a) { return Math.log(Math.max(a[0], 1e-300)); },
+    clamp: function (a) { return Math.min(Math.max(a[0], a[1]), a[2]); },
+    deadband: function (a) { return Math.abs(a[0]) >= a[1] ? a[0] - (a[0] > 0 ? 1.0 : -1.0) * a[1] : 0.0; },
+    gap: function (a) { return Math.abs(a[0]) < a[1] ? a[2] * a[0] : a[0] - (a[0] > 0 ? 1.0 : -1.0) * a[1] * (1.0 - a[2]); }
+  };
+  var STATE_FN = {                    // (H, slot, args, dt)
+    lag: function (H, i, a, dt) {
+      var x = a[0], T = a[1];
+      if (T <= 0) { H[i] = x; return x; }
+      var k = Math.exp(-dt / T), s = H[i];
+      if (s === null) s = x;
+      s = k * s + (1.0 - k) * x; H[i] = s; return s;
+    },
+    ddt: function (H, i, a, dt) { var p = H[i]; H[i] = a[0]; return p === null ? 0.0 : (a[0] - p) / dt; },
+    rate: function (H, i, a, dt) {
+      var x = a[0], s = H[i];
+      if (s === null) s = x; else s = s + Math.min(Math.max(x - s, -a[2] * dt), a[1] * dt);
+      H[i] = s; return s;
+    },
+    lead_lag: function (H, i, a, dt) {
+      var x = a[0], tld = a[1], tlg = a[2];
+      if (tlg <= 0) { H[i] = x; return x; }
+      var k = Math.exp(-dt / tlg), s = H[i];
+      if (s === null) s = x;
+      s = k * s + (1.0 - k) * x; H[i] = s;
+      return s + (tld / tlg) * (x - s);
+    },
+    prev: function (H, i, a) { var p = H[i]; H[i] = a[0]; return p === null ? a[0] : p; }
+  };
+  function compileNode(n) {         // uzel stromu → funkce (V, H, dt) → číslo
+    var a, b, c;
+    switch (n[0]) {
+      case "num": return function () { return n[1]; };
+      case "var": return function (V) { return V[n[1]]; };
+      case "neg": a = compileNode(n[1]); return function (V, H, dt) { return -a(V, H, dt); };
+      case "not": a = compileNode(n[1]); return function (V, H, dt) { return a(V, H, dt) === 0 ? 1.0 : 0.0; };
+      case "cond":
+        c = compileNode(n[1]); a = compileNode(n[2]); b = compileNode(n[3]);
+        return function (V, H, dt) { return c(V, H, dt) !== 0 ? a(V, H, dt) : b(V, H, dt); };
+      case "table":
+        a = compileNode(n[1]);
+        return function (V, H, dt) { return interp(n[2], n[3], a(V, H, dt)); };
+      case "call":
+        var args = n[2].map(compileNode), name = n[1], slot = n[3];
+        if (slot !== null && slot !== undefined) {
+          var sf = STATE_FN[name];
+          return function (V, H, dt) { return sf(H, slot, args.map(function (f) { return f(V, H, dt); }), dt); };
+        }
+        var pf = PURE_FN[name];
+        return function (V, H, dt) { return pf(args.map(function (f) { return f(V, H, dt); })); };
+      default:
+        a = compileNode(n[2]); b = compileNode(n[3]);
+        switch (n[1]) {
+          case "+": return function (V, H, dt) { return a(V, H, dt) + b(V, H, dt); };
+          case "-": return function (V, H, dt) { return a(V, H, dt) - b(V, H, dt); };
+          case "*": return function (V, H, dt) { return a(V, H, dt) * b(V, H, dt); };
+          case "/": return function (V, H, dt) { return pdiv(a(V, H, dt), b(V, H, dt)); };
+          case "^": return function (V, H, dt) { return ppow(a(V, H, dt), b(V, H, dt)); };
+          case "<": return function (V, H, dt) { return a(V, H, dt) < b(V, H, dt) ? 1.0 : 0.0; };
+          case "<=": return function (V, H, dt) { return a(V, H, dt) <= b(V, H, dt) ? 1.0 : 0.0; };
+          case ">": return function (V, H, dt) { return a(V, H, dt) > b(V, H, dt) ? 1.0 : 0.0; };
+          case ">=": return function (V, H, dt) { return a(V, H, dt) >= b(V, H, dt) ? 1.0 : 0.0; };
+          case "==": return function (V, H, dt) { return a(V, H, dt) === b(V, H, dt) ? 1.0 : 0.0; };
+          case "!=": return function (V, H, dt) { return a(V, H, dt) !== b(V, H, dt) ? 1.0 : 0.0; };
+          case "and": return function (V, H, dt) { return (a(V, H, dt) !== 0 && b(V, H, dt) !== 0) ? 1.0 : 0.0; };
+          case "or": return function (V, H, dt) { return (a(V, H, dt) !== 0 || b(V, H, dt) !== 0) ? 1.0 : 0.0; };
+        }
+        throw new Error("neznámý operátor " + n[1]);
+    }
+  }
+
+  function isProgram(p) { return p instanceof ProgramProfile || !!(p && p.kind === "program"); }
+  function ProgramProfile(data) {
+    if (!data || data.format !== "pidctrl") throw new Error("není profil regulátoru (chybí format = 'pidctrl')");
+    if (!data.program || data.program.format !== "pidprog") throw new Error("program: chybí přeložený strom (program)");
+    var prog = data.program;
+    this.data = data; this.id = data.id; this.program = prog;
+    this.tuningRoles = prog.map.map(function (m) { return m[0]; });
+    this.body = prog.body.map(function (st) { return [st[1], compileNode(st[2])]; });
+    this.inits = prog.states.map(function (st) { return st.init_expr ? compileNode(st.init_expr) : null; });
+  }
+  function ProgramController(profile, ctrl, h) {
+    var prof = profile instanceof ProgramProfile ? profile : new ProgramProfile(profile), prog = prof.program;
+    this.profile = prof; this.h = h;
+    var V = this.V = Object.create(null), names = this._names = [];
+    prog.params.forEach(function (p) {
+      var v = ctrl[p.name];
+      v = (v === undefined || v === null) ? p.default : v;
+      if (p.min !== null && p.min !== undefined) v = Math.max(v, p.min);
+      if (p.max !== null && p.max !== undefined) v = Math.min(v, p.max);
+      V[p.name] = v; names.push(p.name);
+    });
+    var ts = has(V, "Ts") ? V.Ts : h;
+    this.m = Math.max(1, Math.round(ts / h));
+    this.Tc = this.m * h;
+    var lo = ctrl.MV_Lo !== undefined ? ctrl.MV_Lo : ctrl.MV_LO, hi = ctrl.MV_Hi !== undefined ? ctrl.MV_Hi : ctrl.MV_HI;
+    this.lo = (lo === undefined || lo === null) ? -Infinity : lo;
+    this.hi = (hi === undefined || hi === null) ? Infinity : hi;
+    this.k = 0; this.dem = 0.0; this.u = 0.0; this.spr = 0.0; this.yf = 0.0; this.extReset = null; this.outputs = {};
+    this.H = prog.hidden.map(function () { return null; });
+    this._resetStates();
+  }
+  ProgramController.prototype._resetStates = function () {
+    var V = this.V;
+    this.profile.program.states.forEach(function (st) { V[st.name] = st.init; });
+  };
+  ProgramController.prototype._applyInit = function (sp, y, ff, u0) {
+    var V = this.V, st = this.profile.program.states, inits = this.profile.inits;
+    V.SP = sp; V.PV = y; V.FF = ff; V.MV0 = u0;
+    for (var i = 0; i < st.length; i++) if (inits[i]) V[st[i].name] = inits[i](V, this.H, this.Tc);
+  };
+  ProgramController.prototype.setTuning = function () {
+    var roles = this.profile.tuningRoles, prog = this.profile.program, V = this.V;
+    for (var i = 0; i < roles.length && i < arguments.length; i++) {
+      var p = prog.params.filter(function (q) { return q.name === roles[i]; })[0], v = arguments[i];
+      if (p.min !== null && p.min !== undefined) v = Math.max(v, p.min);
+      if (p.max !== null && p.max !== undefined) v = Math.min(v, p.max);
+      V[roles[i]] = v;
+    }
+  };
+  ProgramController.prototype.setLimits = function (lo, hi) { this.lo = lo; this.hi = hi; };
+  ProgramController.prototype.init = function (sp, y, u0, ff) {
+    ff = ff || 0.0;
+    this.spr = sp; this.yf = y; this.k = 0;
+    this.H = this.H.map(function () { return null; });
+    this._resetStates();
+    this._applyInit(sp, y, ff, u0);
+    this.u = u0;
+  };
+  ProgramController.prototype._eval = function (sp, y, ff) {
+    var V = this.V, H = this.H, dt = this.Tc, body = this.profile.body;
+    V.SP = sp; V.PV = y; V.FF = ff; V.MV_LO = this.lo; V.MV_HI = this.hi; V.dt = dt; V.t = this.k * this.h;
+    for (var i = 0; i < body.length; i++) V[body[i][0]] = body[i][1](V, H, dt);
+    if (this.profile.program.outputs.indexOf("MV2") >= 0) this.outputs.MV2 = V.MV2;
+    return V.MV;
+  };
+  ProgramController.prototype.track = function (sp, y, uMan, ff) {
+    ff = ff || 0.0;
+    var k = this.k; this.k = k + 1;
+    this.spr = sp; this.yf = y;
+    if (k % this.m === 0) this._eval(sp, y, ff);
+    this._applyInit(sp, y, ff, uMan);
+    this.u = uMan;
+    return uMan;
+  };
+  ProgramController.prototype.step = function (sp, y, ff) {
+    ff = ff || 0.0;
+    var k = this.k;
+    this.spr = sp; this.yf = y;
+    if (k % this.m) { this.k = k + 1; return this.u; }
+    var u = this.u = this._eval(sp, y, ff);
+    this.k = k + 1;
+    return u;
+  };
+
+  var api = { Profile: Profile, ProgramProfile: ProgramProfile, Controller: Controller,
+    profile: function (d) { return isProgram(d) ? new ProgramProfile(d) : new Profile(d); },
     registries: { forms: FORMS, deadbands: DEADBANDS, dSources: D_SOURCES, dFilters: D_FILTERS, antiwindups: ANTIWINDUPS,
       algorithms: ALGORITHMS, normalisations: NORMALISATIONS, pvFilters: PV_FILTERS, nlGains: NL_GAINS,
       outputStages: OUTPUT_STAGES } };

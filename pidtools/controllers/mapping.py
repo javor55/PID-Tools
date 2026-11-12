@@ -108,6 +108,9 @@ def canonical_to_profile(profile, canon, ranges=None):
     Kanonický PID {Kc, Ti, Td, b, c, N} → hodnoty parametrů profilu {klíč: hodnota} (v jednotkách profilu) a
     varování [(klíč textu, argumenty)]. `ranges`: pv_range / mv_range pro zesílení v inženýrských jednotkách.
     """
+    if profile.get("kind") == "program":
+        from . import program as prg
+        return dict(values=prg.canonical_to_program(profile["program"], canon), warnings=[])
     form, dsrc, dfil = _structure(profile)
     roles = _roles(profile)
     warn = []
@@ -149,6 +152,9 @@ def canonical_to_profile(profile, canon, ranges=None):
 
 def profile_to_canonical(profile, values, ranges=None):
     """Hodnoty parametrů profilu {klíč: hodnota} (chybějící = výchozí z profilu) → kanonický PID {Kc, Ti, Td, b, c, N}."""
+    if profile.get("kind") == "program":
+        from . import program as prg
+        return prg.program_to_canonical(profile["program"], values)
     form, dsrc, dfil = _structure(profile)
     by_role = {}
     for p in _params(profile):

@@ -23,8 +23,10 @@ import numpy as np
 
 from ..controllers import load_preset, parse_profile
 from ..controllers.mapping import apply_reprs, role_reprs
+from .program import ProgramController, ProgramProfile, ideal_ctrl_program, is_program
 
-__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "ideal_ctrl", "nonlinear_parts", "preset_profile"]
+__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "ideal_ctrl", "make_profile", "nonlinear_parts",
+           "preset_profile"]
 
 _INF = math.inf
 
@@ -345,6 +347,8 @@ class Profile:
 
     def __init__(self, data):
         data = parse_profile(data)
+        if data.get("kind") == "program":
+            raise ValueError("profil typu program vykonává ProgramProfile (použijte make_profile)")
         self.data, self.id = data, data["id"]
         st = data["structure"]
         self.form = st.get("form", "ideal")
@@ -417,6 +421,11 @@ class Controller:
     `set_ctrl` z app.loop), `h` krok simulace [s]; regulátor počítá každých round(SampleTime / h) kroků.
     Stav: yf (PV po filtru), spr (SP po rampě), I, D, u, dem (největší požadovaná změna výstupu za výpočet).
     """
+
+    def __new__(cls, profile=None, *args, **kwargs):
+        if cls is Controller and is_program(profile):         # profil typu program (R4) → regulátor z rovnic
+            return ProgramController(profile, *args, **kwargs)
+        return super().__new__(cls)
 
     def __init__(self, profile, ctrl, h):
         prof = profile if isinstance(profile, Profile) else Profile(profile)
@@ -582,6 +591,8 @@ def ideal_ctrl(profile, ctrl):
     Ekvivalentní ideální regulátor `dict(Gain, TI, TD, DiffGain)` k hodnotám profilu `ctrl` (forma, jednotky a filtr D
     profilu už započtené; Tf = Td / DiffGain). Z něj počítá robustnost, šum a pravidla (`core.robustness`).
     """
+    if is_program(profile):
+        return ideal_ctrl_program(profile if isinstance(profile, ProgramProfile) else ProgramProfile(profile), ctrl)
     prof = profile if isinstance(profile, Profile) else Profile(profile)
     P = prof.resolve(ctrl)
     Kc, Ti, Td = prof.form_fn(*(P[r] for r in prof.tuning_roles))
@@ -596,6 +607,8 @@ def ideal_ctrl(profile, ctrl):
 def nonlinear_parts(profile):
     """Nelineární části profilu (ovlivňují linearitu, mapování a robustnost): ['gap', 'nonlinear_gain', 'split_range',
     'three_step', 'pwm']; prázdný seznam = lineární regulátor (mimo omezení výstupu)."""
+    if is_program(profile):             # nelinearitu programu nelze určit ze struktury (měří ji kontrola linearity)
+        return []
     prof = profile if isinstance(profile, Profile) else Profile(profile)
     st = prof.data["structure"]
     out = []
@@ -608,6 +621,13 @@ def nonlinear_parts(profile):
     if stage in ("split_range", "three_step", "pwm"):
         out.append(stage)
     return out
+
+
+def make_profile(data):
+    """Přeložený profil podle druhu: `Profile` (skládaný) nebo `ProgramProfile` (vlastní rovnice, `kind = program`)."""
+    if isinstance(data, (Profile, ProgramProfile)):
+        return data
+    return ProgramProfile(data) if is_program(data) else Profile(data)
 
 
 _profiles = {}
