@@ -1279,7 +1279,7 @@ def test_diag_loops_project_card_structure(page, server):
     page.wait_for_selector('[data-testid="proj-card"]')
     assert page.locator("aside.side details.scard").count() >= 3
     assert page.locator("aside.side > *:not(.side-all)").first.get_attribute("data-testid") == "report-build"
-    assert page.locator('[data-testid="set-rep_status"] button').count() == 3
+    assert page.locator('[data-testid="set-rep_status"] button').count() == 4
     assert page.locator('[data-testid="report-card"].dcard h2').count() == 1
     _quiet(page)
 
