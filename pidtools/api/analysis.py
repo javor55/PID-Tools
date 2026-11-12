@@ -35,8 +35,9 @@ class Diagnostics(BaseModel):
 
 class Recommendation(BaseModel):
     kind: str
-    text: str
+    text: str                    # důvod s důkazem (čísla z modelu a dat)
     other: int | None = None
+    status: Literal["rec", "unsuitable", "skip"] = "rec"   # doporučeno / nevhodné / není potřeba
 
 
 class ReportReq(BaseModel):
@@ -97,13 +98,15 @@ def router(get_proj):
 
     @r.get("/apc/recommend", response_model=list[Recommendation])
     def recommend(wid: str):
-        """Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu)."""
+        """Posouzení struktur APC pro aktivní smyčku (doporučeno / nevhodné / není potřeba; podle ostatních smyček projektu)."""
         p = get_proj(wid)
         ws = p.state
         if ws.model is None:
             raise HTTPException(409, "no model")
-        items = reco.recommend(ws.report_record(), p.others(), None, any(d.get("use") for d in ws.ff_state))
-        return [Recommendation(kind=k, text=t, other=o) for k, t, o in items]
+        ts, pv, mv, dv = ws.segment()
+        spread = reco.nl_spread(ws.model[0], ws.model[1], ws.model[2], ts, pv, mv, dv, ws.grid.Ts)
+        items = reco.assess(ws.report_record(), p.others(), spread, any(d.get("use") for d in ws.ff_state))
+        return [Recommendation(kind=k, status=st, text=t, other=o) for k, st, t, o in items]
 
     @r.post("/report", response_class=Response,
             responses={200: {"content": {"text/html": {}}, "description": "tuning protocol (HTML)"}})

@@ -116,6 +116,9 @@ Zbývá po sladění 10. 11. 2026:
       značkami poruch a čárou „teď“, Ukazatele Sada 1 / Sada 2, karty s „?“); Streamlit má stejný vzhled.
       Rychlosti a porucha „přes model DV“ doplněny v E9-B.
 - [ ] **APC:** štítky „nevhodné“ a „není potřeba“ – API vrací jen „doporučeno“ a „2. smyčka“.
+      Zbývá: rychlosti 10× / 50× / 200× z návrhu, porucha „přes model DV“ (engine ji nemá).
+- [x] **APC (E9-A):** štítky „nevhodné“ / „není potřeba“ (`status` v `/apc/recommend`), popisy metod, jednosměrné rozvazbení, úseky GS, Ms bodů GS, pásma override, rozsah vnitřní PV z dat (oprava).
+      Zbývá: Ms sloupce u Smitha / FF (tam Ms nezávisí na variantě), pásma override v tabulce variant.
 - [ ] **Diagnostika:** graf provozních dat jako jedna karta s úseky A / B (návrh), karta „Co dál“; θ pro Harrise.
 - [ ] **Data:** „Zoom / Měření“ nad prohlížečem, klik v grafu Celého náhledu skočí v tabulce; ruční čtení bez
       listu / hlavičky / oddělovače (API je nemá).

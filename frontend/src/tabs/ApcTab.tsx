@@ -17,6 +17,12 @@ type Loops = components["schemas"]["Loops"];
 /** Struktury, které potřebují druhou smyčku projektu. */
 const NEED2 = ["cascade", "decouple", "override", "vpc", "split", "ratio", "rga"];
 
+/** Štítky stavu podle návrhu: doporučeno (zelený), nevhodné (červený), není potřeba (modrý). */
+const TAG: Record<Recommendation["status"], { cls: string; icon: string; key: string }> = {
+  rec: { cls: "ok", icon: "✓", key: "g_st_rec" }, unsuitable: { cls: "bad", icon: "×", key: "apc_ui_st_no" },
+  skip: { cls: "info", icon: "i", key: "apc_ui_st_skip" },
+};
+
 function useLoopName() {
   const T = useT();
   const loops = useWsQuery<Loops>("loops", "/loops").data;
@@ -38,12 +44,12 @@ function RecoCard() {
         : !q.data ? <div className="muted small">…</div>
         : (
           <>
-            {!q.data.length && <div className="muted small" data-testid="apc-reco-none">{T("g_reco_none")}</div>}
+            {!q.data.some((r) => r.status === "rec") && <div className="muted small" data-testid="apc-reco-none">{T("g_reco_none")}</div>}
             <ul className="apc-reco">{q.data.map((r) => (
-              <li key={`${r.kind}-${r.other ?? ""}`} data-testid={`apc-reco-${r.kind}`}>
-                <span className="apc-tag ok">✓ {T("g_st_rec")}</span>
+              <li key={`${r.kind}-${r.status}-${r.other ?? ""}`} data-testid={`apc-reco-${r.kind}`} data-status={r.status}>
+                <span className={`apc-tag ${TAG[r.status].cls}`}>{TAG[r.status].icon} {T(TAG[r.status].key)}</span>
                 <span><b>{T("apc_" + r.kind)}</b> – {r.text}{" "}
-                  {cur !== r.kind && (
+                  {cur !== r.kind && r.status === "rec" && (
                     <button type="button" className="link" onClick={() => setTech(r.kind)}>{T("g_open_short")}</button>)}</span>
               </li>))}</ul>
             {!pending && !loops.length && (
@@ -87,8 +93,10 @@ export function ApcMain() {
   return (
     <div className="stack apc-main">
       <RecoCard />
-      <Tabs rec={new Set((reco.data ?? []).map((r) => r.kind))} />
-      {tech.intro && tech.id !== "cascade" && <p className="apc-intro small muted"><Bold text={T(tech.intro)} /></p>}
+      <Tabs rec={new Set((reco.data ?? []).filter((r) => r.status === "rec").map((r) => r.kind))} />
+      {tech.intro && (
+        <p className="apc-intro small muted" data-testid="apc-intro">
+          {tech.id === "cascade" ? <b>{T(tech.label)}</b> : <Bold text={T(tech.intro)} />}<Help text={T(`apc_ui_desc_${tech.id}`)} /></p>)}
       <div className="stack" data-testid={`apc-${tech.id}`}>
         {Main ? <Main /> : <Placeholder milestone="M19" />}
       </div>

@@ -14,6 +14,7 @@ import { ACard, Checks, Impl, LoopSelect, PairError, PidRow, qs, usePair, usePos
 type CascadeInfo = components["schemas"]["CascadeInfo"];
 type ModelOut = components["schemas"]["ModelOut"];
 type CascadeSim = components["schemas"]["CascadeSim"];
+type CascadeRange = components["schemas"]["CascadeRange"];
 
 const CTYPES = ["PI", "PID"] as const;
 
@@ -47,10 +48,14 @@ function DataInputs({ inp }: { inp: CascadeInfo["inputs"] }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const sigs = inp.signals;
+  const ipvSel = ipv ?? sigs[0];
+  // rozsah vnitřní PV z dat (zaokrouhlené minimum a maximum signálu); zadaná hodnota ho přebíjí
+  const rng = useApc<CascadeRange>(`cas-irange-${ipvSel}`, `/apc/cascade/irange${qs({ ipv: ipvSel })}`);
+  const dLo = rng.data?.lo ?? 0, dHi = rng.data?.hi ?? 100;
   const fit = async () => {
     setBusy(true); setErr(null);
     try {
-      const j = await run("/apc/cascade/fit", { ipv: ipv ?? sigs[0], imv: imv ?? sigs[1] ?? sigs[0], ilo: lo, ihi: hi }, T("cas_fit"));
+      const j = await run("/apc/cascade/fit", { ipv: ipvSel, imv: imv ?? sigs[1] ?? sigs[0], ilo: lo ?? dLo, ihi: hi ?? dHi }, T("cas_fit"));
       if (j.state !== "done") setErr(j.error ?? j.state);
     } catch (e) { setErr(String((e as Error).message)); }
     setBusy(false);
@@ -61,10 +66,10 @@ function DataInputs({ inp }: { inp: CascadeInfo["inputs"] }) {
         {sigs.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>);
   return (
     <>
-      {sel(T("cas_ipv"), ipv, sigs[0], setIpv, "cas-ipv", T("h_cas_ipv"))}
+      {sel(T("cas_ipv"), ipv, sigs[0], (x) => { setIpv(x); setLo(undefined); setHi(undefined); }, "cas-ipv", T("h_cas_ipv"))}
       {sel(T("cas_imv"), imv, sigs[1] ?? sigs[0], setImv, "cas-imv", T("h_cas_imv"))}
-      <label className="field" title={T("h_cas_irange")}><span>{T("cas_ilo")}</span><NumInput value={lo ?? 0} testid="cas-ilo" onCommit={setLo} /></label>
-      <label className="field" title={T("h_cas_irange")}><span>{T("cas_ihi")}</span><NumInput value={hi ?? 100} testid="cas-ihi" onCommit={setHi} /></label>
+      <label className="field" title={T("apc_ui_irange_data")}><span>{T("cas_ilo")}</span><NumInput value={lo ?? dLo} testid="cas-ilo" onCommit={setLo} /></label>
+      <label className="field" title={T("apc_ui_irange_data")}><span>{T("cas_ihi")}</span><NumInput value={hi ?? dHi} testid="cas-ihi" onCommit={setHi} /></label>
       <button className="btn primary" disabled={busy || !sigs.length} data-testid="cas-fit" onClick={() => void fit()}>{T("cas_fit")}</button>
       {err && <div className="err small">{err}</div>}
     </>

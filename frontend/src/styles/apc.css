@@ -39,3 +39,5 @@
 .apc-sub { margin: 4px 0 0; font-size: 12px; font-weight: 600; }
 .scard-body .tbl, .scard-body .stack { width: 100%; }
 @media (max-width: 1000px) { .apc-reco li, .apc-reco-row { flex-direction: column; gap: 4px; } }
+.apc-bandkey { white-space: nowrap; }
+.apc-bandkey i { display: inline-block; width: 12px; height: 9px; margin-right: 4px; background: #dc2626; opacity: .3; border: 1px solid #dc2626; }
