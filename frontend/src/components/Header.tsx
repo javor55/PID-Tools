@@ -166,17 +166,17 @@ export function Header() {
 function DataSubNav() {
   const T = useT();
   const { dataSub, setDataSub } = useUi();
-  const items: { id: DataSub; label: string; help: string; on: boolean }[] = [
-    { id: "sources", label: "ui_dsub_sources", help: "h_dsub_sources", on: dataSub === "sources" },
-    { id: "trends", label: "ui_dsub_trends", help: "h_dsub_trends", on: dataSub === "trends" },
-    { id: "quality", label: "ui_dsub_quality", help: "h_dsub_quality", on: dataSub === "quality" },
-    { id: isDiagSub(dataSub) ? dataSub : "diag-all", label: "ui_dsub_diag", help: "h_dsub_diag", on: isDiagSub(dataSub) },
+  const items: { id: string; to: DataSub; label: string; help: string; on: boolean }[] = [
+    { id: "sources", to: "sources", label: "ui_dsub_sources", help: "h_dsub_sources", on: dataSub === "sources" },
+    { id: "trends", to: "trends", label: "ui_dsub_trends", help: "h_dsub_trends", on: dataSub === "trends" },
+    { id: "quality", to: "quality", label: "ui_dsub_quality", help: "h_dsub_quality", on: dataSub === "quality" },
+    { id: "diag", to: isDiagSub(dataSub) ? dataSub : "diag-all", label: "ui_dsub_diag", help: "h_dsub_diag", on: isDiagSub(dataSub) },
   ];
   return (
     <nav className="subtabs" role="tablist" aria-label={T("ui_dsubs")} data-testid="data-subtabs">
       {items.map((t) => (
         <button key={t.label} role="tab" className="subtab" aria-selected={t.on} title={T(t.help)} data-sub={t.id}
-          onClick={() => setDataSub(t.id)}>{T(t.label)}</button>
+          onClick={() => setDataSub(t.to)}>{T(t.label)}</button>
       ))}
       {isDiagSub(dataSub) && (
         <Seg value={dataSub} options={["diag-all", "diag-detail"] as const} label={T("ui_dsub_diag")} small testid="diag-sub"

@@ -215,8 +215,9 @@ def test_help_coverage_all_tabs(prepared):
         report[tab] = _gaps(pg, tab)
     pg.locator('[data-tab="data"]').click()
     for sub in SUBS:                                                    # podzáložky Data (Zdroje, Trendy, Kvalita, Diagnostika)
-        if sub == "diag-detail":
-            pg.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
+        if sub.startswith("diag"):
+            pg.locator('[data-sub="diag"]').click()
+            pg.locator(f'[data-testid="diag-sub"] [data-value="{sub}"]').click()
         else:
             pg.locator(f'[data-sub="{sub}"]').click()
         pg.wait_for_timeout(800)

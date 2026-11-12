@@ -74,7 +74,7 @@ def test_shell_tabs_and_connection(page):
     assert [t.inner_text() for t in tabs.all()][3:] == ["4 · APC", "5 · Live simulation"]
     page.locator('[data-tab="data"]').click()
     assert [b.get_attribute("data-sub") for b in page.locator('[data-testid="data-subtabs"] [role="tab"]').all()] == [
-        "sources", "trends", "quality", "diag-all"]
+        "sources", "trends", "quality", "diag"]
     assert "version" in page.locator('[data-testid="api-ok"]').inner_text()
     assert any(m == "POST" and u.endswith("/workspaces") for m, u in page.requested)     # pracovní prostor
     assert "#token" not in page.url                                                       # token z adresy pryč
@@ -1215,7 +1215,7 @@ def test_diag_loops_project_card_structure(page, server):
     _track(page)
     _ensure_model(server, page)
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="diag-all"]').click()
+    page.locator('[data-sub="diag"]').click()
     page.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
     page.wait_for_selector('[data-testid="diag-nl"]', timeout=60000)
     assert page.locator('[data-testid="diag-perf"].dcard h2 .qm').count() == 1
@@ -1224,7 +1224,8 @@ def test_diag_loops_project_card_structure(page, server):
     assert page.locator("aside.side details.scard").count() >= 2
     assert page.locator('aside.side [data-testid="diag-cmp"]').count() == 1
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="diag-all"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
     assert page.locator('[data-testid="loops-card"].dcard h2').count() == 1
     assert page.locator("aside.side details.scard").count() >= 3
@@ -1249,7 +1250,7 @@ def test_diagnostics_tab(page, server):
     _ensure_model(server, page)
     base = "/workspaces/{wid}"
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="diag-all"]').click()
+    page.locator('[data-sub="diag"]').click()
     page.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
     page.wait_for_selector('[data-testid="diag-trend"] .pidw-card', timeout=60000)
     ws = _api(server, base, page)
@@ -1335,7 +1336,8 @@ def test_loops_overview_add_switch_delete(page, server):
     l0 = _api(server, base + "/loops", page)
     n0, act0 = len(l0["loops"]), l0["active"]
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="diag-all"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
     ov = _api(server, base + "/loops/overview", page)
     assert len(ov["loops"]) == n0 and page.locator('[data-testid="loops-table"] tbody tr').count() == n0
@@ -1370,7 +1372,8 @@ def test_loops_overview_add_switch_delete(page, server):
     page.locator('[data-sub="quality"]').click()
     page.wait_for_function("(v) => document.querySelector('[data-testid=\"col-pv\"]')?.value === v", arg=pv0, timeout=30000)
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="diag-all"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.locator(f'[data-testid="loop-activate-{n0}"]').click()
     _until(lambda: _api(server, base + "/loops", page)["active"] == n0)
     page.locator('[data-tab="data"]').click()
@@ -1378,7 +1381,8 @@ def test_loops_overview_add_switch_delete(page, server):
     page.wait_for_function("() => document.querySelector('[data-testid=\"col-pv\"]')?.value === 'FI100.Pritok'", timeout=30000)
     # přehled smyček souboru: analýza = API (nová smyčka má vlastní návrh z tagů)
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="diag-all"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="audit-defs"]')
     page.locator('[data-testid="audit-run"]').click()
     page.wait_for_selector('[data-testid="audit-table"]', timeout=60000)
