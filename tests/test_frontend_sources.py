@@ -15,7 +15,6 @@ import test_frontend_help as _help  # noqa: E402
 
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
 
-SUBTAB = "Zdroje a smyčky"
 
 
 def _csv(df):
@@ -39,23 +38,17 @@ def _files():
 
 
 def _open(pg):
-    """Otevře Data › Zdroje a smyčky; bez podzáložky v navigaci (a bez vložené obrazovky) vrátí False."""
+    """Otevře Data › Zdroje a smyčky."""
     pg.evaluate("() => { localStorage.setItem('pid.tab', JSON.stringify('data')); localStorage.setItem('pid.lang', JSON.stringify('cs')); }")
     pg.reload(wait_until="networkidle")
     pg.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
-    tab = pg.get_by_text(SUBTAB, exact=True)
-    if tab.count():
-        tab.first.click()
-    elif pg.locator('[data-testid="sources-main"]').count() == 0:
-        return False
+    pg.locator('[data-sub="sources"]').click()
     pg.wait_for_selector('[data-testid="sources-main"]')
-    return True
 
 
 @pytest.fixture(scope="module")
 def sources_page(page):
-    if not _open(page):
-        pytest.skip("podzáložka „Zdroje a smyčky“ ještě není v navigaci (E4-A)")
+    _open(page)
     return page
 
 
@@ -93,7 +86,7 @@ def test_bad_timezone_shows_error(sources_page):
     pg.keyboard.press("Enter")
     pg.wait_for_selector('[data-testid="src-err"]')
     pg.fill('[data-testid="src-tz-s1"]', "")
-    assert _open(pg)                                                            # po obnovení stránky zůstane vše uložené
+    _open(pg)                                                                   # po obnovení stránky zůstane vše uložené
     pg.wait_for_selector('[data-testid="src-row-s1"]')
 
 

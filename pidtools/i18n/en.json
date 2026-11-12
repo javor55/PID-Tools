@@ -2479,6 +2479,7 @@
  "trd_ui_signals": "Signals",
  "trd_ui_help_signals": "All columns of all sources, grouped by loop or by source. Ticking a signal adds it to the chart; the colour is given by the role (PV blue, SP purple dashed, MV orange, DV teal).",
  "trd_ui_search": "Search signal…",
+ "trd_ui_search_h": "Filters the signal tree by column name, tag or file.",
  "trd_ui_by": "Grouping",
  "trd_ui_by_loop": "loops",
  "trd_ui_by_source": "sources",

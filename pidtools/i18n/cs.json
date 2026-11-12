@@ -2479,6 +2479,7 @@
  "trd_ui_signals": "Signály",
  "trd_ui_help_signals": "Všechny sloupce všech zdrojů, seskupené podle smyčky nebo zdroje. Zaškrtnutím se signál přidá do grafu; barva je dána rolí (PV modrá, SP fialová čárkovaně, MV oranžová, DV tyrkysová).",
  "trd_ui_search": "Hledat signál…",
+ "trd_ui_search_h": "Filtruje strom signálů podle názvu sloupce, tagu nebo souboru.",
  "trd_ui_by": "Seskupení",
  "trd_ui_by_loop": "smyčky",
  "trd_ui_by_source": "zdroje",

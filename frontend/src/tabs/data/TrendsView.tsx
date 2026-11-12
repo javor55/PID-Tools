@@ -292,7 +292,7 @@ export function TrendsSide() {
   return (
     <div className="trd-side" data-testid="trends-side">
       <SideCard title={T("trd_ui_signals")} help="trd_ui_help_signals" testid="trd-signals">
-        <input type="search" className="trd-search" aria-label={T("trd_ui_search")} placeholder={T("trd_ui_search")} value={st.search}
+        <input type="search" className="trd-search" aria-label={T("trd_ui_search")} title={T("trd_ui_search_h")} placeholder={T("trd_ui_search")} value={st.search}
           data-testid="trd-search" onChange={(e) => st.set({ search: e.target.value })} />
         <Seg<"loop" | "source"> value={st.groupBy} options={["loop", "source"]} label={T("trd_ui_by")} small stretch testid="trd-by"
           fmt={(v) => T(`trd_ui_by_${v}`)} onChange={(v) => st.set({ groupBy: v })} help="trd_ui_help_by" />

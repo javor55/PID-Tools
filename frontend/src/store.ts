@@ -66,7 +66,7 @@ export const useUi = create<UiState>((set) => ({
   lang: load("pid.lang", navigator.language?.startsWith("cs") ? "cs" : "en"),
   theme: load<Theme>("pid.theme", "system"),
   tab: ((t) => (t === "diag" || t === "loops" ? "data" : t))(load<TabId>("pid.tab", "data")),
-  dataSub: load<DataSub>("pid.dsub", "quality"),
+  dataSub: load<DataSub>("pid.dsub", "sources"),
   apcTech: load("pid.apc", "ff"),
   wid: (() => { try { return sessionStorage.getItem("pid.wid"); } catch { return null; } })(),
   jobs: {},

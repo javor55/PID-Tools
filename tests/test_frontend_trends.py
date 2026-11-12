@@ -1,13 +1,10 @@
 """
 Data › Trendy v novém rozhraní (E4-C) v prohlížeči: strom signálů ze dvou zdrojů s různým vzorkováním a posunem, panely
 (canvas), rozvržení, kurzory A / B s odečtem, přehledový pruh, vypočtený signál, export PNG / CSV a označení úseku pro
-Model. Potřebuje sestavené UI (cd frontend && npm run build) a podzáložku „Trendy“ v Data (bez ní se přeskočí;
-PID_TRENDS_DIRECT=1 = Trendy jsou rovnou hlavní plocha Dat, pro lokální zkoušku bez navigace).
+Model. Potřebuje sestavené UI (cd frontend && npm run build).
 """
 import io
 import json
-import os
-import re
 import urllib.request
 
 import numpy as np
@@ -53,11 +50,7 @@ def trends(page, server):
     page.reload(wait_until="networkidle")
     page.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
     page.locator('[data-tab="data"]').click()
-    if not os.environ.get("PID_TRENDS_DIRECT"):
-        nav = page.get_by_role("button", name=re.compile(r"^(Trendy|Trends)$")).or_(page.get_by_role("link", name=re.compile(r"^(Trendy|Trends)$")))
-        if not nav.count():
-            pytest.skip("podzáložka Trendy v Data není v tomto stromu (navigaci dodává E4-A)")
-        nav.first.click()
+    page.locator('[data-sub="trends"]').click()
     page.wait_for_selector('[data-testid="trends-main"]', timeout=20000)
     page.wait_for_selector('[data-testid="trd-panel"]', timeout=20000)
     return page
