@@ -100,3 +100,6 @@ na čistém Windows bez sítě – ruční test), M27 (pilot), M28 (vypnutí sta
 - [ ] **Harrisův index v Přehledu smyček (`app/audit.py`) je vyhodnocený obráceně:** jádro počítá η = σ²_MV / σ²_e
       (blízko 1 = regulace na hranici možností), ale audit hlásí jako problém η > 0,8 (`harris_hi`) a η > 0,5 (`harris`).
       Triáž (E5) bere správně nízké η jako špatné. Sjednotit (oprava změní pořadí v přehledu smyček).
+- [ ] **Všechny smyčky:** sloupec Ventil ukazuje surovou hodnotu stikce („stic 0.000078“) – zobrazit v % rozsahu MV
+      a s textem; šrafování MAN v grafu Detailu smyčky; uložit výsledek triáže do projektu; prahy i v Nastavení ›
+      Diagnostika.
