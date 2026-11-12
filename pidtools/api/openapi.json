@@ -897,6 +897,78 @@
     "title": "Common",
     "type": "object"
    },
+   "CompareModel": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "fit": {
+      "title": "Fit",
+      "type": "number"
+     },
+     "y": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Y",
+      "type": "array"
+     }
+    },
+    "required": [
+     "code",
+     "fit",
+     "y"
+    ],
+    "title": "CompareModel",
+    "type": "object"
+   },
+   "CompareOut": {
+    "properties": {
+     "models": {
+      "items": {
+       "$ref": "#/components/schemas/CompareModel"
+      },
+      "title": "Models",
+      "type": "array"
+     },
+     "pv": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Pv",
+      "type": "array"
+     },
+     "t": {
+      "items": {
+       "type": "number"
+      },
+      "title": "T",
+      "type": "array"
+     }
+    },
+    "required": [
+     "t",
+     "pv",
+     "models"
+    ],
+    "title": "CompareOut",
+    "type": "object"
+   },
    "DataQuality": {
     "properties": {
      "checks": {
@@ -3191,6 +3263,82 @@
     "title": "LoopHealth",
     "type": "object"
    },
+   "LoopInfo": {
+    "properties": {
+     "auto_frac": {
+      "title": "Auto Frac",
+      "type": "number"
+     },
+     "effective": {
+      "enum": [
+       "open",
+       "cl"
+      ],
+      "title": "Effective",
+      "type": "string"
+     },
+     "excitation": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Excitation"
+     },
+     "has_sp": {
+      "title": "Has Sp",
+      "type": "boolean"
+     },
+     "low_excitation": {
+      "default": false,
+      "title": "Low Excitation",
+      "type": "boolean"
+     },
+     "manual_span": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Manual Span"
+     },
+     "mode": {
+      "title": "Mode",
+      "type": "string"
+     },
+     "set1": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "title": "Set1",
+      "type": "object"
+     },
+     "set1_ok": {
+      "title": "Set1 Ok",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "mode",
+     "effective",
+     "auto_frac",
+     "has_sp",
+     "set1_ok",
+     "set1"
+    ],
+    "title": "LoopInfo",
+    "type": "object"
+   },
    "LoopMapping": {
     "description": "Mapování smyčky. `norm_pv` / `norm_mv` = [dolní, horní] mez v jednotkách signálu; `cascade_to` = index podřazené smyčky.",
     "properties": {
@@ -3737,6 +3885,11 @@
       ],
       "title": "Status"
      },
+     "stic": {
+      "default": 0.0,
+      "title": "Stic",
+      "type": "number"
+     },
      "structs": {
       "default": [],
       "items": {
@@ -3884,6 +4037,33 @@
      "mode"
     ],
     "title": "MvMode",
+    "type": "object"
+   },
+   "Narrow": {
+    "properties": {
+     "narrowed": {
+      "title": "Narrowed",
+      "type": "boolean"
+     },
+     "span": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Span"
+     }
+    },
+    "required": [
+     "narrowed"
+    ],
+    "title": "Narrow",
     "type": "object"
    },
    "NewLoop": {
@@ -5110,6 +5290,96 @@
     "title": "Select",
     "type": "object"
    },
+   "Set1Check": {
+    "properties": {
+     "available": {
+      "title": "Available",
+      "type": "boolean"
+     },
+     "fit_mv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit Mv"
+     },
+     "fit_pv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit Pv"
+     },
+     "ok": {
+      "default": false,
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "stable": {
+      "default": true,
+      "title": "Stable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "available"
+    ],
+    "title": "Set1Check",
+    "type": "object"
+   },
+   "Set1Estimate": {
+    "properties": {
+     "gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gain"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "r2": {
+      "default": 0.0,
+      "title": "R2",
+      "type": "number"
+     },
+     "td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ti"
+     }
+    },
+    "required": [
+     "ok"
+    ],
+    "title": "Set1Estimate",
+    "type": "object"
+   },
    "SetInfo": {
     "properties": {
      "gain": {
@@ -6328,6 +6598,79 @@
     "title": "StatRow",
     "type": "object"
    },
+   "StepOut": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "edited": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Edited"
+     },
+     "fit": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Fit",
+      "type": "array"
+     },
+     "open": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Open"
+     },
+     "t": {
+      "items": {
+       "type": "number"
+      },
+      "title": "T",
+      "type": "array"
+     },
+     "theta": {
+      "title": "Theta",
+      "type": "number"
+     },
+     "variants": {
+      "default": [],
+      "items": {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      "title": "Variants",
+      "type": "array"
+     }
+    },
+    "required": [
+     "code",
+     "t",
+     "fit",
+     "theta"
+    ],
+    "title": "StepOut",
+    "type": "object"
+   },
    "SuggestBody": {
     "properties": {
      "apply": {
@@ -6998,6 +7341,246 @@
      }
     },
     "title": "Uncertainty",
+    "type": "object"
+   },
+   "ValRow": {
+    "properties": {
+     "FIT": {
+      "title": "Fit",
+      "type": "number"
+     },
+     "IAE": {
+      "title": "Iae",
+      "type": "number"
+     },
+     "NRMSE": {
+      "title": "Nrmse",
+      "type": "number"
+     },
+     "R2": {
+      "title": "R2",
+      "type": "number"
+     },
+     "frac_acf": {
+      "title": "Frac Acf",
+      "type": "number"
+     },
+     "frac_ccf": {
+      "title": "Frac Ccf",
+      "type": "number"
+     },
+     "status": {
+      "title": "Status",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "FIT",
+     "NRMSE",
+     "R2",
+     "IAE",
+     "frac_acf",
+     "frac_ccf",
+     "status"
+    ],
+    "title": "ValRow",
+    "type": "object"
+   },
+   "ValidateOut": {
+    "properties": {
+     "fit_mv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit Mv"
+     },
+     "fit_pv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit Pv"
+     },
+     "id": {
+      "$ref": "#/components/schemas/ValRow"
+     },
+     "id_rng": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Id Rng",
+      "type": "array"
+     },
+     "mode": {
+      "enum": [
+       "pred",
+       "cl"
+      ],
+      "title": "Mode",
+      "type": "string"
+     },
+     "mv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Mv",
+      "type": "array"
+     },
+     "overlap": {
+      "title": "Overlap",
+      "type": "number"
+     },
+     "pv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Pv",
+      "type": "array"
+     },
+     "pv_range": {
+      "default": 100.0,
+      "title": "Pv Range",
+      "type": "number"
+     },
+     "rng": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Rng",
+      "type": "array"
+     },
+     "sim_mv": {
+      "anyOf": [
+       {
+        "items": {
+         "anyOf": [
+          {
+           "type": "number"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Mv"
+     },
+     "sim_pv": {
+      "default": [],
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "title": "Sim Pv",
+      "type": "array"
+     },
+     "sim_t": {
+      "default": [],
+      "items": {
+       "type": "number"
+      },
+      "title": "Sim T",
+      "type": "array"
+     },
+     "sp": {
+      "anyOf": [
+       {
+        "items": {
+         "anyOf": [
+          {
+           "type": "number"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sp"
+     },
+     "stable": {
+      "default": true,
+      "title": "Stable",
+      "type": "boolean"
+     },
+     "t": {
+      "default": [],
+      "items": {
+       "type": "number"
+      },
+      "title": "T",
+      "type": "array"
+     },
+     "val": {
+      "$ref": "#/components/schemas/ValRow"
+     },
+     "verdict": {
+      "enum": [
+       "same",
+       "ok",
+       "weak",
+       "unstable"
+      ],
+      "title": "Verdict",
+      "type": "string"
+     },
+     "which": {
+      "title": "Which",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "rng",
+     "id_rng",
+     "overlap",
+     "mode",
+     "which",
+     "id",
+     "val",
+     "verdict"
+    ],
+    "title": "ValidateOut",
     "type": "object"
    },
    "Validation": {
@@ -14556,6 +15139,81 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/model/compare": {
+   "get": {
+    "description": "Predikce všech nafitovaných modelů na úseku identifikace (porovnání s PV).",
+    "operationId": "compare_api_v1_workspaces__wid__model_compare_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CompareOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Compare",
+    "tags": [
+     "model"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/model/crossval": {
    "post": {
     "description": "Křížové ověření (úseky podle vstupů): fit bez každého úseku a shoda na něm – úloha.",
@@ -14782,6 +15440,81 @@
      }
     },
     "summary": "Select Dist",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/model/loop": {
+   "get": {
+    "description": "Smyčka v AUTO: použitý režim identifikace, Set 1, buzení v úseku a ruční úsek, na který lze zúžit.",
+    "operationId": "loop_info_api_v1_workspaces__wid__model_loop_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Loop Info",
     "tags": [
      "model"
     ]
@@ -15041,6 +15774,247 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/model/set1/check": {
+   "get": {
+    "description": "Sedí Set 1 s regulátorem v záznamu? Simulace smyčky s vybraným modelem na úseku identifikace.",
+    "operationId": "set1_check_api_v1_workspaces__wid__model_set1_check_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Set1Check"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Set1 Check",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/model/set1/estimate": {
+   "post": {
+    "description": "Odhad Set 1 (Gain, TI) ze záznamu – při úspěchu se zapíše do nastavení set1_*.",
+    "operationId": "set1_estimate_api_v1_workspaces__wid__model_set1_estimate_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Set1Estimate"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Set1 Estimate",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/model/step": {
+   "get": {
+    "description": "Odezva modelu na skok MV o 10 % (v Δ jednotkách PV): nafitovaný, upravený, z otevřené smyčky a varianty z\nnejistoty.",
+    "operationId": "step_api_v1_workspaces__wid__model_step_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "code",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Code"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StepOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Step",
+    "tags": [
+     "model"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/model/uncertainty": {
    "post": {
     "description": "Nejistota modelu – bootstrap reziduí (n refitů) – úloha.",
@@ -15121,6 +16095,139 @@
      }
     },
     "summary": "Uncertainty",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/model/validate": {
+   "get": {
+    "description": "Ověření modelu na jiném úseku <a, b> [s] (výchozí: uložený ověřovací úsek `val_rng`, jinak celý záznam):\npredikce PV z naměřené MV, nebo simulace smyčky se Sadou 1 / 2 (potřebuje SP); tabulka hodnocení na úseku\nidentifikace a ověřovacím a verdikt.",
+    "operationId": "validate_api_v1_workspaces__wid__model_validate_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "a",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "A"
+      }
+     },
+     {
+      "in": "query",
+      "name": "b",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "B"
+      }
+     },
+     {
+      "in": "query",
+      "name": "mode",
+      "required": false,
+      "schema": {
+       "default": "pred",
+       "enum": [
+        "pred",
+        "cl"
+       ],
+       "title": "Mode",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "which",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "maximum": 2,
+       "minimum": 1,
+       "title": "Which",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ValidateOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Validate",
     "tags": [
      "model"
     ]
@@ -18402,6 +19509,81 @@
      }
     },
     "summary": "Set Mv Mode",
+    "tags": [
+     "model"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/windows/narrow": {
+   "post": {
+    "description": "Zúží úsek identifikace (u úseků podle vstupů úsek MV) na nejdelší ruční část se skokem MV.",
+    "operationId": "narrow_api_v1_workspaces__wid__windows_narrow_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Narrow"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Narrow",
     "tags": [
      "model"
     ]

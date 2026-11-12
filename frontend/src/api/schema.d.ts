@@ -1537,6 +1537,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/model/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare
+         * @description Predikce všech nafitovaných modelů na úseku identifikace (porovnání s PV).
+         */
+        get: operations["compare_api_v1_workspaces__wid__model_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/model/crossval": {
         parameters: {
             query?: never;
@@ -1591,6 +1611,26 @@ export interface paths {
          *     ed|kód|d{j}|i; model se použije hned (bez dofitování).
          */
         put: operations["select_dist_api_v1_workspaces__wid__model_dist_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/loop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Loop Info
+         * @description Smyčka v AUTO: použitý režim identifikace, Set 1, buzení v úseku a ruční úsek, na který lze zúžit.
+         */
+        get: operations["loop_info_api_v1_workspaces__wid__model_loop_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1655,6 +1695,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/model/set1/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Set1 Check
+         * @description Sedí Set 1 s regulátorem v záznamu? Simulace smyčky s vybraným modelem na úseku identifikace.
+         */
+        get: operations["set1_check_api_v1_workspaces__wid__model_set1_check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/set1/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set1 Estimate
+         * @description Odhad Set 1 (Gain, TI) ze záznamu – při úspěchu se zapíše do nastavení set1_*.
+         */
+        post: operations["set1_estimate_api_v1_workspaces__wid__model_set1_estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Step
+         * @description Odezva modelu na skok MV o 10 % (v Δ jednotkách PV): nafitovaný, upravený, z otevřené smyčky a varianty z
+         *     nejistoty.
+         */
+        get: operations["step_api_v1_workspaces__wid__model_step_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/model/uncertainty": {
         parameters: {
             query?: never;
@@ -1669,6 +1770,28 @@ export interface paths {
          * @description Nejistota modelu – bootstrap reziduí (n refitů) – úloha.
          */
         post: operations["uncertainty_api_v1_workspaces__wid__model_uncertainty_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Validate
+         * @description Ověření modelu na jiném úseku <a, b> [s] (výchozí: uložený ověřovací úsek `val_rng`, jinak celý záznam):
+         *     predikce PV z naměřené MV, nebo simulace smyčky se Sadou 1 / 2 (potřebuje SP); tabulka hodnocení na úseku
+         *     identifikace a ověřovacím a verdikt.
+         */
+        get: operations["validate_api_v1_workspaces__wid__model_validate_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2218,6 +2341,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/windows/narrow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Narrow
+         * @description Zúží úsek identifikace (u úseků podle vstupů úsek MV) na nejdelší ruční část se skokem MV.
+         */
+        post: operations["narrow_api_v1_workspaces__wid__windows_narrow_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2508,6 +2651,24 @@ export interface components {
             end: number;
             /** Start */
             start: number;
+        };
+        /** CompareModel */
+        CompareModel: {
+            /** Code */
+            code: string;
+            /** Fit */
+            fit: number;
+            /** Y */
+            y: (number | null)[];
+        };
+        /** CompareOut */
+        CompareOut: {
+            /** Models */
+            models: components["schemas"]["CompareModel"][];
+            /** Pv */
+            pv: (number | null)[];
+            /** T */
+            t: number[];
         };
         /** DataQuality */
         DataQuality: {
@@ -3366,6 +3527,37 @@ export interface components {
              */
             score: number;
         };
+        /** LoopInfo */
+        LoopInfo: {
+            /** Auto Frac */
+            auto_frac: number;
+            /**
+             * Effective
+             * @enum {string}
+             */
+            effective: "open" | "cl";
+            /** Excitation */
+            excitation?: {
+                [key: string]: unknown;
+            } | null;
+            /** Has Sp */
+            has_sp: boolean;
+            /**
+             * Low Excitation
+             * @default false
+             */
+            low_excitation: boolean;
+            /** Manual Span */
+            manual_span?: number[] | null;
+            /** Mode */
+            mode: string;
+            /** Set1 */
+            set1: {
+                [key: string]: number;
+            };
+            /** Set1 Ok */
+            set1_ok: boolean;
+        };
         /**
          * LoopMapping
          * @description Mapování smyčky. `norm_pv` / `norm_mv` = [dolní, horní] mez v jednotkách signálu; `cascade_to` = index podřazené smyčky.
@@ -3550,6 +3742,11 @@ export interface components {
             /** Status */
             status?: number | null;
             /**
+             * Stic
+             * @default 0
+             */
+            stic: number;
+            /**
              * Structs
              * @default []
              */
@@ -3603,6 +3800,13 @@ export interface components {
              * @enum {string}
              */
             mode: "man" | "auto";
+        };
+        /** Narrow */
+        Narrow: {
+            /** Narrowed */
+            narrowed: boolean;
+            /** Span */
+            span?: number[] | null;
         };
         /** NewLoop */
         NewLoop: {
@@ -4031,6 +4235,44 @@ export interface components {
             /** Code */
             code: string;
         };
+        /** Set1Check */
+        Set1Check: {
+            /** Available */
+            available: boolean;
+            /** Fit Mv */
+            fit_mv?: number | null;
+            /** Fit Pv */
+            fit_pv?: number | null;
+            /**
+             * Ok
+             * @default false
+             */
+            ok: boolean;
+            /**
+             * Stable
+             * @default true
+             */
+            stable: boolean;
+        };
+        /** Set1Estimate */
+        Set1Estimate: {
+            /** Gain */
+            gain?: number | null;
+            /** Ok */
+            ok: boolean;
+            /**
+             * R2
+             * @default 0
+             */
+            r2: number;
+            /**
+             * Td
+             * @default 0
+             */
+            td: number;
+            /** Ti */
+            ti?: number | null;
+        };
         /** SetInfo */
         SetInfo: {
             /** Gain */
@@ -4436,6 +4678,26 @@ export interface components {
             /** Std */
             std?: number | null;
         };
+        /** StepOut */
+        StepOut: {
+            /** Code */
+            code: string;
+            /** Edited */
+            edited?: number[] | null;
+            /** Fit */
+            fit: number[];
+            /** Open */
+            open?: number[] | null;
+            /** T */
+            t: number[];
+            /** Theta */
+            theta: number;
+            /**
+             * Variants
+             * @default []
+             */
+            variants: number[][];
+        };
         /** SuggestBody */
         SuggestBody: {
             /**
@@ -4718,6 +4980,89 @@ export interface components {
              * @default 15
              */
             n: number;
+        };
+        /** ValRow */
+        ValRow: {
+            /** Fit */
+            FIT: number;
+            /** Iae */
+            IAE: number;
+            /** Nrmse */
+            NRMSE: number;
+            /** R2 */
+            R2: number;
+            /** Frac Acf */
+            frac_acf: number;
+            /** Frac Ccf */
+            frac_ccf: number;
+            /** Status */
+            status: number;
+        };
+        /** ValidateOut */
+        ValidateOut: {
+            /** Fit Mv */
+            fit_mv?: number | null;
+            /** Fit Pv */
+            fit_pv?: number | null;
+            id: components["schemas"]["ValRow"];
+            /** Id Rng */
+            id_rng: number[];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "pred" | "cl";
+            /**
+             * Mv
+             * @default []
+             */
+            mv: (number | null)[];
+            /** Overlap */
+            overlap: number;
+            /**
+             * Pv
+             * @default []
+             */
+            pv: (number | null)[];
+            /**
+             * Pv Range
+             * @default 100
+             */
+            pv_range: number;
+            /** Rng */
+            rng: number[];
+            /** Sim Mv */
+            sim_mv?: (number | null)[] | null;
+            /**
+             * Sim Pv
+             * @default []
+             */
+            sim_pv: (number | null)[];
+            /**
+             * Sim T
+             * @default []
+             */
+            sim_t: number[];
+            /** Sp */
+            sp?: (number | null)[] | null;
+            /**
+             * Stable
+             * @default true
+             */
+            stable: boolean;
+            /**
+             * T
+             * @default []
+             */
+            t: number[];
+            val: components["schemas"]["ValRow"];
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "same" | "ok" | "weak" | "unstable";
+            /** Which */
+            which: number;
         };
         /** Validation */
         Validation: {
@@ -8015,6 +8360,40 @@ export interface operations {
             };
         };
     };
+    compare_api_v1_workspaces__wid__model_compare_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     crossval_api_v1_workspaces__wid__model_crossval_post: {
         parameters: {
             query?: never;
@@ -8108,6 +8487,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    loop_info_api_v1_workspaces__wid__model_loop_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopInfo"];
                 };
             };
             /** @description Validation Error */
@@ -8235,6 +8648,110 @@ export interface operations {
             };
         };
     };
+    set1_check_api_v1_workspaces__wid__model_set1_check_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Set1Check"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set1_estimate_api_v1_workspaces__wid__model_set1_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Set1Estimate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    step_api_v1_workspaces__wid__model_step_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     uncertainty_api_v1_workspaces__wid__model_uncertainty_post: {
         parameters: {
             query?: never;
@@ -8260,6 +8777,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_api_v1_workspaces__wid__model_validate_get: {
+        parameters: {
+            query?: {
+                a?: number | null;
+                b?: number | null;
+                mode?: "pred" | "cl";
+                which?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidateOut"];
                 };
             };
             /** @description Validation Error */
@@ -9600,6 +10156,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WindowsInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    narrow_api_v1_workspaces__wid__windows_narrow_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Narrow"];
                 };
             };
             /** @description Validation Error */
