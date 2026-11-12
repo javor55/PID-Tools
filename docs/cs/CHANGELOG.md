@@ -7,6 +7,11 @@
   stavový štítek, „+ Smyčka“ a souhrn projektu; Model, Ladění, APC a Živá simulace mají řádek „Pracujete na…“ s odkazem
   Změnit data / smyčku.
 - UI (E4): **Data › Zdroje a smyčky** – soubory s časovou osou (formát, perioda, rozsah, časové pásmo a posun, čtení, odebrání, přidání výběrem i přetažením), časové pokrytí se společným úsekem a nastavením společné mřížky (překryv / sjednocení, perioda auto / ručně), tabulka smyček s rolemi „soubor › sloupec“, rozsahy, kaskádou a stavem mapování, návrh podle názvů tagů a import mapování z CSV s kontrolou před použitím a panel sloupců s minigrafy (přetažení do role i výběr „Použít jako…“).
+- Data › Trendy (E4, plán v2): prohlížeč všech signálů všech zdrojů na společné časové ose podle desky `DataTrends`: strom
+  signálů (smyčky / zdroje, hledání, barvy podle rolí), panely 1 / na smyčku / na veličinu, kurzory A–B s odečtem (hodnoty,
+  Δ, min, max, průměr, σ), přehledový pruh a zoom, vypočtený signál (jazyk vzorců prohlížeče záznamu), export PNG / CSV
+  a označení úseku A–B pro Model (identifikační úsek) a Diagnostiku. Průběhy se zřeďují na serveru. API: nové
+  `PUT /workspaces/{wid}/range/common` (úsek ze společné osy zdrojů → čas aktivní smyčky).
 - Data (E3, plán v2): **více zdrojů dat a skládání smyček** (`pidtools/app/domain`). Projekt má zdroje (soubor CSV / XLSX /
   TXT, OPC UA) s časovým pásmem, posunem a vlastním vzorkováním a smyčky s mapováním rolí (PV, SP, MV, poloha, DV, režim)
   na `zdroj › sloupec`, rozsahy NormPV / NormMV, popisem a vazbou kaskády; jeden sloupec může být ve více smyčkách. Data

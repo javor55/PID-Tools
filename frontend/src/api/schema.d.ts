@@ -1817,6 +1817,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/range/common": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Range Common
+         * @description Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky
+         *     a ořízne na něj (úsek mimo záznam = 422); s `apply=false` jen vrátí přepočtený úsek (pro Diagnostiku).
+         */
+        put: operations["set_range_common_api_v1_workspaces__wid__range_common_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/report": {
         parameters: {
             query?: never;
@@ -2261,6 +2282,16 @@ export interface components {
              * @default []
              */
             t: number[];
+        };
+        /**
+         * AxisRange
+         * @description Úsek na společné ose zdrojů [s] (kurzory A–B v Trendech).
+         */
+        AxisRange: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
         };
         /** Browse */
         Browse: {
@@ -3331,6 +3362,18 @@ export interface components {
             runs: components["schemas"]["Run"][];
             /** Set1 Ok */
             set1_ok: boolean;
+        };
+        /**
+         * LoopRange
+         * @description Úsek přepočtený na čas aktivní smyčky; `offset` = čas 0 smyčky na společné ose [s].
+         */
+        LoopRange: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+            /** Offset */
+            offset: number;
         };
         /** LoopRow */
         LoopRow: {
@@ -8345,6 +8388,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_range_common_api_v1_workspaces__wid__range_common_put: {
+        parameters: {
+            query?: {
+                /** @description false = jen přepočet, úsek se nenastaví */
+                apply?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AxisRange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopRange"];
                 };
             };
             /** @description Validation Error */
