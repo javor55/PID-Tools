@@ -133,3 +133,14 @@
 .tn-hist li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
 .tn-hbtn { display: inline-flex; gap: 8px; }
 @media (max-width: 1100px) { .tn-barrow { gap: 8px 12px; } .tn-right { margin-left: 0; } }
+
+/* profil regulátoru smyčky, proces a ventil, export (E8-B) */
+.tn-ctl { display: flex; flex-direction: column; gap: 4px; }
+.tn-warns { display: flex; flex-direction: column; gap: 6px; margin: 0 0 8px; }
+.tn-warn.err { background: rgba(220, 38, 38, .12); color: var(--pid-bad, #b91c1c); }
+.tn-vchar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tn-vc { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.tn-vc input { width: 100%; box-sizing: border-box; }
+.tn-vcurve { width: 140px; height: 140px; margin: 6px 0; border: 1px solid var(--pid-soft); border-radius: 4px; }
+.tn-export { margin-top: 6px; }
+.tn-exp-box { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 8px; border: 1px solid var(--pid-soft); border-radius: 6px; }

@@ -5,6 +5,7 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
 
 ## Plán v2
 
+- [x] **E8-B – Ladění s profilem regulátoru** (12. 11. 2026): viz změny. Zbývá: odkaz „Otevřít v knihovně“ jen vyvolá `CustomEvent("pid:open-settings", {detail: {section: "controllers", id}})`, zapojí ho shell (E8-A); porovnání metod a živá simulace stále počítají v kanonickém PIDConL (porovnání ukazuje kanonické Kc / Ti / Td); parametry profilu bez nastavení ve smyčce (ConZone, Tf, …) se jen zobrazují; export používá názvy a jednotky profilu, přesné cesty značek TIA / DeltaV je nutné ověřit u konkrétního bloku; „stav FF“ v kartě je beze změny.
 - [x] **E1 – jádro regulátoru R1** (11. 11. 2026): `core/controller.py`, profil `pcs7_pidconl`, `ctrl_engine.js`, zlaté
       případy, benchmark kroku, test hranic vrstev. Zbývá z návrhu: živá simulace v prohlížeči stále používá vlastní
       `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnutí na `ctrl_engine.js`

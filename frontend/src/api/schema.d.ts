@@ -2468,6 +2468,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/tuning/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export
+         * @description Export sady `n` (výchozí Set 2) v názvech a jednotkách bloku regulátoru smyčky pro řídicí systém / CSV.
+         */
+        get: operations["export_api_v1_workspaces__wid__tuning_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning/plant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Plant
+         * @description Proces a ventil v simulaci (Ladění i Živá): stikce, skluz, šum PV, charakteristika ventilu.
+         */
+        get: operations["get_plant_api_v1_workspaces__wid__tuning_plant_get"];
+        /** Set Plant */
+        put: operations["set_plant_api_v1_workspaces__wid__tuning_plant_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning/robustness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Robustness
+         * @description Tabulka robustnosti sad (Set 1, Set 2, návrh): Ms, Mt, GM, PM, šum MV a nejhorší Ms přes nejistotu modelu.
+         */
+        post: operations["robustness_api_v1_workspaces__wid__tuning_robustness_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/tuning/sets/{n}": {
         parameters: {
             query?: never;
@@ -2502,6 +2563,26 @@ export interface paths {
          * @description Návrh ladění metodou (výchozí: metoda uložená u modelu) s upozorněními a kontrolami věrohodnosti.
          */
         post: operations["suggest_api_v1_workspaces__wid__tuning_suggest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning/warnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Warnings
+         * @description Varování ladění: data mimo NormPV / NormMV, pracovní bod MV mimo limity, nízká shoda modelu.
+         */
+        get: operations["warnings_api_v1_workspaces__wid__tuning_warnings_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2691,6 +2772,23 @@ export interface components {
             a: number;
             /** B */
             b: number;
+        };
+        /** BlockParam */
+        BlockParam: {
+            /** Default */
+            default?: unknown;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Setting */
+            setting?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Value */
+            value?: unknown;
         };
         /** Browse */
         Browse: {
@@ -3910,6 +4008,23 @@ export interface components {
             from_id?: string | null;
             profile?: components["schemas"]["ControllerProfile"] | null;
         };
+        /** LoopCtrlRef */
+        LoopCtrlRef: {
+            /** Block */
+            block: string;
+            /** Id */
+            id: string;
+            /** Is Default */
+            is_default: boolean;
+            /** Name */
+            name: string;
+            /** Tag */
+            tag: string;
+            /** Vendor */
+            vendor: string;
+            /** Verified */
+            verified: boolean;
+        };
         /** LoopHealth */
         LoopHealth: {
             /** Err */
@@ -4345,6 +4460,17 @@ export interface components {
             /** Step */
             step?: number | null;
         };
+        /** ParamRef */
+        ParamRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit?: string | null;
+        };
         /** ParamRow */
         ParamRow: {
             /** Name */
@@ -4385,6 +4511,36 @@ export interface components {
             Td: number;
             /** Ti */
             Ti: number;
+        };
+        /** PlantInfo */
+        PlantInfo: {
+            /** Curve X */
+            curve_x: number[];
+            /** Curve Y */
+            curve_y: number[];
+            /** Noise */
+            noise: number;
+            /** Sigma Pv */
+            sigma_pv: number;
+            /** Slip */
+            slip: number;
+            /** Stic */
+            stic: number;
+            /** Stic Default */
+            stic_default: number;
+            /** Vchar */
+            vchar: number[];
+        };
+        /** PlantSet */
+        PlantSet: {
+            /** Noise */
+            noise?: number | null;
+            /** Slip */
+            slip?: number | null;
+            /** Stic */
+            stic?: number | null;
+            /** Vchar */
+            vchar?: number[] | null;
         };
         /** PointRow */
         PointRow: {
@@ -4625,6 +4781,43 @@ export interface components {
             /** Ready */
             ready: boolean;
         };
+        /** RobRow */
+        RobRow: {
+            /** Gm */
+            GM?: number | null;
+            /** Ms */
+            Ms?: number | null;
+            /** Ms Worst */
+            Ms_worst?: number | null;
+            /** Mt */
+            Mt?: number | null;
+            /** Pm */
+            PM?: number | null;
+            /**
+             * Approximate
+             * @default false
+             */
+            approximate: boolean;
+            /** Name */
+            name: string;
+            /** Noise */
+            noise?: number | null;
+            /** Stable */
+            stable: boolean;
+        };
+        /** Robust */
+        Robust: {
+            /** Gm */
+            GM?: number | null;
+            /** Ms */
+            Ms?: number | null;
+            /** Mt */
+            Mt?: number | null;
+            /** Pm */
+            PM?: number | null;
+            /** Stable */
+            stable: boolean;
+        };
         /** RolesBody */
         RolesBody: {
             /**
@@ -4740,6 +4933,18 @@ export interface components {
             td: number;
             /** Ti */
             ti: number;
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: unknown;
+            };
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: components["schemas"]["Warn"][];
         };
         /** SignalStats */
         SignalStats: {
@@ -5192,7 +5397,10 @@ export interface components {
             /** Via */
             via: string;
         };
-        /** Suggestion */
+        /**
+         * Suggestion
+         * @description Návrh v kanonickém tvaru (Kc, Ti, Td) a v parametrech regulátoru smyčky (`values` v jednotkách bloku).
+         */
         Suggestion: {
             /** Kc */
             Kc: number;
@@ -5203,6 +5411,11 @@ export interface components {
             Td: number;
             /** Ti */
             Ti: number;
+            /**
+             * Approximate
+             * @default false
+             */
+            approximate: boolean;
             /**
              * Checks
              * @default []
@@ -5215,6 +5428,21 @@ export interface components {
              * @default []
              */
             notes: components["schemas"]["Note"][];
+            robust?: components["schemas"]["Robust"] | null;
+            /** Tc */
+            tc?: number | null;
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: unknown;
+            };
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: components["schemas"]["Warn"][];
         };
         /** Suggestions */
         Suggestions: {
@@ -5415,12 +5643,23 @@ export interface components {
         };
         /** TuningInfo */
         TuningInfo: {
+            /**
+             * Block Params
+             * @default []
+             */
+            block_params: components["schemas"]["BlockParam"][];
+            controller?: components["schemas"]["LoopCtrlRef"] | null;
             /** D Advice */
             d_advice?: {
                 [key: string]: unknown;
             } | null;
             /** Default Method */
             default_method: string;
+            /**
+             * Export Formats
+             * @default []
+             */
+            export_formats: string[];
             /**
              * History
              * @default []
@@ -5434,6 +5673,11 @@ export interface components {
             model: string | null;
             /** Sets */
             sets: components["schemas"]["SetInfo"][];
+            /**
+             * Tuning Params
+             * @default []
+             */
+            tuning_params: components["schemas"]["ParamRef"][];
         };
         /** Uncertainty */
         Uncertainty: {
@@ -5619,6 +5863,13 @@ export interface components {
                 [key: string]: components["schemas"]["VpcKpi"];
             };
         };
+        /** Warn */
+        Warn: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** Warning_ */
         Warning_: {
             /** Key */
@@ -5710,19 +5961,26 @@ export interface components {
              */
             time_note: string;
         };
-        /** WriteSet */
+        /**
+         * WriteSet
+         * @description Sada v kanonickém tvaru (Kc, Ti, Td), nebo v jednotkách bloku (`values`: klíč parametru profilu → hodnota).
+         */
         WriteSet: {
             /** Kc */
-            Kc: number;
+            Kc?: number | null;
             /**
              * Td
              * @default 0
              */
             Td: number;
             /** Ti */
-            Ti: number;
+            Ti?: number | null;
             /** Log */
             log?: {
+                [key: string]: unknown;
+            } | null;
+            /** Values */
+            values?: {
                 [key: string]: unknown;
             } | null;
         };
@@ -10943,6 +11201,154 @@ export interface operations {
             };
         };
     };
+    export_api_v1_workspaces__wid__tuning_export_get: {
+        parameters: {
+            query?: {
+                fmt?: string;
+                n?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description parameter set in block names and units (fmt: csv, pcs7, tia, deltav) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                    "text/plain": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plant_api_v1_workspaces__wid__tuning_plant_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_plant_api_v1_workspaces__wid__tuning_plant_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlantSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    robustness_api_v1_workspaces__wid__tuning_robustness_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Pid"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     write_set_api_v1_workspaces__wid__tuning_sets__n__put: {
         parameters: {
             query?: never;
@@ -11007,6 +11413,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Suggestion"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    warnings_api_v1_workspaces__wid__tuning_warnings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Warn"][];
                 };
             };
             /** @description Validation Error */

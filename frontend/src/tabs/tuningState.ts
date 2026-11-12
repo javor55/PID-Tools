@@ -62,7 +62,8 @@ export function useCalc() {
   return async (method: string) => {
     useTun.setState({ err: null, busy: true });
     try {
-      const sug = await request<Suggestion>("POST", `/workspaces/${wid}/tuning/suggest`, { method });
+      const tcv = Number(st[`tc|${String(st.mcode ?? "")}|${method}|${String(st.ctype ?? "PI")}`]);      // τc zadané uživatelem
+      const sug = await request<Suggestion>("POST", `/workspaces/${wid}/tuning/suggest`, { method, ...(tcv > 0 ? { tc: tcv } : {}) });
       useTun.setState({ sug: { ...sug, sig: `${method}|${sig}`, t: new Date().toLocaleTimeString() }, busy: false });
     } catch (e) { useTun.setState({ err: String((e as Error).message), busy: false }); }
   };

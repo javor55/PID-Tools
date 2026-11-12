@@ -45,3 +45,13 @@ export const useSettingsUi = create<SettingsState>((set) => ({
 
 // Přepnutí záložky / podzáložky (i z jiného místa, např. průvodce) zavře Nastavení.
 useUi.subscribe((s, p) => { if (s.tab !== p.tab || s.dataSub !== p.dataSub) useSettingsUi.getState().close(); });
+
+// „Otevřít v knihovně“ z karty Regulátor smyčky (Ladění): CustomEvent("pid:open-settings", {detail: {section, id}}).
+if (typeof window !== "undefined") {
+  window.addEventListener("pid:open-settings", (e) => {
+    const d = (e as CustomEvent<{ section?: Section; id?: string | null }>).detail ?? {};
+    const st = useSettingsUi.getState();
+    st.openSettings(d.section ?? "controllers");
+    if (d.id) st.go("library", d.id);
+  });
+}

@@ -238,7 +238,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const pick = async (q: Pick<CmpRow, "method" | "crit" | "ctype"> & Partial<CmpRow>) => {
     set({ method: q.method });
     if (q.Kc !== undefined && q.Ti !== undefined && q.Td !== undefined)
-      set({ sug: { method: q.method, Kc: q.Kc, Ti: q.Ti, Td: q.Td, notes: [], checks: [], fromRow: true } as Suggestion });
+      set({ sug: { method: q.method, Kc: q.Kc, Ti: q.Ti, Td: q.Td, notes: [], checks: [], values: {}, warnings: [], approximate: false, fromRow: true } as Suggestion });
     await patch({ ctype: q.ctype, ...(q.crit ? { opt_crit: q.crit } : {}) });
     if (q.Kc === undefined) await calc(q.method);
   };
@@ -249,10 +249,23 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
     return v === k ? "" : v;
   };
   const f = (x: number | null, p = 4) => fnum(x, dec, p);
+  const csv = () => {                                  // srovnání metod jako CSV (středník, desetinná čárka podle jazyka)
+    const n = (x: number | null) => (x === null ? "" : String(x).replace(".", dec));
+    const lines = ["method;crit;type;Kc;Ti;Td;Ms;iae_load;iae_sp;overshoot;noise", ...(rows ?? []).map((q) =>
+      [q.method, q.crit ?? "", q.ctype, q.Kc, q.Ti, q.Td, q.Ms, q.iae_load, q.iae_sp, q.ovs, q.noise]
+        .map((x) => (typeof x === "string" ? x : n(x))).join(";"))];
+    const el = document.createElement("a");
+    el.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }));
+    el.download = "tuning_comparison.csv";
+    el.click();
+    URL.revokeObjectURL(el.href);
+  };
   return (
     <section className="tn-card" data-testid="compare">
       <div className="tn-head"><h2>{T("tn_methods")}</h2><span className="tn-sub">{T("tn_methods_note")}</span>
-        {withRun && <button className="btn tn-right" disabled={busy} onClick={() => void go()} data-testid="cmp-run">
+        {rows && <button type="button" className="btn tn-right" data-testid="cmp-csv" title={T("tun_ui_cmp_csv_help")} onClick={csv}>
+          {T("tun_ui_cmp_csv")}</button>}
+        {withRun && <button className={"btn" + (rows ? "" : " tn-right")} disabled={busy} onClick={() => void go()} data-testid="cmp-run">
           {busy ? "…" : T("tn_methods_run")}</button>}
       </div>
       <div className="tn-scroll">

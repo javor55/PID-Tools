@@ -5,6 +5,7 @@ robustnost sad a scénář (M4c).
 import numpy as np
 
 from ...core import pidconl_sim_full
+from .. import ctl_tuning as ctl
 from .. import feedforward as ffm
 from .. import scenario as scn
 from .. import tuning as tun
@@ -45,6 +46,96 @@ class TuningMixin:
         ff, ffll = self.ff() if self.model else ([], [])
         return set_ctrl(self.base_ctrl(), float(self.get(f"set{n}_gain")), float(self.get(f"set{n}_ti")),
                         float(self.get(f"set{n}_td")), ff, ffll)
+
+    # ---- regulátor smyčky (profil): sady se ukládají kanonicky (Kc, Ti, Td), v jednotkách bloku se zobrazují / zadávají
+    def ranges(self):
+        return dict(pv_range=(float(self.pv_lo), float(self.pv_hi)), mv_range=(float(self.mv_lo), float(self.mv_hi)))
+
+    def prof_ctrl(self, ctrl):
+        """Konfigurace v názvech parametrů profilu regulátoru smyčky (pro Controller / robustnost profilu)."""
+        return ctl.loop_ctrl(self.controller, ctrl, self.ranges())
+
+    def ana_ctrl(self, ctrl):
+        """Konfigurace pro lineární analýzu (frekvence, Ms): s profilem hodnoty, které sada skutečně realizuje."""
+        if self.controller is None:
+            return ctrl
+        from ...core.controller import ideal_ctrl
+        return dict(ctrl, **ideal_ctrl(ctl.compiled(self.controller), self.prof_ctrl(ctrl)))
+
+    def block_view(self, kc, ti, td):
+        """Kanonická sada → {values: hodnoty parametrů profilu v jednotkách bloku, warnings, effective}."""
+        base = self.base_ctrl()
+        canon = ctl.canon_of_ctrl(dict(base, Gain=kc, TI=ti, TD=td))
+        return ctl.profile_values(ctl.profile_data(self.controller), canon, base["DiffGain"], self.ranges())
+
+    def values_to_canon(self, values):
+        """Hodnoty parametrů profilu (blok) → kanonické (Kc, Ti, Td)."""
+        c = ctl.to_canonical(ctl.profile_data(self.controller), values, self.ranges())
+        return dict(Kc=float(c["Kc"]), Ti=float(c["Ti"]) if c["Ti"] is not None and c["Ti"] < 1e12 else 0.0, Td=float(c["Td"]))
+
+    # ---- blok regulátoru podle profilu: parametr profilu → klíč nastavení smyčky (bez klíče = jen zobrazení)
+    BLOCK_SETTING = dict(Ts="samp", N="diffgain", b="propfac", d_on_pv="dfb", deadband="db", deadband_mode="db_mode",
+                         mv_lo="mvl_lo", mv_hi="mvl_hi", pv_filter="pvfilt", mv_rate="mvrate", sp_rate="sprate")
+
+    def block_rows(self):
+        """Nastavení bloku podle profilu: [dict(key, name, unit, role, setting, value, default)] (jednotky smyčky)."""
+        uP, uM = self.get("u_pv") or "PV", self.get("u_mv") or "MV"
+        units = dict(deadband=uP, sp_rate=f"{uP}/s", mv_lo=uM, mv_hi=uM, mv_rate=f"{uM}/s")
+        defs = dict(mvl_lo=self.mv_lo, mvl_hi=self.mv_hi)
+        out = []
+        for q in ctl.block_params(self.controller):
+            st = self.BLOCK_SETTING.get(q["role"])
+            d = q.get("default")
+            out.append(dict(key=q["key"], name=q.get("name") or q["key"], unit=units.get(q["role"], q.get("unit")),
+                            role=q["role"], setting=st, value=self.get(st, defs.get(st, d)) if st else d,
+                            default=None if d in ("inf", "-inf") else d))
+        return out
+
+    def tuning_warnings(self):
+        """Varování ladění [(klíč i18n, argumenty)]: data mimo NormPV / NormMV (T3), pracovní bod MV mimo limity regulátoru
+        (T4), nízká shoda modelu (T5); nestabilní simulace vyplývá z ukazatelů simulace."""
+        out = []
+        g = self.grid
+        pv, mv = g.pv_e[np.isfinite(g.pv_e)], g.mv_e[np.isfinite(g.mv_e)]
+        tp, tm = 0.005 * self.PR, 0.005 * self.MR
+        if len(pv) and len(mv) and (pv.min() < self.pv_lo - tp or pv.max() > self.pv_hi + tp or mv.min() < self.mv_lo - tm
+                                    or mv.max() > self.mv_hi + tm):
+            out.append(("norm_out", dict(pv=f"{pv.min():.4g}–{pv.max():.4g}", mv=f"{mv.min():.4g}–{mv.max():.4g}")))
+        if self.model is not None:
+            mv0 = float(self.segment()[2][0])
+            b = self.base_ctrl()
+            if not (b["MV_Lo"] - 1e-9 <= mv0 <= b["MV_Hi"] + 1e-9):
+                out.append(("sim_mv0_out", dict(m=f"{self.EM(mv0):.4g}", lo=f"{float(self.get('mvl_lo', self.mv_lo)):g}",
+                                                hi=f"{float(self.get('mvl_hi', self.mv_hi)):g}", u=self.get("u_mv") or "MV")))
+            code = self.get("mcode")
+            if self.fit and code in self.fit["res"] and self.fit["res"][code].get("fit", 100) < 70:
+                out.append(("warn_low_fit", {}))
+        return out
+
+    def plant_view(self):
+        """Proces a ventil v simulaci: stikce, skluz, šum PV a charakteristika ventilu (se základem z identifikace)."""
+        code = self.get("mcode")
+        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit and code in self.fit["res"] else 0.0
+        gains = [float(v) for v in (self.get("vchar_last") or [1.0] * 10)]
+        x, y = scn.valve_curve(gains)
+        return dict(stic=float(self.get(self.stic_key, st0)), stic_default=float(st0), slip=float(self.get("sim_J", 100.0)),
+                    noise=float(self.get("sim_noise", 0.0)), sigma_pv=float(self.sigma_pv() * self.PR / 100), vchar=gains,
+                    curve_x=[float(v) for v in x[::10]], curve_y=[float(v) for v in y[::10]])
+
+    def export_ctx(self, n=2):
+        """Podklady exportu ladění (app.tuning_export): sady v názvech a jednotkách bloku, robustnost, profil."""
+        prof = ctl.profile_data(self.controller)
+        blk = {r["key"]: r["value"] for r in self.block_rows() if r["setting"] and r["value"] is not None}
+        vals = {k: dict(blk, **self.block_view(float(self.get(f"set{k}_gain")), float(self.get(f"set{k}_ti")),
+                                               float(self.get(f"set{k}_td")))["values"]) for k in (1, 2)}
+        rows = [dict(key=q["key"], name=q.get("name") or q["key"], unit=q.get("unit"),
+                     values=[vals[1][q["key"]], vals[2][q["key"]]], sel=vals[n][q["key"]])
+                for q in ctl.tuning_params(self.controller) + ctl.block_params(self.controller) if q["key"] in vals[1]]
+        mets = [self.ctrl_metrics(self.set_ctrl(k), mt=True) for k in (1, 2)]
+        metrics = [dict(name=k, values=[m.get(k) if m.get("stable") else None for m in mets]) for k in ("Ms", "Mt", "GM", "PM")]
+        return dict(loop=self.get("loop_tag") or "", model=self.get("mcode"), sets=[1, 2], sel=n, rows=rows, metrics=metrics,
+                    profile=dict(name=prof.get("name", ""), vendor=prof.get("vendor", ""), block=prof.get("block", ""),
+                                 verified=(prof.get("verification") or {}).get("status") == "verified"))
 
     def methods(self):
         code, p, _ = self.model
@@ -91,8 +182,20 @@ class TuningMixin:
         return [e for e in (self.get("tune_hist") or []) if isinstance(e, dict) and "Kc" in e]
 
     def set_metrics(self, n):
+        return self.ctrl_metrics(self.set_ctrl(n))
+
+    def ctrl_metrics(self, ctrl, worst=True, mt=False):
+        """Robustnost (Ms, Mt, GM, PM, šum, nejhorší Ms) sady regulátorem smyčky; nelineární profil = přibližně."""
         code, p, _ = self.model
-        return tun.set_metrics(code, p, self.set_ctrl(n), self.sigma_pv(), self.unc_models())
+        if self.controller is None:
+            m = tun.set_metrics(code, p, ctrl, self.sigma_pv(), self.unc_models() if worst else ())
+            return dict(m, Mt=tun.robustness(code, p, ctrl)["Mt"]) if mt else m
+        fn, pc, unc = ctl.profile_robustness_fn(self.controller), self.prof_ctrl(ctrl), self.unc_models() if worst else ()
+        rb = fn(code, p, pc)
+        return dict(stable=rb["stable"], Ms=rb["Ms"], GM=rb["GM"], PM=rb["PM"], **(dict(Mt=rb["Mt"]) if mt else {}),
+                    noise=tun.mv_noise(self.ana_ctrl(ctrl), self.sigma_pv()),
+                    Ms_worst=max(fn(code, q, pc)["Ms"] for q in unc) if len(unc) else None,
+                    approximate=bool(rb.get("approximate")))
 
     def sigma_pv(self):
         try:
@@ -215,9 +318,12 @@ class TuningMixin:
         sig, h = x["sig"], x["h"]
         plant = self.plant()
 
+        prof = None if self.controller is None else ctl.compiled(self.controller)
+
         def run(ctrl, pp=p):
-            return pidconl_sim_full(code, pp, pdl, h, sig["sp"], x["pv0"], x["mv0"], dict(ctrl, **plant), sig["dmeas"],
-                                    sig["dmv"], sig["dpv"])
+            c = dict(ctrl, **plant)
+            return pidconl_sim_full(code, pp, pdl, h, sig["sp"], x["pv0"], x["mv0"], c if prof is None else self.prof_ctrl(c),
+                                    sig["dmeas"], sig["dmv"], sig["dpv"], profile=prof)
         runs, kp = {}, {}
         for n in (1, 2):
             runs[n] = run(self.set_ctrl(n))
