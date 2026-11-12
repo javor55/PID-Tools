@@ -145,3 +145,5 @@ na čistém Windows bez sítě – ruční test), M27 (pilot), M28 (vypnutí sta
 - [ ] **Řádek „Pracujete na“** ukazuje regulátor jako kanonické Kc/Ti ze Sady 1 i u jiného profilu než PIDConL – zobrazit
       název profilu a parametry v jednotkách bloku (E8).
 - [ ] **Živá simulace:** štítky událostí v grafu se na začátku běhu překrývají („Struktura: kaskáda“ × „teď“) – odsadit.
+- [ ] **Deník × Nastavení:** při „poznámka povinná“ API odmítne změnu stavu bez poznámky (422) – UI deníku si o poznámku
+      zatím neřekne předem (jen zobrazí chybu). Logo, firma a hlavička / patička z Nastavení › Report zatím report nepoužívá.
