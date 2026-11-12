@@ -20,8 +20,8 @@ from ..i18n import T, lang
 from .colors import C_DIST
 from .plots import C_MV, C_PV, C_SET1, C_SET2, C_SP, mkfig, report_template, tr
 
-SECTIONS = ["model", "tuning", "response", "apc", "signoff"]
-STATUSES = ["draft", "deployed", "verified"]
+SECTIONS = ["model", "tuning", "response", "apc", "signoff"]       # výchozí sekce (původní protokol)
+STATUSES = ["draft", "deployed", "verified", "rejected"]
 E = html.escape
 
 
@@ -219,7 +219,7 @@ table{border-collapse:collapse;margin:6px 0 10px;font-size:.92rem}td,th{border:1
 th{background:#f3f5f8;font-weight:600}td.num{text-align:right;font-variant-numeric:tabular-nums}
 .meta td{border:none;padding:2px 18px 2px 0}.meta td:first-child{color:#6b7280}
 .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.85rem;font-weight:600}
-.b-draft{background:#fef3c7;color:#92400e}.b-deployed{background:#dbeafe;color:#1e40af}.b-verified{background:#dcfce7;color:#166534}
+.b-draft{background:#fef3c7;color:#92400e}.b-deployed{background:#dbeafe;color:#1e40af}.b-verified{background:#dcfce7;color:#166534}.b-rejected{background:#e5e7eb;color:#374151}
 .note{background:#f9fafb;border-left:4px solid #1f5fa8;padding:10px 14px;white-space:pre-wrap}
 .key{background:#f0f6ff;border:1px solid #c7dbf5;border-radius:10px;padding:10px 16px;margin:8px 0}
 .chg{font-weight:600}.better{color:#166534}.worse{color:#b91c1c}
@@ -231,15 +231,165 @@ table,.key,.js-plotly-plot{break-inside:avoid}.modebar{display:none!important}@p
 """
 
 
-def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc=None):
+# ---------------------------------------------------------------- registr sekcí reportu
+def _v(v):
+    if v is None or v == "":
+        return "—"
+    if isinstance(v, bool):
+        return T("yes") if v else T("no")
+    if isinstance(v, float):
+        return _f(v)
+    if isinstance(v, (list, tuple)):
+        return " – ".join(_v(x) for x in v)
+    if isinstance(v, dict):
+        return ", ".join(f"{k}: {_v(x)}" for k, x in v.items())
+    return str(v)
+
+
+def _kv(rows):
+    return "<table>" + "".join(f"<tr><td>{E(str(k))}</td><td class='num'>{E(_v(v))}</td></tr>" for k, v in rows) + "</table>"
+
+
+def _sec_data(r, c, ctx):
+    d = c.get("data") or {}
+    out = []
+    if d.get("sources"):
+        head = "".join(f"<th>{E(h)}</th>" for h in (T("rp_d_file"), T("rp_d_range"), T("rp_d_ts"), T("rp_d_rows"), "SHA-256",
+                                                     T("rp_d_stored")))
+        out.append(f"<table><tr>{head}</tr>" + "".join(
+            f"<tr><td>{E(x['name'])}</td><td class='num'>{_f(x.get('t0'))} – {_f(x.get('t1'))} s</td>"
+            f"<td class='num'>{_f(x.get('ts'))} s</td><td class='num'>{x['rows']}</td>"
+            f"<td><code>{E(x['sha256'][:8])}…{E(x['sha256'][-4:])}</code></td>"
+            f"<td>{E(T('yes') if x.get('stored') else T('no'))}</td></tr>" for x in d["sources"]) + "</table>")
+    mp, nm = d.get("mapping") or {}, d.get("norm") or {}
+    roles = [("PV", mp.get("c_pv")), ("SP", mp.get("c_sp")), ("MV", mp.get("c_mv")),
+             (T("rp_dv"), ", ".join(map(str, mp.get("c_d") or []))), (T("col_pos"), mp.get("c_pos"))]
+    out.append(f"<table><tr><th>{E(T('rp_d_role'))}</th><th>{E(T('rp_d_column'))}</th></tr>"
+               + "".join(f"<tr><td>{E(k)}</td><td>{E(_v(None if v in ('—', '') else v))}</td></tr>" for k, v in roles)
+               + f"<tr><td>NormPV</td><td>{E(_rng(nm.get('pv') or (0, 0), r.get('u_pv', '')))}</td></tr>"
+               f"<tr><td>NormMV</td><td>{E(_rng(nm.get('mv') or (0, 0), r.get('u_mv', '')))}</td></tr></table>")
+    ex = (d.get("windows") or {}).get("excl") or {}
+    if ex:
+        out.append(f"<p class='muted'>{E(T('rp_d_excl'))}: {E(', '.join(map(str, ex)))}</p>")
+    return "".join(out)
+
+
+def _sec_controller(r, c, ctx):
+    ct = c.get("controller") or {}
+    out = [f"<p>{E(T('rp_c_profile'))}: <b>{E(str(ct.get('name') or '—'))}</b> · {E(T('rp_c_version'))} {E(_v(ct.get('version')))}"
+           + (f" · {E(ct['verification'])}" if isinstance(ct.get("verification"), str) else "") + "</p>"]
+    out.append(f"<p class='muted'>{E(T('rp_block'))}</p>" + _kv(sorted((c.get("block") or {}).items())))
+    sets = c.get("sets") or {}
+    out.append("<table><tr><th></th><th>Gain</th><th>TI [s]</th><th>TD [s]</th></tr>" + "".join(
+        f"<tr><td><b>{E(T('rp_orig') if n == '1' else T('rp_new'))}</b></td>"
+        + "".join(f"<td class='num'>{_f(sets.get(f'set{n}_{k}'))}</td>" for k in ("gain", "ti", "td")) + "</tr>"
+        for n in "12") + "</table>")
+    return "".join(out)
+
+
+def _sec_scenario(r, c, ctx):
+    return (f"<p class='muted'>{E(T('rp_s_method'))}</p>" + _kv(sorted((c.get("method") or {}).items()))
+            + f"<p class='muted'>{E(T('rp_s_scenario'))}</p>" + _kv(sorted((c.get("scenario") or {}).items())))
+
+
+def _sec_field(r, c, ctx):
+    out = []
+    ab = ctx.get("ab")
+    if ab:
+        keys = [("std_e", "σ e"), ("iae_h", "IAE/h"), ("travel_h", T("rp_travel")), ("rev_h", "rev/h"), ("at_lim", "at limit [%]")]
+        out.append(f"<table><tr><th>{E(T('rp_f_kpi'))}</th><th>A</th><th>B</th></tr>" + "".join(
+            f"<tr><td>{E(lab)}</td><td class='num'>{_f(ab['a'].get(k))}</td><td class='num'>{_f(ab['b'].get(k))}</td></tr>"
+            for k, lab in keys) + f"</table><p class='muted'>{E(T('rp_f_ab_note'))}</p>")
+    lv = (c or {}).get("live")
+    if lv:
+        out.append(f"<p>{E(T('rp_f_live'))} ({E(str(lv.get('when') or '')[:16])}, {E(lv.get('struct') or 'pid')}): "
+                   + ", ".join(f"{E(T('rp_orig') if n == '1' else T('rp_new'))}: IAE {_f(v.get('iae'))}"
+                               for n, v in sorted((lv.get("kpi") or {}).items())) + "</p>")
+    att = (ctx.get("snapshot") or {}).get("attachments")
+    if att:
+        out.append(f"<table><tr><th>{E(T('rp_d_file'))}</th><th>{E(T('jr_att_desc'))}</th></tr>" + "".join(
+            f"<tr><td>{E(a['name'])}</td><td>{E(a.get('desc') or '')}</td></tr>" for a in att) + "</table>")
+    return "".join(out) or f"<p>{E(T('rp_f_none'))}</p>"
+
+
+def _sec_history(recs, c, ctx):
+    rows = ctx.get("history") or []
+    if not rows:
+        return f"<p>{E(T('rp_h_none'))}</p>"
+    head = "".join(f"<th>{E(h)}</th>" for h in (T("rp_loop"), T("jr_version"), T("rp_date"), T("rp_author"), T("rp_status"),
+                                                 T("jr_change")))
+    return f"<table><tr>{head}</tr>" + "".join(
+        f"<tr><td>{E(x['loop'])}</td><td>v{x['v']}</td><td>{E(str(x['created'])[:16].replace('T', ' '))}</td>"
+        f"<td>{E(x['author'])}</td><td><span class='badge b-{x['status']}'>{E(T('rp_st_' + x['status']))}</span></td>"
+        f"<td>{E(x.get('change') or x.get('label') or '')}</td></tr>" for x in rows) + "</table>"
+
+
+class Section:
+    """Sekce reportu v registru: id, název (i18n `rp_sec_<id>`), nápověda (`h_rp_sec_<id>`), vykreslení a test dostupnosti."""
+
+    def __init__(self, id, render=None, scope="loop", test=None, default=False):
+        self.id, self.render, self.scope, self.default = id, render, scope, default
+        self.test = test or (lambda ctx: True)
+
+
+REGISTRY = [
+    Section("model", default=True), Section("tuning", default=True), Section("response", default=True),
+    Section("data", _sec_data), Section("controller", _sec_controller), Section("scenario", _sec_scenario),
+    Section("apc", default=True),
+    Section("field", _sec_field, test=lambda ctx: bool(ctx.get("ab") or ctx.get("live") or ctx.get("attachments"))),
+    Section("history", _sec_history, scope="global", test=lambda ctx: bool(ctx.get("history"))),
+    Section("signoff", default=True, scope="global"),
+]
+ALL_SECTIONS = [s.id for s in REGISTRY]
+
+
+def section_info(ctx=None):
+    """Sekce pro rozhraní: [{id, title, help, default, available}] v pořadí protokolu (texty v aktuálním jazyce)."""
+    return [dict(id=s.id, title=T("rp_sec_" + s.id), help=T("h_rp_sec_" + s.id), default=s.default,
+                 available=bool(s.test(ctx or {}))) for s in REGISTRY]
+
+
+def build_summary(rows, meta):
+    """
+    Souhrnný report více smyček (audit / triáž): jedna tabulka – smyčka, model, shoda, sada 2, Ms, stav deníku a nález.
+    rows: dict(name, model, fit, gain, ti, td, ms, status, version, finding).
+    """
+    now = _dt.datetime.now()
+    head = "".join(f"<th>{E(h)}</th>" for h in (T("rp_loop"), T("rp_model"), "FIT", "Gain", "TI [s]", "TD [s]", "Ms",
+                                                 T("rp_status"), T("rp_sum_finding")))
+    body = "".join(
+        f"<tr><td><b>{E(str(x.get('name') or ''))}</b></td><td>{E(str(x.get('model') or '—'))}</td>"
+        f"<td class='num'>{_f(x.get('fit'), 3)}</td>"
+        + "".join(f"<td class='num'>{E(_v(x.get(k)))}</td>" for k in ("gain", "ti", "td", "ms"))
+        + (f"<td><span class='badge b-{x['status']}'>{E(T('rp_st_' + x['status']))}</span> {E(str(x.get('version') or ''))}</td>"
+           if x.get("status") in STATUSES else "<td>—</td>")
+        + f"<td>{E(str(x.get('finding') or ''))}</td></tr>" for x in rows)
+    parts = [f"<button class='print' onclick='window.print()'>{E(T('rp_print'))}</button>",
+             f"<h1>{E(T('rp_sum_title'))}</h1><table class='meta'>"
+             f"<tr><td>{E(T('rp_plant'))}</td><td><b>{E(meta.get('plant') or '—')}</b></td></tr>"
+             f"<tr><td>{E(T('rp_author'))}</td><td>{E(meta.get('author') or '—')}</td></tr>"
+             f"<tr><td>{E(T('rp_date'))}</td><td>{now:%d.%m.%Y %H:%M}</td></tr></table>"]
+    if meta.get("comment"):
+        parts.append(f"<div class='note'>{E(meta['comment'])}</div>")
+    parts.append(f"<table><tr>{head}</tr>{body}</table>")
+    parts.append(f"<footer>{E(T('rp_footer', d=f'{now:%d.%m.%Y %H:%M}', v=__version__))}</footer>")
+    return (f"<!doctype html><html lang='{lang()}'><head><meta charset='utf-8'>"
+            f"<meta name='viewport' content='width=device-width,initial-scale=1'><title>{E(T('rp_sum_title'))}</title>"
+            f"<style>{_CSS}</style></head><body>{''.join(parts)}</body></html>")
+
+
+def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc=None, ctx=None):
     """
     Celý report jako HTML text. recs: záznamy smyček s modelem a oběma sadami; meta: plant, author, status, comment;
     sections: podmnožina SECTIONS; chart_mode: "inline" (Plotly v souboru, funguje offline) nebo "cdn" (malý soubor,
     grafy z internetu); model_data(r) → (t, pv_e, mv_e, poruchy, Ts) nebo None pro graf modelu;
     apc: hodnoty APC aktivní smyčky – dict(items = doporučení, smith = řádky šablony nebo None,
-    gs = (tabulka GainSched, podle ER) nebo None).
+    gs = (tabulka GainSched, podle ER) nebo None); ctx: podklady nových sekcí (registr `REGISTRY`) –
+    dict(content = {id smyčky: obsah snímku (app.journal.capture)}, ab = porovnání A / B z diagnostiky, history = řádky
+    historie změn, snapshot = {id, v, status, created, attachments}).
     """
     apc = apc or {}
+    ctx = ctx or {}
     now = _dt.datetime.now()
     status = meta.get("status") or "draft"
     parts = [f"<button class='print' onclick='window.print()'>{E(T('rp_print'))}</button>",
@@ -249,7 +399,8 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
              f"<tr><td>{E(T('rp_loops'))}</td><td>{E(', '.join(r['name'] for r in recs) or '—')}</td></tr>"
              f"<tr><td>{E(T('rp_author'))}</td><td>{E(meta.get('author') or '—')}</td></tr>"
              f"<tr><td>{E(T('rp_date'))}</td><td>{now:%d.%m.%Y %H:%M}</td></tr>"
-             f"<tr><td>{E(T('rp_status'))}</td><td><span class='badge b-{status}'>{E(T('rp_st_' + status))}</span></td></tr>"
+             + (f"<tr><td>{E(T('rp_version'))}</td><td>{E(str(meta['version']))}</td></tr>" if meta.get("version") else "")
+             + f"<tr><td>{E(T('rp_status'))}</td><td><span class='badge b-{status}'>{E(T('rp_st_' + status))}</span></td></tr>"
              "</table>"]
     if meta.get("comment"):
         parts.append(f"<div class='note'>{E(meta['comment'])}</div>")
@@ -331,6 +482,10 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
             if fm is not None:
                 parts.append(_fig_html(fm, first_fig, chart_mode))
                 first_fig = False
+        for sec in REGISTRY:
+            if sec.scope == "loop" and sec.render and sec.id in sections:
+                c = (ctx.get("content") or {}).get(r["id"])
+                parts.append(f"<h3>{E(T('rp_sec_' + sec.id))}</h3>" + (sec.render(r, c, ctx) if c else f"<p>{E(T('rp_sec_none'))}</p>"))
         if "apc" in sections:
             parts.append(f"<h3>{E(T('rp_apc_used'))}</h3>" + _apc_used_html(r))
         if "apc" in sections and r["active"]:
@@ -355,6 +510,9 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
                              f"<p class='muted'>{E(T('rp_gs_note_er' if by_er else 'rp_gs_note'))}</p>")
         parts.append("</section>")
 
+    for sec in REGISTRY:
+        if sec.scope == "global" and sec.render and sec.id in sections:
+            parts.append(f"<h2>{E(T('rp_sec_' + sec.id))}</h2>" + sec.render(recs, None, ctx))
     if "signoff" in sections:
         parts.append(f"<h2>{E(T('rp_signoff'))}</h2><table class='sign'><tr><th></th><th>{E(T('rp_name'))}</th>"
                      f"<th>{E(T('rp_date'))}</th><th>{E(T('rp_signature'))}</th></tr>"

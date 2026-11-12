@@ -5,7 +5,8 @@ fasádou výpočtů jedné smyčky. Formát souboru (app.project, verze 3): záz
 „sources“ a „time_grid“; starší soubory se při otevření převedou migrací.
 """
 from .. import project as prj
-from ..domain import migrate_project
+from .. import journal as jr
+from ..domain import Snapshot, migrate_project
 from ..domain.model import FORMAT, VERSION, TimeGrid
 from ..domain.model import Project as DomainProject
 from ..guess import guess_roles
@@ -19,6 +20,7 @@ class Project(SourcesMixin):
         self.active = 0
         self.sources = []                 # [SourceRT] – zdroje dat (app.workspace.sources)
         self.time_grid = TimeGrid()       # společná časová mřížka více zdrojů
+        self.journal = []                 # [Snapshot] – deník ladění (app.journal)
 
     @property
     def state(self):
@@ -26,7 +28,7 @@ class Project(SourcesMixin):
 
     # ---- data (společná pro všechny smyčky)
     def _reset_to(self, ls, kind=None):
-        self.loops, self.active, self.sources = [ls], 0, []
+        self.loops, self.active, self.sources, self.journal = [ls], 0, [], []
         self.sync()                       # tabulka smyčky se stane jediným zdrojem
         if kind and self.sources:
             self.sources[0].src.kind = kind
@@ -112,6 +114,8 @@ class Project(SourcesMixin):
                 used.setdefault(ref.source_id, []).append(ref.column)
         proj["sources"] = [rt.to_dict(include_data, list(dict.fromkeys(used.get(rt.id, [])))) for rt in self.sources]
         proj["time_grid"] = self.time_grid.to_dict()
+        if self.journal:
+            proj["journal"] = [sn.to_dict() for sn in self.journal]
         return proj
 
     def save(self, path, include_data=True):
@@ -163,13 +167,15 @@ class Project(SourcesMixin):
                             cascade_to=spec.cascade_to)
             loops.append(ls)
         self.loops, self.active = loops, act
+        self.journal = [Snapshot.from_dict(d) for d in proj.get("journal") or []]
+        jr.migrate_live_runs(self)           # starší souhrny živé simulace (live_runs) → záznamy deníku
 
     def load(self, path):
         with open(path, encoding="utf-8") as f:
             self.apply_project(prj.load_project(f.read()))
 
     # ---- protokol
-    def report_html(self, meta, sections, chart_mode="inline"):
+    def report_html(self, meta, sections, chart_mode="inline", ab=None):
         from .. import report
         from ..apc import recommend as reco
         recs, grids = [], {}
@@ -188,4 +194,5 @@ class Project(SourcesMixin):
         def model_data(r):
             g = grids[r["id"]]
             return g.t, g.pv_e, g.mv_e, list(g.dists), g.Ts
-        return report.build_report(recs, meta, sections, chart_mode, model_data, apc)
+        ctx = jr.report_ctx(self, recs, sections, ab)
+        return report.build_report(recs, meta, sections, chart_mode, model_data, apc, ctx)

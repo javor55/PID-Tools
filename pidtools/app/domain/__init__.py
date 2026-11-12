@@ -5,3 +5,4 @@ společná časová mřížka, návrh smyček z názvů tagů a migrace souboru 
 from .migrate import migrate_project  # noqa: F401
 from .model import (FORMAT, VERSION, DataRef, LoopSpec, Project, Roles, Source, SourceRef,  # noqa: F401
                     TimeGrid)
+from .journal import Snapshot  # noqa: F401
