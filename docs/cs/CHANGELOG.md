@@ -2,6 +2,10 @@
 
 ## Nevydáno
 
+- UI (E4-A, plán v2): nová struktura záložek **1 Data · 2 Model · 3 Ladění · 4 APC · 5 Živá simulace**; Diagnostika a Přehled
+  smyček jsou podzáložky Data (vedle Zdroje a smyčky, Trendy a Kvalita dat). Hlavička má výběr smyčky seskupený podle stavu,
+  stavový štítek, „+ Smyčka“ a souhrn projektu; Model, Ladění, APC a Živá simulace mají řádek „Pracujete na…“ s odkazem
+  Změnit data / smyčku.
 - Data (E3, plán v2): **více zdrojů dat a skládání smyček** (`pidtools/app/domain`). Projekt má zdroje (soubor CSV / XLSX /
   TXT, OPC UA) s časovým pásmem, posunem a vlastním vzorkováním a smyčky s mapováním rolí (PV, SP, MV, poloha, DV, režim)
   na `zdroj › sloupec`, rozsahy NormPV / NormMV, popisem a vazbou kaskády; jeden sloupec může být ve více smyčkách. Data

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- UI (E4-A, plan v2): new tab structure **1 Data · 2 Model · 3 Tuning · 4 APC · 5 Live simulation**; Diagnostics and the loop
+  overview are subtabs of Data (next to Sources & loops, Trends and Data quality). The header has a loop selector grouped by
+  status, a status pill, "+ Loop" and a project summary; Model, Tuning, APC and Live simulation show a "Working on…" row
+  with a Change data / loop link.
 - Data (E3, plan v2): **several data sources and loop assembly** (`pidtools/app/domain`). A project has sources (CSV /
   XLSX / TXT file, OPC UA) with a time zone, a time offset and an own sampling period, and loops whose roles (PV, SP, MV,
   position, DV, mode) map to `source › column`, with NormPV / NormMV ranges, a description and a cascade link; a column

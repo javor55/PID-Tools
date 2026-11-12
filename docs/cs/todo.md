@@ -23,6 +23,14 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       dat (data jsou ve `sources`, ne v `data`); vlastní soubory v2 Streamlit ukládá i čte dál. Do vypnutí Streamlitu
       (M28) případně doplnit čtení `sources` ve `ui/project.py`.
 
+- **E4-A hotovo (kostra UI v2):** hlavní záložky 1 Data · 2 Model · 3 Ladění · 4 APC · 5 Živá simulace (Projekt a report je
+  tlačítko v hlavičce); Data má podzáložky Zdroje a smyčky, Trendy (kostry E4-B / E4-C), Kvalita dat (dřívější Data pro
+  aktivní smyčku) a Diagnostika (Všechny smyčky = dřívější Přehled smyček, Detail smyčky = dřívější Diagnostika; přepracuje
+  E5). Hlavička: výběr smyčky s `<optgroup>` (Rozpracované / Bez modelu / Nekompletní mapování – jedna funkce
+  `loopGroup` v `Header.tsx`, E5 doplní verdikty), stavový štítek, „+ Smyčka“ → Data › Zdroje a smyčky, souhrn „N soubory ·
+  M smyček · stav z HH:MM“ (čas posledního načtení stavu, API čas uložení nemá). Řádek „Pracujete na…“ na Model / Ladění /
+  APC / Živá simulace. Zbývá: toasty (volitelné), výchozí podzáložka Zdroje a smyčky až bude hotové E4-B (dnes se otevírá
+  Kvalita dat), „uloženo HH:MM“ podle skutečného uložení projektu, stav smyčky z diagnostiky (E5).
 - [x] **E2 – nápověda a průvodci** (11. 11. 2026): `LabelHelp` („?“ s bublinou) v polích a `Seg`, zapojené nápovědy
       (kap. 6 plánu), `Md` s tabulkami, `GET /workspaces/{wid}/guide/{tab}` + dialog Průvodce (F1, kontrolní seznam
       s akcemi, tabulky, slovníček, hledání), APC FF / Smith / RGA s kontrolním seznamem a implementací, Playwright test
