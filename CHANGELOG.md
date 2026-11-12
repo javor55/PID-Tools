@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Diagnostics (E5, plan v2): **loop triage** – `POST/GET /api/v1/workspaces/{wid}/triage` (background job) computes AUTO share, Harris index (delay from the model, user-entered or estimated), oscillation, stiction/hysteresis, nonlinearity, data quality and common oscillation for all loops, and assigns a verdict from a registry of rules with configurable thresholds (`/triage/thresholds`): Tune · Valve first · OK · Nonlinear → gain scheduling · Too little data in AUTO · Cascade · Disturbance from another loop, each with evidence. UI: Data › Diagnostics › All loops (verdict tiles as filters, where to start, table, common oscillation, evidence detail), verdicts in the header loop selector, delay θ input for Harris in the loop detail.
 - UI (E4-A, plan v2): new tab structure **1 Data · 2 Model · 3 Tuning · 4 APC · 5 Live simulation**; Diagnostics and the loop
   overview are subtabs of Data (next to Sources & loops, Trends and Data quality). The header has a loop selector grouped by
   status, a status pill, "+ Loop" and a project summary; Model, Tuning, APC and Live simulation show a "Working on…" row

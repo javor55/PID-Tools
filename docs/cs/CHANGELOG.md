@@ -2,6 +2,7 @@
 
 ## Nevydáno
 
+- Diagnostika (E5, plán v2): **triáž smyček** – `POST/GET /api/v1/workspaces/{wid}/triage` (úloha na pozadí) spočítá pro všechny smyčky podíl AUTO, Harrisův index (zpoždění z modelu, zadané nebo odhadnuté), oscilaci, stikci a hysterezi, nelinearitu, kvalitu dat a společnou oscilaci a určí verdikt z registru pravidel s nastavitelnými prahy (`/triage/thresholds`): Ladit · Nejdřív ventil · V pořádku · Nelineární → gain scheduling · Málo dat v AUTO · Kaskáda · Porucha z jiné smyčky, vždy s důkazy. UI: Data › Diagnostika › Všechny smyčky (dlaždice-filtry, Kde začít, tabulka, společná oscilace, detail s důkazy), verdikty ve výběru smyčky v hlavičce, zadání zpoždění θ pro Harrise v Detailu smyčky.
 - UI (E4-A, plán v2): nová struktura záložek **1 Data · 2 Model · 3 Ladění · 4 APC · 5 Živá simulace**; Diagnostika a Přehled
   smyček jsou podzáložky Data (vedle Zdroje a smyčky, Trendy a Kvalita dat). Hlavička má výběr smyčky seskupený podle stavu,
   stavový štítek, „+ Smyčka“ a souhrn projektu; Model, Ladění, APC a Živá simulace mají řádek „Pracujete na…“ s odkazem

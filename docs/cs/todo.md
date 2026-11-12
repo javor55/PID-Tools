@@ -19,6 +19,14 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       „Uložit pohled“ z desky (pojmenované pohledy v projektu), vypočtené signály se neukládají do projektu (jen stav
       stránky), vypočtený signál se počítá ze zobrazených zředěných dat, jednotky signálů zdrojů se berou z názvu
       sloupce (`[°C]`) nebo role, podzáložku Trendy a mount komponent dodává E4-A.
+- [x] **E5 – diagnostika všech smyček** (12. 11. 2026): `app/triage.py` (metriky smyčky: AUTO, Harris se zpožděním z modelu /
+      zadaným / z dat, oscilace, stikce, hystereze, nelinearita, kvalita dat; společná oscilace ± 10 %; **registr pravidel
+      verdiktu** s prahy: Ladit · Nejdřív ventil · V pořádku · Nelineární → gain scheduling · Málo dat v AUTO · Kaskáda ·
+      Porucha z jiné smyčky, s důkazy), API `POST/GET /triage` (úloha na pozadí) a `GET/PUT /triage/thresholds`, UI Všechny
+      smyčky (dlaždice-filtry, Kde začít, tabulka, společná oscilace, detail s důkazy, prahy v panelu), verdikty ve výběru
+      smyčky v hlavičce, v Detailu smyčky zadání θ pro Harrise (G1) a odkaz zpět. Zbývá: šrafování MAN v grafu detailu,
+      výsledek triáže se neukládá do projektu (jen v paměti relace), kaskáda se pozná jen podle `SP` podřazené = `MV`
+      řídicí smyčky, `audit.py` označuje Harris > 0,8 jako problém (opačně než η v triáži) – sjednotit.
 - [x] **E3 – datová vrstva: více zdrojů a skládání smyček** (11. 11. 2026): `app/domain` (Project, Source, LoopSpec,
       TimeGrid, verze formátu 3), registr zdrojů (CSV, TXT, XLSX, OPC), společná časová mřížka (posun, časové pásmo,
       vlastní vzorkování, překryv / sjednocení, ruční perioda, mezery), návrh smyček z názvů tagů a import mapování z CSV,
