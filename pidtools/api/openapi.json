@@ -907,6 +907,24 @@
     "title": "CascadeLoopRef",
     "type": "object"
    },
+   "CascadeRange": {
+    "properties": {
+     "hi": {
+      "title": "Hi",
+      "type": "number"
+     },
+     "lo": {
+      "title": "Lo",
+      "type": "number"
+     }
+    },
+    "required": [
+     "lo",
+     "hi"
+    ],
+    "title": "CascadeRange",
+    "type": "object"
+   },
    "CascadeReset": {
     "properties": {
      "part": {
@@ -1763,6 +1781,11 @@
      "target": {
       "title": "Target",
       "type": "string"
+     },
+     "way": {
+      "default": "ab",
+      "title": "Way",
+      "type": "string"
      }
     },
     "required": [
@@ -1793,10 +1816,15 @@
       },
       "title": "Kpis",
       "type": "array"
+     },
+     "way": {
+      "title": "Way",
+      "type": "string"
      }
     },
     "required": [
      "dtype",
+     "way",
      "T_end",
      "kpis"
     ],
@@ -1826,6 +1854,16 @@
        "dyn"
       ],
       "title": "Dtype",
+      "type": "string"
+     },
+     "way": {
+      "default": "both",
+      "enum": [
+       "both",
+       "ab",
+       "ba"
+      ],
+      "title": "Way",
       "type": "string"
      }
     },
@@ -3072,6 +3110,28 @@
      "index": {
       "title": "Index",
       "type": "integer"
+     },
+     "ms_fixed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms Fixed"
+     },
+     "ms_sched": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms Sched"
      },
      "params": {
       "items": {
@@ -5829,6 +5889,16 @@
        }
       ],
       "title": "Other"
+     },
+     "status": {
+      "default": "rec",
+      "enum": [
+       "rec",
+       "unsuitable",
+       "skip"
+      ],
+      "title": "Status",
+      "type": "string"
      },
      "text": {
       "title": "Text",
@@ -11534,6 +11604,90 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/apc/cascade/irange": {
+   "get": {
+    "description": "Rozsah vnitřní PV z dat (výchozí hodnoty polí Od / Do u zdroje „data“; stejné jako při identifikaci).",
+    "operationId": "cascade_irange_api_v1_workspaces__wid__apc_cascade_irange_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "ipv",
+      "required": true,
+      "schema": {
+       "title": "Ipv",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CascadeRange"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Cascade Irange",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/apc/cascade/reset": {
    "post": {
     "description": "Původní hodnoty: ruční model (K, T1, T2, θ), ladění vnitřní smyčky (SampleTime, τc) nebo vnější (τc).",
@@ -12844,6 +12998,77 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/apc/gainsched/segments/curves": {
+   "get": {
+    "description": "Záznam PV a MV pro graf úseků bodů gain schedulingu.",
+    "operationId": "gs_segments_api_v1_workspaces__wid__apc_gainsched_segments_curves_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame: pv, mv in engineering units over the whole record (the identification segments are in GET /apc/gainsched, inputs.ranges)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Gs Segments",
+    "tags": [
+     "apc"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/apc/gainsched/simulate": {
    "post": {
     "description": "Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling.",
@@ -13576,7 +13801,7 @@
       "content": {
        "application/octet-stream": {}
       },
-      "description": "app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units"
+      "description": "app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units, act = 1 while the limiting controller drives"
      },
      "422": {
       "content": {
@@ -13939,7 +14164,7 @@
   },
   "/api/v1/workspaces/{wid}/apc/recommend": {
    "get": {
-    "description": "Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).",
+    "description": "Posouzení struktur APC pro aktivní smyčku (doporučeno / nevhodné / není potřeba; podle ostatních smyček projektu).",
     "operationId": "recommend_api_v1_workspaces__wid__apc_recommend_get",
     "parameters": [
      {
