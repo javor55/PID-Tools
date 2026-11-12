@@ -74,7 +74,7 @@ def pending_router(enabled=True):
     return r
 
 
-def router(get_proj):
+def router(get_proj, remember=None):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["project"])
 
     @r.get("/project", response_class=Response,
@@ -82,7 +82,11 @@ def router(get_proj):
     def save(wid: str, data: bool = True):
         """Projekt jako soubor JSON (všechny smyčky; s daty, nebo bez nich)."""
         p = get_proj(wid)
-        return Response(prj.serialize_project(p.to_project(include_data=data)), media_type="application/json",
+        raw = prj.serialize_project(p.to_project(include_data=data))
+        p.mark_saved()
+        if remember:
+            remember(p, raw.encode("utf-8"))
+        return Response(raw, media_type="application/json",
                         headers={"Content-Disposition": f'attachment; filename="{prj.project_name("pidtools")}"'})
 
     @r.put("/project", response_model=WorkspaceInfo,
@@ -98,6 +102,9 @@ def router(get_proj):
             p.apply_project(prj.load_project(raw.decode("utf-8")))
         except (ValueError, KeyError, TypeError, json.JSONDecodeError) as ex:
             raise HTTPException(400, f"invalid project: {ex}") from ex
+        p.mark_loaded()
+        if remember:
+            remember(p, raw)
         return info(wid, p.state)
 
     @r.get("/loops", response_model=Loops)
