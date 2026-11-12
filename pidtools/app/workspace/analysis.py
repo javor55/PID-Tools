@@ -14,8 +14,10 @@ class AnalysisMixin:
         return (self.t >= a) & (self.t <= b)
 
     def diag_theta(self):
-        """Dopravní zpoždění pro Harrisův index: z modelu (výchozí 5 s) + polovina SampleTime."""
-        return (self.model[1][-1] if self.model else 5.0) + float(self.get("samp")) / 2
+        """Dopravní zpoždění pro Harrisův index: z modelu, jinak zadané `diag_theta` (G1), výchozí 5 s; + půl SampleTime."""
+        user = self.get("diag_theta")
+        th = self.model[1][-1] if self.model else (float(user) if user else 5.0)
+        return th + float(self.get("samp")) / 2
 
     def diag_kpis(self, a, b):
         """KPI úseku (od, do) [s] – rozptyl odchylky, IAE, pohyb MV, obraty, na mezi, Harris, oscilace."""

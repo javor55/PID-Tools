@@ -41,7 +41,7 @@ STATE_KEYS = [
     "read_manual",
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
-    "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist", "id_mode", "audit_loops",
+    "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist", "id_mode", "audit_loops", "tri_thr", "diag_theta",
     "scen2", "sim_len_u", "sim_len_u_set", "sim_J", "sim_noise", "vchar_last",
     # plán testu, kaskáda, diagnostika
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
@@ -64,7 +64,7 @@ NUM_KEYS = {"pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h", "samp", "diffgain", "p
             "pvfilt", "mvrate", "sprate", "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
             "thmax", "dist_strength", "opt_ms", "opt_noise", "opt_ovs", "avg_dpv", "avg_dmv", "scen_d_in",
             "scen_d_pv", "sim_J", "sim_noise", "plan_dpv", "plan_snr", "cas_k", "cas_t1", "cas_t2", "cas_th",
-            "cas_samp", "cas_tci", "cas_tco"}
+            "cas_samp", "cas_tci", "cas_tco", "diag_theta"}
 BOOL_KEYS = {"pv_rng_user", "mv_rng_user", "pfb", "dfb", "id_stic", "read_manual", "opt_robust", "sim_len_u_set",
              "diag_integ"}
 LIST_KEYS = {"chosen", "tune_hist", "audit_loops", "vchar_last"}
