@@ -12,8 +12,10 @@ Pořadí výpočtu jednoho kroku (kanonické, každá část vypnutelná):
 
 Krok je psaný pro rychlost: koeficienty se přepočítají při změně ladění, ve `step` jsou jen obyčejná čísla.
 Veličiny jsou v % normovacích rozsahů (normování na jednotky obstarává vrstva `app`).
-Další části (rychlostní algoritmus, externí reset, split range, 3-step, PWM, vlastní rovnice) doplní fáze R3 a R4
-přidáním položek do registrů níže.
+Speciální funkce (R3): gap, nelineární zesílení (kvadrát odchylky, tabulka), rychlostní algoritmus, externí reset
+(BKCAL), dynamické meze (`set_limits`) a výstupní stupně (split range, 3-step, PWM) jsou položky registrů níže; vlastní
+rovnice (R4) vykonává `core.program`. Rychlá cesta `step` pro základní PID se tím nemění: gap a nelineární zesílení se
+skládají do funkce odchylky, externí reset je anti-windup s přístupem k regulátoru a výstupní stupeň obalí `step`.
 """
 import math
 
@@ -22,7 +24,7 @@ import numpy as np
 from ..controllers import load_preset, parse_profile
 from ..controllers.mapping import apply_reprs, role_reprs
 
-__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "ideal_ctrl", "preset_profile"]
+__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "ideal_ctrl", "nonlinear_parts", "preset_profile"]
 
 _INF = math.inf
 
@@ -57,9 +59,11 @@ ANTIWINDUPS = Registry("anti-windup")
 ALGORITHMS = Registry("algoritmus")
 NORMALISATIONS = Registry("normování")
 PV_FILTERS = Registry("filtr PV")
+NL_GAINS = Registry("nelineární zesílení")
+OUTPUT_STAGES = Registry("výstupní stupeň")
 REGISTRIES = dict(forms=FORMS, deadbands=DEADBANDS, d_sources=D_SOURCES, d_filters=D_FILTERS,
                   antiwindups=ANTIWINDUPS, algorithms=ALGORITHMS, normalisations=NORMALISATIONS,
-                  pv_filters=PV_FILTERS)
+                  pv_filters=PV_FILTERS, nl_gains=NL_GAINS, output_stages=OUTPUT_STAGES)
 
 
 # ================================================================ registry: formy
@@ -96,7 +100,7 @@ _form_series.roles = ("Kc", "Ti", "Td")
 
 # ================================================================ registry: mrtvé pásmo
 @DEADBANDS.register("continuous")
-def _db_continuous(db):
+def _db_continuous(db, P=None):
     """Spojité: uvnitř pásma 0, mimo odchylka zmenšená o šířku pásma."""
     def f(e):
         if abs(e) >= db:
@@ -106,10 +110,22 @@ def _db_continuous(db):
 
 
 @DEADBANDS.register("step")
-def _db_step(db):
+def _db_step(db, P=None):
     """Skokové: uvnitř pásma 0, mimo odchylka beze změny."""
     def f(e):
         return e if abs(e) >= db else 0.0
+    return f
+
+
+@DEADBANDS.register("gap")
+def _db_gap(db, P=None):
+    """Gap: uvnitř pásma se zesílení sníží na k (role `gap_gain`), mimo pásmo odchylka spojitě navazuje (k = 0 = spojité)."""
+    k = (P or {}).get("gap_gain", 0.0)
+
+    def f(e):
+        if abs(e) < db:
+            return k * e
+        return e - (1.0 if e > 0 else -1.0) * db * (1.0 - k)
     return f
 
 
@@ -158,12 +174,165 @@ def _aw_none(i_old, inc, u_un, u, k_aw):
     return i_old + inc
 
 
-ANTIWINDUPS.register("external_reset", planned=True)(None)
+def _aw_external(ctl, P):
+    """Externí reset (BKCAL, „reset feedback“): zpětná vazba z vnějšku (`ctl.ext_reset`, skutečná poloha za regulátorem)
+    s časovou konstantou Tt (role `Tt`, jinak Ti); bez signálu se chová jako zpětný výpočet z vlastního výstupu."""
+    tt = P.get("Tt")
+
+    def f(i_old, inc, u_un, u, k_aw):
+        ub = ctl.ext_reset if ctl.ext_reset is not None else u
+        k = ctl.Tc / tt if tt else (ctl.Tc / ctl.Ti if ctl.use_i else 0.0)
+        return i_old + inc + (ub - u_un) * k
+    return f
+
+
+_aw_external.factory = True
+ANTIWINDUPS.register("external_reset")(_aw_external)
+
+
+def _alg_velocity(i_old, inc, u_un, u, k_aw):
+    """Rychlostní (přírůstkový) algoritmus: u = u_prev + ΔP + ΔI + ΔD + ΔFF. Je shodný s polohovým, jehož I složka se každý
+    krok přepíše na u − P − D − FF (zpětný výpočet s Tt = Ts): omezení výstupu tak nemá windup a meze lze měnit."""
+    return i_old + inc + (u - u_un)
+
+
+# ================================================================ registry: nelineární zesílení
+# Tvarovač odchylky `g(e)` (po mrtvém pásmu): továrna (regulátor, parametry, popis v profilu) → funkce nebo None.
+def _interp(xs, ys, x):
+    """Lineární interpolace tabulky; mimo rozsah drží krajní hodnotu."""
+    if x <= xs[0]:
+        return ys[0]
+    for i in range(1, len(xs)):
+        if x < xs[i]:
+            return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1])
+    return ys[-1]
+
+
+NL_GAINS.register("none")(lambda ctl, P, spec: None)
+
+
+@NL_GAINS.register("squared")
+def _nl_squared(ctl, P, spec):
+    """Kvadrát odchylky: e' = e·|e| / E0 pro |e| < E0 (zesílení K·|e| / E0, role `nl_e0`), mimo beze změny."""
+    e0 = P.get("nl_e0", 0.0)
+    if not e0 or e0 <= 0:
+        return None
+
+    def f(e):
+        return e * abs(e) / e0 if abs(e) < e0 else e
+    return f
+
+
+@NL_GAINS.register("table")
+def _nl_table(ctl, P, spec):
+    """Zesílení podle tabulky (gain scheduling): e' = e · g(x), x = PV / SP / MV / odchylka (`input`), g lineárně z tabulky."""
+    xs, ys, src = [float(v) for v in spec["x"]], [float(v) for v in spec["y"]], spec.get("input", "pv")
+    if len(xs) < 2 or len(xs) != len(ys) or any(b <= a for a, b in zip(xs, xs[1:])):
+        raise ValueError("tabulka zesílení: x musí být rostoucí a mít stejný počet bodů jako y (min. 2)")
+    if src == "pv":
+        return lambda e: e * _interp(xs, ys, ctl.yf)
+    if src == "sp":
+        return lambda e: e * _interp(xs, ys, ctl.spr)
+    if src == "mv":
+        return lambda e: e * _interp(xs, ys, ctl.u_prev)
+    if src == "error":
+        return lambda e: e * _interp(xs, ys, e)
+    raise ValueError(f"tabulka zesílení: neznámý vstup '{src}' (pv, sp, mv, error)")
+
+
+# ================================================================ registry: výstupní stupně
+# Továrna (regulátor, parametry) → objekt `stage(u) → ekvivalentní poloha`; volá se každý krok simulace h, `stage.outputs`
+# jsou signály z § 4.1 (MV, MV2, PULSE_UP, PULSE_DN, PWM). Model procesu dostane vždy ekvivalentní polohu akčního členu.
+OUTPUT_STAGES.register("none")(None)
+
+
+class _SplitRange:
+    """Split range / ohřev–chlazení: požadavek 0–100 % se rozdělí v bodě `split_point` na MV (ohřev, nad bodem) a MV2
+    (chlazení, pod bodem), mezera `split_gap` kolem bodu, zesílení stran `k_heat`, `k_cool`. Ekvivalent = čistý účinek."""
+
+    def __init__(self, ctl, P):
+        self.s, self.g, self.kh, self.kc = P["split_point"], P["split_gap"], P["k_heat"], P["k_cool"]
+        self.outputs = dict(MV=0.0, MV2=0.0)
+
+    def __call__(self, u):
+        s, g = self.s, self.g
+        a, b = s - g / 2, s + g / 2
+        heat = min(100.0, (u - b) / max(100.0 - b, 1e-9) * 100.0 * self.kh) if u > b else 0.0
+        cool = min(100.0, (a - u) / max(a, 1e-9) * 100.0 * self.kc) if u < a else 0.0
+        self.outputs["MV"], self.outputs["MV2"] = heat, cool
+        return s + heat / 100.0 * (100.0 - s) - cool / 100.0 * s
+
+
+class _ThreeStep:
+    """3-step (motorový pohon bez zpětného hlášení): poloha se integruje z pulzů, doba přestavení `motor_time` na 100 %,
+    práh `tri_threshold` [%], minimální puls `min_pulse` a pauza `min_pause` [s]. Ekvivalent = odhad polohy pohonu."""
+
+    def __init__(self, ctl, P):
+        self.h, self.tm, self.thr = ctl.h, max(P["motor_time"], 1e-9), P["tri_threshold"]
+        self.tmin, self.tpause = P["min_pulse"], P["min_pause"]
+        self.pos, self.left, self.dir, self.pause = None, 0.0, 0, 0.0
+        self.outputs = dict(PULSE_UP=0.0, PULSE_DN=0.0)
+
+    def __call__(self, u):
+        if self.pos is None:
+            self.pos = u
+        h = self.h
+        if self.left <= 0 and self.pause > 0:
+            self.pause -= h
+        elif self.left <= 0:
+            d = u - self.pos
+            need = abs(d) / 100.0 * self.tm
+            if abs(d) >= self.thr and need > 0 and need >= self.tmin:
+                self.left, self.dir = need, (1 if d > 0 else -1)
+        on = 0.0
+        if self.left > 0:
+            dt = min(h, self.left)
+            self.pos = min(max(self.pos + self.dir * dt / self.tm * 100.0, 0.0), 100.0)
+            self.left -= dt
+            on = dt / h
+            if self.left <= 1e-12:
+                self.left, self.pause = 0.0, self.tpause
+        self.outputs["PULSE_UP"], self.outputs["PULSE_DN"] = (on if self.dir > 0 else 0.0), (on if self.dir < 0 else 0.0)
+        return self.pos
+
+
+class _Pwm:
+    """PWM: perioda `pwm_period` [s], střída = požadavek / 100, minimální puls `min_pulse` (kratší puls nebo pauza se
+    zaokrouhlí). Ekvivalent = střední hodnota přes periodu (střída · 100); `outputs["PWM"]` je okamžitý stav 0 / 1."""
+
+    def __init__(self, ctl, P):
+        self.h, self.tp, self.tmin = ctl.h, max(P["pwm_period"], ctl.h), P["min_pulse"]
+        self.t, self.duty = None, 0.0
+        self.outputs = dict(PWM=0.0)
+
+    def __call__(self, u):
+        if self.t is None or self.t >= self.tp - 1e-9:
+            self.t = 0.0
+            duty = min(max(u, 0.0), 100.0) / 100.0
+            on, tp, tm = duty * self.tp, self.tp, self.tmin
+            if tm > 0:
+                if on < tm / 2:
+                    duty = 0.0
+                elif on < tm:
+                    duty = tm / tp
+                elif tp - on < tm / 2:
+                    duty = 1.0
+                elif tp - on < tm:
+                    duty = 1.0 - tm / tp
+            self.duty = duty
+        self.outputs["PWM"] = 1.0 if self.t < self.duty * self.tp - 1e-12 else 0.0
+        self.t += self.h
+        return self.duty * 100.0
+
+
+OUTPUT_STAGES.register("split_range")(_SplitRange)
+OUTPUT_STAGES.register("three_step")(_ThreeStep)
+OUTPUT_STAGES.register("pwm")(_Pwm)
 
 
 # ================================================================ registry: ostatní části
 ALGORITHMS.register("position")(True)
-ALGORITHMS.register("velocity", planned=True)(None)
+ALGORITHMS.register("velocity")(_alg_velocity)          # přepíše anti-windup (viz funkce)
 NORMALISATIONS.register("percent")(True)                # PV i MV v % rozsahů (rozsahy obstarává vrstva app)
 NORMALISATIONS.register("engineering", planned=True)(None)
 PV_FILTERS.register("lag1")(True)
@@ -184,7 +353,9 @@ class Profile:
         self.d_source = D_SOURCES.get(st.get("d", {}).get("source", "error"))
         self.d_filter = D_FILTERS.get(st.get("d", {}).get("filter", "td_over_n"))
         self.antiwindup = ANTIWINDUPS.get(st.get("antiwindup", "clamp_conditional"))
-        ALGORITHMS.get(st.get("algorithm", "position"))
+        alg = ALGORITHMS.get(st.get("algorithm", "position"))
+        if alg is not True:
+            self.antiwindup = alg
         NORMALISATIONS.get(st.get("normalisation", {}).get("kind", "percent"))
         self.pv_lag = bool(PV_FILTERS.get(st.get("pv", {}).get("filter", "lag1")))
         db = st.get("error", {}).get("deadband")
@@ -193,6 +364,9 @@ class Profile:
         for m in list(self.db_modes.values()) + [self.db_other]:
             DEADBANDS.get(m)
         out = st.get("output", {})
+        self.stage = OUTPUT_STAGES.get(out.get("stage", "none"))
+        nl = st.get("error", {}).get("nonlinear") or {}
+        self.nl = (NL_GAINS.get(nl.get("kind", "none")), nl)
         self.use_rate, self.use_zone = bool(out.get("rate_limit")), bool(out.get("control_zone"))
         self.use_sp_rate = bool(st.get("sp", {}).get("rate_limit"))
         self.reprs = role_reprs(data)   # {role: varianta jednotky} (jen jiné než kanonické; `controllers.units`)
@@ -224,7 +398,9 @@ class Profile:
 
 
 _ROLE_DEFAULTS = dict(b=1.0, d_on_pv=False, deadband=0.0, deadband_mode="", mv_lo=-_INF, mv_hi=_INF, pv_filter=0.0,
-                      mv_rate=0.0, sp_rate=0.0, con_zone=0.0, N=5.0, Tf=0.0)
+                      mv_rate=0.0, sp_rate=0.0, con_zone=0.0, N=5.0, Tf=0.0, gap_gain=0.0, nl_e0=0.0, split_point=50.0,
+                      split_gap=0.0, k_heat=1.0, k_cool=1.0, motor_time=60.0, tri_threshold=1.0, min_pulse=0.0,
+                      min_pause=0.0, pwm_period=10.0)
 
 
 def _num(v):
@@ -255,7 +431,13 @@ class Controller:
         self._db = None
         if db > 0:
             name = prof.db_modes.get(P["deadband_mode"], prof.db_other)
-            self._db = DEADBANDS.get(name)(db)
+            self._db = DEADBANDS.get(name)(db, P)
+        self.yf = self.spr = self.u = self.u_prev = 0.0
+        self.ext_reset = None                       # externí reset (BKCAL) pro anti-windup `external_reset`
+        shaper = prof.nl[0](self, P, prof.nl[1])
+        if shaper is not None:
+            base = self._db
+            self._db = shaper if base is None else (lambda e: shaper(base(e)))
         self.b = P["b"]
         self._omb = 1.0 - self.b
         self._dsrc = prof.d_source(P)
@@ -268,11 +450,24 @@ class Controller:
         self._rlim, self._slim = self._rate * Tc, self._sprate * Tc
         cz = (P["con_zone"] or 0.0) if prof.use_zone else 0.0
         self._cz = cz if (cz > 0 and math.isfinite(self.lo) and math.isfinite(self.hi)) else 0.0
-        self._aw = prof.antiwindup
+        self._aw = prof.antiwindup(self, P) if getattr(prof.antiwindup, "factory", False) else prof.antiwindup
         self._k_aw = Tc / P["Tt"] if P.get("Tt") else 0.0
         self.k = 0
         self.dem = 0.0
         self.set_tuning(*(P[r] for r in prof.tuning_roles), _bumpless=False)
+        self.outputs = {}
+        if prof.stage is not None:                  # výstupní stupeň obalí step / track (rychlá cesta zůstává beze změny)
+            stage = prof.stage(self, P)
+            self.stage, self.outputs = stage, stage.outputs
+            base_step, base_track = Controller.step, Controller.track
+            self.step = lambda sp, y_meas, ff=0.0: stage(base_step(self, sp, y_meas, ff))
+            self.track = lambda sp, y_meas, u_man, ff=0.0: stage(base_track(self, sp, y_meas, u_man, ff))
+
+    def set_limits(self, lo, hi):
+        """Dynamické meze výstupu (MV_LO / MV_HI z override, kaskády) za běhu; regulační zóna je jen s konečnými mezemi."""
+        self.lo, self.hi = lo, hi
+        cz = (self._params["con_zone"] or 0.0) if self.profile.use_zone else 0.0
+        self._cz = cz if (cz > 0 and math.isfinite(lo) and math.isfinite(hi)) else 0.0
 
     # ---- ladění
     def _set_gains(self, a, b, c):
@@ -311,6 +506,7 @@ class Controller:
     # ---- rozhraní
     def init(self, sp, y_meas, u0, ff=0.0):
         """Bezrázový start: I složka se nastaví tak, aby výstup byl u0."""
+        self.u_prev = u0
         self.yf = y_meas
         self.spr = sp
         e = self._err()
@@ -395,6 +591,23 @@ def ideal_ctrl(profile, ctrl):
     else:
         dg = Td / Tf if (Td > 0 and Tf > 0) else 1e12
     return dict(Gain=Kc, TI=Ti if (Ti is not None and Ti > 0) else _INF, TD=Td, DiffGain=dg, SampleTime=P["Ts"], PVFilt=P.get("pv_filter") or 0.0)
+
+
+def nonlinear_parts(profile):
+    """Nelineární části profilu (ovlivňují linearitu, mapování a robustnost): ['gap', 'nonlinear_gain', 'split_range',
+    'three_step', 'pwm']; prázdný seznam = lineární regulátor (mimo omezení výstupu)."""
+    prof = profile if isinstance(profile, Profile) else Profile(profile)
+    st = prof.data["structure"]
+    out = []
+    modes = list(prof.db_modes.values()) + [prof.db_other]
+    if "gap" in modes and any(p["role"] == "deadband" for p in prof.data["params"]):
+        out.append("gap")
+    if st.get("error", {}).get("nonlinear", {}).get("kind", "none") != "none":
+        out.append("nonlinear_gain")
+    stage = st.get("output", {}).get("stage", "none")
+    if stage in ("split_range", "three_step", "pwm"):
+        out.append(stage)
+    return out
 
 
 _profiles = {}

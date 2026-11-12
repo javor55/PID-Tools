@@ -21,7 +21,8 @@
   };
   var FORMS = new Registry("forma"), DEADBANDS = new Registry("mrtvé pásmo"), D_SOURCES = new Registry("zdroj D"),
     D_FILTERS = new Registry("filtr D"), ANTIWINDUPS = new Registry("anti-windup"), ALGORITHMS = new Registry("algoritmus"),
-    NORMALISATIONS = new Registry("normování"), PV_FILTERS = new Registry("filtr PV");
+    NORMALISATIONS = new Registry("normování"), PV_FILTERS = new Registry("filtr PV"),
+    NL_GAINS = new Registry("nelineární zesílení"), OUTPUT_STAGES = new Registry("výstupní stupeň");
 
   function form(fn, roles) { fn.roles = roles; return fn; }
   FORMS.register("ideal", form(function (a, b, c) { return [a, b, c]; }, ["Kc", "Ti", "Td"]));
@@ -39,6 +40,13 @@
   });
   DEADBANDS.register("step", function (db) {
     return function (e) { return Math.abs(e) >= db ? e : 0.0; };
+  });
+  DEADBANDS.register("gap", function (db, P) {
+    var k = (P && P.gap_gain !== undefined) ? P.gap_gain : 0.0;
+    return function (e) {
+      if (Math.abs(e) < db) return k * e;
+      return e - (e > 0 ? 1.0 : -1.0) * db * (1.0 - k);
+    };
   });
 
   D_SOURCES.register("error", function () { return 0; });
@@ -58,14 +66,107 @@
   });
   ANTIWINDUPS.register("back_calculation", function (iOld, inc, uUn, u, kAw) { return iOld + inc + (u - uUn) * kAw; });
   ANTIWINDUPS.register("none", function (iOld, inc) { return iOld + inc; });
-  ANTIWINDUPS.register("external_reset", null, true);
+  function awExternal(ctl, P) {      // externí reset (BKCAL), viz Python
+    var tt = P.Tt;
+    return function (iOld, inc, uUn, u) {
+      var ub = ctl.extReset !== null ? ctl.extReset : u;
+      var k = tt ? ctl.Tc / tt : (ctl.useI ? ctl.Tc / ctl.Ti : 0.0);
+      return iOld + inc + (ub - uUn) * k;
+    };
+  }
+  awExternal.factory = true;
+  ANTIWINDUPS.register("external_reset", awExternal);
 
   ALGORITHMS.register("position", true);
-  ALGORITHMS.register("velocity", null, true);
+  ALGORITHMS.register("velocity", function (iOld, inc, uUn, u) { return iOld + inc + (u - uUn); });
   NORMALISATIONS.register("percent", true);
   NORMALISATIONS.register("engineering", null, true);
   PV_FILTERS.register("lag1", true);
   PV_FILTERS.register("none", false);
+
+  /* ---- nelineární zesílení (tvarovač odchylky) */
+  function interp(xs, ys, x) {
+    if (x <= xs[0]) return ys[0];
+    for (var i = 1; i < xs.length; i++)
+      if (x < xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+    return ys[ys.length - 1];
+  }
+  NL_GAINS.register("none", function () { return null; });
+  NL_GAINS.register("squared", function (ctl, P) {
+    var e0 = P.nl_e0;
+    if (!e0 || e0 <= 0) return null;
+    return function (e) { return Math.abs(e) < e0 ? e * Math.abs(e) / e0 : e; };
+  });
+  NL_GAINS.register("table", function (ctl, P, spec) {
+    var xs = spec.x.map(Number), ys = spec.y.map(Number), src = spec.input || "pv";
+    if (xs.length < 2 || xs.length !== ys.length || xs.some(function (v, i) { return i > 0 && v <= xs[i - 1]; }))
+      throw new Error("tabulka zesílení: x musí být rostoucí a mít stejný počet bodů jako y (min. 2)");
+    if (src === "pv") return function (e) { return e * interp(xs, ys, ctl.yf); };
+    if (src === "sp") return function (e) { return e * interp(xs, ys, ctl.spr); };
+    if (src === "mv") return function (e) { return e * interp(xs, ys, ctl.uPrev); };
+    if (src === "error") return function (e) { return e * interp(xs, ys, e); };
+    throw new Error("tabulka zesílení: neznámý vstup '" + src + "' (pv, sp, mv, error)");
+  });
+
+  /* ---- výstupní stupně: továrna (regulátor, parametry) → funkce u → ekvivalentní poloha, `.outputs` = signály */
+  OUTPUT_STAGES.register("none", null);
+  OUTPUT_STAGES.register("split_range", function (ctl, P) {
+    var s = P.split_point, g = P.split_gap, kh = P.k_heat, kc = P.k_cool;
+    var f = function (u) {
+      var a = s - g / 2, b = s + g / 2;
+      var heat = u > b ? Math.min(100.0, (u - b) / Math.max(100.0 - b, 1e-9) * 100.0 * kh) : 0.0;
+      var cool = u < a ? Math.min(100.0, (a - u) / Math.max(a, 1e-9) * 100.0 * kc) : 0.0;
+      f.outputs.MV = heat; f.outputs.MV2 = cool;
+      return s + heat / 100.0 * (100.0 - s) - cool / 100.0 * s;
+    };
+    f.outputs = { MV: 0.0, MV2: 0.0 };
+    return f;
+  });
+  OUTPUT_STAGES.register("three_step", function (ctl, P) {
+    var h = ctl.h, tm = Math.max(P.motor_time, 1e-9), thr = P.tri_threshold, tmin = P.min_pulse, tpause = P.min_pause;
+    var pos = null, left = 0.0, dir = 0, pause = 0.0;
+    var f = function (u) {
+      if (pos === null) pos = u;
+      if (left <= 0 && pause > 0) pause -= h;
+      else if (left <= 0) {
+        var d = u - pos, need = Math.abs(d) / 100.0 * tm;
+        if (Math.abs(d) >= thr && need > 0 && need >= tmin) { left = need; dir = d > 0 ? 1 : -1; }
+      }
+      var on = 0.0;
+      if (left > 0) {
+        var dt = Math.min(h, left);
+        pos = Math.min(Math.max(pos + dir * dt / tm * 100.0, 0.0), 100.0);
+        left -= dt;
+        on = dt / h;
+        if (left <= 1e-12) { left = 0.0; pause = tpause; }
+      }
+      f.outputs.PULSE_UP = dir > 0 ? on : 0.0; f.outputs.PULSE_DN = dir < 0 ? on : 0.0;
+      return pos;
+    };
+    f.outputs = { PULSE_UP: 0.0, PULSE_DN: 0.0 };
+    return f;
+  });
+  OUTPUT_STAGES.register("pwm", function (ctl, P) {
+    var h = ctl.h, tp = Math.max(P.pwm_period, h), tmin = P.min_pulse, t = null, duty = 0.0;
+    var f = function (u) {
+      if (t === null || t >= tp - 1e-9) {
+        t = 0.0;
+        duty = Math.min(Math.max(u, 0.0), 100.0) / 100.0;
+        var on = duty * tp;
+        if (tmin > 0) {
+          if (on < tmin / 2) duty = 0.0;
+          else if (on < tmin) duty = tmin / tp;
+          else if (tp - on < tmin / 2) duty = 1.0;
+          else if (tp - on < tmin) duty = 1.0 - tmin / tp;
+        }
+      }
+      f.outputs.PWM = t < duty * tp - 1e-12 ? 1.0 : 0.0;
+      t += h;
+      return duty * 100.0;
+    };
+    f.outputs = { PWM: 0.0 };
+    return f;
+  });
 
   /* ---- profil */
   function num(v) {
@@ -86,7 +187,8 @@
     this.dSource = D_SOURCES.get(d.source || "error");
     this.dFilter = D_FILTERS.get(d.filter || "td_over_n");
     this.antiwindup = ANTIWINDUPS.get(st.antiwindup || "clamp_conditional");
-    ALGORITHMS.get(st.algorithm || "position");
+    var alg = ALGORITHMS.get(st.algorithm || "position");
+    if (alg !== true) this.antiwindup = alg;
     NORMALISATIONS.get((st.normalisation || {}).kind || "percent");
     this.pvLag = !!PV_FILTERS.get((st.pv || {}).filter || "lag1");
     var db = (st.error || {}).deadband;
@@ -96,6 +198,9 @@
     Object.keys(this.dbModes).map(function (k) { return self.dbModes[k]; }).concat([this.dbOther])
       .forEach(function (m) { DEADBANDS.get(m); });
     var out = st.output || {};
+    this.stage = OUTPUT_STAGES.get(out.stage || "none");
+    var nl = (st.error || {}).nonlinear || {};
+    this.nl = [NL_GAINS.get(nl.kind || "none"), nl];
     this.useRate = !!out.rate_limit; this.useZone = !!out.control_zone;
     this.useSpRate = !!(st.sp || {}).rate_limit;
     this.params = data.params.map(function (p) {
@@ -103,6 +208,9 @@
         range: p.range || null, alias: p.alias || null };
     });
   }
+  var ROLE_DEFAULTS = { b: 1.0, d_on_pv: false, deadband: 0.0, deadband_mode: "", mv_lo: -Infinity, mv_hi: Infinity,
+    pv_filter: 0.0, mv_rate: 0.0, sp_rate: 0.0, con_zone: 0.0, N: 5.0, Tf: 0.0, gap_gain: 0.0, nl_e0: 0.0, split_point: 50.0, split_gap: 0.0, k_heat: 1.0, k_cool: 1.0,
+    motor_time: 60.0, tri_threshold: 1.0, min_pulse: 0.0, min_pause: 0.0, pwm_period: 10.0 };
   Profile.prototype.resolve = function (ctrl) {
     var out = {};
     this.params.forEach(function (p) {
@@ -116,6 +224,7 @@
       }
       out[p.role] = p.range ? Math.min(Math.max(v, p.range[0]), p.range[1]) : v;
     });
+    Object.keys(ROLE_DEFAULTS).forEach(function (r) { if (!has(out, r)) out[r] = ROLE_DEFAULTS[r]; });
     return out;
   };
 
@@ -130,7 +239,14 @@
     var Tc = this.Tc = this.m * h;
     this.lo = P.mv_lo; this.hi = P.mv_hi;
     this._db = null;
-    if (P.deadband > 0) this._db = DEADBANDS.get(has(prof.dbModes, P.deadband_mode) ? prof.dbModes[P.deadband_mode] : prof.dbOther)(P.deadband);
+    if (P.deadband > 0) this._db = DEADBANDS.get(has(prof.dbModes, P.deadband_mode) ? prof.dbModes[P.deadband_mode] : prof.dbOther)(P.deadband, P);
+    this.yf = this.spr = this.u = this.uPrev = 0.0;
+    this.extReset = null;                      // externí reset (BKCAL) pro anti-windup external_reset
+    var shaper = prof.nl[0](this, P, prof.nl[1]);
+    if (shaper !== null) {
+      var base = this._db;
+      this._db = base === null ? shaper : function (e) { return shaper(base(e)); };
+    }
     this.b = P.b; this._omb = 1.0 - this.b;
     this._dsrc = prof.dSource(P);
     var Tpv = prof.pvLag ? (P.pv_filter || 0.0) : 0.0;
@@ -142,11 +258,23 @@
     this._rlim = this._rate * Tc; this._slim = this._sprate * Tc;
     var cz = prof.useZone ? (P.con_zone || 0.0) : 0.0;
     this._cz = (cz > 0 && isFinite(this.lo) && isFinite(this.hi)) ? cz : 0.0;
-    this._aw = prof.antiwindup;
+    this._aw = prof.antiwindup.factory ? prof.antiwindup(this, P) : prof.antiwindup;
     this._kAw = P.Tt ? Tc / P.Tt : 0.0;
     this.k = 0; this.dem = 0.0;
     this._setGains.apply(this, prof.tuningRoles.map(function (r) { return P[r]; }));
+    this.outputs = {};
+    if (prof.stage !== null) {                 // výstupní stupeň obalí step / track
+      var self = this, stage = prof.stage(this, P), bStep = Controller.prototype.step, bTrack = Controller.prototype.track;
+      this.stage = stage; this.outputs = stage.outputs;
+      this.step = function (sp, y, ff) { return stage(bStep.call(self, sp, y, ff)); };
+      this.track = function (sp, y, uMan, ff) { return stage(bTrack.call(self, sp, y, uMan, ff)); };
+    }
   }
+  Controller.prototype.setLimits = function (lo, hi) {   // dynamické meze výstupu
+    this.lo = lo; this.hi = hi;
+    var cz = this.profile.useZone ? (this._params.con_zone || 0.0) : 0.0;
+    this._cz = (cz > 0 && isFinite(lo) && isFinite(hi)) ? cz : 0.0;
+  };
   Controller.prototype._setGains = function (a, b, c) {
     var g = this.profile.formFn(a, b, c), Kc = g[0], Ti = g[1], Td = g[2], Tc = this.Tc;
     this.Kc = Kc; this.Ti = Ti; this.Td = Td;
@@ -171,6 +299,7 @@
   Controller.prototype._xd = function (e) { return this._dsrc ? -this.yf : e; };
   Controller.prototype.init = function (sp, y, u0, ff) {
     ff = ff || 0.0;
+    this.uPrev = u0;
     this.yf = y; this.spr = sp;
     var e = this._err();
     this.I = u0 - this._pTerm(e) - ff; this.D = 0.0;
@@ -231,7 +360,8 @@
 
   var api = { Profile: Profile, Controller: Controller, profile: function (d) { return new Profile(d); },
     registries: { forms: FORMS, deadbands: DEADBANDS, dSources: D_SOURCES, dFilters: D_FILTERS, antiwindups: ANTIWINDUPS,
-      algorithms: ALGORITHMS, normalisations: NORMALISATIONS, pvFilters: PV_FILTERS } };
+      algorithms: ALGORITHMS, normalisations: NORMALISATIONS, pvFilters: PV_FILTERS, nlGains: NL_GAINS,
+      outputStages: OUTPUT_STAGES } };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.CtrlEngine = api;
 })(typeof window !== "undefined" ? window : globalThis);

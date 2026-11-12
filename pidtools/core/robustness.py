@@ -89,10 +89,14 @@ def robustness_for(profile):
     """
     Funkce `robustness(code, p, ctrl)` pro regulátor daného profilu: `ctrl` je slovník v názvech parametrů profilu,
     přenos regulátoru (forma, jednotky, filtr D, vzorkování) se z něj odvodí; pro PIDConL shodné s `robustness`.
-    Hodí se jako `robustness_fn` v `app.tuning`.
+    Hodí se jako `robustness_fn` v `app.tuning`. U nelineárních profilů (gap, nelineární zesílení, split range, 3-step,
+    PWM) se Ms počítá na linearizované části (ideální PID bez nelinearit) a výsledek má `approximate = True` a `nonlinear`
+    (seznam částí): platí kolem pracovního bodu.
     """
-    from .controller import ideal_ctrl
+    from .controller import ideal_ctrl, nonlinear_parts
+    parts = nonlinear_parts(profile)
 
     def fn(code, p, ctrl):
-        return robustness(code, p, dict(ctrl, **ideal_ctrl(profile, ctrl)))
+        r = robustness(code, p, dict(ctrl, **ideal_ctrl(profile, ctrl)))
+        return dict(r, approximate=True, nonlinear=parts) if parts else r
     return fn
