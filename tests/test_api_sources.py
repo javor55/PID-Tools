@@ -229,5 +229,7 @@ def test_range_from_common_axis_to_loop_time(client):
     r0 = client.put(f"{base}/range/common", json={"a": 400, "b": 100}).json()   # pořadí mezí je jedno
     assert r0["b"] - r0["a"] == pytest.approx(300.0)
     assert client.get(base).json()["rng"] == pytest.approx([r0["a"], r0["b"]])
+    dry = client.put(f"{base}/range/common", params={"apply": False}, json={"a": 10, "b": 20}).json()
+    assert dry["b"] - dry["a"] == pytest.approx(10.0) and client.get(base).json()["rng"] == pytest.approx([r0["a"], r0["b"]])
     assert client.put(f"{base}/range/common", json={"a": 1e7, "b": 2e7}).status_code == 422
     assert client.put(f"{V1}/workspaces/{_ws(client)}/range/common", json={"a": 0, "b": 1}).status_code == 409

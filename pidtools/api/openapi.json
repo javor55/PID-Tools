@@ -15557,7 +15557,7 @@
   },
   "/api/v1/workspaces/{wid}/range/common": {
    "put": {
-    "description": "Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky\na ořízne na něj (úsek mimo záznam = 422).",
+    "description": "Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky\na ořízne na něj (úsek mimo záznam = 422); s `apply=false` jen vrátí přepočtený úsek (pro Diagnostiku).",
     "operationId": "set_range_common_api_v1_workspaces__wid__range_common_put",
     "parameters": [
      {
@@ -15567,6 +15567,18 @@
       "schema": {
        "title": "Wid",
        "type": "string"
+      }
+     },
+     {
+      "description": "false = jen přepočet, úsek se nenastaví",
+      "in": "query",
+      "name": "apply",
+      "required": false,
+      "schema": {
+       "default": true,
+       "description": "false = jen přepočet, úsek se nenastaví",
+       "title": "Apply",
+       "type": "boolean"
       }
      },
      {

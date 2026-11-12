@@ -1828,7 +1828,7 @@ export interface paths {
         /**
          * Set Range Common
          * @description Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky
-         *     a ořízne na něj (úsek mimo záznam = 422).
+         *     a ořízne na něj (úsek mimo záznam = 422); s `apply=false` jen vrátí přepočtený úsek (pro Diagnostiku).
          */
         put: operations["set_range_common_api_v1_workspaces__wid__range_common_put"];
         post?: never;
@@ -8403,7 +8403,10 @@ export interface operations {
     };
     set_range_common_api_v1_workspaces__wid__range_common_put: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description false = jen přepočet, úsek se nenastaví */
+                apply?: boolean;
+            };
             header?: {
                 authorization?: string | null;
                 "x-pid-token"?: string | null;

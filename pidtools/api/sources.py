@@ -311,10 +311,11 @@ def router(get_proj, max_upload):
         return Trend(a=a_, b=b_, n=n, cursors=list(at or []), origin=origin, series=out)
 
     @r.put("/range/common", response_model=LoopRange)
-    def set_range_common(wid: str, body: AxisRange):
+    def set_range_common(wid: str, body: AxisRange,
+                         apply: Annotated[bool, Query(description="false = jen přepočet, úsek se nenastaví")] = True):
         """
         Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky
-        a ořízne na něj (úsek mimo záznam = 422).
+        a ořízne na něj (úsek mimo záznam = 422); s `apply=false` jen vrátí přepočtený úsek (pro Diagnostiku).
         """
         p = get_proj(wid)
         p.sync()
@@ -326,7 +327,8 @@ def router(get_proj, max_upload):
         a, b = max(a, 0.0), min(b, float(ws.t[-1]))
         if not b > a:
             raise HTTPException(422, "range outside the record")
-        ws.rng = (a, b)
+        if apply:
+            ws.rng = (a, b)
         return LoopRange(a=a, b=b, offset=off)
 
     return r
