@@ -13,6 +13,17 @@ def manual_inner(k, t1, t2, theta):
     return "P1D", [k, t1, theta]
 
 
+def inner_range(raw, lo=None, hi=None):
+    """Rozsah vnitřní PV: zadaný, jinak z dat (zaokrouhlené minimum a maximum). Vrací (dolní, horní)."""
+    x = np.asarray(raw, float)
+    x = x[np.isfinite(x)]
+    if not len(x):
+        raise ValueError("no data in the inner PV signal")
+    lo = float(np.floor(x.min())) if lo is None else float(lo)
+    hi = float(np.ceil(x.max())) if hi is None else float(hi)
+    return lo, hi
+
+
 def fit_inner(ts, ipv, imv, Ts, fit_model=core.fit_model):
     """Model vnitřní smyčky z dat (P1D a P2D, P2D jen když je o 0,5 % lepší). Vrací (výsledek nebo None, chyby)."""
     k = int(np.ceil(len(ts) / 2500))
