@@ -9,6 +9,7 @@ import { series, unframe } from "../api/signals";
 import { Help, PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { type LoopMode, usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
+import { dur } from "../lib/format";
 import { useJobRunner } from "../jobs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUi } from "../store";
@@ -18,6 +19,9 @@ import { DIST_CHOICES, DIST_STYLE, FAMILY, MODELS, MV_STYLE, mean, windowFits } 
 type ModelState = components["schemas"]["ModelState"];
 type ModelRes = components["schemas"]["ModelRes"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
+type LoopInfo = components["schemas"]["LoopInfo"];
+type Set1Check = components["schemas"]["Set1Check"];
+type Set1Estimate = components["schemas"]["Set1Estimate"];
 
 /** Číselné pole (potvrzení Enterem / opuštěním pole) s popiskem vlevo. */
 function Num({ label, value, onCommit, step, testid, help }: { label: string; value: number | undefined;
@@ -159,12 +163,15 @@ function TransferCard({ k, name, col, j, model, r, win, fit, src, color, modelFi
   const signLab = { neg: "−", auto: "auto", pos: "+" } as const;
 
   // ---- parametry
-  const params: { label: string; edKey: string; fxKey: string; value: number; help: string; signed: boolean }[] = [];
+  const params: { label: string; edKey: string; fxKey: string; value: number; help: string; signed: boolean; unit?: string }[] = [];
   if (has && r && cur) {
-    if (isMv) r.names.forEach((nm, i) => params.push({ label: nm, edKey: `ed|${r.code}|${i}`, fxKey: `fx|${r.code}|${i}`,
-      value: cur.p[i], signed: i === 0,
-      help: T("help_" + (i === 0 ? "gain" : i === r.names.length - 1 ? "theta" : "T")) }));
-    else r.dists[j]?.fields.forEach(([fname, idx]) => params.push({ label: String(fname), edKey: `ed|${r.code}|d${j}|${idx}`,
+    if (isMv) {
+      r.names.forEach((nm, i) => params.push({ label: nm, edKey: `ed|${r.code}|${i}`, fxKey: `fx|${r.code}|${i}`,
+        value: cur.p[i], signed: i === 0,
+        help: T("help_" + (i === 0 ? "gain" : i === r.names.length - 1 ? "theta" : "T")) }));
+      if (st.id_stic || r.stic) params.push({ label: T("stic_param", { u: "" }), edKey: `ed|${r.code}|stic`,
+        fxKey: `fx|${r.code}|stic`, value: r.stic, signed: false, unit: "% MV", help: T("h_stic_param") });
+    } else r.dists[j]?.fields.forEach(([fname, idx]) => params.push({ label: String(fname), edKey: `ed|${r.code}|d${j}|${idx}`,
       fxKey: `fx|${r.code}|d${j}|${idx}`, value: Number(st[`ed|${r.code}|d${j}|${idx}`] ?? 0), signed: Number(idx) === 0,
       help: T("h_dist_" + String(Number(idx) === 3 ? 1 : idx)) }));
   }
@@ -184,7 +191,7 @@ function TransferCard({ k, name, col, j, model, r, win, fit, src, color, modelFi
           <div className="mparams" data-testid={`mparams${suffix}`}>
             <span /><span /><span />
             <span className="mp-head">{T("ms_identif")} <Help text={T("h_ms_identif")} /></span>
-            {params.map((p) => <ParamRow key={p.edKey} {...p} unit={unitOf(T, p.label)} />)}
+            {params.map((p) => <ParamRow key={p.edKey} {...p} unit={p.unit ?? unitOf(T, p.label)} />)}
           </div>
         )}
         <div className="mrow">
@@ -257,6 +264,61 @@ function ExclRow({ n, on, lo, hi, set }: { n: string; on: boolean; lo: number; h
   );
 }
 
+/** Smyčka v AUTO (M2): varování, zúžení na ruční úsek, Set 1 (zápis do nastavení, kontrola) a hlášení o buzení. */
+function ClosedLoop({ lp, idMode, win, model }: { lp: LoopInfo; idMode: string; win: boolean; model?: ModelState }) {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const qc = useQueryClient();
+  const patch = usePatchSettings();
+  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const [msg, setMsg] = useState<{ warn: boolean; text: string } | null>(null);
+  const eff = win ? "open" : lp.effective;
+  const closed = eff === "cl" && lp.has_sp;
+  const chk = useWsQuery<Set1Check>(`set1check|${model?.selected}|${JSON.stringify(lp.set1)}`, "/model/set1/check",
+    closed && !!model?.has_fit);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["ws", wid] });
+  const narrow = async () => { await request("POST", `/workspaces/${wid}/windows/narrow`); await refresh(); };
+  const estimate = async () => {
+    const e = await request<Set1Estimate>("POST", `/workspaces/${wid}/model/set1/estimate`);
+    setMsg(e.ok ? { warn: false, text: T("idm_est_done", { g: (e.gain ?? 0).toPrecision(4), ti: e.ti == null ? "∞" : e.ti.toPrecision(4),
+      r: e.r2.toFixed(2) }) } : { warn: true, text: T("idm_est_fail") });
+    await refresh();
+  };
+  const f = (x: number) => +x.toPrecision(4);
+  const c = chk.data;
+  return (
+    <div data-testid="closed-loop">
+      {!win && eff === "open" && lp.auto_frac >= 0.15 && (
+        <>
+          <div className="warn small" data-testid="lm-warn">{T("lm_warn", { a: Math.round(100 * lp.auto_frac) })}</div>
+          <div className="row">
+            {lp.manual_span && <button type="button" className="btn" data-testid="lm-narrow" title={T("h_lm_narrow")}
+              onClick={() => void narrow()}>{T("lm_narrow", { a: dur(lp.manual_span[0], dec), b: dur(lp.manual_span[1], dec) })}</button>}
+            {lp.has_sp && <button type="button" className="btn" data-testid="lm-to-cl" title={T("idm")}
+              onClick={() => void patch({ id_mode: "cl" })}>{T("lm_to_cl")}</button>}
+          </div>
+        </>
+      )}
+      {idMode === "cl" && !lp.has_sp && <div className="warn small">{T("idm_need_sp")}</div>}
+      {closed && (
+        <>
+          <div className="small muted" data-testid="cl-note">{T("idm_cl_note", { g: f(lp.set1.gain), ti: f(lp.set1.ti), td: f(lp.set1.td) })}</div>
+          {lp.low_excitation && <div className="warn small" data-testid="low-exc">{T("idm_low_exc")}</div>}
+          {c?.available && (c.ok
+            ? <div className="small" data-testid="set1-ok">✓ {T("idm_set1_ok", { f: (c.fit_pv ?? 0).toFixed(0) })}</div>
+            : <div className="warn small" data-testid="set1-bad">{c.stable ? T("idm_set1_bad", { f: (c.fit_pv ?? 0).toFixed(0) }) : T("idm_set1_unstable")}</div>)}
+        </>
+      )}
+      {lp.has_sp && (closed || lp.auto_frac >= 0.15) && (
+        <div className="row">
+          <button type="button" className="btn" data-testid="set1-estimate" title={T("h_idm_est")}
+            onClick={() => void estimate()}>{T("idm_est_btn")}</button><Help text={T("h_idm_est")} />
+        </div>)}
+      {msg && <div className={"small " + (msg.warn ? "warn" : "muted")} data-testid="set1-msg">{msg.text}</div>}
+    </div>
+  );
+}
+
 /** FIT [%] simulace s daným průběhem modelu vůči PV (jen vzorky, kde model existuje). */
 function fitOf(pv: ArrayLike<number>, m: ArrayLike<number> | undefined): number | null {
   if (!m) return null;
@@ -308,6 +370,7 @@ export function ModelSide() {
   const ws = useWs().data;
   const st = useSettings().data ?? {};
   const lm = useWsQuery<LoopMode>("loopmode", "/loopmode");
+  const lp = useWsQuery<LoopInfo>("modelloop", "/model/loop");
   const windows = useWsQuery<WindowsInfo>("windows", "/windows");
   const model = useWsQuery<ModelState>("model", "/model").data;
   const [busy, setBusy] = useState(false);
@@ -368,6 +431,7 @@ export function ModelSide() {
         </div>}
         {lm.data && !lm.data.set1_ok && lm.data.auto_frac >= 0.15 && idMode !== "open" &&
           <div className="warn small">{T("lm_need_set1")}</div>}
+        {lp.data && <ClosedLoop lp={lp.data} idMode={idMode} win={win} model={model} />}
         {win && ws.sp && mvWins.length > 0 && (
           <div data-testid="mv-modes">
             <div className="small muted">{T("mix_title")}</div>

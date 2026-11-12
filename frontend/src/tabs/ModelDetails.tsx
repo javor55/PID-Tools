@@ -89,11 +89,12 @@ export function ModelDetails({ model }: { model: ModelState }) {
         </div>
         {unc && unc.code === code && unc.ps.length > 0 && (
           <table className="tbl" data-testid="unc-table"><thead><tr><th /><th>{T("unc_nominal")}</th><th>{T("unc_p05")}</th>
-            <th>{T("unc_p95")}</th></tr></thead><tbody>
+            <th>{T("unc_p95")}</th><th>{T("unc_rel")}</th></tr></thead><tbody>
             {r.names.map((nm, i) => {
               const col = unc.ps.map((p) => p[i]);
               return <tr key={nm}><td>{nm}</td><td className="mono">{cur.p[i].toPrecision(4)}</td>
-                <td className="mono">{q(col, 0.05).toPrecision(4)}</td><td className="mono">{q(col, 0.95).toPrecision(4)}</td></tr>;
+                <td className="mono">{q(col, 0.05).toPrecision(4)}</td><td className="mono">{q(col, 0.95).toPrecision(4)}</td>
+                <td className="mono" data-testid={`unc-rel-${i}`}>± {(100 * (q(col, 0.95) - q(col, 0.05)) / 2 / Math.max(Math.abs(cur.p[i]), 1e-12)).toFixed(0)} %</td></tr>;
             })}
           </tbody></table>
         )}

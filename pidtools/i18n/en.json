@@ -2590,5 +2590,12 @@
  "tri_h_thr": "Thresholds of the verdict rules; saved in the project.",
  "tri_h_theta": "Dead time for the Harris index when the loop has no model. Enter an estimate from a step response; left empty it is estimated from data.",
  "tri_h_back": "Back to the overview of all loops with verdicts.",
- "tri_t_slave_harris": "Inner loop: Harris index <"
+ "tri_t_slave_harris": "Inner loop: Harris index <",
+ "mdl_ui_val_reset": "Whole record",
+ "mdl_ui_h_val_reset": "Resets the validation range to the whole record.",
+ "mdl_ui_h_views": "Model response to a 10 % MV step (fitted, edited, open-loop, uncertainty variants) and a comparison of the predictions of all models with PV on the identification span.",
+ "mdl_ui_verdict_same": "The validation range largely overlaps the identification span, so it is not an independent check. Pick another range.",
+ "mdl_ui_verdict_ok": "The model also fits outside the identification span, so it can be trusted.",
+ "mdl_ui_verdict_weak": "The model fits the validation range poorly. Tune conservatively (robustly) and consider another span, model type or measured disturbances.",
+ "mdl_ui_verdict_unstable": "The loop simulation with the chosen set is unstable."
 }

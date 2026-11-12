@@ -2590,5 +2590,12 @@
  "tri_h_thr": "Prahy pravidel verdiktu; ukládají se do projektu.",
  "tri_h_theta": "Dopravní zpoždění pro Harrisův index, když smyčka nemá model. Zadejte odhad z odezvy na skok; bez zadání se odhadne z dat.",
  "tri_h_back": "Zpět na přehled všech smyček s verdikty.",
- "tri_t_slave_harris": "Podřazená smyčka: Harris <"
+ "tri_t_slave_harris": "Podřazená smyčka: Harris <",
+ "mdl_ui_val_reset": "Celý záznam",
+ "mdl_ui_h_val_reset": "Vrátí ověřovací úsek na celý záznam.",
+ "mdl_ui_h_views": "Odezva modelu na skok MV o 10 % (nafitovaný, upravený, z otevřené smyčky, varianty z nejistoty) a porovnání predikcí všech modelů s PV na úseku identifikace.",
+ "mdl_ui_verdict_same": "Ověřovací úsek se z větší části kryje s úsekem identifikace – není to nezávislé ověření. Vyber jiný úsek.",
+ "mdl_ui_verdict_ok": "Model sedí i mimo úsek identifikace – je důvěryhodný.",
+ "mdl_ui_verdict_weak": "Na ověřovacím úseku model sedí slabě – laď opatrně (robustně), zvaž jiný úsek, typ modelu nebo měřené poruchy.",
+ "mdl_ui_verdict_unstable": "Simulace smyčky s vybranou sadou je nestabilní."
 }
