@@ -2287,7 +2287,7 @@
  "trd_ui_c_ab_t": "Zapne / vypne dva svislé kurzory A a B",
  "trd_ui_help_cursors": "Dva svislé kurzory se synchronizují přes všechny panely. Tabulka Odečet kurzorů ukazuje hodnoty v A a B, rozdíl Δ = B − A a statistiku úseku mezi nimi.",
  "trd_ui_shared": "Sdílená osa Y",
- "trd_ui_help_shared": "Signály stejné veličiny v jednom panelu sdílí stejné měřítko osy Y – snáze se porovná např. PV a SP. Vypnuto: každý signál má vlastní auto-měřítko.",
+ "trd_ui_help_shared": "Zapnuto: všechny signály panelu mají jednu společnou osu Y. Vypnuto: signály stejné veličiny (např. PV a SP) sdílejí osu, signály jiné veličiny mají vlastní osu (vlevo a vpravo).",
  "trd_ui_png": "Export PNG",
  "trd_ui_png_t": "Uloží aktuální vzhled grafů jako obrázek pro report.",
  "trd_ui_csv": "Export CSV",

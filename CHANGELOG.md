@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Data › Trends (E4, plan v2): a browser of all signals of all sources on the common time axis (board `DataTrends`):
+  signal tree (loops / sources, search, role colours), panels 1 / per loop / per quantity, cursors A-B with a readout
+  (values, delta, min, max, mean, sigma), overview strip and zoom, computed signals (the record viewer's formula
+  language), PNG / CSV export and marking the A-B span for Model (identification span) and Diagnostics. Curves are
+  decimated on the server. API: new `PUT /workspaces/{wid}/range/common` (span on the common source axis to the active
+  loop's time).
 - Data (E3, plan v2): **several data sources and loop assembly** (`pidtools/app/domain`). A project has sources (CSV /
   XLSX / TXT file, OPC UA) with a time zone, a time offset and an own sampling period, and loops whose roles (PV, SP, MV,
   position, DV, mode) map to `source › column`, with NormPV / NormMV ranges, a description and a cascade link; a column

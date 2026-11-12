@@ -10,6 +10,15 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnutí na `ctrl_engine.js`
       patří do E9 spolu s načítáním profilu v prohlížeči. Další části (rychlostní algoritmus, externí reset, split range,
       3-step, PWM) jsou v registrech označené jako plánované (R3).
+- [x] **E4-C – Data › Trendy** (12. 11. 2026): `frontend/src/tabs/data/TrendsView.tsx` + `trends/` (strom signálů podle
+      smyček / zdrojů s hledáním, panely 1 / na smyčku / na veličinu, osy Y podle veličiny nebo jedna sdílená, kurzory A / B
+      s odečtem a statistikou, přehledový pruh, zoom kolečkem a tažením, vypočtený signál ze vzorců `viewer_an.js`, export
+      PNG / CSV viditelného okna, označení úseku A–B pro Model a Diagnostiku). Data: zředěné průběhy ze serveru
+      (`/signals/trend`, min / max, okno se dotahuje po zoomu); `viewer.js` se nepoužívá (jeden záznam smyčky, vlastní
+      binární balík), sdílí se jen jazyk vzorců. Nový `PUT /range/common` (úsek na společné ose → čas smyčky). Zbývá:
+      „Uložit pohled“ z desky (pojmenované pohledy v projektu), vypočtené signály se neukládají do projektu (jen stav
+      stránky), vypočtený signál se počítá ze zobrazených zředěných dat, jednotky signálů zdrojů se berou z názvu
+      sloupce (`[°C]`) nebo role, podzáložku Trendy a mount komponent dodává E4-A.
 - [x] **E3 – datová vrstva: více zdrojů a skládání smyček** (11. 11. 2026): `app/domain` (Project, Source, LoopSpec,
       TimeGrid, verze formátu 3), registr zdrojů (CSV, TXT, XLSX, OPC), společná časová mřížka (posun, časové pásmo,
       vlastní vzorkování, překryv / sjednocení, ruční perioda, mezery), návrh smyček z názvů tagů a import mapování z CSV,

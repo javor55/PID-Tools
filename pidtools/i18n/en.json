@@ -2287,7 +2287,7 @@
  "trd_ui_c_ab_t": "Turns the two vertical cursors A and B on / off",
  "trd_ui_help_cursors": "Two vertical cursors are synchronised across all panels. The cursor readout table shows the values at A and B, the difference Δ = B − A and the statistics of the span between them.",
  "trd_ui_shared": "Shared Y axis",
- "trd_ui_help_shared": "Signals of the same quantity in one panel share the same Y scale - easier to compare e.g. PV and SP. Off: every signal has its own auto scale.",
+ "trd_ui_help_shared": "On: all signals of the panel share one Y axis. Off: signals of the same quantity (e.g. PV and SP) share an axis, other quantities get their own axis (left and right).",
  "trd_ui_png": "Export PNG",
  "trd_ui_png_t": "Saves the current look of the charts as an image for the report.",
  "trd_ui_csv": "Export CSV",
