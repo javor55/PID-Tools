@@ -10,6 +10,14 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnutí na `ctrl_engine.js`
       patří do E9 spolu s načítáním profilu v prohlížeči. Další části (rychlostní algoritmus, externí reset, split range,
       3-step, PWM) jsou v registrech označené jako plánované (R3).
+- [x] **E7a – regulátory R2 + R5, backend** (12. 11. 2026): formát `.pidctrl` s kontrolou a migrací, knihovna (předvolby
+      jen ke čtení + vlastní profily ve složce uživatele, `PIDTOOLS_CONTROLLERS_DIR`), jednotky a mapování kanonického PID
+      na profil (ideální / paralelní / sériová, `controllers/units.py`, `mapping.py`), robustnost podle profilu
+      (`core.robustness_for`), ladění s převodem (`app/ctl_tuning.py`), test použitelnosti 12 kontrol
+      (`app/controller_check.py`), API `/controllers` a `/workspaces/{wid}/controller`, předvolby ISA (ověřené) a
+      CONT_C / PID_Compact (neověřené koncepty). Zbývá: UI (E8), DeltaV / Honeywell / CTRL_PID (potřeba manuály, R7),
+      optimalizace přímo nad parametry profilu a numericky měřená robustnost nelineárních profilů (s R3), shoda
+      Python / JS jako kontrola 2 (hlídá `test_ctrl_engine_js.py`), volba výchozího profilu pro nové smyčky.
 - [x] **E4-C – Data › Trendy** (12. 11. 2026): `frontend/src/tabs/data/TrendsView.tsx` + `trends/` (strom signálů podle
       smyček / zdrojů s hledáním, panely 1 / na smyčku / na veličinu, osy Y podle veličiny nebo jedna sdílená, kurzory A / B
       s odečtem a statistikou, přehledový pruh, zoom kolečkem a tažením, vypočtený signál ze vzorců `viewer_an.js`, export

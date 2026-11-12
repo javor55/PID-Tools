@@ -1,6 +1,6 @@
 # Regulátory: knihovna rovnic a PID designer – technický návrh
 
-Stav: návrh k odsouhlasení (11. 11. 2026). Vizualizace obrazovek: artefakt „PID Tools – nový návrh UI“, obrazovky
+Stav: návrh odsouhlasen; hotovo R1 (jádro), **R2 a R5 (backend, 12. 11. 2026)**, zbývá R3, R4, R6, R7. Vizualizace obrazovek: artefakt „PID Tools – nový návrh UI“, obrazovky
 Nastavení › Regulátory, Editor regulátoru, Test použitelnosti a Ladění (výběr regulátoru).
 
 ## 1. Cíl
@@ -247,12 +247,14 @@ označené „neověřeno“ a test použitelnosti to uvede.
 
 1. **R1 – jádro**: `core.controller` (skládané části § 4 v kanonickém pořadí), interpret v JS, přechod PIDConL na
    profil se shodou zlatých případů, rozhraní ve všech simulacích.
-2. **R2 – profily a ladění**: formát `.pidctrl`, mapování a přepočty jednotek, pravidla s přepočtem, optimalizace nad
+2. **R2 – profily a ladění** (hotovo, backend; optimalizace nad kanonickým PID s převodem výsledku, robustnost z
+   přenosu profilu – numerické měření pro nelineární profily přijde s R3): formát `.pidctrl`, mapování a přepočty jednotek, pravidla s přepočtem, optimalizace nad
    parametry profilu, robustnost numericky, API (`/controllers`, profil smyčky).
 3. **R3 – speciální funkce**: mrtvá pásma a gap, nelineární zesílení, anti-windup varianty, rychlostní algoritmus,
    split range a ohřev / chlazení, 3-step, PWM, externí reset, tracking.
 4. **R4 – vlastní rovnice**: jazyk, překladač s chybovými hláškami, oba interprety, test shody.
-5. **R5 – test použitelnosti**: kontroly § 7, hodnocení, výstup do UI a reportu.
+5. **R5 – test použitelnosti** (hotovo, backend: `app/controller_check.py`, `POST /api/v1/controllers/{id}/test`;
+   kontrola 2 ověřuje determinismus Pythonu, shodu s JS hlídá `test_ctrl_engine_js.py`): kontroly § 7, hodnocení, výstup do UI a reportu.
 6. **R6 – UI**: Nastavení › Regulátory, editor, Ladění, Živá simulace, report; dokumentace.
 7. **R7 – předvolby**: postupně podle manuálů, každá s testem proti příkladu z dokumentace.
 
