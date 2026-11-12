@@ -130,3 +130,11 @@ def test_team_mode_settings_isolated_per_user(tmp_path):
         assert c.post(f"{wb}/autosave/restore", headers=b).status_code == 404
         # cizí nastavení výchozího regulátoru neovlivní prostor druhého uživatele
         assert c.get(f"{wb}/controller", headers=b).json()["is_default"]
+
+
+def test_example_data_endpoint(client):
+    w = f"{V}/workspaces/{client.post(f'{V}/workspaces').json()['id']}"
+    r = client.post(f"{w}/data/example?name=ff")
+    assert r.status_code == 200 and r.json()["has_data"] and r.json()["fname"] == "apc_ff_example.csv"
+    assert "DV" in r.json()["columns"]
+    assert client.post(f"{w}/data/example?name=nope").status_code == 422
