@@ -94,3 +94,9 @@ Zbývá po sladění 10. 11. 2026:
 
 Podrobně v [milniky.md](milniky.md): M24 (vydávací workflow, instalátor zatím bez podpisu), M25 (kontrolní seznam
 na čistém Windows bez sítě – ruční test), M27 (pilot), M28 (vypnutí staré aplikace, verze 4.0).
+
+## Zjištěno při E5
+
+- [ ] **Harrisův index v Přehledu smyček (`app/audit.py`) je vyhodnocený obráceně:** jádro počítá η = σ²_MV / σ²_e
+      (blízko 1 = regulace na hranici možností), ale audit hlásí jako problém η > 0,8 (`harris_hi`) a η > 0,5 (`harris`).
+      Triáž (E5) bere správně nízké η jako špatné. Sjednotit (oprava změní pořadí v přehledu smyček).
