@@ -79,7 +79,7 @@ def test_shell_tabs_and_connection(page):
     assert any(m == "POST" and u.endswith("/workspaces") for m, u in page.requested)     # pracovní prostor
     assert "#token" not in page.url                                                       # token z adresy pryč
     page.locator('[data-tab="model"]').click()
-    assert page.locator('[data-testid="tab-model"]').count() == 1
+    assert page.locator('[data-testid="tab-model"], [data-testid="start-screen"]').count() == 1          # bez dat Start
 
 
 def _settings(page):

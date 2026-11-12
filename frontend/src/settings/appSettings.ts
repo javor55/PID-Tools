@@ -83,12 +83,18 @@ const lsDrop = (k: string) => { try { localStorage.removeItem(k); } catch { /* b
 export function useAppSettingsSync() {
   const s = useAppSettings().data;
   const migrated = useRef(false);
+  const seen = useRef<{ lang: string; theme: string } | null>(null);
   useEffect(() => {
     if (!s) return;
     mirror(s);
     const ui = useUi.getState();
-    if (s.appearance.language && s.appearance.language !== ui.lang) ui.setLang(s.appearance.language);
-    if (s.appearance.theme && s.appearance.theme !== ui.theme) ui.setTheme(s.appearance.theme);
+    // Server je výchozí pro prohlížeč, který si jazyk / vzhled ještě nevybral; potom platí volba prohlížeče, dokud se
+    // hodnota na serveru nezmění (import, jiný počítač).
+    const first = seen.current === null;
+    const { language: lg, theme: th } = s.appearance;
+    if (lg && lg !== ui.lang && (first ? lsGet("pid.lang") === null : lg !== seen.current?.lang)) ui.setLang(lg);
+    if (th && th !== ui.theme && (first ? lsGet("pid.theme") === null : th !== seen.current?.theme)) ui.setTheme(th);
+    seen.current = { lang: lg, theme: th };
     document.documentElement.dataset.font = s.appearance.font_size;
     if (ui.chartH !== s.charts.height) useUi.setState({ chartH: s.charts.height });
     if (migrated.current) return;

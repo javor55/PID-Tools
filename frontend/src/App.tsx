@@ -74,7 +74,7 @@ export default function App() {
   return (
     <div className="shell">
       <Header />
-      {settingsOpen ? <SettingsPage /> : showStart ? <StartScreen /> : <>
+      {settingsOpen ? <SettingsPage /> : showStart ? <StartScreen compact={cur.id === "data"} /> : <>
       {CONTEXT_TABS.includes(cur.id) && <ContextRow />}
       <div className={cur.id === "live" ? "body body-wide" : "body"}>
         <main className="main" data-testid={`tab-${cur.id}`} data-dsub={cur.id === "data" ? sub : undefined}>

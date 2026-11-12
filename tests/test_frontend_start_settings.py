@@ -172,6 +172,7 @@ def test_settings_sections_and_server_persistence(page, server):
 def test_settings_diagnostics_defaults_apply_to_new_project(page, server):
     _open_settings(page, "diagnostics")
     inputs = page.locator('[data-testid^="set-thr-"]:not([data-testid="set-thr-reset"])')
+    page.wait_for_selector('[data-testid^="set-thr-"]:not([data-testid="set-thr-reset"])')
     assert inputs.count() >= 4
     first = inputs.first
     tid = first.get_attribute("data-testid")

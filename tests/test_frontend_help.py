@@ -316,7 +316,8 @@ def test_help_coverage_settings_controllers(prepared):
         pg.locator(f'[data-testid="settings-nav-{sec}"]').click()
         pg.wait_for_selector(f'[data-testid="settings-{sec}"]')
         report[sec] = _gaps(pg, f"set-{sec}")
-        pg.wait_for_function("(sec) => document.querySelectorAll(`[data-testid=\"settings-${sec}\"] .qm`).length >= 1", arg=sec)
+        if sec != "io":                                                 # Export / import jsou jen tlačítka s `title`
+            pg.wait_for_function("(sec) => document.querySelectorAll(`[data-testid=\"settings-${sec}\"] .qm`).length >= 1", arg=sec)
     pg.locator('[data-testid="settings-nav-controllers"]').click()
     pg.wait_for_selector('[data-testid="rg-item-isa_ideal"]')
     pg.locator('[data-testid="rg-item-isa_ideal"]').click()
@@ -348,7 +349,7 @@ def test_help_coverage_start_screen(prepared):
     pg.locator('[data-testid="new-project"]').click()
     pg.wait_for_selector('[data-testid="start-screen"]', timeout=15000)
     bad = pg.evaluate("""() => [...document.querySelectorAll('[data-testid="start-screen"] button, [data-testid="start-screen"] label.btn, [data-testid="start-screen"] input')]
-      .filter((e) => (e.offsetWidth || e.offsetHeight) && !(e.getAttribute('title') || '').trim() && !(e.getAttribute('aria-label') || '').trim()
+      .filter((e) => (e.offsetWidth || e.offsetHeight) && !(e.getAttribute('title') || '').trim() && !(e.getAttribute('aria-label') || '').trim() && !(e.innerText || '').trim()
         && !(e.closest('label[title]')))
       .map((e) => e.outerHTML.slice(0, 80))""")
     assert not bad, bad

@@ -6,6 +6,8 @@ import { ApiError, rawRequest, request } from "../api/client";
 import { uploadFile } from "../data";
 import { useT } from "../i18n";
 import { OpcButton } from "../tabs/OpcDialog";
+import { useSources } from "../tabs/data/sources/api";
+import { FilesCard } from "../tabs/data/sources/FilesCard";
 import { useUi } from "../store";
 import { type RecentItem, useRecent, useRecovery } from "./project";
 import "./start.css";
@@ -65,12 +67,17 @@ function Recent({ open }: { open: (r: RecentItem) => void }) {
   );
 }
 
-export function StartScreen() {
+/**
+ * `compact` = Data › Zdroje a smyčky bez dat: místo vlastní plochy pro soubory zůstává karta Soubory (více souborů najednou,
+ * OPC UA), Start k ní přidává otevření projektu, ukázky, obnovu, nedávné projekty a kroky.
+ */
+export function StartScreen({ compact = false }: { compact?: boolean }) {
   const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const [err, setErr] = useState("");
   const [over, setOver] = useState(false);
+  const sources = useSources();
   const run = async (f: () => Promise<unknown>) => {
     setErr("");
     try { await f(); await qc.invalidateQueries({ queryKey: ["ws", wid] }); await qc.invalidateQueries({ queryKey: ["recent"] }); }
@@ -84,6 +91,19 @@ export function StartScreen() {
       <div className="st-main" data-testid="no-data">
         <h1>{T("app_start_title")}</h1>
         <Recovery />
+        {compact && (
+          <div className="st-btns st-row">
+            <label className="btn" title={T("app_start_open_h")}>
+              {T("app_start_open")}
+              <input type="file" accept=".pidproj,.json" hidden data-testid="start-open-file" aria-label={T("app_start_open")}
+                onChange={(e) => { openProject(e.target.files?.[0]); e.target.value = ""; }} />
+            </label>
+            <button type="button" className="btn" data-testid="start-demo" title={T("app_start_demo_h")} onClick={() => post("/data/demo")}>{T("app_start_demo")}</button>
+            <button type="button" className="btn" data-testid="start-example-ff" title={T("app_start_ff_h")} onClick={() => post("/data/example?name=ff")}>{T("app_start_ff")}</button>
+          </div>)}
+        {compact && err && <div className="err small" role="alert">{err}</div>}
+        {compact && <div className="src-main" data-testid="sources-main"><FilesCard data={sources.data} /></div>}
+        {!compact && (
         <div className={"st-drop" + (over ? " over" : "")} data-testid="drop-zone"
           onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setOver(true); } }}
           onDragLeave={() => setOver(false)}
@@ -109,6 +129,7 @@ export function StartScreen() {
           </div>
           {err && <div className="err small" role="alert">{err}</div>}
         </div>
+        )}
         <p className="rg-note">{T("app_start_tip")}</p>
       </div>
       <aside className="st-side">
