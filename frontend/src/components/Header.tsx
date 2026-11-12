@@ -88,9 +88,10 @@ function Summary() {
   const ws = q.data;
   const src = useWsQuery<Sources>("sources", "/sources").data;
   const loops = useWsQuery<LoopsT>("loops", "/loops").data;
+  const lang = useUi((s) => s.lang);
   if (!ws?.has_data) return null;
   const nf = src?.sources.length ?? 1;
-  const t = new Date(q.dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const t = new Date(q.dataUpdatedAt).toLocaleTimeString(lang === "cs" ? "cs-CZ" : "en-GB", { hour: "2-digit", minute: "2-digit" });
   const sum = T("ui_hsum", { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t });
   return <span className="hsum" data-testid="data-sum" title={T("h_hsum")}>{sum}</span>;
 }

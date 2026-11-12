@@ -42,7 +42,7 @@ export function useTrendCatalog(): TrendCatalog {
   return useMemo(() => {
     const sources = (src?.sources ?? []).filter((s) => s.loaded !== false).map((s) => ({ id: s.id, name: s.name, columns: s.columns ?? [] }));
     const loops: LoopLite[] = (lp ?? []).map((m, i) => ({
-      index: m.index ?? i, tag: m.tag || `#${i + 1}`,
+      index: m.index ?? i, tag: m.tag || m.roles?.pv?.column || `#${i + 1}`,       // bez tagu jako v hlavičce: podle PV
       roles: { pv: m.roles?.pv, sp: m.roles?.sp, mv: m.roles?.mv, pos: m.roles?.pos, mode: m.roles?.mode, dv: m.roles?.dv ?? [] },
     }));
     const sigs = describeSignals(sources, loops);
