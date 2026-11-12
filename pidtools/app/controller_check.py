@@ -15,7 +15,8 @@ import numpy as np
 
 from .. import core
 from ..controllers import canonical_to_profile, profile_to_canonical, validate_profile
-from ..core.controller import Controller, Profile, nonlinear_parts, preset_profile
+from ..core.controller import Controller, Profile, make_profile, nonlinear_parts, preset_profile
+from ..core.program import ProgramProfile
 from ..core.simulation import pidconl_sim_full
 
 __all__ = ["CHECKS", "run_check"]
@@ -45,6 +46,8 @@ def _fill(prof, vals, ts=TS, lo=0.0, hi=100.0):
             vals[key] = hi
         elif key not in vals and p.get("required"):
             vals[key] = 1.0
+    if getattr(prof, "is_program", False):          # program: meze výstupu jsou vstupy MV_LO / MV_HI (klíče jako u PIDConL)
+        vals["MV_Lo"], vals["MV_Hi"] = lo, hi
     return vals
 
 
@@ -95,9 +98,12 @@ def c_translation(X):
     if bad:
         return _res("fail", "ctl_m_invalid", dict(problems="; ".join(f"{b['path']} {b['message']}" for b in bad)), "critical")
     prof = X["prof"]
-    missing = [r for r in (*prof.tuning_roles, "Ts") if r not in {p["role"] for p in prof.data["params"]}]
+    need = prof.tuning_roles if getattr(prof, "is_program", False) else (*prof.tuning_roles, "Ts")
+    missing = [r for r in need if r not in {p["role"] for p in prof.data["params"]}]
     if missing:
         return _res("fail", "ctl_m_missing_roles", dict(roles=", ".join(missing)), "critical")
+    if X["nomap"]:
+        return _res("warn", "ctl_m_prog_nomap", severity="info")
     if (prof.data.get("verification") or {}).get("status") != "verified":
         return _res("warn", "ctl_m_unverified", severity="info")
     return _res("ok", "ctl_m_ok_translation")
@@ -122,7 +128,14 @@ def c_rest(X):
     return _res("ok", "ctl_m_rest_ok")
 
 
+def _skip(X):
+    """Kontrola potřebuje mapování na kanonický PID; program bez `map` / `unmap` ji přeskočí (upozornění)."""
+    return _res("warn", "ctl_m_nomap_skip") if X["nomap"] else None
+
+
 def c_direction(X):
+    if _skip(X):
+        return _skip(X)
     c = Controller(X["prof"], X["vals"], TS)
     c.init(50.0, 50.0, 50.0)
     u = [c.step(60.0, 50.0) for _ in range(5)]
@@ -132,6 +145,8 @@ def c_direction(X):
 
 
 def c_steady(X):
+    if _skip(X):
+        return _skip(X)
     code, p = "P1D", [1.0, 10.0, 2.0]
     sp = _step_sp(900)
     pv, _ = _loop(X["prof"], X["vals"], code, p, sp)
@@ -144,6 +159,8 @@ def c_steady(X):
 
 
 def c_equivalent(X):
+    if X["nomap"]:
+        return _res("fail", "ctl_m_prog_nomap", severity="mapping")
     prof, ranges_ok = X["prof"], True
     sp, pv = _signal()
     worst = 0.0
@@ -205,6 +222,8 @@ def c_linearity(X):
 
 
 def c_processes(X):
+    if _skip(X):
+        return _skip(X)
     prof = X["prof"]
     rows, warn, bad = [], [], []
     for code, p, name in PROCESSES:
@@ -232,6 +251,8 @@ def c_processes(X):
 
 
 def c_antiwindup(X):
+    if _skip(X):
+        return _skip(X)
     prof = X["prof"]
     code, p = "P1D", [1.0, 10.0, 2.0]
     n = 700
@@ -264,11 +285,14 @@ def c_switching(X):
 
 def c_numerics(X):
     prof = X["prof"]
+
+    def vals_for(canon, **kw):
+        return _fill(prof, X["vals0"], **kw) if X["nomap"] else _vals(prof, canon, **kw)[0]
     rng = np.random.default_rng(1)
     problems = []
     for ts in (0.1, 1.0, 10.0):
         for scale in (1.0, 1e6):
-            vals, _ = _vals(prof, CANON, ts=ts, lo=-1e12, hi=1e12)
+            vals = vals_for(CANON, ts=ts, lo=-1e12, hi=1e12)
             try:
                 c = Controller(prof, vals, ts)
                 c.init(50.0, 50.0, 50.0)
@@ -279,7 +303,7 @@ def c_numerics(X):
                 problems.append(f"Ts={ts}: {type(ex).__name__}")
     for canon in (dict(CANON, Ti=1e-6), dict(CANON, Td=1e6), dict(CANON, Ti=math.inf, Td=0.0), dict(CANON, Kc=-1.5)):
         try:
-            vals, _ = _vals(prof, canon)
+            vals = vals_for(canon)
             c = Controller(prof, vals, TS)
             c.init(50.0, 50.0, 50.0)
             u = [c.step(60.0, 50.0) for _ in range(50)]
@@ -317,12 +341,19 @@ def run_check(profile, only=None):
     Test použitelnosti profilu (dict nebo `Profile`). Vrací dict(verdict, checks=[{id, status, severity, msg}],
     reasons=[id selhaných kontrol]). `only` = seznam id kontrol (rychlý běh); bez něj všech 12.
     """
-    data = profile.data if isinstance(profile, Profile) else profile
+    data = profile.data if isinstance(profile, (Profile, ProgramProfile)) else profile
     out = []
     try:
-        prof = profile if isinstance(profile, Profile) else Profile(data)
-        vals0, _ = _vals(prof, CANON)
-        X = dict(data=data, prof=prof, vals=vals0, vals0=vals0, eff=profile_to_canonical(data, vals0))
+        prof = make_profile(profile)
+        data = prof.data
+        try:
+            vals0, _ = _vals(prof, CANON)
+            X = dict(data=data, prof=prof, vals=vals0, vals0=vals0, eff=profile_to_canonical(data, vals0), nomap=False)
+        except ValueError:
+            if not getattr(prof, "is_program", False):
+                raise
+            vals0 = _fill(prof, {})                 # program bez mapování: parametry s výchozími hodnotami
+            X = dict(data=data, prof=prof, vals=vals0, vals0=vals0, eff=None, nomap=True)
         compile_err = None
     except Exception as ex:                         # noqa: BLE001 – neplatný profil: jen kontrola 1 s hláškou
         X, compile_err = dict(data=data), ex
