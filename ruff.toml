@@ -1,3 +1,4 @@
+target-version = "py311"     # CI běží na Pythonu 3.11 (syntaxe novější verze = chyba)
 # Lint rules checked locally and in CI (.github/workflows/tests.yml). Explicit so that a newer ruff
 # release with different defaults gives the same result.
 line-length = 120

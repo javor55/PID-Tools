@@ -115,7 +115,8 @@ def test_autosave_then_recovery_banner_after_lost_workspace(page, server):
 def test_recent_projects_after_manual_save(page, server):
     page.locator('[data-testid="start-demo"]').click()
     page.wait_for_selector('[data-testid="start-screen"]', state="detached")
-    urllib.request.urlopen(urllib.request.Request(server + f"/api/v1/workspaces/{page.evaluate('sessionStorage.getItem(\"pid.wid\")')}/project",
+    wid = page.evaluate("sessionStorage.getItem('pid.wid')")
+    urllib.request.urlopen(urllib.request.Request(server + f"/api/v1/workspaces/{wid}/project",
                                                   headers={"X-PID-Token": TOKEN})).read()          # ruční uložení projektu
     page.wait_for_function("() => !(document.querySelector('[data-testid=\"data-sum\"]')||{}).innerText?.includes('not saved')", timeout=15000)
     page.locator('[data-testid="new-project"]').click()                 # po uložení se Nový neptá
