@@ -109,3 +109,19 @@ def test_report_sections_snapshot_and_summary(ws):
     assert c.post(f"{w}/report", json={"sections": ["model"], "ab": {"a": "x"}}).status_code == 422
     sm = c.post(f"{w}/report/summary?lang=cs", json={"findings": [{"name": "TIC001", "finding": "stikce"}]})
     assert sm.status_code == 200 and "Souhrnný report smyček" in sm.text and "v1" in sm.text
+
+
+def test_author_and_required_note_from_app_settings(ws):
+    """Nastavení aplikace › Deník: autor záznamů (mimo týmový režim) a povinná poznámka při změně stavu."""
+    c, w = ws
+    s = c.get("/app-settings").json()
+    s["journal"] = {"author": "J. Novák", "require_note": True}
+    assert c.put("/app-settings", json=s).status_code == 200
+    try:
+        d = c.post(f"{w}/journal", json={"label": "v"}).json()
+        assert d["author"] == "J. Novák"
+        assert c.patch(f"{w}/journal/{d['id']}", json={"status": "deployed"}).status_code == 422
+        r = c.patch(f"{w}/journal/{d['id']}", json={"status": "deployed", "status_note": "nasazeno na noční"})
+        assert r.status_code == 200 and r.json()["status"] == "deployed"
+    finally:
+        c.delete("/app-settings")

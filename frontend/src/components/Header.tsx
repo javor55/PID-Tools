@@ -9,6 +9,7 @@ import { useT } from "../i18n";
 import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
 import { useSettingsUi } from "../settings/settingsStore";
+import { lastSaved, newProject, useSaveState } from "../start/project";
 import { Seg } from "./Ui";
 
 type LoopsT = components["schemas"]["Loops"];
@@ -93,19 +94,20 @@ export function plural(T: ReturnType<typeof useT>, key: string, n: number) {
   return (f ?? "").replace("{n}", String(n));
 }
 
-/** Souhrn projektu: „3 soubory · 9 smyček · stav z 10:32“. */
+/** Souhrn projektu: „3 soubory · 9 smyček · uloženo 10:32“ (čas ručního uložení nebo záchranné kopie ze serveru). */
 function Summary() {
   const T = useT();
-  const q = useWs();
-  const ws = q.data;
+  const ws = useWs().data;
   const src = useWsQuery<Sources>("sources", "/sources").data;
   const loops = useWsQuery<LoopsT>("loops", "/loops").data;
   const lang = useUi((s) => s.lang);
+  const st = useSaveState().data;
   if (!ws?.has_data) return null;
   const nf = src?.sources.length ?? 1;
-  const t = new Date(q.dataUpdatedAt).toLocaleTimeString(lang === "cs" ? "cs-CZ" : "en-GB", { hour: "2-digit", minute: "2-digit" });
-  const sum = T("ui_hsum", { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t });
-  return <span className="hsum" data-testid="data-sum" title={T("h_hsum")}>{sum}</span>;
+  const at = lastSaved(st);
+  const t = at ? new Date(at * 1000).toLocaleTimeString(lang === "cs" ? "cs-CZ" : "en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+  const a = { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t };
+  return <span className="hsum" data-testid="data-sum" data-dirty={st?.dirty ? "1" : "0"} title={T("app_hsum_h")}>{T(at ? "app_hsum" : "app_hsum_unsaved", a)}{st?.dirty && at ? " •" : ""}</span>;
 }
 
 /** Nastavení (jazyk, vzhled) jako rozbalovací panel pod tlačítkem. */
@@ -147,6 +149,16 @@ function Settings() {
   );
 }
 
+/** „Nový“ projekt: s neuloženými změnami se nejdřív zeptá. */
+function NewButton() {
+  const T = useT();
+  const st = useSaveState().data;
+  return (
+    <button type="button" className="hbtn" data-testid="new-project" title={T("app_new_h")}
+      onClick={() => { if (!st?.dirty || window.confirm(T("app_new_confirm"))) void newProject(); }}>{T("app_new")}</button>
+  );
+}
+
 export function Header() {
   const T = useT();
   const { tab, setTab } = useUi();
@@ -160,6 +172,7 @@ export function Header() {
           <Summary />
         </div>
         <div className="hright">
+          <NewButton />
           <button type="button" className="hbtn" aria-pressed={tab === "project"} data-tab="project"
             onClick={() => { closeSettings(); setTab("project"); }}>{T("tab_project")}</button>
           <Settings />

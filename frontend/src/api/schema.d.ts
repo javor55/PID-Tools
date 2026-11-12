@@ -4,6 +4,153 @@
  */
 
 export interface paths {
+    "/api/v1/app-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings
+         * @description Nastavení aplikace (výchozí hodnoty, co ještě není uložené).
+         */
+        get: operations["get_settings_api_v1_app_settings_get"];
+        /**
+         * Put Settings
+         * @description Uloží nastavení (hodnoty mimo meze se ořežou; logo se nahrává zvlášť, název loga zůstane).
+         */
+        put: operations["put_settings_api_v1_app_settings_put"];
+        post?: never;
+        /**
+         * Reset Settings
+         * @description Obnoví výchozí nastavení (i smaže logo).
+         */
+        delete: operations["reset_settings_api_v1_app_settings_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/diagnostics-schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thr Schema
+         * @description Schéma prahů pravidel verdiktu s výchozími hodnotami (pro formulář Diagnostika – kritéria).
+         */
+        get: operations["thr_schema_api_v1_app_settings_diagnostics_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Settings
+         * @description Nastavení jako soubor JSON ke stažení (bez loga).
+         */
+        get: operations["export_settings_api_v1_app_settings_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Settings
+         * @description Nahradí nastavení souborem z exportu (cizí formát nebo novější verze = 400).
+         */
+        post: operations["import_settings_api_v1_app_settings_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Logo */
+        get: operations["get_logo_api_v1_app_settings_logo_get"];
+        put?: never;
+        /**
+         * Put Logo
+         * @description Nahraje logo firmy pro report (png / jpg / svg do 1 MB).
+         */
+        post: operations["put_logo_api_v1_app_settings_logo_post"];
+        /** Delete Logo */
+        delete: operations["delete_logo_api_v1_app_settings_logo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autosave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Drop Autosave */
+        delete: operations["drop_autosave_api_v1_autosave_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autosave/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Latest
+         * @description Záchranná kopie z minula (po pádu nebo zavření bez uložení), nebo `available = false`.
+         */
+        get: operations["latest_api_v1_autosave_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/controllers": {
         parameters: {
             query?: never;
@@ -372,6 +519,40 @@ export interface paths {
         put: operations["put_pending_api_v1_pending_open_put"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent */
+        get: operations["recent_api_v1_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recent/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Drop Recent */
+        delete: operations["drop_recent_api_v1_recent__rid__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1327,6 +1508,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/autosave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Autosave
+         * @description Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic.
+         */
+        post: operations["autosave_api_v1_workspaces__wid__autosave_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/autosave/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore
+         * @description Otevře záchrannou kopii do prostoru (projekt zůstane „neuložený“, kopie se nemaže).
+         */
+        post: operations["restore_api_v1_workspaces__wid__autosave_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/columns": {
         parameters: {
             query?: never;
@@ -1399,6 +1620,26 @@ export interface paths {
         put?: never;
         /** Load Demo */
         post: operations["load_demo_api_v1_workspaces__wid__data_demo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/data/example": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load Example
+         * @description Ukázková data k technice APC (CSV dodané s aplikací) jako nový projekt.
+         */
+        post: operations["load_example_api_v1_workspaces__wid__data_example_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2371,6 +2612,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/recent/{rid}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open Recent */
+        post: operations["open_recent_api_v1_workspaces__wid__recent__rid__open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/report": {
         parameters: {
             query?: never;
@@ -2425,6 +2683,23 @@ export interface paths {
          * @description Souhrnný report všech smyček projektu (audit / triáž): model, sada 2, Ms, stav v deníku, nález.
          */
         post: operations["summary_api_v1_workspaces__wid__report_summary_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/save-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Save State */
+        get: operations["save_state_api_v1_workspaces__wid__save_state_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2900,6 +3175,326 @@ export interface components {
         Active: {
             /** Index */
             index: number;
+        };
+        /** AppAppearance */
+        AppAppearance: {
+            /**
+             * Font Size
+             * @default m
+             * @enum {string}
+             */
+            font_size: "s" | "m" | "l" | "xl";
+            /**
+             * Language
+             * @default
+             * @enum {string}
+             */
+            language: "" | "cs" | "en";
+            /**
+             * Theme
+             * @default
+             * @enum {string}
+             */
+            theme: "" | "system" | "light" | "dark";
+        };
+        /** AppCharts */
+        AppCharts: {
+            /**
+             * Decimal
+             * @default auto
+             * @enum {string}
+             */
+            decimal: "auto" | "comma" | "dot";
+            /**
+             * Gain View
+             * @default kc
+             * @enum {string}
+             */
+            gain_view: "kc" | "pb";
+            /**
+             * Height
+             * @default 220
+             */
+            height: number;
+            /**
+             * Ti Unit
+             * @default s
+             * @enum {string}
+             */
+            ti_unit: "s" | "min";
+            /**
+             * Time Unit
+             * @default auto
+             * @enum {string}
+             */
+            time_unit: "auto" | "s" | "min" | "h" | "clock";
+        };
+        /** AppConnections */
+        AppConnections: {
+            /**
+             * @default {
+             *       "deltav": "",
+             *       "pcs7": "",
+             *       "pi": ""
+             *     }
+             */
+            historians: components["schemas"]["AppHistorians"];
+            /**
+             * Opc
+             * @default []
+             */
+            opc: components["schemas"]["AppOpcServer"][];
+        };
+        /** AppDefaults */
+        AppDefaults: {
+            /**
+             * Controller
+             * @default pcs7_pidconl
+             */
+            controller: string;
+            /**
+             * @default {
+             *       "ctype": "PI",
+             *       "opt_ms": 1.6,
+             *       "opt_ovs": 2,
+             *       "opt_robust": false
+             *     }
+             */
+            sim: components["schemas"]["AppSimDefaults"];
+        };
+        /** AppDiagnostics */
+        AppDiagnostics: {
+            /**
+             * Thresholds
+             * @default {}
+             */
+            thresholds: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        /** AppGeneral */
+        AppGeneral: {
+            /**
+             * Autosave Min
+             * @default 1
+             * @enum {integer}
+             */
+            autosave_min: 0 | 1 | 5 | 15 | 30;
+            /**
+             * Embed Data
+             * @default true
+             */
+            embed_data: boolean;
+        };
+        /** AppHistorians */
+        AppHistorians: {
+            /**
+             * Deltav
+             * @default
+             */
+            deltav: string;
+            /**
+             * Pcs7
+             * @default
+             */
+            pcs7: string;
+            /**
+             * Pi
+             * @default
+             */
+            pi: string;
+        };
+        /** AppJournal */
+        AppJournal: {
+            /**
+             * Author
+             * @default
+             */
+            author: string;
+            /**
+             * Require Note
+             * @default false
+             */
+            require_note: boolean;
+        };
+        /** AppOpcServer */
+        AppOpcServer: {
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /** AppReport */
+        AppReport: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /**
+             * Footer
+             * @default
+             */
+            footer: string;
+            /**
+             * Header
+             * @default
+             */
+            header: string;
+            /**
+             * Language
+             * @default app
+             * @enum {string}
+             */
+            language: "app" | "cs" | "en";
+            /**
+             * Logo
+             * @default
+             */
+            logo: string;
+        };
+        /**
+         * AppSettings
+         * @description Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).
+         */
+        AppSettings: {
+            /**
+             * @default {
+             *       "font_size": "m",
+             *       "language": "",
+             *       "theme": ""
+             *     }
+             */
+            appearance: components["schemas"]["AppAppearance"];
+            /**
+             * @default {
+             *       "decimal": "auto",
+             *       "gain_view": "kc",
+             *       "height": 220,
+             *       "ti_unit": "s",
+             *       "time_unit": "auto"
+             *     }
+             */
+            charts: components["schemas"]["AppCharts"];
+            /**
+             * @default {
+             *       "historians": {
+             *         "deltav": "",
+             *         "pcs7": "",
+             *         "pi": ""
+             *       },
+             *       "opc": []
+             *     }
+             */
+            connections: components["schemas"]["AppConnections"];
+            /**
+             * Controller Tests
+             * @default {}
+             */
+            controller_tests: {
+                [key: string]: components["schemas"]["AppTestMemo"];
+            };
+            /**
+             * @default {
+             *       "controller": "pcs7_pidconl",
+             *       "sim": {
+             *         "ctype": "PI",
+             *         "opt_ms": 1.6,
+             *         "opt_ovs": 2,
+             *         "opt_robust": false
+             *       }
+             *     }
+             */
+            defaults: components["schemas"]["AppDefaults"];
+            /**
+             * @default {
+             *       "thresholds": {}
+             *     }
+             */
+            diagnostics: components["schemas"]["AppDiagnostics"];
+            /**
+             * @default {
+             *       "autosave_min": 1,
+             *       "embed_data": true
+             *     }
+             */
+            general: components["schemas"]["AppGeneral"];
+            /**
+             * @default {
+             *       "author": "",
+             *       "require_note": false
+             *     }
+             */
+            journal: components["schemas"]["AppJournal"];
+            /**
+             * @default {
+             *       "company": "",
+             *       "footer": "",
+             *       "header": "",
+             *       "language": "app",
+             *       "logo": ""
+             *     }
+             */
+            report: components["schemas"]["AppReport"];
+        };
+        /** AppSimDefaults */
+        AppSimDefaults: {
+            /**
+             * Ctype
+             * @default PI
+             * @enum {string}
+             */
+            ctype: "PI" | "PID" | "PD";
+            /**
+             * Opt Ms
+             * @default 1.6
+             */
+            opt_ms: number;
+            /**
+             * Opt Ovs
+             * @default 2
+             */
+            opt_ovs: number;
+            /**
+             * Opt Robust
+             * @default false
+             */
+            opt_robust: boolean;
+        };
+        /** AppTestMemo */
+        AppTestMemo: {
+            /**
+             * At
+             * @default
+             */
+            at: string;
+            /**
+             * Fail
+             * @default 0
+             */
+            fail: number;
+            /**
+             * Ok
+             * @default 0
+             */
+            ok: number;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+            /**
+             * Warn
+             * @default 0
+             */
+            warn: number;
         };
         /** AttachmentData */
         AttachmentData: {
@@ -5089,6 +5684,21 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** RecentItem */
+        RecentItem: {
+            /** At */
+            at: number;
+            /** Bytes */
+            bytes: number;
+            /** Id */
+            id: string;
+            /** Loops */
+            loops: number;
+            /** Name */
+            name: string;
+            /** Snapshot */
+            snapshot: boolean;
+        };
         /** Recommendation */
         Recommendation: {
             /** Kind */
@@ -5103,6 +5713,28 @@ export interface components {
             status: "rec" | "unsuitable" | "skip";
             /** Text */
             text: string;
+        };
+        /** RecoveryInfo */
+        RecoveryInfo: {
+            /** At */
+            at?: number | null;
+            /** Available */
+            available: boolean;
+            /**
+             * Bytes
+             * @default 0
+             */
+            bytes: number;
+            /**
+             * Loops
+             * @default 0
+             */
+            loops: number;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
         };
         /**
          * Ref
@@ -5264,6 +5896,21 @@ export interface components {
              * @enum {string}
              */
             kind: "man" | "auto";
+        };
+        /** SaveState */
+        SaveState: {
+            /** Autosave Pending */
+            autosave_pending: boolean;
+            /** Autosaved At */
+            autosaved_at?: number | null;
+            /** Dirty */
+            dirty: boolean;
+            /** Has Data */
+            has_data: boolean;
+            /** Rev */
+            rev: number;
+            /** Saved At */
+            saved_at?: number | null;
         };
         /** Scatter */
         Scatter: {
@@ -6603,6 +7250,378 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_settings_api_v1_app_settings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_settings_api_v1_app_settings_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_settings_api_v1_app_settings_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    thr_schema_api_v1_app_settings_diagnostics_schema_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThresholdInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_settings_api_v1_app_settings_export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description settings file (pidtools.settings) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_settings_api_v1_app_settings_import_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_logo_api_v1_app_settings_logo_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description report logo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": unknown;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_logo_api_v1_app_settings_logo_post: {
+        parameters: {
+            query: {
+                /** @description file name (extension png, jpg or svg) */
+                name: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_logo_api_v1_app_settings_logo_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    drop_autosave_api_v1_autosave_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    latest_api_v1_autosave_latest_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_controllers_api_v1_controllers_get: {
         parameters: {
             query?: never;
@@ -7367,6 +8386,70 @@ export interface operations {
                 "x-pid-token"?: string | null;
             };
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recent_api_v1_recent_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    drop_recent_api_v1_recent__rid__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                rid: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -9248,6 +10331,74 @@ export interface operations {
             };
         };
     };
+    autosave_api_v1_workspaces__wid__autosave_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_api_v1_workspaces__wid__autosave_restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_columns_api_v1_workspaces__wid__columns_put: {
         parameters: {
             query?: never;
@@ -9395,6 +10546,43 @@ export interface operations {
     load_demo_api_v1_workspaces__wid__data_demo_post: {
         parameters: {
             query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    load_example_api_v1_workspaces__wid__data_example_post: {
+        parameters: {
+            query: {
+                /** @description example data set: ff = feedforward (APC) */
+                name: "ff";
+            };
             header?: {
                 authorization?: string | null;
                 "x-pid-token"?: string | null;
@@ -11398,6 +12586,41 @@ export interface operations {
             };
         };
     };
+    open_recent_api_v1_workspaces__wid__recent__rid__open_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     report_api_v1_workspaces__wid__report_post: {
         parameters: {
             query?: never;
@@ -11495,6 +12718,40 @@ export interface operations {
                 };
                 content: {
                     "text/html": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_state_api_v1_workspaces__wid__save_state_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveState"];
                 };
             };
             /** @description Validation Error */

@@ -1,18 +1,13 @@
 // Stav obrazovky Nastavení (celostránkový pohled z hlavičky) a knihovny regulátorů; jen v prohlížeči.
 import { create } from "zustand";
 import { useUi } from "../store";
+import { patchSettings } from "./appSettings";
 
-export type Section = "general" | "controllers";
+export const SECTIONS = ["general", "appearance", "charts", "diagnostics", "defaults", "journal", "report", "connections", "io", "controllers"] as const;
+export type Section = (typeof SECTIONS)[number];
 export type CtlView = "library" | "editor" | "test";
 
-function load<T>(k: string, d: T): T {
-  try { const v = localStorage.getItem(k); return v === null ? d : (JSON.parse(v) as T); } catch { return d; }
-}
-function save(k: string, v: unknown) {
-  try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* bez úložiště */ }
-}
-
-/** Poslední výsledek testu použitelnosti profilu (API ho neukládá; platí na tomto počítači). */
+/** Poslední výsledek testu použitelnosti profilu (ukládá se v nastavení aplikace na serveru). */
 export interface TestMemo { verdict: string; text: string; ok: number; warn: number; fail: number; at: string }
 
 interface SettingsState {
@@ -20,7 +15,7 @@ interface SettingsState {
   section: Section;
   view: CtlView;
   id: string | null;
-  /** Výchozí regulátor pro nové smyčky (zatím jen lokálně; API pro volbu výchozího nemá). */
+  /** Výchozí regulátor pro nové smyčky a poslední testy: zrcadlo nastavení aplikace ze serveru (appSettings.ts). */
   defaultCtl: string;
   tests: Record<string, TestMemo>;
   openSettings: (section?: Section) => void;
@@ -33,14 +28,17 @@ interface SettingsState {
 
 export const useSettingsUi = create<SettingsState>((set) => ({
   open: false, section: "controllers", view: "library", id: null,
-  defaultCtl: load("pid.defctl", "pcs7_pidconl"),
-  tests: load<Record<string, TestMemo>>("pid.ctltests", {}),
+  defaultCtl: "pcs7_pidconl",
+  tests: {},
   openSettings: (section) => set((s) => ({ open: true, section: section ?? s.section })),
   close: () => set({ open: false }),
   setSection: (section) => set({ section, view: "library" }),
   go: (view, id) => set((s) => ({ view, id: id === undefined ? s.id : id })),
-  setDefault: (defaultCtl) => { save("pid.defctl", defaultCtl); set({ defaultCtl }); },
-  putTest: (id, t) => set((s) => { const tests = { ...s.tests, [id]: t }; save("pid.ctltests", tests); return { tests }; }),
+  setDefault: (defaultCtl) => { set({ defaultCtl }); void patchSettings((n) => { n.defaults.controller = defaultCtl; }).catch(() => undefined); },
+  putTest: (id, t) => {
+    set((s) => ({ tests: { ...s.tests, [id]: t } }));
+    void patchSettings((n) => { n.controller_tests[id] = t; }).catch(() => undefined);
+  },
 }));
 
 // Přepnutí záložky / podzáložky (i z jiného místa, např. průvodce) zavře Nastavení.

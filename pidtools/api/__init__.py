@@ -26,10 +26,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .. import __version__, i18n
+from ..app import appsettings as aps
+from ..app.autosave import UserData
 from ..app.jobs import FINAL
 from ..controllers import Library
-from . import (analysis, apc, apc_loops, apc_more, audit, controllers, data, deploy, guide, mapping, model, opcua,
-               journal, projects, sources, triage, tuning, tuning_profile)
+from . import (analysis, apc, apc_loops, apc_more, appsettings, audit, controllers, data, deploy, guide, journal,
+               mapping, model, opcua, projects, sources, triage, tuning, tuning_profile)
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -83,7 +85,13 @@ def _serialize_workspaces(app):
             return await call_next(request)
         locks = ws_locks.setdefault(asyncio.get_running_loop(), {})
         async with locks.setdefault(m.group(1), asyncio.Lock()):
-            return await call_next(request)
+            resp = await call_next(request)
+        if request.method not in ("GET", "HEAD", "OPTIONS") and resp.status_code < 400 and not request.url.path.endswith("/autosave"):
+            try:
+                app.state.store.get(m.group(1)).touch()      # počítadlo změn (neuloženo, záchranná kopie)
+            except KeyError:
+                pass
+        return resp
 
 
 def _opt(team, names, defaults):
@@ -91,15 +99,16 @@ def _opt(team, names, defaults):
     return tuple(defaults) if team is None else tuple(getattr(team, n) for n in names)
 
 
-def _routers(project, jobs, team, library):
+def _routers(project, jobs, team, library, settings, userdata):
     """Všechny routery API (jeden prostor = jedna cesta `/workspaces/{wid}/…`)."""
     max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
-    return [data.router(project, *max_upload), projects.router(project), projects.pending_router(team is None),
+    return [data.router(project, *max_upload), projects.router(project, appsettings.remember(userdata)),
+            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
             tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
             apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs), guide.router(project),
             triage.router(project, jobs), controllers.router(library, team is None),
-            controllers.loop_router(project, library), journal.router(project)]
+            controllers.loop_router(project, library), journal.router(project, settings)]
 
 
 def _include(app, routers, system, auth):
@@ -112,11 +121,12 @@ def _include(app, routers, system, auth):
 
 
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2, team=None,
-               verifier=None, controllers_dir=None):
+               verifier=None, controllers_dir=None, config_dir=None, data_dir=None):
     """
     Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly). team (deploy.DeployConfig s přihlášením
     cloudflare / header) zapne týmový režim: uživatel místo tokenu, prostory a úlohy po uživatelích, limity, logy;
-    verifier (jen testy) nahradí ověřování JWT. controllers_dir = složka vlastních regulátorů (výchozí uživatelská složka,
+    verifier (jen testy) nahradí ověřování JWT; config_dir / data_dir = složka nastavení aplikace a uživatelských dat
+    (záchranná kopie, nedávné projekty). controllers_dir = složka vlastních regulátorů (výchozí uživatelská složka,
     proměnná PIDTOOLS_CONTROLLERS_DIR); v týmovém režimu je knihovna jen ke čtení.
     """
     workspace_ttl, max_workspaces, max_jobs = _opt(team, ("ttl", "max_workspaces", "max_jobs"),
@@ -176,7 +186,9 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             raise HTTPException(404, "job not found") from None
 
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
-    routers = _routers(project, jobs, team, Library(controllers_dir))
+    library = Library(controllers_dir)
+    settings, userdata = aps.SettingsStore(config_dir), UserData(data_dir)
+    routers = _routers(project, jobs, team, library, settings, userdata)
     system = APIRouter()
 
     @system.get("/health", response_model=Health, tags=["system"])
@@ -192,7 +204,8 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     @system.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_create():
         wid, proj = app.state.store.create(owner=deploy.USER.get(),
-                                           max_per_owner=_opt(team, ["max_workspaces_user"], [None])[0])
+                                           max_per_owner=_opt(team, ["max_workspaces_user"], [None])[0],
+                                           defaults=appsettings.new_defaults(settings.load(deploy.USER.get()), library))
         return info(wid, proj.state)
 
     @system.get("/workspaces/{wid}", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])

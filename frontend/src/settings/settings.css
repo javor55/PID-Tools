@@ -107,3 +107,11 @@ ul.rg-list li { display: grid; grid-template-columns: 20px auto 1fr; gap: 8px; f
   .settings-grid, .settings-page { display: block; padding: 0; }
   .rg-protocol .card { box-shadow: none; break-inside: avoid; }
 }
+
+/* Globální nastavení: logo, připojení, velikost písma. */
+.set-logo { max-height: 32px; max-width: 160px; border: 1px solid var(--pid-line); border-radius: 4px; background: #fff; padding: 2px; }
+.set-opc li { grid-template-columns: minmax(80px, 160px) 1fr auto; }
+.set-opc code { font-size: 12px; overflow-wrap: anywhere; }
+html[data-font="s"] .shell { zoom: .92; }
+html[data-font="l"] .shell { zoom: 1.12; }
+html[data-font="xl"] .shell { zoom: 1.25; }

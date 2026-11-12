@@ -14,6 +14,433 @@
     "title": "Active",
     "type": "object"
    },
+   "AppAppearance": {
+    "properties": {
+     "font_size": {
+      "default": "m",
+      "enum": [
+       "s",
+       "m",
+       "l",
+       "xl"
+      ],
+      "title": "Font Size",
+      "type": "string"
+     },
+     "language": {
+      "default": "",
+      "enum": [
+       "",
+       "cs",
+       "en"
+      ],
+      "title": "Language",
+      "type": "string"
+     },
+     "theme": {
+      "default": "",
+      "enum": [
+       "",
+       "system",
+       "light",
+       "dark"
+      ],
+      "title": "Theme",
+      "type": "string"
+     }
+    },
+    "title": "AppAppearance",
+    "type": "object"
+   },
+   "AppCharts": {
+    "properties": {
+     "decimal": {
+      "default": "auto",
+      "enum": [
+       "auto",
+       "comma",
+       "dot"
+      ],
+      "title": "Decimal",
+      "type": "string"
+     },
+     "gain_view": {
+      "default": "kc",
+      "enum": [
+       "kc",
+       "pb"
+      ],
+      "title": "Gain View",
+      "type": "string"
+     },
+     "height": {
+      "default": 220,
+      "maximum": 1000.0,
+      "minimum": 120.0,
+      "title": "Height",
+      "type": "integer"
+     },
+     "ti_unit": {
+      "default": "s",
+      "enum": [
+       "s",
+       "min"
+      ],
+      "title": "Ti Unit",
+      "type": "string"
+     },
+     "time_unit": {
+      "default": "auto",
+      "enum": [
+       "auto",
+       "s",
+       "min",
+       "h",
+       "clock"
+      ],
+      "title": "Time Unit",
+      "type": "string"
+     }
+    },
+    "title": "AppCharts",
+    "type": "object"
+   },
+   "AppConnections": {
+    "properties": {
+     "historians": {
+      "$ref": "#/components/schemas/AppHistorians",
+      "default": {
+       "deltav": "",
+       "pcs7": "",
+       "pi": ""
+      }
+     },
+     "opc": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/AppOpcServer"
+      },
+      "title": "Opc",
+      "type": "array"
+     }
+    },
+    "title": "AppConnections",
+    "type": "object"
+   },
+   "AppDefaults": {
+    "properties": {
+     "controller": {
+      "default": "pcs7_pidconl",
+      "title": "Controller",
+      "type": "string"
+     },
+     "sim": {
+      "$ref": "#/components/schemas/AppSimDefaults",
+      "default": {
+       "ctype": "PI",
+       "opt_ms": 1.6,
+       "opt_ovs": 2,
+       "opt_robust": false
+      }
+     }
+    },
+    "title": "AppDefaults",
+    "type": "object"
+   },
+   "AppDiagnostics": {
+    "properties": {
+     "thresholds": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "type": "number"
+       },
+       "type": "object"
+      },
+      "default": {},
+      "title": "Thresholds",
+      "type": "object"
+     }
+    },
+    "title": "AppDiagnostics",
+    "type": "object"
+   },
+   "AppGeneral": {
+    "properties": {
+     "autosave_min": {
+      "default": 1,
+      "enum": [
+       0,
+       1,
+       5,
+       15,
+       30
+      ],
+      "title": "Autosave Min",
+      "type": "integer"
+     },
+     "embed_data": {
+      "default": true,
+      "title": "Embed Data",
+      "type": "boolean"
+     }
+    },
+    "title": "AppGeneral",
+    "type": "object"
+   },
+   "AppHistorians": {
+    "properties": {
+     "deltav": {
+      "default": "",
+      "title": "Deltav",
+      "type": "string"
+     },
+     "pcs7": {
+      "default": "",
+      "title": "Pcs7",
+      "type": "string"
+     },
+     "pi": {
+      "default": "",
+      "title": "Pi",
+      "type": "string"
+     }
+    },
+    "title": "AppHistorians",
+    "type": "object"
+   },
+   "AppJournal": {
+    "properties": {
+     "author": {
+      "default": "",
+      "maxLength": 80,
+      "title": "Author",
+      "type": "string"
+     },
+     "require_note": {
+      "default": false,
+      "title": "Require Note",
+      "type": "boolean"
+     }
+    },
+    "title": "AppJournal",
+    "type": "object"
+   },
+   "AppOpcServer": {
+    "properties": {
+     "name": {
+      "maxLength": 80,
+      "title": "Name",
+      "type": "string"
+     },
+     "url": {
+      "maxLength": 300,
+      "title": "Url",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "url"
+    ],
+    "title": "AppOpcServer",
+    "type": "object"
+   },
+   "AppReport": {
+    "properties": {
+     "company": {
+      "default": "",
+      "maxLength": 120,
+      "title": "Company",
+      "type": "string"
+     },
+     "footer": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Footer",
+      "type": "string"
+     },
+     "header": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Header",
+      "type": "string"
+     },
+     "language": {
+      "default": "app",
+      "enum": [
+       "app",
+       "cs",
+       "en"
+      ],
+      "title": "Language",
+      "type": "string"
+     },
+     "logo": {
+      "default": "",
+      "title": "Logo",
+      "type": "string"
+     }
+    },
+    "title": "AppReport",
+    "type": "object"
+   },
+   "AppSettings": {
+    "description": "Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).",
+    "properties": {
+     "appearance": {
+      "$ref": "#/components/schemas/AppAppearance",
+      "default": {
+       "font_size": "m",
+       "language": "",
+       "theme": ""
+      }
+     },
+     "charts": {
+      "$ref": "#/components/schemas/AppCharts",
+      "default": {
+       "decimal": "auto",
+       "gain_view": "kc",
+       "height": 220,
+       "ti_unit": "s",
+       "time_unit": "auto"
+      }
+     },
+     "connections": {
+      "$ref": "#/components/schemas/AppConnections",
+      "default": {
+       "historians": {
+        "deltav": "",
+        "pcs7": "",
+        "pi": ""
+       },
+       "opc": []
+      }
+     },
+     "controller_tests": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/AppTestMemo"
+      },
+      "default": {},
+      "title": "Controller Tests",
+      "type": "object"
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/AppDefaults",
+      "default": {
+       "controller": "pcs7_pidconl",
+       "sim": {
+        "ctype": "PI",
+        "opt_ms": 1.6,
+        "opt_ovs": 2,
+        "opt_robust": false
+       }
+      }
+     },
+     "diagnostics": {
+      "$ref": "#/components/schemas/AppDiagnostics",
+      "default": {
+       "thresholds": {}
+      }
+     },
+     "general": {
+      "$ref": "#/components/schemas/AppGeneral",
+      "default": {
+       "autosave_min": 1,
+       "embed_data": true
+      }
+     },
+     "journal": {
+      "$ref": "#/components/schemas/AppJournal",
+      "default": {
+       "author": "",
+       "require_note": false
+      }
+     },
+     "report": {
+      "$ref": "#/components/schemas/AppReport",
+      "default": {
+       "company": "",
+       "footer": "",
+       "header": "",
+       "language": "app",
+       "logo": ""
+      }
+     }
+    },
+    "title": "AppSettings",
+    "type": "object"
+   },
+   "AppSimDefaults": {
+    "properties": {
+     "ctype": {
+      "default": "PI",
+      "enum": [
+       "PI",
+       "PID",
+       "PD"
+      ],
+      "title": "Ctype",
+      "type": "string"
+     },
+     "opt_ms": {
+      "default": 1.6,
+      "maximum": 2.5,
+      "minimum": 1.1,
+      "title": "Opt Ms",
+      "type": "number"
+     },
+     "opt_ovs": {
+      "default": 2,
+      "maximum": 50.0,
+      "minimum": 0.0,
+      "title": "Opt Ovs",
+      "type": "integer"
+     },
+     "opt_robust": {
+      "default": false,
+      "title": "Opt Robust",
+      "type": "boolean"
+     }
+    },
+    "title": "AppSimDefaults",
+    "type": "object"
+   },
+   "AppTestMemo": {
+    "properties": {
+     "at": {
+      "default": "",
+      "title": "At",
+      "type": "string"
+     },
+     "fail": {
+      "default": 0,
+      "title": "Fail",
+      "type": "integer"
+     },
+     "ok": {
+      "default": 0,
+      "title": "Ok",
+      "type": "integer"
+     },
+     "text": {
+      "default": "",
+      "title": "Text",
+      "type": "string"
+     },
+     "verdict": {
+      "default": "",
+      "title": "Verdict",
+      "type": "string"
+     },
+     "warn": {
+      "default": 0,
+      "title": "Warn",
+      "type": "integer"
+     }
+    },
+    "title": "AppTestMemo",
+    "type": "object"
+   },
    "AttachmentData": {
     "properties": {
      "author": {
@@ -6185,6 +6612,44 @@
     "title": "RatioSource",
     "type": "object"
    },
+   "RecentItem": {
+    "properties": {
+     "at": {
+      "title": "At",
+      "type": "number"
+     },
+     "bytes": {
+      "title": "Bytes",
+      "type": "integer"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "loops": {
+      "title": "Loops",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "snapshot": {
+      "title": "Snapshot",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "at",
+     "loops",
+     "bytes",
+     "snapshot"
+    ],
+    "title": "RecentItem",
+    "type": "object"
+   },
    "Recommendation": {
     "properties": {
      "kind": {
@@ -6222,6 +6687,45 @@
      "text"
     ],
     "title": "Recommendation",
+    "type": "object"
+   },
+   "RecoveryInfo": {
+    "properties": {
+     "at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "At"
+     },
+     "available": {
+      "title": "Available",
+      "type": "boolean"
+     },
+     "bytes": {
+      "default": 0,
+      "title": "Bytes",
+      "type": "integer"
+     },
+     "loops": {
+      "default": 0,
+      "title": "Loops",
+      "type": "integer"
+     },
+     "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "available"
+    ],
+    "title": "RecoveryInfo",
     "type": "object"
    },
    "Ref": {
@@ -6683,6 +7187,56 @@
      "kind"
     ],
     "title": "Run",
+    "type": "object"
+   },
+   "SaveState": {
+    "properties": {
+     "autosave_pending": {
+      "title": "Autosave Pending",
+      "type": "boolean"
+     },
+     "autosaved_at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Autosaved At"
+     },
+     "dirty": {
+      "title": "Dirty",
+      "type": "boolean"
+     },
+     "has_data": {
+      "title": "Has Data",
+      "type": "boolean"
+     },
+     "rev": {
+      "title": "Rev",
+      "type": "integer"
+     },
+     "saved_at": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Saved At"
+     }
+    },
+    "required": [
+     "has_data",
+     "dirty",
+     "rev",
+     "autosave_pending"
+    ],
+    "title": "SaveState",
     "type": "object"
    },
    "Scatter": {
@@ -10283,6 +10837,757 @@
  },
  "openapi": "3.1.0",
  "paths": {
+  "/api/v1/app-settings": {
+   "delete": {
+    "description": "Obnoví výchozí nastavení (i smaže logo).",
+    "operationId": "reset_settings_api_v1_app_settings_delete",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettings"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Reset Settings",
+    "tags": [
+     "app-settings"
+    ]
+   },
+   "get": {
+    "description": "Nastavení aplikace (výchozí hodnoty, co ještě není uložené).",
+    "operationId": "get_settings_api_v1_app_settings_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettings"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Settings",
+    "tags": [
+     "app-settings"
+    ]
+   },
+   "put": {
+    "description": "Uloží nastavení (hodnoty mimo meze se ořežou; logo se nahrává zvlášť, název loga zůstane).",
+    "operationId": "put_settings_api_v1_app_settings_put",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AppSettings"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettings"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Settings",
+    "tags": [
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/app-settings/diagnostics-schema": {
+   "get": {
+    "description": "Schéma prahů pravidel verdiktu s výchozími hodnotami (pro formulář Diagnostika – kritéria).",
+    "operationId": "thr_schema_api_v1_app_settings_diagnostics_schema_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ThresholdInfo"
+         },
+         "title": "Response Thr Schema Api V1 App Settings Diagnostics Schema Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Thr Schema",
+    "tags": [
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/app-settings/export": {
+   "get": {
+    "description": "Nastavení jako soubor JSON ke stažení (bez loga).",
+    "operationId": "export_settings_api_v1_app_settings_export_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {}
+      },
+      "description": "settings file (pidtools.settings)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Export Settings",
+    "tags": [
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/app-settings/import": {
+   "post": {
+    "description": "Nahradí nastavení souborem z exportu (cizí formát nebo novější verze = 400).",
+    "operationId": "import_settings_api_v1_app_settings_import_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettings"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Import Settings",
+    "tags": [
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/app-settings/logo": {
+   "delete": {
+    "operationId": "delete_logo_api_v1_app_settings_logo_delete",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettings"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Logo",
+    "tags": [
+     "app-settings"
+    ]
+   },
+   "get": {
+    "operationId": "get_logo_api_v1_app_settings_logo_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "image/*": {}
+      },
+      "description": "report logo"
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Logo",
+    "tags": [
+     "app-settings"
+    ]
+   },
+   "post": {
+    "description": "Nahraje logo firmy pro report (png / jpg / svg do 1 MB).",
+    "operationId": "put_logo_api_v1_app_settings_logo_post",
+    "parameters": [
+     {
+      "description": "file name (extension png, jpg or svg)",
+      "in": "query",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "description": "file name (extension png, jpg or svg)",
+       "title": "Name",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/octet-stream": {
+       "schema": {
+        "format": "binary",
+        "type": "string"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettings"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Logo",
+    "tags": [
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/autosave": {
+   "delete": {
+    "operationId": "drop_autosave_api_v1_autosave_delete",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Drop Autosave",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/autosave/latest": {
+   "get": {
+    "description": "Záchranná kopie z minula (po pádu nebo zavření bez uložení), nebo `available = false`.",
+    "operationId": "latest_api_v1_autosave_latest_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecoveryInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Latest",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
   "/api/v1/controllers": {
    "get": {
     "description": "Předvolby (jen ke čtení) a vlastní profily knihovny.",
@@ -11925,6 +13230,144 @@
     "summary": "Put Pending",
     "tags": [
      "project"
+    ]
+   }
+  },
+  "/api/v1/recent": {
+   "get": {
+    "operationId": "recent_api_v1_recent_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RecentItem"
+         },
+         "title": "Response Recent Api V1 Recent Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Recent",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/recent/{rid}": {
+   "delete": {
+    "operationId": "drop_recent_api_v1_recent__rid__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "rid",
+      "required": true,
+      "schema": {
+       "title": "Rid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Drop Recent",
+    "tags": [
+     "app-settings",
+     "app-settings"
     ]
    }
   },
@@ -16196,6 +17639,158 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/autosave": {
+   "post": {
+    "description": "Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic.",
+    "operationId": "autosave_api_v1_workspaces__wid__autosave_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SaveState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Autosave",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/autosave/restore": {
+   "post": {
+    "description": "Otevře záchrannou kopii do prostoru (projekt zůstane „neuložený“, kopie se nemaže).",
+    "operationId": "restore_api_v1_workspaces__wid__autosave_restore_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Restore",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/columns": {
    "put": {
     "operationId": "set_columns_api_v1_workspaces__wid__columns_put",
@@ -16588,6 +18183,94 @@
     "summary": "Load Demo",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/data/example": {
+   "post": {
+    "description": "Ukázková data k technice APC (CSV dodané s aplikací) jako nový projekt.",
+    "operationId": "load_example_api_v1_workspaces__wid__data_example_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "example data set: ff = feedforward (APC)",
+      "in": "query",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "const": "ff",
+       "description": "example data set: ff = feedforward (APC)",
+       "title": "Name",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Load Example",
+    "tags": [
+     "app-settings",
+     "app-settings"
     ]
    }
   },
@@ -21246,6 +22929,90 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/recent/{rid}/open": {
+   "post": {
+    "operationId": "open_recent_api_v1_workspaces__wid__recent__rid__open_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "rid",
+      "required": true,
+      "schema": {
+       "title": "Rid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Open Recent",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/report": {
    "post": {
     "description": "Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.",
@@ -21484,6 +23251,81 @@
     "summary": "Summary",
     "tags": [
      "journal"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/save-state": {
+   "get": {
+    "operationId": "save_state_api_v1_workspaces__wid__save_state_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SaveState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Save State",
+    "tags": [
+     "app-settings",
+     "app-settings"
     ]
    }
   },

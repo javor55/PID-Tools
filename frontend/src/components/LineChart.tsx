@@ -1,5 +1,6 @@
 // Jednoduchý graf průběhů (SVG) – odezvy ladění, frekvenční charakteristiky. Řady se zředí na ~1500 bodů.
 import { useMemo } from "react";
+import { useUi } from "../store";
 
 // legend: false = bez položky v legendě; NaN v x nebo y přeruší čáru (body mimo rozsah se tak jen vynechají);
 // dots: body (kolečka o průměru `width`) místo čáry – fázové grafy a nelinearita
@@ -18,12 +19,13 @@ function ticks(lo: number, hi: number, n = 5): number[] {
 /** Podbarvené pásmo osy x (úseky dat, doba řízení omezujícím regulátorem); label = číslo / text uprostřed pásma. */
 export interface Band { from: number; to: number; color?: string; label?: string }
 
-export function LineChart({ series, height = 220, xLabel, yLabel, logX, testid, xDomain, yDomain, bands }: {
+export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, testid, xDomain, yDomain, bands }: {
   series: Series[]; height?: number; xLabel?: string; yLabel?: string; logX?: boolean; testid?: string;
   xDomain?: [number, number]; yDomain?: [number, number];        // pevný rozsah os (v jednotkách dat, bez logX)
   bands?: Band[];                                                // svislá pásma (bez logX)
 }) {
-  const W = 720, H = height, L = 52, R = 10, Tm = 10, B = 28;
+  const chartH = useUi((st) => st.chartH);
+  const W = 720, H = heightProp ?? chartH, L = 52, R = 10, Tm = 10, B = 28;
   const prep = useMemo(() => {
     const tx = (v: number) => (logX ? Math.log10(Math.max(v, 1e-12)) : v);
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;

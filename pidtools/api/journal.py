@@ -1,7 +1,7 @@
 """
 API – deník ladění (E10): neměnné snímky stavu smyčky v projektu (seznam, vytvoření, detail, stav a poznámky, přílohy,
 porovnání dvou verzí, obnova stavu, report ze snímku), zápis výsledku živé simulace a sekce reportu (registr), souhrnný
-report více smyček. Autor záznamu = přihlášený uživatel týmového režimu, jinak „local“.
+report více smyček. Autor záznamu = přihlášený uživatel týmového režimu, jinak jméno z Nastavení › Deník, jinak „local“.
 """
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
@@ -146,11 +146,22 @@ def _detail(s):
                           content={k: v for k, v in s.content.items() if k != "record"})
 
 
-def _user():
-    return deploy.USER.get() or "local"
+def _journal_cfg(settings):
+    """Nastavení deníku (Nastavení aplikace › Deník) přihlášeného uživatele; bez úložiště výchozí."""
+    if settings is None:
+        return {"author": "", "require_note": False}
+    try:
+        return settings.load(deploy.USER.get() or None).get("journal") or {}
+    except Exception:                                                   # noqa: BLE001 – poškozené nastavení deník neblokuje
+        return {"author": "", "require_note": False}
 
 
-def router(get_proj):
+def _author(settings=None):
+    """Autor záznamu: přihlášený uživatel týmového režimu, jinak jméno z Nastavení › Deník, jinak „local“."""
+    return deploy.USER.get() or _journal_cfg(settings).get("author") or "local"
+
+
+def router(get_proj, settings=None):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["journal"])
 
     def guard(fn, *a, **kw):
@@ -171,13 +182,13 @@ def router(get_proj):
     def create(wid: str, body: NewSnapshot):
         """Uloží neměnný snímek stavu smyčky (výchozí aktivní)."""
         p = get_proj(wid)
-        return _detail(guard(jr.create, p, body.loop, body.label, body.note, _user()))
+        return _detail(guard(jr.create, p, body.loop, body.label, body.note, _author(settings)))
 
     @r.post("/journal/live", response_model=SnapshotDetail)
     def live(wid: str, body: LiveRun):
         """„Zapsat výsledek do deníku“ ze živé simulace: snímek aktivní smyčky s výsledky běhu."""
         p = get_proj(wid)
-        return _detail(jr.add_live(p, body.model_dump(), None, _user()))
+        return _detail(jr.add_live(p, body.model_dump(), None, _author(settings)))
 
     @r.get("/journal/compare", response_model=Compare)
     def compare(wid: str, a: str, b: str):
@@ -196,16 +207,18 @@ def router(get_proj):
         s = guard(jr.get, p, sid)
         if body.status is None and body.note is None:
             raise HTTPException(422, "nothing to change")
+        if body.status is not None and _journal_cfg(settings).get("require_note") and not (body.status_note or "").strip():
+            raise HTTPException(422, "note required")                   # Nastavení › Deník: poznámka povinná
         if body.status is not None:
-            guard(jr.set_status, p, sid, body.status, _user(), body.status_note)
+            guard(jr.set_status, p, sid, body.status, _author(settings), body.status_note)
         if body.note is not None:
-            guard(jr.add_note, p, sid, body.note, _user())
+            guard(jr.add_note, p, sid, body.note, _author(settings))
         return _detail(s)
 
     @r.post("/journal/{sid}/attachments", response_model=AttachmentInfo)
     def attach(wid: str, sid: str, body: NewAttachment):
         """Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu)."""
-        _, a = guard(jr.add_attachment, get_proj(wid), sid, body.name, body.data_b64, body.mime, body.desc, _user())
+        _, a = guard(jr.add_attachment, get_proj(wid), sid, body.name, body.data_b64, body.mime, body.desc, _author(settings))
         return {k: v for k, v in a.items() if k != "data"}
 
     @r.get("/journal/{sid}/attachments/{aid}", response_model=AttachmentData)
@@ -216,7 +229,7 @@ def router(get_proj):
     @r.post("/journal/{sid}/restore", response_model=Restored)
     def restore(wid: str, sid: str):
         """„Otevřít tento stav“: obnoví smyčku ze snímku; aktuální stav se předtím uloží jako „autosave před obnovením“."""
-        out = guard(jr.restore, get_proj(wid), sid, _user())
+        out = guard(jr.restore, get_proj(wid), sid, _author(settings))
         return Restored(snapshot=_summary(out["snapshot"]), autosave=_summary(out["autosave"]),
                         data_changed=out["data_changed"])
 

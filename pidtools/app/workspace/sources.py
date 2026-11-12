@@ -402,6 +402,7 @@ class SourcesMixin:
         """Nová smyčka podle mapování (data ze zdrojů rolí)."""
         ws = Workspace()
         ws.set(lang=self.state.get("lang"))
+        self._apply_defaults(ws)
         first = spec.roles.pv or spec.roles.mv
         if first is None:
             raise ValueError(T("err_loop_roles"))

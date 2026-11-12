@@ -18,6 +18,7 @@ server, page = _tfc.server, _tf.page                     # server s dočasnou sl
 
 APC_TECHS = ["cascade", "ff", "decouple", "override", "smith", "gainsched", "gs_er", "split", "vpc", "ratio", "rga"]
 TABS = ["data", "model", "tuning", "apc", "live", "project"]
+APP_SECTIONS = ["general", "appearance", "charts", "diagnostics", "defaults", "journal", "report", "connections", "io"]
 SUBS = ["sources", "trends", "quality", "diag-all", "diag-detail"]       # podzáložky Data
 
 
@@ -311,8 +312,12 @@ def test_help_coverage_settings_controllers(prepared):
     pg.locator('[data-testid="settings"] summary').click()
     pg.locator('[data-testid="open-settings"]').click()
     report = {}
-    pg.locator('[data-testid="settings-nav-general"]').click()
-    report["general"] = _gaps(pg, "set-general")
+    for sec in APP_SECTIONS:                                            # globální nastavení aplikace (E10-B)
+        pg.locator(f'[data-testid="settings-nav-{sec}"]').click()
+        pg.wait_for_selector(f'[data-testid="settings-{sec}"]')
+        report[sec] = _gaps(pg, f"set-{sec}")
+        if sec != "io":                                                 # Export / import jsou jen tlačítka s `title`
+            pg.wait_for_function("(sec) => document.querySelectorAll(`[data-testid=\"settings-${sec}\"] .qm`).length >= 1", arg=sec)
     pg.locator('[data-testid="settings-nav-controllers"]').click()
     pg.wait_for_selector('[data-testid="rg-item-isa_ideal"]')
     pg.locator('[data-testid="rg-item-isa_ideal"]').click()
@@ -332,5 +337,21 @@ def test_help_coverage_settings_controllers(prepared):
     report["test"] = _gaps(pg, "set-test")
     bad = {k: v for k, v in report.items() if v}
     assert not bad, json.dumps(bad, indent=1, ensure_ascii=False)
-    assert COUNTS["set-general"] >= 2 and COUNTS["set-ed-compose"] >= 5 and COUNTS["set-ed-text"] >= 1, COUNTS
+    assert all(COUNTS[f"set-{sec}"] >= 1 for sec in APP_SECTIONS if sec != "io"), COUNTS
+    assert COUNTS["set-general"] >= 2 and COUNTS["set-diagnostics"] >= 4 and COUNTS["set-defaults"] >= 5 and COUNTS["set-ed-compose"] >= 5 and COUNTS["set-ed-text"] >= 1, COUNTS
     pg.locator('[data-testid="settings-back"]').click()
+
+
+def test_help_coverage_start_screen(prepared):
+    """Start (E10-B): po „Nový“ každé tlačítko a pole má text nebo `title`; kroky „Jak začít“ jsou vidět."""
+    pg = prepared
+    pg.once("dialog", lambda d: d.accept())
+    pg.locator('[data-testid="new-project"]').click()
+    pg.wait_for_selector('[data-testid="start-screen"]', timeout=15000)
+    bad = pg.evaluate("""() => [...document.querySelectorAll('[data-testid="start-screen"] button, [data-testid="start-screen"] label.btn, [data-testid="start-screen"] input')]
+      .filter((e) => (e.offsetWidth || e.offsetHeight) && !(e.getAttribute('title') || '').trim() && !(e.getAttribute('aria-label') || '').trim() && !(e.innerText || '').trim()
+        && !(e.closest('label[title]')))
+      .map((e) => e.outerHTML.slice(0, 80))""")
+    assert not bad, bad
+    assert pg.locator('[data-testid="start-steps"] li').count() == 5
+    assert pg.locator('[data-testid="start-screen"] button[title]').count() >= 2
