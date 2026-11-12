@@ -13,7 +13,8 @@ pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
 
 TOKEN = _tf.TOKEN
-server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
+import test_frontend_controllers as _tfc  # noqa: E402
+server, page = _tfc.server, _tf.page                     # server s dočasnou složkou vlastních regulátorů a fixtura prohlížeče
 
 APC_TECHS = ["cascade", "ff", "decouple", "override", "smith", "gainsched", "gs_er", "split", "vpc", "ratio", "rga"]
 TABS = ["data", "model", "tuning", "apc", "live", "project"]
@@ -161,7 +162,7 @@ FIND_GAPS = """() => {
   const qm = (e) => !!e && !!e.querySelector('.qm');
   const gaps = [];
   let n = 0;
-  for (const c of document.querySelectorAll('main input, main select, main textarea, aside input, aside select, aside textarea')) {
+  for (const c of document.querySelectorAll('main input, main select, main textarea, aside input, aside select, aside textarea, .settings-page input, .settings-page select, .settings-page textarea')) {
     if (!vis(c) || c.type === 'hidden' || c.type === 'file' || c.closest('.pidv, .pidw, .pidv-root')) continue;
     n++;
     const labs = [...(c.labels || [])];
@@ -172,7 +173,7 @@ FIND_GAPS = """() => {
       || filled(c.closest('.chk-help'));
     if (!ok) gaps.push(name(c));
   }
-  for (const g of document.querySelectorAll('main div.seg, aside div.seg, main .segs, aside .segs')) {
+  for (const g of document.querySelectorAll('main div.seg, aside div.seg, main .segs, aside .segs, .settings-page div.seg')) {
     if (!vis(g) || g.closest('.pidv, .pidw, .pidv-root')) continue;
     n++;
     const bts = [...g.querySelectorAll('button')];
@@ -302,3 +303,34 @@ def test_help_coverage_variants(prepared):
     pg.wait_for_timeout(800)
     bad |= _sweep_seg(pg, "ff-dyn-0", "ff-dyn")
     assert not bad, json.dumps(bad, indent=1, ensure_ascii=False)
+
+
+def test_help_coverage_settings_controllers(prepared):
+    """Nastavení › Obecné a Regulátory: knihovna (všechny záložky detailu), editor (skládání i text) a test použitelnosti."""
+    pg = prepared
+    pg.locator('[data-testid="settings"] summary').click()
+    pg.locator('[data-testid="open-settings"]').click()
+    report = {}
+    pg.locator('[data-testid="settings-nav-general"]').click()
+    report["general"] = _gaps(pg, "set-general")
+    pg.locator('[data-testid="settings-nav-controllers"]').click()
+    pg.wait_for_selector('[data-testid="rg-item-isa_ideal"]')
+    pg.locator('[data-testid="rg-item-isa_ideal"]').click()
+    for t in ("eq", "par", "fn", "io", "test"):
+        pg.locator(f'[data-testid="rg-tab-{t}"]').click()
+        report[f"lib-{t}"] = _gaps(pg, f"set-lib-{t}")
+    pg.locator('[data-testid="rg-make-custom"]').click()
+    pg.wait_for_selector('[data-testid="reg-editor"]')
+    report["editor-compose"] = _gaps(pg, "set-ed-compose")
+    pg.locator('[data-testid="rg-mode"] [data-value="text"]').click()
+    pg.wait_for_selector('[data-testid="rg-source"]')
+    report["editor-text"] = _gaps(pg, "set-ed-text")
+    pg.locator('[data-testid="rg-save"]').click()
+    pg.wait_for_selector('[data-testid="rg-msg"].ok')
+    pg.locator('[data-testid="rg-full-test"]').click()
+    pg.wait_for_selector('[data-testid="rg-checks"] li', timeout=60000)
+    report["test"] = _gaps(pg, "set-test")
+    bad = {k: v for k, v in report.items() if v}
+    assert not bad, json.dumps(bad, indent=1, ensure_ascii=False)
+    assert COUNTS["set-general"] >= 2 and COUNTS["set-ed-compose"] >= 5 and COUNTS["set-ed-text"] >= 1, COUNTS
+    pg.locator('[data-testid="settings-back"]').click()
