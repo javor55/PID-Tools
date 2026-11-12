@@ -2052,6 +2052,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/triage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Last
+         * @description Poslední výsledek triáže (`ready` False, dokud žádný není).
+         */
+        get: operations["last_api_v1_workspaces__wid__triage_get"];
+        put?: never;
+        /**
+         * Start
+         * @description Spustí triáž všech smyček projektu jako úlohu na pozadí; výsledek pak vrací GET /triage.
+         */
+        post: operations["start_api_v1_workspaces__wid__triage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/triage/thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thr
+         * @description Prahy pravidel verdiktu (výchozí + uživatelské) a jejich schéma.
+         */
+        get: operations["get_thr_api_v1_workspaces__wid__triage_thresholds_get"];
+        /**
+         * Put Thr
+         * @description Uloží prahy do projektu (hodnoty se ořežou na meze); neznámá pravidla a názvy se vynechají.
+         */
+        put: operations["put_thr_api_v1_workspaces__wid__triage_thresholds_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/tuning": {
         parameters: {
             query?: never;
@@ -2655,6 +2703,19 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "warn" | "info";
+        };
+        /** Evidence */
+        Evidence: {
+            /** Metric */
+            metric: string;
+            /** Text */
+            text: string;
+            /** Text Key */
+            text_key: string;
+            /** Threshold */
+            threshold?: number | null;
+            /** Value */
+            value?: number | null;
         };
         /** FFDefaults */
         FFDefaults: {
@@ -4448,6 +4509,47 @@ export interface components {
              */
             warnings: string[];
         };
+        /** ThresholdInfo */
+        ThresholdInfo: {
+            /** Default */
+            default: number;
+            /** Hi */
+            hi: number;
+            /** Label */
+            label: string;
+            /** Lo */
+            lo: number;
+            /** Name */
+            name: string;
+            /** Name Label */
+            name_label: string;
+            /** Rule */
+            rule: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: number;
+        };
+        /** Thresholds */
+        Thresholds: {
+            /** Items */
+            items: components["schemas"]["ThresholdInfo"][];
+            /** Values */
+            values: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        /** ThresholdsReq */
+        ThresholdsReq: {
+            /** Values */
+            values: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
         /**
          * TimeGridBody
          * @description Společná časová mřížka: `overlap` (společný úsek) / `union`, ruční perioda [s], práh mezery [s].
@@ -4505,6 +4607,70 @@ export interface components {
             t: number[];
             /** V */
             v: number[];
+        };
+        /** TriageCommon */
+        TriageCommon: {
+            /** By Stiction */
+            by_stiction: boolean;
+            /** Loops */
+            loops: number[];
+            /** Period */
+            period: number;
+            /** Source */
+            source: number;
+        };
+        /** TriageLoop */
+        TriageLoop: {
+            /** Err */
+            err?: string | null;
+            /** Evidence */
+            evidence: components["schemas"]["Evidence"][];
+            /** Index */
+            index: number;
+            /** Label */
+            label: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Severity */
+            severity: number;
+            /** Slave */
+            slave?: number | null;
+            /** Tag */
+            tag: string;
+            /** Verdict */
+            verdict: string;
+        };
+        /** TriageResult */
+        TriageResult: {
+            /**
+             * Common
+             * @default []
+             */
+            common: components["schemas"]["TriageCommon"][];
+            /**
+             * Counts
+             * @default {}
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Loops
+             * @default []
+             */
+            loops: components["schemas"]["TriageLoop"][];
+            /**
+             * Ready
+             * @default false
+             */
+            ready: boolean;
+            /**
+             * Start
+             * @default []
+             */
+            start: number[];
         };
         /** Tuned */
         Tuned: {
@@ -9039,6 +9205,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimeGridBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    last_api_v1_workspaces__wid__triage_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriageResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_api_v1_workspaces__wid__triage_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_thr_api_v1_workspaces__wid__triage_thresholds_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thresholds"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_thr_api_v1_workspaces__wid__triage_thresholds_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThresholdsReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thresholds"];
                 };
             };
             /** @description Validation Error */

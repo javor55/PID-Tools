@@ -1380,6 +1380,51 @@
     "title": "DqCheck",
     "type": "object"
    },
+   "Evidence": {
+    "properties": {
+     "metric": {
+      "title": "Metric",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     },
+     "text_key": {
+      "title": "Text Key",
+      "type": "string"
+     },
+     "threshold": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Threshold"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     }
+    },
+    "required": [
+     "metric",
+     "text_key",
+     "text"
+    ],
+    "title": "Evidence",
+    "type": "object"
+   },
    "FFDefaults": {
     "properties": {
      "delay": {
@@ -6452,6 +6497,105 @@
     "title": "Suggestions",
     "type": "object"
    },
+   "ThresholdInfo": {
+    "properties": {
+     "default": {
+      "title": "Default",
+      "type": "number"
+     },
+     "hi": {
+      "title": "Hi",
+      "type": "number"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "lo": {
+      "title": "Lo",
+      "type": "number"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "name_label": {
+      "title": "Name Label",
+      "type": "string"
+     },
+     "rule": {
+      "title": "Rule",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     },
+     "value": {
+      "title": "Value",
+      "type": "number"
+     }
+    },
+    "required": [
+     "rule",
+     "label",
+     "name",
+     "name_label",
+     "value",
+     "default",
+     "lo",
+     "hi",
+     "unit"
+    ],
+    "title": "ThresholdInfo",
+    "type": "object"
+   },
+   "Thresholds": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/ThresholdInfo"
+      },
+      "title": "Items",
+      "type": "array"
+     },
+     "values": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "type": "number"
+       },
+       "type": "object"
+      },
+      "title": "Values",
+      "type": "object"
+     }
+    },
+    "required": [
+     "values",
+     "items"
+    ],
+    "title": "Thresholds",
+    "type": "object"
+   },
+   "ThresholdsReq": {
+    "properties": {
+     "values": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "type": "number"
+       },
+       "type": "object"
+      },
+      "title": "Values",
+      "type": "object"
+     }
+    },
+    "required": [
+     "values"
+    ],
+    "title": "ThresholdsReq",
+    "type": "object"
+   },
    "TimeGridBody": {
     "description": "Společná časová mřížka: `overlap` (společný úsek) / `union`, ruční perioda [s], práh mezery [s].",
     "properties": {
@@ -6607,6 +6751,149 @@
      "stats"
     ],
     "title": "TrendSeries",
+    "type": "object"
+   },
+   "TriageCommon": {
+    "properties": {
+     "by_stiction": {
+      "title": "By Stiction",
+      "type": "boolean"
+     },
+     "loops": {
+      "items": {
+       "type": "integer"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "period": {
+      "title": "Period",
+      "type": "number"
+     },
+     "source": {
+      "title": "Source",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "period",
+     "loops",
+     "source",
+     "by_stiction"
+    ],
+    "title": "TriageCommon",
+    "type": "object"
+   },
+   "TriageLoop": {
+    "properties": {
+     "err": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Err"
+     },
+     "evidence": {
+      "items": {
+       "$ref": "#/components/schemas/Evidence"
+      },
+      "title": "Evidence",
+      "type": "array"
+     },
+     "index": {
+      "title": "Index",
+      "type": "integer"
+     },
+     "label": {
+      "title": "Label",
+      "type": "string"
+     },
+     "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+     },
+     "severity": {
+      "title": "Severity",
+      "type": "integer"
+     },
+     "slave": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slave"
+     },
+     "tag": {
+      "title": "Tag",
+      "type": "string"
+     },
+     "verdict": {
+      "title": "Verdict",
+      "type": "string"
+     }
+    },
+    "required": [
+     "index",
+     "tag",
+     "verdict",
+     "label",
+     "severity",
+     "evidence",
+     "metrics"
+    ],
+    "title": "TriageLoop",
+    "type": "object"
+   },
+   "TriageResult": {
+    "properties": {
+     "common": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/TriageCommon"
+      },
+      "title": "Common",
+      "type": "array"
+     },
+     "counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "default": {},
+      "title": "Counts",
+      "type": "object"
+     },
+     "loops": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/TriageLoop"
+      },
+      "title": "Loops",
+      "type": "array"
+     },
+     "ready": {
+      "default": false,
+      "title": "Ready",
+      "type": "boolean"
+     },
+     "start": {
+      "default": [],
+      "items": {
+       "type": "integer"
+      },
+      "title": "Start",
+      "type": "array"
+     }
+    },
+    "title": "TriageResult",
     "type": "object"
    },
    "Tuned": {
@@ -17241,6 +17528,312 @@
     "summary": "Put Time Grid",
     "tags": [
      "sources"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/triage": {
+   "get": {
+    "description": "Poslední výsledek triáže (`ready` False, dokud žádný není).",
+    "operationId": "last_api_v1_workspaces__wid__triage_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TriageResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Last",
+    "tags": [
+     "triage"
+    ]
+   },
+   "post": {
+    "description": "Spustí triáž všech smyček projektu jako úlohu na pozadí; výsledek pak vrací GET /triage.",
+    "operationId": "start_api_v1_workspaces__wid__triage_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Start",
+    "tags": [
+     "triage"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/triage/thresholds": {
+   "get": {
+    "description": "Prahy pravidel verdiktu (výchozí + uživatelské) a jejich schéma.",
+    "operationId": "get_thr_api_v1_workspaces__wid__triage_thresholds_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thresholds"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Thr",
+    "tags": [
+     "triage"
+    ]
+   },
+   "put": {
+    "description": "Uloží prahy do projektu (hodnoty se ořežou na meze); neznámá pravidla a názvy se vynechají.",
+    "operationId": "put_thr_api_v1_workspaces__wid__triage_thresholds_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ThresholdsReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Thresholds"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Thr",
+    "tags": [
+     "triage"
     ]
    }
   },
