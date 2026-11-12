@@ -18,6 +18,19 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       CONT_C / PID_Compact (neověřené koncepty). Zbývá: UI (E8), DeltaV / Honeywell / CTRL_PID (potřeba manuály, R7),
       optimalizace přímo nad parametry profilu a numericky měřená robustnost nelineárních profilů (s R3), shoda
       Python / JS jako kontrola 2 (hlídá `test_ctrl_engine_js.py`), volba výchozího profilu pro nové smyčky.
+- [x] **E7b – regulátory R3 + R4, backend a sdílený JS** (12. 11. 2026): **R3** – registry částí v `core/controller.py` i
+      `ctrl_engine.js`: gap (`deadbands.gap`), nelineární zesílení (kvadrát odchylky, tabulka podle PV / SP / MV / odchylky),
+      rychlostní algoritmus (= zpětný výpočet s Tt = Ts, ověřeno nezávislou přírůstkovou implementací), externí reset
+      (BKCAL, `ctl.ext_reset`), dynamické meze `set_limits`, výstupní stupně split range / 3-step (práh, min. puls a
+      pauza) / PWM (min. puls, na středním výstupu); tracking = stávající `track`. Katalog částí s popisem a schématem
+      parametrů (`controllers/parts.py`, `GET /controllers/parts`). R5: nelineární části → „Jen optimalizací“, robustnost
+      nelineárního profilu z linearizované části s příznakem `approximate`. **R4** – jazyk vlastních rovnic
+      (`controllers/program.py`: parser, kontrola s řádkem a sloupcem, strom JSON; `core/program.py`: generovaná funkce
+      Pythonu, ~1 µs/krok; `ctrl_engine.js`: interpret stromu bez `eval`), `kind: "program"` v profilu, mapování `map` /
+      `unmap`, `POST /controllers/compile`, kontroly R5 i pro program. Testy: `test_ctl_special.py`, `test_ctl_program.py`,
+      `test_api_ctl_program.py` (shoda Python × JS < 1e-9). Zbývá: UI editoru (E8 / R6), `delay(x, T)`, hystereze,
+      nelineární regulátory v optimalizaci přímo nad parametry profilu, robustnost programu jen přes mapovaný PID,
+      `init` stavu neumí seznam `[…]` v `table` (řádek `state` bere `[…]` jako jednotku).
 - [x] **E4-C – Data › Trendy** (12. 11. 2026): `frontend/src/tabs/data/TrendsView.tsx` + `trends/` (strom signálů podle
       smyček / zdrojů s hledáním, panely 1 / na smyčku / na veličinu, osy Y podle veličiny nebo jedna sdílená, kurzory A / B
       s odečtem a statistikou, přehledový pruh, zoom kolečkem a tažením, vypočtený signál ze vzorců `viewer_an.js`, export

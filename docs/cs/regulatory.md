@@ -1,6 +1,6 @@
 # Regulátory: knihovna rovnic a PID designer – technický návrh
 
-Stav: návrh odsouhlasen; hotovo R1 (jádro), **R2 a R5 (backend, 12. 11. 2026)**, zbývá R3, R4, R6, R7. Vizualizace obrazovek: artefakt „PID Tools – nový návrh UI“, obrazovky
+Stav: návrh odsouhlasen; hotovo R1 (jádro), **R2 a R5 (backend, 12. 11. 2026)**, **R3 a R4 (backend a sdílený JS, 12. 11. 2026)**, zbývá R6, R7. Vizualizace obrazovek: artefakt „PID Tools – nový návrh UI“, obrazovky
 Nastavení › Regulátory, Editor regulátoru, Test použitelnosti a Ladění (výběr regulátoru).
 
 ## 1. Cíl
@@ -158,9 +158,17 @@ I   = I + Kp * kg / Ti * e * dt + (MV - v) * dt / Ti      # back-calculation
 - **Deklarace**: `param` (název, výchozí hodnota, popis, jednotka, meze), `state` (stav mezi kroky s počáteční
   hodnotou nebo `init` výrazem pro bezrázový start), výstupy `MV`, volitelně `MV2`, `PULSE_UP` ….
 - **Výrazy**: `+ − * / ^`, porovnání, `and or not`, podmínka `c ? a : b`; čísla a vstupy z § 4.1, `dt`, `t`.
-- **Funkce**: `min max abs sign sqrt exp log clamp(x, lo, hi) deadband(x, w) gap(x, w, k) lag(stav, x, T)
-  ddt(x)` (derivace zpětnou diferencí) `rate(stav, x, nahoru, dolů) lead_lag(stav, x, Tlead, Tlag)
-  delay(x, T) table(x, [x…], [y…]) prev(x)`.
+- **Funkce**: `min max abs sign sqrt exp log clamp(x, lo, hi) deadband(x, w) gap(x, w, k) table(x, [x…], [y…])` a funkce
+  se stavem, jejichž stav si vede překladač (každé volání má vlastní; místo explicitního `stav` z prvního návrhu):
+  `lag(x, T) ddt(x)` (derivace zpětnou diferencí) `rate(x, nahoru, dolů) lead_lag(x, Tlead, Tlag) prev(x)`;
+  `delay(x, T)` zatím není. Dělení nulou dává 0, `sqrt` záporného 0, `log` nepositivního `log(1e-300)`.
+- **Implementace (R4, hotovo)**: `pidtools/controllers/program.py` (parser s hláškami řádek:sloupec, kontrola názvů a
+  stavových funkcí, lehká kontrola jednotek jako varování, strom JSON `pidprog`), `pidtools/core/program.py` (strom → zdroj
+  jedné funkce Pythonu spuštěné bez builtins), `ctrl_engine.js` (interpret stromu uzavřenými funkcemi, bez `eval`). Řádek
+  `state I = 0 init MV0 - …` je bezrázový start i návrat z `track`; `map Kp = Kc` / `unmap Kc = Kp` je mapování pro
+  pravidla ladění (jednoduché `map` se obrací samo). Parametr `Ts` (pokud je) je perioda výpočtu, jinak krok simulace.
+  Profil: `kind: "program"`, `source` (závazný), `program` a `params` se odvodí. API `POST /controllers/compile`.
+  Limity: zdroj 20 000 znaků, 200 příkazů, 40 parametrů, 40 stavů, 3 000 uzlů, hloubka 60.
 - **Omezení**: žádné cykly, rekurze, soubory ani síť; jeden krok výpočtu = jedno vyhodnocení programu shora dolů;
   pevný počet operací → předvídatelný čas. Překladač hlásí neznámé názvy, chybějící `MV`, použití stavu před
   deklarací a nekonzistentní jednotky.
@@ -250,9 +258,11 @@ označené „neověřeno“ a test použitelnosti to uvede.
 2. **R2 – profily a ladění** (hotovo, backend; optimalizace nad kanonickým PID s převodem výsledku, robustnost z
    přenosu profilu – numerické měření pro nelineární profily přijde s R3): formát `.pidctrl`, mapování a přepočty jednotek, pravidla s přepočtem, optimalizace nad
    parametry profilu, robustnost numericky, API (`/controllers`, profil smyčky).
-3. **R3 – speciální funkce**: mrtvá pásma a gap, nelineární zesílení, anti-windup varianty, rychlostní algoritmus,
-   split range a ohřev / chlazení, 3-step, PWM, externí reset, tracking.
-4. **R4 – vlastní rovnice**: jazyk, překladač s chybovými hláškami, oba interprety, test shody.
+3. **R3 – speciální funkce** (hotovo, backend a JS, 12. 11. 2026): gap, nelineární zesílení (kvadrát, tabulka), anti-windup
+   (podmíněná integrace, zpětný výpočet, externí reset), rychlostní algoritmus, dynamické meze, split range / ohřev–chlazení,
+   3-step, PWM; tracking je `track`. Katalog částí `controllers/parts.py`. Hystereze mrtvého pásma zatím není.
+4. **R4 – vlastní rovnice** (hotovo, backend a JS, 12. 11. 2026): jazyk, překladač s chybovými hláškami, oba interprety, test
+   shody, mapování, API `/controllers/compile`; zbývá editor v UI (R6).
 5. **R5 – test použitelnosti** (hotovo, backend: `app/controller_check.py`, `POST /api/v1/controllers/{id}/test`;
    kontrola 2 ověřuje determinismus Pythonu, shodu s JS hlídá `test_ctrl_engine_js.py`): kontroly § 7, hodnocení, výstup do UI a reportu.
 6. **R6 – UI**: Nastavení › Regulátory, editor, Ladění, Živá simulace, report; dokumentace.
