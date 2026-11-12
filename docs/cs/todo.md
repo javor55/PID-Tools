@@ -142,3 +142,4 @@ na čistém Windows bez sítě – ruční test), M27 (pilot), M28 (vypnutí sta
       Diagnostika.
 - [ ] **Řádek „Pracujete na“** ukazuje regulátor jako kanonické Kc/Ti ze Sady 1 i u jiného profilu než PIDConL – zobrazit
       název profilu a parametry v jednotkách bloku (E8).
+- [ ] **Živá simulace:** štítky událostí v grafu se na začátku běhu překrývají („Struktura: kaskáda“ × „teď“) – odsadit.
