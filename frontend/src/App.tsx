@@ -14,6 +14,8 @@ import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TuningMain, TuningSide } from "./tabs/TuningTab";
 import { SourcesMain, SourcesSide } from "./tabs/data/SourcesView";
 import { TrendsMain, TrendsSide } from "./tabs/data/TrendsView";
+import { SettingsPage } from "./settings/SettingsPage";
+import { useSettingsUi } from "./settings/settingsStore";
 import { type TabId, TABS, useUi } from "./store";
 
 const CONTEXT_TABS: TabId[] = ["model", "tuning", "apc", "live"];
@@ -53,6 +55,7 @@ export default function App() {
   useTheme();
   useWorkspace();
   usePendingOpen();
+  const settingsOpen = useSettingsUi((s) => s.open);
   const cur = TABS.find((t) => t.id === tab) ?? TABS[0];
   // Data má podzáložky; Diagnostika zůstává ve starých pohledech (E5 je přepracuje).
   const dataView = sub === "sources" ? [<SourcesMain />, <SourcesSide />] : sub === "trends" ? [<TrendsMain />, <TrendsSide />]
@@ -61,6 +64,7 @@ export default function App() {
   return (
     <div className="shell">
       <Header />
+      {settingsOpen ? <SettingsPage /> : <>
       {CONTEXT_TABS.includes(cur.id) && <ContextRow />}
       <div className={cur.id === "live" ? "body body-wide" : "body"}>
         <main className="main" data-testid={`tab-${cur.id}`} data-dsub={cur.id === "data" ? sub : undefined}>
@@ -78,6 +82,7 @@ export default function App() {
             : <ProjectSide />}
         </aside>}
       </div>
+      </>}
       <StatusBar />
     </div>
   );

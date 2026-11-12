@@ -8,6 +8,7 @@ import { useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
+import { useSettingsUi } from "../settings/settingsStore";
 import { Seg } from "./Ui";
 
 type LoopsT = components["schemas"]["Loops"];
@@ -111,6 +112,7 @@ function Summary() {
 function Settings() {
   const T = useT();
   const { lang, setLang, theme, setTheme } = useUi();
+  const openSettings = useSettingsUi((s) => s.openSettings);
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -138,6 +140,8 @@ function Settings() {
             <option value="dark">{T("ui_theme_dark")}</option>
           </select>
         </label>
+        <button type="button" className="hbtn" data-testid="open-settings" title={T("rg_ui_open_settings_h")}
+          onClick={() => { if (ref.current) ref.current.open = false; openSettings("controllers"); }}>{T("rg_ui_open_settings")}</button>
       </div>
     </details>
   );
@@ -146,6 +150,7 @@ function Settings() {
 export function Header() {
   const T = useT();
   const { tab, setTab } = useUi();
+  const closeSettings = useSettingsUi((s) => s.close);
   return (
     <header className="header">
       <div className="hrow">
@@ -156,14 +161,14 @@ export function Header() {
         </div>
         <div className="hright">
           <button type="button" className="hbtn" aria-pressed={tab === "project"} data-tab="project"
-            onClick={() => setTab("project")}>{T("tab_project")}</button>
+            onClick={() => { closeSettings(); setTab("project"); }}>{T("tab_project")}</button>
           <Settings />
           <HelpButton />
         </div>
       </div>
       <nav className="tabs" role="tablist" aria-label={T("ui_tabs")}>
         {NAV_TABS.map((t) => (
-          <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+          <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => { closeSettings(); setTab(t.id); }}
             data-tab={t.id}>
             {T(t.label)}
           </button>
