@@ -535,15 +535,17 @@ def test_live_tab_structures_dv_and_journal(page, server):
     page.locator("#run").click()
     page.wait_for_function("() => /t = [1-9]/.test(document.querySelector('#tnow').textContent)", timeout=20000)
     page.locator("#run").click()
-    page.locator("#journal").click()                                                 # souhrn běhu do nastavení projektu
+    page.locator("#journal").click()                                                 # souhrn běhu do deníku ladění
     page.wait_for_function(
-        "async () => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/settings', "
+        "async () => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/journal', "
         "{headers: {'X-PID-Token': '" + TOKEN + "'}}); const s = await r.json(); "
-        "return Array.isArray(s.live_runs) && s.live_runs.length > 0; }", timeout=20000)
-    run = _api(server, "/workspaces/{wid}/settings", page)["live_runs"][-1]
-    assert run["struct"] == "pid" and run["kpi"] and "when" in run
+        "return s.snapshots.some((x) => x.kind === 'live'); }", timeout=20000)
+    run = [x for x in _api(server, "/workspaces/{wid}/journal", page)["snapshots"] if x["kind"] == "live"][-1]
+    assert run["live"]["struct"] == "pid" and run["live"]["kpi"]
     page.locator('[data-tab="project"]').click()
-    page.wait_for_selector('[data-testid="live-run-row"]', timeout=10000)
+    page.locator('[data-testid="proj-sub"] [data-value="journal"]').click()
+    page.wait_for_selector('[data-testid="jr-row"]', timeout=10000)
+    page.locator('[data-testid="proj-sub"] [data-value="report"]').click()
     page.locator('[data-tab="live"]').click()
 
 def _rel(a, b, tol=2e-3):
