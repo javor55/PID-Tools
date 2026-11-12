@@ -2389,5 +2389,6 @@
  "src_ui_use_as": "Use as…",
  "src_ui_use_as_for": "Use column {c} as…",
  "src_ui_use_as_h": "Assigns the column to a role of the active loop (alternative to dragging).",
- "src_ui_used_in": "Used in loop {n} as {r}"
+ "src_ui_used_in": "Used in loop {n} as {r}",
+ "src_ui_h_tagdesc": "Tag / description"
 }

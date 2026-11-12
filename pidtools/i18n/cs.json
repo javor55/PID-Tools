@@ -2389,5 +2389,6 @@
  "src_ui_use_as": "Použít jako…",
  "src_ui_use_as_for": "Použít sloupec {c} jako…",
  "src_ui_use_as_h": "Přiřadí sloupec k roli aktivní smyčky (alternativa k přetažení myší).",
- "src_ui_used_in": "Použito ve smyčce {n} jako {r}"
+ "src_ui_used_in": "Použito ve smyčce {n} jako {r}",
+ "src_ui_h_tagdesc": "Tag / popis"
 }

@@ -22,14 +22,19 @@ function ColSelect({ value, sources, onPick, label, title, empty, testid }: {
 }) {
   const key = value ? refKey(value) : "";
   const known = !value || sources.some((s) => s.id === value.source && s.columns.includes(value.column));
+  // v uzavřeném výběru je kvůli šířce jen název sloupce (celé „soubor › sloupec“ je v title a ve skupinách seznamu);
+  // stejný název ve více souborech se rozliší předponou
+  const count = new Map<string, number>();
+  sources.forEach((s) => s.columns.forEach((c) => count.set(c, (count.get(c) ?? 0) + 1)));
+  const txt = (r: Ref) => (count.get(r.column)! > 1 ? refLabel(r, sources) : r.column);
   return (
-    <select aria-label={label} title={title} value={key} data-testid={testid} className={value ? "" : "src-unset"}
+    <select aria-label={label} title={value ? `${title}\n${refLabel(value, sources)}` : title} value={key} data-testid={testid} className={value ? "" : "src-unset"}
       onChange={(e) => onPick(e.target.value ? parseKey(e.target.value) : null)}>
       <option value="">{empty}</option>
       {!known && value && <option value={key}>{refLabel(value, sources)}</option>}
       {sources.map((s) => (
         <optgroup key={s.id} label={s.name}>
-          {s.columns.map((c) => <option key={c} value={refKey({ source: s.id, column: c })}>{refLabel({ source: s.id, column: c }, sources)}</option>)}
+          {s.columns.map((c) => <option key={c} value={refKey({ source: s.id, column: c })}>{txt({ source: s.id, column: c })}</option>)}
         </optgroup>))}
     </select>
   );
@@ -173,10 +178,10 @@ export function LoopsCard({ data }: { data: Sources | undefined }) {
           <table className="ltbl src-loops" data-testid="src-loops-table">
             <thead><tr>
               <th><span className="sr-only">{T("src_ui_h_active")}</span></th>
-              {th("Tag", "h_loop_tag")}{th(T("src_ui_h_desc"))}
+              {th(T("src_ui_h_tagdesc"), "h_loop_tag")}
               {th("PV")}{th("SP")}{th("MV")}
               {th(T("src_ui_h_pos"), "src_ui_pos_h")}{th("DV", "src_ui_dv_h")}{th(T("src_ui_h_mode"), "src_ui_mode_h")}
-              {th(T("src_ui_h_ranges"), "src_ui_range_h")}{th(T("src_ui_h_status"))}<th><span className="sr-only">{T("src_ui_h_actions")}</span></th>
+              {th(T("src_ui_h_ranges"), "src_ui_range_h")}
             </tr></thead>
             <tbody>
               {maps.map((m, i) => {
@@ -184,21 +189,25 @@ export function LoopsCard({ data }: { data: Sources | undefined }) {
                 const up = casted.get(i);
                 return (
                   <tr key={i} className={i === active ? "sel" : ""} data-testid={`src-loop-${i}`}>
-                    <td><button type="button" className={"src-act" + (i === active ? " on" : "")} aria-pressed={i === active}
+                    <td><div className="src-actcell"><button type="button" className={"src-act" + (i === active ? " on" : "")} aria-pressed={i === active}
                       aria-label={T("src_ui_activate", { n: names[i] })} title={T("src_ui_activate_h")} data-testid={`src-activate-${i}`}
-                      onClick={() => void run(() => act("PUT", "/loops/active", { index: i }))}>{i === active ? "●" : "○"}</button></td>
+                      onClick={() => void run(() => act("PUT", "/loops/active", { index: i }))}>{i === active ? "●" : "○"}</button>
+                      <button type="button" className="btn small src-x" aria-label={T("src_ui_remove_loop", { n: names[i] })}
+                        title={maps.length < 2 ? T("src_ui_remove_last") : T("src_ui_remove_loop_h")} disabled={maps.length < 2 || busy}
+                        data-testid={`src-rm-${i}`} onClick={() => void run(() => act("DELETE", `/loops/${i}`))}>×</button></div></td>
                     <td className="src-tagcell">
                       <Commit value={m.tag} label={T("src_ui_tag")} title={T("h_loop_tag")} className="src-tag" testid={`src-tag-${i}`}
                         onCommit={(v) => void save(i, { ...m, tag: v.trim() })} />
+                      <Commit value={m.description} label={T("src_ui_desc")} title={T("src_ui_desc_h")} className="src-desc"
+                      onCommit={(v) => void save(i, { ...m, description: v })} />
                       <select aria-label={T("src_ui_cascade")} title={T("src_ui_cascade_h")} className="src-casc" value={m.cascade_to ?? ""}
                         data-testid={`src-casc-${i}`} onChange={(e) => void save(i, { ...m, cascade_to: e.target.value === "" ? null : +e.target.value })}>
                         <option value="">{T("src_ui_no_cascade")}</option>
                         {maps.map((_, j) => j !== i && <option key={j} value={j}>{T("src_ui_cascade_to", { n: names[j] })}</option>)}
                       </select>
                       {up !== undefined && <span className="ltag ok" title={T("src_ui_cascade_h")}>{T("src_ui_cascade_from", { n: names[up] })}</span>}
+                      <span className={"ltag " + st.level} data-testid={`src-status-${i}`} title={T(`src_ui_st_${st.kind}_h`)}>{T(`src_ui_st_${st.kind}`)}</span>
                     </td>
-                    <td><Commit value={m.description} label={T("src_ui_desc")} title={T("src_ui_desc_h")} className="src-desc"
-                      onCommit={(v) => void save(i, { ...m, description: v })} /></td>
                     {(["pv", "sp", "mv", "pos"] as const).map((role) => (
                       <DropCell key={role} onDropRef={(r) => setRole(i, role, r)}>
                         <ColSelect value={m.roles[role]} sources={sources} label={`${role.toUpperCase()} – ${names[i]}`} title={T(`src_ui_role_${role}_h`)}
@@ -222,11 +231,7 @@ export function LoopsCard({ data }: { data: Sources | undefined }) {
                       <Range norm={m.norm_pv} label="PV" onChange={(v) => void save(i, { ...m, norm_pv: v })} />
                       <Range norm={m.norm_mv} label="MV" onChange={(v) => void save(i, { ...m, norm_mv: v })} />
                     </td>
-                    <td><span className={"ltag " + st.level} data-testid={`src-status-${i}`} title={T(`src_ui_st_${st.kind}_h`)}>{T(`src_ui_st_${st.kind}`)}</span></td>
-                    <td><button type="button" className="btn small src-x" aria-label={T("src_ui_remove_loop", { n: names[i] })}
-                      title={maps.length < 2 ? T("src_ui_remove_last") : T("src_ui_remove_loop_h")} disabled={maps.length < 2 || busy}
-                      data-testid={`src-rm-${i}`} onClick={() => void run(() => act("DELETE", `/loops/${i}`))}>×</button></td>
-                  </tr>);
+</tr>);
               })}
             </tbody>
           </table>
