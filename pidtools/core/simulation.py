@@ -107,13 +107,14 @@ class Valve:
 
 
 # ================================================================ dávková simulace
-def pidconl_sim_full(code, p, pdl, h, sp, pv0, mv0, ctrl, dmeas=(), dist_mv=None, dist_pv=None):
+def pidconl_sim_full(code, p, pdl, h, sp, pv0, mv0, ctrl, dmeas=(), dist_mv=None, dist_pv=None, profile=None):
     """
     Uzavřená smyčka: model procesu + PIDConL + prvky smyčky a ventilu.
     h ....... krok simulace [s]; sp ... pole SP [%] (cíl); pv0, mv0 počáteční PV a MV [%] (ustálený stav)
     ctrl .... parametry PIDConL (viz PIDConL) + FF, FF_LL (dopředná vazba), Stic, SticJ [% MV] (stikce),
               ValveChar (10 zesílení), Noise [% PV] (šum měření), Seed
     dmeas ... měřené poruchy (odchylky, j.) – působí přes modely poruch pdl a na FF
+    profile . profil regulátoru (dict / Profile); bez něj PIDConL
     dist_mv . neměřená porucha na vstupu procesu [% MV]; dist_pv . porucha přičtená k PV [% PV]
     Vrací dict: t, SP (cíl), SPr (po rampě), PV (skutečná), PVm (měřená po filtru), MV, V (poloha ventilu),
     dem (max. požadovaná rychlost MV [%/s]).
@@ -144,7 +145,7 @@ def pidconl_sim_full(code, p, pdl, h, sp, pv0, mv0, ctrl, dmeas=(), dist_mv=None
         ff_sig += g * x
 
     proc = ProcStep(code, p, h)
-    pid = PIDConL(ctrl, h)
+    pid = PIDConL(ctrl, h) if profile is None else Controller(profile, ctrl, h)
     valve = Valve(ctrl.get("Stic", 0.0), ctrl.get("SticJ"), ctrl.get("ValveChar"), mv0)
     pid.init(sp[0], pv0 + ydist[0] + noise[0], mv0, ff_sig[0])
 

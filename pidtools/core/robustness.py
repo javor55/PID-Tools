@@ -83,3 +83,16 @@ def hf_gain(Kc, Td, N, Ts):
 def mv_noise(ctrl, sigma_pv):
     """Přibližná směrodatná odchylka šumu MV [%] z bílého šumu PV [%]."""
     return hf_gain(ctrl["Gain"], ctrl.get("TD", 0.0), ctrl.get("DiffGain", 5.0), ctrl.get("SampleTime", 1.0)) * sigma_pv
+
+
+def robustness_for(profile):
+    """
+    Funkce `robustness(code, p, ctrl)` pro regulátor daného profilu: `ctrl` je slovník v názvech parametrů profilu,
+    přenos regulátoru (forma, jednotky, filtr D, vzorkování) se z něj odvodí; pro PIDConL shodné s `robustness`.
+    Hodí se jako `robustness_fn` v `app.tuning`.
+    """
+    from .controller import ideal_ctrl
+
+    def fn(code, p, ctrl):
+        return robustness(code, p, dict(ctrl, **ideal_ctrl(profile, ctrl)))
+    return fn

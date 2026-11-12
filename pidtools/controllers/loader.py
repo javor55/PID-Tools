@@ -26,9 +26,10 @@ def parse_profile(data):
     for k in ("id", "structure", "params"):
         if k not in data:
             raise ValueError(f"profil regulátoru nemá položku '{k}'")
-    roles = [p.get("role") for p in data["params"]]
-    if len(set(roles)) != len(roles) or not all(isinstance(r, str) for r in roles):
-        raise ValueError("role parametrů profilu musí být jedinečné")
+    if isinstance(data["params"], list) and all(isinstance(p, dict) for p in data["params"]):
+        roles = [p.get("role") for p in data["params"]]
+        if len(set(roles)) != len(roles) or not all(isinstance(r, str) for r in roles):
+            raise ValueError("role parametrů profilu musí být jedinečné")
     return data
 
 

@@ -18,8 +18,8 @@ from .models import (MODELS, DIST_PARAMS, DIST_STRUCTS, DIST_FIELDS, pd_full, pd
                      high_pass, spline_projector, dyn_scale, predict, predict_full, step_response)
 from .identification import (fit_model, auto_th, fit_with_stiction, flat_inputs, identify, model_metrics,
                              bootstrap_models, norm_factors, rescale_fit)
-from .robustness import loop_tf, is_stable, robustness, hf_gain, mv_noise
-from .controller import Controller, Profile
+from .robustness import loop_tf, is_stable, robustness, robustness_for, hf_gain, mv_noise
+from .controller import Controller, Profile, ideal_ctrl
 from .simulation import (ProcStep, PIDConL, Valve, valve_char_fn, pidconl_sim_full, pidconl_sim, cascade_sim,
                          LiveLoop, iae)
 from .tuning import (integ_gain, default_tc, tune, ff_gain, d_advice, optimize_migo, closed_loop_steps,

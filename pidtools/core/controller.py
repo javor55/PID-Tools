@@ -20,8 +20,9 @@ import math
 import numpy as np
 
 from ..controllers import load_preset, parse_profile
+from ..controllers.mapping import apply_reprs, role_reprs
 
-__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "preset_profile"]
+__all__ = ["Controller", "Profile", "REGISTRIES", "controller_from_preset", "ideal_ctrl", "preset_profile"]
 
 _INF = math.inf
 
@@ -194,6 +195,7 @@ class Profile:
         out = st.get("output", {})
         self.use_rate, self.use_zone = bool(out.get("rate_limit")), bool(out.get("control_zone"))
         self.use_sp_rate = bool(st.get("sp", {}).get("rate_limit"))
+        self.reprs = role_reprs(data)   # {role: varianta jednotky} (jen jiné než kanonické; `controllers.units`)
         self.params = []                # (klíč, role, výchozí, povinný, může být None, rozsah, alias)
         for p in data["params"]:
             self.params.append((p["key"], p["role"], _num(p.get("default")), bool(p.get("required")),
@@ -214,7 +216,15 @@ class Profile:
                     raise KeyError(key)
                 v = default
             out[role] = float(min(max(v, rng[0]), rng[1])) if rng is not None else v
+        for role, v in _ROLE_DEFAULTS.items():      # role, které profil nemá (např. bez váhy b), mají neutrální hodnotu
+            out.setdefault(role, v)
+        if self.reprs:                  # jednotky profilu (PB, min, opakování/min, Tf …) → kanonické (K, s, N)
+            out = apply_reprs(out, self.reprs, ctrl.get("_ranges"), "to_canon")
         return out
+
+
+_ROLE_DEFAULTS = dict(b=1.0, d_on_pv=False, deadband=0.0, deadband_mode="", mv_lo=-_INF, mv_hi=_INF, pv_filter=0.0,
+                      mv_rate=0.0, sp_rate=0.0, con_zone=0.0, N=5.0, Tf=0.0)
 
 
 def _num(v):
@@ -369,6 +379,22 @@ class Controller:
         self.I = self._aw(self.I, inc, u_un, u, self._k_aw)
         self.u = self.u_prev = u
         return u
+
+
+def ideal_ctrl(profile, ctrl):
+    """
+    Ekvivalentní ideální regulátor `dict(Gain, TI, TD, DiffGain)` k hodnotám profilu `ctrl` (forma, jednotky a filtr D
+    profilu už započtené; Tf = Td / DiffGain). Z něj počítá robustnost, šum a pravidla (`core.robustness`).
+    """
+    prof = profile if isinstance(profile, Profile) else Profile(profile)
+    P = prof.resolve(ctrl)
+    Kc, Ti, Td = prof.form_fn(*(P[r] for r in prof.tuning_roles))
+    Tf = prof.d_filter(P, Td)
+    if prof.d_filter is D_FILTERS.items["td_over_n"][0]:
+        dg = P.get("N", 5.0)                          # N přímo (bez zaokrouhlení Td / (Td / N))
+    else:
+        dg = Td / Tf if (Td > 0 and Tf > 0) else 1e12
+    return dict(Gain=Kc, TI=Ti if (Ti is not None and Ti > 0) else _INF, TD=Td, DiffGain=dg, SampleTime=P["Ts"], PVFilt=P.get("pv_filter") or 0.0)
 
 
 _profiles = {}
