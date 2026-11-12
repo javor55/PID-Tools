@@ -5,12 +5,14 @@ Ladění s obecným regulátorem (R2, docs/cs/regulatory.md § 6): pravidla i op
 Omezení: optimalizace pracuje nad kanonickými hodnotami a převádí se až výsledek (ne přímo nad parametry profilu);
 tam, kde profil kanonický tvar nepokrývá přesně (sériová forma pro Ti < 4·Td, chybějící váha b, filtr D, D jen z PV),
 vrací převod nejbližší proveditelný návrh, varování a robustnost skutečně použitelné sady (`Ms_mapped`).
-Přímá optimalizace nad parametry profilu (nelineární regulátory) přijde s dalšími funkcemi profilu (R3).
+U nelineárních profilů (R3: gap, nelineární zesílení, 3-step, PWM) se robustnost počítá na linearizované části a návrh
+má příznak `approximate`; pravidla pak dávají jen výchozí bod a rozhoduje simulace / optimalizace.
 """
 import math
 
 from .. import core
 from ..controllers import canonical_to_profile, profile_to_canonical
+from ..core.controller import nonlinear_parts
 from .tuning import suggest
 
 __all__ = ["canonical_ctrl", "profile_robustness", "profile_values", "suggest_for_profile", "to_canonical"]
@@ -42,14 +44,15 @@ def canonical_ctrl(profile, base, values, ranges=None):
 def suggest_for_profile(code, p, pdl, base_ctrl, req, profile, ranges=None, **kw):
     """
     Návrh jako `app.tuning.suggest` (kanonický Kc, Ti, Td, notes) rozšířený o `profile` (hodnoty parametrů profilu
-    v jeho jednotkách), `profile_warnings` a `Ms_mapped` (robustnost sady po převodu na profil a zpět).
+    v jeho jednotkách), `profile_warnings`, `Ms_mapped` (robustnost sady po převodu na profil a zpět) a `approximate`
+    (nelineární profil: Ms z linearizované části).
     """
     r = suggest(code, p, pdl, base_ctrl, req, **kw)
     m = profile_values(profile, r, base_ctrl.get("DiffGain", 5.0), ranges)
     ctrl = canonical_ctrl(profile, base_ctrl, m["values"], ranges)
     rb = core.robustness(code, p, ctrl)
     return dict(r, profile=m["values"], profile_warnings=m["warnings"], Ms_mapped=rb["Ms"] if rb["stable"] else None,
-                effective=m["effective"])
+                effective=m["effective"], approximate=bool(nonlinear_parts(profile)))
 
 
 def profile_robustness(profile, code, p, values, base=None, ranges=None):

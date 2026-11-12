@@ -15,7 +15,7 @@ import numpy as np
 
 from .. import core
 from ..controllers import canonical_to_profile, profile_to_canonical, validate_profile
-from ..core.controller import Controller, Profile, preset_profile
+from ..core.controller import Controller, Profile, nonlinear_parts, preset_profile
 from ..core.simulation import pidconl_sim_full
 
 __all__ = ["CHECKS", "run_check"]
@@ -191,6 +191,9 @@ def _gain_at(prof, vals, amp, period=40):
 
 def c_linearity(X):
     prof = X["prof"]
+    parts = nonlinear_parts(prof)
+    if parts:                       # strukturní nelinearity (gap, nelineární zesílení, 3-step / PWM na středním výstupu)
+        return _res("fail", "ctl_m_lin_parts", dict(parts=", ".join(parts)), "mapping", parts=parts)
     vals = _fill(prof, X["vals0"], lo=-1e6, hi=1e6)
     dev = 0.0
     for per in (20, 60):
@@ -252,8 +255,8 @@ def c_switching(X):
     c = Controller(X["prof"], X["vals"], TS)
     c.init(50.0, 50.0, 50.0)
     for k in range(30):
-        c.track(50.0 + 0.1 * k, 50.0 + 0.1 * k, 70.0)
-    jump = abs(c.step(52.9, 52.9) - 70.0)
+        last = c.track(50.0 + 0.1 * k, 50.0 + 0.1 * k, 70.0)       # u_man; s výstupním stupněm jeho ekvivalent
+    jump = abs(c.step(52.9, 52.9) - last)
     if not math.isfinite(jump) or jump > 1.0:
         return _res("fail", "ctl_m_sw_bad", dict(jump=jump), "critical")
     return _res("ok", "ctl_m_sw_ok", dict(jump=jump))
