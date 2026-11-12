@@ -106,3 +106,99 @@ console.log(JSON.stringify([before, after, out]));
     else:
         assert abs(after - before) < 0.3
     assert out - after == pytest.approx(3.0, abs=0.3)
+
+
+# ---------------------------------------------------------------- E9-B: regulátor z profilu, DV, FF, kaskáda
+CTRL_ENGINE = os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "ctrl_engine.js")
+PRESET = os.path.join(os.path.dirname(__file__), "..", "pidtools", "controllers", "presets", "pcs7_pidconl.json")
+
+
+def _node(body, **cfg):
+    script = f"""
+const E = require({json.dumps(os.path.abspath(ENGINE))});
+const CE = require({json.dumps(os.path.abspath(CTRL_ENGINE))});
+const prof = JSON.parse(require('fs').readFileSync({json.dumps(os.path.abspath(PRESET))}, 'utf8'));
+const cfg = {json.dumps(cfg)};
+{body}
+"""
+    r = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=60, check=True)
+    return np.array(json.loads(r.stdout))
+
+
+@pytest.mark.skipif(NODE is None, reason="Node.js není k dispozici")
+@pytest.mark.parametrize("case", list(CASES))
+def test_live_on_profile_engine_equals_previous_engine(case):
+    """Živá simulace na ctrl_engine.js s profilem PIDConL = předchozí live_engine.js (MAN / AUTO, změna ladění,
+    stikce, charakteristika ventilu), odchylka < 1e-9."""
+    code, p = CASES[case]
+    ctrl = dict(CTRL)
+    if code in ("I0D", "I1D"):
+        ctrl.update(Gain=4.0, TI=200.0)
+    steps = _scenario(1200)
+    body = """
+const mk = (opts) => new E.LiveLoop(cfg.code, cfg.p, cfg.ctrl, cfg.h, 50, 50, cfg.plant, opts);
+const A = mk(), B = mk({profile: prof, engine: CE});
+const out = [];
+for (const [sp, auto, um, d, tune] of cfg.steps) {
+  if (tune) { A.setTuning(tune); B.setTuning(tune); }
+  out.push(A.tick(sp, auto, um, d).concat(B.tick(sp, auto, um, d)));
+}
+console.log(JSON.stringify(out));
+"""
+    r = _node(body, code=code, p=p, ctrl=ctrl, plant=PLANT, h=0.25, steps=steps)
+    assert np.max(np.abs(r[:, :5] - r[:, 5:])) < 1e-9
+
+
+@pytest.mark.skipif(NODE is None, reason="Node.js není k dispozici")
+def test_live_dv_and_feedforward_match_python():
+    """Měřená porucha přes přenos DV→PV a dopředná vazba (lead-lag + zpoždění) = pidconl_sim_full s profilem."""
+    from pidtools.core import pidconl_sim_full
+    code, p = "P1D", [1.2, 40.0, 6.0]
+    h, n = 0.25, 1600
+    pdl = [[0.8, 15.0, 4.0], [0.5, 30.0, 2.0, 2, 5.0]]
+    ff, ffll = [-0.6, 0.0], [(12.0, 6.0, 3.0), (0.0, 0.0, 0.0)]
+    t = np.arange(n) * h
+    d1 = np.where(t > 30, 2.0, 0.0)
+    d2 = 0.5 * np.sin(t / 25.0) * (t > 60)
+    ctrl = dict(CTRL, FF=ff, FF_LL=ffll)
+    sp = np.where(np.arange(n) < 600, 50.0, 53.0)
+    with open(PRESET, encoding="utf-8") as f:
+        prof = json.load(f)
+    ref = pidconl_sim_full(code, p, pdl, h, sp, 50.0, 50.0, ctrl, [d1, d2], profile=prof)
+    body = """
+const L = new E.LiveLoop(cfg.code, cfg.p, cfg.ctrl, cfg.h, 50, 50, {}, {profile: prof, engine: CE, ff: true,
+  dvs: cfg.pdl.map((pd, j) => ({pd, ff: {g: cfg.ff[j], lead: cfg.ffll[j][0], lag: cfg.ffll[j][1], delay: cfg.ffll[j][2]}}))});
+const out = [];
+for (let k = 0; k < cfg.sp.length; k++) out.push(L.tick(cfg.sp[k], true, 50, 0, 0, [cfg.d1[k], cfg.d2[k]]));
+console.log(JSON.stringify(out));
+"""
+    ctrl_js = {k: v for k, v in ctrl.items() if k not in ("FF", "FF_LL")}
+    r = _node(body, code=code, p=p, ctrl=ctrl_js, h=h, pdl=pdl, ff=ff, ffll=ffll, sp=sp.tolist(), d1=d1.tolist(),
+              d2=d2.tolist())
+    assert np.max(np.abs(r[:, 2] - ref["PV"])) < 1e-9
+    assert np.max(np.abs(r[:, 3] - ref["MV"])) < 1e-9
+
+
+@pytest.mark.skipif(NODE is None, reason="Node.js není k dispozici")
+def test_live_cascade_matches_core_cascade_sim():
+    from pidtools.core import cascade_sim
+    inner, outer = ("P1D", [1.0, 6.0, 1.0]), ("P1D", [1.5, 40.0, 5.0])
+    ictrl = dict(Gain=1.4, TI=7.0, TD=0.0, DiffGain=5.0, SampleTime=0.5, MV_Lo=0.0, MV_Hi=100.0, PropFacSP=1.0,
+                 DiffFbk=True)
+    octrl = dict(Gain=0.9, TI=45.0, TD=0.0, DiffGain=5.0, SampleTime=1.0, MV_Lo=0.0, MV_Hi=100.0, PropFacSP=1.0,
+                 DiffFbk=True)
+    h, n = 0.25, 2400
+    t = np.arange(n) * h
+    sp = np.where(t > 20, 55.0, 50.0)
+    d_i = np.where(t > 250, 5.0, 0.0)
+    _, ref = cascade_sim(inner, ictrl, outer, octrl, h, sp, d_i, np.zeros(n))
+    body = """
+const L = new E.CascadeLoop(cfg.outer[0], cfg.outer[1], cfg.octrl, cfg.h, 50, 50, {}, {profile: prof, engine: CE,
+  inner: {code: cfg.inner[0], p: cfg.inner[1], ctrl: cfg.ictrl}});
+const out = [];
+for (let k = 0; k < cfg.sp.length; k++) out.push(L.tick(cfg.sp[k], true, 50, cfg.di[k], 0, []));
+console.log(JSON.stringify(out));
+"""
+    r = _node(body, inner=inner, outer=outer, ictrl=ictrl, octrl=octrl, h=h, sp=sp.tolist(), di=d_i.tolist())
+    assert np.max(np.abs(r[:, 2] - ref[:, 1])) < 1e-9
+    assert np.max(np.abs(r[:, 3] - ref[:, 4])) < 1e-9

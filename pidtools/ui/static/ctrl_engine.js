@@ -277,7 +277,16 @@
     this._cz = (cz > 0 && isFinite(lo) && isFinite(hi)) ? cz : 0.0;
   };
   Controller.prototype._setGains = function (a, b, c) {
-    var g = this.profile.formFn(a, b, c), Kc = g[0], Ti = g[1], Td = g[2], Tc = this.Tc;
+    var g = this.profile.formFn(a, b, c);
+    this._setIdeal(g[0], g[1], g[2]);
+  };
+  Controller.prototype.setIdeal = function (Kc, Ti, Td) {     // ladění kanonickým (ideálním) PID bez ohledu na formu profilu
+    var e = this._err(), pOld = this._pTerm(e);
+    this._setIdeal(Kc, Ti, Td);
+    this.I += pOld - this._pTerm(e);
+  };
+  Controller.prototype._setIdeal = function (Kc, Ti, Td) {
+    var Tc = this.Tc;
     this.Kc = Kc; this.Ti = Ti; this.Td = Td;
     this.useI = Ti !== null && Ti !== undefined && isFinite(Ti) && Ti > 0;
     var Tf = this.Tf = this.profile.dFilter(this._params, Td);
