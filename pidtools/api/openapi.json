@@ -14,179 +14,7 @@
     "title": "Active",
     "type": "object"
    },
-   "AppSettings-Input": {
-    "description": "Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).",
-    "properties": {
-     "appearance": {
-      "$ref": "#/components/schemas/Appearance",
-      "default": {
-       "font_size": "m",
-       "language": "",
-       "theme": "system"
-      }
-     },
-     "charts": {
-      "$ref": "#/components/schemas/Charts",
-      "default": {
-       "decimal": "auto",
-       "gain_view": "kc",
-       "height": 300,
-       "ti_unit": "s",
-       "time_unit": "auto"
-      }
-     },
-     "connections": {
-      "$ref": "#/components/schemas/Connections",
-      "default": {
-       "historians": {
-        "deltav": "",
-        "pcs7": "",
-        "pi": ""
-       },
-       "opc": []
-      }
-     },
-     "controller_tests": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/TestMemo"
-      },
-      "default": {},
-      "title": "Controller Tests",
-      "type": "object"
-     },
-     "defaults": {
-      "$ref": "#/components/schemas/Defaults",
-      "default": {
-       "controller": "pcs7_pidconl",
-       "sim": {
-        "ctype": "PI",
-        "opt_ms": 1.6,
-        "opt_ovs": 2,
-        "opt_robust": false
-       }
-      }
-     },
-     "diagnostics": {
-      "$ref": "#/components/schemas/Diagnostics-Input",
-      "default": {
-       "thresholds": {}
-      }
-     },
-     "general": {
-      "$ref": "#/components/schemas/General",
-      "default": {
-       "autosave_min": 1,
-       "embed_data": true
-      }
-     },
-     "journal": {
-      "$ref": "#/components/schemas/Journal",
-      "default": {
-       "author": "",
-       "require_note": false
-      }
-     },
-     "report": {
-      "$ref": "#/components/schemas/Report",
-      "default": {
-       "company": "",
-       "footer": "",
-       "header": "",
-       "language": "app",
-       "logo": ""
-      }
-     }
-    },
-    "title": "AppSettings",
-    "type": "object"
-   },
-   "AppSettings-Output": {
-    "description": "Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).",
-    "properties": {
-     "appearance": {
-      "$ref": "#/components/schemas/Appearance",
-      "default": {
-       "font_size": "m",
-       "language": "",
-       "theme": "system"
-      }
-     },
-     "charts": {
-      "$ref": "#/components/schemas/Charts",
-      "default": {
-       "decimal": "auto",
-       "gain_view": "kc",
-       "height": 300,
-       "ti_unit": "s",
-       "time_unit": "auto"
-      }
-     },
-     "connections": {
-      "$ref": "#/components/schemas/Connections",
-      "default": {
-       "historians": {
-        "deltav": "",
-        "pcs7": "",
-        "pi": ""
-       },
-       "opc": []
-      }
-     },
-     "controller_tests": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/TestMemo"
-      },
-      "default": {},
-      "title": "Controller Tests",
-      "type": "object"
-     },
-     "defaults": {
-      "$ref": "#/components/schemas/Defaults",
-      "default": {
-       "controller": "pcs7_pidconl",
-       "sim": {
-        "ctype": "PI",
-        "opt_ms": 1.6,
-        "opt_ovs": 2,
-        "opt_robust": false
-       }
-      }
-     },
-     "diagnostics": {
-      "$ref": "#/components/schemas/pidtools__api__appsettings__Diagnostics",
-      "default": {
-       "thresholds": {}
-      }
-     },
-     "general": {
-      "$ref": "#/components/schemas/General",
-      "default": {
-       "autosave_min": 1,
-       "embed_data": true
-      }
-     },
-     "journal": {
-      "$ref": "#/components/schemas/Journal",
-      "default": {
-       "author": "",
-       "require_note": false
-      }
-     },
-     "report": {
-      "$ref": "#/components/schemas/Report",
-      "default": {
-       "company": "",
-       "footer": "",
-       "header": "",
-       "language": "app",
-       "logo": ""
-      }
-     }
-    },
-    "title": "AppSettings",
-    "type": "object"
-   },
-   "Appearance": {
+   "AppAppearance": {
     "properties": {
      "font_size": {
       "default": "m",
@@ -210,8 +38,9 @@
       "type": "string"
      },
      "theme": {
-      "default": "system",
+      "default": "",
       "enum": [
+       "",
        "system",
        "light",
        "dark"
@@ -220,7 +49,396 @@
       "type": "string"
      }
     },
-    "title": "Appearance",
+    "title": "AppAppearance",
+    "type": "object"
+   },
+   "AppCharts": {
+    "properties": {
+     "decimal": {
+      "default": "auto",
+      "enum": [
+       "auto",
+       "comma",
+       "dot"
+      ],
+      "title": "Decimal",
+      "type": "string"
+     },
+     "gain_view": {
+      "default": "kc",
+      "enum": [
+       "kc",
+       "pb"
+      ],
+      "title": "Gain View",
+      "type": "string"
+     },
+     "height": {
+      "default": 220,
+      "maximum": 1000.0,
+      "minimum": 120.0,
+      "title": "Height",
+      "type": "integer"
+     },
+     "ti_unit": {
+      "default": "s",
+      "enum": [
+       "s",
+       "min"
+      ],
+      "title": "Ti Unit",
+      "type": "string"
+     },
+     "time_unit": {
+      "default": "auto",
+      "enum": [
+       "auto",
+       "s",
+       "min",
+       "h",
+       "clock"
+      ],
+      "title": "Time Unit",
+      "type": "string"
+     }
+    },
+    "title": "AppCharts",
+    "type": "object"
+   },
+   "AppConnections": {
+    "properties": {
+     "historians": {
+      "$ref": "#/components/schemas/AppHistorians",
+      "default": {
+       "deltav": "",
+       "pcs7": "",
+       "pi": ""
+      }
+     },
+     "opc": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/AppOpcServer"
+      },
+      "title": "Opc",
+      "type": "array"
+     }
+    },
+    "title": "AppConnections",
+    "type": "object"
+   },
+   "AppDefaults": {
+    "properties": {
+     "controller": {
+      "default": "pcs7_pidconl",
+      "title": "Controller",
+      "type": "string"
+     },
+     "sim": {
+      "$ref": "#/components/schemas/AppSimDefaults",
+      "default": {
+       "ctype": "PI",
+       "opt_ms": 1.6,
+       "opt_ovs": 2,
+       "opt_robust": false
+      }
+     }
+    },
+    "title": "AppDefaults",
+    "type": "object"
+   },
+   "AppDiagnostics": {
+    "properties": {
+     "thresholds": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "type": "number"
+       },
+       "type": "object"
+      },
+      "default": {},
+      "title": "Thresholds",
+      "type": "object"
+     }
+    },
+    "title": "AppDiagnostics",
+    "type": "object"
+   },
+   "AppGeneral": {
+    "properties": {
+     "autosave_min": {
+      "default": 1,
+      "enum": [
+       0,
+       1,
+       5,
+       15,
+       30
+      ],
+      "title": "Autosave Min",
+      "type": "integer"
+     },
+     "embed_data": {
+      "default": true,
+      "title": "Embed Data",
+      "type": "boolean"
+     }
+    },
+    "title": "AppGeneral",
+    "type": "object"
+   },
+   "AppHistorians": {
+    "properties": {
+     "deltav": {
+      "default": "",
+      "title": "Deltav",
+      "type": "string"
+     },
+     "pcs7": {
+      "default": "",
+      "title": "Pcs7",
+      "type": "string"
+     },
+     "pi": {
+      "default": "",
+      "title": "Pi",
+      "type": "string"
+     }
+    },
+    "title": "AppHistorians",
+    "type": "object"
+   },
+   "AppJournal": {
+    "properties": {
+     "author": {
+      "default": "",
+      "maxLength": 80,
+      "title": "Author",
+      "type": "string"
+     },
+     "require_note": {
+      "default": false,
+      "title": "Require Note",
+      "type": "boolean"
+     }
+    },
+    "title": "AppJournal",
+    "type": "object"
+   },
+   "AppOpcServer": {
+    "properties": {
+     "name": {
+      "maxLength": 80,
+      "title": "Name",
+      "type": "string"
+     },
+     "url": {
+      "maxLength": 300,
+      "title": "Url",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "url"
+    ],
+    "title": "AppOpcServer",
+    "type": "object"
+   },
+   "AppReport": {
+    "properties": {
+     "company": {
+      "default": "",
+      "maxLength": 120,
+      "title": "Company",
+      "type": "string"
+     },
+     "footer": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Footer",
+      "type": "string"
+     },
+     "header": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Header",
+      "type": "string"
+     },
+     "language": {
+      "default": "app",
+      "enum": [
+       "app",
+       "cs",
+       "en"
+      ],
+      "title": "Language",
+      "type": "string"
+     },
+     "logo": {
+      "default": "",
+      "title": "Logo",
+      "type": "string"
+     }
+    },
+    "title": "AppReport",
+    "type": "object"
+   },
+   "AppSettings": {
+    "description": "Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).",
+    "properties": {
+     "appearance": {
+      "$ref": "#/components/schemas/AppAppearance",
+      "default": {
+       "font_size": "m",
+       "language": "",
+       "theme": ""
+      }
+     },
+     "charts": {
+      "$ref": "#/components/schemas/AppCharts",
+      "default": {
+       "decimal": "auto",
+       "gain_view": "kc",
+       "height": 220,
+       "ti_unit": "s",
+       "time_unit": "auto"
+      }
+     },
+     "connections": {
+      "$ref": "#/components/schemas/AppConnections",
+      "default": {
+       "historians": {
+        "deltav": "",
+        "pcs7": "",
+        "pi": ""
+       },
+       "opc": []
+      }
+     },
+     "controller_tests": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/AppTestMemo"
+      },
+      "default": {},
+      "title": "Controller Tests",
+      "type": "object"
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/AppDefaults",
+      "default": {
+       "controller": "pcs7_pidconl",
+       "sim": {
+        "ctype": "PI",
+        "opt_ms": 1.6,
+        "opt_ovs": 2,
+        "opt_robust": false
+       }
+      }
+     },
+     "diagnostics": {
+      "$ref": "#/components/schemas/AppDiagnostics",
+      "default": {
+       "thresholds": {}
+      }
+     },
+     "general": {
+      "$ref": "#/components/schemas/AppGeneral",
+      "default": {
+       "autosave_min": 1,
+       "embed_data": true
+      }
+     },
+     "journal": {
+      "$ref": "#/components/schemas/AppJournal",
+      "default": {
+       "author": "",
+       "require_note": false
+      }
+     },
+     "report": {
+      "$ref": "#/components/schemas/AppReport",
+      "default": {
+       "company": "",
+       "footer": "",
+       "header": "",
+       "language": "app",
+       "logo": ""
+      }
+     }
+    },
+    "title": "AppSettings",
+    "type": "object"
+   },
+   "AppSimDefaults": {
+    "properties": {
+     "ctype": {
+      "default": "PI",
+      "enum": [
+       "PI",
+       "PID",
+       "PD"
+      ],
+      "title": "Ctype",
+      "type": "string"
+     },
+     "opt_ms": {
+      "default": 1.6,
+      "maximum": 2.5,
+      "minimum": 1.1,
+      "title": "Opt Ms",
+      "type": "number"
+     },
+     "opt_ovs": {
+      "default": 2,
+      "maximum": 50.0,
+      "minimum": 0.0,
+      "title": "Opt Ovs",
+      "type": "integer"
+     },
+     "opt_robust": {
+      "default": false,
+      "title": "Opt Robust",
+      "type": "boolean"
+     }
+    },
+    "title": "AppSimDefaults",
+    "type": "object"
+   },
+   "AppTestMemo": {
+    "properties": {
+     "at": {
+      "default": "",
+      "title": "At",
+      "type": "string"
+     },
+     "fail": {
+      "default": 0,
+      "title": "Fail",
+      "type": "integer"
+     },
+     "ok": {
+      "default": 0,
+      "title": "Ok",
+      "type": "integer"
+     },
+     "text": {
+      "default": "",
+      "title": "Text",
+      "type": "string"
+     },
+     "verdict": {
+      "default": "",
+      "title": "Verdict",
+      "type": "string"
+     },
+     "warn": {
+      "default": 0,
+      "title": "Warn",
+      "type": "integer"
+     }
+    },
+    "title": "AppTestMemo",
     "type": "object"
    },
    "Audit": {
@@ -1197,59 +1415,6 @@
     "title": "CascadeSim",
     "type": "object"
    },
-   "Charts": {
-    "properties": {
-     "decimal": {
-      "default": "auto",
-      "enum": [
-       "auto",
-       "comma",
-       "dot"
-      ],
-      "title": "Decimal",
-      "type": "string"
-     },
-     "gain_view": {
-      "default": "kc",
-      "enum": [
-       "kc",
-       "pb"
-      ],
-      "title": "Gain View",
-      "type": "string"
-     },
-     "height": {
-      "default": 300,
-      "maximum": 1000.0,
-      "minimum": 120.0,
-      "title": "Height",
-      "type": "integer"
-     },
-     "ti_unit": {
-      "default": "s",
-      "enum": [
-       "s",
-       "min"
-      ],
-      "title": "Ti Unit",
-      "type": "string"
-     },
-     "time_unit": {
-      "default": "auto",
-      "enum": [
-       "auto",
-       "s",
-       "min",
-       "h",
-       "clock"
-      ],
-      "title": "Time Unit",
-      "type": "string"
-     }
-    },
-    "title": "Charts",
-    "type": "object"
-   },
    "CheckItem": {
     "properties": {
      "id": {
@@ -1581,28 +1746,6 @@
      "warnings"
     ],
     "title": "CompileResult",
-    "type": "object"
-   },
-   "Connections": {
-    "properties": {
-     "historians": {
-      "$ref": "#/components/schemas/Historians",
-      "default": {
-       "deltav": "",
-       "pcs7": "",
-       "pi": ""
-      }
-     },
-     "opc": {
-      "default": [],
-      "items": {
-       "$ref": "#/components/schemas/OpcServer"
-      },
-      "title": "Opc",
-      "type": "array"
-     }
-    },
-    "title": "Connections",
     "type": "object"
    },
    "ControllerParam": {
@@ -2154,40 +2297,75 @@
     "title": "DecSimReq",
     "type": "object"
    },
-   "Defaults": {
+   "Diagnostics": {
     "properties": {
-     "controller": {
-      "default": "pcs7_pidconl",
-      "title": "Controller",
-      "type": "string"
+     "a": {
+      "title": "A",
+      "type": "number"
      },
-     "sim": {
-      "$ref": "#/components/schemas/SimDefaults",
-      "default": {
-       "ctype": "PI",
-       "opt_ms": 1.6,
-       "opt_ovs": 2,
-       "opt_robust": false
-      }
-     }
-    },
-    "title": "Defaults",
-    "type": "object"
-   },
-   "Diagnostics-Input": {
-    "properties": {
-     "thresholds": {
-      "additionalProperties": {
-       "additionalProperties": {
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "hysteresis": {
+      "anyOf": [
+       {
         "type": "number"
        },
-       "type": "object"
-      },
-      "default": {},
-      "title": "Thresholds",
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hysteresis"
+     },
+     "integ": {
+      "title": "Integ",
+      "type": "boolean"
+     },
+     "kpis": {
+      "additionalProperties": true,
+      "title": "Kpis",
+      "type": "object"
+     },
+     "nonlinearity": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nonlinearity"
+     },
+     "phase": {
+      "$ref": "#/components/schemas/Scatter"
+     },
+     "position": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Scatter"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "valve": {
+      "additionalProperties": true,
+      "title": "Valve",
       "type": "object"
      }
     },
+    "required": [
+     "a",
+     "b",
+     "integ",
+     "kpis",
+     "valve",
+     "phase"
+    ],
     "title": "Diagnostics",
     "type": "object"
    },
@@ -2910,29 +3088,6 @@
      "im"
     ],
     "title": "FreqSet",
-    "type": "object"
-   },
-   "General": {
-    "properties": {
-     "autosave_min": {
-      "default": 1,
-      "enum": [
-       0,
-       1,
-       5,
-       15,
-       30
-      ],
-      "title": "Autosave Min",
-      "type": "integer"
-     },
-     "embed_data": {
-      "default": true,
-      "title": "Embed Data",
-      "type": "boolean"
-     }
-    },
-    "title": "General",
     "type": "object"
    },
    "GeneralRow": {
@@ -3698,27 +3853,6 @@
     "title": "Health",
     "type": "object"
    },
-   "Historians": {
-    "properties": {
-     "deltav": {
-      "default": "",
-      "title": "Deltav",
-      "type": "string"
-     },
-     "pcs7": {
-      "default": "",
-      "title": "Pcs7",
-      "type": "string"
-     },
-     "pi": {
-      "default": "",
-      "title": "Pi",
-      "type": "string"
-     }
-    },
-    "title": "Historians",
-    "type": "object"
-   },
    "History": {
     "properties": {
      "end": {
@@ -3848,23 +3982,6 @@
      "created"
     ],
     "title": "JobInfo",
-    "type": "object"
-   },
-   "Journal": {
-    "properties": {
-     "author": {
-      "default": "",
-      "maxLength": 80,
-      "title": "Author",
-      "type": "string"
-     },
-     "require_note": {
-      "default": false,
-      "title": "Require Note",
-      "type": "boolean"
-     }
-    },
-    "title": "Journal",
     "type": "object"
    },
    "Layout": {
@@ -5316,26 +5433,6 @@
     "title": "Note",
     "type": "object"
    },
-   "OpcServer": {
-    "properties": {
-     "name": {
-      "maxLength": 80,
-      "title": "Name",
-      "type": "string"
-     },
-     "url": {
-      "maxLength": 300,
-      "title": "Url",
-      "type": "string"
-     }
-    },
-    "required": [
-     "name",
-     "url"
-    ],
-    "title": "OpcServer",
-    "type": "object"
-   },
    "OvDefaults": {
     "properties": {
      "lim": {
@@ -6351,45 +6448,6 @@
     "title": "Refit",
     "type": "object"
    },
-   "Report": {
-    "properties": {
-     "company": {
-      "default": "",
-      "maxLength": 120,
-      "title": "Company",
-      "type": "string"
-     },
-     "footer": {
-      "default": "",
-      "maxLength": 300,
-      "title": "Footer",
-      "type": "string"
-     },
-     "header": {
-      "default": "",
-      "maxLength": 300,
-      "title": "Header",
-      "type": "string"
-     },
-     "language": {
-      "default": "app",
-      "enum": [
-       "app",
-       "cs",
-       "en"
-      ],
-      "title": "Language",
-      "type": "string"
-     },
-     "logo": {
-      "default": "",
-      "title": "Logo",
-      "type": "string"
-     }
-    },
-    "title": "Report",
-    "type": "object"
-   },
    "ReportReq": {
     "properties": {
      "chart_mode": {
@@ -7191,41 +7249,6 @@
      }
     },
     "title": "SignalStats",
-    "type": "object"
-   },
-   "SimDefaults": {
-    "properties": {
-     "ctype": {
-      "default": "PI",
-      "enum": [
-       "PI",
-       "PID",
-       "PD"
-      ],
-      "title": "Ctype",
-      "type": "string"
-     },
-     "opt_ms": {
-      "default": 1.6,
-      "maximum": 2.5,
-      "minimum": 1.1,
-      "title": "Opt Ms",
-      "type": "number"
-     },
-     "opt_ovs": {
-      "default": 2,
-      "maximum": 50.0,
-      "minimum": 0.0,
-      "title": "Opt Ovs",
-      "type": "integer"
-     },
-     "opt_robust": {
-      "default": false,
-      "title": "Opt Robust",
-      "type": "boolean"
-     }
-    },
-    "title": "SimDefaults",
     "type": "object"
    },
    "SimInfo": {
@@ -8652,42 +8675,6 @@
     "title": "Suggestions",
     "type": "object"
    },
-   "TestMemo": {
-    "properties": {
-     "at": {
-      "default": "",
-      "title": "At",
-      "type": "string"
-     },
-     "fail": {
-      "default": 0,
-      "title": "Fail",
-      "type": "integer"
-     },
-     "ok": {
-      "default": 0,
-      "title": "Ok",
-      "type": "integer"
-     },
-     "text": {
-      "default": "",
-      "title": "Text",
-      "type": "string"
-     },
-     "verdict": {
-      "default": "",
-      "title": "Verdict",
-      "type": "string"
-     },
-     "warn": {
-      "default": 0,
-      "title": "Warn",
-      "type": "integer"
-     }
-    },
-    "title": "TestMemo",
-    "type": "object"
-   },
    "ThresholdInfo": {
     "properties": {
      "default": {
@@ -10054,78 +10041,6 @@
     "title": "WriteSet",
     "type": "object"
    },
-   "pidtools__api__analysis__Diagnostics": {
-    "properties": {
-     "a": {
-      "title": "A",
-      "type": "number"
-     },
-     "b": {
-      "title": "B",
-      "type": "number"
-     },
-     "hysteresis": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Hysteresis"
-     },
-     "integ": {
-      "title": "Integ",
-      "type": "boolean"
-     },
-     "kpis": {
-      "additionalProperties": true,
-      "title": "Kpis",
-      "type": "object"
-     },
-     "nonlinearity": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Nonlinearity"
-     },
-     "phase": {
-      "$ref": "#/components/schemas/Scatter"
-     },
-     "position": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/Scatter"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "valve": {
-      "additionalProperties": true,
-      "title": "Valve",
-      "type": "object"
-     }
-    },
-    "required": [
-     "a",
-     "b",
-     "integ",
-     "kpis",
-     "valve",
-     "phase"
-    ],
-    "title": "Diagnostics",
-    "type": "object"
-   },
    "pidtools__api__apc_more__Check": {
     "description": "Položka kontrolního seznamu struktury (app.guides): True splněno, False chybí, None připomínka.",
     "properties": {
@@ -10161,23 +10076,6 @@
      "text"
     ],
     "title": "Check",
-    "type": "object"
-   },
-   "pidtools__api__appsettings__Diagnostics": {
-    "properties": {
-     "thresholds": {
-      "additionalProperties": {
-       "additionalProperties": {
-        "type": "number"
-       },
-       "type": "object"
-      },
-      "default": {},
-      "title": "Thresholds",
-      "type": "object"
-     }
-    },
-    "title": "Diagnostics",
     "type": "object"
    },
    "pidtools__api__data__Check": {
@@ -10275,7 +10173,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/AppSettings-Output"
+         "$ref": "#/components/schemas/AppSettings"
         }
        }
       },
@@ -10339,7 +10237,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/AppSettings-Output"
+         "$ref": "#/components/schemas/AppSettings"
         }
        }
       },
@@ -10402,7 +10300,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/AppSettings-Input"
+        "$ref": "#/components/schemas/AppSettings"
        }
       }
      },
@@ -10413,7 +10311,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/AppSettings-Output"
+         "$ref": "#/components/schemas/AppSettings"
         }
        }
       },
@@ -10621,7 +10519,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/AppSettings-Output"
+         "$ref": "#/components/schemas/AppSettings"
         }
        }
       },
@@ -10686,7 +10584,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/AppSettings-Output"
+         "$ref": "#/components/schemas/AppSettings"
         }
        }
       },
@@ -10834,7 +10732,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/AppSettings-Output"
+         "$ref": "#/components/schemas/AppSettings"
         }
        }
       },
@@ -10911,6 +10809,7 @@
     },
     "summary": "Drop Autosave",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -10977,6 +10876,7 @@
     },
     "summary": "Latest",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -12691,6 +12591,7 @@
     },
     "summary": "Recent",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -12758,6 +12659,7 @@
     },
     "summary": "Drop Recent",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -17101,6 +17003,7 @@
     },
     "summary": "Autosave",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -17176,6 +17079,7 @@
     },
     "summary": "Restore",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -17575,6 +17479,94 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/data/example": {
+   "post": {
+    "description": "Ukázková data k technice APC (CSV dodané s aplikací) jako nový projekt.",
+    "operationId": "load_example_api_v1_workspaces__wid__data_example_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "description": "example data set: ff = feedforward (APC)",
+      "in": "query",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "const": "ff",
+       "description": "example data set: ff = feedforward (APC)",
+       "title": "Name",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Load Example",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/data/file": {
    "post": {
     "description": "Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`.",
@@ -17926,7 +17918,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/pidtools__api__analysis__Diagnostics"
+         "$ref": "#/components/schemas/Diagnostics"
         }
        }
       },
@@ -21406,6 +21398,7 @@
     },
     "summary": "Open Recent",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }
@@ -21561,6 +21554,7 @@
     },
     "summary": "Save State",
     "tags": [
+     "app-settings",
      "app-settings"
     ]
    }

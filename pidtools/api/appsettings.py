@@ -7,6 +7,7 @@ se naposledy uložil; `/workspaces/{wid}/autosave` zapíše záchrannou kopii do
 `/autosave/latest` + `/workspaces/{wid}/autosave/restore`), `/recent` je seznam naposledy uložených / otevřených projektů.
 """
 import json
+import os
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
@@ -19,53 +20,56 @@ from ..app import triage as tri
 from ..app.autosave import UserData
 from ..controllers import Library
 from . import deploy
+from ..app.dataio import read_table
 from .data import WorkspaceInfo, info
 from .triage import ThresholdInfo
 
 MAX_SETTINGS = 2 ** 20
+EXAMPLES = {"ff": "apc_ff_example.csv"}                    # ukázky k datům kromě `/data/demo` (soubory v pidtools/assets/examples)
+EXAMPLES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "examples")
 
 
-class General(BaseModel):
+class AppGeneral(BaseModel):
     autosave_min: Literal[0, 1, 5, 15, 30] = 1
     embed_data: bool = True
 
 
-class Appearance(BaseModel):
+class AppAppearance(BaseModel):
     language: Literal["", "cs", "en"] = ""
-    theme: Literal["system", "light", "dark"] = "system"
+    theme: Literal["", "system", "light", "dark"] = ""
     font_size: Literal["s", "m", "l", "xl"] = "m"
 
 
-class Charts(BaseModel):
-    height: int = Field(300, ge=120, le=1000)
+class AppCharts(BaseModel):
+    height: int = Field(220, ge=120, le=1000)
     time_unit: Literal["auto", "s", "min", "h", "clock"] = "auto"
     decimal: Literal["auto", "comma", "dot"] = "auto"
     ti_unit: Literal["s", "min"] = "s"
     gain_view: Literal["kc", "pb"] = "kc"
 
 
-class Diagnostics(BaseModel):
+class AppDiagnostics(BaseModel):
     thresholds: dict[str, dict[str, float]] = {}
 
 
-class SimDefaults(BaseModel):
+class AppSimDefaults(BaseModel):
     ctype: Literal["PI", "PID", "PD"] = "PI"
     opt_ms: float = Field(1.6, ge=1.1, le=2.5)
     opt_ovs: int = Field(2, ge=0, le=50)
     opt_robust: bool = False
 
 
-class Defaults(BaseModel):
+class AppDefaults(BaseModel):
     controller: str = "pcs7_pidconl"
-    sim: SimDefaults = SimDefaults()
+    sim: AppSimDefaults = AppSimDefaults()
 
 
-class Journal(BaseModel):
+class AppJournal(BaseModel):
     author: str = Field("", max_length=80)
     require_note: bool = False
 
 
-class Report(BaseModel):
+class AppReport(BaseModel):
     company: str = Field("", max_length=120)
     language: Literal["app", "cs", "en"] = "app"
     header: str = Field("", max_length=300)
@@ -73,23 +77,23 @@ class Report(BaseModel):
     logo: str = ""                                        # název souboru loga (nahrává se zvlášť), prázdné = bez loga
 
 
-class OpcServer(BaseModel):
+class AppOpcServer(BaseModel):
     name: str = Field(max_length=80)
     url: str = Field(max_length=300)
 
 
-class Historians(BaseModel):
+class AppHistorians(BaseModel):
     pcs7: str = ""
     deltav: str = ""
     pi: str = ""
 
 
-class Connections(BaseModel):
-    opc: list[OpcServer] = []
-    historians: Historians = Historians()
+class AppConnections(BaseModel):
+    opc: list[AppOpcServer] = []
+    historians: AppHistorians = AppHistorians()
 
 
-class TestMemo(BaseModel):
+class AppTestMemo(BaseModel):
     verdict: str = ""
     text: str = ""
     ok: int = 0
@@ -100,15 +104,15 @@ class TestMemo(BaseModel):
 
 class AppSettings(BaseModel):
     """Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`)."""
-    general: General = General()
-    appearance: Appearance = Appearance()
-    charts: Charts = Charts()
-    diagnostics: Diagnostics = Diagnostics()
-    defaults: Defaults = Defaults()
-    journal: Journal = Journal()
-    report: Report = Report()
-    connections: Connections = Connections()
-    controller_tests: dict[str, TestMemo] = {}            # poslední výsledek testu použitelnosti profilu
+    general: AppGeneral = AppGeneral()
+    appearance: AppAppearance = AppAppearance()
+    charts: AppCharts = AppCharts()
+    diagnostics: AppDiagnostics = AppDiagnostics()
+    defaults: AppDefaults = AppDefaults()
+    journal: AppJournal = AppJournal()
+    report: AppReport = AppReport()
+    connections: AppConnections = AppConnections()
+    controller_tests: dict[str, AppTestMemo] = {}            # poslední výsledek testu použitelnosti profilu
 
 
 class SaveState(BaseModel):
@@ -232,7 +236,17 @@ def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library):
     def delete_logo():
         return out(store.drop_logo(user()))
 
-    # ---- uložení, záchranná kopie, nedávné projekty
+    r.include_router(save_router(get_proj, data))
+    return r
+
+
+def save_router(get_proj, data: UserData):
+    """Stav uložení, záchranná kopie, nedávné projekty a ukázková data."""
+    r = APIRouter(tags=["app-settings"])
+
+    def user():
+        return deploy.USER.get()
+
     @r.get("/workspaces/{wid}/save-state", response_model=SaveState)
     def save_state(wid: str):
         p = get_proj(wid)
@@ -281,6 +295,15 @@ def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library):
         get_proj(wid).saved_rev = -1                      # neuloženo – záchranná kopie není soubor projektu
         return res
 
+    @r.post("/workspaces/{wid}/data/example", response_model=WorkspaceInfo)
+    def load_example(wid: str, name: Literal["ff"] = Query(description="example data set: ff = feedforward (APC)")):
+        """Ukázková data k technice APC (CSV dodané s aplikací) jako nový projekt."""
+        p = get_proj(wid)
+        fname = EXAMPLES[name]
+        with open(os.path.join(EXAMPLES_DIR, fname), "rb") as f:
+            p.load_frame(read_table(fname, f.read()), fname)
+        return info(wid, p.state)
+
     @r.get("/recent", response_model=list[RecentItem])
     def recent():
         return [RecentItem(**e) for e in data.recent(user())]
@@ -302,10 +325,13 @@ def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library):
 
 
 def remember(data: UserData):
-    """Funkce pro `projects.router`: projekt, který se právě uložil / otevřel, se zapíše mezi nedávné."""
-    def fn(p, raw):
+    """Funkce pro `projects.router`: projekt, který se právě uložil / otevřel, se zapíše mezi nedávné; uložením
+    záchranná kopie přestane být potřeba."""
+    def fn(p, raw, saved=False):
         try:
             data.add_recent(raw, project_label(p), len(p.loops), deploy.USER.get())
+            if saved:
+                data.clear_recovery(deploy.USER.get())
         except OSError:
             pass                                          # seznam nedávných je jen pomůcka
     return fn

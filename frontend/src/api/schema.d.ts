@@ -1626,6 +1626,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/data/example": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load Example
+         * @description Ukázková data k technice APC (CSV dodané s aplikací) jako nový projekt.
+         */
+        post: operations["load_example_api_v1_workspaces__wid__data_example_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/data/file": {
         parameters: {
             query?: never;
@@ -2954,176 +2974,8 @@ export interface components {
             /** Index */
             index: number;
         };
-        /**
-         * AppSettings
-         * @description Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).
-         */
-        "AppSettings-Input": {
-            /**
-             * @default {
-             *       "font_size": "m",
-             *       "language": "",
-             *       "theme": "system"
-             *     }
-             */
-            appearance: components["schemas"]["Appearance"];
-            /**
-             * @default {
-             *       "decimal": "auto",
-             *       "gain_view": "kc",
-             *       "height": 300,
-             *       "ti_unit": "s",
-             *       "time_unit": "auto"
-             *     }
-             */
-            charts: components["schemas"]["Charts"];
-            /**
-             * @default {
-             *       "historians": {
-             *         "deltav": "",
-             *         "pcs7": "",
-             *         "pi": ""
-             *       },
-             *       "opc": []
-             *     }
-             */
-            connections: components["schemas"]["Connections"];
-            /**
-             * Controller Tests
-             * @default {}
-             */
-            controller_tests: {
-                [key: string]: components["schemas"]["TestMemo"];
-            };
-            /**
-             * @default {
-             *       "controller": "pcs7_pidconl",
-             *       "sim": {
-             *         "ctype": "PI",
-             *         "opt_ms": 1.6,
-             *         "opt_ovs": 2,
-             *         "opt_robust": false
-             *       }
-             *     }
-             */
-            defaults: components["schemas"]["Defaults"];
-            /**
-             * @default {
-             *       "thresholds": {}
-             *     }
-             */
-            diagnostics: components["schemas"]["Diagnostics-Input"];
-            /**
-             * @default {
-             *       "autosave_min": 1,
-             *       "embed_data": true
-             *     }
-             */
-            general: components["schemas"]["General"];
-            /**
-             * @default {
-             *       "author": "",
-             *       "require_note": false
-             *     }
-             */
-            journal: components["schemas"]["Journal"];
-            /**
-             * @default {
-             *       "company": "",
-             *       "footer": "",
-             *       "header": "",
-             *       "language": "app",
-             *       "logo": ""
-             *     }
-             */
-            report: components["schemas"]["Report"];
-        };
-        /**
-         * AppSettings
-         * @description Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).
-         */
-        "AppSettings-Output": {
-            /**
-             * @default {
-             *       "font_size": "m",
-             *       "language": "",
-             *       "theme": "system"
-             *     }
-             */
-            appearance: components["schemas"]["Appearance"];
-            /**
-             * @default {
-             *       "decimal": "auto",
-             *       "gain_view": "kc",
-             *       "height": 300,
-             *       "ti_unit": "s",
-             *       "time_unit": "auto"
-             *     }
-             */
-            charts: components["schemas"]["Charts"];
-            /**
-             * @default {
-             *       "historians": {
-             *         "deltav": "",
-             *         "pcs7": "",
-             *         "pi": ""
-             *       },
-             *       "opc": []
-             *     }
-             */
-            connections: components["schemas"]["Connections"];
-            /**
-             * Controller Tests
-             * @default {}
-             */
-            controller_tests: {
-                [key: string]: components["schemas"]["TestMemo"];
-            };
-            /**
-             * @default {
-             *       "controller": "pcs7_pidconl",
-             *       "sim": {
-             *         "ctype": "PI",
-             *         "opt_ms": 1.6,
-             *         "opt_ovs": 2,
-             *         "opt_robust": false
-             *       }
-             *     }
-             */
-            defaults: components["schemas"]["Defaults"];
-            /**
-             * @default {
-             *       "thresholds": {}
-             *     }
-             */
-            diagnostics: components["schemas"]["pidtools__api__appsettings__Diagnostics"];
-            /**
-             * @default {
-             *       "autosave_min": 1,
-             *       "embed_data": true
-             *     }
-             */
-            general: components["schemas"]["General"];
-            /**
-             * @default {
-             *       "author": "",
-             *       "require_note": false
-             *     }
-             */
-            journal: components["schemas"]["Journal"];
-            /**
-             * @default {
-             *       "company": "",
-             *       "footer": "",
-             *       "header": "",
-             *       "language": "app",
-             *       "logo": ""
-             *     }
-             */
-            report: components["schemas"]["Report"];
-        };
-        /** Appearance */
-        Appearance: {
+        /** AppAppearance */
+        AppAppearance: {
             /**
              * Font Size
              * @default m
@@ -3138,10 +2990,309 @@ export interface components {
             language: "" | "cs" | "en";
             /**
              * Theme
-             * @default system
+             * @default
              * @enum {string}
              */
-            theme: "system" | "light" | "dark";
+            theme: "" | "system" | "light" | "dark";
+        };
+        /** AppCharts */
+        AppCharts: {
+            /**
+             * Decimal
+             * @default auto
+             * @enum {string}
+             */
+            decimal: "auto" | "comma" | "dot";
+            /**
+             * Gain View
+             * @default kc
+             * @enum {string}
+             */
+            gain_view: "kc" | "pb";
+            /**
+             * Height
+             * @default 220
+             */
+            height: number;
+            /**
+             * Ti Unit
+             * @default s
+             * @enum {string}
+             */
+            ti_unit: "s" | "min";
+            /**
+             * Time Unit
+             * @default auto
+             * @enum {string}
+             */
+            time_unit: "auto" | "s" | "min" | "h" | "clock";
+        };
+        /** AppConnections */
+        AppConnections: {
+            /**
+             * @default {
+             *       "deltav": "",
+             *       "pcs7": "",
+             *       "pi": ""
+             *     }
+             */
+            historians: components["schemas"]["AppHistorians"];
+            /**
+             * Opc
+             * @default []
+             */
+            opc: components["schemas"]["AppOpcServer"][];
+        };
+        /** AppDefaults */
+        AppDefaults: {
+            /**
+             * Controller
+             * @default pcs7_pidconl
+             */
+            controller: string;
+            /**
+             * @default {
+             *       "ctype": "PI",
+             *       "opt_ms": 1.6,
+             *       "opt_ovs": 2,
+             *       "opt_robust": false
+             *     }
+             */
+            sim: components["schemas"]["AppSimDefaults"];
+        };
+        /** AppDiagnostics */
+        AppDiagnostics: {
+            /**
+             * Thresholds
+             * @default {}
+             */
+            thresholds: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        /** AppGeneral */
+        AppGeneral: {
+            /**
+             * Autosave Min
+             * @default 1
+             * @enum {integer}
+             */
+            autosave_min: 0 | 1 | 5 | 15 | 30;
+            /**
+             * Embed Data
+             * @default true
+             */
+            embed_data: boolean;
+        };
+        /** AppHistorians */
+        AppHistorians: {
+            /**
+             * Deltav
+             * @default
+             */
+            deltav: string;
+            /**
+             * Pcs7
+             * @default
+             */
+            pcs7: string;
+            /**
+             * Pi
+             * @default
+             */
+            pi: string;
+        };
+        /** AppJournal */
+        AppJournal: {
+            /**
+             * Author
+             * @default
+             */
+            author: string;
+            /**
+             * Require Note
+             * @default false
+             */
+            require_note: boolean;
+        };
+        /** AppOpcServer */
+        AppOpcServer: {
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /** AppReport */
+        AppReport: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /**
+             * Footer
+             * @default
+             */
+            footer: string;
+            /**
+             * Header
+             * @default
+             */
+            header: string;
+            /**
+             * Language
+             * @default app
+             * @enum {string}
+             */
+            language: "app" | "cs" | "en";
+            /**
+             * Logo
+             * @default
+             */
+            logo: string;
+        };
+        /**
+         * AppSettings
+         * @description Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).
+         */
+        AppSettings: {
+            /**
+             * @default {
+             *       "font_size": "m",
+             *       "language": "",
+             *       "theme": ""
+             *     }
+             */
+            appearance: components["schemas"]["AppAppearance"];
+            /**
+             * @default {
+             *       "decimal": "auto",
+             *       "gain_view": "kc",
+             *       "height": 220,
+             *       "ti_unit": "s",
+             *       "time_unit": "auto"
+             *     }
+             */
+            charts: components["schemas"]["AppCharts"];
+            /**
+             * @default {
+             *       "historians": {
+             *         "deltav": "",
+             *         "pcs7": "",
+             *         "pi": ""
+             *       },
+             *       "opc": []
+             *     }
+             */
+            connections: components["schemas"]["AppConnections"];
+            /**
+             * Controller Tests
+             * @default {}
+             */
+            controller_tests: {
+                [key: string]: components["schemas"]["AppTestMemo"];
+            };
+            /**
+             * @default {
+             *       "controller": "pcs7_pidconl",
+             *       "sim": {
+             *         "ctype": "PI",
+             *         "opt_ms": 1.6,
+             *         "opt_ovs": 2,
+             *         "opt_robust": false
+             *       }
+             *     }
+             */
+            defaults: components["schemas"]["AppDefaults"];
+            /**
+             * @default {
+             *       "thresholds": {}
+             *     }
+             */
+            diagnostics: components["schemas"]["AppDiagnostics"];
+            /**
+             * @default {
+             *       "autosave_min": 1,
+             *       "embed_data": true
+             *     }
+             */
+            general: components["schemas"]["AppGeneral"];
+            /**
+             * @default {
+             *       "author": "",
+             *       "require_note": false
+             *     }
+             */
+            journal: components["schemas"]["AppJournal"];
+            /**
+             * @default {
+             *       "company": "",
+             *       "footer": "",
+             *       "header": "",
+             *       "language": "app",
+             *       "logo": ""
+             *     }
+             */
+            report: components["schemas"]["AppReport"];
+        };
+        /** AppSimDefaults */
+        AppSimDefaults: {
+            /**
+             * Ctype
+             * @default PI
+             * @enum {string}
+             */
+            ctype: "PI" | "PID" | "PD";
+            /**
+             * Opt Ms
+             * @default 1.6
+             */
+            opt_ms: number;
+            /**
+             * Opt Ovs
+             * @default 2
+             */
+            opt_ovs: number;
+            /**
+             * Opt Robust
+             * @default false
+             */
+            opt_robust: boolean;
+        };
+        /** AppTestMemo */
+        AppTestMemo: {
+            /**
+             * At
+             * @default
+             */
+            at: string;
+            /**
+             * Fail
+             * @default 0
+             */
+            fail: number;
+            /**
+             * Ok
+             * @default 0
+             */
+            ok: number;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+            /**
+             * Warn
+             * @default 0
+             */
+            warn: number;
         };
         /** Audit */
         Audit: {
@@ -3462,38 +3613,6 @@ export interface components {
             /** T63 */
             t63: number;
         };
-        /** Charts */
-        Charts: {
-            /**
-             * Decimal
-             * @default auto
-             * @enum {string}
-             */
-            decimal: "auto" | "comma" | "dot";
-            /**
-             * Gain View
-             * @default kc
-             * @enum {string}
-             */
-            gain_view: "kc" | "pb";
-            /**
-             * Height
-             * @default 300
-             */
-            height: number;
-            /**
-             * Ti Unit
-             * @default s
-             * @enum {string}
-             */
-            ti_unit: "s" | "min";
-            /**
-             * Time Unit
-             * @default auto
-             * @enum {string}
-             */
-            time_unit: "auto" | "s" | "min" | "h" | "clock";
-        };
         /** CheckItem */
         CheckItem: {
             /** Id */
@@ -3594,22 +3713,6 @@ export interface components {
             tuning_roles?: string[] | null;
             /** Warnings */
             warnings: components["schemas"]["SourceIssue"][];
-        };
-        /** Connections */
-        Connections: {
-            /**
-             * @default {
-             *       "deltav": "",
-             *       "pcs7": "",
-             *       "pi": ""
-             *     }
-             */
-            historians: components["schemas"]["Historians"];
-            /**
-             * Opc
-             * @default []
-             */
-            opc: components["schemas"]["OpcServer"][];
         };
         /** ControllerParam */
         ControllerParam: {
@@ -3816,33 +3919,29 @@ export interface components {
              */
             way: "both" | "ab" | "ba";
         };
-        /** Defaults */
-        Defaults: {
-            /**
-             * Controller
-             * @default pcs7_pidconl
-             */
-            controller: string;
-            /**
-             * @default {
-             *       "ctype": "PI",
-             *       "opt_ms": 1.6,
-             *       "opt_ovs": 2,
-             *       "opt_robust": false
-             *     }
-             */
-            sim: components["schemas"]["SimDefaults"];
-        };
         /** Diagnostics */
-        "Diagnostics-Input": {
-            /**
-             * Thresholds
-             * @default {}
-             */
-            thresholds: {
-                [key: string]: {
-                    [key: string]: number;
-                };
+        Diagnostics: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+            /** Hysteresis */
+            hysteresis?: number | null;
+            /** Integ */
+            integ: boolean;
+            /** Kpis */
+            kpis: {
+                [key: string]: unknown;
+            };
+            /** Nonlinearity */
+            nonlinearity?: {
+                [key: string]: unknown;
+            } | null;
+            phase: components["schemas"]["Scatter"];
+            position?: components["schemas"]["Scatter"] | null;
+            /** Valve */
+            valve: {
+                [key: string]: unknown;
             };
         };
         /** DistCmp */
@@ -4099,20 +4198,6 @@ export interface components {
             w180?: number | null;
             /** Wc */
             wc?: number | null;
-        };
-        /** General */
-        General: {
-            /**
-             * Autosave Min
-             * @default 1
-             * @enum {integer}
-             */
-            autosave_min: 0 | 1 | 5 | 15 | 30;
-            /**
-             * Embed Data
-             * @default true
-             */
-            embed_data: boolean;
         };
         /** GeneralRow */
         GeneralRow: {
@@ -4390,24 +4475,6 @@ export interface components {
             /** Version */
             version: string;
         };
-        /** Historians */
-        Historians: {
-            /**
-             * Deltav
-             * @default
-             */
-            deltav: string;
-            /**
-             * Pcs7
-             * @default
-             */
-            pcs7: string;
-            /**
-             * Pi
-             * @default
-             */
-            pi: string;
-        };
         /** History */
         History: {
             /**
@@ -4459,19 +4526,6 @@ export interface components {
             state: string;
             /** Text */
             text: string;
-        };
-        /** Journal */
-        Journal: {
-            /**
-             * Author
-             * @default
-             */
-            author: string;
-            /**
-             * Require Note
-             * @default false
-             */
-            require_note: boolean;
         };
         /** Layout */
         Layout: {
@@ -4993,13 +5047,6 @@ export interface components {
             /** Key */
             key: string;
         };
-        /** OpcServer */
-        OpcServer: {
-            /** Name */
-            name: string;
-            /** Url */
-            url: string;
-        };
         /** OvDefaults */
         OvDefaults: {
             /** Lim */
@@ -5363,35 +5410,6 @@ export interface components {
             /** Code */
             code: string;
         };
-        /** Report */
-        Report: {
-            /**
-             * Company
-             * @default
-             */
-            company: string;
-            /**
-             * Footer
-             * @default
-             */
-            footer: string;
-            /**
-             * Header
-             * @default
-             */
-            header: string;
-            /**
-             * Language
-             * @default app
-             * @enum {string}
-             */
-            language: "app" | "cs" | "en";
-            /**
-             * Logo
-             * @default
-             */
-            logo: string;
-        };
         /** ReportReq */
         ReportReq: {
             /**
@@ -5665,30 +5683,6 @@ export interface components {
             missing: number;
             /** Std */
             std?: number | null;
-        };
-        /** SimDefaults */
-        SimDefaults: {
-            /**
-             * Ctype
-             * @default PI
-             * @enum {string}
-             */
-            ctype: "PI" | "PID" | "PD";
-            /**
-             * Opt Ms
-             * @default 1.6
-             */
-            opt_ms: number;
-            /**
-             * Opt Ovs
-             * @default 2
-             */
-            opt_ovs: number;
-            /**
-             * Opt Robust
-             * @default false
-             */
-            opt_robust: boolean;
         };
         /** SimInfo */
         SimInfo: {
@@ -6183,39 +6177,6 @@ export interface components {
              * @default []
              */
             warnings: string[];
-        };
-        /** TestMemo */
-        TestMemo: {
-            /**
-             * At
-             * @default
-             */
-            at: string;
-            /**
-             * Fail
-             * @default 0
-             */
-            fail: number;
-            /**
-             * Ok
-             * @default 0
-             */
-            ok: number;
-            /**
-             * Text
-             * @default
-             */
-            text: string;
-            /**
-             * Verdict
-             * @default
-             */
-            verdict: string;
-            /**
-             * Warn
-             * @default 0
-             */
-            warn: number;
         };
         /** ThresholdInfo */
         ThresholdInfo: {
@@ -6740,31 +6701,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** Diagnostics */
-        pidtools__api__analysis__Diagnostics: {
-            /** A */
-            a: number;
-            /** B */
-            b: number;
-            /** Hysteresis */
-            hysteresis?: number | null;
-            /** Integ */
-            integ: boolean;
-            /** Kpis */
-            kpis: {
-                [key: string]: unknown;
-            };
-            /** Nonlinearity */
-            nonlinearity?: {
-                [key: string]: unknown;
-            } | null;
-            phase: components["schemas"]["Scatter"];
-            position?: components["schemas"]["Scatter"] | null;
-            /** Valve */
-            valve: {
-                [key: string]: unknown;
-            };
-        };
         /**
          * Check
          * @description Položka kontrolního seznamu struktury (app.guides): True splněno, False chybí, None připomínka.
@@ -6776,18 +6712,6 @@ export interface components {
             state: boolean | null;
             /** Text */
             text: string;
-        };
-        /** Diagnostics */
-        pidtools__api__appsettings__Diagnostics: {
-            /**
-             * Thresholds
-             * @default {}
-             */
-            thresholds: {
-                [key: string]: {
-                    [key: string]: number;
-                };
-            };
         };
         /** Check */
         pidtools__api__data__Check: {
@@ -6842,7 +6766,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppSettings-Output"];
+                    "application/json": components["schemas"]["AppSettings"];
                 };
             };
             /** @description Validation Error */
@@ -6868,7 +6792,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AppSettings-Input"];
+                "application/json": components["schemas"]["AppSettings"];
             };
         };
         responses: {
@@ -6878,7 +6802,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppSettings-Output"];
+                    "application/json": components["schemas"]["AppSettings"];
                 };
             };
             /** @description Validation Error */
@@ -6910,7 +6834,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppSettings-Output"];
+                    "application/json": components["schemas"]["AppSettings"];
                 };
             };
             /** @description Validation Error */
@@ -7010,7 +6934,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppSettings-Output"];
+                    "application/json": components["schemas"]["AppSettings"];
                 };
             };
             /** @description Validation Error */
@@ -7088,7 +7012,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppSettings-Output"];
+                    "application/json": components["schemas"]["AppSettings"];
                 };
             };
             /** @description Validation Error */
@@ -7120,7 +7044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppSettings-Output"];
+                    "application/json": components["schemas"]["AppSettings"];
                 };
             };
             /** @description Validation Error */
@@ -10151,6 +10075,43 @@ export interface operations {
             };
         };
     };
+    load_example_api_v1_workspaces__wid__data_example_post: {
+        parameters: {
+            query: {
+                /** @description example data set: ff = feedforward (APC) */
+                name: "ff";
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     load_file_api_v1_workspaces__wid__data_file_post: {
         parameters: {
             query: {
@@ -10284,7 +10245,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["pidtools__api__analysis__Diagnostics"];
+                    "application/json": components["schemas"]["Diagnostics"];
                 };
             };
             /** @description Validation Error */

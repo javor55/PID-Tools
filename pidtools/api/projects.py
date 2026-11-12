@@ -85,7 +85,7 @@ def router(get_proj, remember=None):
         raw = prj.serialize_project(p.to_project(include_data=data))
         p.mark_saved()
         if remember:
-            remember(p, raw.encode("utf-8"))
+            remember(p, raw.encode("utf-8"), True)
         return Response(raw, media_type="application/json",
                         headers={"Content-Disposition": f'attachment; filename="{prj.project_name("pidtools")}"'})
 
