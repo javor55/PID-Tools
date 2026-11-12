@@ -2,7 +2,9 @@
 API – knihovna regulátorů a profil regulátoru smyčky (E7, docs/cs/regulatory.md): seznam předvoleb a vlastních profilů,
 vytvoření vlastního z předvolby („Vytvořit vlastní“ = kopie), změna a smazání vlastního, import / export `.pidctrl`,
 mapování kanonického PID na parametry profilu a zpět, test použitelnosti (protokol) a kopie profilu v projektu
-(`/workspaces/{wid}/controller`, výchozí PIDConL).
+(`/workspaces/{wid}/controller`, výchozí PIDConL), katalog částí (`/parts`, R3) a překlad vlastních rovnic
+(`POST /compile`, R4: zdroj → chyby s řádkem a sloupcem, nebo program, parametry a rychlé kontroly). Vlastní program
+(`kind = program`, `source`) se ukládá stejnými koncovými body jako skládaný profil.
 """
 import hashlib
 import json
@@ -16,7 +18,9 @@ from .. import i18n
 from ..app import controller_check
 from ..controllers import Library, ProfileError, canonical_to_profile, load_preset, profile_to_canonical, validate_profile
 from ..controllers.loader import FORMAT, VERSION
-from ..core.controller import Profile
+from ..controllers.parts import describe as describe_parts
+from ..controllers.program import ProgramErrors, compile_program, has_mapping, tuning_roles
+from ..core.controller import make_profile
 
 DEFAULT_ID = "pcs7_pidconl"
 MAX_PROFILE = 2 ** 20
@@ -47,8 +51,10 @@ class ControllerProfile(BaseModel):
     block: str | None = None
     derived_from: str | None = None
     verification: dict[str, Any] | None = None
-    structure: dict[str, Any]
-    params: list[ControllerParam]
+    kind: str | None = None                     # "program" = vlastní rovnice (`source`), jinak skládaný profil
+    source: str | None = None
+    structure: dict[str, Any] = {}
+    params: list[ControllerParam] = []          # u programu se odvodí ze zdroje
 
 
 class ControllerSummary(BaseModel):
@@ -57,11 +63,6 @@ class ControllerSummary(BaseModel):
     name: str
     tag: str                      # preset / custom
     verified: bool
-
-
-class NewController(BaseModel):
-    from_id: str
-    name: str | None = None
 
 
 class CheckItem(BaseModel):
@@ -78,6 +79,48 @@ class CheckProtocol(BaseModel):
     verdict_text: str
     checks: list[CheckItem]
     reasons: list[str]
+
+
+class PartParam(BaseModel):
+    role: str
+    unit: str
+    default: Any = None
+    range: list[float] | None = None
+
+
+class PartInfo(BaseModel):
+    kind: str                     # registr: forms, deadbands, antiwindups, algorithms, nl_gains, output_stages …
+    id: str
+    description: str
+    params: list[PartParam]
+
+
+class CompileRequest(BaseModel):
+    source: str
+    quick: bool = True            # rychlé kontroly testu použitelnosti (překlad, determinismus, klid, numerika, výkon)
+
+
+class SourceIssue(BaseModel):
+    line: int
+    col: int
+    code: str
+    message: str
+
+
+class CompileResult(BaseModel):
+    ok: bool
+    errors: list[SourceIssue]
+    warnings: list[SourceIssue]
+    program: dict[str, Any] | None = None
+    params: list[ControllerParam] | None = None
+    tuning_roles: list[str] | None = None
+    has_mapping: bool | None = None
+    checks: CheckProtocol | None = None
+
+
+class NewController(BaseModel):
+    from_id: str
+    name: str | None = None
 
 
 class Ranges(BaseModel):
@@ -124,6 +167,10 @@ class LoopControllerPut(BaseModel):
     profile: ControllerProfile | None = None    # nebo vlastní profil; bez obojího = výchozí PIDConL
 
 
+def _issue(e, prefix):
+    return SourceIssue(line=e.line, col=e.col, code=e.code, message=i18n.T(f"{prefix}_{e.code}", **e.info))
+
+
 def _num(x):
     """JSON nezná nekonečno: bez I složky / bez filtru je None."""
     return x if (x is not None and math.isfinite(x)) else None
@@ -143,7 +190,7 @@ def _compile(data):
         bad = validate_profile(data)
         if bad:
             raise ProfileError(bad)
-        Profile(data)
+        make_profile(data)
     except ProfileError as ex:
         raise HTTPException(422, dict(message=str(ex), problems=ex.problems)) from ex
     except (ValueError, KeyError, NotImplementedError) as ex:
@@ -197,6 +244,31 @@ def router(lib: Library, writable=True):
     def list_controllers():
         """Předvolby (jen ke čtení) a vlastní profily knihovny."""
         return lib.list()
+
+    @r.get("/parts", response_model=list[PartInfo])
+    def list_parts():
+        """Katalog částí regulátoru (R3): popis a schéma parametrů každé položky registrů (pro skládání v editoru)."""
+        return [PartInfo(kind=p["kind"], id=p["id"], description=i18n.T(p["desc_key"]), params=p["params"])
+                for p in describe_parts()]
+
+    @r.post("/compile", response_model=CompileResult, response_model_exclude_none=True)
+    def compile_source(body: CompileRequest):
+        """Překlad vlastních rovnic: chyby a varování s řádkem a sloupcem, při úspěchu program (strom výrazů), parametry
+        a rychlé kontroly použitelnosti. Neukládá nic; uložení = import / PUT profilu s `kind = program`."""
+        try:
+            res = compile_program(body.source)
+        except ProgramErrors as ex:
+            return CompileResult(ok=False, errors=[_issue(e, "ctl_e") for e in ex.errors], warnings=[])
+        prog = res["program"]
+        data = dict(format=FORMAT, version=VERSION, id="draft", name="draft", kind="program", source=body.source)
+        checks = None
+        if body.quick:
+            checks = _protocol(controller_check.run_check(
+                data, only=["translation", "determinism", "rest", "direction", "switching", "numerics", "performance"]))
+        full = make_profile(data).data
+        return CompileResult(ok=True, errors=[], warnings=[_issue(w, "ctl_wn") for w in res["warnings"]], program=prog,
+                             params=[ControllerParam(**p) for p in full["params"]], tuning_roles=tuning_roles(prog),
+                             has_mapping=has_mapping(prog), checks=checks)
 
     @r.post("", response_model=ControllerProfile, status_code=201, response_model_exclude_none=True)
     def create_custom(body: NewController):

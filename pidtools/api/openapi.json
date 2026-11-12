@@ -1144,6 +1144,114 @@
     "title": "CompareOut",
     "type": "object"
    },
+   "CompileRequest": {
+    "properties": {
+     "quick": {
+      "default": true,
+      "title": "Quick",
+      "type": "boolean"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     }
+    },
+    "required": [
+     "source"
+    ],
+    "title": "CompileRequest",
+    "type": "object"
+   },
+   "CompileResult": {
+    "properties": {
+     "checks": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CheckProtocol"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "errors": {
+      "items": {
+       "$ref": "#/components/schemas/SourceIssue"
+      },
+      "title": "Errors",
+      "type": "array"
+     },
+     "has_mapping": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Has Mapping"
+     },
+     "ok": {
+      "title": "Ok",
+      "type": "boolean"
+     },
+     "params": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/ControllerParam"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Params"
+     },
+     "program": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Program"
+     },
+     "tuning_roles": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tuning Roles"
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/SourceIssue"
+      },
+      "title": "Warnings",
+      "type": "array"
+     }
+    },
+    "required": [
+     "ok",
+     "errors",
+     "warnings"
+    ],
+    "title": "CompileResult",
+    "type": "object"
+   },
    "ControllerParam": {
     "additionalProperties": true,
     "properties": {
@@ -1277,6 +1385,17 @@
       ],
       "title": "Id"
      },
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind"
+     },
      "name": {
       "anyOf": [
        {
@@ -1289,14 +1408,27 @@
       "title": "Name"
      },
      "params": {
+      "default": [],
       "items": {
        "$ref": "#/components/schemas/ControllerParam"
       },
       "title": "Params",
       "type": "array"
      },
+     "source": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source"
+     },
      "structure": {
       "additionalProperties": true,
+      "default": {},
       "title": "Structure",
       "type": "object"
      },
@@ -1340,10 +1472,6 @@
       "type": "integer"
      }
     },
-    "required": [
-     "structure",
-     "params"
-    ],
     "title": "ControllerProfile",
     "type": "object"
    },
@@ -4939,6 +5067,72 @@
     "title": "ParamRow",
     "type": "object"
    },
+   "PartInfo": {
+    "properties": {
+     "description": {
+      "title": "Description",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/PartParam"
+      },
+      "title": "Params",
+      "type": "array"
+     }
+    },
+    "required": [
+     "kind",
+     "id",
+     "description",
+     "params"
+    ],
+    "title": "PartInfo",
+    "type": "object"
+   },
+   "PartParam": {
+    "properties": {
+     "default": {
+      "title": "Default"
+     },
+     "range": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Range"
+     },
+     "role": {
+      "title": "Role",
+      "type": "string"
+     },
+     "unit": {
+      "title": "Unit",
+      "type": "string"
+     }
+    },
+    "required": [
+     "role",
+     "unit"
+    ],
+    "title": "PartParam",
+    "type": "object"
+   },
    "Pid": {
     "properties": {
      "Kc": {
@@ -6641,6 +6835,34 @@
      "kind"
     ],
     "title": "SourceInfo",
+    "type": "object"
+   },
+   "SourceIssue": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "col": {
+      "title": "Col",
+      "type": "integer"
+     },
+     "line": {
+      "title": "Line",
+      "type": "integer"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     }
+    },
+    "required": [
+     "line",
+     "col",
+     "code",
+     "message"
+    ],
+    "title": "SourceIssue",
     "type": "object"
    },
    "SourceKind": {
@@ -8914,6 +9136,82 @@
     ]
    }
   },
+  "/api/v1/controllers/compile": {
+   "post": {
+    "description": "Překlad vlastních rovnic: chyby a varování s řádkem a sloupcem, při úspěchu program (strom výrazů), parametry\na rychlé kontroly použitelnosti. Neukládá nic; uložení = import / PUT profilu s `kind = program`.",
+    "operationId": "compile_source_api_v1_controllers_compile_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CompileRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CompileResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Compile Source",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
   "/api/v1/controllers/import": {
    "post": {
     "description": "Import souboru `.pidctrl` (JSON); kolidující id dostane nové.",
@@ -8985,6 +9283,76 @@
      }
     },
     "summary": "Import Controller",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/parts": {
+   "get": {
+    "description": "Katalog částí regulátoru (R3): popis a schéma parametrů každé položky registrů (pro skládání v editoru).",
+    "operationId": "list_parts_api_v1_controllers_parts_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/PartInfo"
+         },
+         "title": "Response List Parts Api V1 Controllers Parts Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "List Parts",
     "tags": [
      "controllers"
     ]

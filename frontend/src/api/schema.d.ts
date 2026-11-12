@@ -28,6 +28,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/controllers/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compile Source
+         * @description Překlad vlastních rovnic: chyby a varování s řádkem a sloupcem, při úspěchu program (strom výrazů), parametry
+         *     a rychlé kontroly použitelnosti. Neukládá nic; uložení = import / PUT profilu s `kind = program`.
+         */
+        post: operations["compile_source_api_v1_controllers_compile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/controllers/import": {
         parameters: {
             query?: never;
@@ -42,6 +63,26 @@ export interface paths {
          * @description Import souboru `.pidctrl` (JSON); kolidující id dostane nové.
          */
         post: operations["import_controller_api_v1_controllers_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Parts
+         * @description Katalog částí regulátoru (R3): popis a schéma parametrů každé položky registrů (pro skládání v editoru).
+         */
+        get: operations["list_parts_api_v1_controllers_parts_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2903,6 +2944,36 @@ export interface components {
             /** T */
             t: number[];
         };
+        /** CompileRequest */
+        CompileRequest: {
+            /**
+             * Quick
+             * @default true
+             */
+            quick: boolean;
+            /** Source */
+            source: string;
+        };
+        /** CompileResult */
+        CompileResult: {
+            checks?: components["schemas"]["CheckProtocol"] | null;
+            /** Errors */
+            errors: components["schemas"]["SourceIssue"][];
+            /** Has Mapping */
+            has_mapping?: boolean | null;
+            /** Ok */
+            ok: boolean;
+            /** Params */
+            params?: components["schemas"]["ControllerParam"][] | null;
+            /** Program */
+            program?: {
+                [key: string]: unknown;
+            } | null;
+            /** Tuning Roles */
+            tuning_roles?: string[] | null;
+            /** Warnings */
+            warnings: components["schemas"]["SourceIssue"][];
+        };
         /** ControllerParam */
         ControllerParam: {
             /** Default */
@@ -2942,11 +3013,21 @@ export interface components {
             format: string;
             /** Id */
             id?: string | null;
+            /** Kind */
+            kind?: string | null;
             /** Name */
             name?: string | null;
-            /** Params */
+            /**
+             * Params
+             * @default []
+             */
             params: components["schemas"]["ControllerParam"][];
-            /** Structure */
+            /** Source */
+            source?: string | null;
+            /**
+             * Structure
+             * @default {}
+             */
             structure: {
                 [key: string]: unknown;
             };
@@ -4271,6 +4352,28 @@ export interface components {
             /** Value */
             value: number;
         };
+        /** PartInfo */
+        PartInfo: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Params */
+            params: components["schemas"]["PartParam"][];
+        };
+        /** PartParam */
+        PartParam: {
+            /** Default */
+            default?: unknown;
+            /** Range */
+            range?: number[] | null;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit: string;
+        };
         /** Pid */
         Pid: {
             /** Kc */
@@ -4864,6 +4967,17 @@ export interface components {
              * @default []
              */
             used_by: number[];
+        };
+        /** SourceIssue */
+        SourceIssue: {
+            /** Code */
+            code: string;
+            /** Col */
+            col: number;
+            /** Line */
+            line: number;
+            /** Message */
+            message: string;
         };
         /**
          * SourceKind
@@ -5727,6 +5841,42 @@ export interface operations {
             };
         };
     };
+    compile_source_api_v1_controllers_compile_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompileResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     import_controller_api_v1_controllers_import_post: {
         parameters: {
             query?: never;
@@ -5750,6 +5900,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_parts_api_v1_controllers_parts_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartInfo"][];
                 };
             };
             /** @description Validation Error */
