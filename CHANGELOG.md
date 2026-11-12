@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- UI (E4): **Data › Sources and loops** – files with a time axis (format, period, span, time zone and offset, reading options, remove, add by picking or dropping), time coverage with the common span and the common grid settings (overlap / union, period auto / manual), a loop table with `file › column` roles, ranges, cascade and mapping status, suggestion from tag names and mapping import from CSV with a review before applying, and a columns panel with sparklines (drag onto a role or the “Use as…” select).
 - Data (E3, plan v2): **several data sources and loop assembly** (`pidtools/app/domain`). A project has sources (CSV /
   XLSX / TXT file, OPC UA) with a time zone, a time offset and an own sampling period, and loops whose roles (PV, SP, MV,
   position, DV, mode) map to `source › column`, with NormPV / NormMV ranges, a description and a cascade link; a column

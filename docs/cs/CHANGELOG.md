@@ -2,6 +2,7 @@
 
 ## Nevydáno
 
+- UI (E4): **Data › Zdroje a smyčky** – soubory s časovou osou (formát, perioda, rozsah, časové pásmo a posun, čtení, odebrání, přidání výběrem i přetažením), časové pokrytí se společným úsekem a nastavením společné mřížky (překryv / sjednocení, perioda auto / ručně), tabulka smyček s rolemi „soubor › sloupec“, rozsahy, kaskádou a stavem mapování, návrh podle názvů tagů a import mapování z CSV s kontrolou před použitím a panel sloupců s minigrafy (přetažení do role i výběr „Použít jako…“).
 - Data (E3, plán v2): **více zdrojů dat a skládání smyček** (`pidtools/app/domain`). Projekt má zdroje (soubor CSV / XLSX /
   TXT, OPC UA) s časovým pásmem, posunem a vlastním vzorkováním a smyčky s mapováním rolí (PV, SP, MV, poloha, DV, režim)
   na `zdroj › sloupec`, rozsahy NormPV / NormMV, popisem a vazbou kaskády; jeden sloupec může být ve více smyčkách. Data
