@@ -452,6 +452,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/apc/cascade/irange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cascade Irange
+         * @description Rozsah vnitřní PV z dat (výchozí hodnoty polí Od / Do u zdroje „data“; stejné jako při identifikaci).
+         */
+        get: operations["cascade_irange_api_v1_workspaces__wid__apc_cascade_irange_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/apc/cascade/reset": {
         parameters: {
             query?: never;
@@ -727,6 +747,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/apc/gainsched/segments/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gs Segments
+         * @description Záznam PV a MV pro graf úseků bodů gain schedulingu.
+         */
+        get: operations["gs_segments_api_v1_workspaces__wid__apc_gainsched_segments_curves_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/apc/gainsched/simulate": {
         parameters: {
             query?: never;
@@ -985,7 +1025,7 @@ export interface paths {
         };
         /**
          * Recommend
-         * @description Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).
+         * @description Posouzení struktur APC pro aktivní smyčku (doporučeno / nevhodné / není potřeba; podle ostatních smyček projektu).
          */
         get: operations["recommend_api_v1_workspaces__wid__apc_recommend_get"];
         put?: never;
@@ -2950,6 +2990,13 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** CascadeRange */
+        CascadeRange: {
+            /** Hi */
+            hi: number;
+            /** Lo */
+            lo: number;
+        };
         /** CascadeReset */
         CascadeReset: {
             /**
@@ -3235,6 +3282,11 @@ export interface components {
             source_mv: string;
             /** Target */
             target: string;
+            /**
+             * Way
+             * @default ab
+             */
+            way: string;
         };
         /** DecSim */
         DecSim: {
@@ -3244,6 +3296,8 @@ export interface components {
             dtype: string;
             /** Kpis */
             kpis: components["schemas"]["DecIae"][];
+            /** Way */
+            way: string;
         };
         /** DecSimReq */
         DecSimReq: {
@@ -3263,6 +3317,12 @@ export interface components {
              * @enum {string}
              */
             dtype: "static" | "dyn";
+            /**
+             * Way
+             * @default both
+             * @enum {string}
+             */
+            way: "both" | "ab" | "ba";
         };
         /** Diagnostics */
         Diagnostics: {
@@ -3716,6 +3776,10 @@ export interface components {
             gain: number;
             /** Index */
             index: number;
+            /** Ms Fixed */
+            ms_fixed?: number | null;
+            /** Ms Sched */
+            ms_sched?: number | null;
             /** Params */
             params: components["schemas"]["ParamRow"][];
             /** Td */
@@ -4690,6 +4754,12 @@ export interface components {
             kind: string;
             /** Other */
             other?: number | null;
+            /**
+             * Status
+             * @default rec
+             * @enum {string}
+             */
+            status: "rec" | "unsuitable" | "skip";
             /** Text */
             text: string;
         };
@@ -6990,6 +7060,42 @@ export interface operations {
             };
         };
     };
+    cascade_irange_api_v1_workspaces__wid__apc_cascade_irange_get: {
+        parameters: {
+            query: {
+                ipv: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CascadeRange"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cascade_reset_api_v1_workspaces__wid__apc_cascade_reset_post: {
         parameters: {
             query?: {
@@ -7546,6 +7652,40 @@ export interface operations {
             };
         };
     };
+    gs_segments_api_v1_workspaces__wid__apc_gainsched_segments_curves_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description app.signalpack.frame: pv, mv in engineering units over the whole record (the identification segments are in GET /apc/gainsched, inputs.ranges) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     gs_simulate_api_v1_workspaces__wid__apc_gainsched_simulate_post: {
         parameters: {
             query?: never;
@@ -7850,7 +7990,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units */
+            /** @description app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units, act = 1 while the limiting controller drives */
             200: {
                 headers: {
                     [name: string]: unknown;

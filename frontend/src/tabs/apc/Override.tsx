@@ -2,11 +2,12 @@
 // výběru (?loop=); skok SP a mez jsou parametry simulace (chybějící = výchozí scénář z API).
 import { create } from "zustand";
 import type { components } from "../../api/schema";
-import { LineChart } from "../../components/LineChart";
+import { type Band, LineChart } from "../../components/LineChart";
+import { series } from "../../api/signals";
 import { SideCard } from "../../components/Ui";
 import { useWs } from "../../data";
 import { useT } from "../../i18n";
-import { type CurveDef, curveSeries, NumInput, useApc } from "./common";
+import { type Curves, type CurveDef, curveSeries, NumInput, useApc } from "./common";
 import { ACard, Checks, Impl, LoopSelect, PairError, qs, usePair, useSim, VariantTable } from "./parts";
 
 type OvInfo = components["schemas"]["OvInfo"];
@@ -53,6 +54,21 @@ export function OverrideSide() {
   );
 }
 
+/** Souvislé úseky, kde je signál `act` = 1 (pásma řízení omezujícím regulátorem). */
+function actBands(c: Curves | undefined): Band[] {
+  const a = c ? series(c.meta, c.blob, "act") : null;
+  if (!a) return [];
+  const out: Band[] = [];
+  let from: number | null = null;
+  for (let i = 0; i < a.t.length; i++) {
+    const on = a.v[i] > 0.5;
+    if (on && from === null) from = a.t[i];
+    if (!on && from !== null) { out.push({ from, to: a.t[i], color: "#dc2626" }); from = null; }
+  }
+  if (from !== null) out.push({ from, to: a.t[a.t.length - 1], color: "#dc2626" });
+  return out.slice(0, 200);
+}
+
 function SimCard({ d, loop }: { d: OvInfo; loop?: number }) {
   const T = useT();
   const { sel, step, lim } = useOv();
@@ -65,12 +81,15 @@ function SimCard({ d, loop }: { d: OvInfo; loop?: number }) {
     { name: without, key: "pv_b_without", color: "#64748b", dash: "2 3" }, { name: d.b, key: "pv_b", color: "#7c3aed" }];
   const mv: CurveDef[] = [{ name: T("ov_out", { n: d.a }), key: "u_a", color: "#1f5fa8", dash: "5 4" },
     { name: T("ov_out", { n: d.b }), key: "u_b", color: "#7c3aed", dash: "5 4" }, { name: "MV", key: "mv", color: "#15803d" }];
+  // pásma = doba, kdy řídí omezující regulátor (signál act = 1)
+  const bands = actBands(cv.data);
   return (
     <ACard title={T("ui_apc_verify")} testid="ov-sim">
-      <LineChart series={curveSeries(cv.data, pva)} height={200} yLabel={`PV ${d.a}`} xLabel={T("time_s")} testid="ov-pv-a" />
-      <LineChart series={curveSeries(cv.data, pvb)} height={200} yLabel={`PV ${d.b}`} xLabel={T("time_s")} testid="ov-pv-b" />
-      <LineChart series={curveSeries(cv.data, mv)} height={140} yLabel="MV" xLabel={T("time_s")} testid="ov-mv" />
-      <p className="small muted">{T("ov_sim_help", { b: d.b })}</p>
+      <LineChart series={curveSeries(cv.data, pva)} height={200} yLabel={`PV ${d.a}`} xLabel={T("time_s")} testid="ov-pv-a" bands={bands} />
+      <LineChart series={curveSeries(cv.data, pvb)} height={200} yLabel={`PV ${d.b}`} xLabel={T("time_s")} testid="ov-pv-b" bands={bands} />
+      <LineChart series={curveSeries(cv.data, mv)} height={140} yLabel="MV" xLabel={T("time_s")} testid="ov-mv" bands={bands} />
+      <p className="small muted" title={T("apc_ui_ov_bands_h")}>{T("ov_sim_help", { b: d.b })}{" "}
+        <span className="apc-bandkey" data-testid="ov-bands-key"><i />{T("apc_ui_ov_bands")}: {T("apc_ui_ov_band_legend")}</span></p>
     </ACard>
   );
 }
