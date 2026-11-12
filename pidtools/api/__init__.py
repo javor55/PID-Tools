@@ -29,7 +29,7 @@ from .. import __version__, i18n
 from ..app.jobs import FINAL
 from ..controllers import Library
 from . import (analysis, apc, apc_loops, apc_more, audit, controllers, data, deploy, guide, mapping, model, opcua,
-               projects, sources, triage, tuning)
+               projects, sources, triage, tuning, tuning_profile)
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -96,7 +96,7 @@ def _routers(project, jobs, team, library):
     max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
     return [data.router(project, *max_upload), projects.router(project), projects.pending_router(team is None),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
-            tuning.router(project, jobs), analysis.router(project), audit.router(project), apc.router(project, jobs),
+            tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
             apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs), guide.router(project),
             triage.router(project, jobs), controllers.router(library, team is None),
             controllers.loop_router(project, library)]

@@ -343,6 +343,57 @@
     "title": "AxisRange",
     "type": "object"
    },
+   "BlockParam": {
+    "properties": {
+     "default": {
+      "title": "Default"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "role": {
+      "title": "Role",
+      "type": "string"
+     },
+     "setting": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Setting"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     },
+     "value": {
+      "title": "Value"
+     }
+    },
+    "required": [
+     "key",
+     "name",
+     "role"
+    ],
+    "title": "BlockParam",
+    "type": "object"
+   },
    "Browse": {
     "properties": {
      "node_id": {
@@ -3802,6 +3853,49 @@
     "title": "LoopControllerPut",
     "type": "object"
    },
+   "LoopCtrlRef": {
+    "properties": {
+     "block": {
+      "title": "Block",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "is_default": {
+      "title": "Is Default",
+      "type": "boolean"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "tag": {
+      "title": "Tag",
+      "type": "string"
+     },
+     "vendor": {
+      "title": "Vendor",
+      "type": "string"
+     },
+     "verified": {
+      "title": "Verified",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "vendor",
+     "block",
+     "tag",
+     "verified",
+     "is_default"
+    ],
+    "title": "LoopCtrlRef",
+    "type": "object"
+   },
    "LoopHealth": {
     "properties": {
      "err": {
@@ -5049,6 +5143,40 @@
     "title": "OvSimReq",
     "type": "object"
    },
+   "ParamRef": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "role": {
+      "title": "Role",
+      "type": "string"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     }
+    },
+    "required": [
+     "key",
+     "name",
+     "role"
+    ],
+    "title": "ParamRef",
+    "type": "object"
+   },
    "ParamRow": {
     "properties": {
      "name": {
@@ -5154,6 +5282,116 @@
      "Ti"
     ],
     "title": "Pid",
+    "type": "object"
+   },
+   "PlantInfo": {
+    "properties": {
+     "curve_x": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Curve X",
+      "type": "array"
+     },
+     "curve_y": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Curve Y",
+      "type": "array"
+     },
+     "noise": {
+      "title": "Noise",
+      "type": "number"
+     },
+     "sigma_pv": {
+      "title": "Sigma Pv",
+      "type": "number"
+     },
+     "slip": {
+      "title": "Slip",
+      "type": "number"
+     },
+     "stic": {
+      "title": "Stic",
+      "type": "number"
+     },
+     "stic_default": {
+      "title": "Stic Default",
+      "type": "number"
+     },
+     "vchar": {
+      "items": {
+       "type": "number"
+      },
+      "title": "Vchar",
+      "type": "array"
+     }
+    },
+    "required": [
+     "stic",
+     "stic_default",
+     "slip",
+     "noise",
+     "sigma_pv",
+     "vchar",
+     "curve_x",
+     "curve_y"
+    ],
+    "title": "PlantInfo",
+    "type": "object"
+   },
+   "PlantSet": {
+    "properties": {
+     "noise": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Noise"
+     },
+     "slip": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slip"
+     },
+     "stic": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Stic"
+     },
+     "vchar": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vchar"
+     }
+    },
+    "title": "PlantSet",
     "type": "object"
    },
    "PointRow": {
@@ -5792,6 +6030,152 @@
     "title": "RgaInfo",
     "type": "object"
    },
+   "RobRow": {
+    "properties": {
+     "GM": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gm"
+     },
+     "Ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
+     },
+     "Ms_worst": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms Worst"
+     },
+     "Mt": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mt"
+     },
+     "PM": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pm"
+     },
+     "approximate": {
+      "default": false,
+      "title": "Approximate",
+      "type": "boolean"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "noise": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Noise"
+     },
+     "stable": {
+      "title": "Stable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "stable",
+     "name"
+    ],
+    "title": "RobRow",
+    "type": "object"
+   },
+   "Robust": {
+    "properties": {
+     "GM": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Gm"
+     },
+     "Ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
+     },
+     "Mt": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mt"
+     },
+     "PM": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pm"
+     },
+     "stable": {
+      "title": "Stable",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "stable"
+    ],
+    "title": "Robust",
+    "type": "object"
+   },
    "RolesBody": {
     "properties": {
      "dv": {
@@ -6157,6 +6541,20 @@
      "ti": {
       "title": "Ti",
       "type": "number"
+     },
+     "values": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Values",
+      "type": "object"
+     },
+     "warnings": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Warn"
+      },
+      "title": "Warnings",
+      "type": "array"
      }
     },
     "required": [
@@ -7529,6 +7927,7 @@
     "type": "object"
    },
    "Suggestion": {
+    "description": "Návrh v kanonickém tvaru (Kc, Ti, Td) a v parametrech regulátoru smyčky (`values` v jednotkách bloku).",
     "properties": {
      "Kc": {
       "title": "Kc",
@@ -7542,6 +7941,11 @@
      "Ti": {
       "title": "Ti",
       "type": "number"
+     },
+     "approximate": {
+      "default": false,
+      "title": "Approximate",
+      "type": "boolean"
      },
      "checks": {
       "default": [],
@@ -7561,6 +7965,41 @@
        "$ref": "#/components/schemas/Note"
       },
       "title": "Notes",
+      "type": "array"
+     },
+     "robust": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Robust"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tc": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tc"
+     },
+     "values": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Values",
+      "type": "object"
+     },
+     "warnings": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/Warn"
+      },
+      "title": "Warnings",
       "type": "array"
      }
     },
@@ -8044,6 +8483,24 @@
    },
    "TuningInfo": {
     "properties": {
+     "block_params": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/BlockParam"
+      },
+      "title": "Block Params",
+      "type": "array"
+     },
+     "controller": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LoopCtrlRef"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
      "d_advice": {
       "anyOf": [
        {
@@ -8059,6 +8516,14 @@
      "default_method": {
       "title": "Default Method",
       "type": "string"
+     },
+     "export_formats": {
+      "default": [],
+      "items": {
+       "type": "string"
+      },
+      "title": "Export Formats",
+      "type": "array"
      },
      "history": {
       "default": [],
@@ -8092,6 +8557,14 @@
        "$ref": "#/components/schemas/SetInfo"
       },
       "title": "Sets",
+      "type": "array"
+     },
+     "tuning_params": {
+      "default": [],
+      "items": {
+       "$ref": "#/components/schemas/ParamRef"
+      },
+      "title": "Tuning Params",
       "type": "array"
      }
     },
@@ -8601,6 +9074,24 @@
     "title": "VpcSim",
     "type": "object"
    },
+   "Warn": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key",
+     "text"
+    ],
+    "title": "Warn",
+    "type": "object"
+   },
    "Warning_": {
     "properties": {
      "key": {
@@ -8869,10 +9360,18 @@
     "type": "object"
    },
    "WriteSet": {
+    "description": "Sada v kanonickém tvaru (Kc, Ti, Td), nebo v jednotkách bloku (`values`: klíč parametru profilu → hodnota).",
     "properties": {
      "Kc": {
-      "title": "Kc",
-      "type": "number"
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kc"
      },
      "Td": {
       "default": 0.0,
@@ -8880,8 +9379,15 @@
       "type": "number"
      },
      "Ti": {
-      "title": "Ti",
-      "type": "number"
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ti"
      },
      "log": {
       "anyOf": [
@@ -8894,12 +9400,20 @@
        }
       ],
       "title": "Log"
+     },
+     "values": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Values"
      }
     },
-    "required": [
-     "Kc",
-     "Ti"
-    ],
     "title": "WriteSet",
     "type": "object"
    },
@@ -20944,6 +21458,351 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/tuning/export": {
+   "get": {
+    "description": "Export sady `n` (výchozí Set 2) v názvech a jednotkách bloku regulátoru smyčky pro řídicí systém / CSV.",
+    "operationId": "export_api_v1_workspaces__wid__tuning_export_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "fmt",
+      "required": false,
+      "schema": {
+       "default": "csv",
+       "title": "Fmt",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "n",
+      "required": false,
+      "schema": {
+       "default": 2,
+       "title": "N",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "text/csv": {},
+       "text/plain": {}
+      },
+      "description": "parameter set in block names and units (fmt: csv, pcs7, tia, deltav)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Export",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/tuning/plant": {
+   "get": {
+    "description": "Proces a ventil v simulaci (Ladění i Živá): stikce, skluz, šum PV, charakteristika ventilu.",
+    "operationId": "get_plant_api_v1_workspaces__wid__tuning_plant_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlantInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Plant",
+    "tags": [
+     "tuning"
+    ]
+   },
+   "put": {
+    "operationId": "set_plant_api_v1_workspaces__wid__tuning_plant_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlantSet"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlantInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Set Plant",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/tuning/robustness": {
+   "post": {
+    "description": "Tabulka robustnosti sad (Set 1, Set 2, návrh): Ms, Mt, GM, PM, šum MV a nejhorší Ms přes nejistotu modelu.",
+    "operationId": "robustness_api_v1_workspaces__wid__tuning_robustness_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/Pid"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Preview"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RobRow"
+         },
+         "title": "Response Robustness Api V1 Workspaces  Wid  Tuning Robustness Post",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Robustness",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/tuning/sets/{n}": {
    "put": {
     "description": "Parametry do sady 1 (současné nastavení) nebo 2 (nové); log = záznam do historie ladění.",
@@ -21118,6 +21977,85 @@
      }
     },
     "summary": "Suggest",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/tuning/warnings": {
+   "get": {
+    "description": "Varování ladění: data mimo NormPV / NormMV, pracovní bod MV mimo limity, nízká shoda modelu.",
+    "operationId": "warnings_api_v1_workspaces__wid__tuning_warnings_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Warn"
+         },
+         "title": "Response Warnings Api V1 Workspaces  Wid  Tuning Warnings Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Warnings",
     "tags": [
      "tuning"
     ]
