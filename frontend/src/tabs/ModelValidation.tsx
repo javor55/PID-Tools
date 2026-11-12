@@ -111,7 +111,6 @@ export function ValidationCard({ model }: { model: ModelState }) {
           <div className={"small " + (v.verdict === "ok" ? "" : "warn")} data-testid="val-verdict" data-verdict={v.verdict}>
             {T("mdl_ui_verdict_" + v.verdict)}</div>
           <RatingTable v={v} unit={unitPv} />
-          {v.overlap <= 0.5 ? null : <div className="muted small">{T("eval_no_val")}</div>}
           <div data-testid="val-chart" data-n={v.t.length}><LineChart series={ser} height={220} xLabel="t [s]" yLabel={unitPv} /></div>
           {eff === "cl" && <LineChart series={serMv} height={140} xLabel="t [s]" yLabel="MV" />}
           {eff === "cl" && <div className="muted small">{T("val_cl_help")}</div>}

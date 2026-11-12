@@ -86,8 +86,8 @@ Zbývá po sladění 10. 11. 2026:
 - [ ] **Data:** „Zoom / Měření“ nad prohlížečem, klik v grafu Celého náhledu skočí v tabulce; ruční čtení bez
       listu / hlavičky / oddělovače (API je nemá).
 - [ ] **Projekt:** Automatické ukládání, „Nový“ projekt, jazyk reportu.
-- [ ] **Model:** odhad po úsecích, stikce v kartě MV, počet vyřazených vzorků; „Identif.“ zapisuje `fx|` (Streamlit
-      `idf|`).
+- [x] **Model (E6, 12. 11.):** ověření na jiném úseku (predikce / simulace smyčky Set 1 / 2, tabulka hodnocení, verdikt), uzavřená smyčka (odhad a kontrola Set 1, hint málo buzení, zúžení na ruční úsek, CL FIT, model v otevřené smyčce), odezva na skok, porovnání modelů, stikce v kartě MV, nejistota ±, `idf|` → `fx|`.
+      Zbývá: odhad zesílení po úsecích, důvody zastarání modelu, počet vyřazených vzorků; ověření simulací smyčky běží synchronně (ne jako úloha).
 - [ ] Ověřit tmavý vzhled a šířku ~1000 px u všech záložek.
 
 ## Další otevřené body
