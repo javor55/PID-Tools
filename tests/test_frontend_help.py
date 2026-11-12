@@ -16,7 +16,8 @@ TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
 
 APC_TECHS = ["cascade", "ff", "decouple", "override", "smith", "gainsched", "gs_er", "split", "vpc", "ratio", "rga"]
-TABS = ["data", "model", "tuning", "live", "apc", "diag", "loops", "project"]
+TABS = ["data", "model", "tuning", "apc", "live", "project"]
+SUBS = ["sources", "trends", "quality", "diag-all", "diag-detail"]       # podzáložky Data
 
 
 def _call(server, page, method, path, body=None):
@@ -42,6 +43,7 @@ def _job(server, page, path):
 def prepared(page, server):
     """Demo, model aktivní smyčky a druhá smyčka s modelem (aby šly zobrazit i struktury se dvěma smyčkami)."""
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
@@ -91,6 +93,7 @@ def test_guide_dialog_tabs_checklist_and_action(prepared):
 def test_guide_f1_escape_search_and_switch_tab_action(prepared):
     pg = prepared
     pg.locator('[data-tab="data"]').click()
+    pg.locator('[data-sub="quality"]').click()
     dlg = pg.locator('[data-testid="help-dialog"]')
     pg.keyboard.press("F1")
     assert dlg.evaluate("e => e.open")
@@ -203,14 +206,26 @@ def test_help_coverage_all_tabs(prepared):
     report = {}
     for tab in TABS:
         pg.locator(f'[data-tab="{tab}"]').click()
+        if tab == "data":
+            pg.locator('[data-sub="quality"]').click()
         pg.wait_for_timeout(800)
         if tab == "apc":
             continue
         _open_all_cards(pg)
         report[tab] = _gaps(pg, tab)
+    pg.locator('[data-tab="data"]').click()
+    for sub in SUBS:                                                    # podzáložky Data (Zdroje, Trendy, Kvalita, Diagnostika)
+        if sub == "diag-detail":
+            pg.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
+        else:
+            pg.locator(f'[data-sub="{sub}"]').click()
+        pg.wait_for_timeout(800)
+        _open_all_cards(pg)
+        report[sub] = _gaps(pg, sub)
+    pg.locator('[data-sub="quality"]').click()
     bad = {k: v for k, v in report.items() if v}
     assert not bad, json.dumps(bad, indent=1, ensure_ascii=False)
-    assert all(COUNTS[t] >= 3 for t in ("data", "model", "tuning", "live", "diag", "loops", "project")), COUNTS
+    assert all(COUNTS[t] >= 3 for t in ("data", "model", "tuning", "live", "diag-detail", "diag-all", "project")), COUNTS
     assert COUNTS["tuning"] >= 20, COUNTS
 
 

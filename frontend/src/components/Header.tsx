@@ -1,15 +1,19 @@
 // Hlavička podle návrhu: název, aktivní smyčka a „+ Další smyčka“, souhrn dat; vpravo Projekt a report, Nastavení a „?“.
 // Pod ní řádek záložek s podtržením (Projekt a report není záložka, otevírá se tlačítkem).
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
-import { NAV_TABS, type Theme, useUi } from "../store";
+import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
+import { Seg } from "./Ui";
 
-type Loops = components["schemas"]["Loops"];
+type LoopsT = components["schemas"]["Loops"];
+type Loop = components["schemas"]["Loop"];
+type Mapping = components["schemas"]["LoopMapping"];
+type Sources = components["schemas"]["Sources"];
 
 /** Délka záznamu stručně: 45 s, 12 min, 2 h, 1,5 h. */
 export function fmtDuration(s: number | null | undefined, lang: string) {
@@ -20,37 +24,75 @@ export function fmtDuration(s: number | null | undefined, lang: string) {
   return `${nf(s / 3600)} h`;
 }
 
-/** Aktivní smyčka (výběr) a přidání další smyčky ze stejného souboru. */
+/** Skupiny výběru smyčky. Seskupení je na jednom místě – E5 sem doplní verdikty z diagnostiky. */
+export type LoopGroup = "work" | "nomodel" | "incomplete";
+export const LOOP_GROUPS: LoopGroup[] = ["work", "nomodel", "incomplete"];
+export function loopGroup(l: Loop, m?: Mapping): LoopGroup {
+  if (m ? !m.has_data || !m.roles.pv || !m.roles.mv : !l.pv || !l.mv) return "incomplete";
+  return l.has_model ? "work" : "nomodel";
+}
+const loopLabel = (l: Loop, m: Mapping | undefined, T: ReturnType<typeof useT>) => {
+  const tag = m?.tag || l.name || T("loop_n", { n: l.index + 1 });
+  return m?.description ? `${tag} · ${m.description}` : tag;
+};
+
+/** Aktivní smyčka (výběr s hlavičkami skupin, stav) a „+ Smyčka“ (otevře Data › Zdroje a smyčky). */
 function Loops() {
   const T = useT();
   const wid = useUi((s) => s.wid);
+  const setDataSub = useUi((s) => s.setDataSub);
   const ws = useWs().data;
   const qc = useQueryClient();
-  const loops = useWsQuery<Loops>("loops", "/loops").data;
-  const [busy, setBusy] = useState(false);
+  const loops = useWsQuery<LoopsT>("loops", "/loops").data;
+  const maps = useWsQuery<Mapping[]>("mappings", "/loops/mappings").data;
   const pick = async (index: number) => {
     await request("PUT", `/workspaces/${wid}/loops/active`, { index });
     await qc.invalidateQueries({ queryKey: ["ws", wid] });
   };
-  const add = async () => {
-    setBusy(true);
-    try {
-      const r = await request<Loops>("POST", `/workspaces/${wid}/loops`, {});
-      await request("PUT", `/workspaces/${wid}/loops/active`, { index: r.loops.length - 1 });
-      await qc.invalidateQueries({ queryKey: ["ws", wid] });
-    } finally { setBusy(false); }
-  };
   if (!ws?.has_data || !loops) return null;
+  const mapOf = (l: Loop) => maps?.find((m) => m.index === l.index);
+  const act = loops.loops.find((l) => l.index === loops.active);
+  const stText = (g: LoopGroup) => T(`ui_loop_st_${g}`);
+  const pill = act ? loopGroup(act, mapOf(act)) : null;
   return (
     <div className="hloops" role="group" aria-label={T("ui_loops_group")}>
       <select aria-label={T("dk_loop")} title={T("h_loop_sel")} value={loops.active} data-testid="loop-select"
         onChange={(e) => void pick(+e.target.value)}>
-        {loops.loops.map((l) => <option key={l.index} value={l.index}>{l.name || T("loop_n", { n: l.index + 1 })}</option>)}
+        {LOOP_GROUPS.map((g) => {
+          const ls = loops.loops.filter((l) => loopGroup(l, mapOf(l)) === g);
+          return ls.length > 0 && (
+            <optgroup key={g} label={T(`ui_loop_grp_${g}`)}>
+              {ls.map((l) => <option key={l.index} value={l.index}>{loopLabel(l, mapOf(l), T)} — {stText(g)}</option>)}
+            </optgroup>
+          );
+        })}
       </select>
-      <button type="button" className="hbtn small" onClick={() => void add()} disabled={busy} title={T("ui_loop_add_h")}
-        data-testid="loop-add-head">+ {T("loop_add")}</button>
+      {pill && <span className={`hpill ${pill}`} data-testid="loop-status" title={T("ui_loop_st_pill", { s: stText(pill) })}>{stText(pill)}</span>}
+      <button type="button" className="hbtn small" onClick={() => setDataSub("sources")} title={T("ui_loop_add_go")}
+        data-testid="loop-add-head">{T("ui_loop_add_short")}</button>
     </div>
   );
+}
+
+/** „3 soubory“ – tvar podle počtu (český tvar 1 | 2–4 | 5+ je v textu oddělený svislítkem). */
+export function plural(T: ReturnType<typeof useT>, key: string, n: number) {
+  const forms = T(key).split("|");
+  const f = n === 1 ? forms[0] : n >= 2 && n <= 4 ? forms[1] : forms[2] ?? forms[1] ?? forms[0];
+  return (f ?? "").replace("{n}", String(n));
+}
+
+/** Souhrn projektu: „3 soubory · 9 smyček · stav z 10:32“. */
+function Summary() {
+  const T = useT();
+  const q = useWs();
+  const ws = q.data;
+  const src = useWsQuery<Sources>("sources", "/sources").data;
+  const loops = useWsQuery<LoopsT>("loops", "/loops").data;
+  if (!ws?.has_data) return null;
+  const nf = src?.sources.length ?? 1;
+  const t = new Date(q.dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const sum = T("ui_hsum", { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t });
+  return <span className="hsum" data-testid="data-sum" title={T("h_hsum")}>{sum}</span>;
 }
 
 /** Nastavení (jazyk, vzhled) jako rozbalovací panel pod tlačítkem. */
@@ -91,18 +133,14 @@ function Settings() {
 
 export function Header() {
   const T = useT();
-  const { tab, setTab, lang } = useUi();
-  const ws = useWs().data;
-  const sum = ws?.has_data ? T("ui_file_sum", {
-    f: ws.fname, n: (ws.n ?? 0).toLocaleString(lang), ts: +(ws.Ts ?? 0).toPrecision(3), d: fmtDuration(ws.duration, lang),
-  }) : "";
+  const { tab, setTab } = useUi();
   return (
     <header className="header">
       <div className="hrow">
         <div className="hleft">
           <h1>PID Tools</h1>
           <Loops />
-          {sum && <span className="hsum" data-testid="data-sum">{sum}</span>}
+          <Summary />
         </div>
         <div className="hright">
           <button type="button" className="hbtn" aria-pressed={tab === "project"} data-tab="project"
@@ -119,6 +157,32 @@ export function Header() {
           </button>
         ))}
       </nav>
+      {tab === "data" && <DataSubNav />}
     </header>
+  );
+}
+
+/** Podzáložky Data (Zdroje a smyčky · Trendy · Kvalita dat · Diagnostika) + u Diagnostiky přepínač Všechny smyčky / Detail. */
+function DataSubNav() {
+  const T = useT();
+  const { dataSub, setDataSub } = useUi();
+  const items: { id: DataSub; label: string; help: string; on: boolean }[] = [
+    { id: "sources", label: "ui_dsub_sources", help: "h_dsub_sources", on: dataSub === "sources" },
+    { id: "trends", label: "ui_dsub_trends", help: "h_dsub_trends", on: dataSub === "trends" },
+    { id: "quality", label: "ui_dsub_quality", help: "h_dsub_quality", on: dataSub === "quality" },
+    { id: isDiagSub(dataSub) ? dataSub : "diag-all", label: "ui_dsub_diag", help: "h_dsub_diag", on: isDiagSub(dataSub) },
+  ];
+  return (
+    <nav className="subtabs" role="tablist" aria-label={T("ui_dsubs")} data-testid="data-subtabs">
+      {items.map((t) => (
+        <button key={t.label} role="tab" className="subtab" aria-selected={t.on} title={T(t.help)} data-sub={t.id}
+          onClick={() => setDataSub(t.id)}>{T(t.label)}</button>
+      ))}
+      {isDiagSub(dataSub) && (
+        <Seg value={dataSub} options={["diag-all", "diag-detail"] as const} label={T("ui_dsub_diag")} small testid="diag-sub"
+          fmt={(v) => T(v === "diag-all" ? "ui_dsub_diag_all" : "ui_dsub_diag_detail")}
+          titles={(v) => T(v === "diag-all" ? "h_dsub_diag_all" : "h_dsub_diag_detail")} help="h_dsub_diag" onChange={setDataSub} />
+      )}
+    </nav>
   );
 }

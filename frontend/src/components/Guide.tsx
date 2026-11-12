@@ -134,7 +134,9 @@ function Results({ q, g }: { q: string; g: Guide }) {
 /** Tlačítko „?“ v hlavičce + dialog průvodce (F1, Esc zavře). */
 export function HelpButton() {
   const T = useT();
-  const tab = useUi((s) => s.tab);
+  const tab0 = useUi((s) => s.tab);
+  const sub = useUi((s) => s.dataSub);
+  const tab: TabId = tab0 === "data" ? (sub === "diag-all" ? "loops" : sub === "diag-detail" ? "diag" : "data") : tab0;      // průvodce Diagnostiky
   const wid = useUi((s) => s.wid);
   const lang = useUi((s) => s.lang);
   const setTab = useUi((s) => s.setTab);
