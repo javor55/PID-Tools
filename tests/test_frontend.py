@@ -108,9 +108,13 @@ def test_header_help_and_side_cards(page):
     page.locator('[data-tab="model"]').click()
     page.locator('[data-testid="help-btn"]').click()
     dlg = page.locator('[data-testid="help-dialog"]')
-    assert dlg.evaluate("e => e.open")
-    assert dlg.locator("section h3").count() >= 2 and dlg.locator("h2").inner_text()
-    page.keyboard.press("Escape")
+    try:
+        assert dlg.evaluate("e => e.open")
+        page.wait_for_function(                                         # obsah průvodce přijde z API asynchronně
+            "() => document.querySelectorAll('[data-testid=\"help-dialog\"] section h3').length >= 2", timeout=30000)
+        assert dlg.locator("h2").inner_text()
+    finally:
+        page.keyboard.press("Escape")                                   # otevřený dialog by blokoval kliky v dalších testech
     assert not dlg.evaluate("e => e.open")
     assert page.locator('nav.tabs [data-tab="project"]').count() == 0
     assert page.locator('header [data-tab="project"]').count() == 1

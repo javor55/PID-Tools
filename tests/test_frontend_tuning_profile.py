@@ -53,7 +53,8 @@ def test_default_profile_card(prepared):
     assert "PIDConL" in pg.locator('[data-testid="ctrl-name"]').inner_text()
     assert [n.split(" ")[0] for n in _names(pg)] == ["Gain", "TI", "TD"]
     assert pg.locator('[data-testid="blk-params"] [data-testid="set-samp"]').count() == 1       # blok podle profilu
-    assert pg.locator('[data-testid="rob-table"] tbody tr').count() >= 2                        # tabulka robustnosti
+    pg.wait_for_function("() => document.querySelectorAll('[data-testid=\"rob-table\"] tbody tr').length >= 2",
+                         timeout=30000)                                 # tabulka robustnosti se dopočítá asynchronně                        # tabulka robustnosti
     assert "Mt" in pg.locator('[data-testid="rob-table"] thead').inner_text()
     assert pg.locator('[data-testid="set-tc"]').count() == 0 or pg.locator('[data-testid="method"]').input_value() != "SIMC"
 

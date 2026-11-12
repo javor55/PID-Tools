@@ -103,6 +103,9 @@ def test_cursors_readout_zoom_and_navigator(trends):
     trends.locator('[data-testid="trd-ab"]').click()
     rows = trends.locator('[data-testid="trd-readout"] tbody tr')
     rows.first.wait_for()
+    trends.wait_for_function(                                          # hodnoty kurzorů přijdou ze serveru až po vykreslení
+        "() => [...document.querySelectorAll('[data-testid=\"trd-readout\"] tbody tr:first-child td[data-c=\"a\"], [data-testid=\"trd-readout\"] tbody tr:first-child td[data-c=\"b\"]')]"
+        ".every(td => !['–', '…', ''].includes(td.innerText.trim()))", timeout=30000)
     cell = lambda r, c: rows.nth(r).locator(f'td[data-c="{c}"]').inner_text()          # noqa: E731
     a, b, d = (float(cell(0, k).replace(",", ".")) for k in "abd")
     assert d == pytest.approx(b - a, abs=0.05 + 1e-3 * abs(b))
