@@ -217,3 +217,17 @@ def test_trend_aligns_sources_by_offset_and_timezone(client):
     client.patch(f"{V1}/workspaces/{wid}/sources/s2", json={"offset_s": 100.0})
     r = client.get(f"{V1}/workspaces/{wid}/signals/trend", params={"names": ["s2:FI100.Pritok"]}).json()
     assert r["series"][0]["t"][0] == pytest.approx(100.0)
+
+
+def test_range_from_common_axis_to_loop_time(client):
+    """Úsek z Trendů (společná osa) → identifikační úsek aktivní smyčky; přepočet na čas smyčky, mimo záznam 422."""
+    wid = _ws(client)
+    a, _b = _two_files()
+    client.post(f"{V1}/workspaces/{wid}/data/file", params={"name": "a.csv"}, content=a,
+                headers={"Content-Type": "application/octet-stream"})
+    base = f"{V1}/workspaces/{wid}"
+    r0 = client.put(f"{base}/range/common", json={"a": 400, "b": 100}).json()   # pořadí mezí je jedno
+    assert r0["b"] - r0["a"] == pytest.approx(300.0)
+    assert client.get(base).json()["rng"] == pytest.approx([r0["a"], r0["b"]])
+    assert client.put(f"{base}/range/common", json={"a": 1e7, "b": 2e7}).status_code == 422
+    assert client.put(f"{V1}/workspaces/{_ws(client)}/range/common", json={"a": 0, "b": 1}).status_code == 409

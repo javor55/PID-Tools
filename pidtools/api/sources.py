@@ -9,6 +9,7 @@ statistiku a hodnoty v čase kurzorů; binární `/signals` (api/data.py) zůst�
 from typing import Annotated
 
 import numpy as np
+import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
@@ -118,6 +119,31 @@ class Trend(BaseModel):
     cursors: list[float]
     origin: str | None = None
     series: list[TrendSeries]
+
+
+class AxisRange(BaseModel):
+    """Úsek na společné ose zdrojů [s] (kurzory A–B v Trendech)."""
+    a: float
+    b: float
+
+
+class LoopRange(BaseModel):
+    """Úsek přepočtený na čas aktivní smyčky; `offset` = čas 0 smyčky na společné ose [s]."""
+    a: float
+    b: float
+    offset: float
+
+
+def loop_offset(p, ws):
+    """Čas 0 záznamu aktivní smyčky na společné ose zdrojů [s] (z hodin, jinak z posunu zdroje PV / MV + začátek mřížky)."""
+    shifts, _spans, origin = p.axis()
+    t0 = float(ws.grid.T0)
+    org = getattr(ws.sig, "origin", None)
+    if org is not None and origin is not None:
+        return (pd.Timestamp(org) - pd.Timestamp(origin)).total_seconds() + t0
+    roles = p.loop_spec(p.active).roles
+    first = roles.pv or roles.mv
+    return t0 + (shifts.get(first.source_id, 0.0) if first is not None else 0.0)
 
 
 def _num(x):
@@ -283,5 +309,24 @@ def router(get_proj, max_upload):
                                    stats=SignalStats(**trend.stats(t, v, a_, b_)),
                                    at=[_num(trend.value_at(t, v, x)) for x in at or []]))
         return Trend(a=a_, b=b_, n=n, cursors=list(at or []), origin=origin, series=out)
+
+    @r.put("/range/common", response_model=LoopRange)
+    def set_range_common(wid: str, body: AxisRange):
+        """
+        Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky
+        a ořízne na něj (úsek mimo záznam = 422).
+        """
+        p = get_proj(wid)
+        p.sync()
+        ws = p.state
+        if not ws.has_data:
+            raise HTTPException(409, "no data")
+        off = loop_offset(p, ws)
+        a, b = sorted((body.a - off, body.b - off))
+        a, b = max(a, 0.0), min(b, float(ws.t[-1]))
+        if not b > a:
+            raise HTTPException(422, "range outside the record")
+        ws.rng = (a, b)
+        return LoopRange(a=a, b=b, offset=off)
 
     return r

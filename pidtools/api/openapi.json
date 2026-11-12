@@ -324,6 +324,25 @@
     "title": "AuditResult",
     "type": "object"
    },
+   "AxisRange": {
+    "description": "Úsek na společné ose zdrojů [s] (kurzory A–B v Trendech).",
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "number"
+     },
+     "b": {
+      "title": "B",
+      "type": "number"
+     }
+    },
+    "required": [
+     "a",
+     "b"
+    ],
+    "title": "AxisRange",
+    "type": "object"
+   },
    "Browse": {
     "properties": {
      "node_id": {
@@ -3267,6 +3286,30 @@
      "set1_ok"
     ],
     "title": "LoopMode",
+    "type": "object"
+   },
+   "LoopRange": {
+    "description": "Úsek přepočtený na čas aktivní smyčky; `offset` = čas 0 smyčky na společné ose [s].",
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "number"
+     },
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "offset": {
+      "title": "Offset",
+      "type": "number"
+     }
+    },
+    "required": [
+     "a",
+     "b",
+     "offset"
+    ],
+    "title": "LoopRange",
     "type": "object"
    },
    "LoopRow": {
@@ -15509,6 +15552,91 @@
     "summary": "Set Range",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/range/common": {
+   "put": {
+    "description": "Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky\na ořízne na něj (úsek mimo záznam = 422).",
+    "operationId": "set_range_common_api_v1_workspaces__wid__range_common_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AxisRange"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopRange"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Set Range Common",
+    "tags": [
+     "sources"
     ]
    }
   },
