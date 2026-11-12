@@ -24,8 +24,8 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9_\-]{0,63}$")
 
 DEFAULTS = {
     "general": {"autosave_min": 1, "embed_data": True},
-    "appearance": {"language": "", "theme": "system", "font_size": "m"},
-    "charts": {"height": 300, "time_unit": "auto", "decimal": "auto", "ti_unit": "s", "gain_view": "kc"},
+    "appearance": {"language": "", "theme": "", "font_size": "m"},
+    "charts": {"height": 220, "time_unit": "auto", "decimal": "auto", "ti_unit": "s", "gain_view": "kc"},
     "diagnostics": {"thresholds": {}},
     "defaults": {"controller": "pcs7_pidconl", "sim": {"ctype": "PI", "opt_ms": 1.6, "opt_ovs": 2, "opt_robust": False}},
     "journal": {"author": "", "require_note": False},
@@ -35,7 +35,7 @@ DEFAULTS = {
 }
 CHOICES = {
     ("general", "autosave_min"): (0, 1, 5, 15, 30), ("appearance", "language"): ("", "cs", "en"),
-    ("appearance", "theme"): ("system", "light", "dark"), ("appearance", "font_size"): ("s", "m", "l", "xl"),
+    ("appearance", "theme"): ("", "system", "light", "dark"), ("appearance", "font_size"): ("s", "m", "l", "xl"),
     ("charts", "time_unit"): ("auto", "s", "min", "h", "clock"), ("charts", "decimal"): ("auto", "comma", "dot"),
     ("charts", "ti_unit"): ("s", "min"), ("charts", "gain_view"): ("kc", "pb"),
     ("report", "language"): ("app", "cs", "en"),
@@ -112,7 +112,7 @@ def normalize(raw):
             out[s][k] = v
     g, c = sec("general"), sec("charts")
     out["general"]["embed_data"] = g["embed_data"] if isinstance(g.get("embed_data"), bool) else True
-    out["charts"]["height"] = _num(c.get("height"), 120, 1000, 300, int)
+    out["charts"]["height"] = _num(c.get("height"), 120, 1000, 220, int)
     out["diagnostics"]["thresholds"] = triage.merge_thresholds(sec("diagnostics").get("thresholds"))
     d = sec("defaults")
     ctl = d.get("controller")
