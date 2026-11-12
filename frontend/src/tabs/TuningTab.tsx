@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { series } from "../api/signals";
-import { CheckSetting, NumSetting, SelectSetting } from "../components/Fields";
+import { CheckSetting } from "../components/Fields";
 import { LabelHelp, Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
 import { useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
@@ -15,6 +15,7 @@ import { useUi } from "../store";
 import "../styles/tuning.css";
 import { useApc } from "./apc/common";
 import { type Line, ScenarioChart } from "./TuningChart";
+import { ControllerCard, ExportBox, PlantBody, RobTable, TcRow, TuningWarnings, useRob } from "./TuningProfile";
 import { CompareCard, FreqCard, ScenarioEvents, ScenarioSide, UNITS, fnum, unitOf, useFreq, useScenario, useSim } from "./TuningMore";
 import { type Suggestion, type Unit, type View, settingsSig, useCalc, useTun, useTunSync } from "./tuningState";
 
@@ -23,6 +24,14 @@ type ModelState = components["schemas"]["ModelState"];
 type FreqSet = components["schemas"]["FreqSet"];
 type Kpi = Record<string, unknown> | null;
 
+const ROLE_TIP: Record<string, string> = { Kc: "h_gain", Ti: "h_ti", Td: "h_td" };
+const label = (q: { name: string; unit?: string | null }) => (q.unit && q.unit !== "-" ? `${q.name} [${q.unit}]` : q.name);
+/** Hodnota návrhu v jednotkách bloku (návrh převzatý z porovnání metod ji nemá: u PIDConL platí kanonická). */
+const sugVal = (sug: Suggestion, q: { key: string; role: string }, isDefault?: boolean): number | null => {
+  const v = sug.values?.[q.key];
+  if (typeof v === "number") return v;
+  return isDefault ? ({ Kc: sug.Kc, Ti: sug.Ti, Td: sug.Td } as Record<string, number>)[q.role] ?? null : null;
+};
 const FAST = (m: string) => m !== "OPT";                          // rychlé metody (pravidla) se přepočítají samy
 
 /** Metoda zvolená v panelu (jinak výchozí podle API). */
@@ -88,6 +97,8 @@ export function TuningMain() {
           </div>)}
       </div>
 
+      <TuningWarnings unstable={["1", "2", ...(sug ? ["sug"] : [])].filter((n) => n in k && k[n] === null)
+        .map((n) => (n === "sug" ? T("dk_suggest") : T("set_" + n)))} />
       {view === "time" && (
         <>
           <ResponseCard curves={curves.data} sc={sc.data} T_end={T_end} u={u} spread={spread} sug={sug} dec={dec} />
@@ -219,7 +230,6 @@ function KpiCard({ k, freq, info, sug, dec }: { k: Record<string, Kpi>; freq: Fr
 const Qm = LabelHelp;
 
 // ---------------------------------------------------------------- pravý panel
-type Pid3 = { Kc: number; Ti: number; Td: number };
 
 export function TuningSide() {
   useTunSync();
@@ -232,11 +242,11 @@ export function TuningSide() {
   const patch = usePatchSettings();
   const ws = useWs().data;
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
-  const model = useWsQuery<ModelState>("model", "/model");
   const calc = useCalc();
   const { sug, err, busy, spread, robust, ffcmp, set } = useTun();
   const { preview, hasUnc } = useSim();
   const freq = useFreq(preview);
+  const rob = useRob(preview);
   const m = useMethod(info.data);
   const sigNow = `${m}|${settingsSig(st)}`;
   const tried = useRef<string | null>(null);
@@ -258,7 +268,7 @@ export function TuningSide() {
   const chk = (key: string, args: Record<string, unknown>) =>
     T(key, { ...args, m: T("model_" + info.data!.model), th: dur(Number(args.th), dec), T: dur(Number(args.T), dec),
       kk: Number(args.kk ?? 0).toPrecision(3), r: Number(args.r ?? 0).toPrecision(3), g: Number(args.g ?? 0).toPrecision(4) });
-  const writeSet = async (n: number, p: Pid3, log?: Record<string, unknown>) => {
+  const writeSet = async (n: number, p: Record<string, unknown>, log?: Record<string, unknown>) => {
     await request("PUT", `/workspaces/${wid}/tuning/sets/${n}`, { ...p, ...(log ? { log } : {}) });
     await qc.invalidateQueries({ queryKey: ["ws", wid] });
   };
@@ -275,6 +285,7 @@ export function TuningSide() {
         <div className="trow"><span>{T("ctrl_type")}</span>
           <Seg<"PI" | "PID"> value={ctype} options={["PI", "PID"]} onChange={(v) => void patch({ ctype: v })} label={T("ctrl_type")}
             small testid="set-ctype" titles={() => T("h_ctype")} /></div>
+        {(m === "SIMC" || m === "iSIMC" || m === "Lambda") && <TcRow method={m} ctype={ctype} def={sug?.method === m ? sug.tc : null} />}
         {m === "AVG" && <>
           <NumRow k="avg_dpv" label={T("avg_dpv", { u: uPv })} def={+(0.1 * PR).toPrecision(3)} help={T("h_avg_dpv")} />
           <NumRow k="avg_dmv" label={T("avg_dmv", { u: uMv })} def={+(0.1 * MR).toPrecision(3)} help={T("avg_dmv_help")} />
@@ -302,6 +313,10 @@ export function TuningSide() {
         {err && <div className="err small">{err}</div>}
         {sug && sug.notes.map((n) => <div key={n.key} className="tn-info" data-testid="sug-note">💡 {T(n.key, n.args)}</div>)}
         {sug && sug.Kc < 0 && <div className="tn-warn">⚠ {T("warn_neg_gain")}</div>}
+        {sug && sug.warnings.map((w) => <div key={w.key} className="tn-warn" data-testid="sug-map-warn">⚠ {w.text}</div>)}
+        {sug?.robust?.stable && <div className="tn-note" data-testid="sug-robust">{T("tun_ui_sug_ms", { ms: fnum(sug.robust.Ms, dec, 3),
+          mt: fnum(sug.robust.Mt, dec, 3), gm: fnum(sug.robust.GM, dec, 3), pm: fnum(sug.robust.PM, dec, 3) })}</div>}
+        {sug?.approximate && <div className="tn-info">{T("tun_ui_sug_approx")}</div>}
         {sug && sug.checks.map((c) => <div key={c.key} className="tn-warn" data-testid="sug-check">⚠ {chk(c.key, c.args)}</div>)}
         {!sug ? <div className="tn-note"><Md text={T("dk_calc_hint")} /></div>
           : stale ? <div className="tn-warn">{T("web_stale")}</div>
@@ -314,24 +329,24 @@ export function TuningSide() {
         <table className="tn-sets" data-testid="sets">
           <thead><tr><th scope="col" /><th scope="col" className="sug" title={T("dk_calc_help")}>{T("dk_suggest")}</th>
             <th scope="col" title={T("h_set_1")}>{T("set_1")}</th><th scope="col" title={T("h_set_2")}>{T("set_2")}</th></tr></thead>
-          <tbody data-testid="sug-values">{([["Gain", "gain", "Kc", "h_gain"], ["TI [s]", "ti", "Ti", "h_ti"], ["TD [s]", "td", "Td", "h_td"]] as const)
-            .map(([lab, key, sk, hk]) => (
-              <tr key={key}><th scope="row" title={T(hk)}>{lab}</th>
-                <td className="sugv mono">{sug ? fnum(sug[sk], dec, 4) : "—"}</td>
-                {info.data!.sets.map((s) => (
-                  <td key={s.n}><SetInput value={s[key]} placeholder={s.placeholder} label={`${T("set_" + s.n)} ${lab}`}
-                    testid={`set${s.n}-${key}`} onCommit={(x) => {
-                      const p = { Kc: s.gain, Ti: s.ti, Td: s.td };
-                      void writeSet(s.n, { ...p, [sk]: x });
-                    }} /></td>))}
-              </tr>))}
+          <tbody data-testid="sug-values">{info.data.tuning_params.map((q) => (
+            <tr key={q.key}><th scope="row" title={T(ROLE_TIP[q.role] ?? "tun_ui_sets_units", { b: info.data!.controller?.block ?? "" })}>{label(q)}</th>
+              <td className="sugv mono">{sug ? fnum(sugVal(sug, q, info.data!.controller?.is_default), dec, 4) : "—"}</td>
+              {info.data!.sets.map((s) => (
+                <td key={s.n}><SetInput value={(s.values[q.key] as number | null) ?? 0} placeholder={s.placeholder} label={`${T("set_" + s.n)} ${q.name}`}
+                  testid={`set${s.n}-${q.key}`} onCommit={(x) => void writeSet(s.n, { values: { ...s.values, [q.key]: x } })} /></td>))}
+            </tr>))}
           </tbody>
         </table>
         <div className="tn-btns">
           <button type="button" className="tn-btn sug" disabled={!sug} onClick={() => write(2)} data-testid="to-set2">{T("tn_write_s2")}</button>
           <button type="button" className="tn-btn" disabled={!sug} onClick={() => write(1)} data-testid="to-set1">{T("tn_write_s1")}</button>
         </div>
+        <ExportBox formats={info.data.export_formats} />
         <div className="tn-note">{T("tn_sets_note")}</div>
+        <div className="tn-note" data-testid="sets-units">{T("tun_ui_sets_units", { b: info.data.controller?.block ?? "" })}</div>
+        {info.data.sets.flatMap((s) => s.warnings.map((w) => (
+          <div key={`${s.n}-${w.key}`} className="tn-warn" data-testid={`set${s.n}-map-warn`}>⚠ {T("set_" + s.n)}: {w.text}</div>)))}
         {info.data.sets.map((s) => {
           const f = fq(`set${s.n}`);
           if (!f || f.stable) return null;
@@ -344,6 +359,7 @@ export function TuningSide() {
 
       <SideCard title={T("tn_sec_rob")} help={T("ui_tuning_help_rob")} testid="card-robust">
         <RobTiles freq={freq.data} sug={!!sug} dec={dec} />
+        <RobTable rows={rob.data} dec={dec} />
         <label className="tn-check" title={T("h_robust_on")}>
           <input type="checkbox" checked={robust} data-testid="sim-robust" onChange={(e) => set({ robust: e.target.checked })} /> {T("robust_on")}</label>
         <label className="tn-check" title={T("h_spread_on")}>
@@ -353,8 +369,11 @@ export function TuningSide() {
           <input type="checkbox" checked={ffcmp} data-testid="sim-ffcmp" onChange={(e) => set({ ffcmp: e.target.checked })} /> {T("ff_cmp")}</label>
       </SideCard>
 
-      <SideCard title={T("tn_blk")} defaultOpen={false} testid="card-block">
-        <BlockSettings model={model.data} />
+      <SideCard title={T("tun_ui_plant_title")} help={T("plant_help")} defaultOpen={false} testid="card-plant"><PlantBody /></SideCard>
+
+      <SideCard title={info.data.controller ? `${T("tun_ui_ctrl_title")} · ${info.data.controller.name}` : T("tn_blk")}
+        help={T("tun_ui_ctrl_help")} defaultOpen={false} testid="card-block">
+        <ControllerCard info={info.data} />
       </SideCard>
 
       <SideCard title={T("dk_sec_hist")} defaultOpen={false} testid="card-history">
@@ -428,41 +447,5 @@ function RobTiles({ freq, sug, dec }: { freq: FreqSet[] | undefined; sug: boolea
         <div key={t.k} className={"tn-tile " + t.c} data-testid={`tile-${t.k}`}>
           <div className="k">{t.k}</div><div className="v mono">{t.v}</div><div className="r">{refName}: {t.r}</div></div>))}
     </div>
-  );
-}
-
-function BlockSettings({ model }: { model: ModelState | undefined }) {
-  const T = useT();
-  const st = useSettings().data ?? {};
-  const patch = usePatchSettings();
-  const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");
-  void model;
-  const g = (lab: string, a: [string, number | undefined, string?], b?: [string, number | undefined, string?], title?: string) => (
-    <>
-      <span className="tn-lab" title={title}>{lab}</span>
-      <NumBare k={a[0]} def={a[1]} label={a[2] ?? `${lab} ${a[0]}`} title={title} />
-      {b ? <NumBare k={b[0]} def={b[1]} label={b[2] ?? `${lab} ${b[0]}`} title={title} /> : <span />}
-    </>
-  );
-  return (
-    <>
-      <div className="tn-grid3 blk">
-        {g("NormPV", ["pv_lo", 0, "NormPV Low"], ["pv_hi", 100, "NormPV High"], T("h_normpv"))}
-        {g("NormMV", ["mv_lo", 0, "NormMV Low"], ["mv_hi", 100, "NormMV High"], T("h_normmv"))}
-        {g(T("ui_tuning_mv_limits"), ["mvl_lo", Number(st.mv_lo ?? 0), "MV_LoLim"], ["mvl_hi", Number(st.mv_hi ?? 100), "MV_HiLim"], T("h_mvlim"))}
-        {g(T("sampletime"), ["samp", 1, "SampleTime"], undefined, T("sampletime_help"))}
-        {g("DiffGain", ["diffgain", 5], undefined, T("diffgain_help"))}
-        {g("PropFacSP", ["propfac", 1], undefined, T("pfb_help"))}
-      </div>
-      <button type="button" className="tn-btn small" data-testid="blk-reset" title={T("h_mvlim")}
-        onClick={() => void patch({ mvl_lo: Number(st.mv_lo ?? 0), mvl_hi: Number(st.mv_hi ?? 100) })}>{T("ui_tuning_reset_block")}</button>
-      <CheckSetting k="dfb" label={T("dfb")} def title={T("h_dfb")} />
-      <h3 className="tn-h3">{T("blk_elems")}<Qm text={T("h_blk_elems")} /></h3>
-      <NumSetting k="db" label={T("deadband")} min={0} title={T("h_deadband")} />
-      <SelectSetting k="db_mode" label={T("db_mode")} help="h_db_mode" options={["cont", "step"] as const} def="cont" fmt={(x) => T("db_" + x)} />
-      <NumSetting k="pvfilt" label={T("pvfilt")} min={0} title={T("h_pvfilt")} />
-      <NumSetting k="mvrate" label={T("mvrate", { u: uMv })} min={0} title={T("h_mvrate")} />
-      <NumSetting k="sprate" label={T("sprate", { u: uPv })} min={0} title={T("h_sprate")} />
-    </>
   );
 }
