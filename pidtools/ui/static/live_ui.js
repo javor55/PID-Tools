@@ -47,7 +47,7 @@ export default function (component) {
   let S = store[CFG.sim_id];
   if (!S) {
     S = store[CFG.sim_id] = {
-      run: false, speed: CFG.speed0, set: "2", auto: true, compare: false, win: "auto",
+      run: false, speed: CFG.speed0, set: "2", auto: true, compare: false, win: "auto", struct: "pid",
       sp: EP(CFG.pv0), mv: EM(CFG.mv0),
       tune: Object.assign({}, CFG.sets["2"]), setsKey: "",
       noise: CFG.noise0, pvf: CFG.pvf0,
@@ -57,6 +57,8 @@ export default function (component) {
     };
     reset();
   }
+  if (!S.struct) S.struct = "pid";
+  if (S.dist.loc !== "in" && S.dist.loc !== "out" && dvLoc() < 0) S.dist.loc = "in";
   // parametry z Pythonu se změnily (Ladění, zápis zpět) → bez resetu přeladit běžící smyčky
   const setsKey = JSON.stringify(CFG.sets);
   if (S.setsKey !== setsKey) {
@@ -85,12 +87,27 @@ export default function (component) {
     S.rng = mulberry(S.seed);
     loopNames().forEach((nm) => {
       const plant = Object.assign({}, CFG.plant, { Seed: S.seed });       // stejný šum pro obě sady
-      const lp = new E.LiveLoop(CFG.code, plantP(), Object.assign({}, CFG.sets[nm], setOf(nm)), CFG.h, CFG.pv0, CFG.mv0, plant);
+      const lp = mkLoop(nm, plant);
       lp.setNoise(S.noise / PR * 100); lp.setPVFilter(S.pvf); lp.setStiction(S.plant.stic / MR * 100, stJ());
       S.loops[nm] = lp; S.bufs[nm] = newBuf();
       push(nm, [0, CFG.pv0, CFG.pv0, CFG.mv0, CFG.mv0], 0);
     });
     kpiReset(null);
+  }
+  // smyčka sady: regulátor z profilu (ctrl_engine.js), měřené poruchy DV přes přenosy modelu a APC struktura sady 2
+  function mkLoop(nm, plant) {
+    const o = {}, A = CFG.apc || {};
+    if (CFG.profile && window.CtrlEngine) { o.profile = CFG.profile; o.engine = window.CtrlEngine; }
+    o.dvs = (CFG.dvs || []).map((d) => ({ pd: d.pd, ff: d.ff }));
+    o.ff = nm === "2" && S.struct === "ff";
+    if (nm === "2" && S.struct === "cascade" && A.cascade && A.cascade.ok) {
+      o.inner = A.cascade.inner;
+      return new E.CascadeLoop(CFG.code, plantP(), A.cascade.octrl, CFG.h, CFG.pv0, CFG.mv0, plant, o);
+    }
+    const lp = new E.LiveLoop(CFG.code, plantP(), CFG.pctrl ? CFG.pctrl[nm] : Object.assign({}, CFG.sets[nm], setOf(nm)),
+                              CFG.h, CFG.pv0, CFG.mv0, plant, o);
+    if (CFG.pctrl && nm === "2" && JSON.stringify(S.tune) !== JSON.stringify(CFG.sets["2"])) lp.setTuning(setOf("2"));
+    return lp;
   }
   function stJ() { const S0 = CFG.plant.Stic || 0, J0 = CFG.plant.SticJ; return J0 == null || S0 <= 0 ? null : S.plant.stic / MR * 100 * J0 / S0; }
   function retune() { for (const nm in S.loops) if (nm === "2") S.loops[nm].setTuning(setOf("2")); }
@@ -145,6 +162,7 @@ export default function (component) {
       default: return D.A;
     }
   }
+  function dvLoc() { const m = /^dv:(\d+)$/.exec(S.dist.loc); return m && CFG.dvs && CFG.dvs[+m[1]] ? +m[1] : -1; }
   let dLast = 0;
   function distChanged() { S.dist.d0 = dLast; S.dist.t0 = S.t; }
 
@@ -154,13 +172,14 @@ export default function (component) {
     let steps = Math.min(Math.floor(S.acc / CFG.h), 40000);
     S.acc -= steps * CFG.h;
     if (S.acc > 10 * CFG.h) S.acc = 0;                                   // počítač nestíhá → nedohánět
-    const sp = P(S.sp), um = M(S.mv);
+    const sp = P(S.sp), um = M(S.mv), dvIdx = dvLoc(), dvs = CFG.dvs && CFG.dvs.length ? new Array(CFG.dvs.length).fill(0) : null;
     for (let k = 0; k < steps; k++) {
       const d = distNow(); dLast = d;
       const dIn = S.dist.loc === "in" ? d / MR * 100 : 0, dOut = S.dist.loc === "out" ? d / PR * 100 : 0;
+      if (dvs) { dvs.fill(0); if (dvIdx >= 0) dvs[dvIdx] = d; }
       S.t += CFG.h; S.tick++;
       for (const nm in S.loops) {
-        const r = S.loops[nm].tick(sp, S.auto, um, dIn, dOut);
+        const r = S.loops[nm].tick(sp, S.auto, um, dIn, dOut, dvs);
         kpiStep(nm, r);
         if (S.tick % REC === 0) push(nm, r, d);
       }
@@ -192,6 +211,7 @@ export default function (component) {
     <div class="card">
       <div class="chead"><span class="t">${L.kpi_title}</span>${qm(L.h_kpi)}<span class="n">${L.kpi_note}</span></div>
       <table id="kpi" class="kpi"></table>
+      ${CFG.journal ? `<div class="btns"><button id="journal" title="${esc(L.h_journal)}">${L.journal}</button></div>` : ""}
     </div>
     <div class="hint">${L.blk}</div>
   </div>
@@ -209,6 +229,10 @@ export default function (component) {
     <div class="lrow" id="setgrp"><span class="lab">${L.lset}</span><div class="segs" id="set"></div></div>
     <table class="sets" id="sets"></table>
     <div class="hint">${L.sets_note}</div>`)}
+  ${CFG.apc ? card(true, L.sec_struct, L.h_struct, `
+    <div class="lrow stack"><span class="lab">${L.struct_set2}</span><div class="segs" id="struct"></div></div>
+    <div class="hint">${L.struct_hint}</div>
+    <div class="hint" id="struct_note"></div>`) : ""}
   ${card(true, L.sec_dist, L.h_dist, `
     <div class="lrow stack"><span class="lab">${L.dist_shape}</span><div class="segs" id="dtype"></div></div>
     <div class="lrow"><span class="lab">${L.dist_where}</span><select id="dloc"></select></div>
@@ -216,7 +240,7 @@ export default function (component) {
     <div class="lrow"><span class="lab" id="lpp"></span><input class="num" type="number" step="any" id="pps"></div>
     <div class="lrow"><span class="lab">${L.noise_pv}</span><input class="num" type="number" step="any" id="nzs"></div>
     <div class="lrow"><span></span><button id="pulse" class="trigger">${L.run_dist}</button></div>
-    <div class="hint">${L.dist_note}</div>`)}
+    <div class="hint">${L.dist_note}${CFG.dvs && CFG.dvs.length ? " " + L.dv_note : ""}</div>`)}
   ${card(false, L.sec_tune, "", `
         <div class="tune" id="tune"></div>
         <div class="btns"><button id="apply" class="primary">${L.apply}</button><button id="revert">${L.revert}</button></div>
@@ -255,6 +279,7 @@ export default function (component) {
     opts.forEach((o) => {
       const b = document.createElement("button");
       b.textContent = o[1]; b.className = "seg" + (String(o[0]) === String(cur) ? " on" : "");
+      if (o[2]) { b.disabled = true; b.title = o[2]; }
       b.setAttribute("aria-pressed", String(o[0]) === String(cur));
       b.onclick = () => { onPick(o[0]); seg(id, opts, o[0], onPick); };
       box.appendChild(b);
@@ -276,7 +301,7 @@ export default function (component) {
   function setNum(id, v) { const n = $(id); if (n && document.activeElement !== n) n.value = +v.toPrecision(5); }
   const sgn = (v) => (v > 0 ? "+" : "") + fmt(v).replace("-", "−");
   function labels() {
-    const du = S.dist.loc === "in" ? CFG.u_mv : CFG.u_pv;
+    const du = S.dist.loc === "in" ? CFG.u_mv : S.dist.loc === "out" ? CFG.u_pv : dvName();
     $("ldist").textContent = (S.dist.type === "random" ? L.dist_sigma : L.dist_size) + pu(du);
     $("mvs").disabled = $("mvn").disabled = S.auto; $("mvbox").classList.toggle("dis", S.auto);
     $("sps").disabled = $("spn").disabled = !S.auto; $("spbox").classList.toggle("dis", !S.auto);   // MAN: SP zašedlá, AUTO: MV zašedlá
@@ -297,6 +322,7 @@ export default function (component) {
     $("chip").className = "chip" + (S.auto ? "" : " man");
     $("chipt").textContent = S.compare ? L.both_run : (S.set === "1" ? L.set1 : L.set2);
     $("cmp").checked = S.compare;
+    if ($("struct_note")) $("struct_note").textContent = L["struct_note_" + S.struct] + " " + L.struct_soon;
     setsTable(); legend();
   }
   function setsTable() {
@@ -316,8 +342,9 @@ export default function (component) {
     if (S.auto && b && b.n) { const mv = EM(b.MV[at(b, b.n - 1)]); $("mvs").value = mv; setNum("mvn", mv); }
     if (!S.auto && b && b.n) { const sp = EP(b.SP[at(b, b.n - 1)]); $("sps").value = sp; setNum("spn", sp); }
   }
+  function dvName() { const d = CFG.dvs && CFG.dvs[dvLoc()]; return d ? d.name + (d.unit ? ", " + d.unit : "") : ""; }
   function distInput() {
-    const span = S.dist.loc === "in" ? MR / 2 : PR / 2, n = $("ds"), lo = S.dist.type === "random" ? 0 : -span;
+    const span = S.dist.loc === "in" ? MR / 2 : S.dist.loc === "out" ? PR / 2 : (CFG.dvs[dvLoc()] || { span: 1 }).span, n = $("ds"), lo = S.dist.type === "random" ? 0 : -span;
     S.dist.pend = Math.max(lo, Math.min(span, S.dist.pend || 0));
     n.min = lo; n.max = span; n.value = +S.dist.pend.toPrecision(6);
     n.onchange = () => {
@@ -356,6 +383,7 @@ export default function (component) {
   $("cmp").onchange = () => { S.compare = $("cmp").checked; reset(); labels(); };
   seg("speed", CFG.speeds.map((v) => [v, v + "×"]), S.speed, (v) => (S.speed = v));
   seg("set", [["1", L.set1], ["2", L.set2]], S.set, (v) => {
+    if (S.struct !== "pid") { S.set = v; reset(); event(L.ev_set + " " + (v === "1" ? L.set1 : L.set2)); labels(); return; }
     const lp = S.loops[S.set]; S.loops = { [v]: lp }; S.bufs = { [v]: S.bufs[S.set] }; S.kpi = { [v]: S.kpi[S.set] };
     S.set = v; lp.setTuning(setOf(v)); event(L.ev_set + " " + (v === "1" ? L.set1 : L.set2)); kpiReset(null); labels();
   });
@@ -384,7 +412,7 @@ export default function (component) {
   seg("dtype", ["step", "ramp", "sine", "random", "pulse"].map((k) => [k, L["dt_" + k]]), S.dist.type, (v) => {
     S.dist.type = v; distInput(); distChanged(); labels();
   });
-  [["in", L.loc_in], ["out", L.loc_out]].forEach((o) => {
+  [["in", L.loc_in], ["out", L.loc_out]].concat((CFG.dvs || []).map((d, j) => ["dv:" + j, L.dv_loc.replace("{n}", d.name)])).forEach((o) => {
     const op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; $("dloc").appendChild(op);
   });
   $("dloc").value = S.dist.loc;
@@ -408,6 +436,28 @@ export default function (component) {
   seg("win", WINDOWS.map((w) => [w, w === "auto" ? L.win_auto + " (" + (CFG.window / 60).toFixed(CFG.window < 600 ? 1 : 0) + " min)" : w / 60 + " min"]), S.win,
       (v) => { S.win = v; S.view = null; });
   tuneInputs();
+  if (CFG.apc) {
+    const A = CFG.apc, noff = !A.ff || !A.ff.ok, nocas = !A.cascade || !A.cascade.ok;
+    seg("struct", [["pid", L.st_pid], ["ff", L.st_ff, noff ? L.no_ff : ""], ["cascade", L.st_cascade, nocas ? L.no_casc : ""]], S.struct, (v) => {
+      S.struct = v; reset(); event(L.ev_struct + " " + L["st_" + v]); labels();
+    });
+  }
+  if (CFG.journal) $("journal").onclick = () => {
+    const kpi = {};
+    Object.keys(S.kpi).forEach((n) => {
+      const kp = S.kpi[n]; if (!kp) return;
+      const settled = S.t - kp.out > Math.max(0.1 * (S.t || 1), 5 * CFG.h);
+      kpi[n] = { iae: kp.iae * PR / 100, maxdev: kp.maxdev * PR / 100, travel: kp.travel * MR / 100, span: S.t - kp.t0,
+        overshoot: kp.step ? 100 * Math.max(0, kp.over) / Math.abs(kp.step) : null, settle: settled ? kp.out - kp.t0 : null };
+    });
+    if (!Object.keys(kpi).length) return;
+    component.setTriggerValue("journal", { t: S.t, struct: S.struct, auto: S.auto, sp: S.sp, compare: S.compare,
+      sets: { "1": CFG.sets["1"], "2": S.tune }, kpi,
+      scenario: { dist: { type: S.dist.type, loc: S.dist.loc, A: S.dist.A, period: S.dist.Pp }, noise: S.noise, pvf: S.pvf,
+        plant: { k: S.plant.k, t: S.plant.t, th: S.plant.th, stic: S.plant.stic }, speed: S.speed },
+      events: S.events.slice(-8).map((e) => ({ t: e.t, text: e.text })) });
+    event(L.ev_journal); labels();
+  };
   $("apply").onclick = () => {
     component.setTriggerValue("apply", { Gain: S.tune.Gain, TI: S.tune.TI, TD: S.tune.TD });
     event(L.ev_applied);

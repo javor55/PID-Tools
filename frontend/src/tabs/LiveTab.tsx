@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { request } from "../api/client";
 import mountLive from "../../../pidtools/ui/static/live_ui.js";
 import PIDLive from "../../../pidtools/ui/static/live_engine.js";
+import CtrlEngine from "../../../pidtools/ui/static/ctrl_engine.js";
 import "../../../pidtools/ui/static/live.css";
 import "../styles/live.css";
 import { useWs } from "../data";
@@ -13,7 +14,12 @@ import { useT } from "../i18n";
 import { useUi } from "../store";
 
 // jádro je prostý skript (UMD): při sestavení se z něj stane modul, live_ui.js ho čte z window.PIDLive
-(window as unknown as { PIDLive?: unknown }).PIDLive ??= PIDLive;
+(window as unknown as { PIDLive?: unknown; CtrlEngine?: unknown }).PIDLive ??= PIDLive;
+// regulátor živé simulace běží na obecném interpretu profilu (E9-B), stejném jako v Pythonu
+(window as unknown as { CtrlEngine?: unknown }).CtrlEngine ??= CtrlEngine;
+
+/** Souhrn běhu zapsaný do projektu (nastavení `live_runs`), než bude deník ladění (E10). */
+export const LIVE_RUNS_KEEP = 20;
 
 export function LiveMain() {
   const T = useT();
@@ -45,6 +51,14 @@ export function LiveMain() {
     const cleanup = mountLive({
       data, parentElement: host,
       setTriggerValue: (name, value) => {
+        if (name === "journal") {
+          // E10 (deník ladění) převezme: zatím souhrn do nastavení projektu, zobrazí se v záložce Projekt
+          const old = qc.getQueryData<Record<string, unknown>>(["ws", wid, "settings"])?.live_runs;
+          const runs = [...(Array.isArray(old) ? old : []), { when: new Date().toISOString(), ...(value as object) }].slice(-LIVE_RUNS_KEEP);
+          void request("PATCH", `/workspaces/${wid}/settings`, { live_runs: runs })
+            .then(() => qc.invalidateQueries({ queryKey: ["ws", wid, "settings"] }));
+          return;
+        }
         if (name !== "apply") return;
         const v = value as { Gain: number; TI: number | null; TD: number | null };
         void request("PUT", `/workspaces/${wid}/tuning/sets/2`,

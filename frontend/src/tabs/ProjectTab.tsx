@@ -185,8 +185,28 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
   );
 }
 
+type LiveRun = { when?: string; struct?: string; kpi?: Record<string, { iae?: number }> };
+
+/** Souhrny běhů živé simulace („Zapsat výsledek do deníku“); deník ladění (E10) je převezme. */
+function LiveRunsBox() {
+  const T = useT();
+  const st = useSettings().data ?? {};
+  const runs = (Array.isArray(st.live_runs) ? st.live_runs : []) as LiveRun[];
+  const fmt = (v?: number) => (v === undefined ? "–" : String(+v.toPrecision(4)));
+  return (
+    <SideCard title={T("ui_live_runs_title")} help={T("ui_live_runs_help").replace("{n}", "20")} testid="live-runs">
+      {runs.length === 0 && <div className="muted small">{T("ui_live_runs_none")}</div>}
+      {[...runs].reverse().map((r, i) => (
+        <div key={i} className="small" data-testid="live-run-row">
+          {T("ui_live_runs_row").replace("{when}", (r.when ?? "").slice(0, 16).replace("T", " ")).replace("{struct}", r.struct ?? "pid")
+            .replace("{i1}", fmt(r.kpi?.["1"]?.iae)).replace("{i2}", fmt(r.kpi?.["2"]?.iae))}
+        </div>))}
+    </SideCard>
+  );
+}
+
 export function ProjectSide() {
   return (
-    <ReportBox pre={<ProjectBox />} />
+    <ReportBox pre={<><ProjectBox /><LiveRunsBox /></>} />
   );
 }

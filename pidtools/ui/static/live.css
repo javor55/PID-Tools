@@ -21,6 +21,7 @@
 .pidlive .mono, .pidlive .val, .pidlive #read { font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:13px; }
 .pidlive #read { font-size:11px; color:var(--mut); }
 .pidlive .btns { display:flex; gap:8px; flex-wrap:wrap; }
+.pidlive .kpi + .btns { margin-top:10px; }
 .pidlive button { font:inherit; font-size:13px; color:var(--tx); background:var(--card); border:1px solid var(--ctl);
                   border-radius:6px; padding:6px 12px; cursor:pointer; }
 .pidlive button:hover { border-color:var(--acc); }
