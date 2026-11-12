@@ -14,10 +14,13 @@ type DecSim = components["schemas"]["DecSim"];
 
 const DTYPES = ["static", "dyn"] as const;
 type DType = (typeof DTYPES)[number];
+const WAYS = ["both", "ab", "ba"] as const;       // oba decouplery / jen B → A / jen A → B (jednosměrné rozvazbení)
+type Way = (typeof WAYS)[number];
 
 /** Vstupy simulace (sdílí je postranní panel a hlavní plocha). */
-const useDec = create<{ dtype: DType; ampA: number; ampB: number; set: (p: Partial<{ dtype: DType; ampA: number; ampB: number }>) => void }>((set) => ({
-  dtype: "dyn", ampA: 5, ampB: 5, set: (p) => set(p),
+type DecState = { dtype: DType; ampA: number; ampB: number; way: Way };
+const useDec = create<DecState & { set: (p: Partial<DecState>) => void }>((set) => ({
+  dtype: "dyn", ampA: 5, ampB: 5, way: "both", set: (p) => set(p),
 }));
 
 const useInfo = () => {
@@ -28,22 +31,25 @@ const useInfo = () => {
 export function DecoupleSide() {
   const T = useT();
   const { loop, q } = useInfo();
-  const { dtype, ampA, ampB, set } = useDec();
+  const { dtype, ampA, ampB, way, set } = useDec();
   return (
     <>
       <SideCard title={T("apc_decouple_b")} testid="decouple-side">
         <LoopSelect kind="decouple" label={T("apc_decouple_b")} current={q.data?.loop ?? loop} />
       </SideCard>
       <SideCard title={T("dec_type")}>
-        <label className="field"><span>{T("dec_type")}</span>
+        <label className="field" title={T("h_dec_type")}><span>{T("dec_type")}</span>
           <select value={dtype} data-testid="dec-dtype" onChange={(e) => set({ dtype: e.target.value as DType })}>
             {DTYPES.map((t) => <option key={t} value={t}>{T("dec_" + t)}</option>)}</select></label>
-        <label className="field"><span>SP A [%]</span>
+        <label className="field" title={T("apc_ui_dec_way_h")}><span>{T("apc_ui_dec_way")}</span>
+          <select value={way} data-testid="dec-way" onChange={(e) => set({ way: e.target.value as Way })}>
+            {WAYS.map((w) => <option key={w} value={w}>{T("apc_ui_dec_way_" + w)}</option>)}</select></label>
+        <label className="field" title={T("h_dec_step")}><span>SP A [%]</span>
           <NumInput value={ampA} testid="dec-amp-a" onCommit={(x) => set({ ampA: Math.max(-100, Math.min(100, x)) })} /></label>
-        <label className="field"><span>SP B [%]</span>
+        <label className="field" title={T("h_dec_step")}><span>SP B [%]</span>
           <NumInput value={ampB} testid="dec-amp-b" onCommit={(x) => set({ ampB: Math.max(-100, Math.min(100, x)) })} /></label>
-        <button className="btn" data-testid="dec-reset" disabled={dtype === "dyn" && ampA === 5 && ampB === 5} title={T("h_apc_reset")}
-          onClick={() => set({ dtype: "dyn", ampA: 5, ampB: 5 })}>{T("apc_reset")}</button>
+        <button className="btn" data-testid="dec-reset" disabled={dtype === "dyn" && ampA === 5 && ampB === 5 && way === "both"} title={T("h_apc_reset")}
+          onClick={() => set({ dtype: "dyn", ampA: 5, ampB: 5, way: "both" })}>{T("apc_reset")}</button>
       </SideCard>
     </>
   );
@@ -51,8 +57,8 @@ export function DecoupleSide() {
 
 function SimCard({ d, loop }: { d: DecInfo; loop?: number }) {
   const T = useT();
-  const { dtype, ampA, ampB } = useDec();
-  const body = { dtype, amp_a: ampA, amp_b: ampB };
+  const { dtype, ampA, ampB, way } = useDec();
+  const body = { dtype, amp_a: ampA, amp_b: ampB, way };
   const { cv } = useSim<DecSim>(["dec-sim", loop, d.params, body], "/apc/decouple/simulate", qs({ loop }), body, d.ok);
   if (!d.ok) return null;
   const chart = (sp: string, none: string, pv: string, name: string, color: string): CurveDef[] => [
@@ -73,8 +79,8 @@ function SimCard({ d, loop }: { d: DecInfo; loop?: number }) {
 
 function KpiTable({ d, loop }: { d: DecInfo; loop?: number }) {
   const T = useT();
-  const { dtype, ampA, ampB } = useDec();
-  const body = { dtype, amp_a: ampA, amp_b: ampB };
+  const { dtype, ampA, ampB, way } = useDec();
+  const body = { dtype, amp_a: ampA, amp_b: ampB, way };
   const { sim } = useSim<DecSim>(["dec-sim", loop, d.params, body], "/apc/decouple/simulate", qs({ loop }), body, d.ok);
   if (!d.ok || !sim.data) return null;
   const ks = sim.data.kpis;
@@ -89,6 +95,7 @@ export function DecoupleMain() {
   const T = useT();
   const ws = useWs().data;
   const { loop, q } = useInfo();
+  const way = useDec((s) => s.way);
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (q.isError) return <PairError err={q.error} loop={loop} />;
   if (!q.data) return <div className="card muted">…</div>;
@@ -108,7 +115,7 @@ export function DecoupleMain() {
         <ACard title={T("dec_params")} help={T("ui_apc_pcs_h")} testid="dec-params">
           <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("dec_path")}</th><th className="r">{T("dec_gain_pct")}</th>
             <th className="r">{T("dec_gain_eng")}</th><th className="r">Lead [s]</th><th className="r">Lag [s]</th><th className="r">{T("ff_delay")}</th></tr></thead>
-            <tbody>{d.params.map((p, i) => (
+            <tbody>{d.params.filter((p) => way === "both" || p.way === way).map((p, i) => (
               <tr key={i} data-testid={`dec-param-${i}`}><th scope="row">{p.source_mv} → MV {p.target}</th><td className="mono r">{num(p.gain)}</td>
                 <td className="mono r">{num(p.gain_eng)}</td><td className="mono r">{num(p.lead)}</td><td className="mono r">{num(p.lag)}</td>
                 <td className="mono r">{num(p.delay)}</td></tr>))}</tbody></table></div>

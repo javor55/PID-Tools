@@ -8,6 +8,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
+from ..app import journal as jr
 from ..app import report as rpt
 from ..app.apc import recommend as reco
 from ..core import MODELS
@@ -35,14 +36,16 @@ class Diagnostics(BaseModel):
 
 class Recommendation(BaseModel):
     kind: str
-    text: str
+    text: str                    # důvod s důkazem (čísla z modelu a dat)
     other: int | None = None
+    status: Literal["rec", "unsuitable", "skip"] = "rec"   # doporučeno / nevhodné / není potřeba
 
 
 class ReportReq(BaseModel):
     meta: dict = {}
     sections: list[str] = list(rpt.SECTIONS)
     chart_mode: Literal["inline", "cdn"] = "inline"
+    ab: dict | None = None            # úseky A / B z diagnostiky [s]: {"a": [od, do], "b": [od, do]} (sekce Ověření v provozu)
 
 
 def _scatter(xy):
@@ -97,13 +100,15 @@ def router(get_proj):
 
     @r.get("/apc/recommend", response_model=list[Recommendation])
     def recommend(wid: str):
-        """Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu)."""
+        """Posouzení struktur APC pro aktivní smyčku (doporučeno / nevhodné / není potřeba; podle ostatních smyček projektu)."""
         p = get_proj(wid)
         ws = p.state
         if ws.model is None:
             raise HTTPException(409, "no model")
-        items = reco.recommend(ws.report_record(), p.others(), None, any(d.get("use") for d in ws.ff_state))
-        return [Recommendation(kind=k, text=t, other=o) for k, t, o in items]
+        ts, pv, mv, dv = ws.segment()
+        spread = reco.nl_spread(ws.model[0], ws.model[1], ws.model[2], ts, pv, mv, dv, ws.grid.Ts)
+        items = reco.assess(ws.report_record(), p.others(), spread, any(d.get("use") for d in ws.ff_state))
+        return [Recommendation(kind=k, status=st, text=t, other=o) for k, st, t, o in items]
 
     @r.post("/report", response_class=Response,
             responses={200: {"content": {"text/html": {}}, "description": "tuning protocol (HTML)"}})
@@ -112,10 +117,16 @@ def router(get_proj):
         p = get_proj(wid)
         if p.state.model is None:
             raise HTTPException(409, "no model")
-        bad = [s for s in body.sections if s not in rpt.SECTIONS]
+        bad = [s for s in body.sections if s not in rpt.ALL_SECTIONS]
         if bad:
             raise HTTPException(422, f"unknown section: {', '.join(bad)}")
-        html = p.report_html(body.meta, body.sections, body.chart_mode)
+        ab = None
+        if body.ab:
+            try:
+                ab = jr.ab_kpis(p.state, [float(x) for x in body.ab["a"]], [float(x) for x in body.ab["b"]])
+            except (KeyError, TypeError, ValueError) as ex:
+                raise HTTPException(422, f"invalid A/B segments: {ex}") from ex
+        html = p.report_html(body.meta, body.sections, body.chart_mode, ab)
         return Response(html, media_type="text/html")
 
     return r

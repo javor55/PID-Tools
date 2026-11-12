@@ -68,14 +68,18 @@ def page(server):
 
 
 def test_shell_tabs_and_connection(page):
-    tabs = page.locator('[role="tab"]')
-    assert tabs.count() == 7                                 # Projekt a report je tlačítko v hlavičce
+    tabs = page.locator('nav.tabs [role="tab"]')
+    assert tabs.count() == 5                                 # Projekt a report je tlačítko v hlavičce, Diagnostika podzáložka Data
     assert tabs.first.inner_text() == "1 · Data"
+    assert [t.inner_text() for t in tabs.all()][3:] == ["4 · APC", "5 · Live simulation"]
+    page.locator('[data-tab="data"]').click()
+    assert [b.get_attribute("data-sub") for b in page.locator('[data-testid="data-subtabs"] [role="tab"]').all()] == [
+        "sources", "trends", "quality", "diag"]
     assert "version" in page.locator('[data-testid="api-ok"]').inner_text()
     assert any(m == "POST" and u.endswith("/workspaces") for m, u in page.requested)     # pracovní prostor
     assert "#token" not in page.url                                                       # token z adresy pryč
     page.locator('[data-tab="model"]').click()
-    assert page.locator('[data-testid="tab-model"]').count() == 1
+    assert page.locator('[data-testid="tab-model"], [data-testid="start-screen"]').count() == 1          # bez dat Start
 
 
 def _settings(page):
@@ -104,9 +108,13 @@ def test_header_help_and_side_cards(page):
     page.locator('[data-tab="model"]').click()
     page.locator('[data-testid="help-btn"]').click()
     dlg = page.locator('[data-testid="help-dialog"]')
-    assert dlg.evaluate("e => e.open")
-    assert dlg.locator("section h3").count() >= 2 and dlg.locator("h2").inner_text()
-    page.keyboard.press("Escape")
+    try:
+        assert dlg.evaluate("e => e.open")
+        page.wait_for_function(                                         # obsah průvodce přijde z API asynchronně
+            "() => document.querySelectorAll('[data-testid=\"help-dialog\"] section h3').length >= 2", timeout=30000)
+        assert dlg.locator("h2").inner_text()
+    finally:
+        page.keyboard.press("Escape")                                   # otevřený dialog by blokoval kliky v dalších testech
     assert not dlg.evaluate("e => e.open")
     assert page.locator('nav.tabs [data-tab="project"]').count() == 0
     assert page.locator('header [data-tab="project"]').count() == 1
@@ -152,6 +160,7 @@ def test_data_tab_viewer_columns_layout(page, server):
     """Data: ukázka → prohlížeč záznamu (sdílený viewer.js), kurzory a zoom, kvalita, sloupce, uložené rozložení."""
     import re
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
     page.wait_for_selector(".pidv-panel canvas", timeout=30000)
     page.wait_for_timeout(500)
@@ -194,6 +203,7 @@ def test_data_tab_design_structure(page, server):
     """Data podle návrhu: karty panelu v pořadí, přepínač zdroje, DV jako štítky, Statistika, Kvalita dat pod záznamem
     (odznak, počty, kontroly se stavem), Celý náhled s tabulkou a filtrem."""
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
     page.wait_for_selector('[data-testid="dataquality"] li.dt-check', timeout=30000)
     titles = page.locator("aside.side details.scard > summary h2").all_inner_texts()
@@ -237,6 +247,7 @@ def test_data_file_upload(page, server):
 def test_model_tab_identify(page, server):
     """Model: graf s úseky (sdílený trend.js), identifikace jako úloha, tabulka modelů, výběr, průběh modelu."""
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     page.locator('[data-tab="model"]').click()
@@ -473,6 +484,7 @@ def test_live_tab(page, server):
     s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
     assert s2["gain"] == pytest.approx(float(f"{g0 * 1.5:.6g}"))
     page.locator('[data-tab="data"]').click()                                       # odpojení komponenty bez chyby
+    page.locator('[data-sub="quality"]').click()
     page.wait_for_selector('[data-testid="tab-data"]')
 
 
@@ -480,13 +492,14 @@ def test_live_tab_design_structure(page, server):
     """Živá simulace podle návrhu: ovládací řádek, karty „Průběh smyčky“ a „Ukazatele“, tři otevřené karty panelu."""
     page.locator('[data-tab="live"]').click()
     page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
-    assert page.locator("#speed button").count() == 5 and page.locator("#speed button.on").count() == 1
+    assert [b.inner_text() for b in page.locator("#speed button").all()] == ["1×", "10×", "50×", "200×"]
+    assert page.locator("#speed button.on").count() == 1
     assert page.locator(".lvm .card .chead .t").count() == 2                         # Průběh smyčky, Ukazatele
     # legendu vykreslí až první synchronizace stavu po načtení modulu – počkat na ni, ne ji hned číst
     page.wait_for_function("() => document.querySelectorAll('#legend .li').length >= 3", timeout=20000)  # SP, PV, MV
     assert page.locator("#kpi tr").first.locator("th").count() >= 2                  # prázdná buňka + sada
-    assert page.locator(".lvs > details").count() == 7
-    assert page.locator(".lvs > details[open]").count() == 3                         # režim, sady, poruchy
+    assert page.locator(".lvs > details").count() == 8                         # + struktura (APC)
+    assert page.locator(".lvs > details[open]").count() == 4                         # režim, sady, struktura, poruchy
     for sel in ("#tsp", "#tpv", "#tmv", "#mode", "#sps", "#spn", "#mvs", "#mvn", "#cmp", "#sets", "#dtype", "#dloc",
                 "#ds", "#pps", "#nzs", "#pulse"):
         assert page.locator(f".lvs {sel}").count() == 1, sel
@@ -500,6 +513,44 @@ def test_live_tab_design_structure(page, server):
                            "&& document.querySelector('#kpi td.chg').textContent !== '–'")
     page.locator("#run").click()
 
+
+def test_live_tab_structures_dv_and_journal(page, server):
+    """E9-B: přepínač struktury sady 2, porucha DV přes přenos modelu, zápis výsledku do nastavení projektu."""
+    page.locator('[data-tab="live"]').click()
+    page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
+    cfg = _api(server, "/workspaces/{wid}/live", page)
+    assert page.locator("#struct button").count() == 3 and page.locator("#struct button.on").inner_text() == "PID"
+    assert page.locator("#dloc option").count() == 2 + len(cfg["dvs"])
+    page.locator("details:has(#struct) > summary").scroll_into_view_if_needed()
+    if cfg["dvs"]:                                           # porucha DV: běh smyčky přes přenos poruchy
+        page.locator("#dloc").select_option("dv:0")
+        page.locator("#ds").fill(str(cfg["dvs"][0]["span"] / 4))
+        page.locator("#ds").dispatch_event("change")
+        page.locator("#run").click()
+        page.locator("#pulse").click()
+        page.wait_for_function("() => /t = [1-9]/.test(document.querySelector('#tnow').textContent)", timeout=20000)
+        page.locator("#run").click()
+    for sel in ("#struct button:nth-child(2)", "#struct button:nth-child(3)"):   # nedostupná struktura = zakázané tlačítko
+        b = page.locator(sel)
+        if b.is_enabled():
+            b.click()
+            page.wait_for_function("() => document.querySelectorAll('#struct button.on').length === 1")
+    page.locator("#struct button:nth-child(1)").click()
+    page.locator("#run").click()
+    page.wait_for_function("() => /t = [1-9]/.test(document.querySelector('#tnow').textContent)", timeout=20000)
+    page.locator("#run").click()
+    page.locator("#journal").click()                                                 # souhrn běhu do deníku ladění
+    page.wait_for_function(
+        "async () => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/journal', "
+        "{headers: {'X-PID-Token': '" + TOKEN + "'}}); const s = await r.json(); "
+        "return s.snapshots.some((x) => x.kind === 'live'); }", timeout=20000)
+    run = [x for x in _api(server, "/workspaces/{wid}/journal", page)["snapshots"] if x["kind"] == "live"][-1]
+    assert run["live"]["struct"] == "pid" and run["live"]["kpi"]
+    page.locator('[data-tab="project"]').click()
+    page.locator('[data-testid="proj-sub"] [data-value="journal"]').click()
+    page.wait_for_selector('[data-testid="jr-row"]', timeout=10000)
+    page.locator('[data-testid="proj-sub"] [data-value="report"]').click()
+    page.locator('[data-tab="live"]').click()
 
 def _rel(a, b, tol=2e-3):
     return abs(a - b) <= tol * max(1.0, abs(b))
@@ -877,6 +928,7 @@ def test_apc_gainsched_integrating_then_fit(page, server):
         _job_done(server, page, _api_post(server, "/workspaces/{wid}/identify", {}, page))
         _api_send(server, "PATCH", sets, {"mcode": "P1D"}, page)
         page.locator('[data-tab="data"]').click()                                   # návrat načte dotazy znovu
+        page.locator('[data-sub="quality"]').click()
     _apc_tech(page, "gainsched")
     page.wait_for_selector('[data-testid="gs-need-fit"]', timeout=60000)
     gs = _api(server, gs_url, page)
@@ -961,6 +1013,7 @@ def test_apc_override_decouple_second_loop(page, server):
     _job_done(server, page, _api_post(server, base + "/identify", {}, page))
     _api_send(server, "PUT", base + "/loops/active", {"index": 0}, page)
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     ov_url = base + "/apc/override"
     _apc_tech(page, "override")
     page.wait_for_selector('[data-testid="ov-peak"]', timeout=60000)
@@ -1051,7 +1104,7 @@ def test_project_save_open_report(page, server):
     assert _api(server, base + "/loops", page) == l0
     import json
     again, orig = (json.loads(b) for b in (_api_raw(server, base + "/project?data=true", page), saved))
-    assert again["data"] == orig["data"] and again["loops"] == orig["loops"] if "loops" in orig else again["data"] == orig["data"]
+    assert again["sources"] == orig["sources"] and again.get("loops") == orig.get("loops")     # projekt verze 3: data ve zdrojích
     assert page.locator('[data-testid="proj-open"]').get_attribute("accept") == ".pidproj,.json,application/json"
     _open_project(page, saved, name="stary.json")          # starší přípona .json se otevře také
     page.set_input_files('[data-testid="proj-open"]', files=[{"name": "x.pidproj", "mimeType": "application/json", "buffer": b"nope"}])
@@ -1089,6 +1142,7 @@ def test_data_layout_units_ranges(page, server):
     base = "/workspaces/{wid}"
     backup = _api_raw(server, base + "/project?data=true", page)
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     # jednotka PV v popiscích os prohlížeče
     page.wait_for_selector(".pidv-panel canvas", timeout=30000)
     _fill_enter(page, "set-u_pv", "bar")
@@ -1152,6 +1206,7 @@ def test_opc_dialog_history(page, server):
     url, stop = opc.test_server(port=_free_port(), n=300)
     try:
         page.locator('[data-tab="data"]').click()
+        page.locator('[data-sub="quality"]').click()
         page.locator('[data-testid="src-seg"] [data-value="opc"]').click()
         page.locator('[data-testid="opc-open"]').click()
         page.wait_for_selector('[data-testid="opc-dialog"]')
@@ -1202,19 +1257,24 @@ def test_diag_loops_project_card_structure(page, server):
     """Struktura podle návrhu: karty hlavní plochy s nadpisem a „?“, pravý panel jen z karet, hlavní tlačítko nahoře."""
     _track(page)
     _ensure_model(server, page)
-    page.locator('[data-tab="diag"]').click()
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
     page.wait_for_selector('[data-testid="diag-nl"]', timeout=60000)
     assert page.locator('[data-testid="diag-perf"].dcard h2 .qm').count() == 1
     assert page.locator('[data-testid="diag-valve"].dcard h2').count() == 1
     assert page.locator('[data-testid="diag-nl"].dcard h2').count() == 1
     assert page.locator("aside.side details.scard").count() >= 2
     assert page.locator('aside.side [data-testid="diag-cmp"]').count() == 1
-    page.locator('[data-tab="loops"]').click()
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
     assert page.locator('[data-testid="loops-card"].dcard h2').count() == 1
     assert page.locator("aside.side details.scard").count() >= 3
     first = page.locator("aside.side > *:not(.side-all)").first
-    assert first.get_attribute("data-testid") == "audit-side-loops"
+    assert first.get_attribute("data-testid") == "tri-run"            # E5: triáž nahoře, pod ní prahy a smyčky souboru
+    assert page.locator('aside.side [data-testid="audit-side-loops"]').count() == 1
     assert page.locator('aside.side button.btn.primary.big[data-testid="audit-run"]').count() == 1
     page.locator('[data-testid="audit-run"]').click()
     page.wait_for_selector('[data-testid="audit-rank"].dcard', timeout=60000)
@@ -1223,7 +1283,7 @@ def test_diag_loops_project_card_structure(page, server):
     page.wait_for_selector('[data-testid="proj-card"]')
     assert page.locator("aside.side details.scard").count() >= 3
     assert page.locator("aside.side > *:not(.side-all)").first.get_attribute("data-testid") == "report-build"
-    assert page.locator('[data-testid="set-rep_status"] button').count() == 3
+    assert page.locator('[data-testid="set-rep_status"] button').count() == 4
     assert page.locator('[data-testid="report-card"].dcard h2').count() == 1
     _quiet(page)
 
@@ -1233,7 +1293,9 @@ def test_diagnostics_tab(page, server):
     _track(page)
     _ensure_model(server, page)
     base = "/workspaces/{wid}"
-    page.locator('[data-tab="diag"]').click()
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
     page.wait_for_selector('[data-testid="diag-trend"] .pidw-card', timeout=60000)
     ws = _api(server, base, page)
     T = ws["duration"]
@@ -1317,7 +1379,9 @@ def test_loops_overview_add_switch_delete(page, server):
     base = "/workspaces/{wid}"
     l0 = _api(server, base + "/loops", page)
     n0, act0 = len(l0["loops"]), l0["active"]
-    page.locator('[data-tab="loops"]').click()
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
     ov = _api(server, base + "/loops/overview", page)
     assert len(ov["loops"]) == n0 and page.locator('[data-testid="loops-table"] tbody tr').count() == n0
@@ -1349,14 +1413,20 @@ def test_loops_overview_add_switch_delete(page, server):
     assert pv0 != "FI100.Pritok"
     page.wait_for_selector(f'[data-testid="loop-row-{act0}"][data-active="true"]', timeout=30000)
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     page.wait_for_function("(v) => document.querySelector('[data-testid=\"col-pv\"]')?.value === v", arg=pv0, timeout=30000)
-    page.locator('[data-tab="loops"]').click()
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.locator(f'[data-testid="loop-activate-{n0}"]').click()
     _until(lambda: _api(server, base + "/loops", page)["active"] == n0)
     page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="quality"]').click()
     page.wait_for_function("() => document.querySelector('[data-testid=\"col-pv\"]')?.value === 'FI100.Pritok'", timeout=30000)
     # přehled smyček souboru: analýza = API (nová smyčka má vlastní návrh z tagů)
-    page.locator('[data-tab="loops"]').click()
+    page.locator('[data-tab="data"]').click()
+    page.locator('[data-sub="diag"]').click()
+    page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="audit-defs"]')
     page.locator('[data-testid="audit-run"]').click()
     page.wait_for_selector('[data-testid="audit-table"]', timeout=60000)

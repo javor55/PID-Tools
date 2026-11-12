@@ -95,6 +95,20 @@ def test_openapi_file_is_current():
         assert fh.read() == openapi_json()
 
 
+def test_frontend_types_match_openapi():
+    """frontend/src/api/schema.d.ts je z aktuálního openapi.json (po změně API: cd frontend && npm run api-types)."""
+    import re
+    with open(os.path.join(ROOT, "pidtools", "api", "openapi.json"), encoding="utf-8") as fh:
+        spec = json.load(fh)
+    with open(os.path.join(ROOT, "frontend", "src", "api", "schema.d.ts"), encoding="utf-8") as fh:
+        ts = fh.read()
+    paths = set(re.findall(r'^    "(/[^"]*)": \{', ts, flags=re.M))
+    assert paths == set(spec["paths"])
+    assert all(p.startswith("/api/v1/") for p in paths)                             # v OpenAPI jen stabilní cesty
+    body = ts.split("schemas: {", 1)[1].split("responses:", 1)[0]
+    assert set(re.findall(r"^        (\w+): \{", body, flags=re.M)) == set(spec["components"]["schemas"])
+
+
 def _free_port():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))

@@ -6,14 +6,14 @@ Výpočty běží jako úlohy (app.jobs) na odlehčené kopii pracovního prosto
 výsledek zapíše do prostoru (api.tasks.apply). Nastavení identifikace (chosen, thmax, dist_level, id_mode,
 win_mode, ed|…, fx|…) se mění přes PATCH /settings.
 """
-from typing import Literal
+from typing import Annotated, Literal
 
 import numpy as np
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel
 
 from ..app import loopmode as lm
-from ..core import DIST_FIELDS, MODELS
+from ..core import DIST_FIELDS, MODELS, step_response
 from ..app import model as mdl
 from ..app import signalpack
 from ..app import windows as wn
@@ -76,6 +76,7 @@ class ModelRes(BaseModel):
     fit_cl_pv: float | None = None
     fit_cl_mv: float | None = None
     p_open: list[float] | None = None
+    stic: float = 0.0               # stikce z identifikace [% MV]
     structs: list[str] = []
     window_fits: list[float | None] = []
     checks: list[Check] = []
@@ -116,6 +117,108 @@ class Uncertainty(BaseModel):
     n: int = 15
 
 
+class ValRow(BaseModel):
+    FIT: float
+    NRMSE: float
+    R2: float
+    IAE: float                      # v % PV (násobí se rozsahem PV)
+    frac_acf: float
+    frac_ccf: float
+    status: int
+
+
+class ValidateOut(BaseModel):
+    rng: list[float]
+    id_rng: list[float]
+    overlap: float                  # podíl ověřovacího úseku v úseku identifikace
+    mode: Literal["pred", "cl"]
+    which: int
+    id: ValRow
+    val: ValRow
+    verdict: Literal["same", "ok", "weak", "unstable"]
+    fit_pv: float | None = None     # predikce: FIT PV; simulace smyčky: shoda PV
+    fit_mv: float | None = None
+    stable: bool = True
+    pv_range: float = 100.0         # rozsah PV (IAE v jednotkách PV = IAE · rozsah / 100)
+    t: list[float] = []             # zředěné průběhy v inženýrských jednotkách (NaN → null)
+    pv: list[float | None] = []
+    mv: list[float | None] = []
+    sp: list[float | None] | None = None
+    sim_t: list[float] = []
+    sim_pv: list[float | None] = []
+    sim_mv: list[float | None] | None = None
+
+
+class LoopInfo(BaseModel):
+    mode: str                       # volba id_mode
+    effective: Literal["open", "cl"]
+    auto_frac: float
+    has_sp: bool
+    set1_ok: bool
+    set1: dict[str, float]          # gain, ti, td
+    excitation: dict | None = None  # sp_moves, sp_span, mv_span, ok (jen se SP)
+    low_excitation: bool = False    # režim uzavřené smyčky, ale málo buzení
+    manual_span: list[float] | None = None
+
+
+class Set1Estimate(BaseModel):
+    ok: bool
+    gain: float | None = None
+    ti: float | None = None         # None = bez I složky
+    td: float = 0.0
+    r2: float = 0.0
+
+
+class Set1Check(BaseModel):
+    available: bool
+    ok: bool = False
+    stable: bool = True
+    fit_pv: float | None = None
+    fit_mv: float | None = None
+
+
+class Narrow(BaseModel):
+    narrowed: bool
+    span: list[float] | None = None
+
+
+class StepOut(BaseModel):
+    code: str
+    t: list[float]
+    fit: list[float]                # odezva nafitovaného modelu na skok MV o 10 % [Δ jednotek PV]
+    edited: list[float] | None = None
+    open: list[float] | None = None  # model z otevřené smyčky (po identifikaci v uzavřené smyčce)
+    variants: list[list[float]] = []  # z nejistoty (bootstrap)
+    theta: float
+
+
+class CompareModel(BaseModel):
+    code: str
+    fit: float
+    y: list[float | None]
+
+
+class CompareOut(BaseModel):
+    t: list[float]
+    pv: list[float | None]
+    models: list[CompareModel]
+
+
+def _dec(n, cap=1500):
+    return np.arange(0, n, max(1, -(-n // cap)))
+
+
+def _l(a, idx=None):
+    a = np.asarray(a, float)
+    a = a if idx is None else a[idx]
+    return [None if not np.isfinite(x) else float(x) for x in a]
+
+
+def _row(m):
+    return ValRow(**{k: float(m[k]) for k in ("FIT", "NRMSE", "R2", "IAE", "frac_acf", "frac_ccf")},
+                  status=int(m["status"]))
+
+
 def _f(x):
     x = None if x is None else float(x)
     return None if x is None or not np.isfinite(x) else x
@@ -150,7 +253,7 @@ def model_state(ws):
             p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),
             method=r.get("method"), mixed=bool(r.get("mixed")), fit_cl_pv=_f(r.get("fit_cl_pv")),
-            fit_cl_mv=_f(r.get("fit_cl_mv")), p_open=r.get("p_open"), structs=list(wn.structs(c, r)),
+            fit_cl_mv=_f(r.get("fit_cl_mv")), p_open=r.get("p_open"), stic=_f(r.get("stic")) or 0.0, structs=list(wn.structs(c, r)),
             window_fits=[_f(x) for x in wf],
             checks=[Check(key=k, args=_plain(a)) for k, a in lm.model_checks(c, r["p"], ws.grid.Ts)]))
     m = ws.model
@@ -288,7 +391,7 @@ def router(get_proj, jobs):
         ws = need_model(wid)
         if body.code != ws.model[0]:
             ws.set(mcode=body.code)
-        return submit(wid, ws, "refit", (body.code, ws.fixed_from_settings(body.code)))
+        return submit(wid, ws, "refit", (body.code, ws.fixed_from_settings(body.code), ws.stic_fixed(body.code)))
 
     @r.post("/model/crossval", response_model=JobInfo)
     def crossval(wid: str):
@@ -320,4 +423,111 @@ def router(get_proj, jobs):
         """Průběhy aktuálního modelu na mřížce smyčky (NaN mimo úseky) – binárně jako /signals."""
         return Response(_curves_frame(need_model(wid)), media_type="application/octet-stream")
 
+    _more(r, need_data, need_model)
     return r
+
+
+def _more(r, need_data, need_model):
+    """Ověření na jiném úseku, uzavřená smyčka (Set 1, ruční úsek), odezva na skok a porovnání modelů."""
+    @r.post("/windows/narrow", response_model=Narrow)
+    def narrow(wid: str):
+        """Zúží úsek identifikace (u úseků podle vstupů úsek MV) na nejdelší ruční část se skokem MV."""
+        ws = need_data(wid)
+        span = ws.manual_span()
+        if not span or not ws.narrow_to_manual():
+            return Narrow(narrowed=False)
+        return Narrow(narrowed=True, span=[float(span[0]), float(span[1])])
+
+    @r.get("/model/loop", response_model=LoopInfo)
+    def loop_info(wid: str):
+        """Smyčka v AUTO: použitý režim identifikace, Set 1, buzení v úseku a ruční úsek, na který lze zúžit."""
+        ws = need_data(wid)
+        ex = ws.excitation()
+        span = ws.manual_span()
+        eff = ws.id_mode_eff
+        return LoopInfo(mode=ws.id_mode, effective=eff, auto_frac=float(ws.auto_frac()), has_sp=bool(ws.grid.has_sp),
+                        set1_ok=bool(ws.set1_ok),
+                        set1={k: float(ws.get(f"set1_{k}")) for k in ("gain", "ti", "td")},
+                        excitation=_plain(ex) if ex else None, low_excitation=bool(ex and not ex["ok"] and eff == "cl"),
+                        manual_span=[float(span[0]), float(span[1])] if span else None)
+
+    @r.post("/model/set1/estimate", response_model=Set1Estimate)
+    def set1_estimate(wid: str):
+        """Odhad Set 1 (Gain, TI) ze záznamu – při úspěchu se zapíše do nastavení set1_*."""
+        ws = need_data(wid)
+        if not ws.grid.has_sp:
+            raise HTTPException(409, "needs SP")
+        e = ws.estimate_set1()
+        inf = e["gain"] is not None and e["ti"] is not None and not np.isfinite(e["ti"])
+        return Set1Estimate(ok=bool(e["ok"]), gain=_f(e["gain"]), ti=None if inf else _f(e["ti"]), td=0.0,
+                            r2=_f(e["r2"]) or 0.0)
+
+    @r.get("/model/set1/check", response_model=Set1Check)
+    def set1_check(wid: str):
+        """Sedí Set 1 s regulátorem v záznamu? Simulace smyčky s vybraným modelem na úseku identifikace."""
+        c = need_data(wid).check_set1()
+        if c is None:
+            return Set1Check(available=False)
+        return Set1Check(available=True, ok=bool(c["ok"]), stable=bool(c["stable"]), fit_pv=_f(c["fit_pv"]),
+                         fit_mv=_f(c["fit_mv"]))
+
+    @r.get("/model/validate", response_model=ValidateOut)
+    def validate(wid: str, a: float | None = None, b: float | None = None, mode: Literal["pred", "cl"] = "pred",
+                 which: Annotated[int, Query(ge=1, le=2)] = 1):
+        """
+        Ověření modelu na jiném úseku <a, b> [s] (výchozí: uložený ověřovací úsek `val_rng`, jinak celý záznam):
+        predikce PV z naměřené MV, nebo simulace smyčky se Sadou 1 / 2 (potřebuje SP); tabulka hodnocení na úseku
+        identifikace a ověřovacím a verdikt.
+        """
+        ws = need_model(wid)
+        rv = ws.val_rng() if a is None or b is None else (min(a, b), max(a, b))
+        if rv[1] > float(ws.t[-1]) + 1e-9 or rv[0] < 0:
+            raise HTTPException(422, "range outside the record")
+        try:
+            o = ws.validate(rv, mode, which)
+        except ValueError as ex:
+            raise HTTPException(409 if str(ex) == "no sp" else 422, str(ex)) from ex
+        idx = _dec(len(o["t"]))
+        sidx = _dec(len(o["sim_t"])) if o.get("sim_t") is not None and o["sim_pv"] is not None else idx
+        cl = mode == "cl"
+        return ValidateOut(
+            rng=list(rv), id_rng=[float(x) for x in ws.id_rng], overlap=float(o["overlap"]), mode=mode, which=which,
+            id=_row(o["id"]), val=_row(o["val"]), verdict=o["verdict"], fit_pv=_f(o["fit_pv"]), fit_mv=_f(o["fit_mv"]),
+            stable=bool(o["stable"]), pv_range=float(ws.PR), t=_l(o["t"], idx), pv=_l(o["pv"], idx), mv=_l(o["mv"], idx),
+            sp=_l(o["sp"], idx) if o["sp"] is not None else None,
+            sim_t=_l(o["sim_t"], sidx) if cl and o["sim_pv"] is not None else _l(o["t"], idx),
+            sim_pv=_l(o["sim_pv"], sidx if cl else idx) if o["sim_pv"] is not None else [],
+            sim_mv=_l(o["sim_mv"], sidx) if o["sim_mv"] is not None else None)
+
+    @r.get("/model/step", response_model=StepOut)
+    def step(wid: str, code: str | None = None):
+        """Odezva modelu na skok MV o 10 % (v Δ jednotkách PV): nafitovaný, upravený, z otevřené smyčky a varianty z
+        nejistoty."""
+        ws = need_model(wid)
+        code = code or ws.model[0]
+        res = ws.fit["res"].get(code) if ws.fit else None
+        if res is None:
+            raise HTTPException(404, "model not found")
+        k = ws.PR / 100
+        cur = ws.model[1] if ws.model[0] == code else [ws.get(f"ed|{code}|{i}", v) for i, v in enumerate(res["p"])]
+        ta, ya = step_response(code, res["p"])
+        hz = ta[-1]
+        edited = None
+        if [float(x) for x in cur] != [float(x) for x in res["p"]]:
+            edited = _l(step_response(code, cur, horizon=hz)[1] * k)
+        opn = None
+        if res.get("method") == "cl" and res.get("p_open"):
+            opn = _l(step_response(code, res["p_open"], horizon=hz)[1] * k)
+        var = [_l(step_response(code, pp, horizon=hz)[1] * k) for pp in ws.unc_models()[:15]] if ws.model[0] == code else []
+        return StepOut(code=code, t=_l(ta), fit=_l(ya * k), edited=edited, open=opn, variants=var, theta=float(res["p"][-1]))
+
+    @r.get("/model/compare", response_model=CompareOut)
+    def compare(wid: str):
+        """Predikce všech nafitovaných modelů na úseku identifikace (porovnání s PV)."""
+        ws = need_data(wid)
+        if not ws.fit:
+            raise HTTPException(409, "no fit")
+        t, pv, out = ws.compare_models()
+        idx = _dec(len(t))
+        return CompareOut(t=_l(t, idx), pv=_l(pv, idx),
+                          models=[CompareModel(code=c, fit=f, y=_l(y, idx)) for c, (y, f) in out.items()])

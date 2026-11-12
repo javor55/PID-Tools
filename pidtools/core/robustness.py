@@ -83,3 +83,21 @@ def hf_gain(Kc, Td, N, Ts):
 def mv_noise(ctrl, sigma_pv):
     """Přibližná směrodatná odchylka šumu MV [%] z bílého šumu PV [%]."""
     return hf_gain(ctrl["Gain"], ctrl.get("TD", 0.0), ctrl.get("DiffGain", 5.0), ctrl.get("SampleTime", 1.0)) * sigma_pv
+
+
+def robustness_for(profile):
+    """
+    Funkce `robustness(code, p, ctrl)` pro regulátor daného profilu: `ctrl` je slovník v názvech parametrů profilu,
+    přenos regulátoru (forma, jednotky, filtr D, vzorkování) se z něj odvodí; pro PIDConL shodné s `robustness`.
+    Hodí se jako `robustness_fn` v `app.tuning`. U nelineárních profilů (gap, nelineární zesílení, split range, 3-step,
+    PWM) se Ms počítá na linearizované části (ideální PID bez nelinearit) a výsledek má `approximate = True` a `nonlinear`
+    (seznam částí): platí kolem pracovního bodu.
+    """
+    from .controller import ideal_ctrl, nonlinear_parts
+    from .program import is_program
+    parts = ["program"] if is_program(profile) else nonlinear_parts(profile)     # rovnice: jen mapovaný PID, přibližně
+
+    def fn(code, p, ctrl):
+        r = robustness(code, p, dict(ctrl, **ideal_ctrl(profile, ctrl)))
+        return dict(r, approximate=True, nonlinear=parts) if parts else r
+    return fn

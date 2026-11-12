@@ -5,16 +5,22 @@ metod (úloha), historie, scénář a simulace (souhrn i průběhy binárně), f
 Blok PIDConL (SampleTime, DiffGain, NormPV / NormMV, filtry, rychlosti …) a parametry metod (ctype, opt_ms,
 opt_crit, opt_target, opt_ovs, opt_robust) se mění přes PATCH /settings.
 """
+import math
+from typing import Any
+
 import numpy as np
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
+from .. import i18n
+from ..app import ctl_tuning as ctl
 from ..app import frequency as fq
 from ..app import live
 from ..app import loopmode as lm
 from ..app import scenario as scn
 from ..app import signalpack
 from ..app import tuning as tun
+from ..app import tuning_export as tex
 from .common import JobInfo, job_info
 from .data import _plain
 
@@ -30,10 +36,29 @@ class Note(BaseModel):
     args: dict = {}
 
 
+class Warn(BaseModel):
+    key: str
+    text: str
+
+
+class Robust(BaseModel):
+    stable: bool
+    Ms: float | None = None
+    Mt: float | None = None
+    GM: float | None = None
+    PM: float | None = None
+
+
 class Suggestion(Pid):
+    """Návrh v kanonickém tvaru (Kc, Ti, Td) a v parametrech regulátoru smyčky (`values` v jednotkách bloku)."""
     method: str
     notes: list[Note] = []
     checks: list[Note] = []
+    values: dict[str, Any] = {}              # klíč parametru profilu → hodnota v jednotkách bloku
+    warnings: list[Warn] = []                # upozornění mapování (např. sériová forma, chybějící váha b)
+    tc: float | None = None                  # použité τc [s] (SIMC / iSIMC / Lambda; zadané, jinak výchozí)
+    robust: Robust | None = None             # robustnost sady po převodu na profil (Ms, Mt, GM, PM)
+    approximate: bool = False                # nelineární profil: robustnost z linearizované části
 
 
 class SuggestReq(BaseModel):
@@ -41,7 +66,12 @@ class SuggestReq(BaseModel):
     tc: float | None = None
 
 
-class WriteSet(Pid):
+class WriteSet(BaseModel):
+    """Sada v kanonickém tvaru (Kc, Ti, Td), nebo v jednotkách bloku (`values`: klíč parametru profilu → hodnota)."""
+    Kc: float | None = None
+    Ti: float | None = None
+    Td: float = 0.0
+    values: dict[str, Any] | None = None
     log: dict | None = None
 
 
@@ -52,6 +82,31 @@ class SetInfo(BaseModel):
     td: float
     placeholder: bool
     metrics: dict | None = None
+    values: dict[str, Any] = {}              # sada v parametrech profilu (jednotky bloku)
+    warnings: list[Warn] = []
+
+
+class ParamRef(BaseModel):
+    key: str
+    name: str
+    unit: str | None = None
+    role: str
+
+
+class BlockParam(ParamRef):
+    setting: str | None = None               # klíč nastavení smyčky, který hodnotu drží (None = jen zobrazení)
+    value: Any = None
+    default: Any = None
+
+
+class LoopCtrlRef(BaseModel):
+    id: str
+    name: str
+    vendor: str
+    block: str
+    tag: str                                 # preset / custom
+    verified: bool
+    is_default: bool
 
 
 class TuningInfo(BaseModel):
@@ -61,6 +116,35 @@ class TuningInfo(BaseModel):
     sets: list[SetInfo]
     d_advice: dict | None = None
     history: list[dict] = []
+    controller: LoopCtrlRef | None = None
+    tuning_params: list[ParamRef] = []       # parametry sady (Gain / TI / TD u PIDConL, Kp / Ki / Kd u paralelní formy …)
+    block_params: list[BlockParam] = []      # ostatní parametry bloku podle profilu
+    export_formats: list[str] = []
+
+
+class PlantSet(BaseModel):
+    stic: float | None = None                # stikce [jednotky MV]
+    slip: float | None = None                # skluz J [% stikce]
+    noise: float | None = None               # šum PV [jednotky PV]
+    vchar: list[float] | None = None         # charakteristika ventilu: zesílení 10 pásem
+
+
+class PlantInfo(BaseModel):
+    stic: float
+    stic_default: float
+    slip: float
+    noise: float
+    sigma_pv: float
+    vchar: list[float]
+    curve_x: list[float]
+    curve_y: list[float]
+
+
+class RobRow(Robust):
+    name: str                                # set1 / set2 / sug
+    noise: float | None = None
+    Ms_worst: float | None = None
+    approximate: bool = False
 
 
 class Scenario(BaseModel):
@@ -118,6 +202,21 @@ def _fin(x):
     return x if np.isfinite(x) else None
 
 
+def _num(x):
+    """Hodnoty bloku do JSON: nekonečno (bez I složky, bez filtru) = None."""
+    return None if isinstance(x, float) and not math.isfinite(x) else x
+
+
+def _view(ws, kc, ti, td):
+    """Kanonická sada → (hodnoty v jednotkách bloku, varování mapování)."""
+    try:
+        m = ws.block_view(kc, ti, td)
+    except (ValueError, KeyError, ZeroDivisionError):
+        return {}, []
+    return ({k: _num(v) for k, v in m["values"].items()},
+            [Warn(key=k, text=i18n.T(k, **a)) for k, a in m["warnings"]])
+
+
 def _sets(ws):
     out = []
     for n in (1, 2):
@@ -128,8 +227,20 @@ def _sets(ws):
                 m = _plain({k: v for k, v in ws.set_metrics(n).items()})
             except Exception:
                 m = None
-        out.append(SetInfo(n=n, gain=g, ti=ti, td=td, placeholder=tun.is_placeholder(g, ti, td), metrics=m))
+        vals, warns = _view(ws, g, ti, td)
+        out.append(SetInfo(n=n, gain=g, ti=ti, td=td, placeholder=tun.is_placeholder(g, ti, td), metrics=m, values=vals,
+                           warnings=warns))
     return out
+
+
+def _loop_ref(ws):
+    from ..controllers import load_preset, presets
+    data = ctl.profile_data(ws.controller)
+    pre = data.get("id") in presets() and data == load_preset(data["id"])
+    return LoopCtrlRef(id=data.get("id", ""), name=data.get("name", ""), vendor=data.get("vendor", ""),
+                       block=data.get("block", ""), tag="preset" if pre else "custom",
+                       verified=(data.get("verification") or {}).get("status") == "verified",
+                       is_default=ws.controller is None)
 
 
 def _sim(ws, body):
@@ -160,6 +271,20 @@ def _freq(code, p, sets):
     return out
 
 
+def _live_cascade(ws, proj):
+    """Návrh kaskády z APC (jen čtení; stejný výpočet jako záložka APC) pro živou simulaci, nebo None."""
+    from .apc_loops import _cas_state
+    try:
+        _, inner, _n, c = _cas_state(ws, proj, None)
+    except Exception:
+        return None
+    if c is None or inner is None:
+        return None
+    src = ws.get("cas_src") or "manual"
+    return dict(inner=dict(code=c["ci"], p=[float(x) for x in c["pi"]], ctrl=live.ctrl_js(c["ictrl"])),
+                octrl=c["octrl"], source=str(src))
+
+
 def router(get_proj, jobs):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["tuning"])
 
@@ -175,7 +300,13 @@ def router(get_proj, jobs):
     def info(wid: str):
         ws = need_model(wid)
         return TuningInfo(model=ws.model[0], methods=list(ws.methods()), default_method=tun.DEFAULT_METHOD,
-                          sets=_sets(ws), d_advice=_plain(ws.d_advice()), history=_plain(ws.history()))
+                          sets=_sets(ws), d_advice=_plain(ws.d_advice()), history=_plain(ws.history()),
+                          controller=_loop_ref(ws),
+                          tuning_params=[ParamRef(key=q["key"], name=q.get("name") or q["key"], unit=q.get("unit"),
+                                                  role=q["role"]) for q in ctl.tuning_params(ws.controller)],
+                          block_params=[BlockParam(**dict(q, value=_num(q["value"]), default=_num(q["default"])))
+                                        for q in ws.block_rows()],
+                          export_formats=list(tex.FORMATS))
 
     @r.post("/tuning/suggest", response_model=Suggestion)
     def suggest(wid: str, body: SuggestReq):
@@ -192,9 +323,17 @@ def router(get_proj, jobs):
         g1 = float(ws.get("set1_gain"))
         g1 = None if tun.is_placeholder(g1, float(ws.get("set1_ti")), float(ws.get("set1_td"))) else g1
         checks = lm.tuning_checks(code, p, float(s["Kc"]), float(ws.grid.Ts), g1)
+        vals, warns = _view(ws, float(s["Kc"]), float(s["Ti"]), float(s["Td"]))
+        base = ws.base_ctrl()
+        tc = (body.tc or tun.default_tc(code, p, base["SampleTime"], method, ws.get("ctype"), base["DiffGain"])
+              ) if method in ("SIMC", "iSIMC", "Lambda") else None
+        rb = ws.ctrl_metrics(ws.ctrl_of(s), worst=False, mt=True)
         return Suggestion(method=method, Kc=float(s["Kc"]), Ti=float(s["Ti"]), Td=float(s["Td"]),
                           notes=[Note(key=k, args=_plain(a)) for k, a in s.get("notes", [])],
-                          checks=[Note(key=k, args=_plain(a)) for k, a in checks])
+                          checks=[Note(key=k, args=_plain(a)) for k, a in checks], values=vals, warnings=warns, tc=tc,
+                          robust=Robust(stable=bool(rb["stable"]), Ms=_fin(rb["Ms"]), Mt=_fin(rb.get("Mt")),
+                                        GM=_fin(rb["GM"]), PM=_fin(rb["PM"])),
+                          approximate=bool(rb.get("approximate")))
 
     @r.put("/tuning/sets/{n}", response_model=TuningInfo)
     def write_set(wid: str, n: int, body: WriteSet):
@@ -202,7 +341,16 @@ def router(get_proj, jobs):
         ws = need_model(wid)
         if n not in (1, 2):
             raise HTTPException(404, "set not found")
-        ws.write_set(n, dict(Kc=body.Kc, Ti=body.Ti, Td=body.Td), body.log)
+        if body.values is not None:               # sada v jednotkách bloku → kanonická (přes profil)
+            try:
+                s = ws.values_to_canon(body.values)
+            except (ValueError, KeyError, TypeError) as ex:
+                raise HTTPException(422, str(ex)) from ex
+        elif body.Kc is not None and body.Ti is not None:
+            s = dict(Kc=body.Kc, Ti=body.Ti, Td=body.Td)
+        else:
+            raise HTTPException(422, "Kc and Ti, or values, required")
+        ws.write_set(n, s, body.log)
         return info(wid)
 
     @r.post("/tuning/compare", response_model=JobInfo)
@@ -259,11 +407,12 @@ def router(get_proj, jobs):
         sets = {"set1": ws.set_ctrl(1), "set2": ws.set_ctrl(2)}
         if preview is not None:
             sets["sug"] = ws.ctrl_of(preview.model_dump())
-        return _freq(code, p, sets)
+        return _freq(code, p, {k: ws.ana_ctrl(c) for k, c in sets.items()})
 
     @r.get("/live", response_model=dict)
     def live_config(wid: str):
         """Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2."""
-        return _plain(live.web_config_ws(need_model(wid)))
+        ws = need_model(wid)
+        return _plain(live.web_config_ws(ws, _live_cascade(ws, get_proj(wid))))
 
     return r

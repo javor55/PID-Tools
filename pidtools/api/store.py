@@ -21,7 +21,7 @@ class WorkspaceStore:
         for k in [k for k, v in self._d.items() if now - v[1] > self.ttl_s]:
             del self._d[k]
 
-    def create(self, owner=None, max_per_owner=None):
+    def create(self, owner=None, max_per_owner=None, defaults=None):
         """
         Nový prázdný projekt; při plném úložišti se uvolní nejdéle nepoužitý. Vrací (id, Project).
         S vlastníkem a max_per_owner platí limit na uživatele: uvolní se jeho nejdéle nepoužitý prostor.
@@ -36,7 +36,7 @@ class WorkspaceStore:
             while len(self._d) >= self.max_count:
                 del self._d[min(self._d, key=lambda k: self._d[k][1])]
             wid = secrets.token_urlsafe(9)
-            proj = Project()
+            proj = Project(defaults)
             self._d[wid] = [proj, now, owner]
             return wid, proj
 

@@ -1,12 +1,16 @@
 // APC › Gain scheduling podle PV: úseky dat pracovních bodů (gs_r*), identifikace bodů jako úloha, ladění v bodech
 // (klíče gs_*), hodnoty pro blok GainSched a ověření jedna sada vs. scheduling na nelineárním procesu.
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { binary } from "../../api/client";
+import { unframe } from "../../api/signals";
 import type { components } from "../../api/schema";
 import { NumSetting, SelectSetting } from "../../components/Fields";
 import { LineChart } from "../../components/LineChart";
 import { SideCard } from "../../components/Ui";
 import { usePatchSettings, useSettings, useWs } from "../../data";
 import { useT } from "../../i18n";
+import { useUi } from "../../store";
 import { useJobRunner } from "../../jobs";
 import { type CurveDef, curveSeries, NumInput, num, useApc } from "./common";
 import { ACard, Checks, Impl, PointTable, usePost, useSim, VariantTable } from "./parts";
@@ -30,8 +34,8 @@ function Ranges({ inp }: { inp: GsInfo["inputs"] }) {
       <thead><tr><th>{T("gs_pt")}</th><th>{T("dk_from")}</th><th>{T("dk_to")}</th></tr></thead>
       <tbody>{inp.ranges.map((r, i) => (
         <tr key={i}><td>{i + 1}</td>
-          <td><NumInput value={r[0]} testid={`gs-r${i + 1}-from`} onCommit={(x) => put(i, 0, x)} /></td>
-          <td><NumInput value={r[1]} testid={`gs-r${i + 1}-to`} onCommit={(x) => put(i, 1, x)} /></td></tr>))}</tbody>
+          <td><NumInput value={r[0]} testid={`gs-r${i + 1}-from`} title={T("h_gs_range")} onCommit={(x) => put(i, 0, x)} /></td>
+          <td><NumInput value={r[1]} testid={`gs-r${i + 1}-to`} title={T("h_gs_range")} onCommit={(x) => put(i, 1, x)} /></td></tr>))}</tbody>
     </table>
   );
 }
@@ -57,20 +61,20 @@ export function GainSchedSide() {
   return (
     <>
       <SideCard title={T("dk_gs_points")} testid="gs-side">
-        <SelectSetting k="gs_n" label={T("dk_gs_n")} options={NS} def={inp.n} />
+        <SelectSetting k="gs_n" label={T("dk_gs_n")} options={NS} def={inp.n} help="h_gs_n" />
         <Ranges inp={inp} />
         <div className="small muted">{T("gs_s1_help")}</div>
         <div className="row">
-          <button className="btn" data-testid="gs-auto" onClick={() => void post("/apc/gainsched/auto")}>{T("gs_auto")}</button>
+          <button className="btn" data-testid="gs-auto" title={T("h_gs_auto")} onClick={() => void post("/apc/gainsched/auto")}>{T("gs_auto")}</button>
           <button className="btn primary" disabled={busy} data-testid="gs-fit" onClick={() => void fit()}>{T("dk_gs_fit")}</button>
         </div>
         {err && <div className="err small" data-testid="gs-fit-err">{err}</div>}
       </SideCard>
       <SideCard title={T("method")}>
-        <SelectSetting k="gs_m" label={T("method")} options={inp.methods} def={inp.method} fmt={(m) => T("m_" + m)} />
-        <SelectSetting k="gs_ct" label={T("ctrl_type")} options={CTYPES} def={inp.ctype} />
-        {inp.method === "SIMC" && <NumSetting k="gs_tcf" label={T("dk_gs_tcf")} def={inp.tcf_default} min={0.001} />}
-        {inp.method === "OPT" && <NumSetting k="gs_ms" label={T("gs_ms")} def={inp.ms_default} min={1.05} />}
+        <SelectSetting k="gs_m" label={T("method")} help="h_gs_m" options={inp.methods} def={inp.method} fmt={(m) => T("m_" + m)} />
+        <SelectSetting k="gs_ct" label={T("ctrl_type")} help="h_ctype" options={CTYPES} def={inp.ctype} />
+        {inp.method === "SIMC" && <NumSetting k="gs_tcf" label={T("dk_gs_tcf")} help="h_gs_tcf" def={inp.tcf_default} min={0.001} />}
+        {inp.method === "OPT" && <NumSetting k="gs_ms" label={T("gs_ms")} help="h_gs_ms" def={inp.ms_default} min={1.05} />}
         <button className="btn" data-testid="gs-reset" title={T("h_apc_reset")}
           onClick={() => void post("/apc/gainsched/reset")}>{T("apc_reset")}</button>
       </SideCard>
@@ -109,18 +113,41 @@ function KpiTable({ d }: { d: GsInfo }) {
   );
 }
 
+const SEG_COLORS = ["#1f5fa8", "#15803d", "#b45309"];
+
+/** Záznam PV a MV s úseky, v nichž se identifikují pracovní body (pásma s číslem bodu). */
+function SegmentsCard({ d }: { d: GsInfo }) {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const st = useSettings().data ?? {};
+  const cv = useQuery({ queryKey: ["ws", wid, "apc", "gs-seg", d.inputs.ranges], placeholderData: keepPreviousData, retry: false,
+    queryFn: async () => unframe(await binary(`/workspaces/${wid}/apc/gainsched/segments/curves`)) });
+  const bands = d.inputs.ranges.map((r, i) => ({ from: r[0], to: r[1], color: SEG_COLORS[i % SEG_COLORS.length], label: String(i + 1) }));
+  return (
+    <ACard title={T("apc_ui_gs_seg_title")} help={T("apc_ui_gs_seg_help")} testid="gs-segments">
+      <LineChart series={curveSeries(cv.data, [{ name: "PV", key: "pv", color: "#1f5fa8" }])} height={160} yLabel={`PV ${String(st.u_pv ?? "")}`}
+        xLabel={T("time_s")} testid="gs-seg-pv" bands={bands} />
+      <LineChart series={curveSeries(cv.data, [{ name: "MV", key: "mv", color: "#15803d" }])} height={120} yLabel={`MV ${String(st.u_mv ?? "")}`}
+        xLabel={T("time_s")} testid="gs-seg-mv" bands={bands} />
+    </ACard>
+  );
+}
+
 function PointsCard({ d }: { d: GsInfo }) {
   const T = useT();
   return (
     <div className="stack" data-testid="gs-points">
       <div className="apc-sub">{T("gs_s2")}</div>
       <div className="apc-tblwrap"><table className="apc-vt">
-        <thead><tr><th>{T("gs_pt")}</th><th>PV</th><th>MV</th><th>{T("ui_gs_fit_pct")}</th><th>Gain</th><th>TI [s]</th><th>TD [s]</th></tr></thead>
+        <thead><tr><th>{T("gs_pt")}</th><th>PV</th><th>MV</th><th>{T("ui_gs_fit_pct")}</th><th>Gain</th><th>TI [s]</th><th>TD [s]</th>
+          <th title={T("apc_ui_gs_ms_h")}>{T("apc_ui_gs_ms_sched")}</th><th title={T("apc_ui_gs_ms_h")}>{T("apc_ui_gs_ms_fixed")}</th></tr></thead>
         <tbody>{d.points.map((p) => (
           <tr key={p.index} data-testid={`gs-point-${p.index}`}><td>{p.index + 1}</td><td className="mono">{num(p.x)}</td>
             <td className="mono">{num(p.u)}</td><td className="mono">{num(p.fit)}</td>
             <td className="mono" data-testid={`gs-gain-${p.index}`}>{num(p.gain)}</td>
-            <td className="mono">{p.ti === null ? "–" : num(p.ti)}</td><td className="mono">{num(p.td)}</td></tr>))}</tbody>
+            <td className="mono">{p.ti === null ? "–" : num(p.ti)}</td><td className="mono">{num(p.td)}</td>
+            <td className="mono" data-testid={`gs-ms-sched-${p.index}`}>{num(p.ms_sched)}</td>
+            <td className="mono" data-testid={`gs-ms-fixed-${p.index}`}>{num(p.ms_fixed)}</td></tr>))}</tbody>
       </table></div>
       <div className="small" data-testid="gs-fits">{T("dk_gs_fits", { f: d.points.map((p) => `${p.fit.toFixed(0)} %`).join(", ") })}
         {d.filled && <> · {T("dk_gs_filled")}</>}</div>
@@ -141,6 +168,7 @@ export function GainSchedMain() {
   }
   return (
     <div className="stack">
+      <SegmentsCard d={d} />
       <SimCard d={d} />
       <ACard title={T("ui_apc_result")} testid="gs-result">
         {d.stale && <div className="warn small" data-testid="gs-stale">⚠ {T("gs_stale")}</div>}

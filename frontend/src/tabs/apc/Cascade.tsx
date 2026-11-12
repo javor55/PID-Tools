@@ -14,6 +14,7 @@ import { ACard, Checks, Impl, LoopSelect, PairError, PidRow, qs, usePair, usePos
 type CascadeInfo = components["schemas"]["CascadeInfo"];
 type ModelOut = components["schemas"]["ModelOut"];
 type CascadeSim = components["schemas"]["CascadeSim"];
+type CascadeRange = components["schemas"]["CascadeRange"];
 
 const CTYPES = ["PI", "PID"] as const;
 
@@ -27,9 +28,10 @@ function ManualInputs({ inp }: { inp: CascadeInfo["inputs"] }) {
   const post = usePost();
   const loop = usePair((s) => s.loops.cascade);
   const keys = [["cas_k", "K", undefined], ["cas_t1", "T1 [s]", 0.001], ["cas_t2", "T2 [s]", 0], ["cas_th", "θ [s]", 0]] as const;
+  const hk: Record<string, string> = { cas_k: "h_cas_k", cas_t1: "h_cas_t1", cas_t2: "h_cas_t2", cas_th: "h_cas_th" };
   return (
     <>
-      {keys.map(([k, l, min], i) => <NumSetting key={k} k={k} label={l} def={inp.manual[i]} min={min} />)}
+      {keys.map(([k, l, min], i) => <NumSetting key={k} k={k} label={l} def={inp.manual[i]} min={min} help={hk[k]} />)}
       <button className="btn" data-testid="cas-reset-manual" title={T("h_apc_reset")}
         onClick={() => void post(`/apc/cascade/reset${qs({ loop })}`, { part: "manual" })}>{T("apc_reset")}</button>
     </>
@@ -46,24 +48,28 @@ function DataInputs({ inp }: { inp: CascadeInfo["inputs"] }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const sigs = inp.signals;
+  const ipvSel = ipv ?? sigs[0];
+  // rozsah vnitřní PV z dat (zaokrouhlené minimum a maximum signálu); zadaná hodnota ho přebíjí
+  const rng = useApc<CascadeRange>(`cas-irange-${ipvSel}`, `/apc/cascade/irange${qs({ ipv: ipvSel })}`);
+  const dLo = rng.data?.lo ?? 0, dHi = rng.data?.hi ?? 100;
   const fit = async () => {
     setBusy(true); setErr(null);
     try {
-      const j = await run("/apc/cascade/fit", { ipv: ipv ?? sigs[0], imv: imv ?? sigs[1] ?? sigs[0], ilo: lo, ihi: hi }, T("cas_fit"));
+      const j = await run("/apc/cascade/fit", { ipv: ipvSel, imv: imv ?? sigs[1] ?? sigs[0], ilo: lo ?? dLo, ihi: hi ?? dHi }, T("cas_fit"));
       if (j.state !== "done") setErr(j.error ?? j.state);
     } catch (e) { setErr(String((e as Error).message)); }
     setBusy(false);
   };
-  const sel = (label: string, v: string | undefined, def: string, set: (x: string) => void, testid: string) => (
-    <label className="field"><span>{label}</span>
+  const sel = (label: string, v: string | undefined, def: string, set: (x: string) => void, testid: string, title?: string) => (
+    <label className="field" title={title}><span>{label}</span>
       <select value={v ?? def} data-testid={testid} onChange={(e) => set(e.target.value)}>
         {sigs.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>);
   return (
     <>
-      {sel(T("cas_ipv"), ipv, sigs[0], setIpv, "cas-ipv")}
-      {sel(T("cas_imv"), imv, sigs[1] ?? sigs[0], setImv, "cas-imv")}
-      <label className="field"><span>{T("cas_ilo")}</span><NumInput value={lo ?? 0} testid="cas-ilo" onCommit={setLo} /></label>
-      <label className="field"><span>{T("cas_ihi")}</span><NumInput value={hi ?? 100} testid="cas-ihi" onCommit={setHi} /></label>
+      {sel(T("cas_ipv"), ipv, sigs[0], (x) => { setIpv(x); setLo(undefined); setHi(undefined); }, "cas-ipv", T("h_cas_ipv"))}
+      {sel(T("cas_imv"), imv, sigs[1] ?? sigs[0], setImv, "cas-imv", T("h_cas_imv"))}
+      <label className="field" title={T("apc_ui_irange_data")}><span>{T("cas_ilo")}</span><NumInput value={lo ?? dLo} testid="cas-ilo" onCommit={setLo} /></label>
+      <label className="field" title={T("apc_ui_irange_data")}><span>{T("cas_ihi")}</span><NumInput value={hi ?? dHi} testid="cas-ihi" onCommit={setHi} /></label>
       <button className="btn primary" disabled={busy || !sigs.length} data-testid="cas-fit" onClick={() => void fit()}>{T("cas_fit")}</button>
       {err && <div className="err small">{err}</div>}
     </>
@@ -81,21 +87,21 @@ export function CascadeSide() {
   return (
     <>
       <SideCard title={T("cas_inner")} testid="cascade-side">
-        <SelectSetting k="cas_src" label={T("cas_src")} options={inp.sources} def={inp.source} fmt={(s) => T("cas_src_" + s)} />
+        <SelectSetting k="cas_src" label={T("cas_src")} help="h_cas_src" options={inp.sources} def={inp.source} fmt={(s) => T("cas_src_" + s)} />
         {inp.source === "loop" && <LoopSelect kind="cascade" label={T("cas_iloop")} current={inp.loop ?? undefined} />}
         {inp.source === "manual" && <ManualInputs inp={inp} />}
         {inp.source === "data" && <DataInputs inp={inp} />}
       </SideCard>
       <SideCard title={T("cas_inner_tune")}>
-        <SelectSetting k="cas_im" label={T("method")} options={inp.methods} def={inp.inner_method} fmt={(m) => T("m_" + m)} />
-        <NumSetting k="cas_samp" label={T("cas_samp")} def={inp.samp_i} min={0.001} />
+        <SelectSetting k="cas_im" label={T("method")} help="h_cas_method" options={inp.methods} def={inp.inner_method} fmt={(m) => T("m_" + m)} />
+        <NumSetting k="cas_samp" label={T("cas_samp")} help="sampletime_help" def={inp.samp_i} min={0.001} />
         {inp.inner_method === "SIMC" && <NumSetting k="cas_tci" label={T("tc")} def={inp.tci_default} min={0.001} title={T("tc_help")} />}
         <button className="btn" data-testid="cas-reset-inner" disabled={!inp.tci_edited && sameSamp} title={T("h_apc_reset")}
           onClick={() => reset("inner")}>{T("apc_reset")}</button>
       </SideCard>
       <SideCard title={T("cas_outer_tune")}>
-        <SelectSetting k="cas_om" label={T("method")} options={inp.methods} def={inp.outer_method} fmt={(m) => T("m_" + m)} />
-        <SelectSetting k="cas_oct" label={T("ctrl_type")} options={CTYPES} def={inp.outer_ctype} />
+        <SelectSetting k="cas_om" label={T("method")} help="h_cas_method" options={inp.methods} def={inp.outer_method} fmt={(m) => T("m_" + m)} />
+        <SelectSetting k="cas_oct" label={T("ctrl_type")} help="h_ctype" options={CTYPES} def={inp.outer_ctype} />
         {inp.outer_method === "SIMC" && inp.tco_default != null && (
           <NumSetting k="cas_tco" label={T("tc")} def={inp.tco_default} min={0.001} title={T("tc_help")} />)}
         <button className="btn" data-testid="cas-reset-outer" disabled={!inp.tco_edited} title={T("h_apc_reset")}

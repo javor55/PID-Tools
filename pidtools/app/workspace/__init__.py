@@ -40,12 +40,18 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
         self.ts_user = None                             # ruční perioda převzorkování [s]; None = automaticky
         self.row_dt = 1.0                               # bez času (co řádek, to vzorek): perioda v jednotkách unit
         self.sig = None
+        self.origin_hint = None      # pd.Timestamp času 0 dat (zdroj v sekundách, ale s hodinami – složená data)
+        self.src_ids = []            # zdroje, ze kterých jsou data smyčky (app.workspace.sources); prázdné = nezařazeno
+        self.name_refs = {}          # {signál: domain.SourceRef} – odkud signál je
+        self.merged_df = None        # tabulka složená ze zdrojů na společné mřížce (None = přímo tabulka zdroje)
+        self.extra = {}              # popis smyčky, signál režimu a kaskáda (domain.LoopSpec): description, mode, cascade_to
         self.grid = None
         self.c_pv = self.c_mv = None
         self.c_sp, self.c_d, self.c_pos = "—", [], "—"
         self.rng = (0.0, 0.0)
         self.fit = None              # {"res": {kód: výsledek}, "dnames": [...], "key": ...}
         self.ff_state = []
+        self.controller = None       # kopie profilu regulátoru smyčky (dict .pidctrl); None = výchozí PIDConL
         self.sim_sp = None           # (SP z, SP na) v jednotkách PV, None = výchozí
         self.val_status = None       # výsledek validace pro průvodce: 0 dobrá, 1 stejný úsek, 2 špatná
         self.unc = None              # nejistota modelu: {"code", "key", "ps": [parametry variant]}
@@ -80,7 +86,7 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
         """
         import copy
         c = copy.copy(self)
-        c.df = c.sig = None
+        c.df = c.sig = c.merged_df = None
         c.settings = dict(self.settings)
         c.wins = {k: [list(w) for w in v] for k, v in self.wins.items()}
         c.excl = {k: list(v) for k, v in self.excl.items()}

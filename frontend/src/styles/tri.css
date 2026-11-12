@@ -1,0 +1,20 @@
+/* Triáž smyček (E5): dlaždice verdiktů, pilulky, „Kde začít“ */
+.vtiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.vtile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 12px; border-radius: 8px; border: 1px solid; cursor: pointer; font: inherit; text-align: left; }
+.vtile b { font-size: 22px; line-height: 1.1; }
+.vtile span { font-size: 12px; font-weight: 600; }
+.vtile:disabled { opacity: 0.45; cursor: default; }
+.vtile[aria-pressed="true"] { outline: 2px solid var(--pid-accent); outline-offset: 1px; }
+.vpill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; display: inline-block; border: 1px solid; }
+.v-valve { color: var(--pid-err); border-color: var(--pid-err); background: color-mix(in srgb, var(--pid-err) 10%, transparent); }
+.v-foreign { color: var(--pid-warn); border-color: var(--pid-warn); background: color-mix(in srgb, var(--pid-warn) 12%, transparent); }
+.v-tune, .v-cascade { color: var(--pid-accent); border-color: var(--pid-accent); background: var(--pid-accent-bg); }
+.v-nonlinear { color: #7c3aed; border-color: #7c3aed; background: color-mix(in srgb, #7c3aed 10%, transparent); }
+.v-ok { color: var(--pid-ok); border-color: var(--pid-ok); background: color-mix(in srgb, var(--pid-ok) 12%, transparent); }
+.v-low_auto { color: var(--pid-muted); border-color: var(--pid-ctl); background: var(--pid-soft); }
+.ltag.info { color: var(--pid-accent); border-color: var(--pid-accent); background: var(--pid-accent-bg); }
+.tri-start { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.tri-start li span { margin-right: 10px; }
+.tri-ev { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.tri-common { margin: 4px 0; font-size: 13px; }
+.tri-legacy > summary { cursor: pointer; font-weight: 600; margin: 8px 0; }

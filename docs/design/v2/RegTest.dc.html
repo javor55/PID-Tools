@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Test použitelnosti regulátoru</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#1f5fa8}a:hover{color:#174a85}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #1f2933; background: #eef1f5; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="background: #ffffff; border-bottom: 1px solid #d7dde5; padding: 12px 24px; display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap">
+<a href="RegEditor.dc.html" style="font-size: 13px; text-decoration: none; padding: 6px 12px; border: 1px solid #c3ccd6; border-radius: 6px; color: #1f2933">← Editor</a>
+<div style="min-width: 0">
+<div style="font-size: 12px; color: #52606d">Nastavení › Regulátory › Kotelna K2 – PID_K2</div>
+<h1 style="margin: 0; font-size: 20px; font-weight: 600">Test použitelnosti</h1>
+</div>
+<div style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap">
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Uložit protokol testu</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 14px; border: 1px solid #1f5fa8; background: #1f5fa8; color: #ffffff; border-radius: 6px; font-weight: 600">Spustit znovu</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; width: 100%; max-width: 1440px; margin: 0 auto; padding: 16px 24px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+
+<section style="background: #fff8ef; border: 1px solid #f3d3a8; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+<span style="width: 40px; height: 40px; border-radius: 50%; background: #fdf0e1; color: #b45309; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700">!</span>
+<div style="flex: 1; min-width: 260px">
+<div style="font-size: 17px; font-weight: 600">Použitelný – laditelný pravidly i optimalizací, robustnost jen přibližně</div>
+<div style="font-size: 13px; color: #52606d">10 kontrol v pořádku, 2 upozornění, 0 chyb. Gap pásmo dělá regulátor nelineárním: Ms, GM a PM platí pro odchylky větší než šířka pásma.</div>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #e5f3e8; color: #2f7a3f">pravidla ✓</span>
+<span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #e5f3e8; color: #2f7a3f">optimalizace ✓</span>
+<span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #fdf0e1; color: #b45309">robustnost ≈</span>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start">
+<section style="flex: 1 1 520px; min-width: 0; background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Kontroly</h2>
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="12">
+<div style="display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid #eef1f5">
+<span style="{{c.dot}}">{{c.mark}}</span>
+<span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 500">{{c.n}}</span><span style="display: block; font-size: 12px; color: #52606d">{{c.d}}</span></span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #52606d; white-space: nowrap">{{c.r}}</span>
+</div>
+</sc-for>
+</section>
+
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Ekvivalentní PID</h2>
+<p style="margin: 0; font-size: 12px; color: #52606d">Odezva regulátoru na skok odchylky v otevřené smyčce proti obecnému PID s mapovanými parametry (Kc 2, Ti 60 s, Td 10 s).</p>
+<svg viewBox="0 0 460 160" style="width: 100%; height: auto" role="img" aria-label="Odezva regulátoru proti obecnému PID">
+<line x1="30" y1="140" x2="450" y2="140" stroke="#e5e9ef"></line><line x1="30" y1="20" x2="30" y2="140" stroke="#e5e9ef"></line>
+<polyline fill="none" stroke="#9aa5b1" stroke-dasharray="5 4" stroke-width="2" points="30,140 60,140 60,40 64,95 80,96 450,70"></polyline>
+<polyline fill="none" stroke="#6d28d9" stroke-width="2.5" points="30,140 60,140 60,48 64,98 80,99 450,73"></polyline>
+<text x="34" y="16" font-size="11" fill="#52606d" font-family="IBM Plex Mono, monospace">MV</text>
+<text x="440" y="156" font-size="11" fill="#52606d" font-family="IBM Plex Mono, monospace">t</text>
+</svg>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-size: 13px">
+<div style="border: 1px solid #e5e9ef; border-radius: 8px; padding: 6px 8px"><div style="font-size: 11px; color: #52606d">Kc</div><div style="font-family: 'IBM Plex Mono', monospace">2,00</div></div>
+<div style="border: 1px solid #e5e9ef; border-radius: 8px; padding: 6px 8px"><div style="font-size: 11px; color: #52606d">Ti</div><div style="font-family: 'IBM Plex Mono', monospace">60,0 s</div></div>
+<div style="border: 1px solid #e5e9ef; border-radius: 8px; padding: 6px 8px"><div style="font-size: 11px; color: #52606d">Td</div><div style="font-family: 'IBM Plex Mono', monospace">9,8 s</div></div>
+<div style="border: 1px solid #e5e9ef; border-radius: 8px; padding: 6px 8px"><div style="font-size: 11px; color: #52606d">shoda</div><div style="font-family: 'IBM Plex Mono', monospace; color: #2f7a3f">99,4 %</div></div>
+</div>
+</section>
+
+<section style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Referenční procesy (SIMC ladění)</h2>
+<div style="display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 6px 10px; font-size: 13px">
+<span style="font-size: 12px; color: #52606d">Proces</span><span style="font-size: 12px; color: #52606d; text-align: right">Překmit</span><span style="font-size: 12px; color: #52606d; text-align: right">Ms</span><span style="font-size: 12px; color: #52606d; text-align: right">Stav</span>
+<sc-for list="{{refs}}" as="r" hint-placeholder-count="5">
+<span>{{r.n}}</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right">{{r.o}}</span><span style="font-family: 'IBM Plex Mono', monospace; text-align: right">{{r.m}}</span><span style="text-align: right; color: {{r.c}}">{{r.s}}</span>
+</sc-for>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (st) => 'width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex: none; ' +
+      (st === 'ok' ? 'background: #e5f3e8; color: #2f7a3f;' : st === 'w' ? 'background: #fdf0e1; color: #b45309;' : 'background: #fde8e8; color: #b91c1c;');
+    const C = [
+      ['ok', '1 · Překlad', 'syntaxe, deklarace, výstup MV, jednotky a meze parametrů', '16 řádků'],
+      ['ok', '2 · Shoda Python / prohlížeč', 'stejný výstup obou výpočtů na 40 testovacích signálech', 'max. odch. 3e-13'],
+      ['ok', '3 · Klid', 'e = 0, ustálené vstupy → MV se nemění, žádné NaN', 'drift 0'],
+      ['ok', '4 · Směr', 'kladná odchylka zvyšuje MV (nepřímá akce)', '✓'],
+      ['ok', '5 · Ustálená odchylka', 'skok SP v uzavřené smyčce → nulová odchylka', '< 0,01 %'],
+      ['ok', '6 · Ekvivalentní PID', 'odezva proti obecnému PID s mapovanými parametry', 'shoda 99,4 %'],
+      ['w', '7 · Linearita', 'zesílení závisí na amplitudě (gap pásmo 0,5 %) – Ms platí mimo pásmo', 'nelineární'],
+      ['ok', '8 · Referenční procesy', '5 procesů: stabilní, bez limitních cyklů mimo pásmo', '5 / 5'],
+      ['ok', '9 · Anti-windup', 'saturace a návrat – překmit proti referenci', '+1,2 %'],
+      ['ok', '10 · Přepínání', 'MAN → AUTO a tracking bez rázu', 'skok 0'],
+      ['w', '11 · Numerika', 'při periodě 1 s se filtr D (Td/N = 1 s) blíží periodě – zvažte N ≤ Td/(2·dt)', 'dt 0,1–1 s'],
+      ['ok', '12 · Výkon', 'čas jednoho kroku – optimalizace v řádu sekund', '0,8 µs'],
+    ];
+    const checks = C.map(([st, n, d, r]) => ({ n, d, r, mark: st === 'ok' ? '✓' : st === 'w' ? '!' : '✗', dot: mk(st) }));
+    const refs = [
+      { n: 'setrvačný (θ/T = 0,1)', o: '0,8 %', m: '1,58', s: '✓', c: '#2f7a3f' },
+      { n: 'vyvážený (θ/T = 1)', o: '4,1 %', m: '1,62', s: '✓', c: '#2f7a3f' },
+      { n: 's převahou zpoždění (θ/T = 5)', o: '2,3 %', m: '1,55', s: '✓', c: '#2f7a3f' },
+      { n: 'druhý řád (T2/T1 = 0,3)', o: '6,8 %', m: '1,70', s: '✓', c: '#2f7a3f' },
+      { n: 'integrační + zpoždění', o: '18 %', m: '1,74', s: '✓', c: '#2f7a3f' },
+    ];
+    return { checks, refs };
+  }
+}
+</script>
+</body>
+</html>

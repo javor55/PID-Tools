@@ -1,0 +1,121 @@
+{
+  "format": "pidctrl",
+  "version": 1,
+  "id": "siemens_pid_compact",
+  "name": "Siemens TIA PID_Compact",
+  "vendor": "Siemens",
+  "system": "TIA Portal (S7-1200/1500)",
+  "block": "PID_Compact",
+  "verification": {
+    "status": "unverified",
+    "note": "Koncept (neověřeno proti manuálu): Gain, Ti, Td, filtr D jako poměr TdFiltRatio (α = Tf / Td), váha P (PropWeight); jednotky zesílení a anti-windup ověřit."
+  },
+  "structure": {
+    "normalisation": {
+      "kind": "percent"
+    },
+    "sp": {
+      "rate_limit": true
+    },
+    "pv": {
+      "filter": "lag1"
+    },
+    "error": {
+      "deadband": {
+        "modes": {
+          "spojité": "continuous",
+          "skokové": "step"
+        },
+        "other": "step"
+      }
+    },
+    "form": "ideal",
+    "p": {
+      "weight": true
+    },
+    "i": {
+      "enabled": true
+    },
+    "d": {
+      "source": "error",
+      "filter": "td_over_n"
+    },
+    "antiwindup": "clamp_conditional",
+    "algorithm": "position",
+    "output": {
+      "limits": true,
+      "rate_limit": true,
+      "control_zone": true
+    },
+    "ff": {
+      "mode": "add"
+    },
+    "tracking": {
+      "mode": "bumpless_integral"
+    }
+  },
+  "params": [
+    {
+      "key": "Gain",
+      "role": "Kc",
+      "name": "Gain",
+      "unit": "-",
+      "required": true
+    },
+    {
+      "key": "Ti",
+      "role": "Ti",
+      "name": "Ti",
+      "unit": "s",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "key": "Td",
+      "role": "Td",
+      "name": "Td",
+      "unit": "s",
+      "required": true
+    },
+    {
+      "key": "TdFiltRatio",
+      "role": "N",
+      "name": "TdFiltRatio",
+      "unit": "-",
+      "default": 0.2,
+      "repr": "alpha"
+    },
+    {
+      "key": "Cycle",
+      "role": "Ts",
+      "name": "Cycle",
+      "unit": "s",
+      "required": true
+    },
+    {
+      "key": "PropWeight",
+      "role": "b",
+      "name": "PropWeight",
+      "unit": "-",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "default": 1.0
+    },
+    {
+      "key": "LowerLimit",
+      "role": "mv_lo",
+      "name": "LowerLimit",
+      "unit": "%",
+      "default": 0.0
+    },
+    {
+      "key": "UpperLimit",
+      "role": "mv_hi",
+      "name": "UpperLimit",
+      "unit": "%",
+      "default": 100.0
+    }
+  ]
+}

@@ -68,16 +68,19 @@ export function useFreq(preview: Pid | null) {
     queryFn: () => request<FreqSet[]>("POST", `/workspaces/${wid}/frequency`, preview ?? undefined) });
 }
 
-function NumCell({ v, onCommit, testid, label, className }: { v: number | null; onCommit: (x: number | null) => void;
-  testid?: string; label?: string; className?: string }) {
+function NumCell({ v, onCommit, testid, label, className, title }: { v: number | null; onCommit: (x: number | null) => void;
+  testid?: string; label?: string; className?: string; title?: string }) {
   const [d, setD] = useState<string | null>(null);
   return (
     <input type="number" step="any" className={className ?? "num"} value={d ?? (v === null ? "" : +v.toPrecision(6))}
-      data-testid={testid} aria-label={label} onChange={(e) => setD(e.target.value)}
+      data-testid={testid} aria-label={label} title={title} onChange={(e) => setD(e.target.value)}
       onBlur={() => { if (d !== null) onCommit(d === "" ? null : Number.isFinite(+d) ? +d : v); setD(null); }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
   );
 }
+
+/** Nápověda sloupců tabulky událostí (index sloupce řádku scénáře). */
+const HELP_COL: Record<number, string> = { 3: "h_sc_amp", 4: "h_sc_start", 5: "h_sc_end", 6: "h_sc_period", 7: "h_sc_tau" };
 
 function usePutScenario() {
   const wid = useUi((s) => s.wid);
@@ -131,24 +134,24 @@ export function ScenarioSide() {
           <span className="tn-lab">SP</span>
           <span className="tn-pair">
             <NumCell v={sp0} onCommit={(x) => x !== null && void put({ sp_from_to: [x, sp1] })} testid="scen-sp0"
-              label={T("sim_sp_from", { u: uPv })} className="tn-in" />
+              label={T("sim_sp_from", { u: uPv })} title={T("h_sim_sp_from")} className="tn-in" />
             <i>→</i>
             <NumCell v={sp1} onCommit={(x) => x !== null && void put({ sp_from_to: [sp0, x] })} testid="scen-sp1"
-              label={T("sim_sp_to", { u: uPv })} className="tn-in" />
+              label={T("sim_sp_to", { u: uPv })} title={T("h_sim_sp_to")} className="tn-in" />
           </span>
           {iSp >= 0 ? <NumCell v={tm(rows[iSp][4])} onCommit={(x) => x !== null && setRow(iSp, 4, x * mult)} className="tn-in"
-            testid="scen-sp-t" label={T("ui_tuning_at")} /> : <span className="tn-sub">–</span>}
+            testid="scen-sp-t" label={T("ui_tuning_at")} title={T("h_sc_start")} /> : <span className="tn-sub">–</span>}
           {iDv >= 0 && <>
             <span className="tn-lab dv" title={T("tg_" + rows[iDv][1].replace(/^M\d+$/, "M"))}>DV</span>
             <NumCell v={dvAmp} onCommit={(x) => x !== null && setDv(x)} className="tn-in" testid="scen-dv"
-              label={`DV ${dvLabel}`} />
+              label={`DV ${dvLabel}`} title={T("h_sc_amp")} />
             <NumCell v={tm(rows[iDv][4])} onCommit={(x) => x !== null && setRow(iDv, 4, x * mult)} className="tn-in"
-              testid="scen-dv-t" label={T("ui_tuning_at")} />
+              testid="scen-dv-t" label={T("ui_tuning_at")} title={T("h_sc_start")} />
           </>}
           <span className="tn-lab">{T("ui_tuning_len")}</span>
           <NumCell v={tm(T_end)} onCommit={(x) => { if (x !== null && x > 0) set({ tend: x * mult, lenUnit: lu }); }}
-            className="tn-in" testid="scen-len" label={T("sim_len")} />
-          <select value={lu} aria-label={T("time_unit")} data-testid="scen-len-unit"
+            className="tn-in" testid="scen-len" label={T("sim_len")} title={T("h_sim_len")} />
+          <select value={lu} aria-label={T("time_unit")} title={T("h_sim_len")} data-testid="scen-len-unit"
             onChange={(e) => set({ lenUnit: e.target.value as Unit })}>
             {(["s", "min", "h"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
@@ -183,17 +186,19 @@ export function ScenarioEvents() {
       <div className="tn-head"><h2>{T("scen_title")}</h2></div>
       <div className="tn-scroll">
         <table className="tn-tbl" data-testid="scen-rows"><thead><tr>
-          <th>{T("sc_on")}</th><th>{T("sc_target")}</th><th>{T("sc_type")}</th><th>{T("sc_amp")}</th><th>{T("sc_start")}</th>
-          <th>{T("sc_end")}</th><th>{T("sc_period")}</th><th>{T("sc_tau")}</th><th /></tr></thead>
+          <th title={T("h_sc_on")}>{T("sc_on")}</th><th title={T("h_sc_target")}>{T("sc_target")}</th>
+          <th title={T("h_sc_type")}>{T("sc_type")}</th><th title={T("h_sc_amp")}>{T("sc_amp")}</th>
+          <th title={T("h_sc_start")}>{T("sc_start")}</th><th title={T("h_sc_end")}>{T("sc_end")}</th>
+          <th title={T("h_sc_period")}>{T("sc_period")}</th><th title={T("h_sc_tau")}>{T("sc_tau")}</th><th /></tr></thead>
           <tbody>{rows.map((r, i) => (
             <tr key={`${s.kind}-${i}-${r.join("|")}`} data-testid="scen-row">
-              <td><input type="checkbox" checked={!!r[0]} onChange={(e) => setRow(i, 0, e.target.checked)} /></td>
-              <td><select value={r[1]} onChange={(e) => setRow(i, 1, e.target.value)}>
+              <td><input type="checkbox" checked={!!r[0]} title={T("h_sc_on")} onChange={(e) => setRow(i, 0, e.target.checked)} /></td>
+              <td><select value={r[1]} title={T("h_sc_target")} onChange={(e) => setRow(i, 1, e.target.value)}>
                 {targets.map((t) => <option key={t} value={t}>{tgLabel(t)}</option>)}</select></td>
-              <td><select value={r[2]} onChange={(e) => setRow(i, 2, e.target.value)}>
+              <td><select value={r[2]} title={T("h_sc_type")} onChange={(e) => setRow(i, 2, e.target.value)}>
                 {TYPES.map((t) => <option key={t} value={t}>{T("ty_" + t)}</option>)}</select></td>
               {[3, 4, 5, 6, 7].map((j) => (
-                <td key={j}><NumCell v={r[j] as number | null} testid={`scen-${i}-${j}`}
+                <td key={j}><NumCell v={r[j] as number | null} testid={`scen-${i}-${j}`} title={T(HELP_COL[j])}
                   onCommit={(x) => setRow(i, j, j === 3 || j === 4 ? (x ?? 0) : x)} /></td>))}
               <td><button className="btn" title="×" onClick={() => void put({ rows: rows.filter((_, k) => k !== i), T_end: s.T_end })}>×</button></td>
             </tr>))}
@@ -233,7 +238,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const pick = async (q: Pick<CmpRow, "method" | "crit" | "ctype"> & Partial<CmpRow>) => {
     set({ method: q.method });
     if (q.Kc !== undefined && q.Ti !== undefined && q.Td !== undefined)
-      set({ sug: { method: q.method, Kc: q.Kc, Ti: q.Ti, Td: q.Td, notes: [], checks: [], fromRow: true } as Suggestion });
+      set({ sug: { method: q.method, Kc: q.Kc, Ti: q.Ti, Td: q.Td, notes: [], checks: [], values: {}, warnings: [], approximate: false, fromRow: true } as Suggestion });
     await patch({ ctype: q.ctype, ...(q.crit ? { opt_crit: q.crit } : {}) });
     if (q.Kc === undefined) await calc(q.method);
   };
@@ -244,10 +249,23 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
     return v === k ? "" : v;
   };
   const f = (x: number | null, p = 4) => fnum(x, dec, p);
+  const csv = () => {                                  // srovnání metod jako CSV (středník, desetinná čárka podle jazyka)
+    const n = (x: number | null) => (x === null ? "" : String(x).replace(".", dec));
+    const lines = ["method;crit;type;Kc;Ti;Td;Ms;iae_load;iae_sp;overshoot;noise", ...(rows ?? []).map((q) =>
+      [q.method, q.crit ?? "", q.ctype, q.Kc, q.Ti, q.Td, q.Ms, q.iae_load, q.iae_sp, q.ovs, q.noise]
+        .map((x) => (typeof x === "string" ? x : n(x))).join(";"))];
+    const el = document.createElement("a");
+    el.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }));
+    el.download = "tuning_comparison.csv";
+    el.click();
+    URL.revokeObjectURL(el.href);
+  };
   return (
     <section className="tn-card" data-testid="compare">
       <div className="tn-head"><h2>{T("tn_methods")}</h2><span className="tn-sub">{T("tn_methods_note")}</span>
-        {withRun && <button className="btn tn-right" disabled={busy} onClick={() => void go()} data-testid="cmp-run">
+        {rows && <button type="button" className="btn tn-right" data-testid="cmp-csv" title={T("tun_ui_cmp_csv_help")} onClick={csv}>
+          {T("tun_ui_cmp_csv")}</button>}
+        {withRun && <button className={"btn" + (rows ? "" : " tn-right")} disabled={busy} onClick={() => void go()} data-testid="cmp-run">
           {busy ? "…" : T("tn_methods_run")}</button>}
       </div>
       <div className="tn-scroll">

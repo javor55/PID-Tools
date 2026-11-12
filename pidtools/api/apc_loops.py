@@ -174,6 +174,11 @@ class CascadeFitReq(BaseModel):
     ihi: float | None = None
 
 
+class CascadeRange(BaseModel):
+    lo: float                    # rozsah vnitřní PV z dat (zaokrouhlené minimum a maximum signálu)
+    hi: float
+
+
 class CascadeSim(BaseModel):
     ok: bool                     # False = simulace nestabilní
     T_end: float | None = None
@@ -324,8 +329,7 @@ def _cas_fit_args(ws, body):
     if bad:
         raise HTTPException(422, f"unknown signal: {', '.join(bad)}")
     raw = on_grid(ws.sig, ws.grid, body.ipv)
-    lo = float(np.floor(np.nanmin(raw))) if body.ilo is None else float(body.ilo)
-    hi = float(np.ceil(np.nanmax(raw))) if body.ihi is None else float(body.ihi)
+    lo, hi = acas.inner_range(raw, body.ilo, body.ihi)
     m = ws.sel_mask
     ts = ws.segment()[0]
     return ts, (raw[m] - lo) / max(hi - lo, 1e-9) * 100, ws.M(on_grid(ws.sig, ws.grid, body.imv, zoh=True)[m]), ws.grid.Ts
@@ -354,6 +358,8 @@ class GsPoint(BaseModel):
     gain: float
     ti: float | None             # None = bez integrační složky
     td: float
+    ms_sched: float | None = None   # Ms regulátoru naladěného v bodě (na modelu bodu); None = nestabilní / nelze určit
+    ms_fixed: float | None = None   # Ms jedné sady (Set 2) na modelu bodu
 
 
 class GsInfo(BaseModel):
@@ -427,6 +433,22 @@ def _gs_points(ws, rg):
     return pts, bool(pts) and ws.get("gs_key") != key
 
 
+def _ms(code, p, ctrl):
+    """Ms smyčky s regulátorem ctrl na modelu (kód, p); None = nestabilní nebo nelze určit."""
+    try:
+        r = robustness(code, p, ctrl)
+    except Exception:
+        return None
+    return _fin(r["Ms"]) if r["stable"] else None
+
+
+def _gs_ms(ws, q, set2):
+    base = clean(ws.base_ctrl())
+    ti = q["ti"] if np.isfinite(q["ti"]) else 1e12
+    return (_ms(ws.model[0], q["p"], dict(base, Gain=q["gain"], TI=ti, TD=q["td"])),
+            _ms(ws.model[0], q["p"], set2))
+
+
 def _gs_tune(ws, inp, pts):
     code = ws.model[0]
     for q in pts:
@@ -457,11 +479,14 @@ def _gs_info(ws, proj):
                checks=_checks(guides.apc_gainsched(a, False, spread, pts, stale, issues)))
     if fitted:
         pts = _gs_tune(ws, inp, pts)
+        set2 = clean(ws.set_ctrl(2))
         tab, filled = ags.table(pts, ws.EP, ws.get("u_pv") or "PV")
         names = MODELS[code]["params"]
         out.update(points=[GsPoint(index=i, x=float(ws.EP(q["x"])), u=float(ws.EM(q["u"])), fit=float(q["fit"]),
                                    params=[ParamRow(name=n, value=float(v)) for n, v in zip(names, q["p"])],
-                                   gain=q["gain"], ti=_fin(q["ti"]), td=q["td"]) for i, q in enumerate(pts)],
+                                   gain=q["gain"], ti=_fin(q["ti"]), td=q["td"],
+                                   **dict(zip(("ms_sched", "ms_fixed"), _gs_ms(ws, q, set2))))
+                           for i, q in enumerate(pts)],
                    table=[PointRow(input=nm, values=[_fin(v) for v in vals], unit=u) for nm, vals, u in tab],
                    filled=bool(filled), impl_text=T("g_impl_gainsched", u=ws.get("u_pv") or "PV"))
     return GsInfo(**out)
@@ -636,6 +661,7 @@ class DecParam(BaseModel):
     lead: float
     lag: float
     delay: float
+    way: str = "ab"              # ab = decoupler MV B → PV A, ba = MV A → PV B (jednosměrné rozvazbení)
 
 
 class DecDefaults(BaseModel):
@@ -659,6 +685,7 @@ class DecSimReq(BaseModel):
     dtype: Literal["static", "dyn"] = "dyn"
     amp_a: float = Field(5.0, ge=-100, le=100)
     amp_b: float = Field(5.0, ge=-100, le=100)
+    way: Literal["both", "ab", "ba"] = "both"   # oba decouplery / jen B → A (ab) / jen A → B (ba)
 
 
 class DecIae(BaseModel):
@@ -669,6 +696,7 @@ class DecIae(BaseModel):
 
 class DecSim(BaseModel):
     dtype: str
+    way: str
     T_end: float
     kpis: list[DecIae]
 
@@ -685,8 +713,8 @@ def _dec_info(proj, bi, a, b):
     return DecInfo(ok=True, lam=_fin(lam), advice_key=rga_advice(lam), **out,
                    advice=T(rga_advice(lam), a=a["name"], b=b["name"], mva=a["c_mv"], mvb=b["c_mv"]),
                    params=[DecParam(source_mv=str(s), target=str(d), gain=float(g), gain_eng=float(ge),
-                                    lead=float(ld), lag=float(lg), delay=float(dl))
-                           for s, d, g, ge, ld, lg, dl in adec.params(dz, a, b)])
+                                    lead=float(ld), lag=float(lg), delay=float(dl), way=w)
+                           for w in ("ab", "ba") for s, d, g, ge, ld, lg, dl in adec.params(dz, a, b, w)])
 
 
 def _dec_run(proj, loop, body):
@@ -694,7 +722,7 @@ def _dec_run(proj, loop, body):
     dz = adec.design(a, b)
     if dz["xab"] is None and dz["xba"] is None:
         raise HTTPException(409, "no cross coupling")
-    runs = adec.simulate(dz, clean(a["ctrl"]), clean(b["ctrl"]), body.amp_a, body.amp_b)
+    runs = adec.simulate(dz, clean(a["ctrl"]), clean(b["ctrl"]), body.amp_a, body.amp_b, way=body.way)
     return a, b, runs
 
 
@@ -766,7 +794,8 @@ def _ov_frame(a, b, tt, o, o0):
     ea, eb, ma = _ep(a["pv_rng"]), _ep(b["pv_rng"]), _ep(a["mv_rng"])
     return _frame(tt, {"sp_a": ea(o["SP_A"]), "pv_a_without": ea(o0["PV_A"]), "pv_a": ea(o["PV_A"]),
                        "lim_b": eb(o["SP_B"]), "pv_b_without": eb(o0["PV_B"]), "pv_b": eb(o["PV_B"]),
-                       "u_a": ma(o["U_A"]), "u_b": ma(o["U_B"]), "mv": ma(o["MV"])})
+                       "u_a": ma(o["U_A"]), "u_b": ma(o["U_B"]), "mv": ma(o["MV"]),
+                       "act": np.asarray(o["ACT"], float)})
 
 
 _LOOP_Q = Query(None, ge=0, description="index of the second loop of the project (as in GET /loops)")
@@ -814,6 +843,18 @@ def _routes_cascade(r, d):
         proj = d.need_proj(wid)
         _cas_reset(proj.state, body.part)
         return _cas_info(proj.state, proj, loop)
+
+    @r.get("/apc/cascade/irange", response_model=CascadeRange)
+    def cascade_irange(wid: str, ipv: str):
+        """Rozsah vnitřní PV z dat (výchozí hodnoty polí Od / Do u zdroje „data“; stejné jako při identifikaci)."""
+        ws = d.need_model(wid)
+        if ipv not in {str(x) for x in ws.sig.sigs}:
+            raise HTTPException(422, f"unknown signal: {ipv}")
+        try:
+            lo, hi = acas.inner_range(on_grid(ws.sig, ws.grid, ipv))
+        except ValueError as ex:
+            raise HTTPException(422, str(ex)) from None
+        return CascadeRange(lo=lo, hi=hi)
 
     @r.post("/apc/cascade/fit", response_model=JobInfo)
     def cascade_fit(wid: str, body: CascadeFitReq):
@@ -893,6 +934,17 @@ def _routes_gs(r, d):
                           timeout=900, on_done=done)
         return job_info(d.jobs, jid)
 
+    @r.get("/apc/gainsched/segments/curves", response_class=Response,
+           responses={200: {"content": {"application/octet-stream": {}},
+                            "description": "app.signalpack.frame: pv, mv in engineering units over the whole record "
+                                           "(the identification segments are in GET /apc/gainsched, inputs.ranges)"}})
+    def gs_segments(wid: str):
+        """Záznam PV a MV pro graf úseků bodů gain schedulingu."""
+        ws = d.need_model(wid)
+        g = ws.grid
+        k = max(1, len(g.t) // 4000)
+        return _octets(_frame(np.asarray(g.t)[::k], {"pv": ws.EP(np.asarray(ws.pv)[::k]), "mv": ws.EM(np.asarray(ws.mv)[::k])}))
+
     @r.post("/apc/gainsched/simulate", response_model=GsSim)
     def gs_simulate(wid: str):
         """Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling."""
@@ -970,7 +1022,7 @@ def _routes_dec(r, d):
     def dec_simulate(wid: str, body: DecSimReq, loop: int | None = _LOOP_Q):
         """Změny SP obou smyček bez rozvazbení, se statickými a s dynamickými decouplery: IAE v jednotkách PV."""
         a, b, runs = _dec_run(d.need_proj(wid), loop, body)
-        return DecSim(dtype=body.dtype, T_end=float(runs["none"][0][-1]),
+        return DecSim(dtype=body.dtype, way=body.way, T_end=float(runs["none"][0][-1]),
                       kpis=[DecIae(variant=v, iae_a=float(x), iae_b=float(y)) for v, x, y in adec.iae_table(runs, a, b)])
 
     @r.post("/apc/decouple/simulate/curves", response_class=Response,
@@ -1000,7 +1052,7 @@ def _routes_ov(r, d):
     @r.post("/apc/override/simulate/curves", response_class=Response,
             responses={200: {"content": {"application/octet-stream": {}},
                              "description": "app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, "
-                                            "pv_b, u_a, u_b, mv in engineering units"}})
+                                            "pv_b, u_a, u_b, mv in engineering units, act = 1 while the limiting controller drives"}})
     def ov_curves(wid: str, body: OvSimReq, loop: int | None = _LOOP_Q):
         a, b, _, (tt, o, o0) = _ov_run(d.need_proj(wid), loop, body)
         return _octets(_ov_frame(a, b, tt, o, o0))

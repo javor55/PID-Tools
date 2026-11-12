@@ -20,10 +20,14 @@ def design(a, b):
                 lam=rga2(ga[1][0], xab[0] if xab else 0.0, xba[0] if xba else 0.0, gb[1][0]))
 
 
-def simulate(dz, ctrl_a, ctrl_b, amp_a, amp_b, sim=None):
+WAYS = ("both", "ab", "ba")   # oba decouplery / jen B → A (dab) / jen A → B (dba)
+
+
+def simulate(dz, ctrl_a, ctrl_b, amp_a, amp_b, sim=None, way="both"):
     """
     Simulace změn SP obou smyček (A v 5 %, B v 50 % délky; amplitudy v %) bez rozvazbení, se statickými a
-    s dynamickými decouplery. Vrací {"none" | "static" | "dyn": (čas, průběhy)}.
+    s dynamickými decouplery. `way` = "ab" / "ba": jednosměrné rozvazbení (jen decoupler MV B → PV A, resp. MV A → PV B).
+    Vrací {"none" | "static" | "dyn": (čas, průběhy)}.
     """
     sim = sim or mimo2_sim
     t_end = 14 * max(tchar(dz["ga"]), tchar(dz["gb"])) + 200 * max(ctrl_a["SampleTime"], ctrl_b["SampleTime"])
@@ -34,7 +38,8 @@ def simulate(dz, ctrl_a, ctrl_b, amp_a, amp_b, sim=None):
     for v in ("none", "static", "dyn"):
         on = v != "none"
         runs[v] = sim(dz["ga"], dz["gb"], dz["xab"], dz["xba"], ctrl_a, ctrl_b, h, sp_a, sp_b,
-                      dz["dab"] if on else None, dz["dba"] if on else None, v == "dyn")
+                      dz["dab"] if on and way != "ba" else None, dz["dba"] if on and way != "ab" else None,
+                      v == "dyn")
     return runs
 
 
@@ -48,10 +53,11 @@ def iae_table(runs, a, b):
     return out
 
 
-def params(dz, a, b):
-    """Parametry decouplerů pro PCS 7: [(zdroj MV, cílová smyčka, zesílení %, zesílení v jedn., lead, lag, zpoždění)]."""
+def params(dz, a, b, way="both"):
+    """Parametry decouplerů pro PCS 7: [(zdroj MV, cílová smyčka, zesílení %, zesílení v jedn., lead, lag, zpoždění)];
+    `way` jako v `simulate` (jednosměrné rozvazbení = jen jeden řádek)."""
     out = []
-    for d, src, dst in ((dz["dab"], b, a), (dz["dba"], a, b)):
-        if d is not None:
+    for d, src, dst, w in ((dz["dab"], b, a, "ab"), (dz["dba"], a, b, "ba")):
+        if d is not None and way in ("both", w):
             out.append((src["c_mv"], dst["name"], d["gain"], gain_eng(d, src, dst), d["lead"], d["lag"], d["delay"]))
     return out

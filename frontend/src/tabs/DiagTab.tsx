@@ -7,7 +7,7 @@ import type { components } from "../api/schema";
 import { series, unframe } from "../api/signals";
 import { LineChart, type Series } from "../components/LineChart";
 import { Card } from "../components/Card";
-import { CheckSetting } from "../components/Fields";
+import { CheckSetting, NumSetting } from "../components/Fields";
 import { Trend } from "../components/Trend";
 import { SideCard, Seg } from "../components/Ui";
 import { useSettings, useWs } from "../data";
@@ -251,7 +251,7 @@ function Bound({ label, v, unit, onSet }: { label: string; v: number; unit: { u:
     if (txt !== null && txt !== cur && txt.trim() !== "" && Number.isFinite(x)) onSet(x * unit.f);
     setTxt(null);
   };
-  return <input type="number" step="any" aria-label={`${label} [${unit.u}]`} value={txt ?? cur} onChange={(e) => setTxt(e.target.value)}
+  return <input type="number" step="any" aria-label={`${label} [${unit.u}]`} title={useT()("dk_segment_help")} value={txt ?? cur} onChange={(e) => setTxt(e.target.value)}
     onBlur={done} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />;
 }
 
@@ -260,6 +260,7 @@ export function DiagSide() {
   const ws = useWs().data;
   const win = useDiagWin();
   const setDiag = useUi((s) => s.setDiag);
+  const setDataSub = useUi((s) => s.setDataSub);
   const a = useDiag(win?.a ?? null);
   if (!ws?.has_data || !win) return null;
   const dur = ws.duration ?? 0, unit = timeUnit(dur);
@@ -287,6 +288,8 @@ export function DiagSide() {
         <div className="muted small">{T("diag_ab_hint")}</div>
       </SideCard>
       <SideCard title={T("diag_opts")} testid="diag-side-opts">
+        <button type="button" className="link" onClick={() => setDataSub("diag-all")} title={T("tri_h_back")} data-testid="diag-back">{T("tri_back")}</button>
+        <NumSetting k="diag_theta" label={T("tri_theta")} help="tri_h_theta" min={0} />
         <CheckSetting k="diag_integ" label={T("diag_integ")} title={T("h_diag_integ")} def={a.data?.integ ?? false} />
       </SideCard>
     </>

@@ -7,16 +7,21 @@ import type { components } from "./api/schema";
 export const TABS = [
   { id: "data", label: "tab1", milestone: "M13" },
   { id: "model", label: "tab2", milestone: "M14" },
-  { id: "tuning", label: "tab3", milestone: "M16" },
-  { id: "live", label: "tab4_live", milestone: "M18" },
-  { id: "apc", label: "tab5", milestone: "M19" },
-  { id: "diag", label: "dk_diag_tab", milestone: "M20" },
-  { id: "loops", label: "tab7_audit", milestone: "M20" },
+  { id: "tuning", label: "ui_tab_tuning", milestone: "M16" },
+  { id: "apc", label: "ui_tab_apc", milestone: "M19" },
+  { id: "live", label: "ui_tab_live", milestone: "M18" },
   { id: "project", label: "tab_project", milestone: "M21" },
+  // Dřívější samostatné záložky: v návrhu v2 jsou podzáložky Data › Diagnostika (setTab je přesměruje).
+  { id: "diag", label: "ui_dsub_diag_detail", milestone: "M20" },
+  { id: "loops", label: "ui_dsub_diag_all", milestone: "M20" },
 ] as const;
 /** Záložky v řádku pod hlavičkou; Projekt a report se otevírá tlačítkem v hlavičce (jako v návrhu). */
-export const NAV_TABS = TABS.filter((t) => t.id !== "project");
+export const NAV_TABS = TABS.filter((t) => t.id !== "project" && t.id !== "diag" && t.id !== "loops");
 export type TabId = (typeof TABS)[number]["id"];
+/** Podzáložky Data (návrh v2): Zdroje a smyčky, Trendy, Kvalita dat, Diagnostika (Všechny smyčky / Detail smyčky). */
+export const DATA_SUBS = ["sources", "trends", "quality", "diag-all", "diag-detail"] as const;
+export type DataSub = (typeof DATA_SUBS)[number];
+export const isDiagSub = (s: DataSub): s is "diag-all" | "diag-detail" => s === "diag-all" || s === "diag-detail";
 export type Theme = "system" | "light" | "dark";
 
 function load<T>(k: string, d: T): T {
@@ -36,8 +41,11 @@ interface UiState {
   lang: "cs" | "en";
   theme: Theme;
   tab: TabId;
+  dataSub: DataSub;
   apcTech: string;
   wid: string | null;
+  /** Výška grafů z nastavení aplikace (výchozí výška LineChart). */
+  chartH: number;
   jobs: Record<string, JobInfo>;
   diag: DiagWin | null;
   setDiag: (d: DiagWin) => void;
@@ -46,6 +54,7 @@ interface UiState {
   setLang: (l: "cs" | "en") => void;
   setTheme: (t: Theme) => void;
   setTab: (t: TabId) => void;
+  setDataSub: (s: DataSub) => void;
   setApcTech: (t: string) => void;
   setWid: (w: string | null) => void;
   putJob: (j: JobInfo) => void;
@@ -58,9 +67,11 @@ interface UiState {
 export const useUi = create<UiState>((set) => ({
   lang: load("pid.lang", navigator.language?.startsWith("cs") ? "cs" : "en"),
   theme: load<Theme>("pid.theme", "system"),
-  tab: load<TabId>("pid.tab", "data"),
+  tab: ((t) => (t === "diag" || t === "loops" ? "data" : t))(load<TabId>("pid.tab", "data")),
+  dataSub: load<DataSub>("pid.dsub", "sources"),
   apcTech: load("pid.apc", "ff"),
   wid: (() => { try { return sessionStorage.getItem("pid.wid"); } catch { return null; } })(),
+  chartH: 220,
   jobs: {},
   diag: null,
   setDiag: (diag) => set({ diag }),
@@ -68,7 +79,12 @@ export const useUi = create<UiState>((set) => ({
   setAudit: (audit) => set({ audit }),
   setLang: (lang) => { save("pid.lang", lang); set({ lang }); },
   setTheme: (theme) => { save("pid.theme", theme); set({ theme }); },
-  setTab: (tab) => { save("pid.tab", tab); set({ tab }); },
+  // „diag“ a „loops“ (staré odkazy, akce průvodce) otevřou podzáložky Data › Diagnostika.
+  setTab: (tab) => {
+    if (tab === "diag" || tab === "loops") { const dataSub = tab === "diag" ? "diag-detail" : "diag-all"; save("pid.tab", "data"); save("pid.dsub", dataSub); set({ tab: "data", dataSub }); return; }
+    save("pid.tab", tab); set({ tab });
+  },
+  setDataSub: (dataSub) => { save("pid.dsub", dataSub); save("pid.tab", "data"); set({ dataSub, tab: "data" }); },
   setApcTech: (apcTech) => { save("pid.apc", apcTech); set({ apcTech }); },
   setWid: (wid) => { try { if (wid) sessionStorage.setItem("pid.wid", wid); else sessionStorage.removeItem("pid.wid"); } catch { /* */ } set({ wid }); },
   putJob: (j) => set((s) => ({ jobs: { ...s.jobs, [j.id]: j } })),

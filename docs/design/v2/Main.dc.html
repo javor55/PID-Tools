@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Model – úseky podle vstupů</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#1f5fa8}a:hover{color:#174a85}
+</style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #1f2933; background: #eef1f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box">
+
+<header style="background: #ffffff; border-bottom: 1px solid #d7dde5; padding: 12px 24px 0 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; min-width: 0">
+<h1 style="margin: 0; font-size: 20px; font-weight: 600">PID Tools</h1>
+<div role="group" aria-label="Smyčky projektu" style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<select aria-label="Aktivní smyčka" title="Aktivní smyčka – Model, Ladění, Živá simulace a deník pracují vždy s ní. Seznam je seskupený podle verdiktu diagnostiky; u každé smyčky je vidět rozpracovaný stav." style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; min-width: 0; max-width: 460px; font-weight: 600"><optgroup label="K ladění"><option>TIC101 · Reaktor K2 – teplota — model ✓ · návrh v1</option><option>FIC205 · Chladivo – průtok — kaskáda, podřazená · ladit první</option><option>TIC102 · Sušárna – teplota — kaskáda, nadřazená · čeká na FIC205</option></optgroup><optgroup label="Nejdřív ventil / porucha"><option>FIC120 · Pára – průtok — stikce 1,8 %</option><option>TIC330 · Ohřev – teplota — porucha z PIC310</option></optgroup><optgroup label="Nelineární"><option>PIC310 · Kolona – tlak — gain scheduling</option></optgroup><optgroup label="V pořádku"><option selected>LIC101 · Sušení – hladina — v3 ověřeno v provozu ✓</option><option>FIC501 · Odtah – průtok — bez zásahu</option></optgroup><optgroup label="Málo dat"><option>LIC402 · Zásobník – hladina — jen 12 % AUTO</option></optgroup></select>
+<span style="font-size: 12px; padding: 3px 10px; border-radius: 999px; background: #e5f3e8; color: #2f7a3f; font-weight: 500; white-space: nowrap">v3 · ověřeno v provozu</span>
+<a href="DataSources.dc.html" title="Smyčky se přidávají a skládají v Data › Zdroje a smyčky (i z více souborů)." style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none; font-size: 12px; padding: 5px 10px">+ Smyčka</a>
+</div>
+<span style="font-size: 12px; color: #52606d">3 soubory · 9 smyček · uloženo 10:32</span>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a href="Project.dc.html" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none">Projekt a report</a>
+<a href="Settings.dc.html" title="Nastavení aplikace platná pro všechny projekty: knihovna regulátorů, jazyk, vzhled, jednotky, výchozí hodnoty." style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none">Nastavení</a>
+<button type="button" aria-label="Nápověda k záložce (F1)" title="Průvodce k této záložce – co dělá, postup, kontrolní seznam, tipy (F1)" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px; color: #1f2933; text-decoration: none; font-weight: 600">?</button>
+</div>
+</div>
+<nav aria-label="Záložky" style="display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap"><a href="DataSources.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">1 · Data</a><a href="Main.dc.html" aria-current="page" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #1f5fa8; font-weight: 600; border-bottom: 3px solid #1f5fa8">2 · Model</a><a href="Regulator.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">3 · Ladění</a><a href="Apc.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">4 · APC</a><a href="Live.dc.html" style="text-decoration: none; padding: 10px 14px; font-size: 14px; color: #52606d">5 · Živá simulace</a></nav>
+<div aria-label="Kontext smyčky" style="display: flex; gap: 8px; padding: 8px 0 10px 0; flex-wrap: wrap; align-items: center; border-top: 1px solid #eef1f5; font-size: 12px; color: #52606d"><span style="font-weight: 600; color: #1f2933">Pracujete na: LIC101 · Sušení – hladina</span><span style="color: #c3ccd6">·</span><span>data: historian_K2.csv · 8. 10. 9:00–13:00 (společný úsek)</span><span style="color: #c3ccd6">·</span><span>PV LT101 · SP · MV LV101 · DV FIC110</span><span style="color: #c3ccd6">·</span><span>AUTO 78 % záznamu</span><span style="color: #c3ccd6">·</span><span>úseky: MV 11:42–11:48 · DV 2 úseky</span><button type="button" aria-label="Nápověda: kontext smyčky" title="Ukazuje, ze kterých dat a úseků tato záložka počítá. Kliknutím na data přejdete do Data › Zdroje a smyčky; jinou smyčku vyberete vlevo nahoře." style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 11px; padding: 0; cursor: help">?</button><a href="DataSources.dc.html" style="margin-left: auto; font-size: 12px">Změnit data / smyčku…</a></div>
+</header>
+
+<div style="flex: 1 1 auto; min-height: 0; width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 0 0 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; box-sizing: border-box; overflow-y: auto">
+
+<main aria-label="Grafy (rolují samostatně)" style="flex: 999 1 640px; min-width: 0; height: 100%; overflow-y: auto; padding: 16px 4px 32px 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
+
+<div style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center">
+<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<span style="font-size: 13px; color: #52606d">Úseky pro identifikaci</span>
+<button type="button" aria-label="Nápověda: úseky pro identifikaci" title="Společný úsek: jeden časový úsek pro všechny vstupy (dosavadní chování). Podle vstupů: každý vstup (MV, každá DV) má vlastní úseky, kde jeho vliv na PV je dobře vidět. Model se pak odhadne ze všech úseků najednou." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button>
+<div role="group" aria-label="Režim úseků" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: #ffffff; color: #1f2933">Společný úsek</button>
+<button type="button" aria-pressed="true" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 0; border-left: 1px solid #c3ccd6; background: #1f5fa8; color: #ffffff; font-weight: 500">Podle vstupů</button>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<span style="font-size: 13px; color: #52606d">Zoom (všechny grafy spolu)</span>
+<div role="group" aria-label="Zoom" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: #ffffff; color: #1f2933">Celý rozsah</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">Na úsek ±20 %</button>
+</div>
+<span style="font-size: 12px; color: #52606d">Úseky se nastavují táhly pod grafy; po přiblížení táhla jemněji (krok podle zobrazeného rozsahu).</span>
+</div>
+<div style="display: flex; align-items: center; gap: 14px; margin-left: auto; flex-wrap: wrap">
+<span style="font-size: 12px; color: #52606d; display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 14px; height: 10px; background: rgba(245,158,11,0.32); border: 1px solid #c77d00"></span>MV</span>
+<span style="font-size: 12px; color: #52606d; display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 14px; height: 10px; background: rgba(13,148,136,0.25); border: 1px solid #0b7a70"></span>DV</span>
+<span style="font-size: 12px; color: #52606d; display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 14px; height: 10px; background: repeating-linear-gradient(135deg, #8a96a3 0 2px, #e9edf2 2px 5px); border: 1px solid #8a96a3"></span>vyřazeno</span>
+</div>
+</div>
+
+<section aria-label="PV" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px 8px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">PV · hladina</h2>
+<div role="group" aria-label="Zobrazený model" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<button type="button" aria-pressed="true" style="font: inherit; font-size: 12px; padding: 5px 10px; border: 0; background: #5b3fa8; color: #ffffff; font-weight: 500">Model MV + DV</button>
+<button type="button" style="font: inherit; font-size: 12px; padding: 5px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">Jen MV</button>
+<button type="button" style="font: inherit; font-size: 12px; padding: 5px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">Jen DV</button>
+</div>
+<label style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: #3e4c59"><input type="checkbox" style="width: 16px; height: 16px">Rezidua</label>
+<label style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: #3e4c59"><input type="checkbox" checked style="width: 16px; height: 16px">Model jen v úsecích</label>
+<span style="margin-left: auto; font-size: 12px; color: #52606d; display: inline-flex; gap: 14px">
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 18px; height: 0; border-top: 2px solid #1f5fa8"></span>PV</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><span style="display: inline-block; width: 18px; height: 0; border-top: 2px dashed #5b3fa8"></span>model</span>
+</span>
+</div>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px">
+<div style="position: relative; height: 220px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d">
+<span style="position: absolute; right: 0; top: 3%; transform: translateY(-50%)">25</span>
+<span style="position: absolute; right: 0; top: 20.7%; transform: translateY(-50%)">20</span>
+<span style="position: absolute; right: 0; top: 37.9%; transform: translateY(-50%)">15</span>
+<span style="position: absolute; right: 0; top: 55.2%; transform: translateY(-50%)">10</span>
+<span style="position: absolute; right: 0; top: 72.4%; transform: translateY(-50%)">5</span>
+<span style="position: absolute; right: 0; top: 89.6%; transform: translateY(-50%)">0</span>
+</div>
+<div style="position: relative; height: 220px; border-left: 1px solid #c3ccd6; border-bottom: 1px solid #c3ccd6">
+<svg viewBox="0 0 1000 220" preserveAspectRatio="none" width="100%" height="220" aria-hidden="true" style="display: block">
+<defs>
+<pattern id="hatchPV" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#eef1f5"></rect><rect width="2" height="6" fill="#8a96a3"></rect></pattern>
+</defs>
+<line x1="0" y1="7.6" x2="1000" y2="7.6" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="45.5" x2="1000" y2="45.5" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="83.4" x2="1000" y2="83.4" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="121.4" x2="1000" y2="121.4" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="159.3" x2="1000" y2="159.3" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="197.2" x2="1000" y2="197.2" stroke="#c3ccd6" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"></line>
+<rect x="944.4" y="0" width="54.2" height="220" fill="#f59e0b" fill-opacity="0.16"></rect>
+<rect x="222.2" y="0" width="111.1" height="220" fill="#0d9488" fill-opacity="0.12"></rect>
+<rect x="486.1" y="0" width="125" height="220" fill="#0d9488" fill-opacity="0.12"></rect>
+<rect x="144.3" y="0" width="3.1" height="220" fill="url(#hatchPV)" fill-opacity="0.85"></rect>
+<rect x="352.9" y="0" width="8.9" height="220" fill="url(#hatchPV)" fill-opacity="0.85"></rect>
+<rect x="595.8" y="0" width="15.5" height="220" fill="url(#hatchPV)" fill-opacity="0.85"></rect>
+<path d="M0.0,97.2 L4.4,96.0 L9.0,95.3 L13.6,94.1 L18.2,92.0 L22.8,90.4 L27.4,89.2 L31.9,88.4 L36.5,88.4 L41.0,88.3 L45.6,87.9 L50.1,87.8 L54.7,87.2 L59.3,87.5 L63.9,88.0 L68.5,87.7 L73.1,88.0 L77.5,89.4 L82.1,90.3 L86.7,91.9 L91.2,94.3 L95.8,95.3 L100.4,96.3 L105.0,98.9 L109.6,103.6 L114.0,108.7 L118.6,116.2 L123.2,126.3 L127.8,140.1 L132.4,155.5 L136.9,169.9 L141.5,184.9 L146.1,196.3 L150.6,190.6 L155.1,184.6 L159.7,178.7 L164.3,171.0 L168.9,162.6 L173.5,154.6 L178.1,148.6 L182.6,144.5 L187.1,135.3 L191.7,127.0 L196.2,121.8 L200.8,117.4 L205.4,114.3 L210.0,111.2 L214.6,110.5 L219.2,108.7 L223.6,105.9 L228.2,104.5 L232.8,102.3 L237.4,100.5 L241.9,98.4 L246.5,96.3 L251.1,94.7 L255.7,94.1 L260.1,94.5 L264.7,94.2 L269.3,94.0 L273.9,95.5 L278.5,95.3 L283.1,94.4 L287.6,95.0 L292.2,96.2 L296.7,97.9 L301.2,97.5 L305.8,98.1 L310.4,100.7 L315.0,104.4 L319.6,109.5 L324.2,112.8 L328.8,121.4 L333.3,129.1 L337.8,141.3 L342.4,156.4 L346.9,174.1 L351.5,190.2 L356.1,201.1 L360.7,196.6 L365.3,192.9 L369.9,193.6 L374.3,194.2 L378.9,191.5 L383.5,183.5 L388.1,178.2 L392.6,172.6 L397.2,167.6 L401.8,161.3 L406.4,157.8 L410.8,151.3 L415.4,143.3 L420.0,132.7 L424.6,121.3 L429.2,112.7 L433.8,107.0 L438.3,103.5 L442.9,99.8 L447.4,96.3 L451.9,92.6 L456.5,89.5 L461.1,86.7 L465.7,84.7 L470.3,82.7 L474.9,80.6 L479.4,79.0 L483.9,77.8 L488.5,76.7 L493.1,75.9 L497.6,75.3 L502.2,74.4 L506.8,73.8 L511.4,73.2 L516.0,73.1 L520.4,73.4 L525.0,73.4 L529.6,73.1 L534.2,72.8 L538.8,73.5 L543.3,75.0 L547.9,78.0 L552.5,81.8 L556.9,87.3 L561.5,93.5 L566.1,101.1 L570.7,110.3 L575.3,120.8 L579.9,134.6 L584.4,150.9 L589.0,168.9 L593.5,186.1 L598.1,202.6 L602.6,209.2 L607.2,204.7 L611.8,193.7 L616.4,186.1 L621.0,179.6 L625.6,171.6 L630.0,163.9 L634.6,153.3 L639.2,139.6 L643.8,128.2 L648.3,117.2 L652.9,107.1 L657.5,98.5 L662.1,90.7 L666.7,84.1 L671.1,77.7 L675.7,71.9 L680.3,66.7 L684.9,61.5 L689.4,56.8 L694.0,52.2 L698.6,48.0 L703.2,44.4 L707.6,40.9 L712.2,37.6 L716.8,34.6 L721.4,31.9 L726.0,28.9 L730.6,26.3 L735.1,23.7 L739.7,21.2 L744.2,18.7 L748.8,16.5 L753.3,14.3 L757.9,12.9 L762.5,12.6 L767.1,12.9 L771.7,14.0 L776.2,17.4 L780.7,21.6 L785.3,27.5 L789.9,35.3 L794.4,43.4 L799.0,52.6 L803.6,62.0 L808.2,72.1 L812.8,82.2 L817.2,92.5 L821.8,102.5 L826.4,112.9 L831.0,125.2 L835.6,136.8 L840.1,138.8 L844.7,146.6 L849.3,148.2 L853.8,146.0 L858.3,140.6 L862.9,128.3 L867.5,115.7 L872.1,104.9 L876.7,95.7 L881.2,87.9 L885.8,80.8 L890.3,74.5 L894.9,68.6 L899.4,62.8 L904.0,57.6 L908.6,52.9 L913.2,48.6 L917.8,44.5 L922.4,40.5 L926.8,36.9 L931.4,33.0 L936.0,29.7 L940.6,26.9 L945.1,24.2 L949.7,21.8 L954.3,19.6 L958.9,17.6 L963.3,16.1 L967.9,14.4 L972.5,26.1 L977.1,41.7 L981.7,52.8 L986.2,53.8 L990.8,53.8 L995.4,53.3 L1000.0,52.7" fill="none" stroke="#1f5fa8" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+<path d="M944.4,22.2 L945.3,22.0 L946.2,21.7 L947.1,21.5 L948.1,21.2 L949.0,20.9 L949.9,20.7 L950.8,20.4 L951.7,20.2 L952.6,19.9 L953.6,19.7 L954.4,19.4 L955.4,19.2 L956.2,19.0 L957.2,18.7 L958.2,18.4 L959.0,18.2 L960.0,17.9 L960.8,17.7 L961.8,17.4 L962.8,17.2 L963.6,16.9 L964.6,16.7 L965.6,16.4 L966.4,16.2 L967.4,15.9 L968.2,15.7 L969.2,15.4 L970.1,17.5 L971.0,20.5 L971.9,24.0 L972.8,27.0 L973.8,30.5 L974.7,34.0 L975.6,37.0 L976.5,40.5 L977.4,43.5 L978.3,47.0 L979.3,50.5 L980.1,53.6 L981.1,55.5 L982.1,55.2 L982.9,55.0 L983.9,54.7 L984.7,54.5 L985.7,54.2 L986.7,54.0 L987.5,53.8 L988.5,53.5 L989.3,53.3 L990.3,53.0 L991.2,52.7 L992.1,52.5 L993.1,52.2 L993.9,52.0 L994.9,51.7 L995.8,51.5 L996.7,51.2 L997.6,51.0 L998.6,50.7" fill="none" stroke="#5b3fa8" stroke-width="2.4" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"></path>
+<path d="M222.2,100.2 L224.0,100.1 L226.0,99.9 L227.8,99.8 L229.7,99.7 L231.5,99.5 L233.5,99.4 L235.3,99.3 L237.2,99.2 L239.2,99.0 L241.0,98.9 L242.9,98.8 L244.7,98.6 L246.7,98.5 L248.5,98.4 L250.4,98.3 L252.2,98.1 L254.2,98.0 L256.1,97.9 L257.9,97.7 L259.9,97.6 L261.7,97.5 L263.6,97.4 L265.4,97.2 L267.4,97.1 L269.2,97.0 L271.1,96.9 L273.1,96.7 L274.9,96.6 L276.8,96.5 L278.6,96.4 L280.6,96.2 L282.4,96.6 L284.3,96.5 L286.2,96.3 L288.1,96.3 L290.0,96.1 L291.8,96.0 L293.8,96.1 L295.6,96.0 L297.5,95.9 L299.3,95.9 L301.2,96.0 L303.2,96.3 L305.0,97.0 L306.9,97.3 L308.8,97.9 L310.7,98.6 L312.5,99.6 L314.4,101.0 L316.2,102.6 L318.2,104.7 L320.1,106.8 L321.9,109.3 L323.9,112.4 L325.7,115.6 L327.6,119.3 L329.4,123.3 L331.4,128.1 L333.3,133.1" fill="none" stroke="#5b3fa8" stroke-width="2.4" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"></path>
+<path d="M486.1,79.1 L487.9,78.7 L489.7,78.2 L491.7,77.7 L493.5,77.3 L495.3,77.0 L497.2,76.6 L499.0,76.1 L500.8,75.7 L502.8,75.2 L504.6,74.8 L506.5,74.3 L508.3,73.9 L510.1,73.7 L512.1,73.5 L513.9,73.0 L515.7,72.6 L517.6,72.2 L519.4,71.8 L521.4,71.3 L523.2,70.9 L525.0,70.6 L526.9,70.2 L528.8,69.9 L530.6,69.7 L532.5,69.7 L534.3,69.8 L536.2,70.0 L538.1,70.3 L539.9,71.1 L541.8,71.9 L543.6,72.9 L545.4,74.2 L547.4,75.8 L549.2,77.7 L551.1,79.9 L552.9,82.1 L554.7,84.5 L556.7,87.4 L558.5,90.2 L560.3,93.5 L562.2,97.1 L564.0,100.8 L566.0,104.9 L567.8,108.8 L569.6,112.9 L571.5,117.6 L573.3,122.1 L575.1,126.7 L577.1,131.9 L578.9,136.7 L580.8,142.0 L582.6,146.9 L584.4,151.9 L586.4,157.4 L588.2,162.5 L590.0,167.7 L591.9,173.3 L593.8,178.5 L595.7,184.1" fill="none" stroke="#5b3fa8" stroke-width="2.4" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"></path>
+</svg>
+<span style="position: absolute; left: 1%; top: 89.6%; transform: translateY(-120%); font-size: 11px; color: #52606d">mez měření PV = 0</span>
+<span style="position: absolute; left: 35.8%; top: 4px; transform: translateX(-50%); font-size: 11px; color: #3e4c59; background: rgba(255,255,255,0.9); padding: 1px 4px; border-radius: 4px">PV = 0 · vyřazeno</span>
+</div>
+</div>
+</section>
+
+<section aria-label="MV" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px 12px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">MV · odtok</h2>
+<span style="font-size: 12px; color: #7a4a00; background: #fff4dc; border: 1px solid #f2c46d; padding: 2px 8px; border-radius: 999px">Přenos 1 · 1 úsek</span>
+<span style="font-size: 12px; color: #52606d">Úsek táhly pod grafem nebo zápisem čísel; kolečko / tažení v grafu = zoom a posun</span>
+</div>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px">
+<div style="position: relative; height: 110px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d">
+<span style="position: absolute; right: 0; top: 1%; transform: translateY(-20%)">96</span>
+<span style="position: absolute; right: 0; top: 28.6%; transform: translateY(-50%)">92</span>
+<span style="position: absolute; right: 0; top: 57.2%; transform: translateY(-50%)">88</span>
+<span style="position: absolute; right: 0; top: 85.7%; transform: translateY(-50%)">84</span>
+</div>
+<div style="position: relative; height: 110px; border-left: 1px solid #c3ccd6; border-bottom: 1px solid #c3ccd6">
+<svg viewBox="0 0 1000 110" preserveAspectRatio="none" width="100%" height="110" aria-hidden="true" style="display: block">
+<line x1="0" y1="31.4" x2="1000" y2="31.4" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="62.9" x2="1000" y2="62.9" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="94.3" x2="1000" y2="94.3" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<rect x="944.4" y="0" width="54.2" height="110" fill="#f59e0b" fill-opacity="0.32"></rect>
+<rect x="943.6" y="0" width="1.6" height="110" fill="#c77d00"></rect>
+<rect x="997.8" y="0" width="1.6" height="110" fill="#c77d00"></rect>
+<path d="M0.0,94.3 L598.5,94.3 L598.6,99.1 L598.8,102.1 L967.1,102.1 L967.2,97.8 L967.4,76.8 L967.5,66.1 L967.6,39.9 L967.8,7.9 L977.1,7.9 L978.2,7.9 L978.3,23.2 L978.5,31.0 L978.6,49.3 L978.8,57.3 L978.9,75.6 L979.0,83.4 L979.2,101.8 L1000.0,102.1" fill="none" stroke="#c2410c" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+<span style="position: absolute; left: 94.4%; top: 6px; transform: translateX(-104%); font-size: 11px; color: #7a4a00; background: #fff4dc; border: 1px solid #f2c46d; padding: 1px 6px; border-radius: 4px; white-space: nowrap">MV úsek 1</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px; margin-top: 6px">
+<span></span>
+<div style="position: relative; height: 26px" role="group" aria-label="Úsek pro MV">
+<div style="position: absolute; left: 0; right: 0; top: 11px; height: 4px; background: #e5e9ef; border-radius: 2px"></div>
+<div style="position: absolute; left: 94.44%; width: 5.42%; top: 9px; height: 8px; background: #f59e0b; border-radius: 4px"></div>
+<button type="button" aria-label="Začátek úseku MV, 6 800 s" style="position: absolute; left: 94.44%; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid #c77d00; background: #ffffff; padding: 0"></button>
+<button type="button" aria-label="Konec úseku MV, 7 190 s" style="position: absolute; left: 99.86%; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid #c77d00; background: #ffffff; padding: 0"></button>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0 46px; align-items: center">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: #fff4dc; border: 1px solid #f2c46d; color: #5c3800; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px">1 ·
+<label for="mvw1a" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Začátek úseku MV 1 [s]</label><input id="mvw1a" value="6800" style="font: inherit; width: 52px; padding: 1px 4px; border: 1px solid #f2c46d; border-radius: 4px; background: #ffffff">–<label for="mvw1b" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Konec úseku MV 1 [s]</label><input id="mvw1b" value="7190" style="font: inherit; width: 52px; padding: 1px 4px; border: 1px solid #f2c46d; border-radius: 4px; background: #ffffff"> s · FIT 92 %
+<button type="button" aria-label="Přiblížit na úsek MV 1" style="font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid #f2c46d; background: #ffffff; color: #5c3800; border-radius: 4px">zoom</button></span>
+<button type="button" style="font: inherit; font-size: 12px; padding: 4px 10px; border: 1px dashed #c3ccd6; background: #ffffff; color: #3e4c59; border-radius: 6px">+ přidat úsek pro MV</button>
+</div>
+</section>
+
+<section aria-label="DV" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px 12px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">DV · přítok</h2>
+<span style="font-size: 12px; color: #0b5c55; background: #e3f5f2; border: 1px solid #8fd3ca; padding: 2px 8px; border-radius: 999px">Přenos 2 · 2 úseky</span>
+<span style="font-size: 12px; color: #52606d">Šrafované části (PV na mezi měření) se do identifikace nepočítají</span>
+</div>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px">
+<div style="position: relative; height: 110px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d">
+<span style="position: absolute; right: 0; top: 1%; transform: translateY(-20%)">80</span>
+<span style="position: absolute; right: 0; top: 29.5%; transform: translateY(-50%)">75</span>
+<span style="position: absolute; right: 0; top: 58.8%; transform: translateY(-50%)">70</span>
+<span style="position: absolute; right: 0; top: 88.3%; transform: translateY(-50%)">65</span>
+</div>
+<div style="position: relative; height: 110px; border-left: 1px solid #c3ccd6; border-bottom: 1px solid #c3ccd6">
+<svg viewBox="0 0 1000 110" preserveAspectRatio="none" width="100%" height="110" aria-hidden="true" style="display: block">
+<defs>
+<pattern id="hatchDV" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#eef1f5"></rect><rect width="2" height="6" fill="#8a96a3"></rect></pattern>
+</defs>
+<line x1="0" y1="32.4" x2="1000" y2="32.4" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="64.7" x2="1000" y2="64.7" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<line x1="0" y1="97.1" x2="1000" y2="97.1" stroke="#e5e9ef" vector-effect="non-scaling-stroke"></line>
+<rect x="222.2" y="0" width="111.1" height="110" fill="#0d9488" fill-opacity="0.25"></rect>
+<rect x="486.1" y="0" width="125" height="110" fill="#0d9488" fill-opacity="0.25"></rect>
+<rect x="221.4" y="0" width="1.6" height="110" fill="#0b7a70"></rect>
+<rect x="332.5" y="0" width="1.6" height="110" fill="#0b7a70"></rect>
+<rect x="485.3" y="0" width="1.6" height="110" fill="#0b7a70"></rect>
+<rect x="610.3" y="0" width="1.6" height="110" fill="#0b7a70"></rect>
+<rect x="144.3" y="0" width="3.1" height="110" fill="url(#hatchDV)" fill-opacity="0.85"></rect>
+<rect x="352.9" y="0" width="8.9" height="110" fill="url(#hatchDV)" fill-opacity="0.85"></rect>
+<rect x="595.8" y="0" width="15.5" height="110" fill="url(#hatchDV)" fill-opacity="0.85"></rect>
+<path d="M0.0,32.4 L3.8,32.4 L7.6,32.4 L11.5,32.4 L15.4,32.4 L19.2,32.4 L23.1,32.4 L26.9,32.4 L30.8,32.4 L34.7,32.4 L38.5,32.4 L42.4,32.4 L46.2,32.4 L50.1,32.4 L54.0,32.4 L57.8,32.4 L61.7,32.4 L65.6,32.6 L69.4,32.4 L73.3,32.4 L77.1,32.4 L81.0,32.4 L84.9,34.2 L88.8,32.9 L92.6,34.8 L96.4,36.8 L100.3,42.6 L104.2,45.4 L108.1,51.5 L111.9,56.8 L115.7,62.8 L119.6,67.0 L123.5,72.3 L127.4,75.9 L131.2,77.1 L135.0,81.4 L138.9,84.0 L142.8,12.4 L146.7,6.5 L150.6,32.4 L154.3,32.4 L158.2,32.4 L162.1,32.4 L166.0,32.4 L169.9,32.4 L173.6,32.4 L177.5,32.4 L181.4,32.4 L185.3,32.4 L189.2,32.4 L192.9,32.4 L196.8,32.4 L200.7,32.4 L204.6,32.4 L208.5,32.4 L212.2,32.4 L216.1,32.4 L220.0,32.4 L223.9,32.4 L227.8,32.4 L231.5,32.4 L235.4,32.4 L239.3,32.4 L243.2,32.4 L247.1,32.4 L250.8,32.4 L254.7,32.4 L258.6,32.4 L262.5,32.4 L266.4,32.4 L270.1,32.4 L274.0,32.4 L277.9,32.5 L281.8,37.1 L285.7,32.9 L289.4,32.4 L293.3,34.4 L297.2,32.6 L301.1,34.2 L305.0,36.3 L308.8,39.0 L312.6,42.6 L316.5,48.9 L320.4,52.1 L324.3,58.9 L328.1,65.1 L331.9,72.6 L335.8,77.6 L339.7,82.5 L343.6,89.0 L347.4,92.3 L351.2,95.9 L355.1,98.2 L359.0,100.2 L362.9,99.8 L366.7,100.6 L370.6,100.7 L374.4,42.4 L378.3,6.5 L382.2,24.9 L386.0,32.4 L389.9,32.4 L393.8,32.4 L397.6,32.4 L401.5,32.4 L405.3,32.4 L409.2,32.4 L413.1,32.4 L416.9,32.4 L420.8,32.4 L424.6,32.4 L428.5,32.4 L432.4,32.4 L436.2,32.4 L440.1,32.4 L443.9,32.4 L447.8,32.4 L451.7,32.4 L455.6,32.4 L459.4,32.4 L463.2,32.4 L467.1,32.4 L471.0,32.4 L474.9,32.4 L478.8,32.4 L482.5,32.4 L486.4,32.4 L490.3,32.4 L494.2,35.3 L498.1,32.4 L501.8,32.4 L505.7,32.4 L509.6,36.2 L513.5,32.4 L517.4,32.4 L521.1,32.4 L525.0,33.3 L528.9,34.3 L532.8,37.3 L536.7,38.5 L540.4,43.6 L544.3,48.8 L548.2,55.6 L552.1,58.4 L556.0,62.9 L559.7,68.9 L563.6,73.3 L567.5,75.6 L571.4,79.5 L575.3,82.8 L579.0,83.5 L582.9,84.4 L586.8,86.6 L590.7,87.4 L594.6,87.5 L598.3,87.5 L602.2,86.8 L606.1,6.5 L610.0,6.5 L613.9,32.4 L617.6,32.4 L621.5,32.4 L625.4,32.4 L629.3,32.4 L633.2,32.4 L636.9,32.4 L640.8,32.4 L644.7,32.4 L648.6,32.4 L652.5,32.4 L656.2,32.4 L660.1,32.4 L664.0,32.4 L667.9,32.4 L671.8,32.4 L675.6,32.4 L679.4,32.4 L683.3,32.4 L687.2,32.4 L691.1,32.4 L694.9,32.4 L698.8,32.4 L702.6,32.4 L706.5,32.4 L710.4,32.4 L714.2,32.4 L718.1,32.4 L721.9,32.4 L725.8,32.4 L729.7,32.4 L733.5,32.4 L737.4,32.4 L741.2,33.1 L745.1,32.5 L749.0,33.2 L752.8,38.8 L756.7,37.4 L760.6,41.8 L764.4,47.6 L768.3,52.2 L772.1,57.4 L776.0,64.3 L779.9,75.0 L783.8,80.8 L787.6,82.4 L791.4,85.8 L795.3,89.6 L799.2,92.1 L803.1,93.8 L806.9,95.1 L810.7,95.0 L814.6,95.5 L818.5,95.1 L822.4,94.5 L826.2,92.7 L830.0,90.9 L833.9,6.5 L837.8,6.5 L841.7,32.4 L1000.0,32.4" fill="none" stroke="#0d9488" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+<span style="position: absolute; left: 22.2%; top: 6px; transform: translateX(-104%); font-size: 11px; color: #0b5c55; background: #e3f5f2; border: 1px solid #8fd3ca; padding: 1px 6px; border-radius: 4px; white-space: nowrap">DV úsek 1</span>
+<span style="position: absolute; left: 48.6%; top: 6px; transform: translateX(-104%); font-size: 11px; color: #0b5c55; background: #e3f5f2; border: 1px solid #8fd3ca; padding: 1px 6px; border-radius: 4px; white-space: nowrap">DV úsek 2</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px; margin-top: 6px">
+<span></span>
+<div style="position: relative; height: 26px" role="group" aria-label="Úseky pro DV">
+<div style="position: absolute; left: 0; right: 0; top: 11px; height: 4px; background: #e5e9ef; border-radius: 2px"></div>
+<div style="position: absolute; left: 22.22%; width: 11.11%; top: 9px; height: 8px; background: #0d9488; border-radius: 4px"></div>
+<div style="position: absolute; left: 48.61%; width: 12.5%; top: 9px; height: 8px; background: #0d9488; border-radius: 4px"></div>
+<button type="button" aria-label="Začátek úseku DV 1, 1 600 s" style="position: absolute; left: 22.22%; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid #0b7a70; background: #ffffff; padding: 0"></button>
+<button type="button" aria-label="Konec úseku DV 1, 2 400 s" style="position: absolute; left: 33.33%; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid #0b7a70; background: #ffffff; padding: 0"></button>
+<button type="button" aria-label="Začátek úseku DV 2, 3 500 s" style="position: absolute; left: 48.61%; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid #0b7a70; background: #ffffff; padding: 0"></button>
+<button type="button" aria-label="Konec úseku DV 2, 4 400 s" style="position: absolute; left: 61.11%; top: 3px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid #0b7a70; background: #ffffff; padding: 0"></button>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0 46px; align-items: center">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: #e3f5f2; border: 1px solid #8fd3ca; color: #0b4a44; padding: 4px 8px; border-radius: 6px">1 · 1 600 – 2 400 s · FIT 67 %</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: #e3f5f2; border: 1px solid #8fd3ca; color: #0b4a44; padding: 4px 8px; border-radius: 6px">2 · 3 500 – 4 400 s · −111 s vyřazeno · FIT 90 %</span>
+<button type="button" style="font: inherit; font-size: 12px; padding: 4px 10px; border: 1px dashed #c3ccd6; background: #ffffff; color: #3e4c59; border-radius: 6px">+ přidat úsek pro DV</button>
+</div>
+<div style="display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px; margin-top: 10px">
+<span></span>
+<div style="position: relative; height: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #52606d">
+<span style="position: absolute; left: 0%">0</span>
+<span style="position: absolute; left: 16.67%; transform: translateX(-50%)">20</span>
+<span style="position: absolute; left: 33.33%; transform: translateX(-50%)">40</span>
+<span style="position: absolute; left: 50%; transform: translateX(-50%)">60</span>
+<span style="position: absolute; left: 66.67%; transform: translateX(-50%)">80</span>
+<span style="position: absolute; left: 83.33%; transform: translateX(-50%)">100</span>
+<span style="position: absolute; right: 0">120 min</span>
+</div>
+</div>
+</section>
+
+<section aria-label="Porovnání modelů" style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 12px 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Porovnání typů přenosu
+<button type="button" aria-label="Nápověda: porovnání typů" title="FIT: kolik % průběhu PV model vysvětlí (100 % = přesně). Křížové ověření: model naučený na jednom úseku se otestuje na ostatních úsecích téhož přenosu – odhalí přeučení. Při podobné shodě je lepší jednodušší typ." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button></h2>
+<div role="tablist" aria-label="Přenos" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<button type="button" role="tab" aria-selected="true" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: #fff4dc; color: #5c3800; font-weight: 500">Přenos 1 · MV</button>
+<button type="button" role="tab" aria-selected="false" style="font: inherit; font-size: 13px; padding: 6px 12px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">Přenos 2 · DV</button>
+</div>
+<span style="font-size: 12px; color: #52606d">Hodnoceno jen na úsecích tohoto přenosu (bez vyřazených částí); ostatní přenosy jsou při tom pevné.</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr>
+<th scope="col" style="text-align: left; font-weight: 500; color: #52606d; padding: 6px 8px; border-bottom: 1px solid #d7dde5">Typ</th>
+<th scope="col" style="text-align: right; font-weight: 500; color: #52606d; padding: 6px 8px; border-bottom: 1px solid #d7dde5">FIT na úsecích</th>
+<th scope="col" style="text-align: right; font-weight: 500; color: #52606d; padding: 6px 8px; border-bottom: 1px solid #d7dde5">Křížové ověření</th>
+<th scope="col" style="text-align: left; font-weight: 500; color: #52606d; padding: 6px 8px; border-bottom: 1px solid #d7dde5">Parametry</th>
+<th scope="col" style="text-align: left; font-weight: 500; color: #52606d; padding: 6px 8px; border-bottom: 1px solid #d7dde5">Hodnocení</th>
+<th scope="col" style="text-align: center; font-weight: 500; color: #52606d; padding: 6px 8px; border-bottom: 1px solid #d7dde5">Použít</th>
+</tr>
+</thead>
+<tbody>
+<tr style="background: #fff8e8">
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5">Integrační + zpoždění</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: right; font-family: 'IBM Plex Mono', monospace">92,4 %</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: right; font-family: 'IBM Plex Mono', monospace">—</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; font-family: 'IBM Plex Mono', monospace; font-size: 12px">Ki −0,00592 · θ 15 s</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5">výborná · nejjednodušší</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: center"><input type="radio" name="pick1" checked aria-label="Použít Integrační + zpoždění" style="width: 18px; height: 18px"></td>
+</tr>
+<tr>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5">Integrační + 1. řád + zpoždění</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: right; font-family: 'IBM Plex Mono', monospace">[FIT]</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: right; font-family: 'IBM Plex Mono', monospace">—</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; font-family: 'IBM Plex Mono', monospace; font-size: 12px">[Ki · T1 · θ]</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5">[hodnocení]</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: center"><input type="radio" name="pick1" aria-label="Použít Integrační + 1. řád + zpoždění" style="width: 18px; height: 18px"></td>
+</tr>
+<tr>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5">1. řád + zpoždění</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: right; font-family: 'IBM Plex Mono', monospace">[FIT]</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: right; font-family: 'IBM Plex Mono', monospace">—</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; font-family: 'IBM Plex Mono', monospace; font-size: 12px">[K · T1 · θ]</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5">[hodnocení] · T1 delší než úsek ⚠</td>
+<td style="padding: 6px 8px; border-bottom: 1px solid #eef1f5; text-align: center"><input type="radio" name="pick1" aria-label="Použít 1. řád + zpoždění" style="width: 18px; height: 18px"></td>
+</tr>
+<tr>
+<td style="padding: 6px 8px">2. řád + zpoždění</td>
+<td style="padding: 6px 8px; text-align: right; font-family: 'IBM Plex Mono', monospace">[FIT]</td>
+<td style="padding: 6px 8px; text-align: right; font-family: 'IBM Plex Mono', monospace">—</td>
+<td style="padding: 6px 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px">[K · T1 · T2 · θ]</td>
+<td style="padding: 6px 8px">[hodnocení]</td>
+<td style="padding: 6px 8px; text-align: center"><input type="radio" name="pick1" aria-label="Použít 2. řád + zpoždění" style="width: 18px; height: 18px"></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; align-items: center">
+<label style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px; color: #3e4c59"><input type="checkbox" checked style="width: 16px; height: 16px">Odezvy porovnávaných typů v grafu PV</label>
+<span style="font-size: 12px; color: #52606d">Křížové ověření: model z jednoho úseku se otestuje na ostatních úsecích téhož přenosu (u MV je jen 1 úsek, proto —).</span>
+</div>
+</section>
+
+<p style="margin: 0; font-size: 12px; color: #52606d">Pro další měřené poruchy přibude stejný graf s vlastními úseky. Režim „Společný úsek“ je dnešní chování: jeden úsek pro všechny vstupy.</p>
+</main>
+
+<aside aria-label="Model (roluje samostatně)" style="flex: 1 1 360px; max-width: 100%; height: 100%; overflow-y: auto; padding: 16px 24px 32px 4px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; border-left: 1px solid #d7dde5; background: #f6f8fa">
+<div style="display: flex; justify-content: flex-end; gap: 10px; font-size: 12px; margin-bottom: -4px"><button type="button" style="font: inherit; font-size: 12px; border: 0; background: transparent; color: #1f5fa8; padding: 0; cursor: pointer">Rozbalit vše</button><button type="button" style="font: inherit; font-size: 12px; border: 0; background: transparent; color: #1f5fa8; padding: 0; cursor: pointer">Sbalit vše</button></div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" style="font: inherit; font-size: 15px; font-weight: 600; padding: 12px 16px; border: 0; background: #1f5fa8; color: #ffffff; border-radius: 10px; min-height: 44px">Identifikovat model</button>
+<span style="font-size: 12px; color: #52606d">Jeden model PV = G₁·MV + G₂·DV: oba přenosy se odhadnou najednou, každý ze svých úseků. Pro ladění, simulaci i APC se pak používá jako celek.</span>
+</div>
+
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Struktura modelu</h2></div></summary>
+<p style="margin: 0 0 10px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #1f2933">PV = G₁(s)·MV + G₂(s)·DV</p>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #52606d; display: inline-flex; align-items: center; gap: 6px">Výchozí typ přenosů (podle PV)
+<button type="button" aria-label="Nápověda: typ přenosu" title="Samoregulační: po skoku vstupu se PV ustálí na nové hodnotě (teplota, tlak, průtok). Integrační: PV se po skoku mění stále stejnou rychlostí, dokud se bilance nevyrovná (hladina, zásobník). Auto: zkusí oba a vybere podle shody. Výchozí typ platí pro všechny přenosy, u každého jde změnit." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button></span>
+<div role="group" aria-label="Typ procesu" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden; align-self: flex-start">
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 10px; border: 0; background: #ffffff; color: #1f2933">Auto</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 6px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">Samoregulační</button>
+<button type="button" aria-pressed="true" style="font: inherit; font-size: 13px; padding: 6px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #1f5fa8; color: #ffffff; font-weight: 500">Integrační</button>
+</div>
+<span style="font-size: 12px; color: #52606d">Hladina: přítok i odtok mění rychlost změny PV, proto oba přenosy integrační. Přenosy mají výchozí typ „Podle PV“; u každého jde zvolit jiný typ nebo Auto.</span>
+</div>
+</details>
+
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-top: 4px solid #f59e0b; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0"><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Přenos 1 · MV (odtok)</h2>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5c3800">FIT 92 %</span>
+</div></div></summary>
+<p style="margin: 4px 0 8px 0; font-size: 12px; color: #52606d">Z úseku 6 800 – 7 190 s</p>
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px">
+<label for="m1type" style="font-size: 13px; color: #52606d">Typ</label>
+<button type="button" aria-label="Nápověda: typy modelu" title="Integrační + zpoždění: Ki (rychlost změny PV na jednotku vstupu) a dopravní zpoždění θ. Integrační + 1. řád: navíc setrvačnost T1 (např. ventil, potrubí). 1. řád + zpoždění: zesílení K, časová konstanta T1, θ – PV se ustálí. 2. řád: dvě časové konstanty, pomalejší náběh do tvaru S." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help; flex: none">?</button>
+<select id="m1type" style="font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; flex: 1; min-width: 0"><option selected>Podle PV (integrační)</option><option>Auto – nejlepší shoda</option><option>Integrační + zpoždění</option><option>Integrační + 1. řád + zpoždění</option><option>1. řád + zpoždění</option><option>2. řád + zpoždění</option></select>
+</div>
+<div style="display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px 8px; align-items: center; font-size: 13px">
+<span style="color: #52606d; font-size: 12px"></span><span style="color: #52606d; font-size: 12px"></span><span style="color: #52606d; font-size: 12px"></span><span style="color: #52606d; font-size: 12px; display: inline-flex; align-items: center; gap: 4px">Identif.<button type="button" aria-label="Nápověda: parametry a identifikace" title="Ki: o kolik se změní PV za sekundu při změně vstupu o 1 jednotku (znaménko = směr). θ: dopravní zpoždění, za jak dlouho po změně vstupu PV začne reagovat. T1: setrvačnost. Zaškrtnuté parametry se identifikují z dat, nezaškrtnuté zůstanou na zadané hodnotě." style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 11px; padding: 0; cursor: help">?</button></span>
+<label for="m1k">Ki</label><input id="m1k" value="−0,00592" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><span style="font-size: 12px; color: #52606d">PV/(%·s)</span><input type="checkbox" checked aria-label="Identifikovat Ki" style="width: 18px; height: 18px">
+<label for="m1t">θ</label><input id="m1t" value="15" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><span style="font-size: 12px; color: #52606d">s</span><input type="checkbox" checked aria-label="Identifikovat θ" style="width: 18px; height: 18px">
+<label for="m1t1">T1</label><input id="m1t1" value="0" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><span style="font-size: 12px; color: #52606d">s</span><input type="checkbox" aria-label="Identifikovat T1" style="width: 18px; height: 18px">
+</div>
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap">
+<span style="font-size: 13px; color: #52606d">Směr účinku</span>
+<button type="button" aria-label="Nápověda: směr účinku" title="−: zvýšení vstupu PV snižuje (odtok snižuje hladinu). +: zvýšení vstupu PV zvyšuje (přítok). auto: znaménko se určí z dat. Pevný směr chrání identifikaci před nesmyslným výsledkem u zašuměných dat." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button>
+<div role="group" aria-label="Směr účinku MV" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<button type="button" aria-pressed="true" style="font: inherit; font-size: 13px; padding: 4px 12px; border: 0; background: #7a4a00; color: #ffffff">−</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 4px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">auto</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 4px 12px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">+</button>
+</div>
+<button type="button" style="font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid #c3ccd6; background: #ffffff; color: #3e4c59; border-radius: 6px; margin-left: auto">Původní hodnoty</button>
+</div>
+</details>
+
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-top: 4px solid #0d9488; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0"><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Přenos 2 · DV (přítok)</h2>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #0b4a44">FIT 87 %</span>
+</div></div></summary>
+<p style="margin: 4px 0 8px 0; font-size: 12px; color: #52606d">Ze 2 úseků, společný odhad</p>
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px">
+<label for="m2type" style="font-size: 13px; color: #52606d">Typ</label>
+<select id="m2type" style="font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; background: #ffffff; flex: 1; min-width: 0"><option selected>Podle PV (integrační)</option><option>Auto – nejlepší shoda</option><option>Integrační + zpoždění</option><option>Integrační + 1. řád + zpoždění</option><option>1. řád + zpoždění</option><option>2. řád + zpoždění</option></select>
+</div>
+<div style="display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px 8px; align-items: center; font-size: 13px">
+<span></span><span></span><span></span><span style="color: #52606d; font-size: 12px">Identif.</span>
+<label for="m2k">Ki</label><input id="m2k" value="+0,00680" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><span style="font-size: 12px; color: #52606d">PV/(DV·s)</span><input type="checkbox" checked aria-label="Identifikovat Ki DV" style="width: 18px; height: 18px">
+<label for="m2t">θ</label><input id="m2t" value="0" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><span style="font-size: 12px; color: #52606d">s</span><input type="checkbox" checked aria-label="Identifikovat θ DV" style="width: 18px; height: 18px">
+<label for="m2t1">T1</label><input id="m2t1" value="0" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><span style="font-size: 12px; color: #52606d">s</span><input type="checkbox" aria-label="Identifikovat T1 DV" style="width: 18px; height: 18px">
+</div>
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap">
+<span style="font-size: 13px; color: #52606d">Směr účinku</span>
+<div role="group" aria-label="Směr účinku DV" style="display: inline-flex; border: 1px solid #c3ccd6; border-radius: 8px; overflow: hidden">
+<button type="button" style="font: inherit; font-size: 13px; padding: 4px 12px; border: 0; background: #ffffff; color: #1f2933">−</button>
+<button type="button" style="font: inherit; font-size: 13px; padding: 4px 10px; border: 0; border-left: 1px solid #c3ccd6; background: #ffffff; color: #1f2933">auto</button>
+<button type="button" aria-pressed="true" style="font: inherit; font-size: 13px; padding: 4px 12px; border: 0; border-left: 1px solid #c3ccd6; background: #0b5c55; color: #ffffff">+</button>
+</div>
+<button type="button" style="font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid #c3ccd6; background: #ffffff; color: #3e4c59; border-radius: 6px; margin-left: auto">Původní hodnoty</button>
+</div>
+<table style="width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px">
+<caption style="text-align: left; font-size: 12px; color: #52606d; padding-bottom: 4px">Odhad po úsecích (kontrola shody)</caption>
+<thead><tr><th scope="col" style="text-align: left; font-weight: 500; color: #52606d; padding: 4px 0; border-bottom: 1px solid #e5e9ef">Úsek</th><th scope="col" style="text-align: right; font-weight: 500; color: #52606d; padding: 4px 0; border-bottom: 1px solid #e5e9ef">Ki</th><th scope="col" style="text-align: right; font-weight: 500; color: #52606d; padding: 4px 0; border-bottom: 1px solid #e5e9ef">FIT</th></tr></thead>
+<tbody>
+<tr><td style="padding: 4px 0; font-family: 'IBM Plex Mono', monospace">1 600 – 2 400 s</td><td style="padding: 4px 0; text-align: right; font-family: 'IBM Plex Mono', monospace">0,00782</td><td style="padding: 4px 0; text-align: right; font-family: 'IBM Plex Mono', monospace">67 %</td></tr>
+<tr><td style="padding: 4px 0; font-family: 'IBM Plex Mono', monospace">3 500 – 4 400 s</td><td style="padding: 4px 0; text-align: right; font-family: 'IBM Plex Mono', monospace">0,00672</td><td style="padding: 4px 0; text-align: right; font-family: 'IBM Plex Mono', monospace">90 %</td></tr>
+</tbody>
+</table>
+</details>
+
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Vyřazení dat
+<button type="button" aria-label="Nápověda: vyřazení dat" title="Data, ve kterých PV nemůže reagovat na vstupy, model kazí: PV na mezi měření (prázdná nebo plná nádrž), MV v saturaci (ventil zcela zavřený nebo otevřený). Tyto části se z úseků vyjmou a úsek se v nich rozdělí. Tolerance: kolik % rozsahu od meze se ještě počítá jako mez." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button></h2></div></summary>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+<span style="font-size: 12px; color: #52606d">Vyřadí se vzorky, kde je signál na mezi nebo za ní (s tolerancí).</span>
+<div style="display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px 8px; align-items: center">
+<span></span><span style="font-size: 12px; color: #52606d">Min</span><span style="font-size: 12px; color: #52606d">Max</span><span style="font-size: 12px; color: #52606d">Zap.</span>
+<label for="lpv1" style="font-weight: 500">PV</label><input id="lpv1" value="0" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><input aria-label="PV max" value="25" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><input type="checkbox" checked aria-label="Vyřazovat PV na mezi" style="width: 18px; height: 18px">
+<label for="lmv1" style="font-weight: 500">MV</label><input id="lmv1" value="0" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><input aria-label="MV max" value="100" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><input type="checkbox" checked aria-label="Vyřazovat MV v saturaci" style="width: 18px; height: 18px">
+<label for="ldv1" style="font-weight: 500">DV</label><input id="ldv1" value="—" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><input aria-label="DV max" value="—" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0"><input type="checkbox" aria-label="Vyřazovat DV na mezi" style="width: 18px; height: 18px">
+</div>
+<div style="display: flex; align-items: center; gap: 8px">
+<label for="ltol" style="font-size: 13px; color: #52606d">Tolerance</label><input id="ltol" value="0,5" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 5px 8px; border: 1px solid #c3ccd6; border-radius: 6px; width: 64px"><span style="font-size: 12px; color: #52606d">% rozsahu</span>
+</div>
+<span style="font-size: 12px; color: #52606d">Výchozí meze: PV rozsah měření (NormPV), MV limity bloku MV_LoLim / MV_HiLim, DV vypnuto. Výsledek: PV 3 místa · 197 s; MV nic.</span>
+<label style="display: flex; gap: 8px; align-items: flex-start"><input type="checkbox" checked style="width: 18px; height: 18px; margin: 1px 0 0 0"><span>Ručně vyřazené části <span style="display: block; font-size: 12px; color: #52606d">žádné – nástroj Vyřadit, tažením v grafu</span></span></label>
+</div>
+</details>
+
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Ověření modelu
+<button type="button" aria-label="Nápověda: ověření modelu" title="Celý model (oba přenosy) se nasimuluje přes celý záznam a porovná s PV. Jen MV / jen DV ukáže, kolik vysvětluje každý vstup sám. Nízká shoda u integračního procesu může znamenat neměřený přítok nebo odtok." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button></h2></div></summary>
+<p style="margin: 0 0 10px 0; font-size: 12px; color: #52606d">Simulace celého záznamu s oběma vstupy, PV omezená mezí měření.</p>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; font-size: 13px">
+<span>MV + DV</span><span style="font-family: 'IBM Plex Mono', monospace">FIT [vypočte se]</span>
+<span>jen MV</span><span style="font-family: 'IBM Plex Mono', monospace">FIT [vypočte se]</span>
+<span>jen DV</span><span style="font-family: 'IBM Plex Mono', monospace">FIT [vypočte se]</span>
+</div>
+<div style="border-top: 1px solid #eef1f5; margin-top: 12px; padding-top: 10px">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600">Na jiném úseku<span style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #e8f0fa; color: #1f5fa8; margin-left: 6px">nové</span><button type="button" aria-label="Nápověda: validace na jiném úseku" title="Model se ověří na datech, která nebyla použita k identifikaci. Predikce: model dostane skutečné MV a DV a porovná se PV. Simulace smyčky: model s regulátorem (Sada 1 nebo 2) dostane skutečné SP a DV – vhodné pro data v AUTO. Výrazně horší FIT než na identifikačním úseku = model se nedá zobecnit." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button></div>
+<div style="display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 8px; align-items: center; font-size: 13px; margin-top: 8px">
+<span style="color: #52606d">Úsek</span><input aria-label="Validační úsek" value="12:05 – 12:50 (táhla v grafu)" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0">
+<span style="color: #52606d">Režim</span><select aria-label="Režim validace" style="font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #c3ccd6; border-radius: 6px; min-width: 0; background: #ffffff"><option>Predikce (MV, DV → PV)</option><option selected>Simulace smyčky se Sadou 1</option><option>Simulace smyčky se Sadou 2</option></select>
+<span style="color: #52606d">Výsledek</span><span style="font-family: 'IBM Plex Mono', monospace">FIT PV 86 % · MV 79 %</span>
+<span style="color: #52606d">Nejistota</span><span style="font-family: 'IBM Plex Mono', monospace">Ki ±9 % · θ ±3 s (bootstrap 20×)</span>
+</div></div>
+<button type="button" style="font: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid #1f5fa8; background: #ffffff; color: #1f5fa8; border-radius: 8px; margin-top: 12px; width: 100%; min-height: 40px">Použít model pro ladění</button>
+</details>
+<details open style="background: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 14px">
+<summary title="Sbalit / rozbalit" style="list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 10px"><span aria-hidden="true" style="color: #9aa5b1; font-size: 12px; width: 12px">▾</span><div style="flex: 1; min-width: 0"><h2 style="margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px">Data v uzavřené smyčce<span style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #e8f0fa; color: #1f5fa8; margin-left: 6px">nové</span>
+<button type="button" aria-label="Nápověda: uzavřená smyčka" title="Když v úseku běží regulátor v AUTO, MV nezávisí jen na procesu, ale i na regulátoru – běžná identifikace MV → PV pak vychází zkreslená. Aplikace pozná podíl AUTO, použije identifikaci v uzavřené smyčce se Sadou 1 (skutečný regulátor) a nabídne odhad Sady 1 přímo ze záznamu, pokud parametry z PLC neznáte." style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #9aa5b1; background: #ffffff; color: #3e4c59; font-weight: 600; font-size: 12px; padding: 0; cursor: help">?</button></h2></div></summary>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; font-size: 13px">
+<span>Podíl AUTO v úseku</span><span style="font-family: 'IBM Plex Mono', monospace">78 %</span>
+<span>Metoda identifikace</span><span>uzavřená smyčka</span>
+<span>Sada 1 (regulátor v záznamu)</span><span style="font-family: 'IBM Plex Mono', monospace">Gain −0,80 · TI 600 s</span>
+<span>Kontrola Sady 1 proti záznamu</span><span style="color: #2f7a3f">✓ odpovídá MV (shoda 94 %)</span>
+<span>Vybuzení</span><span style="color: #b45309">! 2 skoky SP – málo</span>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px">
+<button type="button" title="Odhadne Gain a TI regulátoru z průběhu SP, PV a MV v AUTO – když neznáte parametry z PLC." style="font: inherit; font-size: 12px; padding: 5px 10px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Odhadnout Sadu 1 ze záznamu</button>
+<button type="button" title="Zúží úsek na část, kde byla smyčka v MAN – identifikace v otevřené smyčce je pak přesnější." style="font: inherit; font-size: 12px; padding: 5px 10px; border: 1px solid #c3ccd6; background: #ffffff; border-radius: 6px">Zúžit na ruční úsek</button>
+</div>
+</details>
+
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

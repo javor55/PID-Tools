@@ -6,6 +6,9 @@ nebo `X-PID-Token`); bez tokenu odpoví jen /health. CORS jen pro zadané původ
 Spuštění: python -m pidtools.api --port 8765 --token TAJNE
 Týmový web (M26): přihlášení za Cloudflare Access, pracovní prostory a úlohy po uživatelích – deploy.py.
 Rozhraní je popsané v openapi.json vedle tohoto souboru (generované; test hlídá, že odpovídá kódu).
+
+Stabilní cesty mají prefix `/api/v1` (plán v2, kap. 7); stejné cesty bez prefixu jsou dočasné aliasy pro starší klienty
+(desktop, skripty) – v OpenAPI nejsou a po vydání verze 4.0 zaniknou. Změna bez zpětné kompatibility = nová verze `/api/v2`.
 """
 import asyncio
 import contextvars
@@ -16,15 +19,19 @@ import weakref
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .. import __version__, i18n
+from ..app import appsettings as aps
+from ..app.autosave import UserData
 from ..app.jobs import FINAL
-from . import analysis, apc, apc_loops, apc_more, audit, data, deploy, model, opcua, projects, tuning
+from ..controllers import Library
+from . import (analysis, apc, apc_loops, apc_more, appsettings, audit, controllers, data, deploy, guide, journal,
+               mapping, model, opcua, projects, sources, triage, tuning, tuning_profile)
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -50,6 +57,7 @@ def _request_lang(request):
     return i18n.DEFAULT_LANG
 
 
+API_PREFIX = "/api/v1"
 UI_DIR = Path(__file__).resolve().parent / "ui"                      # sestavené rozhraní (frontend: npm run build)
 FONTS_DIR = Path(__file__).resolve().parents[2] / "static" / "fonts"  # přibalené fonty IBM Plex (OFL)
 
@@ -72,12 +80,18 @@ def _serialize_workspaces(app):
 
     @app.middleware("http")
     async def workspace_mw(request, call_next):
-        m = re.match(r"/workspaces/([^/]+)/", request.url.path)
+        m = re.match(rf"(?:{API_PREFIX})?/workspaces/([^/]+)/", request.url.path)
         if not m:
             return await call_next(request)
         locks = ws_locks.setdefault(asyncio.get_running_loop(), {})
         async with locks.setdefault(m.group(1), asyncio.Lock()):
-            return await call_next(request)
+            resp = await call_next(request)
+        if request.method not in ("GET", "HEAD", "OPTIONS") and resp.status_code < 400 and not request.url.path.endswith("/autosave"):
+            try:
+                app.state.store.get(m.group(1)).touch()      # počítadlo změn (neuloženo, záchranná kopie)
+            except KeyError:
+                pass
+        return resp
 
 
 def _opt(team, names, defaults):
@@ -85,12 +99,35 @@ def _opt(team, names, defaults):
     return tuple(defaults) if team is None else tuple(getattr(team, n) for n in names)
 
 
+def _routers(project, jobs, team, library, settings, userdata):
+    """Všechny routery API (jeden prostor = jedna cesta `/workspaces/{wid}/…`)."""
+    max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
+    return [data.router(project, *max_upload), projects.router(project, appsettings.remember(userdata)),
+            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library),
+            sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
+            tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
+            apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs), guide.router(project),
+            triage.router(project, jobs), controllers.router(library, team is None),
+            controllers.loop_router(project, library), journal.router(project, settings)]
+
+
+def _include(app, routers, system, auth):
+    """Stabilní cesty `/api/v1` (v OpenAPI) a dočasný alias bez prefixu pro starší klienty (skrytý v OpenAPI)."""
+    for r in routers:
+        app.include_router(r, prefix=API_PREFIX, dependencies=[Depends(auth)])
+        app.include_router(r, include_in_schema=False, dependencies=[Depends(auth)])
+    app.include_router(system, prefix=API_PREFIX)
+    app.include_router(system, include_in_schema=False)
+
+
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2, team=None,
-               verifier=None):
+               verifier=None, controllers_dir=None, config_dir=None, data_dir=None):
     """
     Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly). team (deploy.DeployConfig s přihlášením
     cloudflare / header) zapne týmový režim: uživatel místo tokenu, prostory a úlohy po uživatelích, limity, logy;
-    verifier (jen testy) nahradí ověřování JWT.
+    verifier (jen testy) nahradí ověřování JWT; config_dir / data_dir = složka nastavení aplikace a uživatelských dat
+    (záchranná kopie, nedávné projekty). controllers_dir = složka vlastních regulátorů (výchozí uživatelská složka,
+    proměnná PIDTOOLS_CONTROLLERS_DIR); v týmovém režimu je knihovna jen ke čtení.
     """
     workspace_ttl, max_workspaces, max_jobs = _opt(team, ("ttl", "max_workspaces", "max_jobs"),
                                                    (workspace_ttl, max_workspaces, max_jobs))
@@ -149,54 +186,48 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             raise HTTPException(404, "job not found") from None
 
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
-    app.include_router(data.router(project, *_opt(team, ["max_upload"], [data.MAX_UPLOAD])), dependencies=[Depends(auth)])
-    app.include_router(projects.router(project), dependencies=[Depends(auth)])
-    app.include_router(projects.pending_router(team is None), dependencies=[Depends(auth)])
-    app.include_router(model.router(project, jobs), dependencies=[Depends(auth)])
-    app.include_router(tuning.router(project, jobs), dependencies=[Depends(auth)])
-    app.include_router(analysis.router(project), dependencies=[Depends(auth)])
-    app.include_router(audit.router(project), dependencies=[Depends(auth)])
-    app.include_router(apc.router(project, jobs), dependencies=[Depends(auth)])
-    app.include_router(apc_more.router(project), dependencies=[Depends(auth)])
-    app.include_router(apc_loops.router(project, jobs), dependencies=[Depends(auth)])
-    app.include_router(opcua.router(project, jobs), dependencies=[Depends(auth)])
+    library = Library(controllers_dir)
+    settings, userdata = aps.SettingsStore(config_dir), UserData(data_dir)
+    routers = _routers(project, jobs, team, library, settings, userdata)
+    system = APIRouter()
 
-    @app.get("/health", response_model=Health, tags=["system"])
+    @system.get("/health", response_model=Health, tags=["system"])
     def health():
         return Health(status="ok", version=__version__)
 
-    @app.get("/i18n/{lang}", response_model=dict[str, str], tags=["system"], dependencies=[Depends(auth)])
+    @system.get("/i18n/{lang}", response_model=dict[str, str], tags=["system"], dependencies=[Depends(auth)])
     def texts(lang: str):
         if lang not in i18n.TEXTS:
             raise HTTPException(404, "language not found")
         return i18n.TEXTS[lang]
 
-    @app.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
+    @system.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_create():
         wid, proj = app.state.store.create(owner=deploy.USER.get(),
-                                           max_per_owner=_opt(team, ["max_workspaces_user"], [None])[0])
+                                           max_per_owner=_opt(team, ["max_workspaces_user"], [None])[0],
+                                           defaults=appsettings.new_defaults(settings.load(deploy.USER.get()), library))
         return info(wid, proj.state)
 
-    @app.get("/workspaces/{wid}", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
+    @system.get("/workspaces/{wid}", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_get(wid: str):
         return info(wid, workspace(wid))
 
-    @app.delete("/workspaces/{wid}", status_code=204, tags=["workspace"], dependencies=[Depends(auth)])
+    @system.delete("/workspaces/{wid}", status_code=204, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_delete(wid: str):
         if not app.state.store.delete(wid, owner=deploy.USER.get()):
             raise HTTPException(404, "workspace not found")
 
-    @app.get("/jobs/{jid}", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
+    @system.get("/jobs/{jid}", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
     def job_get(jid: str):
         return JobInfo(**job(jid))
 
-    @app.post("/jobs/{jid}/cancel", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
+    @system.post("/jobs/{jid}/cancel", response_model=JobInfo, tags=["jobs"], dependencies=[Depends(auth)])
     def job_cancel(jid: str):
         job(jid)
         app.state.jobs.cancel(jid)
         return JobInfo(**job(jid))
 
-    @app.get("/jobs/{jid}/result", tags=["jobs"], dependencies=[Depends(auth)])
+    @system.get("/jobs/{jid}/result", tags=["jobs"], dependencies=[Depends(auth)])
     def job_result(jid: str):
         """Výsledek hotové úlohy jako JSON (u úloh nad pracovním prostorem jen vrácená hodnota metody)."""
         st = job(jid)
@@ -207,7 +238,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             res = res["result"]
         return data._plain(res)
 
-    @app.get("/jobs/{jid}/events", tags=["jobs"], dependencies=[Depends(auth)],
+    @system.get("/jobs/{jid}/events", tags=["jobs"], dependencies=[Depends(auth)],
              responses={200: {"content": {"text/event-stream": {}}, "description": "JobInfo as server-sent events"}})
     async def job_events(jid: str, request: Request):
         """Průběh úlohy jako server-sent events (JobInfo při každé změně, konec u hotové / zrušené úlohy)."""
@@ -226,6 +257,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
                 await asyncio.sleep(0.1)
         return StreamingResponse(gen(), media_type="text/event-stream")
 
+    _include(app, routers, system, auth)
     _mount_static(app)
     deploy.install(app, team)
     return app

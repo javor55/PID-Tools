@@ -22,6 +22,10 @@ declare module "*/live_engine.js" {
   const engine: unknown;
   export default engine;
 }
+declare module "*/ctrl_engine.js" {
+  const engine: unknown;
+  export default engine;
+}
 declare module "*/live_ui.js" {
   export interface LiveComponent {
     data: Record<string, unknown>;

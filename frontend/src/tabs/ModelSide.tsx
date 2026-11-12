@@ -9,6 +9,7 @@ import { series, unframe } from "../api/signals";
 import { Help, PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { type LoopMode, usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
+import { dur } from "../lib/format";
 import { useJobRunner } from "../jobs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUi } from "../store";
@@ -18,6 +19,9 @@ import { DIST_CHOICES, DIST_STYLE, FAMILY, MODELS, MV_STYLE, mean, windowFits } 
 type ModelState = components["schemas"]["ModelState"];
 type ModelRes = components["schemas"]["ModelRes"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
+type LoopInfo = components["schemas"]["LoopInfo"];
+type Set1Check = components["schemas"]["Set1Check"];
+type Set1Estimate = components["schemas"]["Set1Estimate"];
 
 /** Číselné pole (potvrzení Enterem / opuštěním pole) s popiskem vlevo. */
 function Num({ label, value, onCommit, step, testid, help }: { label: string; value: number | undefined;
@@ -37,6 +41,7 @@ function Num({ label, value, onCommit, step, testid, help }: { label: string; va
 /** Řádek parametru karty přenosu: název | hodnota | jednotka | Identif. (zaškrtnuto = odhaduje se z dat). */
 function ParamRow({ label, edKey, fxKey, value, unit, help, signed }: { label: string; edKey: string; fxKey: string;
   value: number; unit: string; help: string; signed: boolean }) {
+  const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const st = useSettings().data ?? {};
@@ -51,12 +56,12 @@ function ParamRow({ label, edKey, fxKey, value, unit, help, signed }: { label: s
     <>
       <label className="mp-name" title={help}>{label}</label>
       <input className="num" type="number" step="any" min={signed ? undefined : 0} value={v ?? +cur.toPrecision(6)}
-        data-testid={`ed-${edKey}`} aria-label={label}
+        data-testid={`ed-${edKey}`} aria-label={label} title={help}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => { if (v !== null && v !== "" && Number.isFinite(+v)) void patch({ [edKey]: +v }); setV(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       <span className="mp-unit">{unit}</span>
-      <input type="checkbox" checked={!st[fxKey]} aria-label={`Identif. ${label}`} data-testid={`fx-${fxKey}`}
+      <input type="checkbox" checked={!st[fxKey]} aria-label={`Identif. ${label}`} title={T("h_ms_identif")} data-testid={`fx-${fxKey}`}
         onChange={(e) => void patch({ [fxKey]: !e.target.checked })} />
     </>
   );
@@ -158,12 +163,15 @@ function TransferCard({ k, name, col, j, model, r, win, fit, src, color, modelFi
   const signLab = { neg: "−", auto: "auto", pos: "+" } as const;
 
   // ---- parametry
-  const params: { label: string; edKey: string; fxKey: string; value: number; help: string; signed: boolean }[] = [];
+  const params: { label: string; edKey: string; fxKey: string; value: number; help: string; signed: boolean; unit?: string }[] = [];
   if (has && r && cur) {
-    if (isMv) r.names.forEach((nm, i) => params.push({ label: nm, edKey: `ed|${r.code}|${i}`, fxKey: `fx|${r.code}|${i}`,
-      value: cur.p[i], signed: i === 0,
-      help: T("help_" + (i === 0 ? "gain" : i === r.names.length - 1 ? "theta" : "T")) }));
-    else r.dists[j]?.fields.forEach(([fname, idx]) => params.push({ label: String(fname), edKey: `ed|${r.code}|d${j}|${idx}`,
+    if (isMv) {
+      r.names.forEach((nm, i) => params.push({ label: nm, edKey: `ed|${r.code}|${i}`, fxKey: `fx|${r.code}|${i}`,
+        value: cur.p[i], signed: i === 0,
+        help: T("help_" + (i === 0 ? "gain" : i === r.names.length - 1 ? "theta" : "T")) }));
+      if (st.id_stic || r.stic) params.push({ label: T("stic_param", { u: "" }), edKey: `ed|${r.code}|stic`,
+        fxKey: `fx|${r.code}|stic`, value: r.stic, signed: false, unit: "% MV", help: T("h_stic_param") });
+    } else r.dists[j]?.fields.forEach(([fname, idx]) => params.push({ label: String(fname), edKey: `ed|${r.code}|d${j}|${idx}`,
       fxKey: `fx|${r.code}|d${j}|${idx}`, value: Number(st[`ed|${r.code}|d${j}|${idx}`] ?? 0), signed: Number(idx) === 0,
       help: T("h_dist_" + String(Number(idx) === 3 ? 1 : idx)) }));
   }
@@ -183,7 +191,7 @@ function TransferCard({ k, name, col, j, model, r, win, fit, src, color, modelFi
           <div className="mparams" data-testid={`mparams${suffix}`}>
             <span /><span /><span />
             <span className="mp-head">{T("ms_identif")} <Help text={T("h_ms_identif")} /></span>
-            {params.map((p) => <ParamRow key={p.edKey} {...p} unit={unitOf(T, p.label)} />)}
+            {params.map((p) => <ParamRow key={p.edKey} {...p} unit={p.unit ?? unitOf(T, p.label)} />)}
           </div>
         )}
         <div className="mrow">
@@ -238,20 +246,76 @@ function Exclusion({ info }: { info: WindowsInfo }) {
 
 function ExclRow({ n, on, lo, hi, set }: { n: string; on: boolean; lo: number; hi: number;
   set: (n: string, i: 0 | 1 | 2, v: boolean | number) => void }) {
+  const T = useT();
   const [a, setA] = useState<string | null>(null);
   const [b, setB] = useState<string | null>(null);
   const commit = (v: string | null, i: 1 | 2) => { if (v !== null && v !== "" && Number.isFinite(+v)) set(n, i, +v); };
   return (
     <>
       <b className="mp-name">{n}</b>
-      <input className="num" type="number" step="any" value={a ?? +lo.toPrecision(5)} aria-label={`${n} min`}
+      <input className="num" type="number" step="any" value={a ?? +lo.toPrecision(5)} aria-label={`${n} min`} title={T("excl_intro")}
         onChange={(e) => setA(e.target.value)} onBlur={() => { commit(a, 1); setA(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-      <input className="num" type="number" step="any" value={b ?? +hi.toPrecision(5)} aria-label={`${n} max`}
+      <input className="num" type="number" step="any" value={b ?? +hi.toPrecision(5)} aria-label={`${n} max`} title={T("excl_intro")}
         onChange={(e) => setB(e.target.value)} onBlur={() => { commit(b, 2); setB(null); }}
         onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-      <input type="checkbox" checked={on} aria-label={`${n} ${on ? "on" : "off"}`} onChange={(e) => set(n, 0, e.target.checked)} />
+      <input type="checkbox" checked={on} aria-label={`${n} ${on ? "on" : "off"}`} title={T("excl_intro")} onChange={(e) => set(n, 0, e.target.checked)} />
     </>
+  );
+}
+
+/** Smyčka v AUTO (M2): varování, zúžení na ruční úsek, Set 1 (zápis do nastavení, kontrola) a hlášení o buzení. */
+function ClosedLoop({ lp, idMode, win, model }: { lp: LoopInfo; idMode: string; win: boolean; model?: ModelState }) {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const qc = useQueryClient();
+  const patch = usePatchSettings();
+  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const [msg, setMsg] = useState<{ warn: boolean; text: string } | null>(null);
+  const eff = win ? "open" : lp.effective;
+  const closed = eff === "cl" && lp.has_sp;
+  const chk = useWsQuery<Set1Check>(`set1check|${model?.selected}|${JSON.stringify(lp.set1)}`, "/model/set1/check",
+    closed && !!model?.has_fit);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["ws", wid] });
+  const narrow = async () => { await request("POST", `/workspaces/${wid}/windows/narrow`); await refresh(); };
+  const estimate = async () => {
+    const e = await request<Set1Estimate>("POST", `/workspaces/${wid}/model/set1/estimate`);
+    setMsg(e.ok ? { warn: false, text: T("idm_est_done", { g: (e.gain ?? 0).toPrecision(4), ti: e.ti == null ? "∞" : e.ti.toPrecision(4),
+      r: e.r2.toFixed(2) }) } : { warn: true, text: T("idm_est_fail") });
+    await refresh();
+  };
+  const f = (x: number) => +x.toPrecision(4);
+  const c = chk.data;
+  return (
+    <div data-testid="closed-loop">
+      {!win && eff === "open" && lp.auto_frac >= 0.15 && (
+        <>
+          <div className="warn small" data-testid="lm-warn">{T("lm_warn", { a: Math.round(100 * lp.auto_frac) })}</div>
+          <div className="row">
+            {lp.manual_span && <button type="button" className="btn" data-testid="lm-narrow" title={T("h_lm_narrow")}
+              onClick={() => void narrow()}>{T("lm_narrow", { a: dur(lp.manual_span[0], dec), b: dur(lp.manual_span[1], dec) })}</button>}
+            {lp.has_sp && <button type="button" className="btn" data-testid="lm-to-cl" title={T("idm")}
+              onClick={() => void patch({ id_mode: "cl" })}>{T("lm_to_cl")}</button>}
+          </div>
+        </>
+      )}
+      {idMode === "cl" && !lp.has_sp && <div className="warn small">{T("idm_need_sp")}</div>}
+      {closed && (
+        <>
+          <div className="small muted" data-testid="cl-note">{T("idm_cl_note", { g: f(lp.set1.gain), ti: f(lp.set1.ti), td: f(lp.set1.td) })}</div>
+          {lp.low_excitation && <div className="warn small" data-testid="low-exc">{T("idm_low_exc")}</div>}
+          {c?.available && (c.ok
+            ? <div className="small" data-testid="set1-ok">✓ {T("idm_set1_ok", { f: (c.fit_pv ?? 0).toFixed(0) })}</div>
+            : <div className="warn small" data-testid="set1-bad">{c.stable ? T("idm_set1_bad", { f: (c.fit_pv ?? 0).toFixed(0) }) : T("idm_set1_unstable")}</div>)}
+        </>
+      )}
+      {lp.has_sp && (closed || lp.auto_frac >= 0.15) && (
+        <div className="row">
+          <button type="button" className="btn" data-testid="set1-estimate" title={T("h_idm_est")}
+            onClick={() => void estimate()}>{T("idm_est_btn")}</button><Help text={T("h_idm_est")} />
+        </div>)}
+      {msg && <div className={"small " + (msg.warn ? "warn" : "muted")} data-testid="set1-msg">{msg.text}</div>}
+    </div>
   );
 }
 
@@ -306,6 +370,7 @@ export function ModelSide() {
   const ws = useWs().data;
   const st = useSettings().data ?? {};
   const lm = useWsQuery<LoopMode>("loopmode", "/loopmode");
+  const lp = useWsQuery<LoopInfo>("modelloop", "/model/loop");
   const windows = useWsQuery<WindowsInfo>("windows", "/windows");
   const model = useWsQuery<ModelState>("model", "/model").data;
   const [busy, setBusy] = useState(false);
@@ -357,7 +422,7 @@ export function ModelSide() {
       </div>
 
       <SideCard title={T("idm")} help={T("h_idm")} testid="side-idm">
-        <select value={idMode} onChange={(e) => void patch({ id_mode: e.target.value })} data-testid="id-mode" aria-label={T("idm")}>
+        <select value={idMode} onChange={(e) => void patch({ id_mode: e.target.value })} data-testid="id-mode" aria-label={T("idm")} title={T("h_idm")}>
           {["auto", "open", "cl"].map((m) => <option key={m} value={m}>{T("idm_" + m)}</option>)}
         </select>
         {lm.data && <div className="small muted" data-testid="lm-status">
@@ -366,12 +431,13 @@ export function ModelSide() {
         </div>}
         {lm.data && !lm.data.set1_ok && lm.data.auto_frac >= 0.15 && idMode !== "open" &&
           <div className="warn small">{T("lm_need_set1")}</div>}
+        {lp.data && <ClosedLoop lp={lp.data} idMode={idMode} win={win} model={model} />}
         {win && ws.sp && mvWins.length > 0 && (
           <div data-testid="mv-modes">
             <div className="small muted">{T("mix_title")}</div>
             {mvWins.map((w, i) => (
               <label className="field" key={i}><span>MV {i + 1}</span>
-                <select value={windows.data?.mv_modes?.[i] ?? "man"} disabled={idMode !== "auto"}
+                <select value={windows.data?.mv_modes?.[i] ?? "man"} disabled={idMode !== "auto"} title={T("h_mix")}
                   onChange={(e) => void setMode(i, e.target.value)} data-testid={`mv-mode-${i}`}>
                   <option value="man">{T("mix_man")}</option><option value="auto">{T("mix_auto")}</option>
                 </select>
@@ -400,7 +466,7 @@ export function ModelSide() {
       <SideCard title={T("models")} help={T("h_models")} testid="side-models">
         <div className="checks-grid">
           {MODELS.map((c) => (
-            <label key={c} className="small">
+            <label key={c} className="small" title={T("h_models")}>
               <input type="checkbox" checked={chosen.includes(c)} data-testid={`chk-${c}`}
                 onChange={(e) => void patch({ chosen: e.target.checked ? [...chosen, c] : chosen.filter((y) => y !== c) })} />
               {" "}{T("model_" + c)}
@@ -412,18 +478,18 @@ export function ModelSide() {
       </SideCard>
 
       <SideCard title={T("dist_level")} help={T("h_dist_level")} testid="side-unmeasured" defaultOpen={false}>
-        <select value={level} onChange={(e) => void patch({ dist_level: e.target.value })} aria-label={T("dist_level")}>
+        <select value={level} onChange={(e) => void patch({ dist_level: e.target.value })} aria-label={T("dist_level")} title={T("h_dist_level")}>
           {["none", "medium", "high"].map((x) => <option key={x} value={x}>{T("dl_" + x)}</option>)}
         </select>
         <div className="small muted">{T("dl_desc_" + level).replace(/\*\*/g, "")}</div>
-        <label className="field"><span>{T("dist_strength")}</span>
+        <label className="field"><span className="lbl">{T("dist_strength")}<Help text={T("h_dist_strength")} /></span>
           <input type="range" min={1} max={10} disabled={level === "none"} value={Number(st.dist_strength ?? 4)}
             onChange={(e) => void patch({ dist_strength: +e.target.value })} />
         </label>
       </SideCard>
 
       <SideCard title={T("id_stic")} help={T("h_id_stic")} testid="side-stic" defaultOpen={false}>
-        <label className="small"><input type="checkbox" checked={!!st.id_stic}
+        <label className="small" title={T("h_id_stic")}><input type="checkbox" checked={!!st.id_stic}
           onChange={(e) => void patch({ id_stic: e.target.checked })} /> {T("id_stic")}</label>
       </SideCard>
 

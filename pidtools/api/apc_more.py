@@ -341,6 +341,7 @@ class RgaInfo(BaseModel):
     pairing: list[int] | None = None  # doporučené MV (index sloupce) pro PV_i
     advice: list[Note] = []
     checks: list[Check] = []
+    impl_text: str | None = None  # implementace v PCS 7 (jak výsledek použít)
 
 
 def _rga_records(proj):
@@ -351,14 +352,14 @@ def _rga_records(proj):
 def _rga_info(proj):
     recs = _rga_records(proj)
     if len(recs) < 2:
-        return RgaInfo(ready=False, checks=_checks(guides.apc_rga(_rec_a(proj), len(recs), 0)))
+        return RgaInfo(ready=False, checks=_checks(guides.apc_rga(_rec_a(proj), len(recs), 0)), impl_text=T("g_impl_rga"))
     r = rgan.analyse(recs)
     n_cross = int(r["known"].sum() - len(recs))
     return RgaInfo(ready=True, names=[str(x) for x in r["names"]], mvs=[str(x) for x in r["mvs"]],
                    K=_plain(r["K"]), known=r["known"].tolist(), L=_plain(r["L"]), NI=_f(r["NI"]),
                    pairing=None if r["pairing"] is None else [int(j) for j in r["pairing"]],
                    advice=[Note(key=k) for k in r["advice"]],
-                   checks=_checks(guides.apc_rga(_rec_a(proj), len(recs), n_cross)))
+                   checks=_checks(guides.apc_rga(_rec_a(proj), len(recs), n_cross)), impl_text=T("g_impl_rga"))
 
 
 def router(get_proj):

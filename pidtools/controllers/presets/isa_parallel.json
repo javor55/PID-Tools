@@ -1,0 +1,172 @@
+{
+  "format": "pidctrl",
+  "version": 1,
+  "id": "isa_parallel",
+  "name": "ISA paralelní PID",
+  "vendor": "Obecný",
+  "system": "ISA",
+  "block": "paralelní",
+  "verification": {
+    "status": "verified",
+    "note": "Obecný regulátor odvozený z definice (ISA-5.9 / učebnice), bez závislosti na výrobci."
+  },
+  "structure": {
+    "normalisation": {
+      "kind": "percent"
+    },
+    "sp": {
+      "rate_limit": true
+    },
+    "pv": {
+      "filter": "lag1"
+    },
+    "error": {
+      "deadband": {
+        "modes": {
+          "spojité": "continuous",
+          "skokové": "step"
+        },
+        "other": "step"
+      }
+    },
+    "form": "parallel",
+    "p": {
+      "weight": true
+    },
+    "i": {
+      "enabled": true
+    },
+    "d": {
+      "source": "error_or_pv",
+      "filter": "td_over_n"
+    },
+    "antiwindup": "clamp_conditional",
+    "algorithm": "position",
+    "output": {
+      "limits": true,
+      "rate_limit": true,
+      "control_zone": true
+    },
+    "ff": {
+      "mode": "add"
+    },
+    "tracking": {
+      "mode": "bumpless_integral"
+    }
+  },
+  "params": [
+    {
+      "key": "Kp",
+      "role": "Kp",
+      "name": "Kp",
+      "unit": "-",
+      "required": true
+    },
+    {
+      "key": "Ki",
+      "role": "Ki",
+      "name": "Ki",
+      "unit": "1/s",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "key": "Kd",
+      "role": "Kd",
+      "name": "Kd",
+      "unit": "s",
+      "required": true
+    },
+    {
+      "key": "N",
+      "role": "N",
+      "name": "N",
+      "unit": "-",
+      "default": 10.0
+    },
+    {
+      "key": "SampleTime",
+      "role": "Ts",
+      "name": "SampleTime",
+      "unit": "s",
+      "required": true
+    },
+    {
+      "key": "PropFacSP",
+      "role": "b",
+      "name": "PropFacSP",
+      "unit": "-",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "alias": {
+        "key": "PropFbk",
+        "true": 0.0,
+        "false": 1.0
+      },
+      "default": 1.0
+    },
+    {
+      "key": "DiffFbk",
+      "role": "d_on_pv",
+      "name": "DiffFbk",
+      "default": false
+    },
+    {
+      "key": "DeadBand",
+      "role": "deadband",
+      "name": "DeadBand",
+      "unit": "%",
+      "default": 0.0
+    },
+    {
+      "key": "DbMode",
+      "role": "deadband_mode",
+      "name": "DbMode",
+      "default": "spojité"
+    },
+    {
+      "key": "MV_Lo",
+      "role": "mv_lo",
+      "name": "MV_Lo",
+      "unit": "%",
+      "default": "-inf"
+    },
+    {
+      "key": "MV_Hi",
+      "role": "mv_hi",
+      "name": "MV_Hi",
+      "unit": "%",
+      "default": "inf"
+    },
+    {
+      "key": "PVFilt",
+      "role": "pv_filter",
+      "name": "PVFilt",
+      "unit": "s",
+      "default": 0.0
+    },
+    {
+      "key": "MVRate",
+      "role": "mv_rate",
+      "name": "MVRate",
+      "unit": "%/s",
+      "default": 0.0
+    },
+    {
+      "key": "SPRate",
+      "role": "sp_rate",
+      "name": "SPRate",
+      "unit": "%/s",
+      "default": 0.0
+    },
+    {
+      "key": "ConZone",
+      "role": "con_zone",
+      "name": "ConZone",
+      "unit": "%",
+      "default": 0.0
+    }
+  ]
+}

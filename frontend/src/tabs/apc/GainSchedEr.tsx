@@ -27,10 +27,10 @@ export function GainSchedErSide() {
   return (
     <>
       <SideCard title={T("gs_x_er")} testid="er-side">
-        <NumSetting k="gs_er_E" label={T("dk_gser_E", { u })} def={inp.E_default} min={0} />
-        <NumSetting k="gs_er_k" label={T("dk_gser_k")} def={inp.k_default} min={0.1} />
-        <NumSetting k="gs_er_spstep" label={T("dk_gser_sp", { u })} def={inp.spstep_default} />
-        <NumSetting k="gs_er_d" label={T("dk_gser_d")} def={inp.d_default} />
+        <NumSetting k="gs_er_E" label={T("dk_gser_E", { u })} help="h_gs_er_E" def={inp.E_default} min={0} />
+        <NumSetting k="gs_er_k" label={T("dk_gser_k")} help="h_gs_er_k" def={inp.k_default} min={0.1} />
+        <NumSetting k="gs_er_spstep" label={T("dk_gser_sp", { u })} help="h_gs_er_spstep" def={inp.spstep_default} />
+        <NumSetting k="gs_er_d" label={T("dk_gser_d")} help="h_gs_er_d" def={inp.d_default} />
         <button className="btn" data-testid="er-reset" disabled={!inp.edited} title={T("h_apc_reset")}
           onClick={() => void post("/apc/gainsched_er/reset")}>{T("apc_reset")}</button>
       </SideCard>

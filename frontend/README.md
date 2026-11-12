@@ -16,4 +16,9 @@ npm run api-types                   # po změně API: typy z pidtools/api/openap
 - `src/store.ts` – stav rozhraní (Zustand). Výsledky výpočtů drží TanStack Query.
 - `src/lib/format.ts` – texty s formátem jako Python (`{x:.4g}`).
 - `src/styles` – design tokeny (barvy, fonty) shodné s dnešním webem.
+- Nápověda: každé pole s popiskem má „?“ (`LabelHelp` v `components/Ui.tsx`; `NumSetting` / `SelectSetting` /
+  `CheckSetting` / `TextSetting` berou `help` = klíč překladu nebo text, `Seg` také). Nové pole bez nápovědy
+  neprojde testem `tests/test_frontend_help.py` (Playwright prochází všechny záložky a struktury APC). Průvodce
+  záložky (F1, `components/Guide.tsx`) čte `GET /workspaces/{wid}/guide/{tab}`; obsah a kontrolní seznam jsou v
+  `pidtools/app/guides.py`.
 - Verze balíčků jsou přesně zafixované a vybrané tak, aby byly staré aspoň dva týdny.

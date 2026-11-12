@@ -161,7 +161,7 @@ class LiveSession:
                     travel=float(np.abs(np.diff(mv)).sum()))
 
 
-SPEEDS = [1, 5, 20, 100, 500]
+SPEEDS = [1, 10, 50, 200]
 _LV_KEYS = ("compare", "advanced", "sec_tune", "apply", "revert", "tune_hint", "gain", "sec_dist", "dist_type", "dist_loc",
             "dt_step", "dt_ramp", "dt_sine", "dt_random", "dt_pulse", "loc_in", "loc_out", "dist_amp", "dist_sigma",
             "dist_short", "pp_step", "pp_ramp", "pp_sine", "pp_random", "pp_pulse", "pulse_go", "sec_meas", "noise", "pvf",
@@ -183,6 +183,34 @@ def ctrl_js(c):
     return out
 
 
+_UI_KEYS = ("sec_struct", "h_struct", "struct_set2", "struct_hint", "st_pid", "st_ff", "st_cascade", "struct_note_pid",
+            "struct_note_ff", "struct_note_cascade", "struct_soon", "no_ff", "no_casc", "dv_loc", "dv_note", "journal",
+            "h_journal", "ev_struct", "ev_journal")
+
+
+def profile_ctrl_js(profile, c):
+    """Sada v názvech parametrů profilu regulátoru (jednotky bloku) pro ctrl_engine.js: jen klíče profilu, ∞ → null."""
+    keys = {p["key"] for p in profile.get("params", [])} | {p["alias"]["key"] for p in profile.get("params", [])
+                                                           if p.get("alias")}
+    out = {}
+    for k, v in c.items():
+        if k in keys:
+            out[k] = None if isinstance(v, float) and not np.isfinite(v) else (
+                float(v) if isinstance(v, (int, float, np.floating)) and not isinstance(v, bool) else v)
+    return out
+
+
+def dv_channels(model, names, spans, ff_state):
+    """Měřené poruchy pro živou simulaci: přenos DV → PV (K, T, θ, druh, T2) a dopředná vazba (g, lead, lag, delay)."""
+    from . import feedforward as ffm
+    code, p, pdl = model
+    des = ffm.design(code, p, pdl, ff_state)
+    ff, ffll = ffm.to_ctrl(des)
+    return [dict(name=str(nm), span=float(sp) if sp and np.isfinite(sp) and sp > 0 else 1.0, pd=[float(x) for x in pd],
+                 ff=dict(g=float(g), lead=float(ll[0]), lag=float(ll[1]), delay=float(ll[2])))
+            for nm, sp, pd, g, ll in zip(names, spans, pdl, ff, ffll)]
+
+
 def block_summary(samp, diffgain, propfac, dfb, g, ti, td):
     """Shrnutí bloku PIDConL a sady 1 pro panel simulace."""
     return T("blk_summary", s=f"{samp:g}", dg=f"{diffgain:g}", p=f"{propfac:g}", d="✓" if dfb else "✗", g=f"{g:.4g}",
@@ -190,11 +218,14 @@ def block_summary(samp, diffgain, propfac, dfb, g, ti, td):
 
 
 def web_config(*, model, samp, pv0, mv0, set1, set2, plant, pv_rng, mv_rng, u_pv, u_mv, pvfilt, height, scope,
-               summary, lang):
+               summary, lang, engine=None, dvs=None, apc=None, journal=False):
     """
     Konfigurace živé simulace pro prohlížeč (live_ui.js): model, sady 1 a 2, rozsahy, jednotky, okno, rychlosti,
     proces a ventil, barvy a texty (v aktuálním jazyce T). pv0, mv0 = pracovní bod v % rozsahů; scope = identita
     simulace v prohlížeči (soubor a smyčka; z ní a z modelu vzniká sim_id, pod kterým se drží stav).
+    Nová aplikace přidává: engine = {profile, sets: {"1", "2"}} (regulátor z profilu v ctrl_engine.js, sady v jednotkách
+    bloku), dvs = měřené poruchy (dv_channels), apc = {ff, cascade} (struktury sady 2), journal = tlačítko deníku.
+    Bez nich (Streamlit) běží dnešní PIDConL.
     """
     mcode, p, _ = model
     (pv_lo, pv_hi), (mv_lo, mv_hi) = pv_rng, mv_rng
@@ -217,7 +248,7 @@ def web_config(*, model, samp, pv0, mv0, set1, set2, plant, pv_rng, mv_rng, u_pv
                            d0=T("live_d0"), valve=T("valve_pos"), time=T("time_s"), read=T("live_read")))
     cfg.update(
         sim_id=f"{scope}|{mcode}|{[round(float(v), 6) for v in p]}|{h}|{json.dumps(plant)}|"
-               f"{pv_lo}|{pv_hi}|{mv_lo}|{mv_hi}",
+               f"{pv_lo}|{pv_hi}|{mv_lo}|{mv_hi}" + (f"|{engine['profile'].get('id')}|{len(dvs or [])}" if engine else ""),
         ch=int(height), noise0=float(plant.get("Noise", 0.0) * PR / 100), pvf0=float(pvfilt or 0.0),
         pvf_max=float(max(10 * samp, 0.5 * (lags + p[-1]), 5.0)),
         dist_p0=float(max(4 * (lags + p[-1]), 10 * samp)), dist_pmax=float(max(40 * (lags + p[-1]), 100 * samp)),
@@ -226,12 +257,20 @@ def web_config(*, model, samp, pv0, mv0, set1, set2, plant, pv_rng, mv_rng, u_pv
         dark=dict(pv="#60a5fa", sp="#9aa5b1", mv="#fb923c", set1="#94a3b8", set2="#4ade80", dist="#a78bfa",
                   event="#fbbf24", acc="#60a5fa"))
     cfg["labels"].update({k: T("lv_" + k) for k in _LV_KEYS})
-    cfg["labels"].update(blk=summary, desc=T("live_sim_desc"), help=T("live_help"))
+    cfg["labels"].update({k: T("live_ui_" + k) for k in _UI_KEYS})
+    if engine:
+        cfg.update(profile=engine["profile"], pctrl=engine["sets"], dvs=dvs or [], apc=apc or {}, journal=bool(journal))
+    cfg["labels"].update(blk=summary, desc=T("live_sim_desc"), help=T("live_help"), h_speed=T("h_live_speed"),
+                         h_run=T("h_live_run"), h_reset=T("h_live_reset"))
     return cfg
 
 
-def web_config_ws(ws):
-    """web_config ze stavu pracovního prostoru (API); stejné hodnoty jako ze Streamlitu."""
+def web_config_ws(ws, cascade=None):
+    """
+    web_config ze stavu pracovního prostoru (API): stejné hodnoty jako ze Streamlitu a navíc regulátor z profilu smyčky
+    (výchozí PIDConL), měřené poruchy, APC struktury (dopředná vazba z návrhu v APC, kaskáda = `cascade` z návrhu)
+    a deník. cascade = {inner: {code, p, ctrl}, octrl: sada vnějšího regulátoru (ctrl PIDConL), source} nebo None.
+    """
     from .. import i18n
     mask = ws.sel_mask
     pv_id, mv_id = ws.pv[mask], ws.mv[mask]
@@ -239,7 +278,20 @@ def web_config_ws(ws):
     g = ws.get
     summary = block_summary(float(g("samp")), float(g("diffgain")), float(g("propfac")), bool(g("dfb")),
                             float(g("set1_gain", 1.0)), float(g("set1_ti", 100.0)), float(g("set1_td", 0.0)))
+    from . import ctl_tuning as ctl
+    prof = ctl.compiled(ws.controller).data
+    sets = {str(n): profile_ctrl_js(prof, ws.prof_ctrl(ws.set_ctrl_plain(n))) for n in (1, 2)}
+    dvs = []
+    if ws.model[2]:
+        ds = ws.segment()[3]
+        dvs = dv_channels(ws.model, ws.c_d, [float(np.nanmax(d) - np.nanmin(d)) if len(d) else 1.0 for d in ds],
+                          ws.ff_state)
+    apc = dict(ff=dict(ok=any(d["ff"]["g"] != 0 for d in dvs)), cascade=dict(ok=False))
+    if cascade:
+        apc["cascade"] = dict(ok=True, inner=cascade["inner"], source=cascade.get("source", ""),
+                              octrl=profile_ctrl_js(prof, ws.prof_ctrl(cascade["octrl"])))
     return web_config(model=ws.model, samp=float(g("samp")), pv0=pv0, mv0=float(mv_id[0]), set1=ws.set_ctrl(1),
                       set2=ws.set_ctrl(2), plant=ws.plant(), pv_rng=(ws.pv_lo, ws.pv_hi), mv_rng=(ws.mv_lo, ws.mv_hi),
                       u_pv=g("u_pv", ""), u_mv=g("u_mv", ""), pvfilt=float(g("pvfilt", 0.0)),
-                      height=g("plot_h", 460), scope=f"{ws.fname}|0", summary=summary, lang=i18n.lang())
+                      height=g("plot_h", 460), scope=f"{ws.fname}|0", summary=summary, lang=i18n.lang(),
+                      engine=dict(profile=prof, sets=sets), dvs=dvs, apc=apc, journal=True)

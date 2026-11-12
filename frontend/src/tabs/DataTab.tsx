@@ -122,7 +122,7 @@ function SourceCard() {
     d: fmtDuration(ws.duration, lang) }) : "";
   return (
     <SideCard title={T("dk_sec_src")} help={T("h_source")} testid="card-src">
-      <Seg<Src> value={src} options={["file", "demo", "opc"]} label={T("source")} stretch testid="src-seg"
+      <Seg<Src> value={src} options={["file", "demo", "opc"]} label={T("source")} stretch testid="src-seg" title={T("h_source")}
         fmt={(v) => T(`src_${v}`)} onChange={(v) => {
           setPick({ v, f: fname });
           if (v === "demo") demo.mutate(undefined);

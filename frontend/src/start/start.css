@@ -1,0 +1,24 @@
+/* Start – obrazovka bez projektu. */
+.start { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; padding: 20px 24px 32px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; align-items: start; }
+.st-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.st-main h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.st-drop { border: 2px dashed var(--pid-accent); background: var(--pid-accent-bg); border-radius: 12px; padding: 36px 24px; text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.st-drop.over { border-style: solid; }
+.st-drop h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.st-drop p { margin: 0; color: var(--pid-muted); font-size: 13px; max-width: 560px; }
+.st-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.st-recover { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--pid-warn); border-radius: 8px; background: var(--pid-card); }
+.st-recover > div { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 240px; }
+.st-side { display: flex; flex-direction: column; gap: 14px; }
+.st-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.st-card h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.st-recent, .st-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.st-recent li { display: flex; gap: 8px; align-items: center; }
+.st-recent-open { flex: 1; text-align: left; font: inherit; background: var(--pid-card); color: var(--pid-text); border: 1px solid var(--pid-line); border-radius: 8px; padding: 7px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.st-recent-open:hover:not(:disabled) { border-color: var(--pid-accent); }
+.st-recent-open:disabled { opacity: .6; cursor: default; }
+.st-recent-open span { font-size: 12px; color: var(--pid-muted); }
+.st-steps li { display: flex; gap: 10px; font-size: 13px; align-items: baseline; }
+.st-n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--pid-accent-bg); color: var(--pid-accent); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 900px) { .start { grid-template-columns: 1fr; } }
+.st-row { justify-content: flex-start; }

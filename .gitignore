@@ -22,3 +22,4 @@ pidtools/api/ui/
 # desktop (Tauri)
 desktop/target/
 desktop/gen/
+docs/manuals/

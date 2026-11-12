@@ -35,6 +35,27 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
   (`python -m pidtools.api --openapi pidtools/api/openapi.json`) and checked by a test.
   `api/deploy.py` adds the team mode (env `PIDTOOLS_*`): Cloudflare Access JWT or trusted-header sign-in, per-user
   workspaces and jobs, limits and access / job logs; `Dockerfile.web` packages API + UI (see `docs/deployment.md`).
+- `app/domain` (plan v2, E3) is the domain model of a project, without data and without UI: `Project` → `Source[]`
+  (file / OPC UA, layout, time zone, time offset, own sampling) · `LoopSpec[]` (tag, description, role → `SourceRef`
+  `source › column` for PV, SP, MV, position, DV[], mode; NormPV / NormMV; cascade link) · `TimeGrid` (overlap / union,
+  manual period, gap threshold). Everything is a dataclass with `to_dict` / `from_dict` and an explicit `format`
+  (`pidtools.project`) and `version`. Registries (`app.registry.Registry`: id, i18n description, parameter schema,
+  function, sample for a test) replace `if` chains – the first is the registry of data sources (`domain.registry`:
+  CSV, TXT, XLSX, OPC UA, over `app.dataio.read_table`). `domain.timegrid` is the pure common time grid,
+  `domain.suggest` proposes loops from tag names (`TIC101.PV`, PCS 7 `…/PV_Out`, DeltaV `…/PV.CV`) and imports a mapping
+  from CSV, `domain.trend` decimates and summarises signals for the Trends view, `domain.migrate` is the chain of
+  project migrations (v1 → v2 → v3, tests on old sample files).
+- `app.workspace.loops.Project` holds the sources (`SourceRT`, `app.workspace.sources`) and the loops. `Workspace` stays
+  the façade of the calculations of one loop and is fed through the mapping: a loop whose roles use one source gets
+  that source's table directly (results identical to the single-file flow), a loop that uses several sources gets a
+  table merged on the common grid (time zone and offset applied, overlap, period, gaps as NaN); the calculations do
+  not change. Project file version 3 = the loop records of version 2 plus `format`, `sources` (with the data used by
+  loops as `sources[i].data`, SHA-256 in `data_ref`), `time_grid` and a `spec` per loop; version 1 and 2 files open
+  through the migrations. A `.pidproj` written now is not read with data by the old Streamlit app (no top-level `data`).
+- The API serves every route under `/api/v1` (the only paths in `openapi.json`); the same paths without the prefix are
+  a temporary alias for older clients (hidden from OpenAPI, removed with 4.0). New routes of E3: `/sources`,
+  `/time-grid`, `/loops/{i}/mapping`, `/loops/mappings`, `/loops/suggest`, `/loops/import`, `/signals/trend`
+  (min / max decimation, statistics, cursor values). Signals of the sources are addressed `source:column`.
 - `pidtools/api/sidecar.py` runs the API as a standalone program for the Tauri window (`--port 0 --token --parent-pid`,
   one `PIDTOOLS_READY {json}` line on stdout, exits with its parent, `--smoke` self-test). `tools/build_sidecar.py`
   packs it with PyInstaller (onedir, no Qt / Streamlit, named `pidtools-api-<target triple>`); CI: `sidecar.yml`.

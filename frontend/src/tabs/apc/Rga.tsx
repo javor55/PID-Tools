@@ -5,14 +5,15 @@ import { useWs } from "../../data";
 import { useT } from "../../i18n";
 import { Bold, num, useApc } from "./common";
 import { Checks, g } from "./moreCommon";
-import { ACard } from "./parts";
+import { ACard, Impl } from "./parts";
 
 type RgaInfo = components["schemas"]["RgaInfo"];
 
-function Matrix({ d, m, testid, title, mark }: { d: RgaInfo; m: (number | null)[][]; testid: string; title: string; mark?: boolean }) {
+function Matrix({ d, m, testid, title, mark, help }: { d: RgaInfo; m: (number | null)[][]; testid: string; title: string; mark?: boolean;
+  help?: string }) {
   const T = useT();
   return (
-    <ACard title={title}>
+    <ACard title={title} help={help ? T(help) : undefined}>
       <table className="apc-vt" data-testid={testid}>
         <thead><tr><th></th>{d.mvs.map((mv) => <th key={mv} className="r">{T("rga_mv")} {mv}</th>)}</tr></thead>
         <tbody>{d.names.map((n, i) => (
@@ -32,10 +33,13 @@ export function RgaMain() {
   const d = q.data;
   if (!d.ready) {
     return (
-      <ACard title={T("ui_apc_result")} testid="rga-notready">
-        <div className="warn small">⚠️ {T("apc_need_loop")}</div>
-        <Checks items={d.checks} testid="rga-checks" />
-      </ACard>
+      <div className="stack">
+        <ACard title={T("ui_apc_result")} testid="rga-notready">
+          <div className="warn small">⚠️ {T("apc_need_loop")}</div>
+          <Checks items={d.checks} testid="rga-checks" />
+        </ACard>
+        <Impl text={d.impl_text} testid="rga-impl" />
+      </div>
     );
   }
   const args = { a: d.names[0], b: d.names[1], mva: d.mvs[0], mvb: d.mvs[1] };
@@ -48,7 +52,8 @@ export function RgaMain() {
         {d.advice.map((n) => <div key={n.key} className="small"><Bold text={T(n.key, { ...args, ...(n.args as Record<string, unknown>) })} /></div>)}
       </ACard>
       <Matrix d={d} m={d.K} testid="rga-k" title={T("rga_k")} mark />
-      <Matrix d={d} m={d.L} testid="rga-l" title={T("rga_l")} />
+      <Matrix d={d} m={d.L} testid="rga-l" title={T("rga_l")} help="h_rga" />
+      <Impl text={d.impl_text} testid="rga-impl" />
       <Checks items={d.checks} testid="rga-checks" />
     </div>
   );

@@ -18,11 +18,17 @@ class DataMixin:
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     # ---- data
-    def load_frame(self, df, name, layout=None):
-        """Nová tabulka: rozložení, signály, odhad sloupců, celý záznam jako úsek identifikace."""
+    def load_frame(self, df, name, layout=None, **opts):
+        """
+        Nová tabulka: rozložení, signály, odhad sloupců, celý záznam jako úsek identifikace. `opts` = volby čtení
+        tabulky zdroje (time_fmt, unit, c_time, c_tag, c_val, row_dt); bez nich se sloupce času odhadnou.
+        """
         self.df, self.fname = df, name
         self.layout = layout or ds.default_layout(df)
-        self.c_time = self.c_tag = self.c_val = None
+        self.time_fmt, self.unit = opts.get("time_fmt") or self.time_fmt, opts.get("unit") or self.unit
+        self.c_time, self.c_tag, self.c_val = opts.get("c_time"), opts.get("c_tag"), opts.get("c_val")
+        if opts.get("row_dt"):
+            self.row_dt = float(opts["row_dt"])
         self.sig = self._signals()
         g = guess_roles(self.sig.sigs, self.sig.get)
         self.c_pv, self.c_mv = g["pv"], g["mv"]
@@ -46,8 +52,28 @@ class DataMixin:
         self.update_grid()
 
     def _signals(self):
-        return ds.signals(self.df, self.layout, self.time_fmt, self.unit, self.c_time, self.c_tag, self.c_val,
-                          self.row_dt)
+        sig = ds.signals(self.df, self.layout, self.time_fmt, self.unit, self.c_time, self.c_tag, self.c_val,
+                         self.row_dt)
+        if sig.origin is None and self.origin_hint is not None:      # čas ve zdroji je v sekundách, hodiny zná zdroj
+            sig.origin = self.origin_hint + pd.Timedelta(seconds=float(np.nanmin(sig.t_all)))
+        return sig
+
+    def swap_data(self, df, name, layout=None, **opts):
+        """
+        Jiná data (jiný posun, rozvržení nebo složení zdrojů) při zachování smyčky: vybrané sloupce, úsek, úseky podle
+        vstupů, vyřazení a nastavení zůstanou, pokud sloupce v nových datech jsou; nafitované modely se zahodí
+        (jsou ze starých dat).
+        """
+        keep = (self.c_pv, self.c_mv, self.c_sp, list(self.c_d), self.c_pos, self.rng, self.wins, self.excl)
+        self.load_frame(df, name, layout, **opts)
+        pv, mv, sp, dd, pos, rng, wins, excl = keep
+        have = set(self.sig.sigs)
+        if pv in have and mv in have:
+            self.set_columns(pv, mv, sp if sp in have else "—", [c for c in dd if c in have],
+                             pos if pos in have else "—")
+            self.wins, self.excl = wins, excl
+            if 0 <= rng[0] < rng[1] <= self.grid.t[-1]:
+                self.rng = rng
 
     def set_layout(self, layout, time_fmt=None, unit=None, c_time=None, c_tag=None, c_val=None, row_dt=None):
         if layout != self.layout:

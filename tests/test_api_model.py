@@ -148,3 +148,66 @@ def test_dist_struct_compare_and_select(client):
     assert m2["current"]["pdl"] == [list(map(float, x)) for x in ws.model[2]]
     back = client.post(f"/workspaces/{wid}/model/reset", json={"code": "I1D"}).json()
     assert {r["code"]: r for r in back["results"]}["I1D"]["dists"][0]["struct"] == d["ident"]
+
+
+# ---- E6: ověření na jiném úseku, uzavřená smyčka, odezva na skok, porovnání modelů
+def _fitted(client, chosen=("P1D", "I1D")):
+    wid = _ws(client)
+    client.post(f"/workspaces/{wid}/data/demo")
+    client.patch(f"/workspaces/{wid}/settings", json={"chosen": list(chosen)})
+    _wait(client, client.post(f"/workspaces/{wid}/identify").json())
+    return wid
+
+
+def test_validate_other_segment_and_loop(client):
+    wid = _fitted(client)
+    P = f"/workspaces/{wid}"
+    v = client.get(P + "/model/validate", params=dict(a=1800, b=3500, mode="pred")).json()
+    assert v["rng"] == [1800, 3500] and 0 <= v["overlap"] <= 1 and v["verdict"] in ("same", "ok", "weak")
+    assert {"FIT", "NRMSE", "status", "frac_acf"} <= set(v["id"]) and len(v["t"]) == len(v["sim_pv"]) > 20
+    assert v["fit_pv"] == pytest.approx(v["val"]["FIT"], abs=1e-6)
+    c = client.get(P + "/model/validate", params=dict(a=1800, b=3500, mode="cl", which=2)).json()
+    assert c["mode"] == "cl" and c["which"] == 2 and c["stable"] and c["fit_mv"] is not None
+    assert len(c["sp"]) == len(c["t"]) and len(c["sim_t"]) == len(c["sim_pv"]) > 20
+    assert client.get(P + "/model/validate", params=dict(a=0, b=1e9)).status_code == 422
+    assert client.get(P + "/model/validate", params=dict(a=10, b=12)).status_code == 422
+    # uložený ověřovací úsek je výchozí
+    client.patch(P + "/settings", json={"val_rng": [100, 900]})
+    assert client.get(P + "/model/validate").json()["rng"] == [100, 900]
+
+
+def test_closed_loop_helpers(client):
+    wid = _fitted(client)
+    P = f"/workspaces/{wid}"
+    lp = client.get(P + "/model/loop").json()
+    assert lp["has_sp"] and lp["effective"] in ("open", "cl") and set(lp["set1"]) == {"gain", "ti", "td"}
+    assert lp["excitation"] is not None and lp["manual_span"] is not None
+    ck = client.get(P + "/model/set1/check").json()
+    assert ck["available"] and ck["fit_pv"] is not None
+    est = client.post(P + "/model/set1/estimate").json()
+    if est["ok"]:
+        assert client.get(P + "/settings").json()["set1_gain"] == pytest.approx(est["gain"])
+    nr = client.post(P + "/windows/narrow").json()
+    assert nr["narrowed"] and nr["span"][0] < nr["span"][1]
+
+
+def test_step_compare_and_stic(client):
+    wid = _fitted(client)
+    P = f"/workspaces/{wid}"
+    s = client.get(P + "/model/step").json()
+    assert len(s["t"]) == len(s["fit"]) > 100 and s["edited"] is None and s["theta"] >= 0
+    cmp_ = client.get(P + "/model/compare").json()
+    assert {m["code"] for m in cmp_["models"]} == {"P1D", "I1D"} and len(cmp_["t"]) == len(cmp_["pv"])
+    # ruční úprava parametru se projeví v odezvě; stikce je v nastavení (ed|kód|stic)
+    m = client.get(P + "/model").json()
+    code = m["selected"]
+    st = client.get(P + "/settings").json()
+    assert f"ed|{code}|stic" in st
+    client.patch(P + "/settings", json={f"ed|{code}|0": m["current"]["p"][0] * 1.5})
+    assert client.get(P + "/model/step", params=dict(code=code)).json()["edited"] is not None
+
+
+def test_migrate_idf_to_fx():
+    from pidtools.app import project as prj
+    st = prj.migrate_state({"idf|P1D|1": False, "idf|P1D|2": True, "fx|P1D|3": True, "idf|P1D|3": True})
+    assert st["fx|P1D|1"] is True and st["fx|P1D|2"] is False and st["fx|P1D|3"] is True

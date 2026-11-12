@@ -4,7 +4,338 @@
  */
 
 export interface paths {
-    "/health": {
+    "/api/v1/app-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings
+         * @description Nastavení aplikace (výchozí hodnoty, co ještě není uložené).
+         */
+        get: operations["get_settings_api_v1_app_settings_get"];
+        /**
+         * Put Settings
+         * @description Uloží nastavení (hodnoty mimo meze se ořežou; logo se nahrává zvlášť, název loga zůstane).
+         */
+        put: operations["put_settings_api_v1_app_settings_put"];
+        post?: never;
+        /**
+         * Reset Settings
+         * @description Obnoví výchozí nastavení (i smaže logo).
+         */
+        delete: operations["reset_settings_api_v1_app_settings_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/diagnostics-schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thr Schema
+         * @description Schéma prahů pravidel verdiktu s výchozími hodnotami (pro formulář Diagnostika – kritéria).
+         */
+        get: operations["thr_schema_api_v1_app_settings_diagnostics_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Settings
+         * @description Nastavení jako soubor JSON ke stažení (bez loga).
+         */
+        get: operations["export_settings_api_v1_app_settings_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Settings
+         * @description Nahradí nastavení souborem z exportu (cizí formát nebo novější verze = 400).
+         */
+        post: operations["import_settings_api_v1_app_settings_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/app-settings/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Logo */
+        get: operations["get_logo_api_v1_app_settings_logo_get"];
+        put?: never;
+        /**
+         * Put Logo
+         * @description Nahraje logo firmy pro report (png / jpg / svg do 1 MB).
+         */
+        post: operations["put_logo_api_v1_app_settings_logo_post"];
+        /** Delete Logo */
+        delete: operations["delete_logo_api_v1_app_settings_logo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autosave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Drop Autosave */
+        delete: operations["drop_autosave_api_v1_autosave_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/autosave/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Latest
+         * @description Záchranná kopie z minula (po pádu nebo zavření bez uložení), nebo `available = false`.
+         */
+        get: operations["latest_api_v1_autosave_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Controllers
+         * @description Předvolby (jen ke čtení) a vlastní profily knihovny.
+         */
+        get: operations["list_controllers_api_v1_controllers_get"];
+        put?: never;
+        /**
+         * Create Custom
+         * @description „Vytvořit vlastní“: kopie předvolby / vlastního profilu pod novým id.
+         */
+        post: operations["create_custom_api_v1_controllers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compile Source
+         * @description Překlad vlastních rovnic: chyby a varování s řádkem a sloupcem, při úspěchu program (strom výrazů), parametry
+         *     a rychlé kontroly použitelnosti. Neukládá nic; uložení = import / PUT profilu s `kind = program`.
+         */
+        post: operations["compile_source_api_v1_controllers_compile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Controller
+         * @description Import souboru `.pidctrl` (JSON); kolidující id dostane nové.
+         */
+        post: operations["import_controller_api_v1_controllers_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Parts
+         * @description Katalog částí regulátoru (R3): popis a schéma parametrů každé položky registrů (pro skládání v editoru).
+         */
+        get: operations["list_parts_api_v1_controllers_parts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Controller */
+        get: operations["get_controller_api_v1_controllers__pid__get"];
+        /**
+         * Update Controller
+         * @description Změna vlastního profilu (id zůstává); předvolbu nelze měnit.
+         */
+        put: operations["update_controller_api_v1_controllers__pid__put"];
+        post?: never;
+        /** Delete Controller */
+        delete: operations["delete_controller_api_v1_controllers__pid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/canonical": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * To Canonical
+         * @description Hodnoty parametrů profilu (např. sada 1 z PLC) → kanonický PID.
+         */
+        post: operations["to_canonical_api_v1_controllers__pid__canonical_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Controller */
+        get: operations["export_controller_api_v1_controllers__pid__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Map Canonical
+         * @description Kanonický PID (Kc, Ti, Td, b, c, N) → hodnoty parametrů profilu v jeho jednotkách a varování.
+         */
+        post: operations["map_canonical_api_v1_controllers__pid__map_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Controller
+         * @description Test použitelnosti (12 kontrol simulací) a hodnocení: Vhodný pro ladění / Jen optimalizací / Nevhodný.
+         */
+        post: operations["test_controller_api_v1_controllers__pid__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,7 +343,7 @@ export interface paths {
             cookie?: never;
         };
         /** Health */
-        get: operations["health_health_get"];
+        get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -21,7 +352,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/i18n/{lang}": {
+    "/api/v1/i18n/{lang}": {
         parameters: {
             query?: never;
             header?: never;
@@ -29,7 +360,7 @@ export interface paths {
             cookie?: never;
         };
         /** Texts */
-        get: operations["texts_i18n__lang__get"];
+        get: operations["texts_api_v1_i18n__lang__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -38,7 +369,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}": {
+    "/api/v1/jobs/{jid}": {
         parameters: {
             query?: never;
             header?: never;
@@ -46,7 +377,7 @@ export interface paths {
             cookie?: never;
         };
         /** Job Get */
-        get: operations["job_get_jobs__jid__get"];
+        get: operations["job_get_api_v1_jobs__jid__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -55,7 +386,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}/cancel": {
+    "/api/v1/jobs/{jid}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -65,14 +396,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Job Cancel */
-        post: operations["job_cancel_jobs__jid__cancel_post"];
+        post: operations["job_cancel_api_v1_jobs__jid__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}/events": {
+    "/api/v1/jobs/{jid}/events": {
         parameters: {
             query?: never;
             header?: never;
@@ -83,7 +414,7 @@ export interface paths {
          * Job Events
          * @description Průběh úlohy jako server-sent events (JobInfo při každé změně, konec u hotové / zrušené úlohy).
          */
-        get: operations["job_events_jobs__jid__events_get"];
+        get: operations["job_events_api_v1_jobs__jid__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -92,7 +423,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/{jid}/result": {
+    "/api/v1/jobs/{jid}/result": {
         parameters: {
             query?: never;
             header?: never;
@@ -103,7 +434,7 @@ export interface paths {
          * Job Result
          * @description Výsledek hotové úlohy jako JSON (u úloh nad pracovním prostorem jen vrácená hodnota metody).
          */
-        get: operations["job_result_jobs__jid__result_get"];
+        get: operations["job_result_api_v1_jobs__jid__result_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -112,7 +443,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/opc/available": {
+    "/api/v1/opc/available": {
         parameters: {
             query?: never;
             header?: never;
@@ -120,7 +451,7 @@ export interface paths {
             cookie?: never;
         };
         /** Available */
-        get: operations["available_opc_available_get"];
+        get: operations["available_api_v1_opc_available_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -129,7 +460,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/opc/browse": {
+    "/api/v1/opc/browse": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,14 +473,14 @@ export interface paths {
          * Browse
          * @description Podřízené uzly (výchozí: složka Objects).
          */
-        post: operations["browse_opc_browse_post"];
+        post: operations["browse_api_v1_opc_browse_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/opc/find": {
+    "/api/v1/opc/find": {
         parameters: {
             query?: never;
             header?: never;
@@ -162,14 +493,14 @@ export interface paths {
          * Find
          * @description Proměnné, jejichž cesta obsahuje text (např. „FIC101“).
          */
-        post: operations["find_opc_find_post"];
+        post: operations["find_api_v1_opc_find_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/pending-open": {
+    "/api/v1/pending-open": {
         parameters: {
             query?: never;
             header?: never;
@@ -180,12 +511,12 @@ export interface paths {
          * Take Pending
          * @description Vyzvedne čekající projekt (a vyprázdní místo); 204, když žádný není.
          */
-        get: operations["take_pending_pending_open_get"];
+        get: operations["take_pending_api_v1_pending_open_get"];
         /**
          * Put Pending
          * @description Uloží soubor projektu (obsah JSON) k otevření; kontroluje se až při otevření v prostoru.
          */
-        put: operations["put_pending_pending_open_put"];
+        put: operations["put_pending_api_v1_pending_open_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -193,7 +524,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces": {
+    "/api/v1/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent */
+        get: operations["recent_api_v1_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recent/{rid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Drop Recent */
+        delete: operations["drop_recent_api_v1_recent__rid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces": {
         parameters: {
             query?: never;
             header?: never;
@@ -203,14 +568,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ws Create */
-        post: operations["ws_create_workspaces_post"];
+        post: operations["ws_create_api_v1_workspaces_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}": {
+    "/api/v1/workspaces/{wid}": {
         parameters: {
             query?: never;
             header?: never;
@@ -218,17 +583,17 @@ export interface paths {
             cookie?: never;
         };
         /** Ws Get */
-        get: operations["ws_get_workspaces__wid__get"];
+        get: operations["ws_get_api_v1_workspaces__wid__get"];
         put?: never;
         post?: never;
         /** Ws Delete */
-        delete: operations["ws_delete_workspaces__wid__delete"];
+        delete: operations["ws_delete_api_v1_workspaces__wid__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade": {
+    "/api/v1/workspaces/{wid}/apc/cascade": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,7 +604,7 @@ export interface paths {
          * Cascade Get
          * @description Kaskáda (aktivní smyčka = vnější): zdroj modelu vnitřní smyčky, ladění obou smyček, oddělení rychlostí.
          */
-        get: operations["cascade_get_workspaces__wid__apc_cascade_get"];
+        get: operations["cascade_get_api_v1_workspaces__wid__apc_cascade_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -248,7 +613,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/fit": {
+    "/api/v1/workspaces/{wid}/apc/cascade/fit": {
         parameters: {
             query?: never;
             header?: never;
@@ -261,14 +626,34 @@ export interface paths {
          * Cascade Fit
          * @description Model vnitřní smyčky z dat (úloha, P1D / P2D); výsledek se uloží, dále GET /apc/cascade (zdroj data).
          */
-        post: operations["cascade_fit_workspaces__wid__apc_cascade_fit_post"];
+        post: operations["cascade_fit_api_v1_workspaces__wid__apc_cascade_fit_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/reset": {
+    "/api/v1/workspaces/{wid}/apc/cascade/irange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cascade Irange
+         * @description Rozsah vnitřní PV z dat (výchozí hodnoty polí Od / Do u zdroje „data“; stejné jako při identifikaci).
+         */
+        get: operations["cascade_irange_api_v1_workspaces__wid__apc_cascade_irange_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/apc/cascade/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -281,14 +666,14 @@ export interface paths {
          * Cascade Reset
          * @description Původní hodnoty: ruční model (K, T1, T2, θ), ladění vnitřní smyčky (SampleTime, τc) nebo vnější (τc).
          */
-        post: operations["cascade_reset_workspaces__wid__apc_cascade_reset_post"];
+        post: operations["cascade_reset_api_v1_workspaces__wid__apc_cascade_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/simulate": {
+    "/api/v1/workspaces/{wid}/apc/cascade/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -301,14 +686,14 @@ export interface paths {
          * Cascade Simulate
          * @description Skok SP vnější smyčky a poruchy obou smyček: stabilita, doba odezvy vnitřní smyčky, IAE vnější smyčky.
          */
-        post: operations["cascade_simulate_workspaces__wid__apc_cascade_simulate_post"];
+        post: operations["cascade_simulate_api_v1_workspaces__wid__apc_cascade_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/cascade/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/cascade/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -318,14 +703,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Cascade Curves */
-        post: operations["cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post"];
+        post: operations["cascade_curves_api_v1_workspaces__wid__apc_cascade_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/decouple": {
+    "/api/v1/workspaces/{wid}/apc/decouple": {
         parameters: {
             query?: never;
             header?: never;
@@ -336,7 +721,7 @@ export interface paths {
          * Dec Get
          * @description Rozvazbení 2×2 s druhou smyčkou projektu: RGA, parametry decouplerů pro PCS 7.
          */
-        get: operations["dec_get_workspaces__wid__apc_decouple_get"];
+        get: operations["dec_get_api_v1_workspaces__wid__apc_decouple_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -345,7 +730,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/decouple/simulate": {
+    "/api/v1/workspaces/{wid}/apc/decouple/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -358,14 +743,14 @@ export interface paths {
          * Dec Simulate
          * @description Změny SP obou smyček bez rozvazbení, se statickými a s dynamickými decouplery: IAE v jednotkách PV.
          */
-        post: operations["dec_simulate_workspaces__wid__apc_decouple_simulate_post"];
+        post: operations["dec_simulate_api_v1_workspaces__wid__apc_decouple_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/decouple/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/decouple/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,14 +760,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Dec Curves */
-        post: operations["dec_curves_workspaces__wid__apc_decouple_simulate_curves_post"];
+        post: operations["dec_curves_api_v1_workspaces__wid__apc_decouple_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff": {
+    "/api/v1/workspaces/{wid}/apc/ff": {
         parameters: {
             query?: never;
             header?: never;
@@ -393,12 +778,12 @@ export interface paths {
          * Ff Get
          * @description Dopředná vazba po měřených poruchách: nastavení, návrh podle modelu, hodnoty pro PIDConL.
          */
-        get: operations["ff_get_workspaces__wid__apc_ff_get"];
+        get: operations["ff_get_api_v1_workspaces__wid__apc_ff_get"];
         /**
          * Ff Put
          * @description Nastavení poruch po pořadí (částečné; null = beze změny) → ws.ff_state, čte ho i ladění.
          */
-        put: operations["ff_put_workspaces__wid__apc_ff_put"];
+        put: operations["ff_put_api_v1_workspaces__wid__apc_ff_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -406,7 +791,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff/reset": {
+    "/api/v1/workspaces/{wid}/apc/ff/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -419,14 +804,14 @@ export interface paths {
          * Ff Reset
          * @description Zesílení, lead, lag a zpoždění znovu z návrhu podle modelu (zapnutí a dynamika zůstanou).
          */
-        post: operations["ff_reset_workspaces__wid__apc_ff_reset_post"];
+        post: operations["ff_reset_api_v1_workspaces__wid__apc_ff_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff/simulate": {
+    "/api/v1/workspaces/{wid}/apc/ff/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -439,14 +824,14 @@ export interface paths {
          * Ff Simulate
          * @description Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV.
          */
-        post: operations["ff_simulate_workspaces__wid__apc_ff_simulate_post"];
+        post: operations["ff_simulate_api_v1_workspaces__wid__apc_ff_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ff/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/ff/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -456,14 +841,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ff Curves */
-        post: operations["ff_curves_workspaces__wid__apc_ff_simulate_curves_post"];
+        post: operations["ff_curves_api_v1_workspaces__wid__apc_ff_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched": {
+    "/api/v1/workspaces/{wid}/apc/gainsched": {
         parameters: {
             query?: never;
             header?: never;
@@ -474,7 +859,7 @@ export interface paths {
          * Gs Get
          * @description Gain scheduling podle PV: úseky bodů, identifikované body, ladění v bodech, tabulka pro GainSched.
          */
-        get: operations["gs_get_workspaces__wid__apc_gainsched_get"];
+        get: operations["gs_get_api_v1_workspaces__wid__apc_gainsched_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -483,7 +868,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/auto": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/auto": {
         parameters: {
             query?: never;
             header?: never;
@@ -496,14 +881,14 @@ export interface paths {
          * Gs Auto
          * @description Úseky bodů znovu z automatického návrhu (do gs_r1 …); body zůstanou, ale označí se jako zastaralé.
          */
-        post: operations["gs_auto_workspaces__wid__apc_gainsched_auto_post"];
+        post: operations["gs_auto_api_v1_workspaces__wid__apc_gainsched_auto_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/fit": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/fit": {
         parameters: {
             query?: never;
             header?: never;
@@ -516,14 +901,14 @@ export interface paths {
          * Gs Fit
          * @description Identifikace modelu v úsecích bodů (úloha); úseky se uloží do gs_r*, body do gs_pts / gs_key.
          */
-        post: operations["gs_fit_workspaces__wid__apc_gainsched_fit_post"];
+        post: operations["gs_fit_api_v1_workspaces__wid__apc_gainsched_fit_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/reset": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -536,14 +921,34 @@ export interface paths {
          * Gs Reset
          * @description Původní hodnoty ladění bodů: násobek τc = 1, Ms = 1,6.
          */
-        post: operations["gs_reset_workspaces__wid__apc_gainsched_reset_post"];
+        post: operations["gs_reset_api_v1_workspaces__wid__apc_gainsched_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/simulate": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/segments/curves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Gs Segments
+         * @description Záznam PV a MV pro graf úseků bodů gain schedulingu.
+         */
+        get: operations["gs_segments_api_v1_workspaces__wid__apc_gainsched_segments_curves_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/apc/gainsched/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -556,14 +961,14 @@ export interface paths {
          * Gs Simulate
          * @description Nelineární proces z bodů: SP do všech bodů a zpět, porucha v každém úseku; IAE jedna sada vs. scheduling.
          */
-        post: operations["gs_simulate_workspaces__wid__apc_gainsched_simulate_post"];
+        post: operations["gs_simulate_api_v1_workspaces__wid__apc_gainsched_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/gainsched/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -573,14 +978,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Gs Curves */
-        post: operations["gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post"];
+        post: operations["gs_curves_api_v1_workspaces__wid__apc_gainsched_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er": {
         parameters: {
             query?: never;
             header?: never;
@@ -591,7 +996,7 @@ export interface paths {
          * Er Get
          * @description Gain scheduling podle ER: vstupy (gs_er_*), největší bezpečný násobek k, tabulka pro GainSched.
          */
-        get: operations["er_get_workspaces__wid__apc_gainsched_er_get"];
+        get: operations["er_get_api_v1_workspaces__wid__apc_gainsched_er_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -600,7 +1005,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er/reset": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -613,14 +1018,14 @@ export interface paths {
          * Er Reset
          * @description Původní hodnoty: práh E = 5 % rozsahu PV, k = 2, skok SP = 20 % rozsahu PV, porucha 10 %.
          */
-        post: operations["er_reset_workspaces__wid__apc_gainsched_er_reset_post"];
+        post: operations["er_reset_api_v1_workspaces__wid__apc_gainsched_er_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er/simulate": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -634,14 +1039,14 @@ export interface paths {
          * @description Skok SP a porucha: jedna sada vs. scheduling podle ER vs. nejlepší řídicí pásmo ConZone (výpočet ~2 s,
          *     stejné vstupy se nepočítají znovu).
          */
-        post: operations["er_simulate_workspaces__wid__apc_gainsched_er_simulate_post"];
+        post: operations["er_simulate_api_v1_workspaces__wid__apc_gainsched_er_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/gainsched_er/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -651,14 +1056,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Er Curves */
-        post: operations["er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post"];
+        post: operations["er_curves_api_v1_workspaces__wid__apc_gainsched_er_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/override": {
+    "/api/v1/workspaces/{wid}/apc/override": {
         parameters: {
             query?: never;
             header?: never;
@@ -669,7 +1074,7 @@ export interface paths {
          * Ov Get
          * @description Override s druhou smyčkou projektu: výchozí scénář (skok SP hlavní smyčky, mez omezující smyčky).
          */
-        get: operations["ov_get_workspaces__wid__apc_override_get"];
+        get: operations["ov_get_api_v1_workspaces__wid__apc_override_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -678,7 +1083,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/override/simulate": {
+    "/api/v1/workspaces/{wid}/apc/override/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -691,14 +1096,14 @@ export interface paths {
          * Ov Simulate
          * @description Simulace s výběrem MIN / MAX a bez něj; skok a mez chybějící v těle = výchozí scénář.
          */
-        post: operations["ov_simulate_workspaces__wid__apc_override_simulate_post"];
+        post: operations["ov_simulate_api_v1_workspaces__wid__apc_override_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/override/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/override/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -708,14 +1113,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ov Curves */
-        post: operations["ov_curves_workspaces__wid__apc_override_simulate_curves_post"];
+        post: operations["ov_curves_api_v1_workspaces__wid__apc_override_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio": {
+    "/api/v1/workspaces/{wid}/apc/ratio": {
         parameters: {
             query?: never;
             header?: never;
@@ -726,7 +1131,7 @@ export interface paths {
          * Ratio Get
          * @description Poměrová regulace: výchozí vstupy, zdroje modelu vzduchu (ostatní smyčky) a model vzduchu.
          */
-        get: operations["ratio_get_workspaces__wid__apc_ratio_get"];
+        get: operations["ratio_get_api_v1_workspaces__wid__apc_ratio_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -735,7 +1140,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio/design": {
+    "/api/v1/workspaces/{wid}/apc/ratio/design": {
         parameters: {
             query?: never;
             header?: never;
@@ -748,14 +1153,14 @@ export interface paths {
          * Ratio Design
          * @description Model vzduchu (zadaný / výchozí / z jiné smyčky), implementace a kontroly pro zadané vstupy.
          */
-        post: operations["ratio_design_workspaces__wid__apc_ratio_design_post"];
+        post: operations["ratio_design_api_v1_workspaces__wid__apc_ratio_design_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio/simulate": {
+    "/api/v1/workspaces/{wid}/apc/ratio/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -768,14 +1173,14 @@ export interface paths {
          * Ratio Simulate
          * @description Skok požadavku výkonu s křížovým omezením a bez: nejmenší λ, čas s λ < 1, IAE paliva.
          */
-        post: operations["ratio_simulate_workspaces__wid__apc_ratio_simulate_post"];
+        post: operations["ratio_simulate_api_v1_workspaces__wid__apc_ratio_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/ratio/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/ratio/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -785,14 +1190,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Ratio Curves */
-        post: operations["ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post"];
+        post: operations["ratio_curves_api_v1_workspaces__wid__apc_ratio_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/recommend": {
+    "/api/v1/workspaces/{wid}/apc/recommend": {
         parameters: {
             query?: never;
             header?: never;
@@ -801,9 +1206,9 @@ export interface paths {
         };
         /**
          * Recommend
-         * @description Doporučené struktury APC pro aktivní smyčku (s ohledem na ostatní smyčky projektu).
+         * @description Posouzení struktur APC pro aktivní smyčku (doporučeno / nevhodné / není potřeba; podle ostatních smyček projektu).
          */
-        get: operations["recommend_workspaces__wid__apc_recommend_get"];
+        get: operations["recommend_api_v1_workspaces__wid__apc_recommend_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -812,7 +1217,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/rga": {
+    "/api/v1/workspaces/{wid}/apc/rga": {
         parameters: {
             query?: never;
             header?: never;
@@ -823,7 +1228,7 @@ export interface paths {
          * Rga Get
          * @description Interakce N×N: matice zesílení, RGA, Niederlinskiho index a doporučené párování ze smyček projektu.
          */
-        get: operations["rga_get_workspaces__wid__apc_rga_get"];
+        get: operations["rga_get_api_v1_workspaces__wid__apc_rga_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -832,7 +1237,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith": {
+    "/api/v1/workspaces/{wid}/apc/smith": {
         parameters: {
             query?: never;
             header?: never;
@@ -843,7 +1248,7 @@ export interface paths {
          * Smith Get
          * @description Smithův prediktor: vstupy (z nastavení), regulátor, pracovní bod, hodnoty pro šablonu.
          */
-        get: operations["smith_get_workspaces__wid__apc_smith_get"];
+        get: operations["smith_get_api_v1_workspaces__wid__apc_smith_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -852,7 +1257,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith/optimize": {
+    "/api/v1/workspaces/{wid}/apc/smith/optimize": {
         parameters: {
             query?: never;
             header?: never;
@@ -865,14 +1270,14 @@ export interface paths {
          * Smith Optimize
          * @description Robustní optimalizace regulátoru prediktoru (úloha); výsledek se uloží, dále GET /apc/smith.
          */
-        post: operations["smith_optimize_workspaces__wid__apc_smith_optimize_post"];
+        post: operations["smith_optimize_api_v1_workspaces__wid__apc_smith_optimize_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith/simulate": {
+    "/api/v1/workspaces/{wid}/apc/smith/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -885,14 +1290,14 @@ export interface paths {
          * Smith Simulate
          * @description Skok SP a porucha na vstupu: PID (sada 2) vs. Smith na procesu s chybou modelu (ek, et, eth [%]).
          */
-        post: operations["smith_simulate_workspaces__wid__apc_smith_simulate_post"];
+        post: operations["smith_simulate_api_v1_workspaces__wid__apc_smith_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/smith/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/smith/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -902,14 +1307,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Smith Curves */
-        post: operations["smith_curves_workspaces__wid__apc_smith_simulate_curves_post"];
+        post: operations["smith_curves_api_v1_workspaces__wid__apc_smith_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split": {
+    "/api/v1/workspaces/{wid}/apc/split": {
         parameters: {
             query?: never;
             header?: never;
@@ -920,7 +1325,7 @@ export interface paths {
          * Split Get
          * @description Split range: výchozí vstupy (model ventilu A podle režimu a b0) a vyvážený bod rozdělení, poloviny rozsahu.
          */
-        get: operations["split_get_workspaces__wid__apc_split_get"];
+        get: operations["split_get_api_v1_workspaces__wid__apc_split_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -929,7 +1334,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split/design": {
+    "/api/v1/workspaces/{wid}/apc/split/design": {
         parameters: {
             query?: never;
             header?: never;
@@ -942,14 +1347,14 @@ export interface paths {
          * Split Design
          * @description Výsledky pro zadané vstupy: b*, zesílení a Ms obou polovin teď / s b*, hodnoty pro šablonu.
          */
-        post: operations["split_design_workspaces__wid__apc_split_design_post"];
+        post: operations["split_design_api_v1_workspaces__wid__apc_split_design_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split/simulate": {
+    "/api/v1/workspaces/{wid}/apc/split/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -962,14 +1367,14 @@ export interface paths {
          * Split Simulate
          * @description Skok SP přes bod rozdělení se současným a vyváženým rozdělením: IAE, max. odchylka PV, změny směru.
          */
-        post: operations["split_simulate_workspaces__wid__apc_split_simulate_post"];
+        post: operations["split_simulate_api_v1_workspaces__wid__apc_split_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/split/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/split/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -979,14 +1384,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Split Curves */
-        post: operations["split_curves_workspaces__wid__apc_split_simulate_curves_post"];
+        post: operations["split_curves_api_v1_workspaces__wid__apc_split_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc": {
+    "/api/v1/workspaces/{wid}/apc/vpc": {
         parameters: {
             query?: never;
             header?: never;
@@ -997,7 +1402,7 @@ export interface paths {
          * Vpc Get
          * @description Regulace polohy ventilu: výchozí vstupy (model MV2) a návrh PI regulátoru VPC.
          */
-        get: operations["vpc_get_workspaces__wid__apc_vpc_get"];
+        get: operations["vpc_get_api_v1_workspaces__wid__apc_vpc_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1006,7 +1411,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc/design": {
+    "/api/v1/workspaces/{wid}/apc/vpc/design": {
         parameters: {
             query?: never;
             header?: never;
@@ -1019,14 +1424,14 @@ export interface paths {
          * Vpc Design
          * @description Návrh regulátoru VPC pro zadaný model MV2, SP a násobek τc.
          */
-        post: operations["vpc_design_workspaces__wid__apc_vpc_design_post"];
+        post: operations["vpc_design_api_v1_workspaces__wid__apc_vpc_design_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc/simulate": {
+    "/api/v1/workspaces/{wid}/apc/vpc/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1039,14 +1444,14 @@ export interface paths {
          * Vpc Simulate
          * @description Skokové zatížení s VPC a bez něj: IAE PV, čas MV1 v limitu, rezerva MV1.
          */
-        post: operations["vpc_simulate_workspaces__wid__apc_vpc_simulate_post"];
+        post: operations["vpc_simulate_api_v1_workspaces__wid__apc_vpc_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/apc/vpc/simulate/curves": {
+    "/api/v1/workspaces/{wid}/apc/vpc/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -1056,14 +1461,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Vpc Curves */
-        post: operations["vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post"];
+        post: operations["vpc_curves_api_v1_workspaces__wid__apc_vpc_simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/audit/analyse": {
+    "/api/v1/workspaces/{wid}/audit/analyse": {
         parameters: {
             query?: never;
             header?: never;
@@ -1076,14 +1481,14 @@ export interface paths {
          * Analyse
          * @description Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci.
          */
-        post: operations["analyse_workspaces__wid__audit_analyse_post"];
+        post: operations["analyse_api_v1_workspaces__wid__audit_analyse_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/audit/loops": {
+    "/api/v1/workspaces/{wid}/audit/loops": {
         parameters: {
             query?: never;
             header?: never;
@@ -1094,7 +1499,7 @@ export interface paths {
          * Audit Loops
          * @description Smyčky v souboru: uložené v projektu, jinak (nebo s `propose`) návrh z názvů tagů.
          */
-        get: operations["audit_loops_workspaces__wid__audit_loops_get"];
+        get: operations["audit_loops_api_v1_workspaces__wid__audit_loops_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1103,7 +1508,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/columns": {
+    "/api/v1/workspaces/{wid}/autosave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Autosave
+         * @description Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic.
+         */
+        post: operations["autosave_api_v1_workspaces__wid__autosave_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/autosave/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore
+         * @description Otevře záchrannou kopii do prostoru (projekt zůstane „neuložený“, kopie se nemaže).
+         */
+        post: operations["restore_api_v1_workspaces__wid__autosave_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/columns": {
         parameters: {
             query?: never;
             header?: never;
@@ -1112,7 +1557,7 @@ export interface paths {
         };
         get?: never;
         /** Set Columns */
-        put: operations["set_columns_workspaces__wid__columns_put"];
+        put: operations["set_columns_api_v1_workspaces__wid__columns_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1120,7 +1565,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/compression": {
+    "/api/v1/workspaces/{wid}/compression": {
         parameters: {
             query?: never;
             header?: never;
@@ -1131,7 +1576,7 @@ export interface paths {
          * Compression
          * @description Upozornění na kompresi historianu (nepravidelné vzorky, opakované hodnoty).
          */
-        get: operations["compression_workspaces__wid__compression_get"];
+        get: operations["compression_api_v1_workspaces__wid__compression_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1140,7 +1585,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/data/demo": {
+    "/api/v1/workspaces/{wid}/controller": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Loop Controller
+         * @description Profil regulátoru aktivní smyčky (kopie uložená v projektu); bez volby výchozí PIDConL.
+         */
+        get: operations["get_loop_controller_api_v1_workspaces__wid__controller_get"];
+        /**
+         * Put Loop Controller
+         * @description Nastaví regulátor smyčky: kopie z knihovny (`from_id`), vlastní `profile`, nebo bez obojího výchozí PIDConL.
+         */
+        put: operations["put_loop_controller_api_v1_workspaces__wid__controller_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/data/demo": {
         parameters: {
             query?: never;
             header?: never;
@@ -1150,14 +1619,34 @@ export interface paths {
         get?: never;
         put?: never;
         /** Load Demo */
-        post: operations["load_demo_workspaces__wid__data_demo_post"];
+        post: operations["load_demo_api_v1_workspaces__wid__data_demo_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/data/file": {
+    "/api/v1/workspaces/{wid}/data/example": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load Example
+         * @description Ukázková data k technice APC (CSV dodané s aplikací) jako nový projekt.
+         */
+        post: operations["load_example_api_v1_workspaces__wid__data_example_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/data/file": {
         parameters: {
             query?: never;
             header?: never;
@@ -1170,14 +1659,14 @@ export interface paths {
          * Load File
          * @description Soubor (CSV / Excel / text) jako tělo požadavku; formát podle přípony v `name`.
          */
-        post: operations["load_file_workspaces__wid__data_file_post"];
+        post: operations["load_file_api_v1_workspaces__wid__data_file_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/dataquality": {
+    "/api/v1/workspaces/{wid}/dataquality": {
         parameters: {
             query?: never;
             header?: never;
@@ -1188,7 +1677,7 @@ export interface paths {
          * Dataquality
          * @description Kontroly kvality dat záznamu před identifikací (vzorkování, mezery, komprese, rozlišení, šum, meze, buzení).
          */
-        get: operations["dataquality_workspaces__wid__dataquality_get"];
+        get: operations["dataquality_api_v1_workspaces__wid__dataquality_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1197,7 +1686,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/datastats": {
+    "/api/v1/workspaces/{wid}/datastats": {
         parameters: {
             query?: never;
             header?: never;
@@ -1208,7 +1697,7 @@ export interface paths {
          * Datastats
          * @description Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky).
          */
-        get: operations["datastats_workspaces__wid__datastats_get"];
+        get: operations["datastats_api_v1_workspaces__wid__datastats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1217,7 +1706,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/diagnostics": {
+    "/api/v1/workspaces/{wid}/diagnostics": {
         parameters: {
             query?: never;
             header?: never;
@@ -1229,7 +1718,7 @@ export interface paths {
          * @description Diagnostika úseku (výchozí: úsek identifikace); integ = integrační proces (výchozí nastavení diag_integ, jinak podle modelu). Fázový graf
          *     MV–PV a MV–poloha jsou zředěné na MAX_SCATTER bodů; nelinearita se počítá z úseku identifikace.
          */
-        get: operations["diagnostics_workspaces__wid__diagnostics_get"];
+        get: operations["diagnostics_api_v1_workspaces__wid__diagnostics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1238,7 +1727,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/frequency": {
+    "/api/v1/workspaces/{wid}/frequency": {
         parameters: {
             query?: never;
             header?: never;
@@ -1251,14 +1740,34 @@ export interface paths {
          * Frequency
          * @description Frekvenční charakteristiky (otevřená smyčka L, citlivost S a T) pro sadu 1, 2 a návrh.
          */
-        post: operations["frequency_workspaces__wid__frequency_post"];
+        post: operations["frequency_api_v1_workspaces__wid__frequency_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/identify": {
+    "/api/v1/workspaces/{wid}/guide/{tab}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Guide Get
+         * @description Průvodce záložky; kontrolní seznam se počítá ze stavu aktivní smyčky (data, model, sady, Ms, projekt …).
+         */
+        get: operations["guide_get_api_v1_workspaces__wid__guide__tab__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/identify": {
         parameters: {
             query?: never;
             header?: never;
@@ -1271,14 +1780,176 @@ export interface paths {
          * Identify
          * @description Identifikace zvolených modelů (úloha). Výsledek: GET /model.
          */
-        post: operations["identify_workspaces__wid__identify_post"];
+        post: operations["identify_api_v1_workspaces__wid__identify_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/layout": {
+    "/api/v1/workspaces/{wid}/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listing
+         * @description Snímky deníku (nové první), případně jen jedné smyčky nebo stavu.
+         */
+        get: operations["listing_api_v1_workspaces__wid__journal_get"];
+        put?: never;
+        /**
+         * Create
+         * @description Uloží neměnný snímek stavu smyčky (výchozí aktivní).
+         */
+        post: operations["create_api_v1_workspaces__wid__journal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare
+         * @description Strukturovaný rozdíl dvou snímků (změněné parametry, modely, výsledky).
+         */
+        get: operations["compare_api_v1_workspaces__wid__journal_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Live
+         * @description „Zapsat výsledek do deníku“ ze živé simulace: snímek aktivní smyčky s výsledky běhu.
+         */
+        post: operations["live_api_v1_workspaces__wid__journal_live_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_workspaces__wid__journal__sid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch
+         * @description Změna stavu (Návrh → Nasazeno → Ověřeno / Zamítnuto, s historií) a / nebo nová poznámka.
+         */
+        patch: operations["patch_api_v1_workspaces__wid__journal__sid__patch"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/{sid}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach
+         * @description Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu).
+         */
+        post: operations["attach_api_v1_workspaces__wid__journal__sid__attachments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/{sid}/attachments/{aid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attachment */
+        get: operations["attachment_api_v1_workspaces__wid__journal__sid__attachments__aid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/{sid}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report
+         * @description Report ze snímku (jazyk podle `?lang=`): z uložených hodnot, ne z aktuálního stavu.
+         */
+        post: operations["report_api_v1_workspaces__wid__journal__sid__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/journal/{sid}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore
+         * @description „Otevřít tento stav“: obnoví smyčku ze snímku; aktuální stav se předtím uloží jako „autosave před obnovením“.
+         */
+        post: operations["restore_api_v1_workspaces__wid__journal__sid__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/layout": {
         parameters: {
             query?: never;
             header?: never;
@@ -1289,9 +1960,9 @@ export interface paths {
          * Get Layout
          * @description Jak je tabulka přečtená (rozložení, formát a jednotka času, sloupce) a z čeho jde vybírat.
          */
-        get: operations["get_layout_workspaces__wid__layout_get"];
+        get: operations["get_layout_api_v1_workspaces__wid__layout_get"];
         /** Set Layout */
-        put: operations["set_layout_workspaces__wid__layout_put"];
+        put: operations["set_layout_api_v1_workspaces__wid__layout_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1299,7 +1970,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/live": {
+    "/api/v1/workspaces/{wid}/live": {
         parameters: {
             query?: never;
             header?: never;
@@ -1310,7 +1981,7 @@ export interface paths {
          * Live Config
          * @description Konfigurace živé simulace pro prohlížeč (live_ui.js); texty v jazyce požadavku. Ladění: PUT /tuning/sets/2.
          */
-        get: operations["live_config_workspaces__wid__live_get"];
+        get: operations["live_config_api_v1_workspaces__wid__live_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1319,7 +1990,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loopmode": {
+    "/api/v1/workspaces/{wid}/loopmode": {
         parameters: {
             query?: never;
             header?: never;
@@ -1330,7 +2001,7 @@ export interface paths {
          * Loopmode
          * @description Úseky MAN / AUTO záznamu, podíl AUTO v úseku identifikace a použitý režim identifikace.
          */
-        get: operations["loopmode_workspaces__wid__loopmode_get"];
+        get: operations["loopmode_api_v1_workspaces__wid__loopmode_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1339,7 +2010,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops": {
+    "/api/v1/workspaces/{wid}/loops": {
         parameters: {
             query?: never;
             header?: never;
@@ -1347,20 +2018,20 @@ export interface paths {
             cookie?: never;
         };
         /** Loops */
-        get: operations["loops_workspaces__wid__loops_get"];
+        get: operations["loops_api_v1_workspaces__wid__loops_get"];
         put?: never;
         /**
          * Add Loop
          * @description Další smyčka ze stejných dat (sloupce zadané, nebo odhadnuté mimo PV ostatních smyček).
          */
-        post: operations["add_loop_workspaces__wid__loops_post"];
+        post: operations["add_loop_api_v1_workspaces__wid__loops_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops/active": {
+    "/api/v1/workspaces/{wid}/loops/active": {
         parameters: {
             query?: never;
             header?: never;
@@ -1369,7 +2040,7 @@ export interface paths {
         };
         get?: never;
         /** Set Active */
-        put: operations["set_active_workspaces__wid__loops_active_put"];
+        put: operations["set_active_api_v1_workspaces__wid__loops_active_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1377,7 +2048,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops/overview": {
+    "/api/v1/workspaces/{wid}/loops/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Mapping
+         * @description Mapování z CSV (tělo; hlavička `loop, role, source, column`, volitelně `description`): role PV, SP, MV, pos, mode,
+         *     DV (opakovatelná), `source` = id nebo název zdroje. Nepoužitelné řádky se přeskočí s varováním.
+         *     S `apply` se úplné smyčky přidají do projektu.
+         */
+        post: operations["import_mapping_api_v1_workspaces__wid__loops_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/loops/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mappings
+         * @description Mapování všech smyček (tabulka smyček záložky Zdroje a smyčky).
+         */
+        get: operations["mappings_api_v1_workspaces__wid__loops_mappings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/loops/overview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1388,7 +2101,7 @@ export interface paths {
          * Loops Overview
          * @description Smyčky projektu: sloupce, model, sady parametrů a stav (problémy podle přehledu smyček).
          */
-        get: operations["loops_overview_workspaces__wid__loops_overview_get"];
+        get: operations["loops_overview_api_v1_workspaces__wid__loops_overview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1397,7 +2110,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/loops/{index}": {
+    "/api/v1/workspaces/{wid}/loops/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest
+         * @description Návrh smyček podle názvů tagů ve zdrojích (`TIC101.PV / .SP / .OUT`, PCS 7 `…/PV_Out`, DeltaV `…/PV.CV`,
+         *     jinak odhad podle slov v názvu). S `apply` se úplné smyčky přidají do projektu.
+         */
+        post: operations["suggest_api_v1_workspaces__wid__loops_suggest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/loops/{index}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1408,13 +2142,36 @@ export interface paths {
         put?: never;
         post?: never;
         /** Remove Loop */
-        delete: operations["remove_loop_workspaces__wid__loops__index__delete"];
+        delete: operations["remove_loop_api_v1_workspaces__wid__loops__index__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model": {
+    "/api/v1/workspaces/{wid}/loops/{index}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mapping */
+        get: operations["get_mapping_api_v1_workspaces__wid__loops__index__mapping_get"];
+        /**
+         * Put Mapping
+         * @description Nastaví role smyčky na sloupce zdrojů. Zdroje rolí určí data smyčky (jeden zdroj přímo, víc zdrojů složených
+         *     na společnou mřížku); PV a MV jsou povinné. Při chybě (neznámý zdroj / sloupec, žádný překryv) zůstane
+         *     smyčka beze změny.
+         */
+        put: operations["put_mapping_api_v1_workspaces__wid__loops__index__mapping_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model": {
         parameters: {
             query?: never;
             header?: never;
@@ -1422,7 +2179,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get Model */
-        get: operations["get_model_workspaces__wid__model_get"];
+        get: operations["get_model_api_v1_workspaces__wid__model_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1431,7 +2188,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/crossval": {
+    "/api/v1/workspaces/{wid}/model/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare
+         * @description Predikce všech nafitovaných modelů na úseku identifikace (porovnání s PV).
+         */
+        get: operations["compare_api_v1_workspaces__wid__model_compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/crossval": {
         parameters: {
             query?: never;
             header?: never;
@@ -1444,14 +2221,14 @@ export interface paths {
          * Crossval
          * @description Křížové ověření (úseky podle vstupů): fit bez každého úseku a shoda na něm – úloha.
          */
-        post: operations["crossval_workspaces__wid__model_crossval_post"];
+        post: operations["crossval_api_v1_workspaces__wid__model_crossval_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/curves": {
+    "/api/v1/workspaces/{wid}/model/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -1462,7 +2239,7 @@ export interface paths {
          * Curves
          * @description Průběhy aktuálního modelu na mřížce smyčky (NaN mimo úseky) – binárně jako /signals.
          */
-        get: operations["curves_workspaces__wid__model_curves_get"];
+        get: operations["curves_api_v1_workspaces__wid__model_curves_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1471,7 +2248,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/dist": {
+    "/api/v1/workspaces/{wid}/model/dist": {
         parameters: {
             query?: never;
             header?: never;
@@ -1484,7 +2261,7 @@ export interface paths {
          * @description Jiná struktura přenosu měřené poruchy z porovnání při identifikaci (dsel|kód|j) → její parametry do polí
          *     ed|kód|d{j}|i; model se použije hned (bez dofitování).
          */
-        put: operations["select_dist_workspaces__wid__model_dist_put"];
+        put: operations["select_dist_api_v1_workspaces__wid__model_dist_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1492,7 +2269,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/refit": {
+    "/api/v1/workspaces/{wid}/model/loop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Loop Info
+         * @description Smyčka v AUTO: použitý režim identifikace, Set 1, buzení v úseku a ruční úsek, na který lze zúžit.
+         */
+        get: operations["loop_info_api_v1_workspaces__wid__model_loop_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/refit": {
         parameters: {
             query?: never;
             header?: never;
@@ -1505,14 +2302,14 @@ export interface paths {
          * Refit
          * @description Dofitování se zafixovanými parametry (zaškrtnutí fx|kód|i v nastavení, hodnoty ed|kód|i) – úloha.
          */
-        post: operations["refit_workspaces__wid__model_refit_post"];
+        post: operations["refit_api_v1_workspaces__wid__model_refit_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/reset": {
+    "/api/v1/workspaces/{wid}/model/reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -1525,14 +2322,14 @@ export interface paths {
          * Reset
          * @description Ruční úpravy parametrů modelu zpět na identifikované.
          */
-        post: operations["reset_workspaces__wid__model_reset_post"];
+        post: operations["reset_api_v1_workspaces__wid__model_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/select": {
+    "/api/v1/workspaces/{wid}/model/select": {
         parameters: {
             query?: never;
             header?: never;
@@ -1541,7 +2338,7 @@ export interface paths {
         };
         get?: never;
         /** Select */
-        put: operations["select_workspaces__wid__model_select_put"];
+        put: operations["select_api_v1_workspaces__wid__model_select_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1549,7 +2346,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/uncertainty": {
+    "/api/v1/workspaces/{wid}/model/set1/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Set1 Check
+         * @description Sedí Set 1 s regulátorem v záznamu? Simulace smyčky s vybraným modelem na úseku identifikace.
+         */
+        get: operations["set1_check_api_v1_workspaces__wid__model_set1_check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/set1/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set1 Estimate
+         * @description Odhad Set 1 (Gain, TI) ze záznamu – při úspěchu se zapíše do nastavení set1_*.
+         */
+        post: operations["set1_estimate_api_v1_workspaces__wid__model_set1_estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Step
+         * @description Odezva modelu na skok MV o 10 % (v Δ jednotkách PV): nafitovaný, upravený, z otevřené smyčky a varianty z
+         *     nejistoty.
+         */
+        get: operations["step_api_v1_workspaces__wid__model_step_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/uncertainty": {
         parameters: {
             query?: never;
             header?: never;
@@ -1562,14 +2420,36 @@ export interface paths {
          * Uncertainty
          * @description Nejistota modelu – bootstrap reziduí (n refitů) – úloha.
          */
-        post: operations["uncertainty_workspaces__wid__model_uncertainty_post"];
+        post: operations["uncertainty_api_v1_workspaces__wid__model_uncertainty_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/model/validation": {
+    "/api/v1/workspaces/{wid}/model/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Validate
+         * @description Ověření modelu na jiném úseku <a, b> [s] (výchozí: uložený ověřovací úsek `val_rng`, jinak celý záznam):
+         *     predikce PV z naměřené MV, nebo simulace smyčky se Sadou 1 / 2 (potřebuje SP); tabulka hodnocení na úseku
+         *     identifikace a ověřovacím a verdikt.
+         */
+        get: operations["validate_api_v1_workspaces__wid__model_validate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/model/validation": {
         parameters: {
             query?: never;
             header?: never;
@@ -1581,7 +2461,7 @@ export interface paths {
          * @description Hodnocení aktuálního modelu na úseku: FIT, NRMSE, R², IAE, autokorelace reziduí (acf) a vzájemná korelace
          *     s MV (ccf) s mezí `bound`, hodnocení.
          */
-        get: operations["validation_workspaces__wid__model_validation_get"];
+        get: operations["validation_api_v1_workspaces__wid__model_validation_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1590,7 +2470,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/opc/history": {
+    "/api/v1/workspaces/{wid}/opc/history": {
         parameters: {
             query?: never;
             header?: never;
@@ -1603,14 +2483,14 @@ export interface paths {
          * History
          * @description Historie vybraných uzlů (úloha) → data pracovního prostoru (nový projekt s jednou smyčkou).
          */
-        post: operations["history_workspaces__wid__opc_history_post"];
+        post: operations["history_api_v1_workspaces__wid__opc_history_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/preview": {
+    "/api/v1/workspaces/{wid}/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -1621,7 +2501,7 @@ export interface paths {
          * Preview
          * @description Tabulka po převzorkování po částech (Celý náhled): filtr řádků, od času `t` [s] (přepíše `offset`).
          */
-        get: operations["preview_workspaces__wid__preview_get"];
+        get: operations["preview_api_v1_workspaces__wid__preview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1630,7 +2510,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/preview/csv": {
+    "/api/v1/workspaces/{wid}/preview/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -1641,7 +2521,7 @@ export interface paths {
          * Preview Csv
          * @description Celá tabulka po převzorkování jako CSV (středník, desetinná čárka).
          */
-        get: operations["preview_csv_workspaces__wid__preview_csv_get"];
+        get: operations["preview_csv_api_v1_workspaces__wid__preview_csv_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1650,7 +2530,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/project": {
+    "/api/v1/workspaces/{wid}/project": {
         parameters: {
             query?: never;
             header?: never;
@@ -1661,12 +2541,12 @@ export interface paths {
          * Save
          * @description Projekt jako soubor JSON (všechny smyčky; s daty, nebo bez nich).
          */
-        get: operations["save_workspaces__wid__project_get"];
+        get: operations["save_api_v1_workspaces__wid__project_get"];
         /**
          * Load
          * @description Načtení projektu (i starší verze); projekt bez dat použije data, která jsou v prostoru načtená.
          */
-        put: operations["load_workspaces__wid__project_put"];
+        put: operations["load_api_v1_workspaces__wid__project_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1674,7 +2554,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/quality": {
+    "/api/v1/workspaces/{wid}/quality": {
         parameters: {
             query?: never;
             header?: never;
@@ -1685,7 +2565,7 @@ export interface paths {
          * Quality
          * @description Kvalita dat úseku (výchozí: úsek identifikace).
          */
-        get: operations["quality_workspaces__wid__quality_get"];
+        get: operations["quality_api_v1_workspaces__wid__quality_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1694,7 +2574,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/range": {
+    "/api/v1/workspaces/{wid}/range": {
         parameters: {
             query?: never;
             header?: never;
@@ -1703,7 +2583,7 @@ export interface paths {
         };
         get?: never;
         /** Set Range */
-        put: operations["set_range_workspaces__wid__range_put"];
+        put: operations["set_range_api_v1_workspaces__wid__range_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1711,7 +2591,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/report": {
+    "/api/v1/workspaces/{wid}/range/common": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Range Common
+         * @description Úsek z Trendů (společná osa zdrojů) jako identifikační úsek aktivní smyčky: přepočte se na čas záznamu smyčky
+         *     a ořízne na něj (úsek mimo záznam = 422); s `apply=false` jen vrátí přepočtený úsek (pro Diagnostiku).
+         */
+        put: operations["set_range_common_api_v1_workspaces__wid__range_common_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/recent/{rid}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open Recent */
+        post: operations["open_recent_api_v1_workspaces__wid__recent__rid__open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/report": {
         parameters: {
             query?: never;
             header?: never;
@@ -1724,27 +2642,26 @@ export interface paths {
          * Report
          * @description Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.
          */
-        post: operations["report_workspaces__wid__report_post"];
+        post: operations["report_api_v1_workspaces__wid__report_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/scenario": {
+    "/api/v1/workspaces/{wid}/report/sections": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Scenario */
-        get: operations["get_scenario_workspaces__wid__scenario_get"];
         /**
-         * Set Scenario
-         * @description Druh scénáře (předvolba), vlastní události [[čas, vstup, …]], SP z → na, délka simulace.
+         * Sections
+         * @description Registr sekcí reportu (id, název a nápověda v jazyce požadavku, výchozí, dostupnost podle projektu).
          */
-        put: operations["set_scenario_workspaces__wid__scenario_put"];
+        get: operations["sections_api_v1_workspaces__wid__report_sections_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1752,7 +2669,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/settings": {
+    "/api/v1/workspaces/{wid}/report/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Summary
+         * @description Souhrnný report všech smyček projektu (audit / triáž): model, sada 2, Ms, stav v deníku, nález.
+         */
+        post: operations["summary_api_v1_workspaces__wid__report_summary_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/save-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Save State */
+        get: operations["save_state_api_v1_workspaces__wid__save_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/scenario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scenario */
+        get: operations["get_scenario_api_v1_workspaces__wid__scenario_get"];
+        /**
+         * Set Scenario
+         * @description Druh scénáře (předvolba), vlastní události [[čas, vstup, …]], SP z → na, délka simulace.
+         */
+        put: operations["set_scenario_api_v1_workspaces__wid__scenario_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/settings": {
         parameters: {
             query?: never;
             header?: never;
@@ -1763,7 +2738,7 @@ export interface paths {
          * Get Settings
          * @description Nastavení smyčky (klíče jako v projektu).
          */
-        get: operations["get_settings_workspaces__wid__settings_get"];
+        get: operations["get_settings_api_v1_workspaces__wid__settings_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1773,10 +2748,10 @@ export interface paths {
          * Patch Settings
          * @description Změna nastavení – jen klíče, které patří do projektu (app.project.is_state_key).
          */
-        patch: operations["patch_settings_workspaces__wid__settings_patch"];
+        patch: operations["patch_settings_api_v1_workspaces__wid__settings_patch"];
         trace?: never;
     };
-    "/workspaces/{wid}/signals": {
+    "/api/v1/workspaces/{wid}/signals": {
         parameters: {
             query?: never;
             header?: never;
@@ -1788,7 +2763,7 @@ export interface paths {
          * @description Signály binárně. raw = ze souboru bez převzorkování (všechny, nebo `names`); grid = převzorkované na periodu
          *     smyčky (pv, mv, sp, d0, d1 …, valid) – na nich běží identifikace.
          */
-        get: operations["signals_workspaces__wid__signals_get"];
+        get: operations["signals_api_v1_workspaces__wid__signals_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1797,7 +2772,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/simulate": {
+    "/api/v1/workspaces/{wid}/signals/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signals Trend
+         * @description Signály všech zdrojů na společné ose [s od nejdřívějšího zdroje]: zředěné na min / max po skupinách (špičky
+         *     zůstanou), statistika v úseku `a`–`b` a hodnoty v časech kurzorů `at` (interpolace, v mezeře `null`).
+         */
+        get: operations["signals_trend_api_v1_workspaces__wid__signals_trend_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/simulate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1810,14 +2806,14 @@ export interface paths {
          * Simulate
          * @description Simulace scénáře se sadou 1 a 2 (a návrhem `preview`): ukazatele odezvy.
          */
-        post: operations["simulate_workspaces__wid__simulate_post"];
+        post: operations["simulate_api_v1_workspaces__wid__simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/simulate/curves": {
+    "/api/v1/workspaces/{wid}/simulate/curves": {
         parameters: {
             query?: never;
             header?: never;
@@ -1827,14 +2823,132 @@ export interface paths {
         get?: never;
         put?: never;
         /** Simulate Curves */
-        post: operations["simulate_curves_workspaces__wid__simulate_curves_post"];
+        post: operations["simulate_curves_api_v1_workspaces__wid__simulate_curves_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning": {
+    "/api/v1/workspaces/{wid}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description Zdroje dat projektu s časovými údaji, použitím ve smyčkách, společným úsekem a druhy zdrojů z registru.
+         */
+        get: operations["list_sources_api_v1_workspaces__wid__sources_get"];
+        put?: never;
+        /**
+         * Add Source
+         * @description Nový zdroj ze souboru (tělo požadavku; druh podle přípony, nebo `kind`) s volbami čtení a časovými údaji.
+         */
+        post: operations["add_source_api_v1_workspaces__wid__sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/sources/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Source */
+        get: operations["get_source_api_v1_workspaces__wid__sources__sid__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Source
+         * @description Odebere zdroj, který nepoužívá žádná role smyčky (jinak 409).
+         */
+        delete: operations["delete_source_api_v1_workspaces__wid__sources__sid__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Patch Source
+         * @description Časové pásmo (IANA), posun [s], vlastní vzorkování [s], název a čtení tabulky; smyčky ze zdroje se přeskládají.
+         */
+        patch: operations["patch_source_api_v1_workspaces__wid__sources__sid__patch"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/time-grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Time Grid */
+        get: operations["get_time_grid_api_v1_workspaces__wid__time_grid_get"];
+        /**
+         * Put Time Grid
+         * @description Společná mřížka: překryv / sjednocení, ruční perioda vzorkování, práh mezery; smyčky se přeskládají.
+         */
+        put: operations["put_time_grid_api_v1_workspaces__wid__time_grid_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/triage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Last
+         * @description Poslední výsledek triáže (`ready` False, dokud žádný není).
+         */
+        get: operations["last_api_v1_workspaces__wid__triage_get"];
+        put?: never;
+        /**
+         * Start
+         * @description Spustí triáž všech smyček projektu jako úlohu na pozadí; výsledek pak vrací GET /triage.
+         */
+        post: operations["start_api_v1_workspaces__wid__triage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/triage/thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thr
+         * @description Prahy pravidel verdiktu (výchozí + uživatelské) a jejich schéma.
+         */
+        get: operations["get_thr_api_v1_workspaces__wid__triage_thresholds_get"];
+        /**
+         * Put Thr
+         * @description Uloží prahy do projektu (hodnoty se ořežou na meze); neznámá pravidla a názvy se vynechají.
+         */
+        put: operations["put_thr_api_v1_workspaces__wid__triage_thresholds_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning": {
         parameters: {
             query?: never;
             header?: never;
@@ -1842,7 +2956,7 @@ export interface paths {
             cookie?: never;
         };
         /** Info */
-        get: operations["info_workspaces__wid__tuning_get"];
+        get: operations["info_api_v1_workspaces__wid__tuning_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1851,7 +2965,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning/compare": {
+    "/api/v1/workspaces/{wid}/tuning/compare": {
         parameters: {
             query?: never;
             header?: never;
@@ -1864,14 +2978,75 @@ export interface paths {
          * Compare
          * @description Porovnání všech metod a kritérií pro PI i PID (úloha; výsledek: GET /jobs/{id}/result).
          */
-        post: operations["compare_workspaces__wid__tuning_compare_post"];
+        post: operations["compare_api_v1_workspaces__wid__tuning_compare_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning/sets/{n}": {
+    "/api/v1/workspaces/{wid}/tuning/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export
+         * @description Export sady `n` (výchozí Set 2) v názvech a jednotkách bloku regulátoru smyčky pro řídicí systém / CSV.
+         */
+        get: operations["export_api_v1_workspaces__wid__tuning_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning/plant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Plant
+         * @description Proces a ventil v simulaci (Ladění i Živá): stikce, skluz, šum PV, charakteristika ventilu.
+         */
+        get: operations["get_plant_api_v1_workspaces__wid__tuning_plant_get"];
+        /** Set Plant */
+        put: operations["set_plant_api_v1_workspaces__wid__tuning_plant_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning/robustness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Robustness
+         * @description Tabulka robustnosti sad (Set 1, Set 2, návrh): Ms, Mt, GM, PM, šum MV a nejhorší Ms přes nejistotu modelu.
+         */
+        post: operations["robustness_api_v1_workspaces__wid__tuning_robustness_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/tuning/sets/{n}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1883,7 +3058,7 @@ export interface paths {
          * Write Set
          * @description Parametry do sady 1 (současné nastavení) nebo 2 (nové); log = záznam do historie ladění.
          */
-        put: operations["write_set_workspaces__wid__tuning_sets__n__put"];
+        put: operations["write_set_api_v1_workspaces__wid__tuning_sets__n__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1891,7 +3066,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/tuning/suggest": {
+    "/api/v1/workspaces/{wid}/tuning/suggest": {
         parameters: {
             query?: never;
             header?: never;
@@ -1904,27 +3079,26 @@ export interface paths {
          * Suggest
          * @description Návrh ladění metodou (výchozí: metoda uložená u modelu) s upozorněními a kontrolami věrohodnosti.
          */
-        post: operations["suggest_workspaces__wid__tuning_suggest_post"];
+        post: operations["suggest_api_v1_workspaces__wid__tuning_suggest_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/windows": {
+    "/api/v1/workspaces/{wid}/tuning/warnings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Windows */
-        get: operations["get_windows_workspaces__wid__windows_get"];
         /**
-         * Set Windows
-         * @description Úseky podle vstupů {vstup: [[od, do] s]} (MV a měřené poruchy), vyřazení dat {signál: [zap, min, max]}.
+         * Warnings
+         * @description Varování ladění: data mimo NormPV / NormMV, pracovní bod MV mimo limity, nízká shoda modelu.
          */
-        put: operations["set_windows_workspaces__wid__windows_put"];
+        get: operations["warnings_api_v1_workspaces__wid__tuning_warnings_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1932,7 +3106,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{wid}/windows/mode": {
+    "/api/v1/workspaces/{wid}/windows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Windows */
+        get: operations["get_windows_api_v1_workspaces__wid__windows_get"];
+        /**
+         * Set Windows
+         * @description Úseky podle vstupů {vstup: [[od, do] s]} (MV a měřené poruchy), vyřazení dat {signál: [zap, min, max]}.
+         */
+        put: operations["set_windows_api_v1_workspaces__wid__windows_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/windows/mode": {
         parameters: {
             query?: never;
             header?: never;
@@ -1944,8 +3139,28 @@ export interface paths {
          * Set Mv Mode
          * @description Režim úseku MV (ručně / AUTO) pro kombinovanou identifikaci.
          */
-        put: operations["set_mv_mode_workspaces__wid__windows_mode_put"];
+        put: operations["set_mv_mode_api_v1_workspaces__wid__windows_mode_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/windows/narrow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Narrow
+         * @description Zúží úsek identifikace (u úseků podle vstupů úsek MV) na nejdelší ruční část se skokem MV.
+         */
+        post: operations["narrow_api_v1_workspaces__wid__windows_narrow_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1960,6 +3175,368 @@ export interface components {
         Active: {
             /** Index */
             index: number;
+        };
+        /** AppAppearance */
+        AppAppearance: {
+            /**
+             * Font Size
+             * @default m
+             * @enum {string}
+             */
+            font_size: "s" | "m" | "l" | "xl";
+            /**
+             * Language
+             * @default
+             * @enum {string}
+             */
+            language: "" | "cs" | "en";
+            /**
+             * Theme
+             * @default
+             * @enum {string}
+             */
+            theme: "" | "system" | "light" | "dark";
+        };
+        /** AppCharts */
+        AppCharts: {
+            /**
+             * Decimal
+             * @default auto
+             * @enum {string}
+             */
+            decimal: "auto" | "comma" | "dot";
+            /**
+             * Gain View
+             * @default kc
+             * @enum {string}
+             */
+            gain_view: "kc" | "pb";
+            /**
+             * Height
+             * @default 220
+             */
+            height: number;
+            /**
+             * Ti Unit
+             * @default s
+             * @enum {string}
+             */
+            ti_unit: "s" | "min";
+            /**
+             * Time Unit
+             * @default auto
+             * @enum {string}
+             */
+            time_unit: "auto" | "s" | "min" | "h" | "clock";
+        };
+        /** AppConnections */
+        AppConnections: {
+            /**
+             * @default {
+             *       "deltav": "",
+             *       "pcs7": "",
+             *       "pi": ""
+             *     }
+             */
+            historians: components["schemas"]["AppHistorians"];
+            /**
+             * Opc
+             * @default []
+             */
+            opc: components["schemas"]["AppOpcServer"][];
+        };
+        /** AppDefaults */
+        AppDefaults: {
+            /**
+             * Controller
+             * @default pcs7_pidconl
+             */
+            controller: string;
+            /**
+             * @default {
+             *       "ctype": "PI",
+             *       "opt_ms": 1.6,
+             *       "opt_ovs": 2,
+             *       "opt_robust": false
+             *     }
+             */
+            sim: components["schemas"]["AppSimDefaults"];
+        };
+        /** AppDiagnostics */
+        AppDiagnostics: {
+            /**
+             * Thresholds
+             * @default {}
+             */
+            thresholds: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        /** AppGeneral */
+        AppGeneral: {
+            /**
+             * Autosave Min
+             * @default 1
+             * @enum {integer}
+             */
+            autosave_min: 0 | 1 | 5 | 15 | 30;
+            /**
+             * Embed Data
+             * @default true
+             */
+            embed_data: boolean;
+        };
+        /** AppHistorians */
+        AppHistorians: {
+            /**
+             * Deltav
+             * @default
+             */
+            deltav: string;
+            /**
+             * Pcs7
+             * @default
+             */
+            pcs7: string;
+            /**
+             * Pi
+             * @default
+             */
+            pi: string;
+        };
+        /** AppJournal */
+        AppJournal: {
+            /**
+             * Author
+             * @default
+             */
+            author: string;
+            /**
+             * Require Note
+             * @default false
+             */
+            require_note: boolean;
+        };
+        /** AppOpcServer */
+        AppOpcServer: {
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
+        };
+        /** AppReport */
+        AppReport: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /**
+             * Footer
+             * @default
+             */
+            footer: string;
+            /**
+             * Header
+             * @default
+             */
+            header: string;
+            /**
+             * Language
+             * @default app
+             * @enum {string}
+             */
+            language: "app" | "cs" | "en";
+            /**
+             * Logo
+             * @default
+             */
+            logo: string;
+        };
+        /**
+         * AppSettings
+         * @description Nastavení aplikace (soubor `settings.json`, formát `pidtools.settings`).
+         */
+        AppSettings: {
+            /**
+             * @default {
+             *       "font_size": "m",
+             *       "language": "",
+             *       "theme": ""
+             *     }
+             */
+            appearance: components["schemas"]["AppAppearance"];
+            /**
+             * @default {
+             *       "decimal": "auto",
+             *       "gain_view": "kc",
+             *       "height": 220,
+             *       "ti_unit": "s",
+             *       "time_unit": "auto"
+             *     }
+             */
+            charts: components["schemas"]["AppCharts"];
+            /**
+             * @default {
+             *       "historians": {
+             *         "deltav": "",
+             *         "pcs7": "",
+             *         "pi": ""
+             *       },
+             *       "opc": []
+             *     }
+             */
+            connections: components["schemas"]["AppConnections"];
+            /**
+             * Controller Tests
+             * @default {}
+             */
+            controller_tests: {
+                [key: string]: components["schemas"]["AppTestMemo"];
+            };
+            /**
+             * @default {
+             *       "controller": "pcs7_pidconl",
+             *       "sim": {
+             *         "ctype": "PI",
+             *         "opt_ms": 1.6,
+             *         "opt_ovs": 2,
+             *         "opt_robust": false
+             *       }
+             *     }
+             */
+            defaults: components["schemas"]["AppDefaults"];
+            /**
+             * @default {
+             *       "thresholds": {}
+             *     }
+             */
+            diagnostics: components["schemas"]["AppDiagnostics"];
+            /**
+             * @default {
+             *       "autosave_min": 1,
+             *       "embed_data": true
+             *     }
+             */
+            general: components["schemas"]["AppGeneral"];
+            /**
+             * @default {
+             *       "author": "",
+             *       "require_note": false
+             *     }
+             */
+            journal: components["schemas"]["AppJournal"];
+            /**
+             * @default {
+             *       "company": "",
+             *       "footer": "",
+             *       "header": "",
+             *       "language": "app",
+             *       "logo": ""
+             *     }
+             */
+            report: components["schemas"]["AppReport"];
+        };
+        /** AppSimDefaults */
+        AppSimDefaults: {
+            /**
+             * Ctype
+             * @default PI
+             * @enum {string}
+             */
+            ctype: "PI" | "PID" | "PD";
+            /**
+             * Opt Ms
+             * @default 1.6
+             */
+            opt_ms: number;
+            /**
+             * Opt Ovs
+             * @default 2
+             */
+            opt_ovs: number;
+            /**
+             * Opt Robust
+             * @default false
+             */
+            opt_robust: boolean;
+        };
+        /** AppTestMemo */
+        AppTestMemo: {
+            /**
+             * At
+             * @default
+             */
+            at: string;
+            /**
+             * Fail
+             * @default 0
+             */
+            fail: number;
+            /**
+             * Ok
+             * @default 0
+             */
+            ok: number;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+            /**
+             * Warn
+             * @default 0
+             */
+            warn: number;
+        };
+        /** AttachmentData */
+        AttachmentData: {
+            /** Author */
+            author: string;
+            /** Data B64 */
+            data_b64: string;
+            /**
+             * Desc
+             * @default
+             */
+            desc: string;
+            /** Id */
+            id: string;
+            /** Mime */
+            mime: string;
+            /** Name */
+            name: string;
+            /** Size */
+            size: number;
+            /** When */
+            when: string;
+        };
+        /** AttachmentInfo */
+        AttachmentInfo: {
+            /** Author */
+            author: string;
+            /**
+             * Desc
+             * @default
+             */
+            desc: string;
+            /** Id */
+            id: string;
+            /** Mime */
+            mime: string;
+            /** Name */
+            name: string;
+            /** Size */
+            size: number;
+            /** When */
+            when: string;
         };
         /** Audit */
         Audit: {
@@ -2065,6 +3642,33 @@ export interface components {
              */
             t: number[];
         };
+        /**
+         * AxisRange
+         * @description Úsek na společné ose zdrojů [s] (kurzory A–B v Trendech).
+         */
+        AxisRange: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+        };
+        /** BlockParam */
+        BlockParam: {
+            /** Default */
+            default?: unknown;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Setting */
+            setting?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Value */
+            value?: unknown;
+        };
         /** Browse */
         Browse: {
             /** Node Id */
@@ -2085,6 +3689,44 @@ export interface components {
             url: string;
             /** User */
             user?: string | null;
+        };
+        /** CanonicalPID */
+        CanonicalPID: {
+            /** Kc */
+            Kc: number;
+            /**
+             * N
+             * @default 5
+             */
+            N: number | null;
+            /**
+             * Td
+             * @default 0
+             */
+            Td: number;
+            /** Ti */
+            Ti?: number | null;
+            /**
+             * B
+             * @default 1
+             */
+            b: number;
+            /**
+             * C
+             * @default 1
+             */
+            c: number;
+        };
+        /** CanonicalRequest */
+        CanonicalRequest: {
+            /** Mv Range */
+            mv_range?: number[] | null;
+            /** Pv Range */
+            pv_range?: number[] | null;
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
         };
         /** CascadeFit */
         CascadeFit: {
@@ -2187,6 +3829,13 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** CascadeRange */
+        CascadeRange: {
+            /** Hi */
+            hi: number;
+            /** Lo */
+            lo: number;
+        };
         /** CascadeReset */
         CascadeReset: {
             /**
@@ -2208,6 +3857,34 @@ export interface components {
             /** T63 */
             t63: number;
         };
+        /** CheckItem */
+        CheckItem: {
+            /** Id */
+            id: string;
+            /** Message */
+            message: string;
+            /** Name */
+            name: string;
+            /** Rows */
+            rows?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Severity */
+            severity: string;
+            /** Status */
+            status: string;
+        };
+        /** CheckProtocol */
+        CheckProtocol: {
+            /** Checks */
+            checks: components["schemas"]["CheckItem"][];
+            /** Reasons */
+            reasons: string[];
+            /** Verdict */
+            verdict: string;
+            /** Verdict Text */
+            verdict_text: string;
+        };
         /** Columns */
         Columns: {
             /**
@@ -2223,6 +3900,156 @@ export interface components {
             pv: string;
             /** Sp */
             sp?: string | null;
+        };
+        /** Common */
+        Common: {
+            /** Duration */
+            duration: number;
+            /** End */
+            end: number;
+            /** Start */
+            start: number;
+        };
+        /** Compare */
+        Compare: {
+            a: components["schemas"]["SnapshotSummary"];
+            b: components["schemas"]["SnapshotSummary"];
+            /** Rows */
+            rows: components["schemas"]["DiffRow"][];
+        };
+        /** CompareModel */
+        CompareModel: {
+            /** Code */
+            code: string;
+            /** Fit */
+            fit: number;
+            /** Y */
+            y: (number | null)[];
+        };
+        /** CompareOut */
+        CompareOut: {
+            /** Models */
+            models: components["schemas"]["CompareModel"][];
+            /** Pv */
+            pv: (number | null)[];
+            /** T */
+            t: number[];
+        };
+        /** CompileRequest */
+        CompileRequest: {
+            /**
+             * Quick
+             * @default true
+             */
+            quick: boolean;
+            /** Source */
+            source: string;
+        };
+        /** CompileResult */
+        CompileResult: {
+            checks?: components["schemas"]["CheckProtocol"] | null;
+            /** Errors */
+            errors: components["schemas"]["SourceIssue"][];
+            /** Has Mapping */
+            has_mapping?: boolean | null;
+            /** Ok */
+            ok: boolean;
+            /** Params */
+            params?: components["schemas"]["ControllerParam"][] | null;
+            /** Program */
+            program?: {
+                [key: string]: unknown;
+            } | null;
+            /** Tuning Roles */
+            tuning_roles?: string[] | null;
+            /** Warnings */
+            warnings: components["schemas"]["SourceIssue"][];
+        };
+        /** ControllerParam */
+        ControllerParam: {
+            /** Default */
+            default?: unknown;
+            /** Key */
+            key: string;
+            /** Name */
+            name?: string | null;
+            /** Nullable */
+            nullable?: boolean | null;
+            /** Range */
+            range?: number[] | null;
+            /** Repr */
+            repr?: string | null;
+            /** Required */
+            required?: boolean | null;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * ControllerProfile
+         * @description Profil regulátoru (soubor `.pidctrl`); neznámé položky (struktura, ověření, výsledek testu) se zachovají.
+         */
+        ControllerProfile: {
+            /** Block */
+            block?: string | null;
+            /** Derived From */
+            derived_from?: string | null;
+            /**
+             * Format
+             * @default pidctrl
+             */
+            format: string;
+            /** Id */
+            id?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Params
+             * @default []
+             */
+            params: components["schemas"]["ControllerParam"][];
+            /** Source */
+            source?: string | null;
+            /**
+             * Structure
+             * @default {}
+             */
+            structure: {
+                [key: string]: unknown;
+            };
+            /** System */
+            system?: string | null;
+            /** Vendor */
+            vendor?: string | null;
+            /** Verification */
+            verification?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ControllerSummary */
+        ControllerSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Tag */
+            tag: string;
+            /** Vendor */
+            vendor: string;
+            /** Verified */
+            verified: boolean;
         };
         /** DataQuality */
         DataQuality: {
@@ -2301,6 +4128,11 @@ export interface components {
             source_mv: string;
             /** Target */
             target: string;
+            /**
+             * Way
+             * @default ab
+             */
+            way: string;
         };
         /** DecSim */
         DecSim: {
@@ -2310,6 +4142,8 @@ export interface components {
             dtype: string;
             /** Kpis */
             kpis: components["schemas"]["DecIae"][];
+            /** Way */
+            way: string;
         };
         /** DecSimReq */
         DecSimReq: {
@@ -2329,6 +4163,12 @@ export interface components {
              * @enum {string}
              */
             dtype: "static" | "dyn";
+            /**
+             * Way
+             * @default both
+             * @enum {string}
+             */
+            way: "both" | "ab" | "ba";
         };
         /** Diagnostics */
         Diagnostics: {
@@ -2354,6 +4194,17 @@ export interface components {
             valve: {
                 [key: string]: unknown;
             };
+        };
+        /** DiffRow */
+        DiffRow: {
+            /** A */
+            a?: unknown | null;
+            /** B */
+            b?: unknown | null;
+            /** Key */
+            key: string;
+            /** Section */
+            section: string;
         };
         /** DistCmp */
         DistCmp: {
@@ -2418,6 +4269,19 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "warn" | "info";
+        };
+        /** Evidence */
+        Evidence: {
+            /** Metric */
+            metric: string;
+            /** Text */
+            text: string;
+            /** Text Key */
+            text_key: string;
+            /** Threshold */
+            threshold?: number | null;
+            /** Value */
+            value?: number | null;
         };
         /** FFDefaults */
         FFDefaults: {
@@ -2490,8 +4354,15 @@ export interface components {
         };
         /** FFInfo */
         FFInfo: {
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
             /** Dists */
             dists: components["schemas"]["FFDist"][];
+            /** Impl Text */
+            impl_text?: string | null;
             /** Model */
             model: string;
             /** Mv Range */
@@ -2598,6 +4469,13 @@ export interface components {
             unit: string;
             /** Value */
             value: number;
+        };
+        /** GlossaryItem */
+        GlossaryItem: {
+            /** Term */
+            term: string;
+            /** Text */
+            text: string;
         };
         /** GsErInfo */
         GsErInfo: {
@@ -2755,6 +4633,10 @@ export interface components {
             gain: number;
             /** Index */
             index: number;
+            /** Ms Fixed */
+            ms_fixed?: number | null;
+            /** Ms Sched */
+            ms_sched?: number | null;
             /** Params */
             params: components["schemas"]["ParamRow"][];
             /** Td */
@@ -2783,6 +4665,65 @@ export interface components {
             T_end: number;
             /** Kpis */
             kpis: components["schemas"]["GsPointKpi"][];
+        };
+        /** Guide */
+        Guide: {
+            /** Checklist */
+            checklist: components["schemas"]["GuideCheck"][];
+            /** Glossary */
+            glossary: components["schemas"]["GlossaryItem"][];
+            /** Intro */
+            intro: string;
+            /** Steps */
+            steps: components["schemas"]["GuideStep"][];
+            /**
+             * Tab
+             * @enum {string}
+             */
+            tab: "data" | "model" | "tuning" | "apc" | "live" | "diag" | "loops" | "project";
+            /** Tables */
+            tables: components["schemas"]["GuideTable"][];
+            /** Tips */
+            tips: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * GuideAction
+         * @description Tlačítko u položky seznamu: přepnout záložku a případně skočit na prvek (data-testid).
+         */
+        GuideAction: {
+            /** Label */
+            label: string;
+            /** Tab */
+            tab: string;
+            /** Target */
+            target?: string | null;
+        };
+        /** GuideCheck */
+        GuideCheck: {
+            action?: components["schemas"]["GuideAction"] | null;
+            /**
+             * Ok
+             * @enum {string}
+             */
+            ok: "ok" | "warn" | "todo";
+            /** Text */
+            text: string;
+        };
+        /** GuideStep */
+        GuideStep: {
+            /** Text */
+            text: string;
+            /** Title */
+            title: string;
+        };
+        /** GuideTable */
+        GuideTable: {
+            /** Md */
+            md: string;
+            /** Title */
+            title: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2824,6 +4765,20 @@ export interface components {
             /** User */
             user?: string | null;
         };
+        /** HistoryItem */
+        HistoryItem: {
+            /** Author */
+            author: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Status */
+            status: string;
+            /** When */
+            when: string;
+        };
         /** JobInfo */
         JobInfo: {
             /**
@@ -2847,6 +4802,13 @@ export interface components {
             state: string;
             /** Text */
             text: string;
+        };
+        /** JournalList */
+        JournalList: {
+            /** Snapshots */
+            snapshots: components["schemas"]["SnapshotSummary"][];
+            /** Statuses */
+            statuses: string[];
         };
         /** Layout */
         Layout: {
@@ -2946,6 +4908,23 @@ export interface components {
              */
             units: string[];
         };
+        /** LiveRun */
+        LiveRun: {
+            /**
+             * Kpi
+             * @default {}
+             */
+            kpi: {
+                [key: string]: unknown;
+            };
+            /**
+             * Struct
+             * @default pid
+             */
+            struct: string;
+            /** When */
+            when?: string | null;
+        };
         /** Loop */
         Loop: {
             /**
@@ -2974,6 +4953,37 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** LoopController */
+        LoopController: {
+            /** Checksum */
+            checksum: string;
+            /** Is Default */
+            is_default: boolean;
+            profile: components["schemas"]["ControllerProfile"];
+        };
+        /** LoopControllerPut */
+        LoopControllerPut: {
+            /** From Id */
+            from_id?: string | null;
+            profile?: components["schemas"]["ControllerProfile"] | null;
+        };
+        /** LoopCtrlRef */
+        LoopCtrlRef: {
+            /** Block */
+            block: string;
+            /** Id */
+            id: string;
+            /** Is Default */
+            is_default: boolean;
+            /** Name */
+            name: string;
+            /** Tag */
+            tag: string;
+            /** Vendor */
+            vendor: string;
+            /** Verified */
+            verified: boolean;
+        };
         /** LoopHealth */
         LoopHealth: {
             /** Err */
@@ -2995,6 +5005,77 @@ export interface components {
              */
             score: number;
         };
+        /** LoopInfo */
+        LoopInfo: {
+            /** Auto Frac */
+            auto_frac: number;
+            /**
+             * Effective
+             * @enum {string}
+             */
+            effective: "open" | "cl";
+            /** Excitation */
+            excitation?: {
+                [key: string]: unknown;
+            } | null;
+            /** Has Sp */
+            has_sp: boolean;
+            /**
+             * Low Excitation
+             * @default false
+             */
+            low_excitation: boolean;
+            /** Manual Span */
+            manual_span?: number[] | null;
+            /** Mode */
+            mode: string;
+            /** Set1 */
+            set1: {
+                [key: string]: number;
+            };
+            /** Set1 Ok */
+            set1_ok: boolean;
+        };
+        /**
+         * LoopMapping
+         * @description Mapování smyčky. `norm_pv` / `norm_mv` = [dolní, horní] mez v jednotkách signálu; `cascade_to` = index podřazené smyčky.
+         */
+        LoopMapping: {
+            /** Cascade To */
+            cascade_to?: number | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Has Data
+             * @default true
+             */
+            has_data: boolean;
+            /** Index */
+            index?: number | null;
+            /** Norm Mv */
+            norm_mv?: number[] | null;
+            /** Norm Pv */
+            norm_pv?: number[] | null;
+            /**
+             * @default {
+             *       "dv": []
+             *     }
+             */
+            roles: components["schemas"]["RolesBody"];
+            /**
+             * Sources
+             * @default []
+             */
+            sources: string[];
+            /**
+             * Tag
+             * @default
+             */
+            tag: string;
+        };
         /** LoopMode */
         LoopMode: {
             /** Auto Frac */
@@ -3012,6 +5093,18 @@ export interface components {
             runs: components["schemas"]["Run"][];
             /** Set1 Ok */
             set1_ok: boolean;
+        };
+        /**
+         * LoopRange
+         * @description Úsek přepočtený na čas aktivní smyčky; `offset` = čas 0 smyčky na společné ose [s].
+         */
+        LoopRange: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+            /** Offset */
+            offset: number;
         };
         /** LoopRow */
         LoopRow: {
@@ -3062,6 +5155,24 @@ export interface components {
             active: number;
             /** Loops */
             loops: components["schemas"]["LoopRow"][];
+        };
+        /** MapRequest */
+        MapRequest: {
+            canonical: components["schemas"]["CanonicalPID"];
+            /** Mv Range */
+            mv_range?: number[] | null;
+            /** Pv Range */
+            pv_range?: number[] | null;
+        };
+        /** MapResult */
+        MapResult: {
+            effective: components["schemas"]["CanonicalPID"];
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
+            /** Warnings */
+            warnings: components["schemas"]["Warning_"][];
         };
         /** ModelInfo */
         ModelInfo: {
@@ -3127,6 +5238,11 @@ export interface components {
             /** Status */
             status?: number | null;
             /**
+             * Stic
+             * @default 0
+             */
+            stic: number;
+            /**
              * Structs
              * @default []
              */
@@ -3181,6 +5297,37 @@ export interface components {
              */
             mode: "man" | "auto";
         };
+        /** Narrow */
+        Narrow: {
+            /** Narrowed */
+            narrowed: boolean;
+            /** Span */
+            span?: number[] | null;
+        };
+        /** NewAttachment */
+        NewAttachment: {
+            /** Data B64 */
+            data_b64: string;
+            /**
+             * Desc
+             * @default
+             */
+            desc: string;
+            /**
+             * Mime
+             * @default application/octet-stream
+             */
+            mime: string;
+            /** Name */
+            name: string;
+        };
+        /** NewController */
+        NewController: {
+            /** From Id */
+            from_id: string;
+            /** Name */
+            name?: string | null;
+        };
         /** NewLoop */
         NewLoop: {
             /** Mv */
@@ -3193,6 +5340,21 @@ export interface components {
             pv?: string | null;
             /** Sp */
             sp?: string | null;
+        };
+        /** NewSnapshot */
+        NewSnapshot: {
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+            /** Loop */
+            loop?: string | number | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** Node */
         Node: {
@@ -3216,6 +5378,15 @@ export interface components {
             };
             /** Key */
             key: string;
+        };
+        /** NoteItem */
+        NoteItem: {
+            /** Author */
+            author: string;
+            /** Text */
+            text: string;
+            /** When */
+            when: string;
         };
         /** OvDefaults */
         OvDefaults: {
@@ -3289,12 +5460,45 @@ export interface components {
             /** Step */
             step?: number | null;
         };
+        /** ParamRef */
+        ParamRef: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit?: string | null;
+        };
         /** ParamRow */
         ParamRow: {
             /** Name */
             name: string;
             /** Value */
             value: number;
+        };
+        /** PartInfo */
+        PartInfo: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Params */
+            params: components["schemas"]["PartParam"][];
+        };
+        /** PartParam */
+        PartParam: {
+            /** Default */
+            default?: unknown;
+            /** Range */
+            range?: number[] | null;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit: string;
         };
         /** Pid */
         Pid: {
@@ -3307,6 +5511,36 @@ export interface components {
             Td: number;
             /** Ti */
             Ti: number;
+        };
+        /** PlantInfo */
+        PlantInfo: {
+            /** Curve X */
+            curve_x: number[];
+            /** Curve Y */
+            curve_y: number[];
+            /** Noise */
+            noise: number;
+            /** Sigma Pv */
+            sigma_pv: number;
+            /** Slip */
+            slip: number;
+            /** Stic */
+            stic: number;
+            /** Stic Default */
+            stic_default: number;
+            /** Vchar */
+            vchar: number[];
+        };
+        /** PlantSet */
+        PlantSet: {
+            /** Noise */
+            noise?: number | null;
+            /** Slip */
+            slip?: number | null;
+            /** Stic */
+            stic?: number | null;
+            /** Vchar */
+            vchar?: number[] | null;
         };
         /** PointRow */
         PointRow: {
@@ -3450,14 +5684,67 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** RecentItem */
+        RecentItem: {
+            /** At */
+            at: number;
+            /** Bytes */
+            bytes: number;
+            /** Id */
+            id: string;
+            /** Loops */
+            loops: number;
+            /** Name */
+            name: string;
+            /** Snapshot */
+            snapshot: boolean;
+        };
         /** Recommendation */
         Recommendation: {
             /** Kind */
             kind: string;
             /** Other */
             other?: number | null;
+            /**
+             * Status
+             * @default rec
+             * @enum {string}
+             */
+            status: "rec" | "unsuitable" | "skip";
             /** Text */
             text: string;
+        };
+        /** RecoveryInfo */
+        RecoveryInfo: {
+            /** At */
+            at?: number | null;
+            /** Available */
+            available: boolean;
+            /**
+             * Bytes
+             * @default 0
+             */
+            bytes: number;
+            /**
+             * Loops
+             * @default 0
+             */
+            loops: number;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /**
+         * Ref
+         * @description Sloupec zdroje: `zdroj › sloupec`.
+         */
+        Ref: {
+            /** Column */
+            column: string;
+            /** Source */
+            source: string;
         };
         /** Refit */
         Refit: {
@@ -3466,6 +5753,10 @@ export interface components {
         };
         /** ReportReq */
         ReportReq: {
+            /** Ab */
+            ab?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Chart Mode
              * @default inline
@@ -3491,6 +5782,13 @@ export interface components {
              */
             sections: string[];
         };
+        /** Restored */
+        Restored: {
+            autosave: components["schemas"]["SnapshotSummary"];
+            /** Data Changed */
+            data_changed: string[];
+            snapshot: components["schemas"]["SnapshotSummary"];
+        };
         /** RgaInfo */
         RgaInfo: {
             /**
@@ -3515,6 +5813,8 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /** Impl Text */
+            impl_text?: string | null;
             /**
              * Known
              * @default []
@@ -3535,6 +5835,56 @@ export interface components {
             /** Ready */
             ready: boolean;
         };
+        /** RobRow */
+        RobRow: {
+            /** Gm */
+            GM?: number | null;
+            /** Ms */
+            Ms?: number | null;
+            /** Ms Worst */
+            Ms_worst?: number | null;
+            /** Mt */
+            Mt?: number | null;
+            /** Pm */
+            PM?: number | null;
+            /**
+             * Approximate
+             * @default false
+             */
+            approximate: boolean;
+            /** Name */
+            name: string;
+            /** Noise */
+            noise?: number | null;
+            /** Stable */
+            stable: boolean;
+        };
+        /** Robust */
+        Robust: {
+            /** Gm */
+            GM?: number | null;
+            /** Ms */
+            Ms?: number | null;
+            /** Mt */
+            Mt?: number | null;
+            /** Pm */
+            PM?: number | null;
+            /** Stable */
+            stable: boolean;
+        };
+        /** RolesBody */
+        RolesBody: {
+            /**
+             * Dv
+             * @default []
+             */
+            dv: components["schemas"]["Ref"][];
+            mode?: components["schemas"]["Ref"] | null;
+            mv?: components["schemas"]["Ref"] | null;
+            pos?: components["schemas"]["Ref"] | null;
+            pv?: components["schemas"]["Ref"] | null;
+            sp?: components["schemas"]["Ref"] | null;
+        };
         /** Run */
         Run: {
             /** A */
@@ -3546,6 +5896,21 @@ export interface components {
              * @enum {string}
              */
             kind: "man" | "auto";
+        };
+        /** SaveState */
+        SaveState: {
+            /** Autosave Pending */
+            autosave_pending: boolean;
+            /** Autosaved At */
+            autosaved_at?: number | null;
+            /** Dirty */
+            dirty: boolean;
+            /** Has Data */
+            has_data: boolean;
+            /** Rev */
+            rev: number;
+            /** Saved At */
+            saved_at?: number | null;
         };
         /** Scatter */
         Scatter: {
@@ -3578,10 +5943,61 @@ export interface components {
             /** Sp From To */
             sp_from_to?: number[] | null;
         };
+        /** SectionInfo */
+        SectionInfo: {
+            /** Available */
+            available: boolean;
+            /** Default */
+            default: boolean;
+            /** Help */
+            help: string;
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
         /** Select */
         Select: {
             /** Code */
             code: string;
+        };
+        /** Set1Check */
+        Set1Check: {
+            /** Available */
+            available: boolean;
+            /** Fit Mv */
+            fit_mv?: number | null;
+            /** Fit Pv */
+            fit_pv?: number | null;
+            /**
+             * Ok
+             * @default false
+             */
+            ok: boolean;
+            /**
+             * Stable
+             * @default true
+             */
+            stable: boolean;
+        };
+        /** Set1Estimate */
+        Set1Estimate: {
+            /** Gain */
+            gain?: number | null;
+            /** Ok */
+            ok: boolean;
+            /**
+             * R2
+             * @default 0
+             */
+            r2: number;
+            /**
+             * Td
+             * @default 0
+             */
+            td: number;
+            /** Ti */
+            ti?: number | null;
         };
         /** SetInfo */
         SetInfo: {
@@ -3599,6 +6015,39 @@ export interface components {
             td: number;
             /** Ti */
             ti: number;
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: unknown;
+            };
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: components["schemas"]["Warn"][];
+        };
+        /** SignalStats */
+        SignalStats: {
+            /**
+             * Count
+             * @default 0
+             */
+            count: number;
+            /** Max */
+            max?: number | null;
+            /** Mean */
+            mean?: number | null;
+            /** Min */
+            min?: number | null;
+            /**
+             * Missing
+             * @default 0
+             */
+            missing: number;
+            /** Std */
+            std?: number | null;
         };
         /** SimInfo */
         SimInfo: {
@@ -3660,6 +6109,11 @@ export interface components {
         SmithInfo: {
             /** Basis Text */
             basis_text?: string | null;
+            /**
+             * Checks
+             * @default []
+             */
+            checks: components["schemas"]["pidtools__api__apc_more__Check"][];
             controller?: components["schemas"]["SmithController"] | null;
             /** General Rows */
             general_rows?: components["schemas"]["GeneralRow"][] | null;
@@ -3737,6 +6191,253 @@ export interface components {
             et?: number | null;
             /** Eth */
             eth?: number | null;
+        };
+        /** SnapshotDetail */
+        SnapshotDetail: {
+            /** App Version */
+            app_version: string;
+            /** Attachments */
+            attachments: components["schemas"]["AttachmentInfo"][];
+            /** Author */
+            author: string;
+            /** Content */
+            content: {
+                [key: string]: unknown;
+            };
+            /** Controller */
+            controller?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created */
+            created: string;
+            /** History */
+            history: components["schemas"]["HistoryItem"][];
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Live */
+            live?: {
+                [key: string]: unknown;
+            } | null;
+            /** Loop */
+            loop: string;
+            /** Model */
+            model?: {
+                [key: string]: unknown;
+            } | null;
+            /** N Attachments */
+            n_attachments: number;
+            /** N Notes */
+            n_notes: number;
+            /** Notes */
+            notes: components["schemas"]["NoteItem"][];
+            /** Results */
+            results: {
+                [key: string]: unknown;
+            };
+            /** Sets */
+            sets: {
+                [key: string]: unknown;
+            };
+            /** Sha256 */
+            sha256: string;
+            /** Status */
+            status: string;
+            /** V */
+            v: number;
+            /** Verified */
+            verified: boolean;
+        };
+        /** SnapshotPatch */
+        SnapshotPatch: {
+            /** Note */
+            note?: string | null;
+            /** Status */
+            status?: string | null;
+            /**
+             * Status Note
+             * @default
+             */
+            status_note: string;
+        };
+        /** SnapshotSummary */
+        SnapshotSummary: {
+            /** App Version */
+            app_version: string;
+            /** Author */
+            author: string;
+            /** Controller */
+            controller?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created */
+            created: string;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Live */
+            live?: {
+                [key: string]: unknown;
+            } | null;
+            /** Loop */
+            loop: string;
+            /** Model */
+            model?: {
+                [key: string]: unknown;
+            } | null;
+            /** N Attachments */
+            n_attachments: number;
+            /** N Notes */
+            n_notes: number;
+            /** Results */
+            results: {
+                [key: string]: unknown;
+            };
+            /** Sets */
+            sets: {
+                [key: string]: unknown;
+            };
+            /** Sha256 */
+            sha256: string;
+            /** Status */
+            status: string;
+            /** V */
+            v: number;
+            /** Verified */
+            verified: boolean;
+        };
+        /** SourceInfo */
+        SourceInfo: {
+            /** C Tag */
+            c_tag?: string | null;
+            /** C Time */
+            c_time?: string | null;
+            /** C Val */
+            c_val?: string | null;
+            /**
+             * Columns
+             * @default []
+             */
+            columns: string[];
+            /** End */
+            end?: number | null;
+            /**
+             * Has Clock
+             * @default false
+             */
+            has_clock: boolean;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Layout */
+            layout?: string | null;
+            /**
+             * Loaded
+             * @default true
+             */
+            loaded: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Offset S
+             * @default 0
+             */
+            offset_s: number;
+            /** Period */
+            period?: number | null;
+            /** Row Dt */
+            row_dt?: number | null;
+            /**
+             * Rows
+             * @default 0
+             */
+            rows: number;
+            /** Sampling S */
+            sampling_s?: number | null;
+            /** Start */
+            start?: number | null;
+            /** Time Fmt */
+            time_fmt?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /**
+             * Used By
+             * @default []
+             */
+            used_by: number[];
+        };
+        /** SourceIssue */
+        SourceIssue: {
+            /** Code */
+            code: string;
+            /** Col */
+            col: number;
+            /** Line */
+            line: number;
+            /** Message */
+            message: string;
+        };
+        /**
+         * SourceKind
+         * @description Druh zdroje z registru: id, popis v jazyce odpovědi a schéma voleb čtení.
+         */
+        SourceKind: {
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * SourcePatch
+         * @description Změna zdroje; zadané pole (i `null`) se změní, nezadané zůstane.
+         */
+        SourcePatch: {
+            /** C Tag */
+            c_tag?: string | null;
+            /** C Time */
+            c_time?: string | null;
+            /** C Val */
+            c_val?: string | null;
+            /** Layout */
+            layout?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Offset S */
+            offset_s?: number | null;
+            /** Row Dt */
+            row_dt?: number | null;
+            /** Sampling S */
+            sampling_s?: number | null;
+            /** Time Fmt */
+            time_fmt?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Unit */
+            unit?: string | null;
+        };
+        /** Sources */
+        Sources: {
+            common?: components["schemas"]["Common"] | null;
+            /** Kinds */
+            kinds: components["schemas"]["SourceKind"][];
+            /** Origin */
+            origin?: string | null;
+            /** Sources */
+            sources: components["schemas"]["SourceInfo"][];
+            time_grid: components["schemas"]["TimeGridBody"];
         };
         /** SplitCase */
         SplitCase: {
@@ -3846,6 +6547,36 @@ export interface components {
             /** Std */
             std?: number | null;
         };
+        /** StepOut */
+        StepOut: {
+            /** Code */
+            code: string;
+            /** Edited */
+            edited?: number[] | null;
+            /** Fit */
+            fit: number[];
+            /** Open */
+            open?: number[] | null;
+            /** T */
+            t: number[];
+            /** Theta */
+            theta: number;
+            /**
+             * Variants
+             * @default []
+             */
+            variants: number[][];
+        };
+        /** SuggestBody */
+        SuggestBody: {
+            /**
+             * Apply
+             * @default false
+             */
+            apply: boolean;
+            /** Source Ids */
+            source_ids?: string[] | null;
+        };
         /** SuggestReq */
         SuggestReq: {
             /** Method */
@@ -3853,7 +6584,25 @@ export interface components {
             /** Tc */
             tc?: number | null;
         };
-        /** Suggestion */
+        /** Suggested */
+        Suggested: {
+            /** Complete */
+            complete: boolean;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            roles: components["schemas"]["RolesBody"];
+            /** Tag */
+            tag: string;
+            /** Via */
+            via: string;
+        };
+        /**
+         * Suggestion
+         * @description Návrh v kanonickém tvaru (Kc, Ti, Td) a v parametrech regulátoru smyčky (`values` v jednotkách bloku).
+         */
         Suggestion: {
             /** Kc */
             Kc: number;
@@ -3864,6 +6613,11 @@ export interface components {
             Td: number;
             /** Ti */
             Ti: number;
+            /**
+             * Approximate
+             * @default false
+             */
+            approximate: boolean;
             /**
              * Checks
              * @default []
@@ -3876,6 +6630,218 @@ export interface components {
              * @default []
              */
             notes: components["schemas"]["Note"][];
+            robust?: components["schemas"]["Robust"] | null;
+            /** Tc */
+            tc?: number | null;
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: unknown;
+            };
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: components["schemas"]["Warn"][];
+        };
+        /** Suggestions */
+        Suggestions: {
+            /**
+             * Applied
+             * @default []
+             */
+            applied: number[];
+            /** Loops */
+            loops: components["schemas"]["Suggested"][];
+            /** Unused */
+            unused: components["schemas"]["Ref"][];
+            /**
+             * Warnings
+             * @default []
+             */
+            warnings: string[];
+        };
+        /** SummaryReq */
+        SummaryReq: {
+            /**
+             * Findings
+             * @default []
+             */
+            findings: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Meta
+             * @default {}
+             */
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        /** ThresholdInfo */
+        ThresholdInfo: {
+            /** Default */
+            default: number;
+            /** Hi */
+            hi: number;
+            /** Label */
+            label: string;
+            /** Lo */
+            lo: number;
+            /** Name */
+            name: string;
+            /** Name Label */
+            name_label: string;
+            /** Rule */
+            rule: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: number;
+        };
+        /** Thresholds */
+        Thresholds: {
+            /** Items */
+            items: components["schemas"]["ThresholdInfo"][];
+            /** Values */
+            values: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        /** ThresholdsReq */
+        ThresholdsReq: {
+            /** Values */
+            values: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+        };
+        /**
+         * TimeGridBody
+         * @description Společná časová mřížka: `overlap` (společný úsek) / `union`, ruční perioda [s], práh mezery [s].
+         */
+        TimeGridBody: {
+            /**
+             * Gap Factor
+             * @default 5
+             */
+            gap_factor: number;
+            /** Max Gap */
+            max_gap?: number | null;
+            /**
+             * Mode
+             * @default overlap
+             */
+            mode: string;
+            /** Period */
+            period?: number | null;
+        };
+        /** Trend */
+        Trend: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+            /** Cursors */
+            cursors: number[];
+            /** N */
+            n: number;
+            /** Origin */
+            origin?: string | null;
+            /** Series */
+            series: components["schemas"]["TrendSeries"][];
+        };
+        /** TrendSeries */
+        TrendSeries: {
+            /**
+             * At
+             * @default []
+             */
+            at: (number | null)[];
+            /** Column */
+            column: string;
+            /** Decimated */
+            decimated: boolean;
+            /** N Raw */
+            n_raw: number;
+            /** Ref */
+            ref: string;
+            /** Source */
+            source: string;
+            stats: components["schemas"]["SignalStats"];
+            /** T */
+            t: number[];
+            /** V */
+            v: number[];
+        };
+        /** TriageCommon */
+        TriageCommon: {
+            /** By Stiction */
+            by_stiction: boolean;
+            /** Loops */
+            loops: number[];
+            /** Period */
+            period: number;
+            /** Source */
+            source: number;
+        };
+        /** TriageLoop */
+        TriageLoop: {
+            /** Err */
+            err?: string | null;
+            /** Evidence */
+            evidence: components["schemas"]["Evidence"][];
+            /** Index */
+            index: number;
+            /** Label */
+            label: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Severity */
+            severity: number;
+            /** Slave */
+            slave?: number | null;
+            /** Tag */
+            tag: string;
+            /** Verdict */
+            verdict: string;
+        };
+        /** TriageResult */
+        TriageResult: {
+            /**
+             * Common
+             * @default []
+             */
+            common: components["schemas"]["TriageCommon"][];
+            /**
+             * Counts
+             * @default {}
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Loops
+             * @default []
+             */
+            loops: components["schemas"]["TriageLoop"][];
+            /**
+             * Ready
+             * @default false
+             */
+            ready: boolean;
+            /**
+             * Start
+             * @default []
+             */
+            start: number[];
         };
         /** Tuned */
         Tuned: {
@@ -3896,12 +6862,23 @@ export interface components {
         };
         /** TuningInfo */
         TuningInfo: {
+            /**
+             * Block Params
+             * @default []
+             */
+            block_params: components["schemas"]["BlockParam"][];
+            controller?: components["schemas"]["LoopCtrlRef"] | null;
             /** D Advice */
             d_advice?: {
                 [key: string]: unknown;
             } | null;
             /** Default Method */
             default_method: string;
+            /**
+             * Export Formats
+             * @default []
+             */
+            export_formats: string[];
             /**
              * History
              * @default []
@@ -3915,6 +6892,11 @@ export interface components {
             model: string | null;
             /** Sets */
             sets: components["schemas"]["SetInfo"][];
+            /**
+             * Tuning Params
+             * @default []
+             */
+            tuning_params: components["schemas"]["ParamRef"][];
         };
         /** Uncertainty */
         Uncertainty: {
@@ -3923,6 +6905,89 @@ export interface components {
              * @default 15
              */
             n: number;
+        };
+        /** ValRow */
+        ValRow: {
+            /** Fit */
+            FIT: number;
+            /** Iae */
+            IAE: number;
+            /** Nrmse */
+            NRMSE: number;
+            /** R2 */
+            R2: number;
+            /** Frac Acf */
+            frac_acf: number;
+            /** Frac Ccf */
+            frac_ccf: number;
+            /** Status */
+            status: number;
+        };
+        /** ValidateOut */
+        ValidateOut: {
+            /** Fit Mv */
+            fit_mv?: number | null;
+            /** Fit Pv */
+            fit_pv?: number | null;
+            id: components["schemas"]["ValRow"];
+            /** Id Rng */
+            id_rng: number[];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "pred" | "cl";
+            /**
+             * Mv
+             * @default []
+             */
+            mv: (number | null)[];
+            /** Overlap */
+            overlap: number;
+            /**
+             * Pv
+             * @default []
+             */
+            pv: (number | null)[];
+            /**
+             * Pv Range
+             * @default 100
+             */
+            pv_range: number;
+            /** Rng */
+            rng: number[];
+            /** Sim Mv */
+            sim_mv?: (number | null)[] | null;
+            /**
+             * Sim Pv
+             * @default []
+             */
+            sim_pv: (number | null)[];
+            /**
+             * Sim T
+             * @default []
+             */
+            sim_t: number[];
+            /** Sp */
+            sp?: (number | null)[] | null;
+            /**
+             * Stable
+             * @default true
+             */
+            stable: boolean;
+            /**
+             * T
+             * @default []
+             */
+            t: number[];
+            val: components["schemas"]["ValRow"];
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "same" | "ok" | "weak" | "unstable";
+            /** Which */
+            which: number;
         };
         /** Validation */
         Validation: {
@@ -4017,6 +7082,20 @@ export interface components {
                 [key: string]: components["schemas"]["VpcKpi"];
             };
         };
+        /** Warn */
+        Warn: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
+        /** Warning_ */
+        Warning_: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** Windows */
         Windows: {
             /** Excl */
@@ -4101,19 +7180,26 @@ export interface components {
              */
             time_note: string;
         };
-        /** WriteSet */
+        /**
+         * WriteSet
+         * @description Sada v kanonickém tvaru (Kc, Ti, Td), nebo v jednotkách bloku (`values`: klíč parametru profilu → hodnota).
+         */
         WriteSet: {
             /** Kc */
-            Kc: number;
+            Kc?: number | null;
             /**
              * Td
              * @default 0
              */
             Td: number;
             /** Ti */
-            Ti: number;
+            Ti?: number | null;
             /** Log */
             log?: {
+                [key: string]: unknown;
+            } | null;
+            /** Values */
+            values?: {
                 [key: string]: unknown;
             } | null;
         };
@@ -4164,7 +7250,799 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_health_get: {
+    get_settings_api_v1_app_settings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_settings_api_v1_app_settings_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_settings_api_v1_app_settings_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    thr_schema_api_v1_app_settings_diagnostics_schema_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThresholdInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_settings_api_v1_app_settings_export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description settings file (pidtools.settings) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_settings_api_v1_app_settings_import_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_logo_api_v1_app_settings_logo_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description report logo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": unknown;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_logo_api_v1_app_settings_logo_post: {
+        parameters: {
+            query: {
+                /** @description file name (extension png, jpg or svg) */
+                name: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_logo_api_v1_app_settings_logo_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    drop_autosave_api_v1_autosave_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    latest_api_v1_autosave_latest_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_controllers_api_v1_controllers_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_custom_api_v1_controllers_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewController"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compile_source_api_v1_controllers_compile_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompileResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_controller_api_v1_controllers_import_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControllerProfile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_parts_api_v1_controllers_parts_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_controller_api_v1_controllers__pid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_controller_api_v1_controllers__pid__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControllerProfile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_controller_api_v1_controllers__pid__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    to_canonical_api_v1_controllers__pid__canonical_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanonicalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanonicalPID"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_controller_api_v1_controllers__pid__export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description profile file (.pidctrl) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_canonical_api_v1_controllers__pid__map_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_controller_api_v1_controllers__pid__test_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckProtocol"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    health_api_v1_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4184,7 +8062,7 @@ export interface operations {
             };
         };
     };
-    texts_i18n__lang__get: {
+    texts_api_v1_i18n__lang__get: {
         parameters: {
             query?: never;
             header?: {
@@ -4220,7 +8098,7 @@ export interface operations {
             };
         };
     };
-    job_get_jobs__jid__get: {
+    job_get_api_v1_jobs__jid__get: {
         parameters: {
             query?: never;
             header?: {
@@ -4254,7 +8132,7 @@ export interface operations {
             };
         };
     };
-    job_cancel_jobs__jid__cancel_post: {
+    job_cancel_api_v1_jobs__jid__cancel_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4288,7 +8166,7 @@ export interface operations {
             };
         };
     };
-    job_events_jobs__jid__events_get: {
+    job_events_api_v1_jobs__jid__events_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4323,7 +8201,7 @@ export interface operations {
             };
         };
     };
-    job_result_jobs__jid__result_get: {
+    job_result_api_v1_jobs__jid__result_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4357,7 +8235,7 @@ export interface operations {
             };
         };
     };
-    available_opc_available_get: {
+    available_api_v1_opc_available_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4389,7 +8267,7 @@ export interface operations {
             };
         };
     };
-    browse_opc_browse_post: {
+    browse_api_v1_opc_browse_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4425,7 +8303,7 @@ export interface operations {
             };
         };
     };
-    find_opc_find_post: {
+    find_api_v1_opc_find_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4461,7 +8339,7 @@ export interface operations {
             };
         };
     };
-    take_pending_pending_open_get: {
+    take_pending_api_v1_pending_open_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4500,7 +8378,7 @@ export interface operations {
             };
         };
     };
-    put_pending_pending_open_put: {
+    put_pending_api_v1_pending_open_put: {
         parameters: {
             query?: never;
             header?: {
@@ -4530,7 +8408,71 @@ export interface operations {
             };
         };
     };
-    ws_create_workspaces_post: {
+    recent_api_v1_recent_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    drop_recent_api_v1_recent__rid__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ws_create_api_v1_workspaces_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4562,7 +8504,7 @@ export interface operations {
             };
         };
     };
-    ws_get_workspaces__wid__get: {
+    ws_get_api_v1_workspaces__wid__get: {
         parameters: {
             query?: never;
             header?: {
@@ -4596,7 +8538,7 @@ export interface operations {
             };
         };
     };
-    ws_delete_workspaces__wid__delete: {
+    ws_delete_api_v1_workspaces__wid__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -4628,7 +8570,7 @@ export interface operations {
             };
         };
     };
-    cascade_get_workspaces__wid__apc_cascade_get: {
+    cascade_get_api_v1_workspaces__wid__apc_cascade_get: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4665,7 +8607,7 @@ export interface operations {
             };
         };
     };
-    cascade_fit_workspaces__wid__apc_cascade_fit_post: {
+    cascade_fit_api_v1_workspaces__wid__apc_cascade_fit_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4703,7 +8645,43 @@ export interface operations {
             };
         };
     };
-    cascade_reset_workspaces__wid__apc_cascade_reset_post: {
+    cascade_irange_api_v1_workspaces__wid__apc_cascade_irange_get: {
+        parameters: {
+            query: {
+                ipv: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CascadeRange"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cascade_reset_api_v1_workspaces__wid__apc_cascade_reset_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4744,7 +8722,7 @@ export interface operations {
             };
         };
     };
-    cascade_simulate_workspaces__wid__apc_cascade_simulate_post: {
+    cascade_simulate_api_v1_workspaces__wid__apc_cascade_simulate_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4781,7 +8759,7 @@ export interface operations {
             };
         };
     };
-    cascade_curves_workspaces__wid__apc_cascade_simulate_curves_post: {
+    cascade_curves_api_v1_workspaces__wid__apc_cascade_simulate_curves_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4818,7 +8796,7 @@ export interface operations {
             };
         };
     };
-    dec_get_workspaces__wid__apc_decouple_get: {
+    dec_get_api_v1_workspaces__wid__apc_decouple_get: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4855,7 +8833,7 @@ export interface operations {
             };
         };
     };
-    dec_simulate_workspaces__wid__apc_decouple_simulate_post: {
+    dec_simulate_api_v1_workspaces__wid__apc_decouple_simulate_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4896,7 +8874,7 @@ export interface operations {
             };
         };
     };
-    dec_curves_workspaces__wid__apc_decouple_simulate_curves_post: {
+    dec_curves_api_v1_workspaces__wid__apc_decouple_simulate_curves_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -4937,7 +8915,7 @@ export interface operations {
             };
         };
     };
-    ff_get_workspaces__wid__apc_ff_get: {
+    ff_get_api_v1_workspaces__wid__apc_ff_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4971,7 +8949,7 @@ export interface operations {
             };
         };
     };
-    ff_put_workspaces__wid__apc_ff_put: {
+    ff_put_api_v1_workspaces__wid__apc_ff_put: {
         parameters: {
             query?: never;
             header?: {
@@ -5009,7 +8987,7 @@ export interface operations {
             };
         };
     };
-    ff_reset_workspaces__wid__apc_ff_reset_post: {
+    ff_reset_api_v1_workspaces__wid__apc_ff_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5047,7 +9025,7 @@ export interface operations {
             };
         };
     };
-    ff_simulate_workspaces__wid__apc_ff_simulate_post: {
+    ff_simulate_api_v1_workspaces__wid__apc_ff_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5085,7 +9063,7 @@ export interface operations {
             };
         };
     };
-    ff_curves_workspaces__wid__apc_ff_simulate_curves_post: {
+    ff_curves_api_v1_workspaces__wid__apc_ff_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5123,7 +9101,7 @@ export interface operations {
             };
         };
     };
-    gs_get_workspaces__wid__apc_gainsched_get: {
+    gs_get_api_v1_workspaces__wid__apc_gainsched_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5157,7 +9135,7 @@ export interface operations {
             };
         };
     };
-    gs_auto_workspaces__wid__apc_gainsched_auto_post: {
+    gs_auto_api_v1_workspaces__wid__apc_gainsched_auto_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5191,7 +9169,7 @@ export interface operations {
             };
         };
     };
-    gs_fit_workspaces__wid__apc_gainsched_fit_post: {
+    gs_fit_api_v1_workspaces__wid__apc_gainsched_fit_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5225,7 +9203,7 @@ export interface operations {
             };
         };
     };
-    gs_reset_workspaces__wid__apc_gainsched_reset_post: {
+    gs_reset_api_v1_workspaces__wid__apc_gainsched_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5259,7 +9237,41 @@ export interface operations {
             };
         };
     };
-    gs_simulate_workspaces__wid__apc_gainsched_simulate_post: {
+    gs_segments_api_v1_workspaces__wid__apc_gainsched_segments_curves_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description app.signalpack.frame: pv, mv in engineering units over the whole record (the identification segments are in GET /apc/gainsched, inputs.ranges) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gs_simulate_api_v1_workspaces__wid__apc_gainsched_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5293,7 +9305,7 @@ export interface operations {
             };
         };
     };
-    gs_curves_workspaces__wid__apc_gainsched_simulate_curves_post: {
+    gs_curves_api_v1_workspaces__wid__apc_gainsched_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5327,7 +9339,7 @@ export interface operations {
             };
         };
     };
-    er_get_workspaces__wid__apc_gainsched_er_get: {
+    er_get_api_v1_workspaces__wid__apc_gainsched_er_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5361,7 +9373,7 @@ export interface operations {
             };
         };
     };
-    er_reset_workspaces__wid__apc_gainsched_er_reset_post: {
+    er_reset_api_v1_workspaces__wid__apc_gainsched_er_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5395,7 +9407,7 @@ export interface operations {
             };
         };
     };
-    er_simulate_workspaces__wid__apc_gainsched_er_simulate_post: {
+    er_simulate_api_v1_workspaces__wid__apc_gainsched_er_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5429,7 +9441,7 @@ export interface operations {
             };
         };
     };
-    er_curves_workspaces__wid__apc_gainsched_er_simulate_curves_post: {
+    er_curves_api_v1_workspaces__wid__apc_gainsched_er_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5463,7 +9475,7 @@ export interface operations {
             };
         };
     };
-    ov_get_workspaces__wid__apc_override_get: {
+    ov_get_api_v1_workspaces__wid__apc_override_get: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -5501,7 +9513,7 @@ export interface operations {
             };
         };
     };
-    ov_simulate_workspaces__wid__apc_override_simulate_post: {
+    ov_simulate_api_v1_workspaces__wid__apc_override_simulate_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -5542,7 +9554,7 @@ export interface operations {
             };
         };
     };
-    ov_curves_workspaces__wid__apc_override_simulate_curves_post: {
+    ov_curves_api_v1_workspaces__wid__apc_override_simulate_curves_post: {
         parameters: {
             query?: {
                 /** @description index of the second loop of the project (as in GET /loops) */
@@ -5563,7 +9575,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units */
+            /** @description app.signalpack.frame: sp_a, pv_a_without, pv_a, lim_b, pv_b_without, pv_b, u_a, u_b, mv in engineering units, act = 1 while the limiting controller drives */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5583,7 +9595,7 @@ export interface operations {
             };
         };
     };
-    ratio_get_workspaces__wid__apc_ratio_get: {
+    ratio_get_api_v1_workspaces__wid__apc_ratio_get: {
         parameters: {
             query?: {
                 air_loop?: number | null;
@@ -5619,7 +9631,7 @@ export interface operations {
             };
         };
     };
-    ratio_design_workspaces__wid__apc_ratio_design_post: {
+    ratio_design_api_v1_workspaces__wid__apc_ratio_design_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5657,7 +9669,7 @@ export interface operations {
             };
         };
     };
-    ratio_simulate_workspaces__wid__apc_ratio_simulate_post: {
+    ratio_simulate_api_v1_workspaces__wid__apc_ratio_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5695,7 +9707,7 @@ export interface operations {
             };
         };
     };
-    ratio_curves_workspaces__wid__apc_ratio_simulate_curves_post: {
+    ratio_curves_api_v1_workspaces__wid__apc_ratio_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5733,7 +9745,7 @@ export interface operations {
             };
         };
     };
-    recommend_workspaces__wid__apc_recommend_get: {
+    recommend_api_v1_workspaces__wid__apc_recommend_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5767,7 +9779,7 @@ export interface operations {
             };
         };
     };
-    rga_get_workspaces__wid__apc_rga_get: {
+    rga_get_api_v1_workspaces__wid__apc_rga_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5801,7 +9813,7 @@ export interface operations {
             };
         };
     };
-    smith_get_workspaces__wid__apc_smith_get: {
+    smith_get_api_v1_workspaces__wid__apc_smith_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5835,7 +9847,7 @@ export interface operations {
             };
         };
     };
-    smith_optimize_workspaces__wid__apc_smith_optimize_post: {
+    smith_optimize_api_v1_workspaces__wid__apc_smith_optimize_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5869,7 +9881,7 @@ export interface operations {
             };
         };
     };
-    smith_simulate_workspaces__wid__apc_smith_simulate_post: {
+    smith_simulate_api_v1_workspaces__wid__apc_smith_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5907,7 +9919,7 @@ export interface operations {
             };
         };
     };
-    smith_curves_workspaces__wid__apc_smith_simulate_curves_post: {
+    smith_curves_api_v1_workspaces__wid__apc_smith_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -5945,7 +9957,7 @@ export interface operations {
             };
         };
     };
-    split_get_workspaces__wid__apc_split_get: {
+    split_get_api_v1_workspaces__wid__apc_split_get: {
         parameters: {
             query?: {
                 mode?: "opposite" | "sequence";
@@ -5983,7 +9995,7 @@ export interface operations {
             };
         };
     };
-    split_design_workspaces__wid__apc_split_design_post: {
+    split_design_api_v1_workspaces__wid__apc_split_design_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6021,7 +10033,7 @@ export interface operations {
             };
         };
     };
-    split_simulate_workspaces__wid__apc_split_simulate_post: {
+    split_simulate_api_v1_workspaces__wid__apc_split_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6059,7 +10071,7 @@ export interface operations {
             };
         };
     };
-    split_curves_workspaces__wid__apc_split_simulate_curves_post: {
+    split_curves_api_v1_workspaces__wid__apc_split_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6097,7 +10109,7 @@ export interface operations {
             };
         };
     };
-    vpc_get_workspaces__wid__apc_vpc_get: {
+    vpc_get_api_v1_workspaces__wid__apc_vpc_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6131,7 +10143,7 @@ export interface operations {
             };
         };
     };
-    vpc_design_workspaces__wid__apc_vpc_design_post: {
+    vpc_design_api_v1_workspaces__wid__apc_vpc_design_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6169,7 +10181,7 @@ export interface operations {
             };
         };
     };
-    vpc_simulate_workspaces__wid__apc_vpc_simulate_post: {
+    vpc_simulate_api_v1_workspaces__wid__apc_vpc_simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6207,7 +10219,7 @@ export interface operations {
             };
         };
     };
-    vpc_curves_workspaces__wid__apc_vpc_simulate_curves_post: {
+    vpc_curves_api_v1_workspaces__wid__apc_vpc_simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6245,7 +10257,7 @@ export interface operations {
             };
         };
     };
-    analyse_workspaces__wid__audit_analyse_post: {
+    analyse_api_v1_workspaces__wid__audit_analyse_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6283,7 +10295,7 @@ export interface operations {
             };
         };
     };
-    audit_loops_workspaces__wid__audit_loops_get: {
+    audit_loops_api_v1_workspaces__wid__audit_loops_get: {
         parameters: {
             query?: {
                 propose?: boolean;
@@ -6319,7 +10331,75 @@ export interface operations {
             };
         };
     };
-    set_columns_workspaces__wid__columns_put: {
+    autosave_api_v1_workspaces__wid__autosave_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_api_v1_workspaces__wid__autosave_restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_columns_api_v1_workspaces__wid__columns_put: {
         parameters: {
             query?: never;
             header?: {
@@ -6357,7 +10437,7 @@ export interface operations {
             };
         };
     };
-    compression_workspaces__wid__compression_get: {
+    compression_api_v1_workspaces__wid__compression_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6391,7 +10471,79 @@ export interface operations {
             };
         };
     };
-    load_demo_workspaces__wid__data_demo_post: {
+    get_loop_controller_api_v1_workspaces__wid__controller_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopController"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_loop_controller_api_v1_workspaces__wid__controller_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoopControllerPut"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopController"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    load_demo_api_v1_workspaces__wid__data_demo_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6425,7 +10577,44 @@ export interface operations {
             };
         };
     };
-    load_file_workspaces__wid__data_file_post: {
+    load_example_api_v1_workspaces__wid__data_example_post: {
+        parameters: {
+            query: {
+                /** @description example data set: ff = feedforward (APC) */
+                name: "ff";
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    load_file_api_v1_workspaces__wid__data_file_post: {
         parameters: {
             query: {
                 /** @description file name (extension) */
@@ -6466,7 +10655,7 @@ export interface operations {
             };
         };
     };
-    dataquality_workspaces__wid__dataquality_get: {
+    dataquality_api_v1_workspaces__wid__dataquality_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6500,7 +10689,7 @@ export interface operations {
             };
         };
     };
-    datastats_workspaces__wid__datastats_get: {
+    datastats_api_v1_workspaces__wid__datastats_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6534,7 +10723,7 @@ export interface operations {
             };
         };
     };
-    diagnostics_workspaces__wid__diagnostics_get: {
+    diagnostics_api_v1_workspaces__wid__diagnostics_get: {
         parameters: {
             query?: {
                 a?: number | null;
@@ -6572,7 +10761,7 @@ export interface operations {
             };
         };
     };
-    frequency_workspaces__wid__frequency_post: {
+    frequency_api_v1_workspaces__wid__frequency_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6610,7 +10799,42 @@ export interface operations {
             };
         };
     };
-    identify_workspaces__wid__identify_post: {
+    guide_get_api_v1_workspaces__wid__guide__tab__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                tab: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Guide"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    identify_api_v1_workspaces__wid__identify_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6644,7 +10868,380 @@ export interface operations {
             };
         };
     };
-    get_layout_workspaces__wid__layout_get: {
+    listing_api_v1_workspaces__wid__journal_get: {
+        parameters: {
+            query?: {
+                loop?: string | null;
+                status?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_v1_workspaces__wid__journal_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSnapshot"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_api_v1_workspaces__wid__journal_compare_get: {
+        parameters: {
+            query: {
+                a: string;
+                b: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Compare"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    live_api_v1_workspaces__wid__journal_live_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveRun"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_v1_workspaces__wid__journal__sid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_api_v1_workspaces__wid__journal__sid__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnapshotPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_api_v1_workspaces__wid__journal__sid__attachments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAttachment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attachment_api_v1_workspaces__wid__journal__sid__attachments__aid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentData"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_api_v1_workspaces__wid__journal__sid__report_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportReq"];
+            };
+        };
+        responses: {
+            /** @description report from a journal snapshot (HTML) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_api_v1_workspaces__wid__journal__sid__restore_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Restored"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_layout_api_v1_workspaces__wid__layout_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6678,7 +11275,7 @@ export interface operations {
             };
         };
     };
-    set_layout_workspaces__wid__layout_put: {
+    set_layout_api_v1_workspaces__wid__layout_put: {
         parameters: {
             query?: never;
             header?: {
@@ -6716,7 +11313,7 @@ export interface operations {
             };
         };
     };
-    live_config_workspaces__wid__live_get: {
+    live_config_api_v1_workspaces__wid__live_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6752,7 +11349,7 @@ export interface operations {
             };
         };
     };
-    loopmode_workspaces__wid__loopmode_get: {
+    loopmode_api_v1_workspaces__wid__loopmode_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6786,7 +11383,7 @@ export interface operations {
             };
         };
     };
-    loops_workspaces__wid__loops_get: {
+    loops_api_v1_workspaces__wid__loops_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6820,7 +11417,7 @@ export interface operations {
             };
         };
     };
-    add_loop_workspaces__wid__loops_post: {
+    add_loop_api_v1_workspaces__wid__loops_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6858,7 +11455,7 @@ export interface operations {
             };
         };
     };
-    set_active_workspaces__wid__loops_active_put: {
+    set_active_api_v1_workspaces__wid__loops_active_put: {
         parameters: {
             query?: never;
             header?: {
@@ -6896,7 +11493,81 @@ export interface operations {
             };
         };
     };
-    loops_overview_workspaces__wid__loops_overview_get: {
+    import_mapping_api_v1_workspaces__wid__loops_import_post: {
+        parameters: {
+            query?: {
+                apply?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mappings_api_v1_workspaces__wid__loops_mappings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopMapping"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    loops_overview_api_v1_workspaces__wid__loops_overview_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6930,7 +11601,45 @@ export interface operations {
             };
         };
     };
-    remove_loop_workspaces__wid__loops__index__delete: {
+    suggest_api_v1_workspaces__wid__loops_suggest_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_loop_api_v1_workspaces__wid__loops__index__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -6965,7 +11674,81 @@ export interface operations {
             };
         };
     };
-    get_model_workspaces__wid__model_get: {
+    get_mapping_api_v1_workspaces__wid__loops__index__mapping_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopMapping"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_mapping_api_v1_workspaces__wid__loops__index__mapping_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoopMapping"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopMapping"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_api_v1_workspaces__wid__model_get: {
         parameters: {
             query?: never;
             header?: {
@@ -6999,7 +11782,41 @@ export interface operations {
             };
         };
     };
-    crossval_workspaces__wid__model_crossval_post: {
+    compare_api_v1_workspaces__wid__model_compare_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompareOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crossval_api_v1_workspaces__wid__model_crossval_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7033,7 +11850,7 @@ export interface operations {
             };
         };
     };
-    curves_workspaces__wid__model_curves_get: {
+    curves_api_v1_workspaces__wid__model_curves_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7067,7 +11884,7 @@ export interface operations {
             };
         };
     };
-    select_dist_workspaces__wid__model_dist_put: {
+    select_dist_api_v1_workspaces__wid__model_dist_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7105,7 +11922,41 @@ export interface operations {
             };
         };
     };
-    refit_workspaces__wid__model_refit_post: {
+    loop_info_api_v1_workspaces__wid__model_loop_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refit_api_v1_workspaces__wid__model_refit_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7143,7 +11994,7 @@ export interface operations {
             };
         };
     };
-    reset_workspaces__wid__model_reset_post: {
+    reset_api_v1_workspaces__wid__model_reset_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7181,7 +12032,7 @@ export interface operations {
             };
         };
     };
-    select_workspaces__wid__model_select_put: {
+    select_api_v1_workspaces__wid__model_select_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7219,7 +12070,111 @@ export interface operations {
             };
         };
     };
-    uncertainty_workspaces__wid__model_uncertainty_post: {
+    set1_check_api_v1_workspaces__wid__model_set1_check_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Set1Check"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set1_estimate_api_v1_workspaces__wid__model_set1_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Set1Estimate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    step_api_v1_workspaces__wid__model_step_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uncertainty_api_v1_workspaces__wid__model_uncertainty_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7257,7 +12212,46 @@ export interface operations {
             };
         };
     };
-    validation_workspaces__wid__model_validation_get: {
+    validate_api_v1_workspaces__wid__model_validate_get: {
+        parameters: {
+            query?: {
+                a?: number | null;
+                b?: number | null;
+                mode?: "pred" | "cl";
+                which?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validation_api_v1_workspaces__wid__model_validation_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7291,7 +12285,7 @@ export interface operations {
             };
         };
     };
-    history_workspaces__wid__opc_history_post: {
+    history_api_v1_workspaces__wid__opc_history_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7329,7 +12323,7 @@ export interface operations {
             };
         };
     };
-    preview_workspaces__wid__preview_get: {
+    preview_api_v1_workspaces__wid__preview_get: {
         parameters: {
             query?: {
                 offset?: number;
@@ -7368,7 +12362,7 @@ export interface operations {
             };
         };
     };
-    preview_csv_workspaces__wid__preview_csv_get: {
+    preview_csv_api_v1_workspaces__wid__preview_csv_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7402,7 +12396,7 @@ export interface operations {
             };
         };
     };
-    save_workspaces__wid__project_get: {
+    save_api_v1_workspaces__wid__project_get: {
         parameters: {
             query?: {
                 data?: boolean;
@@ -7438,7 +12432,7 @@ export interface operations {
             };
         };
     };
-    load_workspaces__wid__project_put: {
+    load_api_v1_workspaces__wid__project_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7476,7 +12470,7 @@ export interface operations {
             };
         };
     };
-    quality_workspaces__wid__quality_get: {
+    quality_api_v1_workspaces__wid__quality_get: {
         parameters: {
             query?: {
                 a?: number | null;
@@ -7513,7 +12507,7 @@ export interface operations {
             };
         };
     };
-    set_range_workspaces__wid__range_put: {
+    set_range_api_v1_workspaces__wid__range_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7551,7 +12545,83 @@ export interface operations {
             };
         };
     };
-    report_workspaces__wid__report_post: {
+    set_range_common_api_v1_workspaces__wid__range_common_put: {
+        parameters: {
+            query?: {
+                /** @description false = jen přepočet, úsek se nenastaví */
+                apply?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AxisRange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopRange"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_recent_api_v1_workspaces__wid__recent__rid__open_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                rid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_api_v1_workspaces__wid__report_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7589,7 +12659,113 @@ export interface operations {
             };
         };
     };
-    get_scenario_workspaces__wid__scenario_get: {
+    sections_api_v1_workspaces__wid__report_sections_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summary_api_v1_workspaces__wid__report_summary_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SummaryReq"];
+            };
+        };
+        responses: {
+            /** @description summary report of all loops (HTML) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_state_api_v1_workspaces__wid__save_state_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_api_v1_workspaces__wid__scenario_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7623,7 +12799,7 @@ export interface operations {
             };
         };
     };
-    set_scenario_workspaces__wid__scenario_put: {
+    set_scenario_api_v1_workspaces__wid__scenario_put: {
         parameters: {
             query?: never;
             header?: {
@@ -7661,7 +12837,7 @@ export interface operations {
             };
         };
     };
-    get_settings_workspaces__wid__settings_get: {
+    get_settings_api_v1_workspaces__wid__settings_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7697,7 +12873,7 @@ export interface operations {
             };
         };
     };
-    patch_settings_workspaces__wid__settings_patch: {
+    patch_settings_api_v1_workspaces__wid__settings_patch: {
         parameters: {
             query?: never;
             header?: {
@@ -7739,7 +12915,7 @@ export interface operations {
             };
         };
     };
-    signals_workspaces__wid__signals_get: {
+    signals_api_v1_workspaces__wid__signals_get: {
         parameters: {
             query?: {
                 names?: string[] | null;
@@ -7777,7 +12953,50 @@ export interface operations {
             };
         };
     };
-    simulate_workspaces__wid__simulate_post: {
+    signals_trend_api_v1_workspaces__wid__signals_trend_get: {
+        parameters: {
+            query?: {
+                /** @description `zdroj:sloupec`; bez zadání všechny */
+                names?: string[] | null;
+                a?: number | null;
+                b?: number | null;
+                /** @description skupin pro zředění */
+                n?: number;
+                /** @description časy kurzorů [s] */
+                at?: number[] | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trend"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_api_v1_workspaces__wid__simulate_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7815,7 +13034,7 @@ export interface operations {
             };
         };
     };
-    simulate_curves_workspaces__wid__simulate_curves_post: {
+    simulate_curves_api_v1_workspaces__wid__simulate_curves_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7853,7 +13072,7 @@ export interface operations {
             };
         };
     };
-    info_workspaces__wid__tuning_get: {
+    list_sources_api_v1_workspaces__wid__sources_get: {
         parameters: {
             query?: never;
             header?: {
@@ -7873,7 +13092,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TuningInfo"];
+                    "application/json": components["schemas"]["Sources"];
                 };
             };
             /** @description Validation Error */
@@ -7887,7 +13106,272 @@ export interface operations {
             };
         };
     };
-    compare_workspaces__wid__tuning_compare_post: {
+    add_source_api_v1_workspaces__wid__sources_post: {
+        parameters: {
+            query: {
+                /** @description file name (extension) */
+                name: string;
+                kind?: string | null;
+                layout?: string | null;
+                time_fmt?: string | null;
+                unit?: string | null;
+                c_time?: string | null;
+                c_tag?: string | null;
+                c_val?: string | null;
+                row_dt?: number | null;
+                timezone?: string | null;
+                offset_s?: number;
+                sampling_s?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_source_api_v1_workspaces__wid__sources__sid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_source_api_v1_workspaces__wid__sources__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_source_api_v1_workspaces__wid__sources__sid__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_time_grid_api_v1_workspaces__wid__time_grid_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGridBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_time_grid_api_v1_workspaces__wid__time_grid_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeGridBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGridBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    last_api_v1_workspaces__wid__triage_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriageResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_api_v1_workspaces__wid__triage_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7921,7 +13405,295 @@ export interface operations {
             };
         };
     };
-    write_set_workspaces__wid__tuning_sets__n__put: {
+    get_thr_api_v1_workspaces__wid__triage_thresholds_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thresholds"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_thr_api_v1_workspaces__wid__triage_thresholds_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThresholdsReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thresholds"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    info_api_v1_workspaces__wid__tuning_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TuningInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_api_v1_workspaces__wid__tuning_compare_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_api_v1_workspaces__wid__tuning_export_get: {
+        parameters: {
+            query?: {
+                fmt?: string;
+                n?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description parameter set in block names and units (fmt: csv, pcs7, tia, deltav) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                    "text/plain": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plant_api_v1_workspaces__wid__tuning_plant_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_plant_api_v1_workspaces__wid__tuning_plant_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlantSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    robustness_api_v1_workspaces__wid__tuning_robustness_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Pid"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    write_set_api_v1_workspaces__wid__tuning_sets__n__put: {
         parameters: {
             query?: never;
             header?: {
@@ -7960,7 +13732,7 @@ export interface operations {
             };
         };
     };
-    suggest_workspaces__wid__tuning_suggest_post: {
+    suggest_api_v1_workspaces__wid__tuning_suggest_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7998,7 +13770,41 @@ export interface operations {
             };
         };
     };
-    get_windows_workspaces__wid__windows_get: {
+    warnings_api_v1_workspaces__wid__tuning_warnings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Warn"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_windows_api_v1_workspaces__wid__windows_get: {
         parameters: {
             query?: never;
             header?: {
@@ -8032,7 +13838,7 @@ export interface operations {
             };
         };
     };
-    set_windows_workspaces__wid__windows_put: {
+    set_windows_api_v1_workspaces__wid__windows_put: {
         parameters: {
             query?: never;
             header?: {
@@ -8070,7 +13876,7 @@ export interface operations {
             };
         };
     };
-    set_mv_mode_workspaces__wid__windows_mode_put: {
+    set_mv_mode_api_v1_workspaces__wid__windows_mode_put: {
         parameters: {
             query?: never;
             header?: {
@@ -8095,6 +13901,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WindowsInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    narrow_api_v1_workspaces__wid__windows_narrow_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Narrow"];
                 };
             };
             /** @description Validation Error */

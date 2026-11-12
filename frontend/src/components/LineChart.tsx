@@ -1,5 +1,6 @@
 // Jednoduchý graf průběhů (SVG) – odezvy ladění, frekvenční charakteristiky. Řady se zředí na ~1500 bodů.
 import { useMemo } from "react";
+import { useUi } from "../store";
 
 // legend: false = bez položky v legendě; NaN v x nebo y přeruší čáru (body mimo rozsah se tak jen vynechají);
 // dots: body (kolečka o průměru `width`) místo čáry – fázové grafy a nelinearita
@@ -15,11 +16,16 @@ function ticks(lo: number, hi: number, n = 5): number[] {
   return out;
 }
 
-export function LineChart({ series, height = 220, xLabel, yLabel, logX, testid, xDomain, yDomain }: {
+/** Podbarvené pásmo osy x (úseky dat, doba řízení omezujícím regulátorem); label = číslo / text uprostřed pásma. */
+export interface Band { from: number; to: number; color?: string; label?: string }
+
+export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, testid, xDomain, yDomain, bands }: {
   series: Series[]; height?: number; xLabel?: string; yLabel?: string; logX?: boolean; testid?: string;
   xDomain?: [number, number]; yDomain?: [number, number];        // pevný rozsah os (v jednotkách dat, bez logX)
+  bands?: Band[];                                                // svislá pásma (bez logX)
 }) {
-  const W = 720, H = height, L = 52, R = 10, Tm = 10, B = 28;
+  const chartH = useUi((st) => st.chartH);
+  const W = 720, H = heightProp ?? chartH, L = 52, R = 10, Tm = 10, B = 28;
   const prep = useMemo(() => {
     const tx = (v: number) => (logX ? Math.log10(Math.max(v, 1e-12)) : v);
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -56,6 +62,14 @@ export function LineChart({ series, height = 220, xLabel, yLabel, logX, testid, 
   return (
     <figure className="chart" data-testid={testid}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img">
+        {!logX && bands?.map((b, i) => {
+          const a = Math.max(L, sx(b.from)), z = Math.min(W - R, sx(b.to));
+          return z > a ? (
+            <g key={i} data-testid={testid ? `${testid}-band-${i}` : undefined}>
+              <rect x={a} y={Tm} width={z - a} height={H - Tm - B} fill={b.color ?? "var(--pid-accent)"} opacity={0.16} />
+              {b.label && <text x={(a + z) / 2} y={Tm + 12} textAnchor="middle" className="lab">{b.label}</text>}
+            </g>) : null;
+        })}
         {ticks(y0, y1).map((v) => <g key={v}><line x1={L} x2={W - R} y1={sy(v)} y2={sy(v)} className="grid" />
           <text x={L - 4} y={sy(v) + 3} textAnchor="end">{+v.toPrecision(4)}</text></g>)}
         {xt.map((v) => <g key={v}><line x1={sx(v)} x2={sx(v)} y1={Tm} y2={H - B} className="grid" />

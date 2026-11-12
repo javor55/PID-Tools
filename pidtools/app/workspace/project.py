@@ -16,7 +16,8 @@ class ProjectMixin:
         state = {k: prj.jsonable(v) for k, v in self.settings.items() if prj.is_state_key(k) and v is not None}
         rec = dict(tag=self.get("loop_tag", ""), state=state,
                    map=dict(c_pv=self.c_pv, c_mv=self.c_mv, c_sp=self.c_sp, c_d=list(self.c_d), c_pos=self.c_pos),
-                   ranges={"id": list(self.rng), "val": list(self.rng)}, ff=list(self.ff_state))
+                   ranges={"id": list(self.rng), "val": list(self.val_rng() if self.has_data else self.rng)}, ff=list(self.ff_state))
+        rec["controller"] = self.controller         # kopie profilu regulátoru (None = výchozí PIDConL)
         fit = prj.fit_record(self.fit)
         if fit:
             rec["fit"] = fit
@@ -54,6 +55,7 @@ class ProjectMixin:
         if rg and self.has_data:
             self.rng = (float(rg[0]), float(rg[1]))
         self.ff_state = rec.get("ff") or []
+        self.controller = rec.get("controller") or None
         win = rec.get("windows") or {}
         self.wins = {str(k): [[float(a), float(b)] for a, b in v] for k, v in (win.get("wins") or {}).items()}
         self.excl = {str(k): list(v) for k, v in (win.get("excl") or {}).items()}

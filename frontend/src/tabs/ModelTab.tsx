@@ -9,6 +9,7 @@ import { Trend } from "../components/Trend";
 import { Help } from "../components/Ui";
 import { DistCompare, ModelDetails } from "./ModelDetails";
 import { DIST_STYLE, MV_STYLE, windowFits } from "./modelConst";
+import { ModelViews, ValidationCard } from "./ModelValidation";
 import "../styles/model.css";
 import { usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
 import { useT } from "../i18n";
@@ -111,6 +112,8 @@ export function ModelMain() {
       {data && <Trend data={data} onWins={(w) => void onWins(w)} onMode={(m) => void patch({ win_mode: m })}
         testid="model-trend" />}
       <ModelTable model={model} />
+      {model?.has_fit && <ValidationCard model={model} />}
+      {model?.has_fit && <ModelViews model={model} />}
       {model?.has_fit && <ModelDetails model={model} />}
     </div>
   );
@@ -122,6 +125,7 @@ function ModelTable({ model }: { model?: ModelState }) {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const sel = model?.results.find((r) => r.code === model.selected);
+  const anyCl = !!model?.results.some((r) => r.method === "cl" || r.mixed);
   if (!model?.has_fit) return <div className="card muted" data-testid="no-model">{T("info_fit")}</div>;
   const select = async (code: string) => {
     qc.setQueriesData<ModelState>({ queryKey: ["ws", wid, "model"] }, (old) => (old ? { ...old, selected: code } : old));
@@ -136,16 +140,18 @@ function ModelTable({ model }: { model?: ModelState }) {
         {T("ms_cmp_tab", { k: 1, n: "MV" })}</div>
       <table className="tbl" data-testid="models">
         <thead><tr><th /><th>{T("col_model")}</th><th>FIT [%]</th><th>NRMSE [%]</th><th>{T("col_status")}</th>
-          <th>{T("dk_params")}</th></tr></thead>
+          {anyCl && <th title={T("idm_table_note")}>{T("idm_fit_cl")}</th>}<th>{T("dk_params")}</th></tr></thead>
         <tbody>
           {model.results.map((r) => (
             <tr key={r.code} className={r.code === model.selected ? "sel" : ""}>
               <td><input type="radio" name="mcode" checked={r.code === model.selected} onChange={() => void select(r.code)}
-                aria-label={r.code} /></td>
+                aria-label={r.code} title={T("ms_cmp_pick")} /></td>
               <td>{T("model_" + r.code)}{r.mixed ? " · AUTO" : ""}</td>
               <td className="mono">{r.fit_live?.toFixed(1) ?? "–"}</td>
               <td className="mono">{r.nrmse?.toFixed(2) ?? "–"}</td>
               <td>{r.status !== null && r.status !== undefined ? T("st_" + r.status) : "–"}</td>
+              {anyCl && <td className="mono" data-testid={`fit-cl-${r.code}`}>{r.fit_cl_pv == null ? "—" :
+                `PV ${r.fit_cl_pv.toFixed(1)} / MV ${(r.fit_cl_mv ?? NaN).toFixed(1)}`}</td>}
               <td className="mono small">{r.p.map((x) => x.toPrecision(4)).join(", ")}</td>
             </tr>
           ))}
@@ -163,6 +169,13 @@ function ModelTable({ model }: { model?: ModelState }) {
           <div className="muted small">{T("ms_cmp_dv_note")}</div>
         </div>
       )}
+      {anyCl && <div className="muted small">{T("idm_table_note")}</div>}
+      {model.results.filter((r) => r.p_open && r.method === "cl").map((r) => (
+        <div key={r.code} className="small" data-testid={`open-model-${r.code}`}>
+          {T("idm_open_model", { p: `${T("model_" + r.code)}: ${r.p_open!.map((x) => x.toPrecision(4)).join(", ")}` })}</div>))}
+      {model.results.filter((r) => r.mixed && r.fit_cl_pv != null && r.fit_cl_pv < 50).map((r) => (
+        <div key={r.code} className="warn small" data-testid="mix-set1-bad">{T("mix_set1_bad", { m: T("model_" + r.code),
+          f: (r.fit_cl_pv ?? 0).toFixed(0) })}</div>))}
       {model.results.flatMap((r) => r.checks.map((c) => (
         <div key={r.code + c.key} className="warn small" data-testid="model-check">⚠ {T(c.key, {
           ...c.args, m: T("model_" + r.code), th: dur(Number(c.args.th), dec), T: dur(Number(c.args.T), dec) })}</div>)))}

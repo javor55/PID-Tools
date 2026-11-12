@@ -119,3 +119,22 @@ def test_live_config_needs_model():
         assert c.get(f"/workspaces/{wid}/live").status_code == 409
         c.post(f"/workspaces/{wid}/data/demo")
         assert c.get(f"/workspaces/{wid}/live").status_code == 409
+
+
+def test_live_config_profile_dv_and_apc(ws):
+    """E9-B: regulátor z profilu smyčky (výchozí PIDConL), měřené poruchy přes model, struktury APC, rychlosti a deník."""
+    c, wid = ws
+    cfg = c.get(f"/workspaces/{wid}/live").json()
+    assert cfg["profile"]["id"] == "pcs7_pidconl" and cfg["speeds"] == [1, 10, 50, 200] and cfg["journal"] is True
+    assert set(cfg["pctrl"]) == {"1", "2"} and cfg["pctrl"]["2"]["Gain"] == pytest.approx(cfg["sets"]["2"]["Gain"])
+    assert set(cfg["apc"]) == {"ff", "cascade"} and isinstance(cfg["dvs"], list)
+    for d in cfg["dvs"]:
+        assert len(d["pd"]) >= 3 and d["span"] > 0 and set(d["ff"]) == {"g", "lead", "lag", "delay"}
+    if cfg["apc"]["cascade"]["ok"]:
+        inner = cfg["apc"]["cascade"]["inner"]
+        assert inner["code"] in ("P1D", "P2D") and inner["ctrl"]["Gain"] != 0
+    assert cfg["labels"]["st_cascade"] and cfg["labels"]["journal"]
+    # zápis souhrnu běhu do nastavení projektu (hook pro deník E10)
+    run = {"when": "2026-11-12T10:00:00", "struct": "ff", "kpi": {"1": {"iae": 1.5}, "2": {"iae": 0.9}}}
+    assert c.patch(f"/workspaces/{wid}/settings", json={"live_runs": [run]}).status_code == 200
+    assert c.get(f"/workspaces/{wid}/settings").json()["live_runs"] == [run]

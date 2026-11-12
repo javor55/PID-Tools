@@ -151,19 +151,73 @@
     };
   }
 
-  /* Smyčka: stejné rozhraní jako Python LiveLoop.advance (sp, uMan, dIn v % rozsahů). */
-  function LiveLoop(code, p, ctrl, h, pv0, mv0, plant) {
-    plant = plant || {};
+  /* Poruchy měřené (DV): přenos poruchy K·e^(−θs)/(Ts+1)[·1/(T2s+1)], u integračního procesu integrace (jako
+     core.simulate_dist) a dopředná vazba g·lead-lag·zpoždění (jako core.pidconl_sim_full). Vstup v jednotkách DV. */
+  function DelayLine(th, h) {
+    var d = th > 0 ? th / h : 0;
+    this.i = Math.floor(d + 1e-9); this.f = d - this.i; if (this.f < 1e-9) this.f = 0;
+    this.buf = new Array(this.i + 2).fill(0); this.k = 0;
+  }
+  DelayLine.prototype.push = function (x) {
+    var n = this.buf.length;
+    this.buf[this.k % n] = x;
+    var a = this.buf[(this.k - this.i + n * 4) % n], b = this.buf[(this.k - this.i - 1 + n * 4) % n];
+    var y = this.k - this.i < 0 ? 0 : (this.f ? (1 - this.f) * a + this.f * (this.k - this.i - 1 < 0 ? 0 : b) : a);
+    this.k++;
+    return y;
+  };
+  function Lag(T, h) { this.a = T > 0 ? Math.exp(-h / T) : 0; this.on = T > 0; this.y = 0; }
+  Lag.prototype.push = function (x) { if (!this.on) return x; this.y = this.a * this.y + (1 - this.a) * x; return this.y; };
+
+  function DvChannel(spec, h, integProc) {
+    var pd = spec.pd;                                    // [K, T, θ, druh, T2]
+    this.K = pd[0]; this.dl = new DelayLine(pd[2], h); this.l1 = new Lag(pd[1], h);
+    this.l2 = new Lag(pd.length > 4 ? pd[4] : 0, h);
+    var kind = pd.length > 3 ? Math.round(pd[3]) : 0;
+    this.integ = kind === 0 ? !!integProc : kind === 2;
+    this.z = 0; this.h = h;
+    var ff = spec.ff || {};                              // {g, lead, lag, delay}
+    this.g = ff.g || 0;
+    if (this.g !== 0) {
+      this.fdl = new DelayLine(ff.delay || 0, h);
+      this.fl = ff.lag > 0 ? new Lag(ff.lag, h) : null; this.fr = ff.lag > 0 ? ff.lead / ff.lag : 0;
+    }
+  }
+  DvChannel.prototype.setFF = function (on) { this.ffOn = !!on; };
+  DvChannel.prototype.step = function (d) {              // vrací [příspěvek k PV, příspěvek k FF]
+    var y = this.K * this.l2.push(this.l1.push(this.dl.push(d)));
+    if (this.integ) { this.z += y * this.h; y = this.z; }
+    var f = 0;
+    if (this.g !== 0 && this.ffOn) {
+      var x = this.fdl.push(d);
+      if (this.fl) x = this.fr * x + (1 - this.fr) * this.fl.push(x);
+      f = this.g * x;
+    }
+    return [y, f];
+  };
+
+  /* Smyčka: stejné rozhraní jako Python LiveLoop.advance (sp, uMan, dIn v % rozsahů).
+     opts (volitelné): profile = profil regulátoru (CtrlEngine; bez něj dnešní PIDConL), engine = CtrlEngine,
+     dvs = [{pd, ff:{g, lead, lag, delay}}] měřené poruchy, ff = zapnout dopřednou vazbu. */
+  function LiveLoop(code, p, ctrl, h, pv0, mv0, plant, opts) {
+    plant = plant || {}; opts = opts || {};
     this.h = h; this.pv0 = pv0; this.mv0 = mv0;
     this.proc = new ProcStep(code, p, h);
-    this.pid = new PIDConL(ctrl, h);
+    var CE = opts.engine || root.CtrlEngine;
+    this.profile = opts.profile && CE ? CE.profile(opts.profile) : null;
+    this.pid = this.profile ? new CE.Controller(this.profile, ctrl, h) : new PIDConL(ctrl, h);
     this.valve = new Valve(plant.Stic || 0, plant.SticJ, plant.ValveChar, mv0);
     this.sigma = plant.Noise || 0;
     this.rng = mulberry32(plant.Seed || 1);
     this.pid.init(pv0, pv0, mv0);
+    var integ = code === "I0D" || code === "I1D";
+    this.dv = (opts.dvs || []).map(function (s) { var c = new DvChannel(s, h, integ); c.setFF(!!opts.ff); return c; });
     this.t = 0;
   }
-  LiveLoop.prototype.setTuning = function (c) { this.pid.setTuning(c.Gain, c.TI === null ? Infinity : c.TI, c.TD); };
+  LiveLoop.prototype.setTuning = function (c) {
+    var ti = c.TI === null || c.TI === undefined ? Infinity : c.TI;
+    if (this.pid.setIdeal) this.pid.setIdeal(c.Gain, ti, c.TD); else this.pid.setTuning(c.Gain, ti, c.TD);
+  };
 
   /* Změny za běhu (živá simulace v prohlížeči; Python je nepotřebuje). */
   LiveLoop.prototype.setPlant = function (p) {
@@ -186,21 +240,68 @@
   };
   LiveLoop.prototype.setNoise = function (sigma) { this.sigma = sigma || 0; };
   LiveLoop.prototype.setPVFilter = function (T) {
-    this.pid.Tpv = T || 0; this.pid.apv = this.pid.Tpv > 0 ? Math.exp(-this.h / this.pid.Tpv) : 0;
+    setPvFilter(this.pid, T || 0, this.h);
   };
+  function setPvFilter(pid, T, h) {
+    if (pid._apv !== undefined) {                       // CtrlEngine.Controller
+      if (pid.profile && !pid.profile.pvLag) return;
+      pid._lag = T > 0; pid._apv = T > 0 ? Math.exp(-h / T) : 0; pid._bpv = 1 - pid._apv;
+    } else { pid.Tpv = T; pid.apv = T > 0 ? Math.exp(-h / T) : 0; }
+  }
 
-  /* Jeden krok h; vrací [t, SP, PV, MV, V]. dOut = porucha přičtená k PV (volitelně). */
-  LiveLoop.prototype.tick = function (sp, auto, uMan, dIn, dOut) {
-    var y = this.pv0 + this.proc.output() + (dOut || 0);
+  /* Jeden krok h; vrací [t, SP, PV, MV, V]. dOut = porucha přičtená k PV (volitelně), dvs = měřené poruchy
+     (pole hodnot v jednotkách DV; působí přes jejich přenosy a dopřednou vazbu). */
+  LiveLoop.prototype.tick = function (sp, auto, uMan, dIn, dOut, dvs) {
+    var yd = dOut || 0, ff = 0;
+    for (var j = 0; j < this.dv.length; j++) {
+      var r = this.dv[j].step(dvs && dvs[j] ? dvs[j] : 0);
+      yd += r[0]; ff += r[1];
+    }
+    var y = this.pv0 + this.proc.output() + yd;
     var ym = this.sigma > 0 ? y + this.sigma * gauss(this.rng) : y;
-    var u = auto ? this.pid.step(sp, ym) : this.pid.track(sp, ym, uMan === undefined || uMan === null ? this.mv0 : uMan);
+    var u = auto ? this.pid.step(sp, ym, ff) : this.pid.track(sp, ym, uMan === undefined || uMan === null ? this.mv0 : uMan, ff);
     var uin = this.valve.step(u);
     this.proc.step(uin + (dIn || 0));
     this.t += this.h;
     return [this.t, auto ? this.pid.spr : sp, y, u, this.valve.v];
   };
 
-  var api = { ProcStep: ProcStep, PIDConL: PIDConL, Valve: Valve, LiveLoop: LiveLoop };
+  /* Kaskáda (APC): vnější regulátor (profil) → SP vnitřního PI → ventil → vnitřní proces; vnější proces dostává PV
+     vnitřní smyčky jako vstup (jako core.cascade_sim). opts.inner = {code, p, ctrl}; dIn působí na vstup vnitřního
+     procesu, měřené poruchy na vnější PV. Ladění za běhu se ignoruje (vnější regulátor je naladěný podle kaskády). */
+  function CascadeLoop(code, p, octrl, h, pv0, mv0, plant, opts) {
+    LiveLoop.call(this, code, p, octrl, h, pv0, mv0, plant, opts);
+    var inn = opts.inner;
+    this.inner = new ProcStep(inn.code, inn.p, h);
+    this.ipid = new PIDConL(inn.ctrl, h);
+    this.ipid.init(mv0, mv0, mv0);
+    this.pid.init(pv0, pv0, mv0);
+  }
+  CascadeLoop.prototype = Object.create(LiveLoop.prototype);
+  CascadeLoop.prototype.constructor = CascadeLoop;
+  CascadeLoop.prototype.setTuning = function () {};
+  CascadeLoop.prototype.tick = function (sp, auto, uMan, dIn, dOut, dvs) {
+    var yd = dOut || 0, ff = 0;
+    for (var j = 0; j < this.dv.length; j++) {
+      var r = this.dv[j].step(dvs && dvs[j] ? dvs[j] : 0);
+      yd += r[0]; ff += r[1];
+    }
+    var y = this.pv0 + this.proc.output() + yd;
+    var ym = this.sigma > 0 ? y + this.sigma * gauss(this.rng) : y;
+    var yi = this.mv0 + this.inner.output(), spi, u;
+    if (auto) { spi = this.pid.step(sp, ym, ff); u = this.ipid.step(spi, yi); }
+    else {
+      spi = this.pid.track(sp, ym, yi, ff);
+      u = this.ipid.track(spi, yi, uMan === undefined || uMan === null ? this.mv0 : uMan);
+    }
+    var uin = this.valve.step(u);
+    this.inner.step(uin + (dIn || 0));
+    this.proc.step(yi - this.mv0);
+    this.t += this.h;
+    return [this.t, auto ? this.pid.spr : sp, y, u, this.valve.v];
+  };
+
+  var api = { ProcStep: ProcStep, PIDConL: PIDConL, Valve: Valve, LiveLoop: LiveLoop, CascadeLoop: CascadeLoop };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PIDLive = api;
 })(typeof window !== "undefined" ? window : globalThis);

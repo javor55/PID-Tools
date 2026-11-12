@@ -98,7 +98,7 @@ def router(get_proj, jobs):
             df, _empty = out
             if df.empty:
                 raise ValueError("opc_empty")
-            get_proj(wid).load_frame(df, "OPC UA")
+            get_proj(wid).load_frame(df, "OPC UA", kind="opc")
         jid = jobs.submit(read_history, body.url, body.user, body.password, body.timeout, body.nodes, body.start,
                           body.end, timeout=600, on_done=done)
         return job_info(jobs, jid)
