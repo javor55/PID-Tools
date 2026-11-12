@@ -488,13 +488,14 @@ def test_live_tab_design_structure(page, server):
     """Živá simulace podle návrhu: ovládací řádek, karty „Průběh smyčky“ a „Ukazatele“, tři otevřené karty panelu."""
     page.locator('[data-tab="live"]').click()
     page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
-    assert page.locator("#speed button").count() == 5 and page.locator("#speed button.on").count() == 1
+    assert [b.inner_text() for b in page.locator("#speed button").all()] == ["1×", "10×", "50×", "200×"]
+    assert page.locator("#speed button.on").count() == 1
     assert page.locator(".lvm .card .chead .t").count() == 2                         # Průběh smyčky, Ukazatele
     # legendu vykreslí až první synchronizace stavu po načtení modulu – počkat na ni, ne ji hned číst
     page.wait_for_function("() => document.querySelectorAll('#legend .li').length >= 3", timeout=20000)  # SP, PV, MV
     assert page.locator("#kpi tr").first.locator("th").count() >= 2                  # prázdná buňka + sada
-    assert page.locator(".lvs > details").count() == 7
-    assert page.locator(".lvs > details[open]").count() == 3                         # režim, sady, poruchy
+    assert page.locator(".lvs > details").count() == 8                         # + struktura (APC)
+    assert page.locator(".lvs > details[open]").count() == 4                         # režim, sady, struktura, poruchy
     for sel in ("#tsp", "#tpv", "#tmv", "#mode", "#sps", "#spn", "#mvs", "#mvn", "#cmp", "#sets", "#dtype", "#dloc",
                 "#ds", "#pps", "#nzs", "#pulse"):
         assert page.locator(f".lvs {sel}").count() == 1, sel
@@ -508,6 +509,42 @@ def test_live_tab_design_structure(page, server):
                            "&& document.querySelector('#kpi td.chg').textContent !== '–'")
     page.locator("#run").click()
 
+
+def test_live_tab_structures_dv_and_journal(page, server):
+    """E9-B: přepínač struktury sady 2, porucha DV přes přenos modelu, zápis výsledku do nastavení projektu."""
+    page.locator('[data-tab="live"]').click()
+    page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
+    cfg = _api(server, "/workspaces/{wid}/live", page)
+    assert page.locator("#struct button").count() == 3 and page.locator("#struct button.on").inner_text() == "PID"
+    assert page.locator("#dloc option").count() == 2 + len(cfg["dvs"])
+    page.locator("details:has(#struct) > summary").scroll_into_view_if_needed()
+    if cfg["dvs"]:                                           # porucha DV: běh smyčky přes přenos poruchy
+        page.locator("#dloc").select_option("dv:0")
+        page.locator("#ds").fill(str(cfg["dvs"][0]["span"] / 4))
+        page.locator("#ds").dispatch_event("change")
+        page.locator("#run").click()
+        page.locator("#pulse").click()
+        page.wait_for_function("() => /t = [1-9]/.test(document.querySelector('#tnow').textContent)", timeout=20000)
+        page.locator("#run").click()
+    for sel in ("#struct button:nth-child(2)", "#struct button:nth-child(3)"):   # nedostupná struktura = zakázané tlačítko
+        b = page.locator(sel)
+        if b.is_enabled():
+            b.click()
+            page.wait_for_function("() => document.querySelectorAll('#struct button.on').length === 1")
+    page.locator("#struct button:nth-child(1)").click()
+    page.locator("#run").click()
+    page.wait_for_function("() => /t = [1-9]/.test(document.querySelector('#tnow').textContent)", timeout=20000)
+    page.locator("#run").click()
+    page.locator("#journal").click()                                                 # souhrn běhu do nastavení projektu
+    page.wait_for_function(
+        "async () => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/settings', "
+        "{headers: {'X-PID-Token': '" + TOKEN + "'}}); const s = await r.json(); "
+        "return Array.isArray(s.live_runs) && s.live_runs.length > 0; }", timeout=20000)
+    run = _api(server, "/workspaces/{wid}/settings", page)["live_runs"][-1]
+    assert run["struct"] == "pid" and run["kpi"] and "when" in run
+    page.locator('[data-tab="project"]').click()
+    page.wait_for_selector('[data-testid="live-run-row"]', timeout=10000)
+    page.locator('[data-tab="live"]').click()
 
 def _rel(a, b, tol=2e-3):
     return abs(a - b) <= tol * max(1.0, abs(b))

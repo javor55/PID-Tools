@@ -5,11 +5,12 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
 
 ## Plán v2
 
+- [x] **E9-B – Živá simulace** (12. 11. 2026): regulátor na `ctrl_engine.js` s profilem smyčky (shoda s `live_engine.js` < 1e-9, test `tests/test_live_js.py`), struktury sady 2 (PID / + FF / kaskáda), poruchy DV přes přenosy modelu, rychlosti 1 / 10 / 50 / 200×, „Zapsat výsledek do deníku“ do `live_runs` (zobrazeno v Projektu). Zbývá: override, Smith, split-range a ostatní struktury („brzy“ v kartě Struktura); ladění sady 2 se v kaskádě nepoužije; hook pro E10: `live_runs` v nastavení projektu převezme deník ladění; Streamlit zůstává na dřívějším jádru (bez profilu, DV a APC).
 - [x] **E8-B – Ladění s profilem regulátoru** (12. 11. 2026): viz změny. Zbývá: odkaz „Otevřít v knihovně“ jen vyvolá `CustomEvent("pid:open-settings", {detail: {section: "controllers", id}})`, zapojí ho shell (E8-A); porovnání metod a živá simulace stále počítají v kanonickém PIDConL (porovnání ukazuje kanonické Kc / Ti / Td); parametry profilu bez nastavení ve smyčce (ConZone, Tf, …) se jen zobrazují; export používá názvy a jednotky profilu, přesné cesty značek TIA / DeltaV je nutné ověřit u konkrétního bloku; „stav FF“ v kartě je beze změny.
 - [x] **E1 – jádro regulátoru R1** (11. 11. 2026): `core/controller.py`, profil `pcs7_pidconl`, `ctrl_engine.js`, zlaté
       případy, benchmark kroku, test hranic vrstev. Zbývá z návrhu: živá simulace v prohlížeči stále používá vlastní
-      `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnutí na `ctrl_engine.js`
-      patří do E9 spolu s načítáním profilu v prohlížeči. Další části (rychlostní algoritmus, externí reset, split range,
+      `live_engine.js` (nemá ConZone ani FF, a je sdílená se starým webem a `LiveTab.tsx`); přepnuto na `ctrl_engine.js`
+      v E9-B (nový web; Streamlit zůstává na dřívějším jádru). Další části (rychlostní algoritmus, externí reset, split range,
       3-step, PWM) jsou v registrech označené jako plánované (R3).
 - [x] **E7a – regulátory R2 + R5, backend** (12. 11. 2026): formát `.pidctrl` s kontrolou a migrací, knihovna (předvolby
       jen ke čtení + vlastní profily ve složce uživatele, `PIDTOOLS_CONTROLLERS_DIR`), jednotky a mapování kanonického PID
@@ -113,7 +114,7 @@ Zbývá po sladění 10. 11. 2026:
 
 - [x] **Živá simulace** (10. 11.): sdílený modul `live_ui.js` překreslen podle návrhu (lišta, graf PV / MV se
       značkami poruch a čárou „teď“, Ukazatele Sada 1 / Sada 2, karty s „?“); Streamlit má stejný vzhled.
-      Zbývá: rychlosti 10× / 50× / 200× z návrhu, porucha „přes model DV“ (engine ji nemá).
+      Rychlosti a porucha „přes model DV“ doplněny v E9-B.
 - [ ] **APC:** štítky „nevhodné“ a „není potřeba“ – API vrací jen „doporučeno“ a „2. smyčka“.
 - [ ] **Diagnostika:** graf provozních dat jako jedna karta s úseky A / B (návrh), karta „Co dál“; θ pro Harrise.
 - [ ] **Data:** „Zoom / Měření“ nad prohlížečem, klik v grafu Celého náhledu skočí v tabulce; ruční čtení bez
