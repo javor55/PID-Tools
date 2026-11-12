@@ -259,7 +259,7 @@ def _same(a, b):
 
 
 def compare(p, a, b):
-    """Strukturovaný rozdíl snímků `a` → `b`: změněné položky [{section, key, a, b}] (jen sekce, kde se něco liší)."""
+    """Rozdíl snímků `a` → `b`: dict(a, b = snímky, rows = změněné položky [{section, key, a, b}])."""
     sa, sb = get(p, a), get(p, b)
     fa, fb = flatten(sa.content), flatten(sb.content)
     rows = []
@@ -269,7 +269,7 @@ def compare(p, a, b):
             va, vb = ka.get(k), kb.get(k)
             if not _same(va, vb):
                 rows.append(dict(section=sec, key=str(k), a=va, b=vb))
-    return dict(a=sa.to_dict(light=True), b=sb.to_dict(light=True), rows=rows)
+    return dict(a=sa, b=sb, rows=rows)
 
 
 # ---------------------------------------------------------------- obnova

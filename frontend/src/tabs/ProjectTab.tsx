@@ -10,13 +10,11 @@ import { PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { usePatchSettings, useSettings } from "../data";
 import { useT } from "../i18n";
 import { useUi } from "../store";
+import { useSections } from "./project/api";
+import { JournalMain } from "./project/JournalMain";
+import { JournalSide } from "./project/JournalSide";
+import { STATUSES, useProjSub, useReport } from "./project/state";
 import "../styles/project.css";
-
-const SECTIONS = ["model", "tuning", "response", "apc", "signoff"] as const;
-const STATUSES = ["draft", "deployed", "verified"] as const;
-
-interface ReportState { html: string | null; busy: boolean; err: string | null; set: (p: Partial<ReportState>) => void }
-const useReport = create<ReportState>((set) => ({ html: null, busy: false, err: null, set: (p) => set(p) }));
 
 /** Přípona souborů projektu: výchozí `.pidproj`, otevřít jde i starší `.json` (obsah je stejný JSON). */
 export const PROJECT_EXT = ".pidproj";
@@ -76,6 +74,19 @@ function useBaseName() {
 }
 
 export function ProjectMain() {
+  const sub = useProjSub((s) => s.sub);
+  const setSub = useProjSub((s) => s.setSub);
+  const T = useT();
+  return (
+    <div className="stack">
+      <Seg value={sub} options={["report", "journal"] as const} label={T("jr_tab_report")} testid="proj-sub" help="h_jr_tabs"
+        fmt={(v) => T("jr_tab_" + v)} onChange={setSub} />
+      {sub === "journal" ? <JournalMain /> : <ReportMain />}
+    </div>
+  );
+}
+
+function ReportMain() {
   const T = useT();
   const { html, busy, err } = useReport();
   const base = useBaseName();
@@ -142,7 +153,12 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
   const wid = useUi((s) => s.wid);
   const st = useSettings().data ?? {};
   const busy = useReport((s) => s.busy);
-  const [secs, setSecs] = useState<string[]>([...SECTIONS]);
+  const uiLang = useUi((s) => s.lang);
+  const { lang: rlang, setLang } = useProjSub();
+  const lang = rlang ?? uiLang;
+  const sections = useSections(lang).data ?? [];
+  const [picked, setPicked] = useState<string[] | null>(null);
+  const secs = picked ?? sections.filter((x) => x.default).map((x) => x.id);
   const [charts, setCharts] = useState<"inline" | "cdn">("inline");
 
   async function build() {
@@ -151,7 +167,9 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
     rep.set({ busy: true, err: null });
     try {
       const meta = Object.fromEntries(["plant", "author", "status", "comment"].map((k) => [k, st[`rep_${k}`] ?? (k === "status" ? "draft" : "")]));
-      const raw = await bytes("POST", `/workspaces/${wid}/report`, { meta, sections: secs, chart_mode: charts });
+      const dg = useUi.getState().diag;                       // úseky A / B z Diagnostiky (sekce Ověření v provozu)
+      const ab = dg?.cmp ? { a: dg.a, b: dg.b } : undefined;
+      const raw = await bytes("POST", `/workspaces/${wid}/report?lang=${lang}`, { meta, sections: secs, chart_mode: charts, ab });
       rep.set({ html: new TextDecoder().decode(raw), busy: false });
     } catch (e) {
       rep.set({ busy: false, html: null, err: e instanceof ApiError ? (e.status === 409 ? T("need_model") : T(e.message)) : String(e) });
@@ -159,9 +177,19 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
   }
   const patch = usePatchSettings();
   const status = (STATUSES as readonly string[]).includes(String(st.rep_status)) ? String(st.rep_status) as (typeof STATUSES)[number] : "draft";
+  async function summary() {
+    if (!wid) return;
+    const rep = useReport.getState();
+    rep.set({ busy: true, err: null });
+    try {
+      const meta = Object.fromEntries(["plant", "author", "comment"].map((k) => [k, st[`rep_${k}`] ?? ""]));
+      rep.set({ html: new TextDecoder().decode(await bytes("POST", `/workspaces/${wid}/report/summary?lang=${lang}`, { meta })), busy: false });
+    } catch (e) { rep.set({ busy: false, html: null, err: e instanceof ApiError ? T(e.message) : String(e) }); }
+  }
   return (
     <>
       <PrimaryAction disabled={busy} onClick={() => void build()} testid="report-build">{T("rep_build")}</PrimaryAction>
+      <button type="button" className="btn" disabled={busy} onClick={() => void summary()} title={T("h_jr_sum_btn")} data-testid="report-summary">{T("jr_sum_btn")}</button>
       {pre}
       <SideCard title={T("rep_title")} help={T("rep_help")} testid="report-opts">
         <div className="field"><span>{T("rp_status")}</span>
@@ -169,44 +197,28 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
             onChange={(v) => void patch({ rep_status: v })} /></div>
         <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} help="h_rp_plant" />
         <TextSetting k="rep_author" label={T("rp_author")} help="h_rp_author" />
+        <div className="field wide"><span>{T("rp_lang")}</span>
+          <Seg value={lang} options={["cs", "en"] as const} label={T("rp_lang")} testid="rep-lang" small help="h_rp_lang"
+            fmt={(v) => v.toUpperCase()} onChange={setLang} /></div>
         <div className="field wide"><span>{T("rp_charts")}</span>
           <Seg value={charts} options={["inline", "cdn"] as const} label={T("rp_charts")} testid="rep-charts" small help="h_rp_charts"
             fmt={(v) => T("rp_ch_" + v)} onChange={setCharts} /></div>
         <TextSetting k="rep_comment" label={T("rep_comment")} placeholder={T("rp_comment_ph")} help="h_rp_comment" multiline />
       </SideCard>
       <SideCard title={T("rp_sections")} help={T("h_rp_sections")} testid="rep-sections">
-        {SECTIONS.map((s) => (
-          <label key={s} className="small" title={T("h_rp_sec_" + s)}>
-            <input type="checkbox" checked={secs.includes(s)} data-testid={`rep-sec-${s}`}
-              onChange={(e) => setSecs(SECTIONS.filter((x) => (x === s ? e.target.checked : secs.includes(x))))} /> {T("rp_sec_" + s)}
+        {sections.map((s) => (
+          <label key={s.id} className="small" title={s.help} style={{ display: "block" }}>
+            <input type="checkbox" checked={secs.includes(s.id)} data-testid={`rep-sec-${s.id}`}
+              onChange={(e) => setPicked(sections.map((x) => x.id).filter((x) => (x === s.id ? e.target.checked : secs.includes(x))))} /> {s.title}
+            {!s.available && <span className="muted"> {T("rp_sec_unavail")}</span>}
           </label>))}
       </SideCard>
     </>
   );
 }
 
-type LiveRun = { when?: string; struct?: string; kpi?: Record<string, { iae?: number }> };
-
-/** Souhrny běhů živé simulace („Zapsat výsledek do deníku“); deník ladění (E10) je převezme. */
-function LiveRunsBox() {
-  const T = useT();
-  const st = useSettings().data ?? {};
-  const runs = (Array.isArray(st.live_runs) ? st.live_runs : []) as LiveRun[];
-  const fmt = (v?: number) => (v === undefined ? "–" : String(+v.toPrecision(4)));
-  return (
-    <SideCard title={T("ui_live_runs_title")} help={T("ui_live_runs_help").replace("{n}", "20")} testid="live-runs">
-      {runs.length === 0 && <div className="muted small">{T("ui_live_runs_none")}</div>}
-      {[...runs].reverse().map((r, i) => (
-        <div key={i} className="small" data-testid="live-run-row">
-          {T("ui_live_runs_row").replace("{when}", (r.when ?? "").slice(0, 16).replace("T", " ")).replace("{struct}", r.struct ?? "pid")
-            .replace("{i1}", fmt(r.kpi?.["1"]?.iae)).replace("{i2}", fmt(r.kpi?.["2"]?.iae))}
-        </div>))}
-    </SideCard>
-  );
-}
-
 export function ProjectSide() {
-  return (
-    <ReportBox pre={<><ProjectBox /><LiveRunsBox /></>} />
-  );
+  const sub = useProjSub((s) => s.sub);
+  if (sub === "journal") return <><JournalSide /><ProjectBox /></>;
+  return <ReportBox pre={<ProjectBox />} />;
 }

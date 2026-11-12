@@ -18,9 +18,6 @@ import { useUi } from "../store";
 // regulátor živé simulace běží na obecném interpretu profilu (E9-B), stejném jako v Pythonu
 (window as unknown as { CtrlEngine?: unknown }).CtrlEngine ??= CtrlEngine;
 
-/** Souhrn běhu zapsaný do projektu (nastavení `live_runs`), než bude deník ladění (E10). */
-export const LIVE_RUNS_KEEP = 20;
-
 export function LiveMain() {
   const T = useT();
   const box = useRef<HTMLDivElement>(null);
@@ -52,11 +49,9 @@ export function LiveMain() {
       data, parentElement: host,
       setTriggerValue: (name, value) => {
         if (name === "journal") {
-          // E10 (deník ladění) převezme: zatím souhrn do nastavení projektu, zobrazí se v záložce Projekt
-          const old = qc.getQueryData<Record<string, unknown>>(["ws", wid, "settings"])?.live_runs;
-          const runs = [...(Array.isArray(old) ? old : []), { when: new Date().toISOString(), ...(value as object) }].slice(-LIVE_RUNS_KEEP);
-          void request("PATCH", `/workspaces/${wid}/settings`, { live_runs: runs })
-            .then(() => qc.invalidateQueries({ queryKey: ["ws", wid, "settings"] }));
+          // „Zapsat výsledek do deníku“: záznam deníku ladění (Projekt › Deník ladění) s výsledky běhu
+          void request("POST", `/workspaces/${wid}/journal/live`, { when: new Date().toISOString(), ...(value as object) })
+            .then(() => qc.invalidateQueries({ queryKey: ["ws", wid] }));
           return;
         }
         if (name !== "apply") return;
