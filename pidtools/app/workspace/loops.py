@@ -4,6 +4,9 @@ mapování rolí smyček a společná časová mřížka jsou v `app.domain` a `
 fasádou výpočtů jedné smyčky. Formát souboru (app.project, verze 3): záznam aktivní smyčky nahoře, „loops“, „active“,
 „sources“ a „time_grid“; starší soubory se při otevření převedou migrací.
 """
+import copy
+import time
+
 from .. import project as prj
 from ..domain import migrate_project
 from ..domain.model import FORMAT, VERSION, TimeGrid
@@ -14,11 +17,46 @@ from .sources import SourceRT, SourcesMixin, embedded_frame
 
 
 class Project(SourcesMixin):
-    def __init__(self):
+    def __init__(self, defaults=None):
+        self.defaults = defaults or {}    # výchozí hodnoty z nastavení aplikace (app.appsettings.new_project_defaults)
         self.loops = [Workspace()]
         self.active = 0
         self.sources = []                 # [SourceRT] – zdroje dat (app.workspace.sources)
         self.time_grid = TimeGrid()       # společná časová mřížka více zdrojů
+        self.rev = self.saved_rev = self.autosaved_rev = 0      # počet změn, stav při uložení a při záchranné kopii
+        self.saved_at = self.autosaved_at = None                # čas posledního ručního uložení / záchranné kopie (epocha)
+        self.keep_rev = False             # příští změnu nepočítat (načtení / uložení projektu)
+        self._apply_defaults(self.loops[0], first=True)
+
+    # ---- sledování změn (pro „uloženo“, autosave a potvrzení u Nový)
+    def touch(self):
+        if self.keep_rev:
+            self.keep_rev = False
+        else:
+            self.rev += 1
+
+    def mark_saved(self, manual=True, at=None):
+        at = at or time.time()
+        if manual:
+            self.saved_rev, self.saved_at = self.rev, at
+        else:
+            self.autosaved_rev, self.autosaved_at = self.rev, at
+
+    def mark_loaded(self):
+        """Projekt právě načtený ze souboru je „uložený“ (změnu, kterou načtení způsobí, nepočítat)."""
+        self.keep_rev = True
+        self.saved_rev = self.autosaved_rev = self.rev
+
+    def _apply_defaults(self, ls, first=False):
+        """Nová smyčka dostane výchozí regulátor, volby simulace a (první smyčka projektu) prahy diagnostiky z nastavení."""
+        d = self.defaults
+        if d.get("controller") is not None:
+            ls.controller = copy.deepcopy(d["controller"])
+        if d.get("settings"):
+            ls.set(**d["settings"])
+        if first and d.get("tri_thr"):
+            ls.set(tri_thr=d["tri_thr"])
+        return ls
 
     @property
     def state(self):
@@ -26,6 +64,7 @@ class Project(SourcesMixin):
 
     # ---- data (společná pro všechny smyčky)
     def _reset_to(self, ls, kind=None):
+        self._apply_defaults(ls, first=True)
         self.loops, self.active, self.sources = [ls], 0, []
         self.sync()                       # tabulka smyčky se stane jediným zdrojem
         if kind and self.sources:
@@ -66,6 +105,7 @@ class Project(SourcesMixin):
         g = guess_roles(ls.sig.sigs, ls.sig.get, [x.c_pv for x in self.loops])
         ls.set_columns(g["pv"], g["mv"], g["sp"] or "—", [], g["pos"] or "—")
         ls.set(lang=src.get("lang"))
+        self._apply_defaults(ls)
         self.loops.append(ls)
         self.active = len(self.loops) - 1
         return ls
