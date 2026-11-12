@@ -44,6 +44,8 @@ interface UiState {
   dataSub: DataSub;
   apcTech: string;
   wid: string | null;
+  /** Výška grafů z nastavení aplikace (výchozí výška LineChart). */
+  chartH: number;
   jobs: Record<string, JobInfo>;
   diag: DiagWin | null;
   setDiag: (d: DiagWin) => void;
@@ -69,6 +71,7 @@ export const useUi = create<UiState>((set) => ({
   dataSub: load<DataSub>("pid.dsub", "sources"),
   apcTech: load("pid.apc", "ff"),
   wid: (() => { try { return sessionStorage.getItem("pid.wid"); } catch { return null; } })(),
+  chartH: 220,
   jobs: {},
   diag: null,
   setDiag: (diag) => set({ diag }),
