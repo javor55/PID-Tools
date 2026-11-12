@@ -2589,5 +2589,6 @@
  "tri_h_detail": "Důkazy verdiktu: naměřená hodnota, práh a vysvětlení.",
  "tri_h_thr": "Prahy pravidel verdiktu; ukládají se do projektu.",
  "tri_h_theta": "Dopravní zpoždění pro Harrisův index, když smyčka nemá model. Zadejte odhad z odezvy na skok; bez zadání se odhadne z dat.",
- "tri_h_back": "Zpět na přehled všech smyček s verdikty."
+ "tri_h_back": "Zpět na přehled všech smyček s verdikty.",
+ "tri_t_slave_harris": "Podřazená smyčka: Harris <"
 }

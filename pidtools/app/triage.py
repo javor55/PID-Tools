@@ -112,7 +112,7 @@ RULES = [
         "max_nan_pct": Thr(50, 5, 100, "%", "tri_t_nan")}, _low_auto,
         "Smyčka je většinu záznamu ručně nebo data nejsou použitelná."),
     Rule("foreign", "tri_v_foreign", 1, {}, _foreign, "Kmitá se stejnou periodou jako jiná smyčka – příčinu hledej tam."),
-    Rule("cascade", "tri_v_cascade", 2, {"slave_harris": Thr(0.5, 0.05, 1, "", "tri_t_harris")}, _cascade,
+    Rule("cascade", "tri_v_cascade", 2, {"slave_harris": Thr(0.5, 0.05, 1, "", "tri_t_slave_harris")}, _cascade,
          "Řídicí smyčka kaskády je špatná kvůli podřazené – ladit nejdřív podřazenou."),
     Rule("valve", "tri_v_valve", 3, {"hyst_pct": Thr(2, 0.1, 20, "%", "tri_t_hyst")}, _valve,
          "Stikce nebo hystereze ventilu – ladění regulátoru nepomůže."),

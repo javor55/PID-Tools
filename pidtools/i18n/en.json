@@ -2589,5 +2589,6 @@
  "tri_h_detail": "Evidence for the verdict: measured value, threshold and explanation.",
  "tri_h_thr": "Thresholds of the verdict rules; saved in the project.",
  "tri_h_theta": "Dead time for the Harris index when the loop has no model. Enter an estimate from a step response; left empty it is estimated from data.",
- "tri_h_back": "Back to the overview of all loops with verdicts."
+ "tri_h_back": "Back to the overview of all loops with verdicts.",
+ "tri_t_slave_harris": "Inner loop: Harris index <"
 }

@@ -8,7 +8,7 @@ import { ContextRow } from "./components/ContextRow";
 import { DataMain, DataSide } from "./tabs/DataTab";
 import { DiagMain, DiagSide } from "./tabs/DiagTab";
 import { LiveMain } from "./tabs/LiveTab";
-import { LoopsMain, LoopsSide } from "./tabs/LoopsTab";
+import { TriageMain, TriageSide } from "./tabs/TriageTab";
 import { ProjectMain, ProjectSide, usePendingOpen } from "./tabs/ProjectTab";
 import { ModelMain, ModelSide } from "./tabs/ModelTab";
 import { TuningMain, TuningSide } from "./tabs/TuningTab";
@@ -56,7 +56,7 @@ export default function App() {
   const cur = TABS.find((t) => t.id === tab) ?? TABS[0];
   // Data má podzáložky; Diagnostika zůstává ve starých pohledech (E5 je přepracuje).
   const dataView = sub === "sources" ? [<SourcesMain />, <SourcesSide />] : sub === "trends" ? [<TrendsMain />, <TrendsSide />]
-    : sub === "diag-all" ? [<LoopsMain />, <LoopsSide />] : sub === "diag-detail" ? [<DiagMain />, <DiagSide />]
+    : sub === "diag-all" ? [<TriageMain />, <TriageSide />] : sub === "diag-detail" ? [<DiagMain />, <DiagSide />]
     : [<DataMain />, <DataSide />];
   return (
     <div className="shell">

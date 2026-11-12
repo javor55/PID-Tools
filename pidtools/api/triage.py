@@ -79,7 +79,7 @@ def _user_thr(proj):
 
 def _thr_out(proj):
     vals = triage.merge_thresholds(_user_thr(proj))
-    sch = [ThresholdInfo(rule=r.id, label=T(r.label), name=k, name_label=T(t.label), value=vals[r.id][k],
+    sch = [ThresholdInfo(rule=r.id, label=r.label, name=k, name_label=t.label, value=vals[r.id][k],
                          default=t.default, lo=t.lo, hi=t.hi, unit=t.unit)
            for r in triage.RULES for k, t in r.thresholds.items()]
     return Thresholds(values=vals, items=sch)

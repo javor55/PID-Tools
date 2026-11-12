@@ -24,13 +24,20 @@ export function fmtDuration(s: number | null | undefined, lang: string) {
   return `${nf(s / 3600)} h`;
 }
 
-/** Skupiny výběru smyčky. Seskupení je na jednom místě – E5 sem doplní verdikty z diagnostiky. */
-export type LoopGroup = "work" | "nomodel" | "incomplete";
+/**
+ * Skupiny výběru smyčky. Seskupení je na jednom místě: je-li k dispozici výsledek triáže (E5), smyčky se řadí podle
+ * verdiktu (`v_<id>`), jinak podle stavu modelu.
+ */
+export type LoopGroup = "work" | "nomodel" | "incomplete" | `v_${string}`;
 export const LOOP_GROUPS: LoopGroup[] = ["work", "nomodel", "incomplete"];
-export function loopGroup(l: Loop, m?: Mapping): LoopGroup {
+export const VERDICT_GROUPS: LoopGroup[] = ["valve", "cascade", "foreign", "nonlinear", "tune", "low_auto", "ok"].map((v) => `v_${v}` as LoopGroup);
+export function loopGroup(l: Loop, m?: Mapping, verdict?: string): LoopGroup {
   if (m ? !m.has_data || !m.roles.pv || !m.roles.mv : !l.pv || !l.mv) return "incomplete";
+  if (verdict) return `v_${verdict}`;
   return l.has_model ? "work" : "nomodel";
 }
+/** Klíč překladu názvu skupiny a stavu: verdikty mají vlastní popisky. */
+const grpKey = (g: LoopGroup, kind: "grp" | "st") => (g.startsWith("v_") ? `tri_v_${g.slice(2)}` : `ui_loop_${kind}_${g}`);
 const loopLabel = (l: Loop, m: Mapping | undefined, T: ReturnType<typeof useT>) => {
   const tag = m?.tag || l.name || T("loop_n", { n: l.index + 1 });
   return m?.description ? `${tag} · ${m.description}` : tag;
@@ -45,6 +52,7 @@ function Loops() {
   const qc = useQueryClient();
   const loops = useWsQuery<LoopsT>("loops", "/loops").data;
   const maps = useWsQuery<Mapping[]>("mappings", "/loops/mappings").data;
+  const tri = useWsQuery<components["schemas"]["TriageResult"]>("triage", "/triage").data;
   const pick = async (index: number) => {
     await request("PUT", `/workspaces/${wid}/loops/active`, { index });
     await qc.invalidateQueries({ queryKey: ["ws", wid] });
@@ -52,22 +60,25 @@ function Loops() {
   if (!ws?.has_data || !loops) return null;
   const mapOf = (l: Loop) => maps?.find((m) => m.index === l.index);
   const act = loops.loops.find((l) => l.index === loops.active);
-  const stText = (g: LoopGroup) => T(`ui_loop_st_${g}`);
-  const pill = act ? loopGroup(act, mapOf(act)) : null;
+  const verdictOf = (l: Loop) => (tri?.ready && tri.loops.length === loops.loops.length ? tri.loops[l.index]?.verdict : undefined);
+  const groupOf = (l: Loop) => loopGroup(l, mapOf(l), verdictOf(l));
+  const groups = tri?.ready ? [...VERDICT_GROUPS, "incomplete" as LoopGroup] : LOOP_GROUPS;
+  const stText = (g: LoopGroup) => T(grpKey(g, "st"));
+  const pill = act ? groupOf(act) : null;
   return (
     <div className="hloops" role="group" aria-label={T("ui_loops_group")}>
       <select aria-label={T("dk_loop")} title={T("h_loop_sel")} value={loops.active} data-testid="loop-select"
         onChange={(e) => void pick(+e.target.value)}>
-        {LOOP_GROUPS.map((g) => {
-          const ls = loops.loops.filter((l) => loopGroup(l, mapOf(l)) === g);
+        {groups.map((g) => {
+          const ls = loops.loops.filter((l) => groupOf(l) === g);
           return ls.length > 0 && (
-            <optgroup key={g} label={T(`ui_loop_grp_${g}`)}>
+            <optgroup key={g} label={T(grpKey(g, "grp"))}>
               {ls.map((l) => <option key={l.index} value={l.index}>{loopLabel(l, mapOf(l), T)} — {stText(g)}</option>)}
             </optgroup>
           );
         })}
       </select>
-      {pill && <span className={`hpill ${pill}`} data-testid="loop-status" title={T("ui_loop_st_pill", { s: stText(pill) })}>{stText(pill)}</span>}
+      {pill && <span className={`hpill ${pill.startsWith("v_") ? "v-" + pill.slice(2) : pill}`} data-testid="loop-status" title={T("ui_loop_st_pill", { s: stText(pill) })}>{stText(pill)}</span>}
       <button type="button" className="hbtn small" onClick={() => setDataSub("sources")} title={T("ui_loop_add_go")}
         data-testid="loop-add-head">{T("ui_loop_add_short")}</button>
     </div>

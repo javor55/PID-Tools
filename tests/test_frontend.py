@@ -1230,7 +1230,8 @@ def test_diag_loops_project_card_structure(page, server):
     assert page.locator('[data-testid="loops-card"].dcard h2').count() == 1
     assert page.locator("aside.side details.scard").count() >= 3
     first = page.locator("aside.side > *:not(.side-all)").first
-    assert first.get_attribute("data-testid") == "audit-side-loops"
+    assert first.get_attribute("data-testid") == "tri-run"            # E5: triáž nahoře, pod ní prahy a smyčky souboru
+    assert page.locator('aside.side [data-testid="audit-side-loops"]').count() == 1
     assert page.locator('aside.side button.btn.primary.big[data-testid="audit-run"]').count() == 1
     page.locator('[data-testid="audit-run"]').click()
     page.wait_for_selector('[data-testid="audit-rank"].dcard', timeout=60000)
