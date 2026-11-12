@@ -138,7 +138,7 @@ def test_python_js_match(name, profile, ctrl, h, steps):
 
 @pytest.mark.skipif(NODE is None, reason="Node.js není k dispozici")
 def test_js_rejects_planned_and_bad_profile():
-    prof = _profile(structure={"antiwindup": "external_reset"})
+    prof = _profile(structure={"normalisation": {"kind": "engineering"}})
     script = f"""
 const E = require({json.dumps(os.path.abspath(ENGINE))});
 let msg = "";
@@ -148,4 +148,4 @@ try {{ E.profile({{format: "x", version: 1}}); }} catch (e) {{ bad = e.message; 
 console.log(JSON.stringify([msg, bad]));
 """
     msg, bad = json.loads(subprocess.run([NODE, "-e", script], capture_output=True, text=True, check=True).stdout)
-    assert "external_reset" in msg and "profil" in bad
+    assert "engineering" in msg and "profil" in bad

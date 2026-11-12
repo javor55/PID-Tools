@@ -113,10 +113,8 @@ def test_registries_and_planned_items():
     assert {"ideal", "parallel", "series"} <= set(REGISTRIES["forms"].items)
     with pytest.raises(ValueError, match="neznámá položka"):
         Profile(_prof(form="nesmysl"))
-    with pytest.raises(NotImplementedError, match="external_reset"):
-        Profile(_prof(antiwindup="external_reset"))
-    with pytest.raises(NotImplementedError, match="velocity"):
-        Profile(_prof(algorithm="velocity"))
+    with pytest.raises(NotImplementedError, match="engineering"):
+        Profile(_prof(normalisation={"kind": "engineering"}))
 
 
 def test_controller_from_preset():
