@@ -399,3 +399,20 @@ def test_program_step_benchmark(name, capsys, record_property):
     with capsys.disabled():
         print(f"\n[benchmark] program '{name}': {best:.2f} µs/krok")
     assert best < 50
+
+
+def test_codegen_rejects_forged_tree():
+    """Pojistka před exec: podvržený strom (mimo překladač) s kódem v názvu, funkci nebo operaci neprojde."""
+    import pytest
+
+    from pidtools.core.program import _codegen
+    base = {"params": [], "states": [], "outputs": ["MV"]}
+    bad = [
+        dict(base, body=[["set", "MV", ["var", "x; import os"]]]),
+        dict(base, body=[["set", "MV", ["call", "__import__", [["num", 1.0]], None]]]),
+        dict(base, body=[["set", "MV", ["bin", "+ __import__('os') +", ["num", 1.0], ["num", 2.0]]]]),
+        dict(base, params=[{"name": "a=1\nimport os\nb"}], body=[["set", "MV", ["num", 0.0]]]),
+    ]
+    for prog in bad:
+        with pytest.raises(ValueError):
+            _codegen(prog)

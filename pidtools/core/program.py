@@ -10,6 +10,7 @@ jejich výrazů `init` s `MV0` = ruční hodnota (bezrázové převzetí).
 """
 import functools
 import math
+import re
 
 from ..controllers import parse_profile
 from ..controllers.program import (FUNCS, compile_program, eval_tree, f_div, f_pow, f_table, program_to_canonical,
@@ -74,6 +75,15 @@ _NS = {"__builtins__": {}, "min": min, "max": max, "abs": abs, "_sign": FUNCS["s
        "_gap": FUNCS["gap"], "_table": f_table, "_div": f_div, "_pow": f_pow, "_s_lag": _lag, "_s_ddt": _ddt,
        "_s_rate": _rate, "_s_lead_lag": _lead_lag, "_s_prev": _prev}
 _CMP = ("<", "<=", ">", ">=", "==", "!=")
+_LOGIC = ("and", "or")
+_IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def _ident(name):
+    """Pojistka před `exec`: do kódu smí jen identifikátor (strom normálně vzniká jen z překladače)."""
+    if not isinstance(name, str) or not _IDENT.match(name):
+        raise ValueError(f"neplatný název v programu: {name!r}")
+    return name
 
 
 def _emit(n):
@@ -82,7 +92,7 @@ def _emit(n):
     if k == "num":
         return repr(float(n[1]))
     if k == "var":
-        return "v_" + n[1]
+        return "v_" + _ident(n[1])
     if k == "neg":
         return f"(-{_emit(n[1])})"
     if k == "not":
@@ -92,7 +102,9 @@ def _emit(n):
     if k == "table":
         return f"_table({_emit(n[1])}, {[float(v) for v in n[2]]!r}, {[float(v) for v in n[3]]!r})"
     if k == "call":
-        name, args = n[1], ", ".join(_emit(a) for a in n[2])
+        name, args = _ident(n[1]), ", ".join(_emit(a) for a in n[2])
+        if (f"_s_{name}" if n[3] is not None else name if name in ("min", "max", "abs") else f"_{name}") not in _NS:
+            raise ValueError(f"neznámá funkce v programu: {name!r}")
         if n[3] is not None:
             return f"_s_{name}(H, {int(n[3])}, {args}{'' if name == 'prev' else ', v_dt'})"
         return f"{name}({args})" if name in ("min", "max", "abs") else f"_{name}({args})"
@@ -105,15 +117,17 @@ def _emit(n):
         return f"_pow({a}, {b})"
     if op in _CMP:
         return f"(1.0 if {a} {op} {b} else 0.0)"
+    if op not in _LOGIC:
+        raise ValueError(f"neznámá operace v programu: {op!r}")
     return f"(1.0 if ({a} != 0.0 {op} {b} != 0.0) else 0.0)"
 
 
 def _codegen(program):
     L = ["def run(v_SP, v_PV, v_FF, v_MV_LO, v_MV_HI, v_dt, v_t, S, H, p):"]
-    L += [f"    v_{p['name']} = p[{i}]" for i, p in enumerate(program["params"])]
-    L += [f"    v_{s['name']} = S[{i}]" for i, s in enumerate(program["states"])]
+    L += [f"    v_{_ident(p['name'])} = p[{i}]" for i, p in enumerate(program["params"])]
+    L += [f"    v_{_ident(s['name'])} = S[{i}]" for i, s in enumerate(program["states"])]
     for _, name, e in program["body"]:
-        L.append(f"    v_{name} = {_emit(e)}")
+        L.append(f"    v_{_ident(name)} = {_emit(e)}")
     L += [f"    S[{i}] = v_{s['name']}" for i, s in enumerate(program["states"])]
     L.append(f"    return v_MV, {'v_MV2' if 'MV2' in program['outputs'] else 'None'}")
     ns = dict(_NS)
