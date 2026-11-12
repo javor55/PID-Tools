@@ -27,8 +27,9 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app.jobs import FINAL
-from . import (analysis, apc, apc_loops, apc_more, audit, data, deploy, guide, mapping, model, opcua, projects,
-               sources, triage, tuning)
+from ..controllers import Library
+from . import (analysis, apc, apc_loops, apc_more, audit, controllers, data, deploy, guide, mapping, model, opcua,
+               projects, sources, triage, tuning)
 from .common import JobInfo
 from .data import WorkspaceInfo, info
 from .store import WorkspaceStore
@@ -90,14 +91,15 @@ def _opt(team, names, defaults):
     return tuple(defaults) if team is None else tuple(getattr(team, n) for n in names)
 
 
-def _routers(project, jobs, team):
+def _routers(project, jobs, team, library):
     """Všechny routery API (jeden prostor = jedna cesta `/workspaces/{wid}/…`)."""
     max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
     return [data.router(project, *max_upload), projects.router(project), projects.pending_router(team is None),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
             tuning.router(project, jobs), analysis.router(project), audit.router(project), apc.router(project, jobs),
             apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs), guide.router(project),
-            triage.router(project, jobs)]
+            triage.router(project, jobs), controllers.router(library, team is None),
+            controllers.loop_router(project, library)]
 
 
 def _include(app, routers, system, auth):
@@ -110,11 +112,12 @@ def _include(app, routers, system, auth):
 
 
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2, team=None,
-               verifier=None):
+               verifier=None, controllers_dir=None):
     """
     Aplikace FastAPI. token=None jen pro testy a vývoj (bez kontroly). team (deploy.DeployConfig s přihlášením
     cloudflare / header) zapne týmový režim: uživatel místo tokenu, prostory a úlohy po uživatelích, limity, logy;
-    verifier (jen testy) nahradí ověřování JWT.
+    verifier (jen testy) nahradí ověřování JWT. controllers_dir = složka vlastních regulátorů (výchozí uživatelská složka,
+    proměnná PIDTOOLS_CONTROLLERS_DIR); v týmovém režimu je knihovna jen ke čtení.
     """
     workspace_ttl, max_workspaces, max_jobs = _opt(team, ("ttl", "max_workspaces", "max_jobs"),
                                                    (workspace_ttl, max_workspaces, max_jobs))
@@ -173,7 +176,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
             raise HTTPException(404, "job not found") from None
 
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
-    routers = _routers(project, jobs, team)
+    routers = _routers(project, jobs, team, Library(controllers_dir))
     system = APIRouter()
 
     @system.get("/health", response_model=Health, tags=["system"])

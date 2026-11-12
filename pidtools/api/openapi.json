@@ -399,6 +399,99 @@
     "title": "Browse",
     "type": "object"
    },
+   "CanonicalPID": {
+    "properties": {
+     "Kc": {
+      "title": "Kc",
+      "type": "number"
+     },
+     "N": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 5.0,
+      "title": "N"
+     },
+     "Td": {
+      "default": 0.0,
+      "title": "Td",
+      "type": "number"
+     },
+     "Ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ti"
+     },
+     "b": {
+      "default": 1.0,
+      "title": "B",
+      "type": "number"
+     },
+     "c": {
+      "default": 1.0,
+      "title": "C",
+      "type": "number"
+     }
+    },
+    "required": [
+     "Kc"
+    ],
+    "title": "CanonicalPID",
+    "type": "object"
+   },
+   "CanonicalRequest": {
+    "properties": {
+     "mv_range": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv Range"
+     },
+     "pv_range": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv Range"
+     },
+     "values": {
+      "additionalProperties": true,
+      "title": "Values",
+      "type": "object"
+     }
+    },
+    "required": [
+     "values"
+    ],
+    "title": "CanonicalRequest",
+    "type": "object"
+   },
    "CascadeFit": {
     "properties": {
      "fit": {
@@ -826,6 +919,88 @@
     "title": "CascadeSim",
     "type": "object"
    },
+   "CheckItem": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "message": {
+      "title": "Message",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "severity": {
+      "title": "Severity",
+      "type": "string"
+     },
+     "status": {
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "status",
+     "severity",
+     "message"
+    ],
+    "title": "CheckItem",
+    "type": "object"
+   },
+   "CheckProtocol": {
+    "properties": {
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/CheckItem"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "reasons": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+     },
+     "verdict": {
+      "title": "Verdict",
+      "type": "string"
+     },
+     "verdict_text": {
+      "title": "Verdict Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "verdict",
+     "verdict_text",
+     "checks",
+     "reasons"
+    ],
+    "title": "CheckProtocol",
+    "type": "object"
+   },
    "Columns": {
     "properties": {
      "dists": {
@@ -967,6 +1142,242 @@
      "models"
     ],
     "title": "CompareOut",
+    "type": "object"
+   },
+   "ControllerParam": {
+    "additionalProperties": true,
+    "properties": {
+     "default": {
+      "title": "Default"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "nullable": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nullable"
+     },
+     "range": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Range"
+     },
+     "repr": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Repr"
+     },
+     "required": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Required"
+     },
+     "role": {
+      "title": "Role",
+      "type": "string"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     }
+    },
+    "required": [
+     "key",
+     "role"
+    ],
+    "title": "ControllerParam",
+    "type": "object"
+   },
+   "ControllerProfile": {
+    "additionalProperties": true,
+    "description": "Profil regulátoru (soubor `.pidctrl`); neznámé položky (struktura, ověření, výsledek testu) se zachovají.",
+    "properties": {
+     "block": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Block"
+     },
+     "derived_from": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Derived From"
+     },
+     "format": {
+      "default": "pidctrl",
+      "title": "Format",
+      "type": "string"
+     },
+     "id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/ControllerParam"
+      },
+      "title": "Params",
+      "type": "array"
+     },
+     "structure": {
+      "additionalProperties": true,
+      "title": "Structure",
+      "type": "object"
+     },
+     "system": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System"
+     },
+     "vendor": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vendor"
+     },
+     "verification": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Verification"
+     },
+     "version": {
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "structure",
+     "params"
+    ],
+    "title": "ControllerProfile",
+    "type": "object"
+   },
+   "ControllerSummary": {
+    "properties": {
+     "id": {
+      "title": "Id",
+      "type": "string"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "tag": {
+      "title": "Tag",
+      "type": "string"
+     },
+     "vendor": {
+      "title": "Vendor",
+      "type": "string"
+     },
+     "verified": {
+      "title": "Verified",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "id",
+     "vendor",
+     "name",
+     "tag",
+     "verified"
+    ],
+    "title": "ControllerSummary",
     "type": "object"
    },
    "DataQuality": {
@@ -3214,6 +3625,55 @@
     "title": "LoopCheck",
     "type": "object"
    },
+   "LoopController": {
+    "properties": {
+     "checksum": {
+      "title": "Checksum",
+      "type": "string"
+     },
+     "is_default": {
+      "title": "Is Default",
+      "type": "boolean"
+     },
+     "profile": {
+      "$ref": "#/components/schemas/ControllerProfile"
+     }
+    },
+    "required": [
+     "profile",
+     "is_default",
+     "checksum"
+    ],
+    "title": "LoopController",
+    "type": "object"
+   },
+   "LoopControllerPut": {
+    "properties": {
+     "from_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "From Id"
+     },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ControllerProfile"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "title": "LoopControllerPut",
+    "type": "object"
+   },
    "LoopHealth": {
     "properties": {
      "err": {
@@ -3691,6 +4151,72 @@
     "title": "LoopsOverview",
     "type": "object"
    },
+   "MapRequest": {
+    "properties": {
+     "canonical": {
+      "$ref": "#/components/schemas/CanonicalPID"
+     },
+     "mv_range": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv Range"
+     },
+     "pv_range": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv Range"
+     }
+    },
+    "required": [
+     "canonical"
+    ],
+    "title": "MapRequest",
+    "type": "object"
+   },
+   "MapResult": {
+    "properties": {
+     "effective": {
+      "$ref": "#/components/schemas/CanonicalPID"
+     },
+     "values": {
+      "additionalProperties": true,
+      "title": "Values",
+      "type": "object"
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/Warning_"
+      },
+      "title": "Warnings",
+      "type": "array"
+     }
+    },
+    "required": [
+     "values",
+     "warnings",
+     "effective"
+    ],
+    "title": "MapResult",
+    "type": "object"
+   },
    "ModelInfo": {
     "properties": {
      "code": {
@@ -4064,6 +4590,30 @@
      "narrowed"
     ],
     "title": "Narrow",
+    "type": "object"
+   },
+   "NewController": {
+    "properties": {
+     "from_id": {
+      "title": "From Id",
+      "type": "string"
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     }
+    },
+    "required": [
+     "from_id"
+    ],
+    "title": "NewController",
     "type": "object"
    },
    "NewLoop": {
@@ -7829,6 +8379,24 @@
     "title": "VpcSim",
     "type": "object"
    },
+   "Warning_": {
+    "properties": {
+     "key": {
+      "title": "Key",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key",
+     "text"
+    ],
+    "title": "Warning_",
+    "type": "object"
+   },
    "Windows": {
     "properties": {
      "excl": {
@@ -8202,6 +8770,763 @@
  },
  "openapi": "3.1.0",
  "paths": {
+  "/api/v1/controllers": {
+   "get": {
+    "description": "Předvolby (jen ke čtení) a vlastní profily knihovny.",
+    "operationId": "list_controllers_api_v1_controllers_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ControllerSummary"
+         },
+         "title": "Response List Controllers Api V1 Controllers Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "List Controllers",
+    "tags": [
+     "controllers"
+    ]
+   },
+   "post": {
+    "description": "„Vytvořit vlastní“: kopie předvolby / vlastního profilu pod novým id.",
+    "operationId": "create_custom_api_v1_controllers_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NewController"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ControllerProfile"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Create Custom",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/import": {
+   "post": {
+    "description": "Import souboru `.pidctrl` (JSON); kolidující id dostane nové.",
+    "operationId": "import_controller_api_v1_controllers_import_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ControllerProfile"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ControllerProfile"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Import Controller",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/{pid}": {
+   "delete": {
+    "operationId": "delete_controller_api_v1_controllers__pid__delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Delete Controller",
+    "tags": [
+     "controllers"
+    ]
+   },
+   "get": {
+    "operationId": "get_controller_api_v1_controllers__pid__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ControllerProfile"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Controller",
+    "tags": [
+     "controllers"
+    ]
+   },
+   "put": {
+    "description": "Změna vlastního profilu (id zůstává); předvolbu nelze měnit.",
+    "operationId": "update_controller_api_v1_controllers__pid__put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ControllerProfile"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ControllerProfile"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Update Controller",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/{pid}/canonical": {
+   "post": {
+    "description": "Hodnoty parametrů profilu (např. sada 1 z PLC) → kanonický PID.",
+    "operationId": "to_canonical_api_v1_controllers__pid__canonical_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CanonicalRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CanonicalPID"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "To Canonical",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/{pid}/export": {
+   "get": {
+    "operationId": "export_controller_api_v1_controllers__pid__export_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {}
+      },
+      "description": "profile file (.pidctrl)"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Export Controller",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/{pid}/map": {
+   "post": {
+    "description": "Kanonický PID (Kc, Ti, Td, b, c, N) → hodnoty parametrů profilu v jeho jednotkách a varování.",
+    "operationId": "map_canonical_api_v1_controllers__pid__map_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MapRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MapResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Map Canonical",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
+  "/api/v1/controllers/{pid}/test": {
+   "post": {
+    "description": "Test použitelnosti (12 kontrol simulací) a hodnocení: Vhodný pro ladění / Jen optimalizací / Nevhodný.",
+    "operationId": "test_controller_api_v1_controllers__pid__test_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "pid",
+      "required": true,
+      "schema": {
+       "title": "Pid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CheckProtocol"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Test Controller",
+    "tags": [
+     "controllers"
+    ]
+   }
+  },
   "/api/v1/health": {
    "get": {
     "operationId": "health_api_v1_health_get",
@@ -13217,6 +14542,164 @@
     "summary": "Compression",
     "tags": [
      "data"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/controller": {
+   "get": {
+    "description": "Profil regulátoru aktivní smyčky (kopie uložená v projektu); bez volby výchozí PIDConL.",
+    "operationId": "get_loop_controller_api_v1_workspaces__wid__controller_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopController"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Loop Controller",
+    "tags": [
+     "controllers"
+    ]
+   },
+   "put": {
+    "description": "Nastaví regulátor smyčky: kopie z knihovny (`from_id`), vlastní `profile`, nebo bez obojího výchozí PIDConL.",
+    "operationId": "put_loop_controller_api_v1_workspaces__wid__controller_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LoopControllerPut"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoopController"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Loop Controller",
+    "tags": [
+     "controllers"
     ]
    }
   },

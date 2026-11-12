@@ -4,6 +4,149 @@
  */
 
 export interface paths {
+    "/api/v1/controllers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Controllers
+         * @description Předvolby (jen ke čtení) a vlastní profily knihovny.
+         */
+        get: operations["list_controllers_api_v1_controllers_get"];
+        put?: never;
+        /**
+         * Create Custom
+         * @description „Vytvořit vlastní“: kopie předvolby / vlastního profilu pod novým id.
+         */
+        post: operations["create_custom_api_v1_controllers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Controller
+         * @description Import souboru `.pidctrl` (JSON); kolidující id dostane nové.
+         */
+        post: operations["import_controller_api_v1_controllers_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Controller */
+        get: operations["get_controller_api_v1_controllers__pid__get"];
+        /**
+         * Update Controller
+         * @description Změna vlastního profilu (id zůstává); předvolbu nelze měnit.
+         */
+        put: operations["update_controller_api_v1_controllers__pid__put"];
+        post?: never;
+        /** Delete Controller */
+        delete: operations["delete_controller_api_v1_controllers__pid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/canonical": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * To Canonical
+         * @description Hodnoty parametrů profilu (např. sada 1 z PLC) → kanonický PID.
+         */
+        post: operations["to_canonical_api_v1_controllers__pid__canonical_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Controller */
+        get: operations["export_controller_api_v1_controllers__pid__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Map Canonical
+         * @description Kanonický PID (Kc, Ti, Td, b, c, N) → hodnoty parametrů profilu v jeho jednotkách a varování.
+         */
+        post: operations["map_canonical_api_v1_controllers__pid__map_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/controllers/{pid}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Controller
+         * @description Test použitelnosti (12 kontrol simulací) a hodnocení: Vhodný pro ladění / Jen optimalizací / Nevhodný.
+         */
+        post: operations["test_controller_api_v1_controllers__pid__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -1133,6 +1276,30 @@ export interface paths {
          */
         get: operations["compression_api_v1_workspaces__wid__compression_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/controller": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Loop Controller
+         * @description Profil regulátoru aktivní smyčky (kopie uložená v projektu); bez volby výchozí PIDConL.
+         */
+        get: operations["get_loop_controller_api_v1_workspaces__wid__controller_get"];
+        /**
+         * Put Loop Controller
+         * @description Nastaví regulátor smyčky: kopie z knihovny (`from_id`), vlastní `profile`, nebo bez obojího výchozí PIDConL.
+         */
+        put: operations["put_loop_controller_api_v1_workspaces__wid__controller_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2505,6 +2672,44 @@ export interface components {
             /** User */
             user?: string | null;
         };
+        /** CanonicalPID */
+        CanonicalPID: {
+            /** Kc */
+            Kc: number;
+            /**
+             * N
+             * @default 5
+             */
+            N: number | null;
+            /**
+             * Td
+             * @default 0
+             */
+            Td: number;
+            /** Ti */
+            Ti?: number | null;
+            /**
+             * B
+             * @default 1
+             */
+            b: number;
+            /**
+             * C
+             * @default 1
+             */
+            c: number;
+        };
+        /** CanonicalRequest */
+        CanonicalRequest: {
+            /** Mv Range */
+            mv_range?: number[] | null;
+            /** Pv Range */
+            pv_range?: number[] | null;
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
+        };
         /** CascadeFit */
         CascadeFit: {
             /** Fit */
@@ -2627,6 +2832,34 @@ export interface components {
             /** T63 */
             t63: number;
         };
+        /** CheckItem */
+        CheckItem: {
+            /** Id */
+            id: string;
+            /** Message */
+            message: string;
+            /** Name */
+            name: string;
+            /** Rows */
+            rows?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Severity */
+            severity: string;
+            /** Status */
+            status: string;
+        };
+        /** CheckProtocol */
+        CheckProtocol: {
+            /** Checks */
+            checks: components["schemas"]["CheckItem"][];
+            /** Reasons */
+            reasons: string[];
+            /** Verdict */
+            verdict: string;
+            /** Verdict Text */
+            verdict_text: string;
+        };
         /** Columns */
         Columns: {
             /**
@@ -2669,6 +2902,82 @@ export interface components {
             pv: (number | null)[];
             /** T */
             t: number[];
+        };
+        /** ControllerParam */
+        ControllerParam: {
+            /** Default */
+            default?: unknown;
+            /** Key */
+            key: string;
+            /** Name */
+            name?: string | null;
+            /** Nullable */
+            nullable?: boolean | null;
+            /** Range */
+            range?: number[] | null;
+            /** Repr */
+            repr?: string | null;
+            /** Required */
+            required?: boolean | null;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * ControllerProfile
+         * @description Profil regulátoru (soubor `.pidctrl`); neznámé položky (struktura, ověření, výsledek testu) se zachovají.
+         */
+        ControllerProfile: {
+            /** Block */
+            block?: string | null;
+            /** Derived From */
+            derived_from?: string | null;
+            /**
+             * Format
+             * @default pidctrl
+             */
+            format: string;
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Params */
+            params: components["schemas"]["ControllerParam"][];
+            /** Structure */
+            structure: {
+                [key: string]: unknown;
+            };
+            /** System */
+            system?: string | null;
+            /** Vendor */
+            vendor?: string | null;
+            /** Verification */
+            verification?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ControllerSummary */
+        ControllerSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Tag */
+            tag: string;
+            /** Vendor */
+            vendor: string;
+            /** Verified */
+            verified: boolean;
         };
         /** DataQuality */
         DataQuality: {
@@ -3506,6 +3815,20 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** LoopController */
+        LoopController: {
+            /** Checksum */
+            checksum: string;
+            /** Is Default */
+            is_default: boolean;
+            profile: components["schemas"]["ControllerProfile"];
+        };
+        /** LoopControllerPut */
+        LoopControllerPut: {
+            /** From Id */
+            from_id?: string | null;
+            profile?: components["schemas"]["ControllerProfile"] | null;
+        };
         /** LoopHealth */
         LoopHealth: {
             /** Err */
@@ -3678,6 +4001,24 @@ export interface components {
             /** Loops */
             loops: components["schemas"]["LoopRow"][];
         };
+        /** MapRequest */
+        MapRequest: {
+            canonical: components["schemas"]["CanonicalPID"];
+            /** Mv Range */
+            mv_range?: number[] | null;
+            /** Pv Range */
+            pv_range?: number[] | null;
+        };
+        /** MapResult */
+        MapResult: {
+            effective: components["schemas"]["CanonicalPID"];
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
+            /** Warnings */
+            warnings: components["schemas"]["Warning_"][];
+        };
         /** ModelInfo */
         ModelInfo: {
             /** Code */
@@ -3807,6 +4148,13 @@ export interface components {
             narrowed: boolean;
             /** Span */
             span?: number[] | null;
+        };
+        /** NewController */
+        NewController: {
+            /** From Id */
+            from_id: string;
+            /** Name */
+            name?: string | null;
         };
         /** NewLoop */
         NewLoop: {
@@ -5157,6 +5505,13 @@ export interface components {
                 [key: string]: components["schemas"]["VpcKpi"];
             };
         };
+        /** Warning_ */
+        Warning_: {
+            /** Key */
+            key: string;
+            /** Text */
+            text: string;
+        };
         /** Windows */
         Windows: {
             /** Excl */
@@ -5304,6 +5659,358 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_controllers_api_v1_controllers_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_custom_api_v1_controllers_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewController"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_controller_api_v1_controllers_import_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControllerProfile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_controller_api_v1_controllers__pid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_controller_api_v1_controllers__pid__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControllerProfile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControllerProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_controller_api_v1_controllers__pid__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    to_canonical_api_v1_controllers__pid__canonical_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CanonicalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanonicalPID"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_controller_api_v1_controllers__pid__export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description profile file (.pidctrl) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_canonical_api_v1_controllers__pid__map_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_controller_api_v1_controllers__pid__test_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckProtocol"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -7518,6 +8225,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_loop_controller_api_v1_workspaces__wid__controller_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopController"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_loop_controller_api_v1_workspaces__wid__controller_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoopControllerPut"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoopController"];
                 };
             };
             /** @description Validation Error */
