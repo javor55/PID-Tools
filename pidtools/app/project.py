@@ -47,7 +47,7 @@ STATE_KEYS = [
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
     "cas_samp", "cas_tci", "cas_tco", "diag_integ",
     # hlavička reportu
-    "rep_plant", "rep_author", "rep_status", "rep_comment",
+    "rep_plant", "rep_author", "rep_status", "rep_comment", "live_runs",
     # prohlížeč záznamu (záložka Data): rozložení panelů, barvy, měřítka, kurzory – text JSON
     "dview",
 ]
@@ -67,7 +67,7 @@ NUM_KEYS = {"pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h", "samp", "diffgain", "p
             "cas_samp", "cas_tci", "cas_tco", "diag_theta"}
 BOOL_KEYS = {"pv_rng_user", "mv_rng_user", "pfb", "dfb", "id_stic", "read_manual", "opt_robust", "sim_len_u_set",
              "diag_integ"}
-LIST_KEYS = {"chosen", "tune_hist", "audit_loops", "vchar_last"}
+LIST_KEYS = {"chosen", "tune_hist", "audit_loops", "vchar_last", "live_runs"}
 NUM_PREFIX = ("ed|", "tc|", "tend_r|", "sim_S|")
 BOOL_PREFIX = ("fx|", "idf|")
 
