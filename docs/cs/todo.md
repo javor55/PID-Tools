@@ -15,7 +15,7 @@ regulátorů, deník ladění) po etapách E1–E11. Body níže jsou zbytky sla
       vlastní vzorkování, překryv / sjednocení, ruční perioda, mezery), návrh smyček z názvů tagů a import mapování z CSV,
       řetěz migrací v1 → v2 → v3, `/api/v1` (staré cesty jako skrytý alias), API `/sources`, `/time-grid`,
       `/loops/{i}/mapping`, `/loops/suggest`, `/loops/import`, `/signals/trend`. Zlaté případy projdou novou cestou beze
-      změny. Zbývá pro E4 (UI Data): obrazovky Zdroje a smyčky a Trendy nad těmito endpointy; stav smyčky (verdikt) do
+      změny. Zbývá pro E4 (UI Data): obrazovka Trendy nad těmito endpointy (Zdroje a smyčky je hotová: `tabs/data/SourcesView.tsx`; chybí v ní náhled prvních řádků před načtením souboru, jednotky sloupců, výběr sloupců času / tagu / hodnoty ručně a odkazy „Další krok“ – ty doplní navigace podzáložek); stav smyčky (verdikt) do
       seznamu smyček přijde s E5; načtení OPC UA jako dalšího zdroje (dnes `/opc/history` nahradí projekt jedním zdrojem);
       výběr listu u XLSX; líné načítání sloupců velkých souborů (dnes se čte celá tabulka zdroje); odstranění aliasů bez
       prefixu spolu s přechodem desktopu a `sidecar.py` na `/api/v1`; `PATCH` zdroje s jinými čtecími volbami přeskládá
