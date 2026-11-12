@@ -42,7 +42,7 @@ STATE_KEYS = [
     # ladění a simulace
     "ctype", "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv",
     "scen_kind", "scen_d_in", "scen_d_pv", "tune_hist", "id_mode", "audit_loops", "tri_thr", "diag_theta",
-    "scen2", "sim_len_u", "sim_len_u_set", "sim_J", "sim_noise", "vchar_last",
+    "val_rng", "scen2", "sim_len_u", "sim_len_u_set", "sim_J", "sim_noise", "vchar_last",
     # plán testu, kaskáda, diagnostika
     "plan_dpv", "plan_snr", "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct",
     "cas_samp", "cas_tci", "cas_tco", "diag_integ",
@@ -141,6 +141,8 @@ def fit_record(fit):
 def migrate_state(state):
     """Nastavení ze starších verzí → aktuální klíče (P ve zpětné vazbě ano/ne → PropFacSP 0 / 1)."""
     state = dict(state)
+    for k in [k for k in state if str(k).startswith("idf|")]:      # „Identifikovat“ (idf|, Streamlit) → „zafixovat“ (fx|)
+        state.setdefault("fx|" + k[4:], not bool(state[k]))
     if "propfac" not in state and "pfb" in state:
         state["propfac"] = 0.0 if state["pfb"] else 1.0
     return state

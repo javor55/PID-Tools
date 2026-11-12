@@ -4,7 +4,7 @@ parametrů, aktuálnost modelu, křížové ověření, nejistota a shoda modelu
 """
 import numpy as np
 
-from ...core import pd_z
+from ...core import pd_z, predict, predict_windows
 from .. import model as mdl
 from .. import tuning as tun
 from .. import windows as wn
@@ -212,9 +212,19 @@ class IdentMixin:
         r = self.fit["res"][code]
         for i, v in enumerate(r["p"]):
             self.settings[f"ed|{code}|{i}"] = float(v)
+        self.settings[f"ed|{code}|stic"] = float(r.get("stic", 0.0) or 0.0)
         for j, pd_ in enumerate(r["pdl"]):
             self.settings.pop(f"dsel|{code}|{j}", None)          # struktura poruchy zpět na identifikovanou
             self.set_dist_ed(code, j, pd_)
+
+    def model_stic(self, code, r):
+        """Stikce modelu [% MV] – ruční hodnota (ed|kód|stic), jinak z identifikace."""
+        v = self.get(f"ed|{code}|stic")
+        return float(r.get("stic", 0.0) or 0.0) if v is None else float(v or 0.0)
+
+    def stic_fixed(self, code):
+        """Zafixovaná stikce při dofitování (zaškrtnutí fx|kód|stic), jinak None (odhaduje se)."""
+        return float(self.get(f"ed|{code}|stic", 0.0) or 0.0) if self.get(f"fx|{code}|stic") else None
 
     def set_dist_ed(self, code, j, pd_):
         """Pole parametrů poruchy j (Kd, Tp, θd, Tp2) z parametrů [Kd, Tp, θd, typ, Tp2]."""
@@ -290,7 +300,7 @@ class IdentMixin:
         code, p, pdl = self.model
         r = self.fit["res"][code]
         ts, pv, mv, d = self.segment()
-        ev = mdl.evaluate(code, p, pdl, r.get("stic", 0.0) or 0.0, r.get("level", "none"), r.get("Th"),
+        ev = mdl.evaluate(code, p, pdl, self.model_stic(code, r), r.get("level", "none"), r.get("Th"),
                           ts, pv, mv, d, self.grid.Ts)
         if r.get("method") == "win" and self.inputs_mode:   # shoda a průběh modelu jen v úsecích (vlastní posun)
             from ...core import dyn_scale, model_metrics, predict_windows
@@ -315,7 +325,7 @@ class IdentMixin:
             m = self.sel_mask
             ts, pv, mv, d = self.segment()
             seg = (m, ts, pv, mv, d, self.evaluate()["y_plot"])
-        return wn.model_curves(code, p, pdl, r.get("stic", 0.0) or 0.0, self.t, self.pv, self.mv, list(g.dists), g.Ts,
+        return wn.model_curves(code, p, pdl, self.model_stic(code, r), self.t, self.pv, self.mv, list(g.dists), g.Ts,
                                self.valid, self.win_idx if win else None, seg)
 
     def window_fits(self, code):
@@ -337,3 +347,94 @@ class IdentMixin:
             else:
                 out[c] = r["fit"]
         return out
+
+    # ---- ověření na jiném úseku (M1)
+    def val_rng(self):
+        """Ověřovací úsek (od, do) [s]; výchozí celý záznam."""
+        v = self.get("val_rng")
+        end = float(self.t[-1])
+        if v and len(v) == 2 and 0 <= float(v[0]) < float(v[1]) <= end + 1e-9:
+            return float(v[0]), float(v[1])
+        return 0.0, end
+
+    def validate(self, rv, mode="pred", which=1):
+        """
+        Ověření aktuálního modelu na úseku rv: metriky na úseku identifikace a ověřovacím, predikce PV z MV
+        (mode „pred“), nebo simulace smyčky se Sadou 1/2 na záznamu (mode „cl“, potřebuje SP). Průběhy v inženýrských
+        jednotkách. Vrací dict(rng, overlap, id, val, verdict, t, sp, pv, mv, sim_pv, sim_mv, fit_pv, fit_mv, stable).
+        """
+        code, p, pdl = self.model
+        r = self.fit["res"][code]
+        g = self.grid
+        stic = self.model_stic(code, r)
+        sv, tv = mdl.segment(self.t, rv)
+        if len(tv) < 20:
+            raise ValueError("short")
+        pv, mv, d = self.pv[sv], self.mv[sv], [x[sv] for x in g.dists]
+        ev = mdl.evaluate(code, p, pdl, stic, r.get("level", "none"), r.get("Th"), tv, pv, mv, d, g.Ts)
+        out = dict(rng=rv, overlap=mdl.overlap(rv, self.id_rng), id=self.evaluate()["metrics"], val=ev["metrics"],
+                   t=self.t[sv], pv=self.EP(pv), mv=self.EM(mv), sp=None, sim_pv=None, sim_mv=None, fit_pv=None,
+                   fit_mv=None, stable=True)
+        if mode == "pred":
+            yv, fv = predict(code, p, pdl, tv, pv, mv, d, g.Ts, stic)
+            out.update(sim_pv=self.EP(yv), fit_pv=float(fv))
+            out["verdict"] = "same" if out["overlap"] > 0.5 else ("ok" if fv >= 70 else "weak")
+            return out
+        if not g.has_sp:
+            raise ValueError("no sp")
+        ctrl = self.set_ctrl(1 if which == 1 else 2)
+        ctrl.update(Stic=stic, ValveChar=self.get("vchar_last"))
+        vr = mdl.validate_cl(code, p, pdl, ctrl, tv, self.sp[sv], pv, mv, d, g.Ts, float(self.get("samp")))
+        out.update(sp=self.EP(self.sp[sv]), stable=vr["stable"], fit_pv=vr["fit_pv"], fit_mv=vr["fit_mv"])
+        if vr["stable"]:
+            out.update(sim_pv=self.EP(vr["PV"]), sim_mv=self.EM(vr["MV"]), sim_t=self.t[sv][0] + vr["t"])
+        out["verdict"] = ("same" if out["overlap"] > 0.5 else "ok" if (vr["fit_pv"] or 0) >= 60 else "weak") \
+            if vr["stable"] else "unstable"
+        return out
+
+    # ---- uzavřená smyčka (M2): Set 1 ze záznamu, jeho kontrola, buzení
+    def excitation(self):
+        """Buzení v úseku identifikace (změny SP, rozkmit MV) – bez SP None."""
+        from .. import closedloop as cl
+        if not self.grid.has_sp:
+            return None
+        m = self.sel_mask
+        return cl.excitation(self.sp[m], self.pv[m], self.mv[m])
+
+    def estimate_set1(self):
+        """Set 1 = PI regulátor odhadnutý ze záznamu (úsek identifikace); při úspěchu se zapíše do nastavení."""
+        from .. import closedloop as cl
+        m = self.sel_mask
+        est = cl.estimate_ctrl(self.sp[m], self.pv[m], self.mv[m], self.grid.Ts)
+        if est["ok"]:
+            ti = float(est["ti"]) if np.isfinite(est["ti"]) else 1e9
+            self.set(set1_gain=float(est["gain"]), set1_ti=ti, set1_td=0.0)
+        return est
+
+    def check_set1(self):
+        """Odpovídá Set 1 regulátoru v záznamu? Simulace smyčky s vybraným modelem; None bez modelu nebo SP."""
+        from .. import closedloop as cl
+        code = self.get("mcode")
+        if not self.fit or code not in self.fit["res"] or not self.grid.has_sp:
+            return None
+        r = self.fit["res"][code]
+        ts, pv, mv, d = self.segment()
+        return cl.check_set1(code, r["p"], r["pdl"], ts, self.sp[self.sel_mask], pv, mv, d, self.grid.Ts,
+                             self.set_ctrl_plain(1))
+
+    # ---- odezva na skok a porovnání modelů
+    def compare_models(self):
+        """Predikce každého nafitovaného modelu na úseku identifikace: (t, PV, {kód: (průběh, FIT)}) v jednotkách PV."""
+        m = self.sel_mask
+        ts, pv, mv, d = self.segment()
+        g = self.grid
+        out = {}
+        for c, r in self.fit["res"].items():
+            if r.get("method") == "win" and self.inputs_mode:
+                ye, _fits, f = predict_windows(c, r["p"], r["pdl"], self.t, self.pv, self.mv, g.Ts, list(g.dists),
+                                               self.win_idx, self.valid)
+                y = ye[m]
+            else:
+                y, f = predict(c, r["p"], r["pdl"], ts, pv, mv, d, g.Ts, self.model_stic(c, r))
+            out[c] = (self.EP(np.asarray(y, float)), float(f))
+        return self.t[m], self.EP(pv), out

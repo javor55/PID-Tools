@@ -16,7 +16,7 @@ class ProjectMixin:
         state = {k: prj.jsonable(v) for k, v in self.settings.items() if prj.is_state_key(k) and v is not None}
         rec = dict(tag=self.get("loop_tag", ""), state=state,
                    map=dict(c_pv=self.c_pv, c_mv=self.c_mv, c_sp=self.c_sp, c_d=list(self.c_d), c_pos=self.c_pos),
-                   ranges={"id": list(self.rng), "val": list(self.rng)}, ff=list(self.ff_state))
+                   ranges={"id": list(self.rng), "val": list(self.val_rng() if self.has_data else self.rng)}, ff=list(self.ff_state))
         fit = prj.fit_record(self.fit)
         if fit:
             rec["fit"] = fit
