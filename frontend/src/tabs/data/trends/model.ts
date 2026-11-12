@@ -37,6 +37,9 @@ export function unitFromName(name: string): string {
   return m ? m[1].trim() : "";
 }
 
+/** Název sloupce bez jednotky na konci („FIC205.PV [t/h]“ → „FIC205.PV“). */
+export const stripUnit = (name: string) => name.replace(/\s*[[(][^\])[(]{1,12}[\])]\s*$/, "") || name;
+
 /** Veličina signálu (klíč pro „panel na veličinu“ a sdílenou osu): jednotka v názvu, MV / poloha = %, jinak podle ISA písmene. */
 export function quantityOf(column: string, role: Role, tag: string | null): { key: string; unit: string } {
   const u = unitFromName(column);
@@ -126,12 +129,12 @@ export function layoutPanels(sigs: SigInfo[], mode: LayoutMode, titles: { one: s
 
 export interface Axis { key: string; refs: string[]; lo: number; hi: number; unit: string }
 
-/** Osy panelu: sdílená osa = jedna osa na veličinu, jinak vlastní osa každého signálu. Rozsah z dat v okně [a, b]. */
+/** Osy panelu: sdílená osa = všechny signály na jedné ose, jinak jedna osa na veličinu (PV a SP spolu, MV zvlášť). Rozsah z dat v okně [a, b]. */
 export function panelAxes(series: Series[], info: Map<string, SigInfo>, shared: boolean, a: number, b: number): Axis[] {
   const groups = new Map<string, Axis>();
   for (const s of series) {
     const i = info.get(s.ref);
-    const key = shared ? (i?.quantity ?? s.ref) : s.ref;
+    const key = shared ? "all" : (i?.quantity ?? s.ref);
     let lo = Infinity, hi = -Infinity;
     for (let k = 0; k < s.t.length; k++) {
       if (s.t[k] < a || s.t[k] > b) continue;

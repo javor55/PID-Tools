@@ -61,14 +61,14 @@ describe("signály a veličiny", () => {
       ["T", ["s1:TIC102.PV", "s1:TIC102.SP"]], ["[%]", ["s1:TIC102.MV", "s1:FIC205.MV"]], ["P", ["s2:PI201"]], ["OTHER", ["s2:X"]]]);
   });
 
-  it("osy panelu: sdílená osa podle veličiny, jinak osa na signál", () => {
+  it("osy panelu: sdílená osa = jedna pro vše, jinak osa na veličinu", () => {
     const info = new Map(sigs.map((s) => [s.ref, s]));
     const mk = (ref: string, lo: number, hi: number): Series => ({ ref, t: [0, 1, 2], v: [lo, (lo + hi) / 2, hi] });
     const data = [mk("s1:TIC102.PV", 10, 20), mk("s1:TIC102.SP", 12, 30), mk("s1:TIC102.MV", 0, 100)];
-    const sh = panelAxes(data, info, true, 0, 2);
-    expect(sh.map((a) => a.refs.length)).toEqual([2, 1]);
-    expect(sh[0].lo).toBeLessThan(10); expect(sh[0].hi).toBeGreaterThan(30);
-    expect(panelAxes(data, info, false, 0, 2)).toHaveLength(3);
+    const own = panelAxes(data, info, false, 0, 2);
+    expect(own.map((a) => a.refs.length)).toEqual([2, 1]);                       // PV + SP (°C) spolu, MV (%) zvlášť
+    expect(own[0].lo).toBeLessThan(10); expect(own[0].hi).toBeGreaterThan(30);
+    expect(panelAxes(data, info, true, 0, 2)).toHaveLength(1);
     expect(panelAxes(data, info, true, 5, 6)).toEqual([]);                        // okno bez dat
   });
 });

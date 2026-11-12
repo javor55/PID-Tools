@@ -1,7 +1,7 @@
 // Trendy – panel grafu (canvas), časová osa a přehledový pruh. Společné pro všechny panely: zoom kolečkem, posun
 // tažením, kurzory A / B (klik = A, Shift+klik = B, tažení čáry), osy Y podle veličiny nebo signálu.
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
-import { fmtClock, fmtNum, niceTicks, panelAxes, type Axis, type Panel, type Series, type SigInfo } from "./model";
+import { fmtClock, fmtNum, niceTicks, panelAxes, stripUnit, type Axis, type Panel, type Series, type SigInfo } from "./model";
 
 export const LEFT = 58, RIGHT = 58, PAD_T = 6, PAD_B = 6;
 const FALLBACK = { text: "#1f2933", muted: "#52606d", soft: "#e5e9ef", line: "#c3ccd6" };
@@ -82,8 +82,7 @@ export function TrendPanel({ panel, series, info, ctx, shared, height, onRemove 
   const w = useWidth(box);
   const [view0, full, origin] = [ctx.view, ctx.full, ctx.origin];
   const axes = useMemo(() => panelAxes(series, info, shared, view0[0], view0[1]), [series, info, shared, view0]);
-  const right = axes.length > 1;
-  const plot = { x0: LEFT, x1: w - (right ? RIGHT : 10), y0: PAD_T, y1: height - PAD_B };
+    const plot = { x0: LEFT, x1: w - RIGHT, y0: PAD_T, y1: height - PAD_B };
   const X = useCallback((t: number) => plot.x0 + ((t - view0[0]) / (view0[1] - view0[0])) * (plot.x1 - plot.x0), [plot.x0, plot.x1, view0]);
   const T = (x: number) => view0[0] + ((x - plot.x0) / (plot.x1 - plot.x0)) * (view0[1] - view0[0]);
   const axOf = useMemo(() => {
@@ -189,7 +188,7 @@ export function TrendPanel({ panel, series, info, ctx, shared, height, onRemove 
     for (const r of panel.refs) {
       const i = info.get(r);
       const u = i?.unit ?? "";
-      by.set(u, [...(by.get(u) ?? []), i?.label ?? r]);
+      by.set(u, [...(by.get(u) ?? []), stripUnit(i?.label ?? r)]);
     }
     return [...by.entries()].map(([u, l]) => `${l.join(", ")}${u ? ` [${u}]` : ""}`).join(" · ");
   }, [panel.refs, info]);
@@ -221,7 +220,7 @@ export function TrendPanel({ panel, series, info, ctx, shared, height, onRemove 
 }
 
 /** Časová osa pod panely se značkami kurzorů A / B (hodiny, je-li zdroj má; jinak sekundy). */
-export function TimeAxis({ ctx, right }: { ctx: ChartCtx; right: boolean }) {
+export function TimeAxis({ ctx }: { ctx: ChartCtx }) {
   const box = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const w = useWidth(box);
@@ -229,9 +228,9 @@ export function TimeAxis({ ctx, right }: { ctx: ChartCtx; right: boolean }) {
   useEffect(() => {
     const c = cv.current;
     if (!c) return;
-    const g = setupCanvas(c, w, 24);
+    const g = setupCanvas(c, w, 38);
     const P = palette(c);
-    const x0 = LEFT, x1 = w - (right ? RIGHT : 10);
+    const x0 = LEFT, x1 = w - RIGHT;
     const X = (t: number) => x0 + ((t - a) / (b - a)) * (x1 - x0);
     g.font = "11px 'IBM Plex Sans', sans-serif"; g.fillStyle = P.muted; g.textAlign = "center"; g.textBaseline = "top";
     const step = timeStep(b - a, Math.max(3, Math.round((x1 - x0) / 110)));
@@ -240,9 +239,9 @@ export function TimeAxis({ ctx, right }: { ctx: ChartCtx; right: boolean }) {
     g.textBaseline = "bottom"; g.fillStyle = P.text; g.font = "600 11px 'IBM Plex Sans', sans-serif";
     for (const [k, t] of [["A", ctx.a], ["B", ctx.b]] as const) {
       if (t === null || t < a || t > b) continue;
-      g.fillText(`${k} ${fmtClock(ctx.origin, t, false, true)}`, Math.min(Math.max(X(t), x0 + 40), x1 - 40), 24);
+      g.fillText(`${k} ${fmtClock(ctx.origin, t, false, true)}`, Math.min(Math.max(X(t), x0 + 40), x1 - 40), 37);
     }
-  }, [w, a, b, ctx.a, ctx.b, ctx.origin, right]);
+  }, [w, a, b, ctx.a, ctx.b, ctx.origin]);
   return <div ref={box} className="trd-axis"><canvas ref={cv} data-testid="trd-axis" /></div>;
 }
 

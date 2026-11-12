@@ -218,7 +218,7 @@ export function TrendsMain() {
               series={p.refs.map((r) => cur.m.get(r)).filter((s): s is Series => !!s)}
               onRemove={(r) => st.toggle(r, sel.checked)} />
           ))}
-          {panels.length > 0 && <TimeAxis ctx={ctx} right />}
+          {panels.length > 0 && <TimeAxis ctx={ctx} />}
           {panels.length > 0 && (
             <div className="trd-navrow"><span className="trd-lbl">{T("trd_ui_overview")}</span>
               <Navigator ctx={ctx} info={sel.allInfo} title={T("trd_ui_nav_win")}
