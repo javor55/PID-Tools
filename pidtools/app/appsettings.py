@@ -18,7 +18,8 @@ from . import triage
 FORMAT, VERSION = "pidtools.settings", 1
 ENV_DIR = "PIDTOOLS_CONFIG_DIR"
 FILE = "settings.json"
-LOGO_EXTS = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "svg": "image/svg+xml"}
+LOGO_EXTS = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "svg": "image/svg+xml"}   # svg: jen čtení starých souborů
+UPLOAD_LOGO_EXTS = ("png", "jpg", "jpeg")                  # nově se přijímá jen rastr (SVG může nést skripty)
 MAX_LOGO = 1_000_000
 _ID = re.compile(r"^[a-z0-9][a-z0-9_\-]{0,63}$")
 
@@ -198,10 +199,10 @@ class SettingsStore:
                 pass
 
     def put_logo(self, data, ext, user=None):
-        """Uloží logo (png / jpg / svg do 1 MB) a zapíše jeho název do nastavení; vrací nové nastavení."""
+        """Uloží logo (png / jpg do 1 MB; SVG ne – může nést skripty) a zapíše jeho název do nastavení; vrací nové nastavení."""
         ext = ext.lower().lstrip(".")
-        if ext not in LOGO_EXTS:
-            raise ValueError("logo must be png, jpg or svg")
+        if ext not in UPLOAD_LOGO_EXTS:
+            raise ValueError("logo must be png or jpg")
         if not data or len(data) > MAX_LOGO:
             raise ValueError("logo is empty or larger than 1 MB")
         self.clear_logo(user)
@@ -217,6 +218,46 @@ class SettingsStore:
         s = self.load(user)
         s["report"]["logo"] = ""
         return self.save(s, user)
+
+
+class MemorySettingsStore(SettingsStore):
+    """
+    Veřejný režim: nastavení jen v paměti po relacích, nikdy na disk (bez loga a bez připojení k OPC / historianům;
+    velikost omezuje `normalize`). `drop(user)` při vypršení relace.
+    """
+
+    def __init__(self):
+        super().__init__(base="")
+        self._d = {}
+
+    def load(self, user=None):
+        return normalize(self._d.get(user))
+
+    def save(self, settings, user=None):
+        s = normalize(settings)
+        s["connections"] = copy.deepcopy(DEFAULTS["connections"])
+        s["report"]["logo"] = ""
+        self._d[user] = s
+        return s
+
+    def reset(self, user=None):
+        self._d.pop(user, None)
+        return self.load(user)
+
+    def logo_path(self, user=None):
+        return None
+
+    def clear_logo(self, user=None):
+        pass
+
+    def put_logo(self, data, ext, user=None):
+        raise ValueError("logo_disabled")
+
+    def drop_logo(self, user=None):
+        return self.load(user)
+
+    def drop(self, user):
+        self._d.pop(user, None)
 
 
 def new_project_defaults(settings, controller=None):

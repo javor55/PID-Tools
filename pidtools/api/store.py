@@ -57,6 +57,12 @@ class WorkspaceStore:
                 return False
             return self._d.pop(wid, None) is not None
 
+    def drop_owner(self, owner):
+        """Všechny prostory uživatele (vypršení relace)."""
+        with self._lock:
+            for k in [k for k, v in self._d.items() if v[2] == owner]:
+                del self._d[k]
+
     def count(self, owner):
         """Počet prostorů uživatele."""
         return sum(v[2] == owner for v in list(self._d.values()))

@@ -4,7 +4,7 @@ uzlů do pracovního prostoru (úloha). Do serveru se nic nezapisuje. Volitelná
 """
 import datetime as dt
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..app import opc
@@ -50,20 +50,26 @@ def read_history(url, user, password, timeout, nodes, start, end, progress=None)
     return df, [nodes[n] for n, (ts, _) in series.items() if not ts]
 
 
+def _disabled():
+    raise HTTPException(403, "opc_disabled")
+
+
 def _conn(body):
     if not opc.available():
         raise HTTPException(501, "asyncua not installed")
     return opc.Connection(body.url, body.user, body.password, body.timeout)
 
 
-def router(get_proj, jobs):
+def router(get_proj, jobs, enabled=True):
+    """enabled=False (veřejný režim): server nesmí otevírat spojení na cizí adresy – všechny cesty kromě `available` 403."""
     r = APIRouter(tags=["opcua"])
+    off = [] if enabled else [Depends(_disabled)]
 
     @r.get("/opc/available", response_model=bool)
     def available():
-        return opc.available()
+        return enabled and opc.available()
 
-    @r.post("/opc/browse", response_model=list[Node])
+    @r.post("/opc/browse", response_model=list[Node], dependencies=off)
     def browse(body: Browse):
         """Podřízené uzly (výchozí: složka Objects)."""
         try:
@@ -74,7 +80,7 @@ def router(get_proj, jobs):
         except Exception as ex:
             raise HTTPException(502, f"OPC UA: {ex}") from ex
 
-    @r.post("/opc/find", response_model=list[Node])
+    @r.post("/opc/find", response_model=list[Node], dependencies=off)
     def find(body: Find):
         """Proměnné, jejichž cesta obsahuje text (např. „FIC101“)."""
         try:
@@ -85,7 +91,7 @@ def router(get_proj, jobs):
         except Exception as ex:
             raise HTTPException(502, f"OPC UA: {ex}") from ex
 
-    @r.post("/workspaces/{wid}/opc/history", response_model=JobInfo)
+    @r.post("/workspaces/{wid}/opc/history", response_model=JobInfo, dependencies=off)
     def history(wid: str, body: History):
         """Historie vybraných uzlů (úloha) → data pracovního prostoru (nový projekt s jednou smyčkou)."""
         if not opc.available():

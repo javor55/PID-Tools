@@ -130,3 +130,34 @@ class UserData:
         self._drop_file(rid, user)
         _write(self._list_path(user), json.dumps(rest))
         return True
+
+
+class NullUserData(UserData):
+    """Veřejný režim: nic se neukládá (žádná záchranná kopie ani nedávné projekty), na disk se nesahá."""
+
+    def __init__(self):
+        super().__init__(base="")
+
+    def save_recovery(self, raw, meta, user=None):
+        return dict(meta, at=time.time(), bytes=len(raw))
+
+    def recovery(self, user=None):
+        return None
+
+    def recovery_raw(self, user=None):
+        raise KeyError("recovery")
+
+    def clear_recovery(self, user=None):
+        pass
+
+    def recent(self, user=None):
+        return []
+
+    def add_recent(self, raw, name, loops, user=None):
+        return None
+
+    def recent_raw(self, rid, user=None):
+        raise KeyError(rid)
+
+    def remove_recent(self, rid, user=None):
+        return False

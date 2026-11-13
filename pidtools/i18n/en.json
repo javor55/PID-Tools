@@ -3345,5 +3345,16 @@
  "app_rec_restore": "Restore",
  "app_rec_restore_h": "Opens the recovery copy; the project stays marked as unsaved.",
  "app_rec_discard": "Discard",
- "app_rec_discard_h": "Deletes the recovery copy."
+ "app_rec_discard_h": "Deletes the recovery copy.",
+ "data_too_big": "The file is too large (too many rows or columns, or the Excel workbook exceeds the allowed unpacked size).",
+ "data_bad_xlsx": "The Excel workbook could not be read (damaged file or invalid format).",
+ "logo_disabled": "Logo upload is disabled in public mode.",
+ "autosave_disabled": "Recovery copy is disabled in public mode – save the project to a file.",
+ "attachments_disabled": "Journal attachments are disabled in public mode.",
+ "opc_disabled": "OPC UA and historians are disabled in public mode.",
+ "pub_notice_title": "Privacy in public mode",
+ "pub_notice": "Data is processed only on the server for the duration of your session and discarded when it ends or after {min} min of inactivity. Nothing is stored permanently on the server. Save your project to a file (Project › Save).",
+ "pub_notice_short": "Public mode: data is processed on the server only for the session and then discarded – save your project to a file.",
+ "pub_busy": "The server is busy right now, try again in a moment.",
+ "pub_rate": "Too many requests – wait a moment."
 }

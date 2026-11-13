@@ -159,7 +159,7 @@ def new_defaults(settings, lib: Library):
     return aps.new_project_defaults(settings, profile)
 
 
-def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library):
+def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library, public=False):
     r = APIRouter(tags=["app-settings"])
 
     def user():
@@ -216,8 +216,10 @@ def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library):
     @r.post("/app-settings/logo", response_model=AppSettings,
             openapi_extra={"requestBody": {"required": True, "content": {"application/octet-stream": {
                 "schema": {"type": "string", "format": "binary"}}}}})
-    async def put_logo(request: Request, name: str = Query(description="file name (extension png, jpg or svg)")):
-        """Nahraje logo firmy pro report (png / jpg / svg do 1 MB)."""
+    async def put_logo(request: Request, name: str = Query(description="file name (extension png or jpg)")):
+        """Nahraje logo firmy pro report (png / jpg do 1 MB; SVG se nepřijímá, ve veřejném režimu 403)."""
+        if public:
+            raise HTTPException(403, "logo_disabled")
         raw = await request.body()
         try:
             return out(store.put_logo(raw, name.rsplit(".", 1)[-1], user()))
@@ -230,17 +232,20 @@ def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library):
         p = store.logo_path(user())
         if not p:
             raise HTTPException(404, "no logo")
-        return FileResponse(p, media_type=aps.LOGO_EXTS[p.rsplit(".", 1)[-1]])
+        ext = p.rsplit(".", 1)[-1]
+        # starý soubor SVG (dnes se nenahrává) se nikdy nevykreslí jako stránka: příloha + sandbox bez skriptů
+        hdr = {"Content-Disposition": 'attachment; filename="logo.svg"', "Content-Security-Policy": "sandbox; default-src 'none'"} if ext == "svg" else {}
+        return FileResponse(p, media_type=aps.LOGO_EXTS[ext], headers=hdr)
 
     @r.delete("/app-settings/logo", response_model=AppSettings)
     def delete_logo():
         return out(store.drop_logo(user()))
 
-    r.include_router(save_router(get_proj, data))
+    r.include_router(save_router(get_proj, data, public))
     return r
 
 
-def save_router(get_proj, data: UserData):
+def save_router(get_proj, data: UserData, public=False):
     """Stav uložení, záchranná kopie, nedávné projekty a ukázková data."""
     r = APIRouter(tags=["app-settings"])
 
@@ -257,8 +262,10 @@ def save_router(get_proj, data: UserData):
 
     @r.post("/workspaces/{wid}/autosave", response_model=SaveState)
     def autosave(wid: str):
-        """Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic."""
+        """Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic (veřejný režim: 403)."""
         p = get_proj(wid)
+        if public:
+            raise HTTPException(403, "autosave_disabled")
         if not p.state.has_data:
             raise HTTPException(409, "no data")
         raw = prj.serialize_project(p.to_project(include_data=True)).encode("utf-8")
@@ -281,7 +288,7 @@ def save_router(get_proj, data: UserData):
         p = get_proj(wid)
         try:
             p.apply_project(prj.load_project(raw.decode("utf-8")))
-        except (ValueError, KeyError, TypeError, json.JSONDecodeError, UnicodeDecodeError) as ex:
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError, UnicodeDecodeError, RecursionError) as ex:
             raise HTTPException(400, f"invalid project: {ex}") from ex
         p.mark_loaded()
         return info(wid, p.state)

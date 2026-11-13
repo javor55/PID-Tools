@@ -74,7 +74,7 @@ def pending_router(enabled=True):
     return r
 
 
-def router(get_proj, remember=None):
+def router(get_proj, remember=None, max_project=MAX_PROJECT):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["project"])
 
     @r.get("/project", response_class=Response,
@@ -95,12 +95,14 @@ def router(get_proj, remember=None):
     async def load(wid: str, request: Request):
         """Načtení projektu (i starší verze); projekt bez dat použije data, která jsou v prostoru načtená."""
         p = get_proj(wid)
+        if int(request.headers.get("content-length") or 0) > max_project:
+            raise HTTPException(413, "project too large")
         raw = await request.body()
-        if len(raw) > MAX_PROJECT:
+        if len(raw) > max_project:
             raise HTTPException(413, "project too large")
         try:
             p.apply_project(prj.load_project(raw.decode("utf-8")))
-        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as ex:
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError, RecursionError) as ex:
             raise HTTPException(400, f"invalid project: {ex}") from ex
         p.mark_loaded()
         if remember:

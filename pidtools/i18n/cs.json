@@ -3345,5 +3345,16 @@
  "app_rec_restore": "Obnovit",
  "app_rec_restore_h": "Otevře záchrannou kopii; projekt zůstane označený jako neuložený.",
  "app_rec_discard": "Zahodit",
- "app_rec_discard_h": "Smaže záchrannou kopii."
+ "app_rec_discard_h": "Smaže záchrannou kopii.",
+ "data_too_big": "Soubor je příliš velký (příliš mnoho řádků nebo sloupců, nebo sešit Excel po rozbalení přesahuje povolenou velikost).",
+ "data_bad_xlsx": "Sešit Excel se nepodařilo přečíst (poškozený soubor nebo neplatný formát).",
+ "logo_disabled": "Nahrání loga je ve veřejném režimu vypnuté.",
+ "autosave_disabled": "Záchranná kopie je ve veřejném režimu vypnutá – uložte projekt do souboru.",
+ "attachments_disabled": "Přílohy deníku jsou ve veřejném režimu vypnuté.",
+ "opc_disabled": "OPC UA a historiany jsou ve veřejném režimu vypnuté.",
+ "pub_notice_title": "Soukromí ve veřejném režimu",
+ "pub_notice": "Data se zpracovávají jen na serveru po dobu vaší relace a po ukončení nebo {min} min nečinnosti se zahodí. Na serveru se nic trvale neukládá. Projekt si uložte do souboru (Projekt › Uložit).",
+ "pub_notice_short": "Veřejný režim: data se na serveru zpracovávají jen po dobu relace a pak se zahodí – projekt si uložte do souboru.",
+ "pub_busy": "Server je právě vytížený, zkuste to za chvíli.",
+ "pub_rate": "Příliš mnoho požadavků – chvíli počkejte."
 }
