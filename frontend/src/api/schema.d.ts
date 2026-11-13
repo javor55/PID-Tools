@@ -104,7 +104,7 @@ export interface paths {
         put?: never;
         /**
          * Put Logo
-         * @description Nahraje logo firmy pro report (png / jpg / svg do 1 MB).
+         * @description Nahraje logo firmy pro report (png / jpg do 1 MB; SVG se nepřijímá, ve veřejném režimu 403).
          */
         post: operations["put_logo_api_v1_app_settings_logo_post"];
         /** Delete Logo */
@@ -143,6 +143,26 @@ export interface paths {
          * @description Záchranná kopie z minula (po pádu nebo zavření bez uložení), nebo `available = false`.
          */
         get: operations["latest_api_v1_autosave_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Config
+         * @description Režim nasazení a limity pro rozhraní (ve veřejném režimu tímto voláním prohlížeč dostane relaci).
+         */
+        get: operations["config_api_v1_config_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1519,7 +1539,7 @@ export interface paths {
         put?: never;
         /**
          * Autosave
-         * @description Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic.
+         * @description Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic (veřejný režim: 403).
          */
         post: operations["autosave_api_v1_workspaces__wid__autosave_post"];
         delete?: never;
@@ -1881,10 +1901,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Attach
-         * @description Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu).
-         */
+        /** Attach */
         post: operations["attach_api_v1_workspaces__wid__journal__sid__attachments_post"];
         delete?: never;
         options?: never;
@@ -3964,6 +3981,18 @@ export interface components {
             tuning_roles?: string[] | null;
             /** Warnings */
             warnings: components["schemas"]["SourceIssue"][];
+        };
+        /**
+         * Config
+         * @description Co potřebuje rozhraní vědět o nasazení: režim (desktop / team / public), limit nahrání a doba relace.
+         */
+        Config: {
+            /** Max Upload Mb */
+            max_upload_mb: number;
+            /** Mode */
+            mode: string;
+            /** Session Ttl Min */
+            session_ttl_min?: number | null;
         };
         /** ControllerParam */
         ControllerParam: {
@@ -7492,7 +7521,7 @@ export interface operations {
     put_logo_api_v1_app_settings_logo_post: {
         parameters: {
             query: {
-                /** @description file name (extension png, jpg or svg) */
+                /** @description file name (extension png or jpg) */
                 name: string;
             };
             header?: {
@@ -7609,6 +7638,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecoveryInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    config_api_v1_config_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Config"];
                 };
             };
             /** @description Validation Error */

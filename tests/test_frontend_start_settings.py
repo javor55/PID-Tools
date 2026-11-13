@@ -2,6 +2,7 @@
 Start, globální Nastavení aplikace, automatické ukládání a „Nový“ projekt v prohlížeči (E10-B). Potřebuje sestavené UI
 (cd frontend && npm run build); nastavení a uživatelská data jdou do dočasných složek.
 """
+import base64
 import json
 import os
 import subprocess
@@ -209,11 +210,11 @@ def test_settings_report_logo_connections_export_import(page, server, tmp_path):
     _open_settings(page, "report")
     page.locator('[data-testid="set-company"]').fill("ACME Chemie")
     page.locator('[data-testid="set-company"]').press("Enter")
-    logo = tmp_path / "firma.svg"
-    logo.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="#1f5fa8"/></svg>')
+    logo = tmp_path / "firma.png"          # SVG se nepřijímá (může nést skripty)
+    logo.write_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))
     page.set_input_files('[data-testid="set-logo-file"]', str(logo))
     page.wait_for_selector('[data-testid="set-logo-img"]', timeout=10000)
-    assert _api(server, "GET", "/app-settings")["report"]["logo"] == "logo.svg"
+    assert _api(server, "GET", "/app-settings")["report"]["logo"] == "logo.png"
     _open_settings(page, "connections")
     assert page.locator('[data-testid="set-opc-add"]').is_disabled()
     page.fill('[data-testid="set-opc-name"]', "Reaktor K2")

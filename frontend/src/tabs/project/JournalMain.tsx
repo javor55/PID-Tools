@@ -8,6 +8,7 @@ import { Seg } from "../../components/Ui";
 import { useT } from "../../i18n";
 import { useUi } from "../../store";
 import { reportFromSnapshot, useCompare, useJournal, useSnapshot } from "./api";
+import { usePublic } from "../../deploy";
 import { type Snapshot, type SnapshotDetail, STATUSES, useProjSub, useReport } from "./state";
 
 const num = (v: unknown, n = 4) => (typeof v === "number" && Number.isFinite(v) ? String(+v.toPrecision(n)) : v == null ? "–" : String(v));
@@ -96,6 +97,7 @@ function SetsTable({ d }: { d: SnapshotDetail }) {
 
 function Detail({ sid }: { sid: string }) {
   const T = useT();
+  const pub = usePublic();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const q = useSnapshot(sid);
@@ -197,10 +199,10 @@ function Detail({ sid }: { sid: string }) {
           <button className="btn" onClick={() => void download(a.id, a.name)} title={T("jr_att_dl").replace("{name}", a.name)}>{a.name}</button>{" "}
           <span className="muted">{num(a.size / 1024, 3)} kB</span>
         </div>))}
-      <label className="btn" title={T("h_jr_att_add")} style={{ marginTop: 6 }}>
+      {!pub && <label className="btn" title={T("h_jr_att_add")} style={{ marginTop: 6 }}>
         {T("jr_att_add")}
         <input type="file" hidden data-testid="jr-att-in" onChange={(e) => { void attach(e.target.files?.[0]); e.target.value = ""; }} />
-      </label>
+      </label>}
     </Card>
   );
 }

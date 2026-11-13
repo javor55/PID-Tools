@@ -8,7 +8,7 @@ import urllib.request
 
 import pytest
 
-pytest.importorskip("playwright.sync_api")
+pw = pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
 
 TOKEN = _tf.TOKEN
@@ -90,8 +90,9 @@ def test_compare_restore_and_report(prepared, server):
     # report z verze se zobrazí v náhledu
     pg.locator('[data-testid="jr-report"]').click()
     pg.wait_for_selector('[data-testid="report-frame"]', timeout=60000)
-    html = pg.locator('[data-testid="report-frame"]').get_attribute("srcdoc")
-    assert "v1" in html and "<h2>" in html
+    body = pg.frame_locator('[data-testid="report-frame"]').locator("body")     # protokol do rámce přichází zprávou
+    pw.expect(body).to_contain_text("v1", timeout=60000)
+    assert body.locator("h2").count() >= 1
 
 
 def test_report_sections_and_language(prepared):
@@ -104,12 +105,12 @@ def test_report_sections_and_language(prepared):
     pg.locator('[data-testid="rep-lang"] [data-value="cs"]').click()
     pg.locator('[data-testid="report-build"]').click()
     pg.wait_for_selector('[data-testid="report-frame"]', timeout=60000)
-    pg.wait_for_function("() => (document.querySelector('[data-testid=\"report-frame\"]').srcdoc || '').includes('Historie změn')", timeout=60000)
+    pw.expect(pg.frame_locator('[data-testid="report-frame"]').locator("body")).to_contain_text("Historie změn", timeout=60000)
     pg.locator('[data-testid="rep-lang"] [data-value="en"]').click()
     pg.locator('[data-testid="report-build"]').click()
-    pg.wait_for_function("() => (document.querySelector('[data-testid=\"report-frame\"]').srcdoc || '').includes('Change history')", timeout=60000)
+    pw.expect(pg.frame_locator('[data-testid="report-frame"]').locator("body")).to_contain_text("Change history", timeout=60000)
     pg.locator('[data-testid="report-summary"]').click()
-    pg.wait_for_function("() => (document.querySelector('[data-testid=\"report-frame\"]').srcdoc || '').includes('Loop summary report')", timeout=60000)
+    pw.expect(pg.frame_locator('[data-testid="report-frame"]').locator("body")).to_contain_text("Loop summary report", timeout=60000)
 
 
 def test_journal_controls_have_help(prepared):

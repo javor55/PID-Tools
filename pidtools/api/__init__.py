@@ -27,19 +27,27 @@ from pydantic import BaseModel
 
 from .. import __version__, i18n
 from ..app import appsettings as aps
-from ..app.autosave import UserData
+from ..app.autosave import NullUserData, UserData
 from ..app.jobs import FINAL
 from ..controllers import Library
 from . import (analysis, apc, apc_loops, apc_more, appsettings, audit, controllers, data, deploy, guide, journal,
                mapping, model, opcua, projects, sources, triage, tuning, tuning_profile)
 from .common import JobInfo
 from .data import WorkspaceInfo, info
+from .public import SecurityHeaders
 from .store import WorkspaceStore
 
 
 class Health(BaseModel):
     status: str
     version: str
+
+
+class Config(BaseModel):
+    """Co potřebuje rozhraní vědět o nasazení: režim (desktop / team / public), limit nahrání a doba relace."""
+    mode: str
+    max_upload_mb: float
+    session_ttl_min: float | None = None            # jen veřejný režim: relace zanikne po tolika minutách nečinnosti
 
 
 _LANG = contextvars.ContextVar("pidtools_lang", default=i18n.DEFAULT_LANG)
@@ -102,13 +110,59 @@ def _opt(team, names, defaults):
 def _routers(project, jobs, team, library, settings, userdata):
     """Všechny routery API (jeden prostor = jedna cesta `/workspaces/{wid}/…`)."""
     max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
-    return [data.router(project, *max_upload), projects.router(project, appsettings.remember(userdata)),
-            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library),
+    public = team is not None and team.public
+    return [data.router(project, *max_upload),
+            projects.router(project, appsettings.remember(userdata), max_upload[0] if public else projects.MAX_PROJECT),
+            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library, public),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
             tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
-            apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs), guide.router(project),
+            apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs, not public), guide.router(project),
             triage.router(project, jobs), controllers.router(library, team is None),
-            controllers.loop_router(project, library), journal.router(project, settings)]
+            controllers.loop_router(project, library), journal.router(project, settings, public)]
+
+
+def _stores(public, config_dir, data_dir):
+    """Nastavení a uživatelská data: veřejný režim nic neukládá na disk (nastavení v paměti relace, bez záchranné kopie)."""
+    if public:
+        return aps.MemorySettingsStore(), NullUserData()
+    return aps.SettingsStore(config_dir), UserData(data_dir)
+
+
+def _is_public(team):
+    return team is not None and team.public
+
+
+def _security(app, team):
+    """Bezpečnostní hlavičky ve všech režimech (nejvnější vrstva); HSTS a no-store jen ve veřejném režimu."""
+    public = team is not None and team.public
+    app.add_middleware(SecurityHeaders, hsts=public and team.cookie_secure, api_prefix=API_PREFIX, no_store=public)
+
+
+def _docs(public):
+    """Veřejný režim bez popisu rozhraní (OpenAPI, Swagger, ReDoc)."""
+    return dict(docs_url=None, redoc_url=None, openapi_url=None) if public else {}
+
+
+def _expirer(app, jobs, settings):
+    def expire(sid):
+        """Relace vypršela: její prostory, úlohy a nastavení se uvolní."""
+        app.state.store.drop_owner(sid)
+        jobs.drop_owner(sid)
+        settings.drop(sid)
+    return expire
+
+
+def _config(team):
+    if team is None:
+        return Config(mode="desktop", max_upload_mb=data.MAX_UPLOAD / 2 ** 20)
+    return Config(mode=team.mode, max_upload_mb=team.max_upload_mb, session_ttl_min=team.session_ttl / 60 if team.public else None)
+
+
+def _config_route(system, auth, team):
+    @system.get("/config", response_model=Config, tags=["system"], dependencies=[Depends(auth)])
+    def config():
+        """Režim nasazení a limity pro rozhraní (ve veřejném režimu tímto voláním prohlížeč dostane relaci)."""
+        return _config(team)
 
 
 def _include(app, routers, system, auth):
@@ -138,7 +192,8 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
         yield
         jobs.shutdown()                      # běžící procesy úloh se ukončí se serverem
 
-    app = FastAPI(title="PID Tools API", version=__version__, lifespan=lifespan,
+    public = _is_public(team)
+    app = FastAPI(title="PID Tools API", version=__version__, lifespan=lifespan, **_docs(public),
                   description="Identification, tuning and simulation of PIDConL loops (PCS 7).")
     app.state.store = WorkspaceStore(workspace_ttl, max_workspaces)
     i18n.set_lang_provider(_LANG.get)            # texty výpočtů (doporučení, protokol) v jazyce požadavku
@@ -187,13 +242,15 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
 
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
     library = Library(controllers_dir)
-    settings, userdata = aps.SettingsStore(config_dir), UserData(data_dir)
+    settings, userdata = _stores(public, config_dir, data_dir)
     routers = _routers(project, jobs, team, library, settings, userdata)
     system = APIRouter()
 
     @system.get("/health", response_model=Health, tags=["system"])
     def health():
         return Health(status="ok", version=__version__)
+
+    _config_route(system, auth, team)
 
     @system.get("/i18n/{lang}", response_model=dict[str, str], tags=["system"], dependencies=[Depends(auth)])
     def texts(lang: str):
@@ -259,5 +316,6 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
 
     _include(app, routers, system, auth)
     _mount_static(app)
-    deploy.install(app, team)
+    deploy.install(app, team, _expirer(app, jobs, settings))
+    _security(app, team)
     return app

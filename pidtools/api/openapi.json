@@ -1863,6 +1863,36 @@
     "title": "CompileResult",
     "type": "object"
    },
+   "Config": {
+    "description": "Co potřebuje rozhraní vědět o nasazení: režim (desktop / team / public), limit nahrání a doba relace.",
+    "properties": {
+     "max_upload_mb": {
+      "title": "Max Upload Mb",
+      "type": "number"
+     },
+     "mode": {
+      "title": "Mode",
+      "type": "string"
+     },
+     "session_ttl_min": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Session Ttl Min"
+     }
+    },
+    "required": [
+     "mode",
+     "max_upload_mb"
+    ],
+    "title": "Config",
+    "type": "object"
+   },
    "ControllerParam": {
     "additionalProperties": true,
     "properties": {
@@ -11376,16 +11406,16 @@
     ]
    },
    "post": {
-    "description": "Nahraje logo firmy pro report (png / jpg / svg do 1 MB).",
+    "description": "Nahraje logo firmy pro report (png / jpg do 1 MB; SVG se nepřijímá, ve veřejném režimu 403).",
     "operationId": "put_logo_api_v1_app_settings_logo_post",
     "parameters": [
      {
-      "description": "file name (extension png, jpg or svg)",
+      "description": "file name (extension png or jpg)",
       "in": "query",
       "name": "name",
       "required": true,
       "schema": {
-       "description": "file name (extension png, jpg or svg)",
+       "description": "file name (extension png or jpg)",
        "title": "Name",
        "type": "string"
       }
@@ -11585,6 +11615,72 @@
     "tags": [
      "app-settings",
      "app-settings"
+    ]
+   }
+  },
+  "/api/v1/config": {
+   "get": {
+    "description": "Režim nasazení a limity pro rozhraní (ve veřejném režimu tímto voláním prohlížeč dostane relaci).",
+    "operationId": "config_api_v1_config_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Config"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Config",
+    "tags": [
+     "system"
     ]
    }
   },
@@ -17641,7 +17737,7 @@
   },
   "/api/v1/workspaces/{wid}/autosave": {
    "post": {
-    "description": "Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic.",
+    "description": "Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic (veřejný režim: 403).",
     "operationId": "autosave_api_v1_workspaces__wid__autosave_post",
     "parameters": [
      {
@@ -19448,7 +19544,6 @@
   },
   "/api/v1/workspaces/{wid}/journal/{sid}/attachments": {
    "post": {
-    "description": "Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu).",
     "operationId": "attach_api_v1_workspaces__wid__journal__sid__attachments_post",
     "parameters": [
      {

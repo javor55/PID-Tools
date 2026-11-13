@@ -50,11 +50,45 @@ def _sniff_sep(raw):
         return None
 
 
+# Meze proti nepřiměřeným vstupům (veřejný web): řádky, sloupce a rozbalená velikost sešitu Excel (zip bomba).
+MAX_ROWS = 2_000_000
+MAX_COLS = 500
+MAX_XLSX_UNPACKED = 128 * 2 ** 20
+MAX_XLSX_FILES = 2000
+
+
+def _check_xlsx(raw_bytes):
+    """Sešit .xlsx je zip: před čtením se zkontroluje počet souborů a součet rozbalených velikostí (z hlaviček)."""
+    import zipfile
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw_bytes)) as z:
+            infos = z.infolist()
+    except zipfile.BadZipFile:
+        raise ValueError("data_bad_xlsx") from None
+    if len(infos) > MAX_XLSX_FILES or sum(i.file_size for i in infos) > MAX_XLSX_UNPACKED:
+        raise ValueError("data_too_big")
+
+
+def _check_size(df):
+    if df.shape[0] > MAX_ROWS or df.shape[1] > MAX_COLS:
+        raise ValueError("data_too_big")
+    return df
+
+
 def read_table(name, raw_bytes):
+    if name.lower().endswith(".xlsx"):
+        _check_xlsx(raw_bytes)
     if name.lower().endswith((".xlsx", ".xls")):
-        df = pd.read_excel(io.BytesIO(raw_bytes))
-        return _drop_empty(df)
+        try:
+            df = pd.read_excel(io.BytesIO(raw_bytes))
+        except ValueError:
+            raise
+        except Exception:                                  # noqa: BLE001 – poškozený sešit: bez podrobností (cesty, trasování)
+            raise ValueError("data_bad_xlsx") from None
+        return _drop_empty(_check_size(df))
     raw = decode_text(raw_bytes)
+    if raw.count("\n") > MAX_ROWS + 5 or len(raw.split("\n", 1)[0]) > 100_000:
+        raise ValueError("data_too_big")
     if raw.startswith("\ufeff"):
         raw = raw[1:]
 
@@ -74,6 +108,7 @@ def read_table(name, raw_bytes):
     except Exception:
         comma = False
     df = pd.read_csv(io.StringIO(raw), decimal=",", **kw) if comma else pd.read_csv(io.StringIO(raw), **kw)
+    _check_size(df)
     if df.shape[1] == 1:
         inner = _unwrap_quoted_lines(raw)
         if inner is not None:

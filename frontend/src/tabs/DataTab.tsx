@@ -15,6 +15,7 @@ import { DataQualityCard } from "./DataQuality";
 import { FullPreview, PreviewCard } from "./DataPreview";
 import { ManualRead, ReadStatus, UnitsBody } from "./DataLayout";
 import { OpcButton } from "./OpcDialog";
+import { usePublic } from "../deploy";
 
 type StatRow = components["schemas"]["StatRow"];
 const NONE = "—";
@@ -111,6 +112,7 @@ type Src = "file" | "demo" | "opc";
 /** Karta Zdroj dat: přepínač Soubor / Ukázka / OPC UA, načtený soubor, stav čtení a ruční nastavení. */
 function SourceCard() {
   const T = useT();
+  const pub = usePublic();
   const lang = useUi((s) => s.lang);
   const ws = useWs().data;
   const demo = useWsMutation("POST", "/data/demo");
@@ -122,7 +124,7 @@ function SourceCard() {
     d: fmtDuration(ws.duration, lang) }) : "";
   return (
     <SideCard title={T("dk_sec_src")} help={T("h_source")} testid="card-src">
-      <Seg<Src> value={src} options={["file", "demo", "opc"]} label={T("source")} stretch testid="src-seg" title={T("h_source")}
+      <Seg<Src> value={src} options={pub ? ["file", "demo"] : ["file", "demo", "opc"]} label={T("source")} stretch testid="src-seg" title={T("h_source")}
         fmt={(v) => T(`src_${v}`)} onChange={(v) => {
           setPick({ v, f: fname });
           if (v === "demo") demo.mutate(undefined);

@@ -7,6 +7,17 @@
   `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); `deploy/` with `compose.yml` (app, Cloudflare
   Tunnel, updates by a systemd timer `install-update-timer.sh`; read-only root filesystem, no published ports), `.env.example` and a Czech guide. `Dockerfile.web`
   writes only to `/tmp`. New workflow `audit.yml` (`pip-audit`, `npm audit`) on PRs and weekly.
+- **Public mode** (`PIDTOOLS_AUTH=public`, docs/deployment.md): the web container without sign-in. Anonymous sessions in an
+  `HttpOnly; Secure; SameSite=Strict` cookie own workspaces and jobs (other sessions get 404, idle expiry frees them);
+  nothing is written to disk (settings in session memory, no autosave / recent projects / logo upload / journal
+  attachments / controller library writes / OPC UA, which return 403 and are hidden in the UI); limits for upload size,
+  workspaces and jobs per session, a global job cap with a queue (503), sessions in total and a per-IP token-bucket rate
+  limit (client IP from `CF-Connecting-IP` only with `PIDTOOLS_TRUST_CF_IP=1`); a privacy notice on the Start screen and in
+  the help; new `GET /api/v1/config` (mode and limits).
+- **Security hardening (all modes):** `Content-Security-Policy` and the other security headers on every response (the report
+  preview moved to a sandboxed frame `/report-host.html` with its own CSP); SVG logo upload removed (old SVG logos are
+  served as attachments in a sandbox); row / column limits for CSV and Excel and a zip-bomb check for `.xlsx`; deeply nested
+  project JSON is a 400; job errors in public mode carry no file paths.
 
 ## 4.0.0 beta 2 – installer fix
 
