@@ -73,14 +73,13 @@ jobs:
           pip install -r requirements-api.txt pyinstaller==6.22.3
           python tools/build_sidecar.py
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v4                # jen registry crate; desktop/target se u vydání sestavuje načisto
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            desktop/target
-          key: desktop-${{ runner.os }}-${{ hashFiles('desktop/Cargo.lock') }}
-          restore-keys: desktop-${{ runner.os }}-
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('desktop/Cargo.lock') }}
+          restore-keys: cargo-registry-${{ runner.os }}-
 
       - name: Rust unit tests
         working-directory: desktop
@@ -96,6 +95,19 @@ jobs:
           New-Item -ItemType Directory -Force ..\release | Out-Null
           Copy-Item (Get-ChildItem target\release\bundle\nsis\*-setup.exe | Select-Object -First 1).FullName "..\release\PID-Tools-${{ steps.ver.outputs.version }}-setup.exe"
           Copy-Item (Get-ChildItem target\release\bundle\msi\*.msi | Select-Object -First 1).FullName "..\release\PID-Tools-${{ steps.ver.outputs.version }}-x64.msi"
+
+      - name: Verify the bundled sidecar is this build (UI and version)
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          # Tauri kopíruje sidecar do target/release/sidecar; stará kopie (mezipaměť) by do instalátoru dostala staré
+          # rozhraní i jádro – porovnat s tím, co se v tomto běhu sestavilo
+          $built = (Get-FileHash ..\pidtools\api\ui\index.html).Hash
+          $bundled = (Get-FileHash target\release\sidecar\_internal\pidtools\api\ui\index.html).Hash
+          if ($built -ne $bundled) { throw "bundled sidecar UI differs from this build (stale copy)" }
+          if (-not (Test-Path target\release\sidecar\_internal\pidtools\controllers\presets\pcs7_pidconl.json)) {
+            throw "bundled sidecar has no controller presets (stale copy)" }
+          Write-Host "bundled sidecar matches this build ($bundled)"
 
       - name: Build – NSIS with the WebView2 offline installer (closed networks)
         working-directory: desktop

@@ -2,6 +2,13 @@
 
 ## Nevydáno
 
+## 4.0.0 beta 2 – oprava instalátorů
+
+- Instalátory **4.0.0 beta 1 obsahovaly staré výpočetní jádro a rozhraní** (sestavení z 11. 11. 2026, bez nového
+  rozhraní a knihovny regulátorů): CI obnovilo z mezipaměti `desktop/target` starou kopii sidecaru a Tauri ji
+  zabalilo. Vydání se nově sestavuje bez této mezipaměti, `desktop.yml` starou kopii maže a oba workflow po sestavení
+  ověří, že zabalený sidecar má rozhraní z tohoto běhu i předvolby regulátorů. Betu 1 nepoužívejte.
+
 ## 4.0.0 beta 1 – nové rozhraní (FastAPI + React), desktop Tauri, knihovna regulátorů, deník ladění
 
 - Vydání (E11, M24): **release workflow nové desktopové aplikace** (`.github/workflows/release.yml`) – na tag `v*`

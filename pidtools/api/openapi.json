@@ -10833,7 +10833,7 @@
  "info": {
   "description": "Identification, tuning and simulation of PIDConL loops (PCS 7).",
   "title": "PID Tools API",
-  "version": "4.0.0b1"
+  "version": "4.0.0b2"
  },
  "openapi": "3.1.0",
  "paths": {

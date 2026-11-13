@@ -76,9 +76,25 @@ jobs:
 
       - name: tauri build (NSIS; UNSIGNED)
         working-directory: desktop
-        run: npx -y ${{ env.TAURI_CLI }} build --bundles nsis
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force target\release\sidecar -ErrorAction SilentlyContinue   # stará kopie z mezipaměti
+          npx -y ${{ env.TAURI_CLI }} build --bundles nsis
         # TODO(M24): Authenticode signing (bundle.windows.signCommand / certificateThumbprint from secrets),
         # WebView2 bootstrapper vs. fixed runtime, MSI. Until then the installer is unsigned.
+
+      - name: Verify the bundled sidecar is this build (UI and version)
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          # Tauri kopíruje sidecar do target/release/sidecar; stará kopie (mezipaměť) by do instalátoru dostala staré
+          # rozhraní i jádro – porovnat s tím, co se v tomto běhu sestavilo
+          $built = (Get-FileHash ..\pidtools\api\ui\index.html).Hash
+          $bundled = (Get-FileHash target\release\sidecar\_internal\pidtools\api\ui\index.html).Hash
+          if ($built -ne $bundled) { throw "bundled sidecar UI differs from this build (stale copy)" }
+          if (-not (Test-Path target\release\sidecar\_internal\pidtools\controllers\presets\pcs7_pidconl.json)) {
+            throw "bundled sidecar has no controller presets (stale copy)" }
+          Write-Host "bundled sidecar matches this build ($bundled)"
 
       - name: Smoke test of the installed app (silent install, --smoke, uninstall)
         shell: pwsh
