@@ -21,4 +21,6 @@ notes="${beta}**Downloads (Windows 10/11, x64) – new application (PID Tools 4)
 The previous desktop application (PySide6) is still attached as \`PID-Tools-*-desktop-win64-*\` until the pilot ends.
 Windows may warn that the publisher is unknown (the files are not code-signed yet): *More info › Run anyway*.
 The new application opens older projects and saves format v3. Changes: see CHANGELOG.md. Deployment: docs/deployment.md."
-gh release create "$tag" --title "PID Tools $tag" --notes "$notes" "${pre[@]}" || true
+target=()
+[ -n "${RELEASE_TARGET:-}" ] && target=(--target "$RELEASE_TARGET")     # tag ještě neexistuje → vytvoří ho GitHub
+gh release create "$tag" --title "PID Tools $tag" --notes "$notes" "${pre[@]}" "${target[@]}" || true

@@ -8,6 +8,11 @@ name: Release (desktop)
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Vydat jako tag (např. v4.0.0-beta.1) – GitHub tag vytvoří na tomto commitu; prázdné = jen sestavit"
+        required: false
+        default: ""
   push:
     tags: ["v*"]
   pull_request:                        # změna release workflow se ověří sestavením (bez zveřejnění)
@@ -42,10 +47,13 @@ jobs:
       - name: Version (from the tag, else from tauri.conf.json)
         id: ver
         shell: pwsh
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
           $conf = Get-Content desktop\tauri.conf.json -Raw | ConvertFrom-Json
           $v = $conf.version
           if ($env:GITHUB_REF_TYPE -eq "tag") { $v = $env:GITHUB_REF_NAME.TrimStart("v") }
+          if ($env:INPUT_TAG) { $v = $env:INPUT_TAG.TrimStart("v") }
           # Tauri chce semver (4.0.0-beta.1); tag ve stylu Pythonu (4.0.0b1) se převede
           $v = $v -replace '^(\d+\.\d+\.\d+)(a|b|rc)(\d+)$', '$1-$2.$3' -replace '-b\.', '-beta.' -replace '-a\.', '-alpha.'
           # MSI (WiX) bere jen čísla: major.minor.patch.build (build = číslo běhu)
@@ -131,11 +139,14 @@ jobs:
           compression-level: 0
           retention-days: 30
 
-      - name: Publish to the GitHub release (tag only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish to the GitHub release (tag push, or manual run with a tag)
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag != ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
+          # ruční spuštění: tag i release vytvoří GitHub na tomto commitu (gh release create --target)
+          if [ -n "$INPUT_TAG" ]; then export GITHUB_REF_NAME="$INPUT_TAG" RELEASE_TARGET="$GITHUB_SHA"; fi
           bash .github/release.sh
           gh release upload "$GITHUB_REF_NAME" release/* --clobber
