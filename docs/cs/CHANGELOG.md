@@ -2,6 +2,21 @@
 
 ## Nevydáno
 
+- **Rychlejší načítání:** CSV 20 MB (86 400 řádků × 15 sloupců) se nahraje za ~0,6 s místo ~2 s, přidání další smyčky
+  z načteného souboru trvá ~0,03 s místo ~0,5 s (časové sloupce se hledají a převádějí jednou, hodnoty sloupců se
+  převedou jednou a smyčky je sdílejí); Excel se čte přes `python-calamine` (4–7× rychleji, stejné hodnoty).
+- **Výchozí angličtina, další jazyky:** rozhraní je 100 % anglicky, dokud se v Nastavení nezvolí jiný jazyk (jazyk
+  prohlížeče se už nepoužívá). Každý jazyk je soubor `pidtools/i18n/<kód>.json` s `_lang_name` a `_decimal`; nový
+  soubor (např. `es.json`) se sám objeví ve výběru jazyků a chybějící texty se doplní anglicky (`GET /api/v1/i18n`
+  vrací jazyky a jejich pokrytí). Zbylá čeština v kódu přeložena: obecné profily regulátorů (`Generic · ISA ideal PID`
+  …), hlášky kontroly profilů a programů, šablona nového programu; hodnoty režimu mrtvého pásma jsou `cont` / `step`
+  (staré české hodnoty v projektech a vlastních profilech dál fungují v Pythonu i v simulaci v prohlížeči). Test
+  v Playwrightu projde v angličtině všechny záložky a selže na jakémkoli českém textu.
+- **Model: regulátor v záznamu (Set 1)** jde zadat přímo v záložce Model (názvy a jednotky bloku podle profilu
+  smyčky) – identifikace v uzavřené smyčce už nepotřebuje nejdřív model; je to tentýž Set 1 jako v Ladění
+  (`GET/PUT /tuning/record-set`, funguje i bez modelu).
+- Model: průběh modelu se ve výchozím stavu kreslí přes celý záznam („jen v úsecích“ zůstává jako volba).
+- Projekt a report: přepínač stavu reportu a další pole už nepřetékají z panelu.
 - Nasazení: **veřejná instance na Oracle Cloud Free Tier (ARM64)** – workflow `web-image.yml` při pushi do větve
   `deploy` postaví víceplatformní obraz (amd64 + arm64), odzkouší ho, proskenuje Trivy a nahraje do
   `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); složka `deploy/` s `compose.yml` (aplikace,

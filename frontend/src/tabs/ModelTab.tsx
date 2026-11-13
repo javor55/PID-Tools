@@ -12,7 +12,7 @@ import { DIST_STYLE, MV_STYLE, windowFits } from "./modelConst";
 import { ModelViews, ValidationCard } from "./ModelValidation";
 import "../styles/model.css";
 import { usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
-import { useT } from "../i18n";
+import { decOf, useDec, useT } from "../i18n";
 import { dur } from "../lib/format";
 import { decimate, pick, range, runs, timeUnit } from "../lib/series";
 import { useUi } from "../store";
@@ -92,7 +92,7 @@ export function ModelMain() {
     const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
     return {
       key: "model_wins", view_key: `model|${ws.fname}|${n}`, T: T_end, unit: timeUnit(T_end),
-      clock: Number.isFinite(clock) ? clock : null, dec: lang === "cs" ? "," : ".",
+      clock: Number.isFinite(clock) ? clock : null, dec: decOf(lang),
       dark: document.documentElement.dataset.theme === "dark",
       txt: Object.fromEntries(TXT.map((k) => [k, T("mw_" + k)])), mode: winMode, t: pick(t, idx), step: ws.Ts,
       rows, excl, common: ws.rng ?? [0, T_end],
@@ -121,7 +121,7 @@ export function ModelMain() {
 
 function ModelTable({ model }: { model?: ModelState }) {
   const T = useT();
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const sel = model?.results.find((r) => r.code === model.selected);

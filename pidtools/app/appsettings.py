@@ -13,6 +13,7 @@ import os
 import re
 import sys
 
+from .. import i18n
 from . import triage
 
 FORMAT, VERSION = "pidtools.settings", 1
@@ -35,11 +36,11 @@ DEFAULTS = {
     "controller_tests": {},
 }
 CHOICES = {
-    ("general", "autosave_min"): (0, 1, 5, 15, 30), ("appearance", "language"): ("", "cs", "en"),
+    ("general", "autosave_min"): (0, 1, 5, 15, 30), ("appearance", "language"): ("", *i18n.LANGS),
     ("appearance", "theme"): ("", "system", "light", "dark"), ("appearance", "font_size"): ("s", "m", "l", "xl"),
     ("charts", "time_unit"): ("auto", "s", "min", "h", "clock"), ("charts", "decimal"): ("auto", "comma", "dot"),
     ("charts", "ti_unit"): ("s", "min"), ("charts", "gain_view"): ("kc", "pb"),
-    ("report", "language"): ("app", "cs", "en"),
+    ("report", "language"): ("app", *i18n.LANGS),
 }
 SIM_CTYPES = ("PI", "PID", "PD")
 MAX_OPC = 20

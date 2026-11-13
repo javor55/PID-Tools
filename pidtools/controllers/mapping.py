@@ -33,7 +33,7 @@ def native_to_ideal(form, a, b, c):
     if form == "series":
         ti = _inf(b)
         return (a, ti, c) if not math.isfinite(ti) else (a * (1 + c / ti), ti + c, ti * c / (ti + c) if ti + c else 0.0)
-    raise ValueError(f"neznámá forma '{form}'")
+    raise ValueError(f"unknown form '{form}'")
 
 
 def ideal_to_native(form, kc, ti, td):
@@ -53,7 +53,7 @@ def ideal_to_native(form, kc, ti, td):
         s = math.sqrt(max(1 - 4 * td / ti, 0.0))
         ti_s, td_s = ti * (1 + s) / 2, ti * (1 - s) / 2
         return (kc * (1 + s) / 2, ti_s, td_s), warn
-    raise ValueError(f"neznámá forma '{form}'")
+    raise ValueError(f"unknown form '{form}'")
 
 
 # ---------------------------------------------------------------- jednotky parametrů profilu

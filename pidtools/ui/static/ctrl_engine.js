@@ -15,19 +15,19 @@
   Registry.prototype.register = function (key, obj, planned) { this.items[key] = { obj: obj, planned: !!planned }; return obj; };
   Registry.prototype.get = function (key) {
     var it = this.items[key];
-    if (!it) throw new Error(this.name + ": neznámá položka '" + key + "' (známé: " + Object.keys(this.items).sort().join(", ") + ")");
-    if (it.planned) throw new Error(this.name + ": '" + key + "' je v návrhu a bude doplněno (fáze R3 / R4)");
+    if (!it) throw new Error(this.name + ": unknown item '" + key + "' (known: " + Object.keys(this.items).sort().join(", ") + ")");
+    if (it.planned) throw new Error(this.name + ": '" + key + "' is planned and not implemented yet");
     return it.obj;
   };
-  var FORMS = new Registry("forma"), DEADBANDS = new Registry("mrtvé pásmo"), D_SOURCES = new Registry("zdroj D"),
-    D_FILTERS = new Registry("filtr D"), ANTIWINDUPS = new Registry("anti-windup"), ALGORITHMS = new Registry("algoritmus"),
-    NORMALISATIONS = new Registry("normování"), PV_FILTERS = new Registry("filtr PV"),
-    NL_GAINS = new Registry("nelineární zesílení"), OUTPUT_STAGES = new Registry("výstupní stupeň");
+  var FORMS = new Registry("form"), DEADBANDS = new Registry("deadband"), D_SOURCES = new Registry("D source"),
+    D_FILTERS = new Registry("D filter"), ANTIWINDUPS = new Registry("anti-windup"), ALGORITHMS = new Registry("algorithm"),
+    NORMALISATIONS = new Registry("normalisation"), PV_FILTERS = new Registry("PV filter"),
+    NL_GAINS = new Registry("nonlinear gain"), OUTPUT_STAGES = new Registry("output stage");
 
   function form(fn, roles) { fn.roles = roles; return fn; }
   FORMS.register("ideal", form(function (a, b, c) { return [a, b, c]; }, ["Kc", "Ti", "Td"]));
   FORMS.register("parallel", form(function (kp, ki, kd) {
-    if (kp === 0) throw new Error("paralelní forma: Kp = 0 nelze převést na ideální tvar");
+    if (kp === 0) throw new Error("parallel form: Kp = 0 cannot be converted to the ideal form");
     return [kp, (ki && ki > 0) ? kp / ki : null, kd / kp];
   }, ["Kp", "Ki", "Kd"]));
   FORMS.register("series", form(function (kc, ti, td) {
@@ -100,12 +100,12 @@
   NL_GAINS.register("table", function (ctl, P, spec) {
     var xs = spec.x.map(Number), ys = spec.y.map(Number), src = spec.input || "pv";
     if (xs.length < 2 || xs.length !== ys.length || xs.some(function (v, i) { return i > 0 && v <= xs[i - 1]; }))
-      throw new Error("tabulka zesílení: x musí být rostoucí a mít stejný počet bodů jako y (min. 2)");
+      throw new Error("gain table: x must be increasing and have as many points as y (min. 2)");
     if (src === "pv") return function (e) { return e * interp(xs, ys, ctl.yf); };
     if (src === "sp") return function (e) { return e * interp(xs, ys, ctl.spr); };
     if (src === "mv") return function (e) { return e * interp(xs, ys, ctl.uPrev); };
     if (src === "error") return function (e) { return e * interp(xs, ys, e); };
-    throw new Error("tabulka zesílení: neznámý vstup '" + src + "' (pv, sp, mv, error)");
+    throw new Error("gain table: unknown input '" + src + "' (pv, sp, mv, error)");
   });
 
   /* ---- výstupní stupně: továrna (regulátor, parametry) → funkce u → ekvivalentní poloha, `.outputs` = signály */
@@ -192,7 +192,14 @@
     NORMALISATIONS.get((st.normalisation || {}).kind || "percent");
     this.pvLag = !!PV_FILTERS.get((st.pv || {}).filter || "lag1");
     var db = (st.error || {}).deadband;
-    this.dbModes = (db && db.modes) || {};
+    this.dbModes = Object.assign({}, (db && db.modes) || {});
+    // hodnoty DbMode ze starších projektů (česky) i nové (cont / step) – stejné jako _db_aliases v Pythonu
+    var LEGACY = { "spojit\u00e9": "cont", "skokov\u00e9": "step" };
+    for (var old in LEGACY) {
+      var nw = LEGACY[old];
+      if (has(this.dbModes, old) && !has(this.dbModes, nw)) this.dbModes[nw] = this.dbModes[old];
+      else if (has(this.dbModes, nw) && !has(this.dbModes, old)) this.dbModes[old] = this.dbModes[nw];
+    }
     this.dbOther = (db && db.other) || "step";
     var self = this;
     Object.keys(this.dbModes).map(function (k) { return self.dbModes[k]; }).concat([this.dbOther])

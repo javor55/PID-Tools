@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { api, ApiError, bytes } from "../api/client";
 import { LabelHelp } from "../components/Ui";
-import { useT } from "../i18n";
+import { useLanguages, useT } from "../i18n";
 import { Commit, parse } from "../tabs/data/sources/Commit";
 import { type AppSettings, exportSettings, importSettings, patchSettings, removeLogo, resetSettings, uploadLogo, useAppSettings, useThresholdSchema } from "./appSettings";
 import { saveBlob, useControllers } from "./ctlApi";
@@ -78,12 +78,14 @@ export function GeneralSec({ s }: { s: AppSettings }) {
 
 export function AppearanceSec({ s }: { s: AppSettings }) {
   const T = useT();
+  const langs = useLanguages();
+  const langName = (c: string) => langs.find((l) => l.code === c)?.name ?? c;
   const set = useSet();
   return (
     <Sec id="appearance" title={T("app_s_appearance")} note={T("app_s_appearance_note")}>
       <Row label={T("ui_lang")} help="rg_ui_lang_h">
-        <Choice value={s.appearance.language || "cs"} options={["cs", "en"] as const} label={T("ui_lang")} testid="set-lang"
-          fmt={(v) => (v === "cs" ? "Čeština" : "English")} onChange={(v) => set((n) => { n.appearance.language = v; })} />
+        <Choice value={s.appearance.language || "en"} options={langs.map((l) => l.code)} label={T("ui_lang")} testid="set-lang"
+          fmt={(v) => langName(v)} onChange={(v) => set((n) => { n.appearance.language = v; })} />
       </Row>
       <Row label={T("ui_theme")} help="rg_ui_theme_h">
         <Choice value={s.appearance.theme || "system"} options={["system", "light", "dark"] as const} label={T("ui_theme")} testid="set-theme"
@@ -219,6 +221,8 @@ function useLogo(name: string) {
 
 export function ReportSec({ s }: { s: AppSettings }) {
   const T = useT();
+  const langs = useLanguages();
+  const langName = (c: string) => langs.find((l) => l.code === c)?.name ?? c;
   const set = useSet();
   const file = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState("");
@@ -249,8 +253,8 @@ export function ReportSec({ s }: { s: AppSettings }) {
       </div>}
       {err && <div className="rg-err" role="alert">{err}</div>}
       <Row label={T("app_s_rep_lang")} help="app_s_rep_lang_h">
-        <Choice value={r.language} options={["app", "cs", "en"] as const} label={T("app_s_rep_lang")} testid="set-rep-lang"
-          fmt={(v) => (v === "app" ? T("app_s_rep_lang_app") : v === "cs" ? "Čeština" : "English")} onChange={(v) => set((n) => { n.report.language = v; })} />
+        <Choice value={r.language} options={["app", ...langs.map((l) => l.code)]} label={T("app_s_rep_lang")} testid="set-rep-lang"
+          fmt={(v) => (v === "app" ? T("app_s_rep_lang_app") : langName(v))} onChange={(v) => set((n) => { n.report.language = v; })} />
       </Row>
       <Row label={T("app_s_rep_header")} help="app_s_rep_header_h">
         <Commit value={r.header} label={T("app_s_rep_header")} title={T("app_s_rep_header_h")} testid="set-rep-header"

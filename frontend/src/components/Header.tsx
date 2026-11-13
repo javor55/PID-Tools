@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
-import { useT } from "../i18n";
+import { dateLocale, useLanguages, useT } from "../i18n";
 import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
 import { useSettingsUi } from "../settings/settingsStore";
@@ -105,7 +105,7 @@ function Summary() {
   if (!ws?.has_data) return null;
   const nf = src?.sources.length ?? 1;
   const at = lastSaved(st);
-  const t = at ? new Date(at * 1000).toLocaleTimeString(lang === "cs" ? "cs-CZ" : "en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+  const t = at ? new Date(at * 1000).toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" }) : "";
   const a = { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t };
   return <span className="hsum" data-testid="data-sum" data-dirty={st?.dirty ? "1" : "0"} title={T("app_hsum_h")}>{T(at ? "app_hsum" : "app_hsum_unsaved", a)}{st?.dirty && at ? " •" : ""}</span>;
 }
@@ -114,6 +114,7 @@ function Summary() {
 function Settings() {
   const T = useT();
   const { lang, setLang, theme, setTheme } = useUi();
+  const langs = useLanguages();
   const openSettings = useSettingsUi((s) => s.openSettings);
   const ref = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -129,9 +130,8 @@ function Settings() {
       <div className="pop-body">
         <label className="field">
           <span>{T("ui_lang")}</span>
-          <select aria-label={T("ui_lang")} value={lang} onChange={(e) => setLang(e.target.value as "cs" | "en")}>
-            <option value="cs">Čeština</option>
-            <option value="en">English</option>
+          <select aria-label={T("ui_lang")} data-lang-select value={lang} onChange={(e) => setLang(e.target.value)}>
+            {langs.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
           </select>
         </label>
         <label className="field">

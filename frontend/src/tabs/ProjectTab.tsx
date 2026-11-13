@@ -8,7 +8,7 @@ import { Card } from "../components/Card";
 import { TextSetting } from "../components/Fields";
 import { PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { usePatchSettings, useSettings } from "../data";
-import { useT } from "../i18n";
+import { useLanguages, useT } from "../i18n";
 import { useUi } from "../store";
 import { useSections } from "./project/api";
 import { JournalMain } from "./project/JournalMain";
@@ -173,6 +173,7 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
   const uiLang = useUi((s) => s.lang);
   const { lang: rlang, setLang } = useProjSub();
   const lang = rlang ?? uiLang;
+  const langs = useLanguages();
   const sections = useSections(lang).data ?? [];
   const [picked, setPicked] = useState<string[] | null>(null);
   const secs = picked ?? sections.filter((x) => x.default).map((x) => x.id);
@@ -209,13 +210,13 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
       <button type="button" className="btn" disabled={busy} onClick={() => void summary()} title={T("h_jr_sum_btn")} data-testid="report-summary">{T("jr_sum_btn")}</button>
       {pre}
       <SideCard title={T("rep_title")} help={T("rep_help")} testid="report-opts">
-        <div className="field"><span>{T("rp_status")}</span>
+        <div className="field wide"><span>{T("rp_status")}</span>
           <Seg value={status} options={STATUSES} label={T("rp_status")} testid="set-rep_status" small help="h_rp_status" fmt={(v) => T("rp_st_" + v)}
             onChange={(v) => void patch({ rep_status: v })} /></div>
         <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} help="h_rp_plant" />
         <TextSetting k="rep_author" label={T("rp_author")} help="h_rp_author" />
         <div className="field wide"><span>{T("rp_lang")}</span>
-          <Seg value={lang} options={["cs", "en"] as const} label={T("rp_lang")} testid="rep-lang" small help="h_rp_lang"
+          <Seg value={lang} options={langs.map((l) => l.code)} label={T("rp_lang")} testid="rep-lang" small help="h_rp_lang"
             fmt={(v) => v.toUpperCase()} onChange={setLang} /></div>
         <div className="field wide"><span>{T("rp_charts")}</span>
           <Seg value={charts} options={["inline", "cdn"] as const} label={T("rp_charts")} testid="rep-charts" small help="h_rp_charts"

@@ -30,3 +30,9 @@
 .mcmp-head { display: inline-block; font-size: 12px; font-weight: 600; margin: 6px 0 4px; padding: 2px 8px;
   border-left: 4px solid var(--mc); background: var(--pid-soft); border-radius: 3px; }
 .mcmp-sec { margin-top: 8px; }
+/* Model › Regulátor v záznamu (Sada 1) */
+.rec-set { border: 1px solid var(--pid-line); border-radius: var(--pid-radius); padding: 8px; margin: 6px 0; display: flex; flex-direction: column; gap: 4px; }
+.rec-set-h { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.rec-set-grid { display: grid; gap: 4px; }
+.rec-set-grid .field { grid-template-columns: minmax(0, 1fr) 90px; }
+.rec-set-grid .tn-setin { max-width: none; }

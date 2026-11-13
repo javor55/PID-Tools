@@ -677,7 +677,7 @@ def _inf(x):
 def canonical_to_program(program, canon):
     """Kanonický PID → hodnoty parametrů programu {název: hodnota} podle příkazů `map`."""
     if not program["map"]:
-        raise ValueError("program nemá mapování (příkazy `map`), pravidla ladění nelze použít")
+        raise ValueError("the program has no mapping (`map` statements), tuning rules cannot be used")
     env = dict(Kc=float(canon["Kc"]), Ti=_inf(canon.get("Ti")), Td=float(canon.get("Td", 0.0) or 0.0),
                b=float(canon.get("b", 1.0)), c=float(canon.get("c", 1.0)), N=_inf(canon.get("N", 5.0)))
     return {name: eval_tree(e, env) for name, e in program["map"]}
@@ -687,7 +687,7 @@ def program_to_canonical(program, values):
     """Hodnoty parametrů programu → kanonický PID (příkazy `unmap`, u jednoduchých `map` samo)."""
     rev = _reverse(program)
     if "Kc" not in rev:
-        raise ValueError("program nemá zpětné mapování Kc (příkaz `unmap Kc = …` nebo `map … = Kc`)")
+        raise ValueError("the program has no reverse mapping of Kc (`unmap Kc = …` or `map … = Kc`)")
     env = {p["name"]: float(p["default"] if values.get(p["name"]) is None else values[p["name"]]) for p in program["params"]}
     out = dict(Ti=math.inf, Td=0.0, b=1.0, c=1.0, N=5.0)
     for role, e in rev.items():

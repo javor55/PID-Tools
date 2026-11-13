@@ -20,7 +20,7 @@ def test_presets_are_valid_and_compile(pid):
     assert controllers.validate_profile(p) == []
     Profile(p)
     if p["verification"]["status"] != "verified":
-        assert "neověřeno" in p["verification"]["note"] or pid == "pcs7_pidconl"
+        assert "not verified" in p["verification"]["note"] or pid == "pcs7_pidconl"
 
 
 def test_expected_presets():
@@ -49,8 +49,8 @@ def test_validation_reports_path(mutate, path):
 
 
 def test_validation_header_errors():
-    assert "není profil" in controllers.validate_profile({})[0]["message"]
-    assert "novější" in controllers.validate_profile(dict(_preset(), version=99))[0]["message"]
+    assert "not a controller profile" in controllers.validate_profile({})[0]["message"]
+    assert "is newer" in controllers.validate_profile(dict(_preset(), version=99))[0]["message"]
 
 
 def test_save_load_round_trip(tmp_path):

@@ -8,14 +8,14 @@
   "block": "PIDConL (APL)",
   "verification": {
     "status": "unverified",
-    "note": "Dnešní model aplikace. Ověřit DiffGain a anti-windup proti manuálu APL (regulatory.md, kap. 10)."
+    "note": "Built-in application model. DiffGain and anti-windup still to be verified against the APL manual."
   },
   "structure": {
     "normalisation": {"kind": "percent"},
     "sp": {"rate_limit": true},
     "pv": {"filter": "lag1"},
     "error": {
-      "deadband": {"modes": {"spojité": "continuous", "skokové": "step"}, "other": "step"}
+      "deadband": {"modes": {"cont": "continuous", "step": "step"}, "other": "step"}
     },
     "form": "ideal",
     "p": {"weight": true},
@@ -37,7 +37,7 @@
      "alias": {"key": "PropFbk", "true": 0.0, "false": 1.0}, "default": 1.0},
     {"key": "DiffFbk", "role": "d_on_pv", "name": "DiffFbk", "default": false},
     {"key": "DeadBand", "role": "deadband", "name": "DeadBand", "unit": "%", "default": 0.0},
-    {"key": "DbMode", "role": "deadband_mode", "name": "DbMode", "default": "spojité"},
+    {"key": "DbMode", "role": "deadband_mode", "name": "DbMode", "default": "cont"},
     {"key": "MV_Lo", "role": "mv_lo", "name": "MV_Lo", "unit": "%", "default": "-inf"},
     {"key": "MV_Hi", "role": "mv_hi", "name": "MV_Hi", "unit": "%", "default": "inf"},
     {"key": "PVFilt", "role": "pv_filter", "name": "PVFilt", "unit": "s", "default": 0.0},

@@ -1,4 +1,6 @@
 {
+ "_decimal": ",",
+ "_lang_name": "Čeština",
  "title": "Identifikace procesu a ladění PIDConL",
  "empty": "Přetáhněte sem export z PCS 7 nebo Process Historianu (CSV / Excel), případně zvolte vpravo ukázková data nebo OPC UA. Uložený projekt se otevírá v menu Projekt nahoře.",
  "status": "{n} vzorků · perioda dat {ts} s · délka {dur} s · PV {pvr} · MV {mvr}",
@@ -3356,5 +3358,8 @@
  "pub_notice": "Data se zpracovávají jen na serveru po dobu vaší relace a po ukončení nebo {min} min nečinnosti se zahodí. Na serveru se nic trvale neukládá. Projekt si uložte do souboru (Projekt › Uložit).",
  "pub_notice_short": "Veřejný režim: data se na serveru zpracovávají jen po dobu relace a pak se zahodí – projekt si uložte do souboru.",
  "pub_busy": "Server je právě vytížený, zkuste to za chvíli.",
- "pub_rate": "Příliš mnoho požadavků – chvíli počkejte."
+ "pub_rate": "Příliš mnoho požadavků – chvíli počkejte.",
+ "idm_rec_title": "Regulátor v záznamu (Set 1)",
+ "idm_rec_h": "Parametry regulátoru, který ve smyčce běžel během záznamu, v názvech a jednotkách bloku regulátoru smyčky. Identifikace v uzavřené smyčce je potřebuje dřív, než je model, proto se zadávají zde. Jsou to tytéž hodnoty jako Set 1 v Ladění – ladění s nimi pak porovnává nové parametry.",
+ "idm_cl_note2": "Nepřímá identifikace v uzavřené smyčce: model se počítá spolu s regulátorem ze záznamu (Set 1 níže). Set 1 musí být parametry, se kterými smyčka v úseku běžela."
 }

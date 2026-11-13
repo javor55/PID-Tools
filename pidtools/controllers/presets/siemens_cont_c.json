@@ -8,7 +8,7 @@
   "block": "FB41 CONT_C",
   "verification": {
     "status": "unverified",
-    "note": "Koncept (neověřeno proti manuálu): GAIN, TI, TD s pevnou časovou konstantou filtru D TM_LAG; meze LMN_LLM / LMN_HLM."
+    "note": "Draft (not verified against the manual): GAIN, TI, TD with a fixed D filter time constant TM_LAG; limits LMN_LLM / LMN_HLM."
   },
   "structure": {
     "normalisation": {
@@ -23,8 +23,8 @@
     "error": {
       "deadband": {
         "modes": {
-          "spojité": "continuous",
-          "skokové": "step"
+          "cont": "continuous",
+          "step": "step"
         },
         "other": "step"
       }

@@ -38,7 +38,7 @@ export interface DiagWin { key: string; a: [number, number]; b: [number, number]
 export interface AuditState { wid: string; res: components["schemas"]["Audit"] }
 
 interface UiState {
-  lang: "cs" | "en";
+  lang: string;                                  // kód jazyka z /i18n (výchozí angličtina)
   theme: Theme;
   tab: TabId;
   dataSub: DataSub;
@@ -51,7 +51,7 @@ interface UiState {
   setDiag: (d: DiagWin) => void;
   audit: AuditState | null;
   setAudit: (a: AuditState | null) => void;
-  setLang: (l: "cs" | "en") => void;
+  setLang: (l: string) => void;
   setTheme: (t: Theme) => void;
   setTab: (t: TabId) => void;
   setDataSub: (s: DataSub) => void;
@@ -65,7 +65,7 @@ interface UiState {
 }
 
 export const useUi = create<UiState>((set) => ({
-  lang: load("pid.lang", navigator.language?.startsWith("cs") ? "cs" : "en"),
+  lang: load("pid.lang", "en"),               // výchozí vždy angličtina; jazyk se volí v Nastavení
   theme: load<Theme>("pid.theme", "system"),
   tab: ((t) => (t === "diag" || t === "loops" ? "data" : t))(load<TabId>("pid.tab", "data")),
   dataSub: load<DataSub>("pid.dsub", "sources"),

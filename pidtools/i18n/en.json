@@ -1,4 +1,6 @@
 {
+ "_decimal": ".",
+ "_lang_name": "English",
  "title": "Process identification and PIDConL tuning",
  "empty": "Drop an export from PCS 7 or Process Historian (CSV / Excel) here, or choose demo data or OPC UA on the right. A saved project is opened from the Project menu at the top.",
  "status": "{n} samples · data period {ts} s · length {dur} s · PV {pvr} · MV {mvr}",
@@ -3356,5 +3358,8 @@
  "pub_notice": "Data is processed only on the server for the duration of your session and discarded when it ends or after {min} min of inactivity. Nothing is stored permanently on the server. Save your project to a file (Project › Save).",
  "pub_notice_short": "Public mode: data is processed on the server only for the session and then discarded – save your project to a file.",
  "pub_busy": "The server is busy right now, try again in a moment.",
- "pub_rate": "Too many requests – wait a moment."
+ "pub_rate": "Too many requests – wait a moment.",
+ "idm_rec_title": "Controller in the record (Set 1)",
+ "idm_rec_h": "Parameters of the controller that ran in the loop during the record, in the names and units of the loop's controller block. Closed-loop identification needs them before there is a model, so enter them here. They are the same values as Set 1 in Tuning – tuning then compares the new parameters with them.",
+ "idm_cl_note2": "Indirect identification in the closed loop: the model is fitted together with the controller from the record (Set 1 below). Set 1 must be the parameters the loop ran with in this segment."
 }

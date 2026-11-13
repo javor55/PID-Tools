@@ -372,6 +372,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/i18n": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Languages
+         * @description Dostupné jazyky rozhraní (soubory pidtools/i18n/*.json), angličtina (výchozí) první.
+         */
+        get: operations["languages_api_v1_i18n_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/i18n/{lang}": {
         parameters: {
             query?: never;
@@ -3043,6 +3063,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/tuning/record-set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Record Set
+         * @description Sada 1 (regulátor, se kterým smyčka v záznamu běžela) v jednotkách bloku – i bez modelu (záložka Model).
+         */
+        get: operations["get_record_set_api_v1_workspaces__wid__tuning_record_set_get"];
+        /**
+         * Put Record Set
+         * @description Zápis Sady 1 bez modelu (identifikace v uzavřené smyčce potřebuje regulátor ze záznamu dřív než model).
+         */
+        put: operations["put_record_set_api_v1_workspaces__wid__tuning_record_set_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/tuning/robustness": {
         parameters: {
             query?: never;
@@ -3204,9 +3248,8 @@ export interface components {
             /**
              * Language
              * @default
-             * @enum {string}
              */
-            language: "" | "cs" | "en";
+            language: string;
             /**
              * Theme
              * @default
@@ -3363,9 +3406,8 @@ export interface components {
             /**
              * Language
              * @default app
-             * @enum {string}
              */
-            language: "app" | "cs" | "en";
+            language: string;
             /**
              * Logo
              * @default
@@ -4839,6 +4881,15 @@ export interface components {
             /** Statuses */
             statuses: string[];
         };
+        /** Language */
+        Language: {
+            /** Code */
+            code: string;
+            /** Coverage */
+            coverage: number;
+            /** Name */
+            name: string;
+        };
         /** Layout */
         Layout: {
             /** C Tag */
@@ -5742,6 +5793,16 @@ export interface components {
             status: "rec" | "unsuitable" | "skip";
             /** Text */
             text: string;
+        };
+        /**
+         * RecordSet
+         * @description Regulátor v záznamu (Sada 1) pro identifikaci v uzavřené smyčce – nepotřebuje model (sdílí se s Laděním).
+         */
+        RecordSet: {
+            controller: components["schemas"]["LoopCtrlRef"];
+            set: components["schemas"]["SetInfo"];
+            /** Tuning Params */
+            tuning_params: components["schemas"]["ParamRef"][];
         };
         /** RecoveryInfo */
         RecoveryInfo: {
@@ -8119,6 +8180,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    languages_api_v1_i18n_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Language"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -13703,6 +13796,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlantInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_record_set_api_v1_workspaces__wid__tuning_record_set_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_record_set_api_v1_workspaces__wid__tuning_record_set_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WriteSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSet"];
                 };
             };
             /** @description Validation Error */

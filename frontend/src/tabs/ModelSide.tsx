@@ -6,9 +6,10 @@ import { useMemo, useState } from "react";
 import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { series, unframe } from "../api/signals";
+import { paramLabel, SetInput } from "../components/SetInput";
 import { Help, PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { type LoopMode, usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
-import { useT } from "../i18n";
+import { useDec, useT } from "../i18n";
 import { dur } from "../lib/format";
 import { useJobRunner } from "../jobs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,7 @@ type WindowsInfo = components["schemas"]["WindowsInfo"];
 type LoopInfo = components["schemas"]["LoopInfo"];
 type Set1Check = components["schemas"]["Set1Check"];
 type Set1Estimate = components["schemas"]["Set1Estimate"];
+type RecordSet = components["schemas"]["RecordSet"];
 
 /** Číselné pole (potvrzení Enterem / opuštěním pole) s popiskem vlevo. */
 function Num({ label, value, onCommit, step, testid, help }: { label: string; value: number | undefined;
@@ -264,13 +266,45 @@ function ExclRow({ n, on, lo, hi, set }: { n: string; on: boolean; lo: number; h
   );
 }
 
+/** Regulátor v záznamu = Sada 1 (sdílená s Laděním) v jednotkách bloku profilu smyčky; jde zadat i bez modelu,
+ *  protože identifikace v uzavřené smyčce ho potřebuje dřív, než je model (a tím i záložka Ladění). */
+function RecordSetBox({ onChange }: { onChange: () => Promise<void> }) {
+  const T = useT();
+  const wid = useUi((s) => s.wid);
+  const rs = useWsQuery<RecordSet>("record-set", "/tuning/record-set");
+  const [err, setErr] = useState<string | null>(null);
+  const r = rs.data;
+  if (!r) return null;
+  const write = async (key: string, x: number) => {
+    setErr(null);
+    try {
+      await request("PUT", `/workspaces/${wid}/tuning/record-set`, { values: { ...r.set.values, [key]: x } });
+    } catch (e) { setErr(String((e as Error).message)); }
+    await onChange();
+  };
+  return (
+    <div className="rec-set" data-testid="record-set">
+      <div className="rec-set-h"><b>{T("idm_rec_title")}</b><Help text={T("idm_rec_h")} /></div>
+      <div className="small muted" data-testid="record-set-ctl">{r.controller.vendor ? `${r.controller.vendor} · ` : ""}{r.controller.name}</div>
+      <div className="rec-set-grid">
+        {r.tuning_params.map((q) => (
+          <label key={q.key} className="field"><span>{paramLabel(q)}</span>
+            <SetInput value={(r.set.values[q.key] as number | null) ?? 0} placeholder={r.set.placeholder}
+              label={`${T("set_1")} ${q.name}`} testid={`rec-${q.key}`} onCommit={(x) => void write(q.key, x)} /></label>))}
+      </div>
+      {r.set.warnings.map((w) => <div key={w.key} className="warn small">⚠ {w.text}</div>)}
+      {err && <div className="err small" role="alert">{err}</div>}
+    </div>
+  );
+}
+
 /** Smyčka v AUTO (M2): varování, zúžení na ruční úsek, Set 1 (zápis do nastavení, kontrola) a hlášení o buzení. */
 function ClosedLoop({ lp, idMode, win, model }: { lp: LoopInfo; idMode: string; win: boolean; model?: ModelState }) {
   const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const patch = usePatchSettings();
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const [msg, setMsg] = useState<{ warn: boolean; text: string } | null>(null);
   const eff = win ? "open" : lp.effective;
   const closed = eff === "cl" && lp.has_sp;
@@ -284,7 +318,6 @@ function ClosedLoop({ lp, idMode, win, model }: { lp: LoopInfo; idMode: string; 
       r: e.r2.toFixed(2) }) } : { warn: true, text: T("idm_est_fail") });
     await refresh();
   };
-  const f = (x: number) => +x.toPrecision(4);
   const c = chk.data;
   return (
     <div data-testid="closed-loop">
@@ -302,13 +335,14 @@ function ClosedLoop({ lp, idMode, win, model }: { lp: LoopInfo; idMode: string; 
       {idMode === "cl" && !lp.has_sp && <div className="warn small">{T("idm_need_sp")}</div>}
       {closed && (
         <>
-          <div className="small muted" data-testid="cl-note">{T("idm_cl_note", { g: f(lp.set1.gain), ti: f(lp.set1.ti), td: f(lp.set1.td) })}</div>
+          <div className="small muted" data-testid="cl-note">{T("idm_cl_note2")}</div>
           {lp.low_excitation && <div className="warn small" data-testid="low-exc">{T("idm_low_exc")}</div>}
           {c?.available && (c.ok
             ? <div className="small" data-testid="set1-ok">✓ {T("idm_set1_ok", { f: (c.fit_pv ?? 0).toFixed(0) })}</div>
             : <div className="warn small" data-testid="set1-bad">{c.stable ? T("idm_set1_bad", { f: (c.fit_pv ?? 0).toFixed(0) }) : T("idm_set1_unstable")}</div>)}
         </>
       )}
+      {lp.has_sp && (closed || lp.auto_frac >= 0.15) && <RecordSetBox onChange={refresh} />}
       {lp.has_sp && (closed || lp.auto_frac >= 0.15) && (
         <div className="row">
           <button type="button" className="btn" data-testid="set1-estimate" title={T("h_idm_est")}

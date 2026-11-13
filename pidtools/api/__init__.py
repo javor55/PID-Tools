@@ -43,6 +43,12 @@ class Health(BaseModel):
     version: str
 
 
+class Language(BaseModel):
+    code: str
+    name: str                                   # vlastní název jazyka („Čeština“)
+    coverage: float                             # podíl přeložených textů (chybějící jsou anglicky)
+
+
 class Config(BaseModel):
     """Co potřebuje rozhraní vědět o nasazení: režim (desktop / team / public), limit nahrání a doba relace."""
     mode: str
@@ -174,6 +180,19 @@ def _include(app, routers, system, auth):
     app.include_router(system, include_in_schema=False)
 
 
+def _i18n_routes(system, auth):
+    @system.get("/i18n", response_model=list[Language], tags=["system"], dependencies=[Depends(auth)])
+    def languages():
+        """Dostupné jazyky rozhraní (soubory pidtools/i18n/*.json), angličtina (výchozí) první."""
+        return [Language(code=c, name=n, coverage=round(cv, 3)) for c, n, cv in i18n.languages()]
+
+    @system.get("/i18n/{lang}", response_model=dict[str, str], tags=["system"], dependencies=[Depends(auth)])
+    def texts(lang: str):
+        if lang not in i18n.TEXTS:
+            raise HTTPException(404, "language not found")
+        return i18n.TEXTS[lang]
+
+
 def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces=20, max_jobs=2, team=None,
                verifier=None, controllers_dir=None, config_dir=None, data_dir=None):
     """
@@ -252,11 +271,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
 
     _config_route(system, auth, team)
 
-    @system.get("/i18n/{lang}", response_model=dict[str, str], tags=["system"], dependencies=[Depends(auth)])
-    def texts(lang: str):
-        if lang not in i18n.TEXTS:
-            raise HTTPException(404, "language not found")
-        return i18n.TEXTS[lang]
+    _i18n_routes(system, auth)
 
     @system.post("/workspaces", response_model=WorkspaceInfo, tags=["workspace"], dependencies=[Depends(auth)])
     def ws_create():

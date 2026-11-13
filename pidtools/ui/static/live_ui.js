@@ -21,7 +21,7 @@ export default function (component) {
           sets_note: "The sets are taken from Tuning when you switch to this tab.",
           dist_note: "The disturbance starts when you press “Apply disturbance” (pulse sends one pulse); shape and place set how it hits the loop.",
           h_mode: "", h_sets: "", h_dist: "", h_kpi: "" } };
-  const L = Object.assign({}, FB[CFG.decimal === "," ? "cs" : "en"], CFG.labels);
+  const L = Object.assign({}, FB[CFG.lang] || FB.en, CFG.labels);           // záložní texty; hlavní přicházejí v CFG.labels
   const store = (window.__pidLive = window.__pidLive || {});
   const PR = CFG.pv_hi - CFG.pv_lo, MR = CFG.mv_hi - CFG.mv_lo;
   const EP = (x) => CFG.pv_lo + x * PR / 100, EM = (x) => CFG.mv_lo + x * MR / 100;

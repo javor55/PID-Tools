@@ -34,9 +34,9 @@ def test_preset_loads_with_format_and_version():
 
 
 @pytest.mark.parametrize("bad,msg", [
-    ({"format": "x", "version": 1}, "není profil"),
-    ({"format": "pidctrl", "version": 99, "id": "a", "structure": {}, "params": []}, "novější"),
-    ({"format": "pidctrl", "version": 0, "id": "a", "structure": {}, "params": []}, "verzi"),
+    ({"format": "x", "version": 1}, "not a controller profile"),
+    ({"format": "pidctrl", "version": 99, "id": "a", "structure": {}, "params": []}, "is newer"),
+    ({"format": "pidctrl", "version": 0, "id": "a", "structure": {}, "params": []}, "valid version"),
     ({"format": "pidctrl", "version": 1, "id": "a", "structure": {}}, "params"),
 ])
 def test_profile_validation(bad, msg):
@@ -47,7 +47,7 @@ def test_profile_validation(bad, msg):
 def test_unique_roles_required():
     p = _prof()
     p["params"].append(dict(p["params"][0], key="Gain2"))
-    with pytest.raises(ValueError, match="jedinečné"):
+    with pytest.raises(ValueError, match="unique"):
         controllers.parse_profile(p)
 
 
@@ -111,7 +111,7 @@ def test_antiwindup_variants():
 # ---- registry
 def test_registries_and_planned_items():
     assert {"ideal", "parallel", "series"} <= set(REGISTRIES["forms"].items)
-    with pytest.raises(ValueError, match="neznámá položka"):
+    with pytest.raises(ValueError, match="unknown item"):
         Profile(_prof(form="nesmysl"))
     with pytest.raises(NotImplementedError, match="engineering"):
         Profile(_prof(normalisation={"kind": "engineering"}))

@@ -93,10 +93,27 @@ def test_validation_loop_sets_and_views(page, server, ready):
     page.wait_for_function("() => +document.querySelector('[data-testid=\"compare-chart\"]').dataset.n === 3", timeout=30000)
 
 
+def test_model_on_full_record_by_default(page, server, ready):
+    """Model se ve výchozím stavu kreslí přes celý záznam; „jen v úsecích“ je volba."""
+    rng = page.locator('[data-testid="model-trend"] .pidw-range')
+    rng.first.wait_for(timeout=30000)
+    assert rng.first.locator("button.on").get_attribute("data-v") == "full"
+
+
 def test_closed_loop_panel(page, server, ready):
     page.locator('[data-testid="id-mode"]').select_option("cl")
     page.wait_for_selector('[data-testid="cl-note"]', timeout=20000)
+    # regulátor v záznamu (Sada 1) se zadává přímo v Modelu, v jednotkách bloku; je to táž Sada 1 jako v Ladění
+    page.wait_for_selector('[data-testid="record-set"] [data-testid="rec-Gain"]', timeout=20000)
+    assert "PIDConL" in page.locator('[data-testid="record-set-ctl"]').inner_text()
+    g = page.locator('[data-testid="rec-Gain"]')
+    g.fill("1.25")
+    g.press("Enter")
+    page.wait_for_function("() => Math.abs(+document.querySelector('[data-testid=\"rec-Gain\"]').value - 1.25) < 1e-9")
+    assert _call(server, page, "GET", "/workspaces/{wid}/settings")["set1_gain"] == 1.25
     page.locator('[data-testid="set1-estimate"]').click()
     page.wait_for_selector('[data-testid="set1-msg"]', timeout=30000)
+    # odhad ze záznamu přepíše Sadu 1 a karta se obnoví
+    page.wait_for_function("() => +document.querySelector('[data-testid=\"rec-Gain\"]').value !== 1.25", timeout=20000)
     page.locator('[data-testid="id-mode"]').select_option("auto")
     page.wait_for_timeout(800)

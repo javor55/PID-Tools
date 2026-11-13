@@ -21,11 +21,11 @@ import numpy as np
 from .util import lag as _lag
 
 MODELS = {
-    "P0D": dict(name="0. řád (zesílení + zpoždění)", params=["K", "θ"], integ=False),
-    "P1D": dict(name="1. řád + zpoždění (FOPDT)", params=["K", "T1", "θ"], integ=False),
-    "P2D": dict(name="2. řád + zpoždění (SOPDT)", params=["K", "T1", "T2", "θ"], integ=False),
-    "I0D": dict(name="Integrační + zpoždění", params=["Ki", "θ"], integ=True),
-    "I1D": dict(name="Integrační + 1. řád + zpoždění", params=["Ki", "T1", "θ"], integ=True),
+    "P0D": dict(name="0th order (gain + dead time)", params=["K", "θ"], integ=False),
+    "P1D": dict(name="1st order + dead time (FOPDT)", params=["K", "T1", "θ"], integ=False),
+    "P2D": dict(name="2nd order + dead time (SOPDT)", params=["K", "T1", "T2", "θ"], integ=False),
+    "I0D": dict(name="Integrating + dead time", params=["Ki", "θ"], integ=True),
+    "I1D": dict(name="Integrating + 1st order + dead time", params=["Ki", "T1", "θ"], integ=True),
 }
 DIST_PARAMS = ["Kd", "Tp", "θd"]
 DIST_STRUCTS = ("P0D", "P1D", "P2D", "I0D", "I1D")

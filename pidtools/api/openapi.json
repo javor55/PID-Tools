@@ -29,11 +29,6 @@
      },
      "language": {
       "default": "",
-      "enum": [
-       "",
-       "cs",
-       "en"
-      ],
       "title": "Language",
       "type": "string"
      },
@@ -267,11 +262,6 @@
      },
      "language": {
       "default": "app",
-      "enum": [
-       "app",
-       "cs",
-       "en"
-      ],
       "title": "Language",
       "type": "string"
      },
@@ -4217,6 +4207,29 @@
     "title": "JournalList",
     "type": "object"
    },
+   "Language": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "coverage": {
+      "title": "Coverage",
+      "type": "number"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "code",
+     "name",
+     "coverage"
+    ],
+    "title": "Language",
+    "type": "object"
+   },
    "Layout": {
     "properties": {
      "c_tag": {
@@ -6717,6 +6730,31 @@
      "text"
     ],
     "title": "Recommendation",
+    "type": "object"
+   },
+   "RecordSet": {
+    "description": "Regulátor v záznamu (Sada 1) pro identifikaci v uzavřené smyčce – nepotřebuje model (sdílí se s Laděním).",
+    "properties": {
+     "controller": {
+      "$ref": "#/components/schemas/LoopCtrlRef"
+     },
+     "set": {
+      "$ref": "#/components/schemas/SetInfo"
+     },
+     "tuning_params": {
+      "items": {
+       "$ref": "#/components/schemas/ParamRef"
+      },
+      "title": "Tuning Params",
+      "type": "array"
+     }
+    },
+    "required": [
+     "controller",
+     "tuning_params",
+     "set"
+    ],
+    "title": "RecordSet",
     "type": "object"
    },
    "RecoveryInfo": {
@@ -12603,6 +12641,76 @@
      }
     },
     "summary": "Health",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/v1/i18n": {
+   "get": {
+    "description": "Dostupné jazyky rozhraní (soubory pidtools/i18n/*.json), angličtina (výchozí) první.",
+    "operationId": "languages_api_v1_i18n_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Language"
+         },
+         "title": "Response Languages Api V1 I18N Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Languages",
     "tags": [
      "system"
     ]
@@ -25634,6 +25742,164 @@
      }
     },
     "summary": "Set Plant",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/tuning/record-set": {
+   "get": {
+    "description": "Sada 1 (regulátor, se kterým smyčka v záznamu běžela) v jednotkách bloku – i bez modelu (záložka Model).",
+    "operationId": "get_record_set_api_v1_workspaces__wid__tuning_record_set_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecordSet"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Record Set",
+    "tags": [
+     "tuning"
+    ]
+   },
+   "put": {
+    "description": "Zápis Sady 1 bez modelu (identifikace v uzavřené smyčce potřebuje regulátor ze záznamu dřív než model).",
+    "operationId": "put_record_set_api_v1_workspaces__wid__tuning_record_set_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WriteSet"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecordSet"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Record Set",
     "tags": [
      "tuning"
     ]

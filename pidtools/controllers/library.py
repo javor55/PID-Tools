@@ -64,37 +64,37 @@ def validate_profile(data):
         bad.append(dict(path=path, message=msg))
 
     if not isinstance(data["id"], str) or not _ID.match(data["id"]):
-        add("id", "id musí být malá písmena, číslice, '_' nebo '-' (max. 64 znaků)")
+        add("id", "id must be lowercase letters, digits, '_' or '-' (max. 64 characters)")
     if not isinstance(data.get("name", ""), str) or not data.get("name"):
-        add("name", "chybí název profilu")
+        add("name", "the profile has no name")
     if not isinstance(data["structure"], dict):
-        add("structure", "struktura musí být objekt")
+        add("structure", "structure must be an object")
     ver = data.get("verification")
     if ver is not None and (not isinstance(ver, dict) or ver.get("status") not in ("verified", "unverified")):
-        add("verification.status", "stav ověření je 'verified' nebo 'unverified'")
+        add("verification.status", "verification status must be 'verified' or 'unverified'")
     if not isinstance(data["params"], list):
-        add("params", "parametry musí být seznam")
+        add("params", "params must be a list")
         return bad
     keys = []
     for i, p in enumerate(data["params"]):
         at = f"params[{i}]"
         if not isinstance(p, dict) or not isinstance(p.get("key"), str) or not isinstance(p.get("role"), str):
-            add(at, "parametr musí mít textové položky 'key' a 'role'")
+            add(at, "a parameter needs text items 'key' and 'role'")
             continue
         keys.append(p["key"])
         rng = p.get("range")
         if rng is not None and not (isinstance(rng, list) and len(rng) == 2 and all(isinstance(x, (int, float)) for x in rng)
                                     and rng[0] <= rng[1]):
-            add(f"{at}.range", "rozsah musí být [min, max] s min ≤ max")
+            add(f"{at}.range", "range must be [min, max] with min ≤ max")
         rep = p.get("repr")
         if rep is not None:
             kind = _KIND.get(p["role"])
             if kind is None:
-                add(f"{at}.repr", f"role '{p['role']}' nemá jednotky k výběru")
+                add(f"{at}.repr", f"role '{p['role']}' has no selectable units")
             elif rep not in units.REPRS[kind]:
-                add(f"{at}.repr", f"neznámá varianta '{rep}' (známé: {', '.join(units.REPRS[kind])})")
+                add(f"{at}.repr", f"unknown variant '{rep}' (known: {', '.join(units.REPRS[kind])})")
     if len(set(keys)) != len(keys):
-        add("params", "klíče parametrů musí být jedinečné")
+        add("params", "parameter keys must be unique")
     return bad
 
 
@@ -174,10 +174,10 @@ class Library:
     def create_custom(self, source_id, name=None):
         """„Vytvořit vlastní“: kopie předvolby / vlastního profilu pod novým id; vlastní profil je vždy neověřený."""
         data = self.get(source_id)
-        data["name"] = name or f"{data.get('name', source_id)} (vlastní)"
+        data["name"] = name or f"{data.get('name', source_id)} (custom)"
         data["id"] = self._new_id(data["name"])
         data["derived_from"] = source_id
-        data["verification"] = dict(status="unverified", note="Vlastní profil – neověřeno proti manuálu.")
+        data["verification"] = dict(status="unverified", note="Custom profile – not verified against the manual.")
         data.pop("test", None)
         self._write(check(data))
         return data

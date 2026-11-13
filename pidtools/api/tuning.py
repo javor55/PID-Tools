@@ -122,6 +122,13 @@ class TuningInfo(BaseModel):
     export_formats: list[str] = []
 
 
+class RecordSet(BaseModel):
+    """Regulátor v záznamu (Sada 1) pro identifikaci v uzavřené smyčce – nepotřebuje model (sdílí se s Laděním)."""
+    controller: LoopCtrlRef
+    tuning_params: list[ParamRef]
+    set: SetInfo
+
+
 class PlantSet(BaseModel):
     stic: float | None = None                # stikce [jednotky MV]
     slip: float | None = None                # skluz J [% stikce]
@@ -233,6 +240,18 @@ def _sets(ws):
     return out
 
 
+def _set_of(ws, body):
+    """Tělo zápisu sady → kanonická sada (Kc, Ti, Td); hodnoty v jednotkách bloku se převedou přes profil."""
+    if body.values is not None:
+        try:
+            return ws.values_to_canon(body.values)
+        except (ValueError, KeyError, TypeError) as ex:
+            raise HTTPException(422, str(ex)) from ex
+    if body.Kc is not None and body.Ti is not None:
+        return dict(Kc=body.Kc, Ti=body.Ti, Td=body.Td)
+    raise HTTPException(422, "Kc and Ti, or values, required")
+
+
 def _loop_ref(ws):
     from ..controllers import load_preset, presets
     data = ctl.profile_data(ws.controller)
@@ -296,6 +315,29 @@ def router(get_proj, jobs):
             raise HTTPException(409, "no model")
         return ws
 
+    def need_data(wid):
+        ws = get_proj(wid).state
+        if not ws.has_data:
+            raise HTTPException(409, "no data")
+        return ws
+
+    def record_set(ws):
+        return RecordSet(controller=_loop_ref(ws), set=_sets(ws)[0],
+                         tuning_params=[ParamRef(key=q["key"], name=q.get("name") or q["key"], unit=q.get("unit"),
+                                                 role=q["role"]) for q in ctl.tuning_params(ws.controller)])
+
+    @r.get("/tuning/record-set", response_model=RecordSet)
+    def get_record_set(wid: str):
+        """Sada 1 (regulátor, se kterým smyčka v záznamu běžela) v jednotkách bloku – i bez modelu (záložka Model)."""
+        return record_set(need_data(wid))
+
+    @r.put("/tuning/record-set", response_model=RecordSet)
+    def put_record_set(wid: str, body: WriteSet):
+        """Zápis Sady 1 bez modelu (identifikace v uzavřené smyčce potřebuje regulátor ze záznamu dřív než model)."""
+        ws = need_data(wid)
+        ws.write_set(1, _set_of(ws, body), body.log)
+        return record_set(ws)
+
     @r.get("/tuning", response_model=TuningInfo)
     def info(wid: str):
         ws = need_model(wid)
@@ -341,16 +383,7 @@ def router(get_proj, jobs):
         ws = need_model(wid)
         if n not in (1, 2):
             raise HTTPException(404, "set not found")
-        if body.values is not None:               # sada v jednotkách bloku → kanonická (přes profil)
-            try:
-                s = ws.values_to_canon(body.values)
-            except (ValueError, KeyError, TypeError) as ex:
-                raise HTTPException(422, str(ex)) from ex
-        elif body.Kc is not None and body.Ti is not None:
-            s = dict(Kc=body.Kc, Ti=body.Ti, Td=body.Td)
-        else:
-            raise HTTPException(422, "Kc and Ti, or values, required")
-        ws.write_set(n, s, body.log)
+        ws.write_set(n, _set_of(ws, body), body.log)
         return info(wid)
 
     @r.post("/tuning/compare", response_model=JobInfo)

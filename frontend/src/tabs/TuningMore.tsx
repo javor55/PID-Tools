@@ -7,7 +7,7 @@ import type { components } from "../api/schema";
 import { unframe } from "../api/signals";
 import { LineChart, type Series } from "../components/LineChart";
 import { useSettings, useWs, useWsQuery, usePatchSettings } from "../data";
-import { useT } from "../i18n";
+import { useDec, useT } from "../i18n";
 import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
 import { Md } from "../components/Ui";
@@ -222,7 +222,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
   const calc = useCalc();
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
   const { cmp: rows, cmpBusy: busy, method, view, set } = useTun();
   const m = method ?? info.data?.default_method;

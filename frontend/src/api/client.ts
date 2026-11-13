@@ -5,6 +5,7 @@ import type { components } from "./schema";
 export type JobInfo = components["schemas"]["JobInfo"];
 export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
 export type Health = components["schemas"]["Health"];
+export type Language = components["schemas"]["Language"];
 export type Config = components["schemas"]["Config"];
 
 declare global {
@@ -108,6 +109,7 @@ export async function bytes(method: string, path: string, body?: unknown): Promi
 export const api = {
   health: () => request<Health>("GET", "/health"),
   config: () => ensureSession().then((c) => { if (!c) throw new ApiError(0, "config"); return c; }),
+  languages: () => request<Language[]>("GET", "/i18n"),
   texts: (l: string) => request<Record<string, string>>("GET", `/i18n/${l}`),
   createWorkspace: () => request<WorkspaceInfo>("POST", "/workspaces"),
   workspace: (wid: string) => request<WorkspaceInfo>("GET", `/workspaces/${wid}`),

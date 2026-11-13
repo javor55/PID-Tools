@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Faster loading:** a 20 MB CSV (86 400 rows × 15 columns) uploads in ~0.6 s instead of ~2 s, adding another loop
+  from an already loaded file takes ~0.03 s instead of ~0.5 s (time columns are detected and parsed once, column values
+  are converted once and shared by the loops); Excel files are read with `python-calamine` (4–7× faster, same values).
+- **English by default, more languages possible:** the UI is 100 % English unless another language is chosen in Settings
+  (the browser language is no longer used). Each language is a file `pidtools/i18n/<code>.json` with `_lang_name` and
+  `_decimal`; a new file (e.g. `es.json`) appears in the language lists automatically and missing texts fall back to
+  English (`GET /api/v1/i18n` lists the languages and their coverage). Remaining Czech in the code was translated:
+  generic controller profiles (`Generic · ISA ideal PID` …), validation messages of profiles and programs, the new
+  program template; deadband mode values are now `cont` / `step` (old Czech values in projects and custom profiles still
+  work, in Python and in the browser simulation). A Playwright test walks all tabs in English and fails on any Czech text.
+- **Model: controller in the record (Set 1)** can be entered right in the Model tab (block names and units of the loop's
+  controller profile) – closed-loop identification no longer needs a model first; it is the same Set 1 as in Tuning
+  (`GET/PUT /tuning/record-set`, works without a model).
+- Model: the model curve is shown over the whole record by default ("segments only" stays as an option).
+- Project & report: the report status switch and other fields no longer overflow the side panel.
 - Deployment: **public instance on Oracle Cloud Free Tier (ARM64)** – the workflow `web-image.yml` builds a multi-arch
   (amd64 + arm64) image on a push to the branch `deploy`, smoke-tests it, scans it with Trivy and pushes it to
   `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); `deploy/` with `compose.yml` (app, Cloudflare

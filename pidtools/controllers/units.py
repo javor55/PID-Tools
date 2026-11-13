@@ -33,13 +33,13 @@ def _span(rng):
 def _need(ctx, key, kind, rep):
     v = (ctx or {}).get(key)
     if v is None:
-        raise ValueError(f"převod {kind}/{rep} potřebuje '{key}'")
+        raise ValueError(f"conversion {kind}/{rep} needs '{key}'")
     return v
 
 
 def _check(kind, rep):
     if rep not in REPRS.get(kind, {}):
-        raise ValueError(f"neznámá varianta '{rep}' veličiny '{kind}' (známé: {', '.join(REPRS.get(kind, {}))})")
+        raise ValueError(f"unknown variant '{rep}' of quantity '{kind}' (known: {', '.join(REPRS.get(kind, {}))})")
 
 
 def to_canon(kind, rep, x, ctx=None):

@@ -2,13 +2,13 @@
   "format": "pidctrl",
   "version": 1,
   "id": "isa_parallel",
-  "name": "ISA paralelní PID",
-  "vendor": "Obecný",
+  "name": "ISA parallel PID",
+  "vendor": "Generic",
   "system": "ISA",
-  "block": "paralelní",
+  "block": "parallel",
   "verification": {
     "status": "verified",
-    "note": "Obecný regulátor odvozený z definice (ISA-5.9 / učebnice), bez závislosti na výrobci."
+    "note": "Generic controller derived from the definition (ISA-5.9 / textbook), independent of any vendor."
   },
   "structure": {
     "normalisation": {
@@ -23,8 +23,8 @@
     "error": {
       "deadband": {
         "modes": {
-          "spojité": "continuous",
-          "skokové": "step"
+          "cont": "continuous",
+          "step": "step"
         },
         "other": "step"
       }
@@ -124,7 +124,7 @@
       "key": "DbMode",
       "role": "deadband_mode",
       "name": "DbMode",
-      "default": "spojité"
+      "default": "cont"
     },
     {
       "key": "MV_Lo",

@@ -35,7 +35,7 @@ class AppGeneral(BaseModel):
 
 
 class AppAppearance(BaseModel):
-    language: Literal["", "cs", "en"] = ""
+    language: str = ""                                  # "" = výchozí (angličtina), jinak kód z /i18n
     theme: Literal["", "system", "light", "dark"] = ""
     font_size: Literal["s", "m", "l", "xl"] = "m"
 
@@ -71,7 +71,7 @@ class AppJournal(BaseModel):
 
 class AppReport(BaseModel):
     company: str = Field("", max_length=120)
-    language: Literal["app", "cs", "en"] = "app"
+    language: str = "app"                               # "app" = jako rozhraní, jinak kód jazyka
     header: str = Field("", max_length=300)
     footer: str = Field("", max_length=300)
     logo: str = ""                                        # název souboru loga (nahrává se zvlášť), prázdné = bez loga

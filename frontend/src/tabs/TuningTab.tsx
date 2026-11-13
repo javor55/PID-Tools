@@ -7,9 +7,10 @@ import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { series } from "../api/signals";
 import { CheckSetting } from "../components/Fields";
+import { SetInput } from "../components/SetInput";
 import { LabelHelp, Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
 import { useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
-import { useT } from "../i18n";
+import { useDec, useT } from "../i18n";
 import { dur } from "../lib/format";
 import { useUi } from "../store";
 import "../styles/tuning.css";
@@ -44,7 +45,7 @@ function useMethod(info: TuningInfo | undefined) {
 export function TuningMain() {
   useTunSync();
   const T = useT();
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const ws = useWs().data;
   const st = useSettings().data ?? {};
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
@@ -235,7 +236,7 @@ export function TuningSide() {
   useTunSync();
   const T = useT();
   const wid = useUi((s) => s.wid);
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const setTab = useUi((s) => s.setTab);
   const qc = useQueryClient();
   const st = useSettings().data ?? {};
@@ -414,17 +415,6 @@ function NumBare({ k, def, min, step, label, title }: { k: string; def?: number;
 }
 
 /** Pole sady v PLC: hodnota se zapíše po opuštění pole; zástupné hodnoty (výchozí) se ukážou jako „[z PLC]“. */
-function SetInput({ value, placeholder, label, testid, onCommit }: { value: number; placeholder: boolean; label: string; testid: string;
-  onCommit: (x: number) => void }) {
-  const T = useT();
-  return (
-    <input type="number" step="any" className="tn-setin" aria-label={label} data-testid={testid} key={`${value}-${placeholder}`}
-      defaultValue={placeholder ? "" : +value.toPrecision(5)} placeholder={placeholder ? T("ui_tuning_from_plc") : undefined}
-      onBlur={(e) => { const v = e.target.value; if (v !== "" && Number.isFinite(+v) && +v !== value) onCommit(+v); }}
-      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-  );
-}
-
 function RobTiles({ freq, sug, dec }: { freq: FreqSet[] | undefined; sug: boolean; dec: string }) {
   const T = useT();
   if (!freq) return null;

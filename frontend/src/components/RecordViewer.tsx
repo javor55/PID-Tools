@@ -9,6 +9,7 @@ import mountViewer from "../../../pidtools/ui/static/viewer.js";
 import PIDViewAn from "../../../pidtools/ui/static/viewer_an.js";
 import "../../../pidtools/ui/static/viewer.css";
 import { useSettings, useWs } from "../data";
+import { decOf } from "../i18n";
 import { useUi } from "../store";
 
 const OTHER = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#9333ea",
@@ -55,7 +56,7 @@ export function RecordViewer({ texts }: { texts: Record<string, string> }) {
     const lay = typeof st.dview === "string" ? st.dview : null;
     const data = {
       key: "data_view", view_key: `${ws.fname}|${meta.hash}`, sigs, times: meta.times, T: meta.T, decim: meta.decim,
-      hash: meta.hash, clock: Number.isFinite(clock) ? clock : null, tunit: "auto", dec: lang === "cs" ? "," : ".",
+      hash: meta.hash, clock: Number.isFinite(clock) ? clock : null, tunit: "auto", dec: decOf(lang),
       dark, txt, fname: ws.fname, layout: lay, b64: null as string | null, url: null as string | null,
     };
     const sig = `${meta.hash}|${lang}|${dark}|${JSON.stringify(sigs.map((s) => [s.name, s.role, s.color, s.unit]))}`;

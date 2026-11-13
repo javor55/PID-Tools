@@ -29,7 +29,7 @@ export default function (component) {
   if (prev && prev.box && prev.box.isConnected) prev.box.remove();
 
   const views = (window.__pidTrendView = window.__pidTrendView || {});
-  const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: true });
+  const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: false });   // model výchozí na celém záznamu
   if (!(S.view[1] > S.view[0]) || S.view[1] > D.T * 1.0001) S.view = [0, D.T];
   const W = { mode: D.mode, wins: {}, common: (D.common || [0, D.T]).slice(),
               ab: D.ab ? { a: D.ab.a.slice(), b: D.ab.b ? D.ab.b.slice() : null } : null };
