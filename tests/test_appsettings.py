@@ -58,11 +58,11 @@ def test_export_import_and_rejects_foreign_or_newer():
 
 def test_logo_validation_and_storage(tmp_path):
     st = aps.SettingsStore(str(tmp_path))
-    s = st.put_logo(b"<svg/>", "SVG")
-    assert s["report"]["logo"] == "logo.svg" and st.logo_path().endswith("logo.svg")
-    st.put_logo(b"\x89PNG", "png")                                 # nové logo nahradí staré (jeden soubor)
-    assert not (tmp_path / "logo.svg").exists()
-    for data, ext in ((b"x", "exe"), (b"", "png"), (b"x" * (aps.MAX_LOGO + 1), "png")):
+    s = st.put_logo(b"\x89PNG", "PNG")
+    assert s["report"]["logo"] == "logo.png" and st.logo_path().endswith("logo.png")
+    st.put_logo(b"\xff\xd8", "jpg")                               # nové logo nahradí staré (jeden soubor)
+    assert not (tmp_path / "logo.png").exists()
+    for data, ext in ((b"x", "exe"), (b"", "png"), (b"x" * (aps.MAX_LOGO + 1), "png"), (b"<svg/>", "svg")):   # SVG se nepřijímá
         with pytest.raises(ValueError):
             st.put_logo(data, ext)
     assert st.drop_logo()["report"]["logo"] == "" and st.logo_path() is None
