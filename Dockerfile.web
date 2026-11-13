@@ -19,7 +19,15 @@ FROM python:3.11-slim-bookworm@sha256:ef521de1d817dc92a6358c906bbadb9a0b7e380400
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PORT=8080
+    PORT=8080 \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+    MPLCONFIGDIR=/tmp/.mpl \
+    PIDTOOLS_CONFIG_DIR=/tmp/pidtools/config \
+    PIDTOOLS_DATA_DIR=/tmp/pidtools/data
+# Both base images are pinned by multi-arch INDEX digest (linux/amd64 + linux/arm64, verified with
+# `docker buildx imagetools inspect`). Everything the app writes goes under /tmp, so the container also runs with
+# `read_only: true` + a tmpfs on /tmp (deploy/compose.yml).
 WORKDIR /app
 COPY requirements.txt requirements-api.txt ./
 RUN pip install -r requirements-api.txt
