@@ -98,6 +98,30 @@ class DataQuality(BaseModel):
     checks: list[DqCheck]
 
 
+class DqEvent(BaseModel):
+    t: float                                    # čas události [s] (čas záznamu smyčky)
+    kind: Literal["mv", "sp", "mode"]
+    size: float | None = None                   # skok v jednotkách signálu (MV, SP); u režimu None
+    text: str | None = None                     # u režimu: „auto“ / „man“ (nový režim)
+
+
+class DqSegment(BaseModel):
+    a: float
+    b: float
+    level: int                                  # 0 vhodný, 1 s výhradou, 2 nevhodný (jako `quality`)
+    n_mv: int
+    n_sp: int
+
+
+class DqSummary(BaseModel):
+    """Vhodnost záznamu aktivní smyčky pro identifikaci (Data › Kvalita dat): verdikt celého záznamu, události, úseky."""
+    level: int
+    checks: list[Check]
+    events: list[DqEvent]
+    segments: list[DqSegment]
+    auto_frac: float | None = None
+
+
 class StatRow(BaseModel):
     name: str
     role: Literal["PV", "MV", "SP", "DV"]
@@ -235,6 +259,29 @@ def _preview_frame(ws):
 
 def _num(x):
     return float(x) if np.isfinite(x) else None
+
+
+def _dq_summary(ws):
+    from ..app import segments as sg
+    from ..core.diagnostics import detect_steps
+    t, h = ws.t, float(ws.grid.Ts)
+    end = float(t[-1])
+    q = ws.quality(0.0, end) or dict(level=2, checks=[])
+    ev = [DqEvent(t=float(t[s_["i"]]), kind="mv", size=float(s_["size"])) for s_ in detect_steps(ws.mv, h)]
+    if ws.grid.has_sp and ws.sp is not None and np.nanmax(ws.sp) - np.nanmin(ws.sp) > 1e-9:
+        ev += [DqEvent(t=float(t[s_["i"]]), kind="sp", size=float(s_["size"])) for s_ in detect_steps(ws.sp, h)]
+    runs = ws.loop_det()["runs"]
+    ev += [DqEvent(t=float(a), kind="mode", text=str(k)) for a, _b, k in runs[1:]]
+    ev.sort(key=lambda e: e.t)
+    model = ws.model[:2] if ws.model else None
+    segs = []
+    for g in sg.auto(t, ws.mv, ws.sp, h, ws.grid.has_sp, model, pv=ws.pv)[:8]:
+        qq = ws.quality(float(g["start"]), float(g["end"]))
+        segs.append(DqSegment(a=float(g["start"]), b=float(g["end"]), level=int(qq["level"]) if qq else 2,
+                              n_mv=int(g["n_mv"]), n_sp=int(g["n_sp"])))
+    segs.sort(key=lambda x: (x.level, -(x.n_mv + x.n_sp)))
+    return DqSummary(level=int(q["level"]), checks=[Check(key=k, level=int(lv), args=_plain(ar)) for k, lv, ar in q["checks"]],
+                     events=ev[:200], segments=segs, auto_frac=_plain(ws.auto_frac()))
 
 
 def router(get_proj, max_upload=MAX_UPLOAD):
@@ -398,6 +445,16 @@ def _quality_preview(r, need_data):
         cnt, usable = dq.summary(checks)
         return DataQuality(usable=usable, counts=cnt, checks=[
             DqCheck(id=c.id, status=c.status, res=c.res, args=_plain(c.args)) for c in checks])
+
+    @r.get("/dataquality/summary", response_model=DqSummary)
+    def dataquality_summary(wid: str):
+        """Verdikt celého záznamu (kontroly q_*), události (skoky MV / SP, přepnutí režimu) a navržené úseky pro identifikaci
+        (shluky skoků, každý s vlastním hodnocením)."""
+        ws = need_data(wid)
+        try:
+            return _dq_summary(ws)
+        except Exception as ex:
+            raise _err(ex) from ex
 
     @r.get("/datastats", response_model=list[StatRow])
     def datastats(wid: str):

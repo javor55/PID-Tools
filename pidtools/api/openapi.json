@@ -2683,6 +2683,133 @@
     "title": "DqCheck",
     "type": "object"
    },
+   "DqEvent": {
+    "properties": {
+     "kind": {
+      "enum": [
+       "mv",
+       "sp",
+       "mode"
+      ],
+      "title": "Kind",
+      "type": "string"
+     },
+     "size": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size"
+     },
+     "t": {
+      "title": "T",
+      "type": "number"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Text"
+     }
+    },
+    "required": [
+     "t",
+     "kind"
+    ],
+    "title": "DqEvent",
+    "type": "object"
+   },
+   "DqSegment": {
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "number"
+     },
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "level": {
+      "title": "Level",
+      "type": "integer"
+     },
+     "n_mv": {
+      "title": "N Mv",
+      "type": "integer"
+     },
+     "n_sp": {
+      "title": "N Sp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "a",
+     "b",
+     "level",
+     "n_mv",
+     "n_sp"
+    ],
+    "title": "DqSegment",
+    "type": "object"
+   },
+   "DqSummary": {
+    "description": "Vhodnost záznamu aktivní smyčky pro identifikaci (Data › Kvalita dat): verdikt celého záznamu, události, úseky.",
+    "properties": {
+     "auto_frac": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Auto Frac"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__data__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/DqEvent"
+      },
+      "title": "Events",
+      "type": "array"
+     },
+     "level": {
+      "title": "Level",
+      "type": "integer"
+     },
+     "segments": {
+      "items": {
+       "$ref": "#/components/schemas/DqSegment"
+      },
+      "title": "Segments",
+      "type": "array"
+     }
+    },
+    "required": [
+     "level",
+     "checks",
+     "events",
+     "segments"
+    ],
+    "title": "DqSummary",
+    "type": "object"
+   },
    "Evidence": {
     "properties": {
      "metric": {
@@ -18650,6 +18777,81 @@
      }
     },
     "summary": "Dataquality",
+    "tags": [
+     "data"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/dataquality/summary": {
+   "get": {
+    "description": "Verdikt celého záznamu (kontroly q_*), události (skoky MV / SP, přepnutí režimu) a navržené úseky pro identifikaci\n(shluky skoků, každý s vlastním hodnocením).",
+    "operationId": "dataquality_summary_api_v1_workspaces__wid__dataquality_summary_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DqSummary"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Dataquality Summary",
     "tags": [
      "data"
     ]

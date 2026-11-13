@@ -147,3 +147,17 @@ def test_data_quality_stats_preview(client):
     assert mv["total"] == mv["n_mv"] < 3600
     csv = client.get(f"/workspaces/{wid}/preview/csv")
     assert csv.headers["content-type"].startswith("text/csv") and csv.text.count("\n") == 3601
+
+
+def test_dataquality_summary_verdict_events_segments(client):
+    """Kvalita dat (Data › Kvalita dat): verdikt celého záznamu, skoky MV ukázky a úsek pro identifikaci."""
+    wid = client.post("/workspaces").json()["id"]
+    assert client.get(f"/workspaces/{wid}/dataquality/summary").status_code == 409
+    client.post(f"/workspaces/{wid}/data/demo")
+    s = client.get(f"/workspaces/{wid}/dataquality/summary").json()
+    assert s["level"] == 0 and "q_steps_ok" in [c["key"] for c in s["checks"]]
+    mv = [e for e in s["events"] if e["kind"] == "mv"]
+    assert [e["t"] for e in mv][:2] == [300.0, 600.0] and mv[0]["size"] > 0 > mv[1]["size"]
+    assert [e["t"] for e in s["events"]] == sorted(e["t"] for e in s["events"])
+    seg = s["segments"][0]
+    assert seg["level"] == 0 and seg["n_mv"] == 6 and seg["a"] < 300 and seg["b"] > 3000

@@ -1726,6 +1726,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/dataquality/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dataquality Summary
+         * @description Verdikt celého záznamu (kontroly q_*), události (skoky MV / SP, přepnutí režimu) a navržené úseky pro identifikaci
+         *     (shluky skoků, každý s vlastním hodnocením).
+         */
+        get: operations["dataquality_summary_api_v1_workspaces__wid__dataquality_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/datastats": {
         parameters: {
             query?: never;
@@ -4366,6 +4387,49 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "warn" | "info";
+        };
+        /** DqEvent */
+        DqEvent: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "mv" | "sp" | "mode";
+            /** Size */
+            size?: number | null;
+            /** T */
+            t: number;
+            /** Text */
+            text?: string | null;
+        };
+        /** DqSegment */
+        DqSegment: {
+            /** A */
+            a: number;
+            /** B */
+            b: number;
+            /** Level */
+            level: number;
+            /** N Mv */
+            n_mv: number;
+            /** N Sp */
+            n_sp: number;
+        };
+        /**
+         * DqSummary
+         * @description Vhodnost záznamu aktivní smyčky pro identifikaci (Data › Kvalita dat): verdikt celého záznamu, události, úseky.
+         */
+        DqSummary: {
+            /** Auto Frac */
+            auto_frac?: number | null;
+            /** Checks */
+            checks: components["schemas"]["pidtools__api__data__Check"][];
+            /** Events */
+            events: components["schemas"]["DqEvent"][];
+            /** Level */
+            level: number;
+            /** Segments */
+            segments: components["schemas"]["DqSegment"][];
         };
         /** Evidence */
         Evidence: {
@@ -10856,6 +10920,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataQuality"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dataquality_summary_api_v1_workspaces__wid__dataquality_summary_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DqSummary"];
                 };
             };
             /** @description Validation Error */
