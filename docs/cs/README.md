@@ -8,8 +8,9 @@ navrhne parametry regulátoru, ukáže jejich robustnost a očekávané chován�
 přesně nastavit v PCS 7. Metody platí obecně pro průmyslové PID regulátory; terminologie, struktura regulátoru
 a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **APL**.
 
-- **Online:** <https://pidtools.streamlit.app/> (veřejná instance aplikace Streamlit, nasazená z větve `streamlit` –
-  viz [Data a bezpečnost](#data-a-bezpečnost)); v `main` se vyvíjí nové UI
+- **UI:** web FastAPI + React (`python -m pidtools.api`, kontejner `Dockerfile.web`) a okno Tauri; původní web ve
+  Streamlitu byl z `main` odstraněn a žije dál ve větvi **`streamlit`** (veřejná instance
+  <https://pidtools.streamlit.app/>, nasazená z té větve – neotevře projekt v3 s daty)
 - **Dokumentace:** [Uživatelská příručka](prirucka.md) · [Metody](metody.md) ·
   [Implementace v PCS 7](pcs7.md) · [Nasazení a provoz](nasazeni.md) · [Změny](CHANGELOG.md)
 
@@ -61,13 +62,14 @@ a implementační kroky odpovídají bloku **PIDConL** a šablonám knihovny **A
 
 ## Rychlý start
 
-### Online
-Otevřete <https://pidtools.streamlit.app/>, zvolte **Demo** a projděte záložky 1–6 – každá má vlastního průvodce (📖).
-
-### Lokálně (Windows)
-1. Nainstalujte [Python 3.11](https://www.python.org/downloads/) (při instalaci zaškrtněte *Add Python to PATH*).
-2. Stáhněte repozitář (*Code › Download ZIP*) a rozbalte.
-3. Spusťte **`start.bat`** – nainstaluje knihovny a otevře aplikaci v prohlížeči (<http://localhost:8501>).
+### Webové rozhraní (FastAPI + React)
+```bash
+pip install -r requirements-api.txt
+npm --prefix frontend ci && npm --prefix frontend run build      # sestaví pidtools/api/ui
+python -m pidtools.api                                           # vypíše adresu s tokenem
+```
+Nebo jako jeden kontejner: `docker build -f Dockerfile.web -t pid-tools-web .` (viz [nasazeni.md](nasazeni.md)).
+V aplikaci zvolte na úvodní obrazovce **Demo** a projděte záložky – každá má vlastního průvodce.
 
 ### Desktopová aplikace (náhled)
 
@@ -82,16 +84,9 @@ Data, Model (validace, nejistota), Ladění (srovnání metod, simulace scéná�
 vazba, rozvazbení, override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika
 provozu, více smyček v projektu, projekty (soubory `.pidproj` s obsahem JSON, společné s webovou aplikací; starší `.json` se otevřou také) a protokol z ladění.
 Pro Windows je jako instalátor (`PID-Tools-<verze>-setup.exe`, nabídka Start, bez práv správce) i jako přenosný ZIP
-(`PID Tools.exe`); webová aplikace offline je samostatný ZIP (`PID-Tools.bat`) – viz [Nasazení](nasazeni.md).
+(`PID Tools.exe`) – viz [Nasazení](nasazeni.md).
 
-### Lokálně (Linux / macOS)
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-Podrobnosti, provoz na interním serveru a aktualizace: [nasazeni.md](nasazeni.md).
+Provoz na interním serveru, web pro tým a aktualizace: [nasazeni.md](nasazeni.md).
 
 ## Postup v kostce
 
@@ -137,10 +132,10 @@ Vysvětlení všech metod, kritérií a ukazatelů: [metody.md](metody.md).
 ## Data a bezpečnost
 
 - Nahraná data se zpracují na serveru, kde aplikace běží, **jen po dobu relace** a nikam se neukládají (žádné
-  zápisy na disk, žádná volání externích služeb, telemetrie Streamlitu je vypnutá).
+  zápisy na disk, žádná volání externích služeb).
 - Rozpracovaná práce se automaticky ukládá **jen v prohlížeči uživatele** (lze vypnout v záložce Projekt a report).
 - Přístup přes OPC UA je **jen pro čtení** – aplikace do serveru nikdy nezapisuje.
-- Veřejná instance běží na Streamlit Community Cloud. Pokud provozní data nesmíte nahrávat na cizí server,
+- Veřejná instance Streamlitu (větev `streamlit`) běží na Streamlit Community Cloud. Pokud provozní data nesmíte nahrávat na cizí server,
   spusťte aplikaci **lokálně nebo na interním serveru** ([nasazeni.md](nasazeni.md)).
 
 ## Upozornění
@@ -158,12 +153,11 @@ jakékoli záruky.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest                                          # vše (~9 min, celá aplikace přes Streamlit AppTest)
+python -m pytest                                          # vše (~25 min, včetně desktopu a testů v prohlížeči)
 python -m pytest tests/test_core.py tests/test_basic.py   # jen výpočetní jádro (rychlé)
 ```
 
 ```
-app.py                     vstupní bod webové aplikace (Streamlit Community Cloud nasazuje tento soubor)
 pidtools/
   core/                    výpočty – jen numpy/scipy
     models.py              struktury modelů, simulace odezvy, predikce
@@ -191,20 +185,17 @@ pidtools/
     report.py plots.py     protokol z ladění (HTML) a pomocníci grafů Plotly
     workspace/             jedna smyčka bez UI (data, identifikace, ladění, diagnostika, projekt) a loops.py
   i18n/                    texty: cs.json, en.json, T() – jazyk nastavuje frontend
-  ui/                      webový frontend ve Streamlitu (widgety, session state, cache, grafy)
+  api/                     API FastAPI (/api/v1), servíruje sestavené UI v Reactu (api/ui); sidecar desktopu
+  ui/static/               sdílené JS/CSS prohlížeče (prohlížeč záznamu, trend, živá simulace, ctrl_engine.js) –
+                           importuje je frontend/ a používá je i desktop v Qt
   desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): main.py, tabs/ (stav: app/workspace)
-    context.py             Ctx – data sdílená záložkami v jednom běhu
-    loops.py               více smyček v projektu (snímky stavu, přepínání)
-    static/                živá simulace v prohlížeči (live_engine.js = port core/simulation.py), ctrl_engine.js =
-                           obecný regulátor podle profilu (stejný interpret jako core/controller.py)
-    pages/                 jeden modul na záložku: header, data, model, tuning, live, diagnostics, project, guides,
-                           apc/ (jeden modul na strukturu)
-tests/                     pytest: jádro, aplikační vrstva, celá aplikace (AppTest), načítání dat, smyčky, APC
+frontend/                  webové UI v Reactu + TypeScriptu (Vite); desktop/ – okno Tauri kolem sidecaru API
+tests/                     pytest: jádro, aplikační vrstva, API, frontend (Playwright), načítání dat, smyčky, APC
 docs/                      uživatelská dokumentace, architecture.md (architektura, anglicky)
 ```
 
-Vrstvy: `core` ← `app` ← frontend (dnes `ui`; desktopový frontend může `core` i `app` použít beze změny). `core`,
-`app` (kromě `report.py` a `plots.py`, které používají Plotly) a `i18n` nesmí importovat Streamlit ani Qt – hlídá to
+Vrstvy: `core` ← `app` ← frontend (`api` + React `frontend/`, Qt `desktop`). `core`,
+`app` (kromě `report.py` a `plots.py`, které používají Plotly) a `i18n` nesmí importovat Qt – hlídá to
 test. Podrobnosti v [docs/architecture.md](../architecture.md).
 
 Uvnitř jádra jsou všechny procesní veličiny v % rozsahů regulátoru (NormPV, NormMV), takže zesílení procesu

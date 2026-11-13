@@ -1,7 +1,6 @@
 # Windows (x64) packages, built and tested on windows-latest and uploaded as artifacts; on a version tag (v*) they
 # are also attached to a GitHub release:
 #   - desktop: "PID Tools.exe" as an installer (PID-Tools-<v>-setup.exe) and a portable ZIP (tools/build_desktop.py)
-#   - web: offline package with an embedded Python, started by PID-Tools.bat (tools/build_offline.py)
 name: Offline package (Windows)
 
 on:
@@ -57,51 +56,3 @@ jobs:
         run: |
           bash .github/release.sh
           gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-setup.exe dist/PID-Tools-*-desktop-win64-portable.zip --clobber
-
-  web:
-    runs-on: windows-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-
-      - name: Build package
-        run: python tools/build_offline.py
-
-      - name: Test with the embedded Python
-        working-directory: dist/PID-Tools-web/app
-        run: ..\python\python.exe ..\..\..\tools\smoke_test.py
-
-      - name: Start the server and check health
-        shell: pwsh
-        run: |
-          $pkg = Resolve-Path "dist\PID-Tools-web"
-          $p = Start-Process -FilePath "$pkg\python\python.exe" -WorkingDirectory "$pkg\app" -PassThru `
-               -ArgumentList "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", "8599"
-          $ok = $false
-          for ($i = 0; $i -lt 60; $i++) {
-            Start-Sleep -Seconds 2
-            try { if ((Invoke-WebRequest -UseBasicParsing http://localhost:8599/_stcore/health).Content -eq "ok") { $ok = $true; break } } catch {}
-          }
-          Stop-Process -Id $p.Id -Force
-          if (-not $ok) { throw "The app did not start" }
-          Write-Host "Server health: ok"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: PID-Tools-web-win64-offline
-          path: dist/PID-Tools-*-web-win64-offline.zip
-          compression-level: 0
-          retention-days: 30
-
-      - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          bash .github/release.sh
-          gh release upload "$GITHUB_REF_NAME" dist/PID-Tools-*-web-win64-offline.zip --clobber

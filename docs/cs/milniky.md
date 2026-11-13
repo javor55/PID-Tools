@@ -51,7 +51,7 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M25 | Offline ověření na čistém Windows | D | S | M24 | ◐ |
 | M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☑ |
 | M27 | Parita a pilot | E | M | M13–M21, M25 | ☐ |
-| M28 | Vypnutí staré aplikace, verze 4.0 | E | M | M27 | ☐ |
+| M28 | Vypnutí staré aplikace, verze 4.0 | E | M | M27 | ◐ (část Streamlit hotová: M28a) |
 
 **R1–R6** jsou rozhodnutí z kap. 8 plánu (viz [Rozhodnutí](#rozhodnutí)). Fáze A se dá dělat hned, bez ohledu
 na ně, a prospěje i dnešní aplikaci.
@@ -810,7 +810,13 @@ na Windows 10 a 11 provádí uživatel.
 - Pilot u 2–3 uživatelů na reálných projektech, oprava rozdílů.
 
 ### M28 · Vypnutí staré aplikace
-- Odstranit `pidtools/ui` (Streamlit) a `pidtools/desktop` (PySide6) i jejich testy a závislosti.
+- **M28a – hotovo (Streamlit):** z `main` odstraněn Streamlit web (`app.py`, Python v `pidtools/ui`, `.streamlit/`, `Dockerfile`,
+  `start.bat`, `tools/build_offline.py`, `tools/smoke_test.py`, job `web` v `offline-package.yml`, testy `test_app.py`,
+  `test_browser.py`, `test_loops.py`, `test_offline_build.py`, `_app_wrapper.py`, závislost `streamlit`). Stará aplikace žije dál
+  ve větvi `streamlit` (veřejná instance nasazená z ní; neotevře projekt v3 s daty). **Zůstává** `pidtools/ui/static` (sdílené
+  JS/CSS: prohlížeč záznamu, trend, živá simulace, `ctrl_engine.js` – importuje je `frontend/` i desktop v Qt), `plotly`
+  (report a grafy `app/plots.py`) a `Dockerfile.web`; texty `i18n` jen pro Streamlit nechány. Dokumentace přepsána na API + React + Tauri.
+- Zbývá (M28b): odstranit `pidtools/desktop` (PySide6) i jeho testy a závislosti až po pilotu; aktualizovat příručku (nové snímky). Vydat **verzi 4.0**.
 - Aktualizovat dokumentaci a příručku (nové snímky). Vydat **verzi 4.0**.
 
 ---
