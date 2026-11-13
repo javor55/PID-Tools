@@ -3660,6 +3660,11 @@ export interface components {
             b?: number | null;
             /** Loops */
             loops?: components["schemas"]["AuditLoop"][] | null;
+            /**
+             * Project
+             * @default false
+             */
+            project: boolean;
         };
         /** AuditResult */
         AuditResult: {

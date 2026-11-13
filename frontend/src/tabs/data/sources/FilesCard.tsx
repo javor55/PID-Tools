@@ -5,6 +5,9 @@ import { Card } from "../../../components/Card";
 import { LabelHelp, Seg } from "../../../components/Ui";
 import { useT } from "../../../i18n";
 import { useUi } from "../../../store";
+import { fmtDuration } from "../../../components/Header";
+import { useWs } from "../../../data";
+import { ManualRead, ReadStatus } from "../../DataLayout";
 import { OpcButton } from "../../OpcDialog";
 import { Commit, parse } from "./Commit";
 import { errText, type Sources, type SourcePatch, useAct, useAddSource } from "./api";
@@ -150,6 +153,22 @@ function Coverage({ data }: { data: Sources }) {
   );
 }
 
+/** Data aktivní smyčky po převzorkování: soubor, počet vzorků, perioda, délka (a stav automatického čtení). */
+function ActiveData() {
+  const T = useT();
+  const lang = useUi((s) => s.lang);
+  const ws = useWs().data;
+  if (!ws?.has_data) return null;
+  return (
+    <div className="src-active small" data-testid="data-info">
+      <span className="muted">{T("src_ui_active_data")}</span> <b>{ws.fname}</b>{" · "}
+      {T("ui_data_samples", { n: (ws.n ?? 0).toLocaleString(lang), ts: +(ws.Ts ?? 0).toPrecision(3), d: fmtDuration(ws.duration, lang) })}
+      <ReadStatus />
+      <ManualRead />
+    </div>
+  );
+}
+
 export function FilesCard({ data }: { data: Sources | undefined }) {
   const T = useT();
   const wid = useUi((s) => s.wid);
@@ -190,6 +209,8 @@ export function FilesCard({ data }: { data: Sources | undefined }) {
               onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
           </label>
           <OpcButton />
+          <button type="button" className="btn small" onClick={() => void demo()} disabled={!wid} title={T("src_ui_demo_h")} data-testid="src-demo">
+            {T("src_ui_demo")}</button>
         </span>
       </>}>
       <div className="src-drop-wrap" onDragOver={(e) => { if (isFiles(e)) { e.preventDefault(); setOver(true); } }}
@@ -213,10 +234,11 @@ export function FilesCard({ data }: { data: Sources | undefined }) {
         {!sources.length && (
           <div className="src-empty" data-testid="src-empty">
             <p>{T("src_ui_empty")}</p>
-            <button type="button" className="btn small" onClick={() => void demo()} disabled={!wid} title={T("src_ui_demo_h")} data-testid="src-demo">
+            <button type="button" className="btn small" onClick={() => void demo()} disabled={!wid} title={T("src_ui_demo_h")} data-testid="src-demo-empty">
               {T("src_ui_demo")}</button>
           </div>)}
         {err && <div className="err small" role="alert" data-testid="src-err">{err}</div>}
+        <ActiveData />
         <div className="src-dropnote small muted">{T("src_ui_drop")}</div>
       </div>
       {data && sources.length > 0 && <Coverage data={data} />}

@@ -32,6 +32,7 @@ class AuditReq(BaseModel):
     loops: list[AuditLoop] | None = None      # výchozí: uložené / navržené smyčky
     a: float | None = None                    # okno analýzy [s]; bez něj celý záznam
     b: float | None = None
+    project: bool = False                     # smyčky projektu (každá nad svými daty) místo seznamu smyček souboru
 
 
 class AuditProblem(BaseModel):
@@ -123,12 +124,16 @@ def _result(r):
                        t=_thin(r["t"], idx), pv=_thin(r["pv"], idx), mv=_thin(r["mv"], idx), sp=_thin(r["sp"], idx))
 
 
+def _loop_def(ls, name):
+    """Smyčka projektu jako definice přehledu (sloupce a typ procesu z modelu)."""
+    return audit.LoopDef(name=str(name), pv=ls.c_pv, mv=ls.c_mv, sp=ls.c_sp if ls.c_sp not in ("", "—") else None,
+                         pos=ls.c_pos if ls.c_pos not in ("", "—") else None,
+                         integ=bool(ls.model and ls.model[0].startswith("I")))
+
+
 def _health(ls):
     """Stav smyčky projektu: analýza celého záznamu jejími sloupci (jako v přehledu smyček)."""
-    d = audit.LoopDef(name=str(ls.c_pv), pv=ls.c_pv, mv=ls.c_mv, sp=ls.c_sp if ls.c_sp not in ("", "—") else None,
-                      pos=ls.c_pos if ls.c_pos not in ("", "—") else None,
-                      integ=bool(ls.model and ls.model[0].startswith("I")))
-    r = audit.analyse_loop(ls.sig, d, ls.ts_user)
+    r = audit.analyse_loop(ls.sig, _loop_def(ls, ls.c_pv), ls.ts_user)
     return LoopHealth(ok=bool(r["ok"]), err=r["err"], score=int(r["score"]), kpis=_plain(r.get("kpis")),
                   problems=[AuditProblem(key=k, severity=int(v)) for k, v in r["problems"]])
 
@@ -172,6 +177,15 @@ def router(get_proj):
     def analyse(wid: str, body: AuditReq):
         """Analýza smyček souboru (výchozí uložené / navržené); zadané smyčky se uloží do projektu jako v aplikaci."""
         ws = need_data(wid)
+        win = (body.a, body.b) if body.a is not None and body.b is not None and body.b > body.a else None
+        if body.project:                      # smyčky projektu, každá nad vlastními daty (úpravy jen ve Zdrojích a smyčkách)
+            p = get_proj(wid)
+            names = p.names()
+            res = [audit.analyse_loop(ls.sig, _loop_def(ls, names[i]), ls.ts_user, win)
+                   for i, ls in enumerate(p.loops) if ls.has_data and ls.c_pv and ls.c_mv]
+            res.sort(key=lambda r: (-r["score"], -(r["kpis"]["std_e_pct"] if r["ok"] else -1)))
+            return Audit(results=[_result(x) for x in res],
+                         common=[AuditCommon(**g) for g in _plain(audit.common_oscillations(res))])
         if body.loops is None:
             defs = _defs(ws)[0]
         else:
@@ -182,7 +196,6 @@ def router(get_proj):
             defs = audit.from_records([x.model_dump() for x in body.loops], sigs)
         if not defs:
             raise HTTPException(422, "no loops")
-        win = (body.a, body.b) if body.a is not None and body.b is not None and body.b > body.a else None
         ws.set(audit_loops=audit.to_records(defs))
         res = audit.analyse(ws.sig, defs, ws.ts_user, win)
         return Audit(results=[_result(x) for x in res],

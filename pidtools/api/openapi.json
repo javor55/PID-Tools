@@ -714,6 +714,11 @@
        }
       ],
       "title": "Loops"
+     },
+     "project": {
+      "default": false,
+      "title": "Project",
+      "type": "boolean"
      }
     },
     "title": "AuditReq",

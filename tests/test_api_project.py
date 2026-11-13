@@ -126,6 +126,11 @@ def test_audit_loops_analyse_and_overview(client):
     ov = client.get(f"/workspaces/{wid}/loops/overview").json()
     assert [x["name"] for x in ov["loops"]] == ["LIC101.PV", "FIC100"] and ov["active"] == 1
     assert [x["active"] for x in ov["loops"]] == [False, True] and ov["loops"][1]["sp"] is None
+    # analýza smyček projektu (Diagnostika): každá smyčka nad svými daty, stejné skóre jako její stav v přehledu
+    pr = client.post(f"/workspaces/{wid}/audit/analyse", json={"project": True}).json()
+    assert sorted(x["name"] for x in pr["results"]) == ["FIC100", "LIC101.PV"]
+    by = {x["name"]: x for x in pr["results"]}
+    assert all(by[x["name"]]["score"] == x["health"]["score"] for x in ov["loops"])
 
 
 def test_project_download_name_and_extensions(client):

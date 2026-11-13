@@ -4,21 +4,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import type { components } from "../api/schema";
-import { fmtDuration } from "../components/Header";
 import { RecordViewer } from "../components/RecordViewer";
-import { PrimaryAction, SideCard, Seg } from "../components/Ui";
-import { type Columns, uploadFile, useSettings, useWs, useWsMutation, useWsQuery } from "../data";
+import { PrimaryAction, SideCard } from "../components/Ui";
+import { uploadFile, useSettings, useWs, useWsQuery } from "../data";
 import { useT, useTexts } from "../i18n";
 import { useUi } from "../store";
 import "../styles/data.css";
 import { DataQualityCard } from "./DataQuality";
 import { FullPreview, PreviewCard } from "./DataPreview";
-import { ManualRead, ReadStatus, UnitsBody } from "./DataLayout";
-import { OpcButton } from "./OpcDialog";
-import { usePublic } from "../deploy";
+import { UnitsBody } from "./DataLayout";
 
 type StatRow = components["schemas"]["StatRow"];
-const NONE = "—";
 const ACCEPT = ".csv,.txt,.xlsx,.xls";
 
 /** Nahrání souboru (výběr i přetažení); chyba čtení se ukáže tam, kde se nahrávalo. */
@@ -107,103 +103,21 @@ export function DataMain() {
 const fmtStat = (v: number | null | undefined, lang: string) => v === null || v === undefined ? "–"
   : (+v.toPrecision(4)).toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 6 });
 
-type Src = "file" | "demo" | "opc";
-
-/** Karta Zdroj dat: přepínač Soubor / Ukázka / OPC UA, načtený soubor, stav čtení a ruční nastavení. */
-function SourceCard() {
-  const T = useT();
-  const pub = usePublic();
-  const lang = useUi((s) => s.lang);
-  const ws = useWs().data;
-  const demo = useWsMutation("POST", "/data/demo");
-  const { load, err } = useUpload();
-  const [pick, setPick] = useState<{ v: Src; f: string } | null>(null);
-  const fname = ws?.fname ?? "";
-  const src: Src = pick && (pick.v === "opc" || pick.f === fname) ? pick.v : fname === "demo" && ws?.has_data ? "demo" : "file";
-  const sum = ws?.has_data ? T("ui_data_samples", { n: (ws.n ?? 0).toLocaleString(lang), ts: +(ws.Ts ?? 0).toPrecision(3),
-    d: fmtDuration(ws.duration, lang) }) : "";
-  return (
-    <SideCard title={T("dk_sec_src")} help={T("h_source")} testid="card-src">
-      <Seg<Src> value={src} options={pub ? ["file", "demo"] : ["file", "demo", "opc"]} label={T("source")} stretch testid="src-seg" title={T("h_source")}
-        fmt={(v) => T(`src_${v}`)} onChange={(v) => {
-          setPick({ v, f: fname });
-          if (v === "demo") demo.mutate(undefined);
-        }} />
-      {src === "file" && !(ws?.has_data && fname !== "demo") && (
-        <div className="dt-filebox">
-          <span>{T("upload")}</span>
-          <label className="btn" htmlFor="dt-file">{T("ui_data_drop_pick")}</label>
-        </div>)}
-      {src === "demo" && <p className="dt-p">{T("demo_desc")}</p>}
-      {src === "opc" && (<><p className="dt-p">{T("opc_intro")}</p><OpcButton /></>)}
-      {ws?.has_data && (src !== "file" || fname !== "demo") && (
-        <div className="dt-filebox" data-testid="data-info">
-          <b>{fname}</b><span>{sum}</span>
-          {src === "file" && <label className="btn" htmlFor="dt-file">{T("ui_data_other_file")}</label>}
-        </div>)}
-      <input id="dt-file" type="file" accept={ACCEPT} hidden data-testid="load-file"
-        onChange={(e) => { void load(e.target.files?.[0]).then(() => setPick(null)); e.target.value = ""; }} />
-      {err && <div className="dt-read err" role="alert">{err}</div>}
-      <ReadStatus />
-      <ManualRead />
-    </SideCard>
-  );
-}
-
-/** Karta Signály smyčky: PV, MV, SP, měřené poruchy (DV jako odebíratelné štítky) a poloha aktuátoru. */
-function SignalsCard() {
+/** Smyčka jen pro čtení: role a sloupce aktivní smyčky; úpravy jsou jen ve Zdrojích a smyčkách. */
+function LoopCard() {
   const T = useT();
   const ws = useWs().data;
-  const cols = useWsMutation<Columns>("PUT", "/columns");
-  const [posOn, setPosOn] = useState(false);
-  if (!ws?.has_data || !ws.pv || !ws.mv) return null;
-  const set = (patch: Partial<Columns>) => {
-    const cur: Columns = { pv: ws.pv!, mv: ws.mv!, sp: ws.sp ?? null, dists: ws.dists ?? [], pos: ws.pos ?? null };
-    const next = { ...cur, ...patch };
-    cols.mutate({ ...next, sp: next.sp === NONE ? null : next.sp, pos: next.pos === NONE ? null : next.pos });
-  };
-  const options = ws.columns;
-  const dists = ws.dists ?? [];
-  const free = options.filter((c) => c !== ws.pv && c !== ws.mv && c !== ws.sp && c !== ws.pos && !dists.includes(c));
-  const sel = (id: string, value: string | null | undefined, opts: string[], onChange: (v: string) => void, optional?: string) => (
-    <select id={id} data-testid={id} value={value ?? NONE} onChange={(e) => onChange(e.target.value)}>
-      {optional && <option value={NONE}>{optional}</option>}
-      {opts.map((c) => <option key={c} value={c}>{c}</option>)}
-    </select>);
-  const showPos = !!ws.pos || posOn;
+  const setDataSub = useUi((s) => s.setDataSub);
+  if (!ws?.has_data) return null;
+  const rows: [string, string | null | undefined][] = [["PV", ws.pv], ["SP", ws.sp], ["MV", ws.mv], ["POS", ws.pos]];
   return (
-    <SideCard title={T("dk_sec_signals")} help={T("ui_data_signals_h")} testid="card-signals">
-      <div className="dt-sig">
-        <label htmlFor="col-pv" className="role-PV" title={T("h_pv")}>PV</label>
-        {sel("col-pv", ws.pv, options, (v) => set({ pv: v }))}
-        <label htmlFor="col-mv" className="role-MV" title={T("h_mv")}>MV</label>
-        {sel("col-mv", ws.mv, options, (v) => set({ mv: v }))}
-        <label htmlFor="col-sp" className="role-SP" title={T("h_sp")}>SP</label>
-        {sel("col-sp", ws.sp, options.filter((c) => c !== ws.pv && c !== ws.mv), (v) => set({ sp: v }), T("tn_sp_none"))}
-        <span className="lab role-DV" title={T("col_dist_help")}>DV</span>
-        <div className="dt-chips" data-testid="col-d">
-          {dists.map((d) => (
-            <span key={d} className="dt-chip" data-testid="dv-chip">{d}
-              <button type="button" aria-label={`${T("ui_data_rm_dv")}: ${d}`} title={T("ui_data_rm_dv")}
-                onClick={() => set({ dists: dists.filter((x) => x !== d) })}>×</button></span>))}
-          {free.length > 0 && (
-            <select className="dt-pill" aria-label={T("col_dist")} value="" data-testid="col-d-add"
-              onChange={(e) => { if (e.target.value) set({ dists: [...dists, e.target.value] }); }}>
-              <option value="">{T("ui_data_add_dv")}</option>
-              {free.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>)}
-        </div>
-        {showPos ? (<>
-          <label htmlFor="col-pos" className="role-POS" title={T("h_pos")}>{T("pos_short")}</label>
-          {sel("col-pos", ws.pos, options.filter((c) => c !== ws.pv && c !== ws.mv && c !== ws.sp && !dists.includes(c)),
-            (v) => set({ pos: v }), NONE)}
-        </>) : (<>
-          <span />
-          <span className="dt-chips"><button type="button" className="dt-pill" title={T("h_pos")} data-testid="pos-add"
-            onClick={() => setPosOn(true)}>{T("ui_data_add_pos")}</button></span>
-        </>)}
+    <SideCard title={T("dq_loop_title")} testid="card-loop">
+      <div className="dt-ro" data-testid="loop-ro">
+        {[...rows.filter(([, v]) => v), ...(ws.dists ?? []).map((d) => ["DV", d] as [string, string])].flatMap(([k, v], i) => [
+          <b key={`k${i}`} className={`role-${k}`}>{k}</b>, <span key={`v${i}`} className="mono">{v}</span>])}
       </div>
-      <p className="dt-p">{T("guess_note")}</p>
+      <button type="button" className="dt-linkbtn" title={T("dq_loop_edit_h")} data-testid="loop-edit" onClick={() => setDataSub("sources")}>
+        {T("dq_loop_edit")}</button>
     </SideCard>
   );
 }
@@ -244,8 +158,7 @@ export function DataSide() {
   const has = !!useWs().data?.has_data;
   return (
     <>
-      <SourceCard />
-      {has && <SignalsCard />}
+      {has && <LoopCard />}
       {has && <StatsCard />}
       {has && (
         <SideCard title={T("tn_units")} help={T("ui_data_units_h")} testid="card-units"><UnitsBody /></SideCard>)}

@@ -106,7 +106,8 @@ def test_english_by_default_everywhere(page):
     assert page.evaluate("document.documentElement.lang") == "en"
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="quality"]').click()
-    page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
+    page.locator('[data-sub="sources"]').click()
+    page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     found = {}
     _czech(page, "start", found)

@@ -101,9 +101,10 @@ def test_demo_identify_and_help_notice(page):
 
 def test_data_tab_without_opc_and_no_csp_violations(page, server):
     page.locator('[data-tab="data"]').click()
-    page.locator('[data-sub="quality"]').click()
-    page.wait_for_selector('[data-testid="src-seg"]', timeout=10000)
-    assert [b.get_attribute("data-value") for b in page.locator('[data-testid="src-seg"] [data-value]').all()] == ["file", "demo"]
+    page.locator('[data-sub="sources"]').click()
+    page.wait_for_selector('[data-testid="src-demo"]', timeout=10000)
+    assert page.locator('[data-testid="src-add-file"]').count() == 1
+    assert page.locator('[data-testid="opc-open"]').count() == 0                     # OPC UA ve veřejném režimu není
     assert not [m for m in page.console_msgs if "Content Security Policy" in m or "Refused to" in m], page.console_msgs
     assert not page.errors
     _, tmp = server
