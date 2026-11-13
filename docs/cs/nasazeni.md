@@ -95,7 +95,7 @@ docker run -d --name pid-tools-web --restart unless-stopped -p 127.0.0.1:8080:80
 
 **Veřejná instance na Oracle Cloud (ARM64, Cloudflare Tunnel, automatické aktualizace):** kompletní návod krok za
 krokem, `compose.yml` a `.env.example` jsou ve složce [`deploy/`](../../deploy/README.md). Obraz
-`ghcr.io/javor55/pid-tools` (amd64 + arm64) staví workflow *Web image* při pushi do větve `deploy`; Watchtower na VM
+`ghcr.io/javor55/pid-tools` (amd64 + arm64) staví workflow *Web image* při pushi do větve `deploy`; systemd časovač na VM (`deploy/install-update-timer.sh`)
 jej do 5 minut nasadí.
 
 ## Data a soukromí

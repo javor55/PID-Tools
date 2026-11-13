@@ -1,4 +1,5 @@
 # PID Tools – veřejná instance za Cloudflare Tunnelem (návod: deploy/README.md). Spuštění: docker compose up -d
+# Aktualizace obrazu: systemd časovač z install-update-timer.sh (docker compose pull + up -d každých 5 minut).
 name: pidtools
 
 services:
@@ -21,8 +22,6 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 3
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
@@ -40,24 +39,6 @@ services:
     cap_drop: [ALL]
     mem_limit: 256m
     pids_limit: 128
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options: {max-size: "10m", max-file: "3"}
-
-  watchtower:
-    # udržovaná větev watchtoweru (původní containrrr/watchtower 1.7.1 nefunguje s Dockerem 29+)
-    image: nickfedor/watchtower:1.15.0
-    command: --label-enable --cleanup --interval ${WATCHTOWER_INTERVAL:-300}
-    environment:
-      # soukromý balíček GHCR: vyplňte v .env (nebo místo toho připojte config.json, viz README)
-      REPO_USER: ${GHCR_USER:-}
-      REPO_PASS: ${GHCR_TOKEN:-}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      # alternativa k REPO_USER/REPO_PASS: - ${HOME}/.docker/config.json:/config.json:ro
-    security_opt: ["no-new-privileges:true"]
-    mem_limit: 128m
     restart: unless-stopped
     logging:
       driver: json-file

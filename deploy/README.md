@@ -5,11 +5,12 @@ portů (provoz jde přes Cloudflare Tunnel), a sám se aktualizuje po každém p
 
 ```
 push do větve deploy ──> GitHub Actions: build + test (amd64+arm64) ──> ghcr.io/javor55/pid-tools:deploy
-                                                                              │ (Watchtower, každých 5 min)
+                                                                              │ (časovač na VM, každých 5 min)
 návštěvník ──> Cloudflare (WAF, TLS) ──> tunel ──> cloudflared ──> app:8080 <──┘
 ```
 
-Soubory: `compose.yml` (služby `app`, `cloudflared`, `watchtower`), `.env.example` (nastavení). Všechny proměnné
+Soubory: `compose.yml` (služby `app` a `cloudflared`), `.env.example` (nastavení), `install-update-timer.sh`
+(automatické aktualizace přes systemd). Všechny proměnné
 aplikace (limity veřejného režimu apod.) jsou v [docs/deployment.md](../docs/deployment.md).
 
 ## 1. VM v Oracle Cloud
@@ -60,33 +61,35 @@ aplikace (limity veřejného režimu apod.) jsou v [docs/deployment.md](../docs/
 2. **Viditelnost balíčku** – po prvním běhu: GitHub → váš profil/organizace → **Packages** → `pid-tools` →
    **Package settings** → *Change visibility* → **Public**. Pak VM nepotřebuje žádné přihlášení.
 3. **Soukromý balíček** (varianta): vytvořte *Personal access token (classic)* s jediným právem **`read:packages`**
-   a v `.env` na VM vyplňte `GHCR_USER` (uživatel GitHub) a `GHCR_TOKEN`. Při prvním stažení se ještě jednou přihlaste:
-   `echo <PAT> | docker login ghcr.io -u <uzivatel> --password-stdin`. Watchtower dostane přihlášení z `.env`
-   (`REPO_USER` / `REPO_PASS`); alternativně odkomentujte v `compose.yml` připojení `~/.docker/config.json`.
+   a na VM se jednou přihlaste (jako uživatel, pod kterým poběží aktualizace):
+   `echo <PAT> | docker login ghcr.io -u <uzivatel> --password-stdin`. Přihlášení se uloží do `~/.docker/config.json`
+   a používá ho i časovač aktualizací.
 
 ## 4. Spuštění na VM
 
 ```bash
-git clone --depth 1 --filter=blob:none --sparse --branch deploy https://github.com/javor55/pid-tools.git
-cd pid-tools && git sparse-checkout set deploy && cd deploy
+git clone --depth 1 --filter=blob:none --sparse --branch deploy https://github.com/javor55/PID-Tools.git
+cd PID-Tools && git sparse-checkout set deploy && cd deploy
 cp .env.example .env
-nano .env                     # doplňte TUNNEL_TOKEN (případně limity a GHCR_*)
+nano .env                     # doplňte TUNNEL_TOKEN (případně limity)
 docker compose up -d
 docker compose ps             # app by měla být "healthy", cloudflared "running"
 docker compose logs -f        # Ctrl+C ukončí výpis
+./install-update-timer.sh     # automatické aktualizace (systemd časovač, každých 5 minut)
 ```
 (U soukromého repozitáře klonujte s PATem nebo soubory `compose.yml` a `.env.example` prostě zkopírujte přes `scp`.)
 Otevřete `https://pidtools.<vase-domena>`. V Cloudflare Tunnels má tunel stav **Healthy**.
 
 ## 5. Aktualizace a návrat
 
-- **Aktualizace:** merge / push do větve `deploy` → workflow postaví obraz (viz výše) → **Watchtower** každých 5 minut
-  (`WATCHTOWER_INTERVAL`) zkontroluje `:deploy`, stáhne novou verzi a restartuje jen kontejner `app` (štítek
-  `com.centurylinklabs.watchtower.enable`) a smaže starý obraz. Hotovo do ~5 minut po dokončení workflow. Při restartu
-  se zahodí rozpracované relace (aplikace drží vše v paměti).
+- **Aktualizace:** merge / push do větve `deploy` → workflow postaví obraz (viz výše) → **časovač na VM**
+  (`pidtools-update.timer`, každých 5 minut) stáhne `:deploy`; je-li nový, `docker compose up -d` restartuje jen
+  kontejner `app` a starý obraz se smaže. Hotovo do ~5 minut po dokončení workflow. Při restartu se zahodí
+  rozpracované relace (aplikace drží vše v paměti). Přehled: `systemctl list-timers pidtools-update.timer`,
+  log: `journalctl -u pidtools-update.service -n 50`. Jiný interval: `./install-update-timer.sh 15min`.
 - **Návrat:** vrácením (revert) commitu na `deploy` a pushem, nebo okamžitě přichycením na starší obraz – v `.env`
-  `PIDTOOLS_IMAGE=ghcr.io/javor55/pid-tools:sha-<hash>` a `docker compose up -d`. Watchtower pak hlídá jen tento tag
-  (nepřepíše ho na novější).
+  `PIDTOOLS_IMAGE=ghcr.io/javor55/pid-tools:sha-<hash>` a `docker compose up -d`. Časovač pak stahuje jen tento tag
+  (nepřepíše ho na novější), dokud řádek z `.env` neodstraníte.
 - Ruční aktualizace: `docker compose pull && docker compose up -d`.
 - Změna `compose.yml` / `.env` (git pull ve složce `deploy`) se projeví po `docker compose up -d`.
 
@@ -101,8 +104,8 @@ Otevřete `https://pidtools.<vase-domena>`. V Cloudflare Tunnels má tunel stav 
   / sítě po určité době (uvádí se 7 dní) uvolnit. Předejít tomu může lehká pravidelná zátěž nebo převod účtu na Pay As
   You Go (Always Free zdroje zůstávají zdarma). Aktuální podmínky ověřte v dokumentaci Oracle.
 - **Bezpečnost:** kontejnery běží bez práv (`cap_drop: ALL`, `no-new-privileges`, `read_only`), aplikace nepublikuje
-  žádný port. Watchtower má přístup k Docker socketu (běží jen on, nic jiného nezpřístupňuje) – pokud vám to vadí,
-  aktualizujte ručně a službu `watchtower` z `compose.yml` odstraňte.
+  žádný port. Aktualizace dělá systemd časovač na hostiteli (jen `docker compose pull` a `up -d`), žádný kontejner
+  nemá přístup k Docker socketu.
 
 ## 7. Řešení potíží
 
@@ -113,8 +116,7 @@ Otevřete `https://pidtools.<vase-domena>`. V Cloudflare Tunnels má tunel stav 
 | `pull access denied` / `unauthorized` | balíček je soukromý – nastavte jej jako Public, nebo viz bod 3.3 |
 | Web vrací Cloudflare chybu 1033 / 502 | `docker compose ps`: běží `cloudflared` a je `app` healthy? Public hostname musí mít službu `http://app:8080` |
 | `app` je `unhealthy`, restartuje se | `docker compose logs app` – nejčastěji chybná proměnná v `.env` (aplikace při startu ověřuje konfiguraci) |
-| Po nasazení se nic nemění | workflow ještě běží / selhal (záložka Actions); `docker compose logs watchtower` |
-| Watchtower: `client version ... is too old` | použijte `nickfedor/watchtower` (už je v `compose.yml`), ne starý `containrrr/watchtower` |
+| Po nasazení se nic nemění | workflow ještě běží / selhal (záložka Actions); `journalctl -u pidtools-update.service -n 50` |
 | Chyba „read-only file system“ v logu app | aplikace zapisuje mimo `/tmp` – nahlaste; dočasně lze v `compose.yml` odstranit `read_only` |
 | Nelze se připojit přes SSH | pravidla `iptables` v Oracle image / Security List, viz bod 1.2 |
-| Docker spotřebuje disk | `docker system prune -af` (Watchtower s `--cleanup` maže staré obrazy sám) |
+| Docker spotřebuje disk | `docker system prune -af` (časovač maže nepoužité obrazy sám) |
