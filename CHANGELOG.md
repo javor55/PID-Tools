@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 4.0.0 beta 1 – new UI (FastAPI + React), Tauri desktop, controller library, tuning journal
+
 - Release (E11, M24): **release workflow of the new desktop application** (`.github/workflows/release.yml`) – on a
   `v*` tag it builds unsigned installers: NSIS (downloads WebView2 if needed), NSIS offline (WebView2 bundled, for PCs
   without internet) and MSI for administrators, smoke-tests the installed app, adds `SHA256SUMS.txt` and publishes

@@ -2,6 +2,8 @@
 
 ## Nevydáno
 
+## 4.0.0 beta 1 – nové rozhraní (FastAPI + React), desktop Tauri, knihovna regulátorů, deník ladění
+
 - Vydání (E11, M24): **release workflow nové desktopové aplikace** (`.github/workflows/release.yml`) – na tag `v*`
   sestaví nepodepsané instalátory NSIS (stažení WebView2 při potřebě), NSIS offline (s přibaleným WebView2 pro PC
   bez internetu) a MSI pro správce, nainstalovanou aplikaci otestuje (`--smoke`), přidá `SHA256SUMS.txt` a nahraje vše
