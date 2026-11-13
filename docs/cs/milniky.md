@@ -47,8 +47,8 @@ být jeden PR, který se dá dokončit v jednom až třech pracovních sezeních
 | M21 | Projekt, report, OPC UA | C | M | M8, M11 | ☑ |
 | M22 | Backend jako samostatný program (sidecar) | D | M | M6 | ◐ |
 | M23 | Okno desktopu (Tauri) | D | M | M12, M22, **R2** | ◐ |
-| M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ☐ |
-| M25 | Offline ověření na čistém Windows | D | S | M24 | ☐ |
+| M24 | Instalátor, WebView2, podpis, release | D | M | M23, **R4**, **R6** | ◐ |
+| M25 | Offline ověření na čistém Windows | D | S | M24 | ◐ |
 | M26 | Webové nasazení pro tým (kontejner, přihlášení, limity) | D | M | M12, **R3** | ☑ |
 | M27 | Parita a pilot | E | M | M13–M21, M25 | ☐ |
 | M28 | Vypnutí staré aplikace, verze 4.0 | E | M | M27 | ☐ |
@@ -747,6 +747,13 @@ a Playwright.
   při spuštění hlásí neznámého vydavatele („Více informací“ → „Přesto spustit“), dokud nebude k dispozici certifikát;
   v `desktop.yml` zůstává označené místo pro `signCommand`. Release workflow na tag; dnešní `offline-package.yml` se nahradí.
 
+**Skutečnost M24 (13. 11. 2026):** `.github/workflows/release.yml` (tag `v*`, ručně, nebo PR měnící workflow – bez
+zveřejnění): rozhraní + sidecar + `cargo test`, Tauri build **NSIS** (uživatel, WebView2 bootstrapper), **NSIS offline**
+(přibalený WebView2 pro uzavřené sítě) a **MSI** (správci, tichá instalace; verze pro WiX čistě číselná
+`major.minor.patch.číslo_běhu`), instalace + `--smoke --open` + odinstalace výchozího instalátoru, `SHA256SUMS.txt`,
+artefakt a u tagu GitHub Release (`release.sh`, předběžná verze u `b` / `beta` / `rc`). Bez podpisu (R4). Starý
+`offline-package.yml` zůstává jen pro desktop PySide6 do konce pilotu.
+
 ### M25 · Offline ověření
 Kontrolní seznam na čistém Windows 10 a 11 bez sítě:
 - instalace;
@@ -756,6 +763,10 @@ Kontrolní seznam na čistém Windows 10 a 11 bez sítě:
 - odinstalace.
 
 K tomu kontrola, že aplikace nedělá žádné síťové požadavky mimo `127.0.0.1`.
+
+**Připraveno:** kontrolní seznam (17 kroků, tabulka výsledků) v [m25-offline-test.md](m25-offline-test.md) a skript
+`tools/check_offline.ps1` (sleduje TCP spojení procesů aplikace a WebView2 a hlásí cokoli mimo `127.0.0.1`). Samotný test
+na Windows 10 a 11 provádí uživatel.
 
 ### M26 · Web pro tým
 - Jeden kontejner (API + statické UI).
