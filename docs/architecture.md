@@ -1,13 +1,13 @@
 # Architecture
 
 PID Tools is split into three layers. The aim is that the same computations and the same workflow can be used
-by more than one frontend – today the Streamlit web app, later a desktop application for engineering stations.
+by more than one frontend – today the React web UI over the FastAPI API (also the Tauri desktop window) and the Qt desktop for engineering stations. The old Streamlit web app was removed from `main` (M28) and lives on in the branch `streamlit`.
 
 A plan to replace both frontends with one TypeScript UI over a Python API (web and fully offline desktop) is in
 [docs/cs/plan-jednotne-ui.md](cs/plan-jednotne-ui.md) (Czech), milestones in [docs/cs/milniky.md](cs/milniky.md).
 
 ```
-frontend   pidtools/ui (Streamlit, web)   pidtools/desktop (Qt, engineering station)
+frontend   pidtools/api + frontend/ (FastAPI + React)   pidtools/desktop (Qt)
               │                                   │
 application   pidtools/app  – workflow, project format, report      (no UI framework)
               │
@@ -28,7 +28,7 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 - `i18n.T()` has no UI dependency: the web app registers a language provider (session state), a desktop app calls
   `i18n.set_lang()`.
 - `app.report` and `app.plots` use Plotly (the protocol is an HTML file with Plotly charts); the rest of `app`,
-  `core` and `i18n` must import without Streamlit, Plotly or Qt (`tests/test_app_layer.py`).
+  `core` and `i18n` must import without Plotly or Qt (`tests/test_app_layer.py`).
 - The project file (`app.project`) is shared – a project saved in one frontend opens in the other.
 - `pidtools/api` (FastAPI, `requirements-api.txt`) wraps the workspace for the future single UI. It listens on
   127.0.0.1 with a token for the desktop. `openapi.json` next to it is generated
@@ -51,14 +51,14 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
   table merged on the common grid (time zone and offset applied, overlap, period, gaps as NaN); the calculations do
   not change. Project file version 3 = the loop records of version 2 plus `format`, `sources` (with the data used by
   loops as `sources[i].data`, SHA-256 in `data_ref`), `time_grid` and a `spec` per loop; version 1 and 2 files open
-  through the migrations. A `.pidproj` written now is not read with data by the old Streamlit app (no top-level `data`).
+  through the migrations. A `.pidproj` written now is not read with data by the old Streamlit app in branch `streamlit` (no top-level `data`).
 - The API serves every route under `/api/v1` (the only paths in `openapi.json`); the same paths without the prefix are
   a temporary alias for older clients (hidden from OpenAPI, removed with 4.0). New routes of E3: `/sources`,
   `/time-grid`, `/loops/{i}/mapping`, `/loops/mappings`, `/loops/suggest`, `/loops/import`, `/signals/trend`
   (min / max decimation, statistics, cursor values). Signals of the sources are addressed `source:column`.
 - `pidtools/api/sidecar.py` runs the API as a standalone program for the Tauri window (`--port 0 --token --parent-pid`,
   one `PIDTOOLS_READY {json}` line on stdout, exits with its parent, `--smoke` self-test). `tools/build_sidecar.py`
-  packs it with PyInstaller (onedir, no Qt / Streamlit, named `pidtools-api-<target triple>`); CI: `sidecar.yml`.
+  packs it with PyInstaller (onedir, no Qt, named `pidtools-api-<target triple>`); CI: `sidecar.yml`.
 - `desktop/` (Tauri 2, Rust) is the desktop window (`desktop/README.md`). It spawns the sidecar from a bundled resource
   folder (`--port 0 --token <random> --parent-pid`), waits for the READY line and navigates the window to
   `http://127.0.0.1:<port>/#token=…`, so the UI comes from the sidecar and the window has no Tauri IPC. One instance;
@@ -74,19 +74,18 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
   whole workflow on a fixed data set. A deliberate change of results is regenerated with
   `python tools/golden.py --update` and explained in the PR.
 
-## Web frontend (`pidtools/ui`)
+## Web frontend (`pidtools/api`, `frontend/`)
 
-Streamlit reruns the script on every interaction. `ui/context.py` (`Ctx`) carries the data of one run between the
-tabs; widget state lives in the session state, several loops are snapshots of it (`ui/loops.py`). Pages read
-widgets, call `app` and draw the results. The live simulation runs in the browser (`ui/static/live_engine.js`, a
-port of `core/simulation.py`, checked against it by `tests/test_live_js.py`). Every tab uses the same layout as
-the desktop: `ui/layout.workspace()` splits it into the main area and the settings panel, `ui/layout.section()`
-adds a collapsible section whose state Streamlit keeps by key.
+The React UI (`frontend/`, Vite) talks to the FastAPI API (`pidtools/api`, `/api/v1`); `npm run build` writes it to
+`pidtools/api/ui`, which the API serves. The browser JS shared with the Qt desktop lives in `pidtools/ui/static`
+(record viewer, trend, live simulation `live_engine.js` = port of `core/simulation.py`, controller engine
+`ctrl_engine.js`; checked by `tests/test_live_js.py`, `test_viewer_js.py`, `test_ctrl_engine_js.py`) and is imported
+by `frontend/` from there (no Python in `pidtools/ui` any more).
 
-Shared modules added for both frontends: `app.frequency` (Bode, Nyquist, sensitivity), `app.closedloop`
+Shared modules of the application layer: `app.frequency` (Bode, Nyquist, sensitivity), `app.closedloop`
 (identification with the loop in AUTO), `app.audit` (loop overview), `app.apc.splitrange`, `app.apc.vpc`,
 `app.apc.ratio`, `app.apc.rgan` and `app.opc` (OPC UA, read only; optional dependency `asyncua`, part of
-`requirements-desktop.txt`, so the cloud deployment is unchanged).
+`requirements-desktop.txt`).
 
 ## Desktop frontend (`pidtools/desktop`)
 
@@ -109,5 +108,4 @@ PNG / CSV export, detachable window); `widgets.plot()` and `widgets.stack()` cre
 
 ## Deployment
 
-Streamlit Community Cloud deploys `app.py` from the repository and installs `requirements.txt`. Desktop-only
-dependencies (Qt) belong to a separate requirements file so the cloud deployment stays unchanged.
+The web is one container (`Dockerfile.web`: Node builds the UI, Python 3.11 runs `pidtools.api`), see `docs/deployment.md`. The Tauri desktop (`desktop/`) packs the API as a PyInstaller sidecar (`tools/build_sidecar.py`). Desktop-only dependencies (Qt) are in `requirements-desktop.txt`.

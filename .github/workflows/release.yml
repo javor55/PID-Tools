@@ -1,0 +1,141 @@
+# Release of the new desktop application (Tauri + sidecar, M24) on a version tag (v*), or by hand for a test build.
+# Packages (Windows 10/11 x64, NOT code-signed yet – decision R4; SmartScreen warns "unknown publisher"):
+#   - PID-Tools-<v>-setup.exe          NSIS, current user (no admin), WebView2 downloaded by its bootstrapper if missing
+#   - PID-Tools-<v>-setup-offline.exe  NSIS with the WebView2 offline installer embedded (closed networks, ~+130 MB)
+#   - PID-Tools-<v>-x64.msi            MSI for administrators (silent: msiexec /i … /qn), WebView2 bootstrapper
+# The default installer is installed, smoke-tested (--smoke, --open .pidproj) and uninstalled before anything is published.
+name: Release (desktop)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+  pull_request:                        # změna release workflow se ověří sestavením (bez zveřejnění)
+    paths:
+      - ".github/workflows/release.yml"
+      - ".github/release.sh"
+
+permissions:
+  contents: write
+
+env:
+  TAURI_CLI: "@tauri-apps/cli@2.12.2"   # stejná verze jako desktop.yml
+
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Version (from the tag, else from tauri.conf.json)
+        id: ver
+        shell: pwsh
+        run: |
+          $conf = Get-Content desktop\tauri.conf.json -Raw | ConvertFrom-Json
+          $v = $conf.version
+          if ($env:GITHUB_REF_TYPE -eq "tag") { $v = $env:GITHUB_REF_NAME.TrimStart("v") }
+          # Tauri chce semver (4.0.0-beta.1); tag ve stylu Pythonu (4.0.0b1) se převede
+          $v = $v -replace '^(\d+\.\d+\.\d+)(a|b|rc)(\d+)$', '$1-$2.$3' -replace '-b\.', '-beta.' -replace '-a\.', '-alpha.'
+          # MSI (WiX) bere jen čísla: major.minor.patch.build (build = číslo běhu)
+          $msi = "{0}.{1}" -f ($v -replace '-.*$', ''), ([int]$env:GITHUB_RUN_NUMBER % 65535)
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "msi=$msi" >> $env:GITHUB_OUTPUT
+          Write-Host "version: $v, MSI: $msi"
+
+      - name: Frontend install and build (-> pidtools/api/ui)
+        working-directory: frontend
+        run: |
+          npx -y npm@11.21.0 ci --no-audit --no-fund
+          npm run build
+
+      - name: Sidecar (-> dist/pidtools-api)
+        run: |
+          pip install -r requirements-api.txt pyinstaller==6.22.3
+          python tools/build_sidecar.py
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            desktop/target
+          key: desktop-${{ runner.os }}-${{ hashFiles('desktop/Cargo.lock') }}
+          restore-keys: desktop-${{ runner.os }}-
+
+      - name: Rust unit tests
+        working-directory: desktop
+        run: cargo test --locked
+
+      # TODO(R4): podpis Authenticode (bundle.windows.signCommand / certificateThumbprint ze secrets), až bude certifikát.
+      - name: Build – NSIS + MSI (WebView2 bootstrapper)
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          $cfg = '{"version":"${{ steps.ver.outputs.version }}","bundle":{"targets":["nsis","msi"],"windows":{"webviewInstallMode":{"type":"downloadBootstrapper"},"wix":{"version":"${{ steps.ver.outputs.msi }}"}}}}'
+          npx -y ${{ env.TAURI_CLI }} build --bundles nsis,msi --config $cfg
+          New-Item -ItemType Directory -Force ..\release | Out-Null
+          Copy-Item (Get-ChildItem target\release\bundle\nsis\*-setup.exe | Select-Object -First 1).FullName "..\release\PID-Tools-${{ steps.ver.outputs.version }}-setup.exe"
+          Copy-Item (Get-ChildItem target\release\bundle\msi\*.msi | Select-Object -First 1).FullName "..\release\PID-Tools-${{ steps.ver.outputs.version }}-x64.msi"
+
+      - name: Build – NSIS with the WebView2 offline installer (closed networks)
+        working-directory: desktop
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force target\release\bundle\nsis -ErrorAction SilentlyContinue
+          $cfg = '{"version":"${{ steps.ver.outputs.version }}","bundle":{"windows":{"webviewInstallMode":{"type":"offlineInstaller"}}}}'
+          npx -y ${{ env.TAURI_CLI }} build --bundles nsis --config $cfg
+          Copy-Item (Get-ChildItem target\release\bundle\nsis\*-setup.exe | Select-Object -First 1).FullName "..\release\PID-Tools-${{ steps.ver.outputs.version }}-setup-offline.exe"
+          Get-ChildItem ..\release | Format-Table Name, @{n="MB"; e={[math]::Round($_.Length / 1MB, 1)}}
+
+      - name: Smoke test of the installed application (default installer)
+        shell: pwsh
+        run: |
+          $setup = "release\PID-Tools-${{ steps.ver.outputs.version }}-setup.exe"
+          $dir = Join-Path $env:RUNNER_TEMP "pidtools-installed"
+          Start-Process -FilePath $setup -ArgumentList "/S", "/D=$dir" -Wait
+          $proj = Join-Path $env:RUNNER_TEMP "ukazka.pidproj"
+          Set-Content -Path $proj -Value '{"version": 2, "state": {}}' -Encoding utf8
+          $log = Join-Path $env:RUNNER_TEMP "smoke.log"
+          $p = Start-Process -FilePath "$dir\pidtools-desktop.exe" -ArgumentList "--smoke", "--smoke-log", $log, "--open", $proj `
+                 -Wait -PassThru -WindowStyle Hidden
+          Get-Content $log
+          if ($p.ExitCode -ne 0) { throw "Smoke test failed ($($p.ExitCode))" }
+          if (-not (Select-String -Path $log -Pattern "delivered" -Quiet)) { throw "smoke did not exercise the open path" }
+          if (Get-Process -Name "pidtools-api*" -ErrorAction SilentlyContinue) { throw "sidecar survived the app" }
+          $un = Get-ChildItem "$dir\uninstall.exe" -ErrorAction SilentlyContinue
+          if ($un) { Start-Process -FilePath $un.FullName -ArgumentList "/S" -Wait }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release\* | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name } |
+            Set-Content release\SHA256SUMS.txt -Encoding ascii
+          Get-Content release\SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pidtools-desktop-${{ steps.ver.outputs.version }}-unsigned
+          path: release/*
+          compression-level: 0
+          retention-days: 30
+
+      - name: Publish to the GitHub release (tag only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash .github/release.sh
+          gh release upload "$GITHUB_REF_NAME" release/* --clobber

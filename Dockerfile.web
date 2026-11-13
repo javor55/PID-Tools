@@ -9,12 +9,12 @@ WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npx -y npm@11.21.0 ci
 COPY frontend ./
-# the record viewer / trend / live modules are shared with the Streamlit web (imported from ../../../pidtools/ui/static)
+# the record viewer / trend / live modules are shared with the desktop live view (imported from ../../../pidtools/ui/static)
 COPY pidtools/ui/static /src/pidtools/ui/static
 # vite writes to ../pidtools/api/ui (= /src/pidtools/api/ui)
 RUN npm run build
 
-# ---- 2. runtime: Python only, no Qt / Streamlit
+# ---- 2. runtime: Python only, no Qt
 FROM python:3.11-slim-bookworm@sha256:ef521de1d817dc92a6358c906bbadb9a0b7e38040038642833521b9d582c2233
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -22,11 +22,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080
 WORKDIR /app
 COPY requirements.txt requirements-api.txt ./
-# requirements.txt also lists Streamlit (the old web app) – the API does not import it
-RUN grep -v -i '^streamlit' requirements.txt > requirements-core.txt \
-    && sed 's#^-r requirements.txt#-r requirements-core.txt#' requirements-api.txt > requirements-web.txt \
-    && pip install -r requirements-web.txt \
-    && rm requirements-core.txt requirements-web.txt
+RUN pip install -r requirements-api.txt
 
 COPY pidtools ./pidtools
 COPY static ./static

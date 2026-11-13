@@ -3,13 +3,14 @@
 **Process identification from plant data and tuning of the PIDConL controller (SIMATIC PCS 7 APL) – including
 advanced process control (APC) structures.**
 
-A web application for process and automation engineers. From a historian or PCS 7 export it identifies a process
+A web application (FastAPI + React) and a desktop application for process and automation engineers. From a historian or PCS 7 export it identifies a process
 model, proposes controller parameters, shows their robustness and expected behaviour, and creates a tuning protocol
 stating exactly what to set in PCS 7. The methods apply to industrial PID controllers in general; terminology,
 controller structure and implementation steps follow the **PIDConL** block and the templates of the **APL** library.
 
-- **Online:** <https://pidtools.streamlit.app/> (public instance of the Streamlit app, deployed from the branch `streamlit`
-  – see [Data and security](#data-and-security)); `main` develops the new UI
+- **UI:** FastAPI API + React web UI (`python -m pidtools.api`, container `Dockerfile.web`) and a Tauri desktop window;
+  the old Streamlit web app was removed from `main` and lives on in the branch **`streamlit`**
+  (public instance <https://pidtools.streamlit.app/>, deployed from that branch – it cannot open project v3 with data)
 - **Documentation:** [User guide](docs/user-guide.md) · [Methods](docs/methods.md) ·
   [Implementation in PCS 7](docs/pcs7.md) · [Deployment](docs/deployment.md) · [Changelog](CHANGELOG.md)
 - The user interface is in **English and Czech** (Settings › Language). Czech documentation: [docs/cs](docs/cs/README.md).
@@ -62,19 +63,19 @@ controller structure and implementation steps follow the **PIDConL** block and t
 
 ## Quick start
 
-### Online
-Open <https://pidtools.streamlit.app/>, choose **Demo** and go through tabs 1–6 – each has its own guide (📖).
-
-### Locally (Windows)
-1. Install [Python 3.11](https://www.python.org/downloads/) (tick *Add Python to PATH*).
-2. Download the repository (*Code › Download ZIP*) and unzip it.
-3. Run **`start.bat`** – it installs the libraries and opens the app in the browser (<http://localhost:8501>).
+### Web UI (FastAPI + React)
+```bash
+pip install -r requirements-api.txt
+npm --prefix frontend ci && npm --prefix frontend run build      # writes pidtools/api/ui
+python -m pidtools.api                                           # prints the URL with a token
+```
+Or as one container: `docker build -f Dockerfile.web -t pid-tools-web .` (see [docs/deployment.md](docs/deployment.md)).
+In the app choose **Demo** on the Start screen and go through the tabs – each has its own guide.
 
 ### Windows application and offline PC (USB)
 From Releases / Actions artifacts: **`PID-Tools-<version>-setup.exe`** installs the desktop application for the current
 user (Start menu, no admin rights), **`PID-Tools-<version>-desktop-win64-portable.zip`** runs it without installing
-(`PID Tools.exe`), and **`PID-Tools-<version>-web-win64-offline.zip`** runs the web app in the browser on the PC
-(`PID-Tools.bat`) – no internet needed. See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
+(`PID Tools.exe`) – no internet needed (the Tauri desktop with the bundled API is built by `desktop.yml`). See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
 
 ### Desktop application (preview)
 
@@ -87,18 +88,11 @@ python -m pidtools.desktop                 # optionally: python -m pidtools.desk
 
 Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,
 feedforward, decoupling, override, Smith predictor, gain scheduling by PV and by control error), operating
-diagnostics, several loops in one project, projects (the same JSON files as the web app) and the tuning protocol.
+diagnostics, several loops in one project, projects (the same project files as the web app) and the tuning protocol.
 For Windows it is available as an installer and as a portable ZIP (`PID Tools.exe`) – see
 [Deployment](docs/deployment.md).
 
-### Locally (Linux / macOS)
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-Details, running on an internal server and updates: [docs/deployment.md](docs/deployment.md).
+Running on an internal server, the team web and updates: [docs/deployment.md](docs/deployment.md).
 
 ## Workflow in brief
 
@@ -146,11 +140,11 @@ All methods, criteria and indicators explained: [docs/methods.md](docs/methods.m
 ## Data and security
 
 - Uploaded data are processed on the server running the app **only for the session** and are not stored (no writes
-  to disk, no calls to external services, Streamlit telemetry is switched off).
+  to disk, no calls to external services).
 - The web app does not store work in progress; save it as a project file (JSON).
 - OPC UA access is **read only** – the application never writes to the server.
-- The public instance runs on Streamlit Community Cloud. If you may not upload plant data to a third-party server,
-  run the app **locally or on an internal server** ([docs/deployment.md](docs/deployment.md)).
+- The public Streamlit instance (branch `streamlit`) runs on Streamlit Community Cloud. If you may not upload plant data
+  to a third-party server, run the app **locally or on an internal server** ([docs/deployment.md](docs/deployment.md)).
 
 ## Disclaimer
 
@@ -168,12 +162,11 @@ without any warranty.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest                                          # everything (~9 min, whole app via Streamlit AppTest)
+python -m pytest                                          # everything (~25 min, incl. desktop and browser tests)
 python -m pytest tests/test_core.py tests/test_basic.py   # computation core only (fast)
 ```
 
 ```
-app.py                     entry point of the web app (Streamlit Community Cloud deploys this file)
 pidtools/
   core/                    computations – numpy/scipy only
     models.py              model structures, response simulation, prediction
@@ -199,20 +192,18 @@ pidtools/
     report.py plots.py     tuning protocol (HTML) and Plotly figure helpers
     workspace/             one loop without UI (data, identification, tuning, diagnostics, project) and loops.py
   i18n/                    texts: cs.json, en.json, T() – the frontend sets the language
-  ui/                      Streamlit web frontend (widgets, session state, caching, charts)
+  api/                     FastAPI API (/api/v1) serving the built React UI (api/ui); sidecar of the desktop
+  ui/static/               shared browser JS/CSS (record viewer, trend, live simulation, controller engine) –
+                           imported by frontend/ and used by the Qt desktop
   desktop/                 Qt desktop frontend (PySide6, pyqtgraph): main.py, tabs/ (state: app/workspace)
-    context.py             Ctx – data shared by the tabs within one run
-    loops.py               several loops in a project (state snapshots, switching)
-    static/                live simulation in the browser (live_engine.js = port of core/simulation.py)
-    pages/                 one module per tab: header, data, model, tuning, live, diagnostics, project, guides,
-                           apc/ (one module per structure)
-tests/                     pytest: core, app layer, whole app (AppTest), data loading, loops, APC
-tools/                     offline package for Windows (build_offline.py, smoke_test.py)
+frontend/                  React + TypeScript web UI (Vite); desktop/ – Tauri window around the API sidecar
+tests/                     pytest: core, app layer, API, frontend (Playwright), data loading, loops, APC
+tools/                     builds (build_desktop.py, build_sidecar.py), golden cases
 docs/                      user documentation (English; Czech in docs/cs), architecture.md
 ```
 
-Layers: `core` ← `app` ← frontend (`ui` today; a desktop frontend can reuse `core` and `app` unchanged). `core`,
-`app` (except the Plotly-based `report.py` and `plots.py`) and `i18n` must not import Streamlit or Qt – a test
+Layers: `core` ← `app` ← frontend (`api` + React `frontend/`, Qt `desktop`). `core`,
+`app` (except the Plotly-based `report.py` and `plots.py`) and `i18n` must not import Qt – a test
 checks it. See [docs/architecture.md](docs/architecture.md).
 
 Inside the core all process quantities are in % of the controller ranges (NormPV, NormMV), so the process gain and

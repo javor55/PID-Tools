@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "PID Tools",
   "mainBinaryName": "pidtools-desktop",
-  "version": "3.3.0-beta.1",
+  "version": "4.0.0-beta.1",
   "identifier": "cz.pidtools.desktop",
   "build": { "frontendDist": "ui" },
   "app": {
