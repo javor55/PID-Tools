@@ -70,9 +70,9 @@ def page(server):
 
 def test_shell_tabs_and_connection(page):
     tabs = page.locator('nav.tabs [role="tab"]')
-    assert tabs.count() == 5                                 # Projekt a report je tlačítko v hlavičce, Diagnostika podzáložka Data
+    assert tabs.count() == 6                                 # Projekt a report je záložka 6, Diagnostika podzáložka Data
     assert tabs.first.inner_text() == "1 · Data"
-    assert [t.inner_text() for t in tabs.all()][3:] == ["4 · APC", "5 · Live simulation"]
+    assert [t.inner_text() for t in tabs.all()][3:] == ["4 · APC", "5 · Live simulation", "6 · Project & report"]
     page.locator('[data-tab="data"]').click()
     assert [b.get_attribute("data-sub") for b in page.locator('[data-testid="data-subtabs"] [role="tab"]').all()] == [
         "sources", "trends", "quality", "diag"]
@@ -105,7 +105,7 @@ def test_language_and_theme(page):
 
 
 def test_header_help_and_side_cards(page):
-    """Hlavička podle návrhu: „?“ otevře průvodce aktivní záložkou; Projekt a report je tlačítko, ne záložka."""
+    """Hlavička podle návrhu: „?“ otevře průvodce aktivní záložkou; Projekt a report je záložka 6."""
     page.locator('[data-tab="model"]').click()
     page.locator('[data-testid="help-btn"]').click()
     dlg = page.locator('[data-testid="help-dialog"]')
@@ -117,8 +117,7 @@ def test_header_help_and_side_cards(page):
     finally:
         page.keyboard.press("Escape")                                   # otevřený dialog by blokoval kliky v dalších testech
     assert not dlg.evaluate("e => e.open")
-    assert page.locator('nav.tabs [data-tab="project"]').count() == 0
-    assert page.locator('header [data-tab="project"]').count() == 1
+    assert page.locator('nav.tabs [data-tab="project"]').count() == 1           # Projekt a report = záložka 6
 
 def test_offline_and_fonts(page, server):
     page.evaluate("document.fonts.ready")

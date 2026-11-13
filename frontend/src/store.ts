@@ -10,13 +10,13 @@ export const TABS = [
   { id: "tuning", label: "ui_tab_tuning", milestone: "M16" },
   { id: "apc", label: "ui_tab_apc", milestone: "M19" },
   { id: "live", label: "ui_tab_live", milestone: "M18" },
-  { id: "project", label: "tab_project", milestone: "M21" },
+  { id: "project", label: "ui_tab_project", milestone: "M21" },
   // Dřívější samostatné záložky: v návrhu v2 jsou podzáložky Data › Diagnostika (setTab je přesměruje).
   { id: "diag", label: "ui_dsub_diag_detail", milestone: "M20" },
   { id: "loops", label: "ui_dsub_diag_all", milestone: "M20" },
 ] as const;
-/** Záložky v řádku pod hlavičkou; Projekt a report se otevírá tlačítkem v hlavičce (jako v návrhu). */
-export const NAV_TABS = TABS.filter((t) => t.id !== "project" && t.id !== "diag" && t.id !== "loops");
+/** Záložky v řádku pod hlavičkou (Projekt a report je šestá záložka – připomínky k návrhu Data, 2026-11). */
+export const NAV_TABS = TABS.filter((t) => t.id !== "diag" && t.id !== "loops");
 export type TabId = (typeof TABS)[number]["id"];
 /** Podzáložky Data (návrh v2): Zdroje a smyčky, Trendy, Kvalita dat, Diagnostika (Všechny smyčky / Detail smyčky). */
 export const DATA_SUBS = ["sources", "trends", "quality", "diag-all", "diag-detail"] as const;

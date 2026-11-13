@@ -173,8 +173,6 @@ export function Header() {
         </div>
         <div className="hright">
           <NewButton />
-          <button type="button" className="hbtn" aria-pressed={tab === "project"} data-tab="project"
-            onClick={() => { closeSettings(); setTab("project"); }}>{T("tab_project")}</button>
           <Settings />
           <HelpButton />
         </div>

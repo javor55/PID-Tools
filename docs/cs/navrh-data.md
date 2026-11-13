@@ -122,7 +122,7 @@ smyček jen pro čtení; pořadí prací volím sám.
 | D3 Trendy na viewer.js (`GET /signals/all` binárně, rozvržení 1 panel / smyčka / veličina, vyznačení A–B pro Model / Diagnostiku); starý TrendChart odstraněn | hotovo | tento commit |
 | D4 Kvalita dat: přepínač smyček, verdikt, kontroly s radou, události, navržené úseky (`segments.auto`) + „Použít v Modelu“, jednoduchý graf (viewer.js s pevnými panely, bez seznamu) | další | backend: souhrn nad `ws.quality()` + `segments.auto`; frontend: přepsat `DataMain` v `frontend/src/tabs/DataTab.tsx` |
 | D5 Diagnostika – hotovo v D1 | hotovo | |
-| D6 Projekt a report jako záložka 6 (místo tlačítka v hlavičce) | čeká | `store.ts` NAV_TABS, `Header.tsx`, testy `header [data-tab=project]` |
+| D6 Projekt a report jako záložka 6 (místo tlačítka v hlavičce) | hotovo | commit „Project & report as tab 6“ |
 | D7 Model: zoom X / Y, zpět / vpřed, přehled v trend.js | čeká | `pidtools/ui/static/trend.js` |
 
 Ověření každého kroku: `cd frontend && npm run lint && npm run typecheck && npm run test && npm run build`,

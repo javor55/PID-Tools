@@ -3391,5 +3391,6 @@
  "vw_png": "PNG",
  "vw_above_ab": "between A and B above",
  "vw_other": "Not in a loop",
- "vw_search_h": "Find a signal by name or loop."
+ "vw_search_h": "Find a signal by name or loop.",
+ "ui_tab_project": "6 · Project & report"
 }
