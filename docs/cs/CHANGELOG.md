@@ -2,6 +2,13 @@
 
 ## Nevydáno
 
+- Nasazení: **veřejná instance na Oracle Cloud Free Tier (ARM64)** – workflow `web-image.yml` při pushi do větve
+  `deploy` postaví víceplatformní obraz (amd64 + arm64), odzkouší ho, proskenuje Trivy a nahraje do
+  `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); složka `deploy/` s `compose.yml` (aplikace,
+  Cloudflare Tunnel, Watchtower; kořenový souborový systém jen pro čtení, žádné publikované porty), `.env.example`
+  a českým návodem. `Dockerfile.web` zapisuje jen do `/tmp`. Nové workflow `audit.yml` (`pip-audit`, `npm audit`)
+  na PR a týdně.
+
 ## 4.0.0 beta 2 – oprava instalátorů
 
 - Instalátory **4.0.0 beta 1 obsahovaly staré výpočetní jádro a rozhraní** (sestavení z 11. 11. 2026, bez nového

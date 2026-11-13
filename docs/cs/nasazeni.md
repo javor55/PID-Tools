@@ -93,6 +93,11 @@ docker run -d --name pid-tools-web --restart unless-stopped -p 127.0.0.1:8080:80
 - Běží jeden proces (prostory a úlohy jsou v paměti): po restartu je nutné projekt znovu otevřít, proto uživatelé
   průběžně ukládají projekt.
 
+**Veřejná instance na Oracle Cloud (ARM64, Cloudflare Tunnel, automatické aktualizace):** kompletní návod krok za
+krokem, `compose.yml` a `.env.example` jsou ve složce [`deploy/`](../../deploy/README.md). Obraz
+`ghcr.io/javor55/pid-tools` (amd64 + arm64) staví workflow *Web image* při pushi do větve `deploy`; Watchtower na VM
+jej do 5 minut nasadí.
+
 ## Data a soukromí
 
 - Nahraná data se zpracovávají jen v paměti serveru po dobu relace (a v mezipaměti výpočtů); aplikace nic

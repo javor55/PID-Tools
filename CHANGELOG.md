@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Deployment: **public instance on Oracle Cloud Free Tier (ARM64)** – the workflow `web-image.yml` builds a multi-arch
+  (amd64 + arm64) image on a push to the branch `deploy`, smoke-tests it, scans it with Trivy and pushes it to
+  `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); `deploy/` with `compose.yml` (app, Cloudflare
+  Tunnel, Watchtower; read-only root filesystem, no published ports), `.env.example` and a Czech guide. `Dockerfile.web`
+  writes only to `/tmp`. New workflow `audit.yml` (`pip-audit`, `npm audit`) on PRs and weekly.
+
 ## 4.0.0 beta 2 – installer fix
 
 - The **4.0.0 beta 1 installers contained the old backend and UI** (a build from 2026-11-11, without the new UI and the

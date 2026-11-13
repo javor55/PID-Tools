@@ -148,3 +148,5 @@ na čistém Windows bez sítě – ruční test), M27 (pilot), M28 (vypnutí sta
 - [ ] **Živá simulace:** štítky událostí v grafu se na začátku běhu překrývají („Struktura: kaskáda“ × „teď“) – odsadit.
 - [ ] **Deník × Nastavení:** při „poznámka povinná“ API odmítne změnu stavu bez poznámky (422) – UI deníku si o poznámku
       zatím neřekne předem (jen zobrazí chybu). Logo, firma a hlavička / patička z Nastavení › Report zatím report nepoužívá.
+- [ ] **Nasazení (deploy/):** po prvním buildu nastavit balíček `pid-tools` v GHCR jako Public (nebo vyplnit `GHCR_*`);
+      ověřit na skutečné VM A1.Flex (arm64) start s `read_only` + `tmpfs`; Cloudflare WAF pravidlo a Bot Fight Mode ručně.

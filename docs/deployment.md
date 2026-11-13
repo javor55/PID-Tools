@@ -209,6 +209,13 @@ values.
 
 ---
 
+**Public instance on Oracle Cloud Free Tier (ARM64):** the folder [`deploy/`](../deploy/README.md) holds a Czech
+step-by-step guide, `compose.yml` (app + Cloudflare Tunnel + Watchtower, hardened: read-only root, no published ports)
+and `.env.example` (all variables, incl. the public-mode limits listed in this document). Pushing to the branch
+`deploy` runs the workflow *Web image* (multi-arch build, smoke test, Trivy scan) and publishes
+`ghcr.io/javor55/pid-tools:deploy`; Watchtower on the VM picks it up within 5 minutes. The `Audit` workflow runs
+`pip-audit` and `npm audit` on PRs and weekly.
+
 ## Data and privacy
 
 - Uploaded data are processed only in the server memory for the duration of the session (and in the computation
