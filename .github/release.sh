@@ -18,7 +18,6 @@ notes="${beta}**Downloads (Windows 10/11, x64) – new application (PID Tools 4)
 - \`PID-Tools-*-x64.msi\` – for administrators / software distribution (silent: \`msiexec /i <file> /qn\`).
 - \`SHA256SUMS.txt\` – checksums of the files.
 
-The previous desktop application (PySide6) is still attached as \`PID-Tools-*-desktop-win64-*\` until the pilot ends.
 Windows may warn that the publisher is unknown (the files are not code-signed yet): *More info › Run anyway*.
 The new application opens older projects and saves format v3. Changes: see CHANGELOG.md. Deployment: docs/deployment.md."
 target=()

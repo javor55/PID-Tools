@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.0.0 beta 2 – installer fix
+
+- The **4.0.0 beta 1 installers contained the old backend and UI** (a build from 2026-11-11, without the new UI and the
+  controller library): CI restored a stale sidecar copy from the `desktop/target` cache and Tauri bundled it. Releases
+  are now built without that cache, `desktop.yml` deletes the stale copy, and both workflows verify after the build
+  that the bundled sidecar carries this run's UI and the controller presets. Do not use beta 1.
+
 ## 4.0.0 beta 1 – new UI (FastAPI + React), Tauri desktop, controller library, tuning journal
 
 - Release (E11, M24): **release workflow of the new desktop application** (`.github/workflows/release.yml`) – on a

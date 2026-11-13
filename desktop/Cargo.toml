@@ -1,6 +1,6 @@
 [package]
 name = "pidtools-desktop"
-version = "4.0.0-beta.1"
+version = "4.0.0-beta.2"
 description = "PID Tools – desktop window (Tauri 2) around the pidtools-api sidecar"
 edition = "2021"
 rust-version = "1.77"
