@@ -1,0 +1,64 @@
+# PID Tools – veřejná instance za Cloudflare Tunnelem (návod: deploy/README.md). Spuštění: docker compose up -d
+name: pidtools
+
+services:
+  app:
+    image: ${PIDTOOLS_IMAGE:-ghcr.io/javor55/pid-tools:deploy}
+    env_file: .env
+    # žádné publikované porty – dovnitř se jde jen přes cloudflared (síť compose)
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    mem_limit: ${APP_MEM_LIMIT:-6g}
+    cpus: ${APP_CPUS:-3}
+    pids_limit: ${APP_PIDS_LIMIT:-512}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.3.0
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?doplňte TUNNEL_TOKEN do .env}
+    depends_on:
+      app:
+        condition: service_healthy
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    mem_limit: 256m
+    pids_limit: 128
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  watchtower:
+    # udržovaná větev watchtoweru (původní containrrr/watchtower 1.7.1 nefunguje s Dockerem 29+)
+    image: nickfedor/watchtower:1.15.0
+    command: --label-enable --cleanup --interval ${WATCHTOWER_INTERVAL:-300}
+    environment:
+      # soukromý balíček GHCR: vyplňte v .env (nebo místo toho připojte config.json, viz README)
+      REPO_USER: ${GHCR_USER:-}
+      REPO_PASS: ${GHCR_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # alternativa k REPO_USER/REPO_PASS: - ${HOME}/.docker/config.json:/config.json:ro
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
