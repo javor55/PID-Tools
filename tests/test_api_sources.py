@@ -212,6 +212,30 @@ def test_signals_trend_decimation_stats_cursors(client):
     assert client.get(f"{V1}/workspaces/{_ws(client)}/signals/trend").status_code == 409
 
 
+def test_signals_all_binary_pack_on_common_axis(client):
+    """Binární balík všech zdrojů pro Trendy: časy na společné ose (posun zdroje započtený), hodnoty bez převzorkování,
+    názvy = sloupce (stejný sloupec ve dvou souborech „soubor › sloupec“), mapa názvů na `zdroj:sloupec`."""
+    from pidtools.app import signalpack
+    wid = _setup(client)
+    client.patch(f"{V1}/workspaces/{wid}/sources/s2", json={"offset_s": 100.0})
+    r = client.get(f"{V1}/workspaces/{wid}/signals/all")
+    assert r.status_code == 200 and r.headers["content-type"] == "application/octet-stream"
+    meta, out = signalpack.unframe(r.content)
+    assert meta["refs"] == {"LIC101.SP": "s1:LIC101.SP", "LIC101.PV": "s1:LIC101.PV", "LIC101.MV": "s1:LIC101.MV",
+                            "FI100.Pritok": "s2:FI100.Pritok"}
+    assert meta["origin"] == "2026-03-01T08:00:00" and meta["tmin"] == pytest.approx(0.0)
+    t_pv, v_pv = out["LIC101.PV"]
+    t_fi, _ = out["FI100.Pritok"]
+    assert len(t_pv) == 3600 and t_fi[0] == pytest.approx(100.0) and len(t_fi) == 360
+    ref = client.get(f"{V1}/workspaces/{wid}/signals/trend", params={"names": ["s1:LIC101.PV"], "n": 20000}).json()["series"][0]
+    assert np.allclose(v_pv, ref["v"], atol=1e-4)                       # stejné hodnoty jako zředěná řada bez zředění
+    # stejný název sloupce ve dvou souborech
+    _upload(client, wid, "c.csv", _csv(pd.DataFrame({"Time": [0, 1, 2], "FI100.Pritok": [1.0, 2.0, 3.0]})))
+    names = signalpack.unframe(client.get(f"{V1}/workspaces/{wid}/signals/all").content)[0]["refs"]
+    assert names["b › FI100.Pritok"] == "s2:FI100.Pritok" and names["c › FI100.Pritok"] == "s3:FI100.Pritok"
+    assert client.get(f"{V1}/workspaces/{_ws(client)}/signals/all").status_code == 409
+
+
 def test_trend_aligns_sources_by_offset_and_timezone(client):
     wid = _setup(client)
     client.patch(f"{V1}/workspaces/{wid}/sources/s2", json={"offset_s": 100.0})

@@ -2809,6 +2809,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/signals/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sources Signals
+         * @description Signály všech zdrojů binárně (bez převzorkování) na společné ose [s od nejdřívějšího zdroje] – Trendy.
+         *     Název signálu je sloupec; když je stejný sloupec ve více souborech, „soubor › sloupec“.
+         */
+        get: operations["sources_signals_api_v1_workspaces__wid__signals_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/signals/trend": {
         parameters: {
             query?: never;
@@ -13093,6 +13114,42 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description app.signalpack.frame: [uint32 LE length][JSON description][Float64 times, Float32 values] */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sources_signals_api_v1_workspaces__wid__signals_all_get: {
+        parameters: {
+            query?: {
+                cap?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description app.signalpack.frame; popis navíc `refs` {název: `zdroj:sloupec`}, `origin` */
             200: {
                 headers: {
                     [name: string]: unknown;

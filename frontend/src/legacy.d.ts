@@ -5,6 +5,7 @@ declare module "*/viewer.js" {
     parentElement: HTMLElement;
     setStateValue: (key: string, value: unknown) => void;
     setTriggerValue?: (key: string, value: unknown) => void;
+    listHost?: HTMLElement;              // seznam signálů mimo graf (např. pravý panel stránky)
   }
   const mount: (component: ViewerComponent) => void;
   export default mount;

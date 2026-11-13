@@ -23973,6 +23973,88 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/signals/all": {
+   "get": {
+    "description": "Signály všech zdrojů binárně (bez převzorkování) na společné ose [s od nejdřívějšího zdroje] – Trendy.\nNázev signálu je sloupec; když je stejný sloupec ve více souborech, „soubor › sloupec“.",
+    "operationId": "sources_signals_api_v1_workspaces__wid__signals_all_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "cap",
+      "required": false,
+      "schema": {
+       "default": 6000000,
+       "minimum": 1000,
+       "title": "Cap",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame; popis navíc `refs` {název: `zdroj:sloupec`}, `origin`"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Sources Signals",
+    "tags": [
+     "sources"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/signals/trend": {
    "get": {
     "description": "Signály všech zdrojů na společné ose [s od nejdřívějšího zdroje]: zředěné na min / max po skupinách (špičky\nzůstanou), statistika v úseku `a`–`b` a hodnoty v časech kurzorů `at` (interpolace, v mezeře `null`).",

@@ -6,14 +6,16 @@ Smyčky projektu skládají svá data ze zdrojů (mapování rolí: api/mapping.
 skládají na společnou mřížku. `/signals/trend` vrací zředěná data všech signálů zdrojů (min / max po skupinách),
 statistiku a hodnoty v čase kurzorů; binární `/signals` (api/data.py) zůstává pro prohlížeč jednoho záznamu smyčky.
 """
+import re
 from typing import Annotated
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 from ..app.domain import registry as sreg
+from ..app import signalpack
 from ..app.domain import trend
 from ..app.domain.model import SourceRef, TimeGrid
 from .data import _err
@@ -132,6 +134,38 @@ class LoopRange(BaseModel):
     a: float
     b: float
     offset: float
+
+
+def _stem(name):
+    """Název souboru bez přípony."""
+    return re.sub(r"\.[A-Za-z0-9]{1,5}$", "", str(name))
+
+
+def _sources_pack(p, cap):
+    """Balík signálů všech zdrojů na společné ose (viz GET /signals/all)."""
+    p.sync()
+    shifts, spans, origin = p.axis()
+    if not spans:
+        raise HTTPException(409, "no data")
+    refs = p.column_refs()
+    count = {}
+    for ref in refs:
+        count[ref.column] = count.get(ref.column, 0) + 1
+    groups, names = [], {}
+    for rt in p.sources:
+        if rt.df is None or rt.id not in shifts:
+            continue
+        sig = rt.signals()
+        items = []
+        for ref in (x for x in refs if x.source_id == rt.id):
+            nm = ref.column if count[ref.column] == 1 else f"{_stem(rt.src.name)} › {ref.column}"
+            names[nm] = str(ref)
+            items.append((nm, sig.get(ref.column)))
+        groups.append((np.asarray(sig.t_all, float) + shifts[rt.id], items))
+    pk = signalpack.pack_groups(groups, cap)
+    pk["refs"] = {s_["name"]: names[s_["name"]] for s_ in pk["sigs"]}
+    pk["origin"] = origin
+    return pk
 
 
 def loop_offset(p, ws):
@@ -309,6 +343,17 @@ def router(get_proj, max_upload):
                                    stats=SignalStats(**trend.stats(t, v, a_, b_)),
                                    at=[_num(trend.value_at(t, v, x)) for x in at or []]))
         return Trend(a=a_, b=b_, n=n, cursors=list(at or []), origin=origin, series=out)
+
+    @r.get("/signals/all", response_class=Response,
+           responses={200: {"content": {"application/octet-stream": {}},
+                            "description": "app.signalpack.frame; popis navíc `refs` {název: `zdroj:sloupec`}, `origin`"}})
+    def sources_signals(wid: str, cap: Annotated[int, Query(ge=1000)] = signalpack.CAP):
+        """
+        Signály všech zdrojů binárně (bez převzorkování) na společné ose [s od nejdřívějšího zdroje] – Trendy.
+        Název signálu je sloupec; když je stejný sloupec ve více souborech, „soubor › sloupec“.
+        """
+        pk = _sources_pack(get_proj(wid), cap)
+        return Response(signalpack.frame(pk), media_type="application/octet-stream")
 
     @r.put("/range/common", response_model=LoopRange)
     def set_range_common(wid: str, body: AxisRange,

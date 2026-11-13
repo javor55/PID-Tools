@@ -1,7 +1,8 @@
 """
-Data › Trendy v novém rozhraní (E4-C) v prohlížeči: strom signálů ze dvou zdrojů s různým vzorkováním a posunem, panely
-(canvas), rozvržení, kurzory A / B s odečtem, přehledový pruh, vypočtený signál, export PNG / CSV a označení úseku pro
-Model. Potřebuje sestavené UI (cd frontend && npm run build).
+Data › Trendy na sdíleném prohlížeči (viewer.js) v prohlížeči: signály dvou zdrojů s různým vzorkováním a posunem na
+společné ose, seznam signálů v pravém panelu ve skupinách podle smyček / souborů, rozvržení panelů, nezávislé časové
+(A / B) a hodnotové (Y₁ / Y₂) kurzory s odečtem, export PNG / CSV a vyznačení úseku A–B pro Model.
+Potřebuje sestavené UI (cd frontend && npm run build).
 """
 import io
 import json
@@ -52,118 +53,114 @@ def trends(page, server):
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="trends"]').click()
     page.wait_for_selector('[data-testid="trends-main"]', timeout=20000)
-    page.wait_for_selector('[data-testid="trd-panel"]', timeout=20000)
+    page.wait_for_selector('[data-testid="trd-viewer"] .pidv-panel canvas', timeout=30000)
+    page.wait_for_timeout(500)
     return page
 
 
-def _ink(page, i=0):
-    """Počet nepřehledných (nenulová alfa) pixelů canvasu i-tého panelu."""
-    return page.evaluate("""(i) => { const c = document.querySelectorAll('[data-testid="trd-canvas"]')[i];
-      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0;
-      for (let k = 3; k < d.length; k += 4) if (d[k] > 0) n++; return n; }""", i)
-
-
 def _panels(page):
-    return page.evaluate("() => [...document.querySelectorAll('[data-testid=\"trd-panel\"]')].map(p => p.dataset.refs)")
+    """Signály v panelech prohlížeče (z jeho stavu)."""
+    return page.evaluate("() => window.__pidView.trends_view.state().panels.map(p => p.sigs)")
 
 
-def test_tree_lists_all_signals_of_all_sources(trends):
+def test_signals_of_both_sources_on_common_axis(trends, server):
+    """Balík /signals/all: všechny sloupce obou zdrojů, b.csv začíná o 10 min dřív → společná osa od jeho začátku."""
+    from pidtools.app import signalpack
+    wid = trends.evaluate("sessionStorage.getItem('pid.wid')")
+    req = urllib.request.Request(f"{server}/api/v1/workspaces/{wid}/signals/all", headers={"X-PID-Token": TOKEN})
+    meta, out = signalpack.unframe(urllib.request.urlopen(req, timeout=60).read())
+    assert set(meta["refs"].values()) >= {"s1:TIC102.PV", "s1:TIC102.SP", "s1:TIC102.MV", "s2:FIC205.PV [t/h]", "s2:PI201 [bar]"}
+    t_pv, t_pi = out["TIC102.PV"][0], out["PI201 [bar]"][0]
+    assert t_pi[0] == pytest.approx(0.0) and t_pv[0] == pytest.approx(600.0)       # a.csv o 10 min později
+    assert np.diff(t_pi[:3]).tolist() == [5.0, 5.0] and len(t_pv) == 3600
+
+
+def test_signal_list_in_side_panel_grouped(trends):
     tree = trends.locator('[data-testid="trd-tree"]')
-    labels = [tree.locator("input[type=checkbox]").nth(i).get_attribute("aria-label") for i in range(tree.locator("input[type=checkbox]").count())]
-    assert {"s1:TIC102.PV", "s1:TIC102.SP", "s1:TIC102.MV", "s2:FIC205.PV [t/h]", "s2:PI201 [bar]"} <= set(labels)
-    trends.locator('[data-testid="trd-by"] button').nth(1).click()
-    assert trends.locator('[data-testid="trd-tree"] .trd-gh').count() == 2          # a.csv, b.csv
+    assert tree.locator(".pidv-list").count() == 1                                  # seznam prohlížeče je v pravém panelu
+    assert trends.locator('[data-testid="trd-viewer"] .pidv-list').count() == 0
+    heads = tree.locator(".pidv-ghead").all_inner_texts()
+    assert any("TIC102" in h for h in heads) and any("No loop" in h for h in heads)     # smyčka a zbylé sloupce
+    trends.locator('[data-testid="trd-by"] button').nth(1).click()                  # podle souborů
+    trends.wait_for_function("() => [...document.querySelectorAll('[data-testid=\"trd-tree\"] .pidv-ghead')].some(h => h.innerText.includes('b.csv'))")
     trends.locator('[data-testid="trd-by"] button').nth(0).click()
-    trends.locator('[data-testid="trd-search"]').fill("pi201")
-    assert trends.locator('[data-testid="trd-tree"] input[type=checkbox]').count() == 1
-    trends.locator('[data-testid="trd-search"]').fill("")
+    tree.locator("input[type=search]").fill("pi201")
+    assert tree.locator(".pidv-sig").count() == 1
+    tree.locator("input[type=search]").fill("")
 
 
-def test_signals_render_and_layout_modes(trends):
-    assert _panels(trends) and "s1:TIC102.PV" in _panels(trends)[0]
-    assert _ink(trends) > 500                                                      # na canvasu jsou průběhy
-    assert trends.locator("[data-testid=trd-note]").inner_text().strip() != ""
-    # přidání signálu z druhého zdroje (jiné vzorkování, posun) a rozvržení
-    trends.locator('[aria-label="s2:FIC205.PV [t/h]"]').check()
-    trends.locator('[aria-label="s2:PI201 [bar]"]').check()
+def test_layout_presets(trends):
+    """Panel na smyčku (výchozí), jeden panel, panel na veličinu; PV a SP stejné veličiny sdílí osu."""
+    p = _panels(trends)
+    assert any("TIC102.PV" in x and "TIC102.SP" in x for x in p)
     seg = trends.locator('[data-testid="trd-layout"] button')
     seg.nth(0).click()
-    trends.wait_for_function("() => document.querySelectorAll('[data-testid=\"trd-panel\"]').length === 1")
-    assert len(_panels(trends)[0].split(",")) == 5
-    seg.nth(2).click()                                                             # podle veličiny: °C-like T, %, t/h, bar
-    trends.wait_for_function("() => document.querySelectorAll('[data-testid=\"trd-panel\"]').length >= 3")
-    titles = trends.evaluate("() => [...document.querySelectorAll('[data-testid=\"trd-panel\"]')].map(p => p.dataset.title)")
-    assert "[t/h]" in titles and "[bar]" in titles and "[%]" in titles
-    seg.nth(1).click()                                                             # podle smyčky
-    trends.wait_for_function("() => document.querySelectorAll('[data-testid=\"trd-panel\"]').length >= 2")
-    assert all(_ink(trends, i) > 100 for i in range(len(_panels(trends))))
+    trends.wait_for_function("() => window.__pidView.trends_view.state().panels.length === 1")
+    seg.nth(2).click()
+    trends.wait_for_function("() => window.__pidView.trends_view.state().panels.length >= 2")
+    seg.nth(1).click()                                                              # jedna úplná smyčka → jeden panel
+    trends.wait_for_function("() => window.__pidView.trends_view.state().panels.length === 1")
+    n_axes = trends.evaluate("() => document.querySelectorAll('[data-testid=\"trd-viewer\"] .pidv-panel').length")
+    assert n_axes == len(_panels(trends))
 
 
-def test_cursors_readout_zoom_and_navigator(trends):
-    trends.locator('[data-testid="trd-ab"]').click()
-    rows = trends.locator('[data-testid="trd-readout"] tbody tr')
-    rows.first.wait_for()
-    trends.wait_for_function(                                          # hodnoty kurzorů přijdou ze serveru až po vykreslení
-        "() => [...document.querySelectorAll('[data-testid=\"trd-readout\"] tbody tr:first-child td[data-c=\"a\"], [data-testid=\"trd-readout\"] tbody tr:first-child td[data-c=\"b\"]')]"
-        ".every(td => !['–', '…', ''].includes(td.innerText.trim()))", timeout=30000)
-    cell = lambda r, c: rows.nth(r).locator(f'td[data-c="{c}"]').inner_text()          # noqa: E731
-    a, b, d = (float(cell(0, k).replace(",", ".")) for k in "abd")
-    assert d == pytest.approx(b - a, abs=0.05 + 1e-3 * abs(b))
-    assert trends.locator('[data-testid="trd-mark"]').inner_text().count("→") == 1
-    # klik v grafu přesune kurzor A, readout se přepočítá
-    box = trends.locator('[data-testid="trd-canvas"]').first.bounding_box()
-    trends.mouse.click(box["x"] + box["width"] * 0.2, box["y"] + box["height"] / 2)
-    trends.wait_for_function("(a) => document.querySelector('[data-testid=\"trd-readout\"] td[data-c=\"a\"]').innerText !== a", arg=cell(0, "a"))
-    # zoom na výběr A–B zúží okno zoomu v přehledovém pruhu
-    full = trends.locator('[data-testid="trd-nwin"]').bounding_box()["width"]
-    trends.locator('[data-testid="trd-zoom"] button').nth(1).click()
-    trends.wait_for_function("(w) => document.querySelector('[data-testid=\"trd-nwin\"]').getBoundingClientRect().width < w * 0.9", arg=full)
-    trends.locator('[data-testid="trd-zoom"] button').nth(0).click()
-    trends.wait_for_function("(w) => document.querySelector('[data-testid=\"trd-nwin\"]').getBoundingClientRect().width > w * 0.95", arg=full)
-    # kolečko zoomuje
-    trends.mouse.move(box["x"] + box["width"] / 2, box["y"] + 40)
-    trends.mouse.wheel(0, -400)
-    trends.wait_for_function("(w) => document.querySelector('[data-testid=\"trd-nwin\"]').getBoundingClientRect().width < w * 0.9", arg=full)
-    trends.locator('[data-testid="trd-zoom"] button').nth(0).click()
-
-
-def test_computed_signal(trends):
-    trends.locator('[data-testid="trd-calc-open"]').click()
-    trends.locator('[data-testid="trd-calc-expr"]').fill("[s1:TIC102.SP] - [s1:NOPE]")
-    assert trends.locator('[data-testid="trd-calc-err"]').is_visible()
-    assert trends.locator('[data-testid="trd-calc-add"]').is_disabled()
-    trends.locator('[data-testid="trd-calc-expr"]').fill("[s1:TIC102.SP] - [s1:TIC102.PV]")
-    trends.locator('[data-testid="trd-calc-add"]').click()
-    trends.wait_for_selector('[data-testid="trd-calc-row"]')
-    trends.wait_for_function("() => [...document.querySelectorAll('[data-testid=\"trd-readout\"] tbody tr')].some(r => r.dataset.ref.startsWith('calc:'))")
-    row = trends.locator('[data-testid="trd-readout"] tbody tr[data-ref^="calc:"]')
-    assert row.locator('td[data-c="a"]').inner_text() not in ("", "–")
+def test_independent_cursors_and_readout(trends):
+    bar = trends.locator('[data-testid="trd-viewer"] .pidv-bar')
+    bar.locator("[data-a=cur]").click()
+    trends.wait_for_selector('[data-testid="trd-viewer"] .pidv-read table')
+    st = trends.evaluate("() => window.__pidView.trends_view.state()")
+    assert st["cur"]["on"] and not st["hc"]["on"]
+    bar.locator("[data-a=hcur]").click()
+    st = trends.evaluate("() => window.__pidView.trends_view.state()")
+    assert st["cur"]["on"] and st["hc"]["on"] and st["hc"]["sig"].endswith("PV")    # hodnotové kurzory u PV
+    trends.wait_for_function("() => document.querySelector('[data-testid=\"trd-viewer\"] .pidv-read').innerText.includes('Y₂')")
+    read = trends.locator('[data-testid="trd-viewer"] .pidv-read').first.inner_text()
+    assert "Y₁" in read and "TIC102.PV" in read
+    # klik = A, Shift+klik = B, Alt+klik = Y₁ (časové kurzory zapnuté)
+    cv = trends.locator('[data-testid="trd-viewer"] .pidv-panel canvas').last
+    box = cv.bounding_box()
+    trends.mouse.click(box["x"] + box["width"] * 0.3, box["y"] + box["height"] * 0.5)
+    trends.keyboard.down("Shift")
+    trends.mouse.click(box["x"] + box["width"] * 0.7, box["y"] + box["height"] * 0.5)
+    trends.keyboard.up("Shift")
+    st = trends.evaluate("() => window.__pidView.trends_view.state()")
+    assert st["cur"]["a"] < st["cur"]["b"]
+    # vypnutí časových: hodnotové zůstanou
+    bar.locator("[data-a=cur]").click()
+    st = trends.evaluate("() => window.__pidView.trends_view.state()")
+    assert not st["cur"]["on"] and st["hc"]["on"]
+    bar.locator("[data-a=hcur]").click()
 
 
 def test_exports_csv_and_png(trends):
+    bar = trends.locator('[data-testid="trd-viewer"] .pidv-bar')
     with trends.expect_download() as dl:
-        trends.locator('[data-testid="trd-csv"]').click()
+        bar.locator("[data-a=csv_view]").click()
     text = open(dl.value.path(), encoding="utf-8-sig").read()
-    head = text.split("\n")[0]
-    assert head.startswith("t [s];clock;") and "s1:TIC102.PV" in head and "e" in head.split(";")
-    assert len(text.split("\n")) > 100
+    assert "TIC102.PV" in text.split("\n")[0] and len(text.split("\n")) > 100
     with trends.expect_download() as dl:
-        trends.locator('[data-testid="trd-png"]').click()
+        bar.locator("[data-a=png]").click()
     assert open(dl.value.path(), "rb").read(8) == b"\x89PNG\r\n\x1a\n"
 
 
 def test_mark_range_for_model(trends, server):
-    wid = trends.evaluate("sessionStorage.getItem('pid.wid')")
+    if trends.evaluate("() => window.__pidView.trends_view.state().cur.on"):          # kurzory z předchozího testu vypnout
+        trends.locator('[data-testid="trd-viewer"] .pidv-bar [data-a=cur]').click()
+    trends.locator('[data-testid="trd-mark-model"]').click()                      # bez kurzorů: hláška
+    trends.wait_for_selector('[data-testid="trd-mark-msg"].trd-err')
+    trends.locator('[data-testid="trd-viewer"] .pidv-bar [data-a=cur]').click()
     before = _call(server, trends, "GET", "/workspaces/{wid}")["rng"]
+    st = trends.evaluate("() => window.__pidView.trends_view.state().cur")
     trends.locator('[data-testid="trd-mark-model"]').click()
-    trends.wait_for_selector('[data-testid="trd-mark-msg"]')
+    trends.wait_for_selector('[data-testid="trd-mark-msg"].trd-ok')
     after = _call(server, trends, "GET", "/workspaces/{wid}")["rng"]
-    assert wid and after != before and 0 <= after[0] < after[1]
+    assert after != before and 0 <= after[0] < after[1]
+    assert after[1] - after[0] == pytest.approx(abs(st["b"] - st["a"]), abs=2)
     assert trends.locator('[data-testid="trd-mark-diag"]').is_enabled()
 
 
 def test_every_control_has_help(trends):
     """Každý ovládací prvek s popiskem v Trendech má „?“ nebo title."""
-    missing = trends.evaluate("""() => [...document.querySelectorAll('[data-testid=trd-tools] .trd-tg, [data-testid=trd-tools] label.trd-chk')]
+    missing = trends.evaluate("""() => [...document.querySelectorAll('[data-testid=trd-tools] .trd-tg, [data-testid=trends-side] label.trd-chk')]
       .filter(g => !g.querySelector('button.qm') && !g.title).map(g => g.innerText)""")
     assert missing == []

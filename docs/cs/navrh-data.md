@@ -1,6 +1,6 @@
 # Přestavba záložky Data – specifikace ke schválení
 
-Stav: **návrh**, čeká na schválení. Vychází z poznámek z testování desktopové verze 4.0.0-beta.2 (listopad 2026).
+Stav: **schváleno, implementuje se** (viz kap. 6 Stav prací – podle ní se navazuje po přerušení). Vychází z poznámek z testování desktopové verze 4.0.0-beta.2 (listopad 2026).
 
 ## 1. Co je dnes špatně
 
@@ -107,3 +107,24 @@ Každý krok: implementace → typy, lint, jednotkové a e2e testy → kontrola 
 3. **Kvalita dat**: má zůstat i velký volný prohlížeč (dnešní stav), nebo stačí pevný graf aktivní smyčky
    a volné prohlížení je v Trendech?
 4. **Pořadí**: D1 → D2 → D3 → D4 → D5, nebo začít D2 (Trendy / kurzory), které vás při testování nejvíc pálily?
+
+## 6. Stav prací (pro navázání po přerušení)
+
+Rozhodnutí z připomínek v artefaktu: Projekt a report = hlavní záložka 6; Kvalita dat jen vhodnost + jednoduchý graf
+vybrané smyčky s přepínačem smyček; Trendy = hlavní prohlížení; časové A / B a hodnotové Y₁ / Y₂ kurzory nezávisle,
+odečet pro oboje; vlastní panely a osa Y auto / pevná; v nabídce sloupce „+ Nová smyčka“; Diagnostika triáž + tabulka
+smyček jen pro čtení; pořadí prací volím sám.
+
+| Krok | Stav | Commit / poznámka |
+|---|---|---|
+| D1 Zdroje a smyčky jediné místo (nabídka přiřazení, karty smyček, demo + čtení ve Files, Kvalita / Diagnostika bez editace, analýza nad smyčkami projektu `audit/analyse {project: true}`) | hotovo | e612033 |
+| D2 Sdílený graf viewer.js: kurzory A / B a Y₁ / Y₂ nezávisle (klik, Shift, Alt, Esc), odečet obojího, PNG, seznam signálů v pravém panelu (`listHost`) se skupinami (`D.groups`), společná osa stejné veličiny (`sigs[].axis`), API `me.state / setPanels / setGroups / setHost` | hotovo | tento commit |
+| D3 Trendy na viewer.js (`GET /signals/all` binárně, rozvržení 1 panel / smyčka / veličina, vyznačení A–B pro Model / Diagnostiku); starý TrendChart odstraněn | hotovo | tento commit |
+| D4 Kvalita dat: přepínač smyček, verdikt, kontroly s radou, události, navržené úseky (`segments.auto`) + „Použít v Modelu“, jednoduchý graf (viewer.js s pevnými panely, bez seznamu) | další | backend: souhrn nad `ws.quality()` + `segments.auto`; frontend: přepsat `DataMain` v `frontend/src/tabs/DataTab.tsx` |
+| D5 Diagnostika – hotovo v D1 | hotovo | |
+| D6 Projekt a report jako záložka 6 (místo tlačítka v hlavičce) | čeká | `store.ts` NAV_TABS, `Header.tsx`, testy `header [data-tab=project]` |
+| D7 Model: zoom X / Y, zpět / vpřed, přehled v trend.js | čeká | `pidtools/ui/static/trend.js` |
+
+Ověření každého kroku: `cd frontend && npm run lint && npm run typecheck && npm run test && npm run build`,
+`ruff check pidtools tests`, `QT_QPA_PLATFORM=offscreen python -m pytest -q tests/test_frontend*.py` + dotčené API testy,
+screenshoty EN / CS 1024 a 1440 px.

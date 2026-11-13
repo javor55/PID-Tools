@@ -6,8 +6,12 @@
  *   kolečko = zoom času, Shift + kolečko = zoom Y panelu, kolečko nad osou Y = zoom té osy;
  *   tažení = posun času (Shift = posun Y), tažení osy Y = posun té osy; režimy Zoom ⬚ / X / Y = výběr obdélníkem;
  *   dvojklik = celý čas a automatické Y panelu (na ose jen ta osa); Backspace = zpět; ←/→ = posun kurzoru o vzorek.
- * Kurzory jako na osciloskopu: C1 / C2 (čas, hodnoty, Δ, Δ/Δt, min / max / průměr / σ mezi nimi) a vodorovné H1 / H2
- * pro zvolený signál. Tabulka hodnot zobrazeného úseku (klik = kurzor C1), export CSV výřezu nebo úseku mezi kurzory.
+ * Kurzory jako na osciloskopu, časové A / B (čas, hodnoty, Δ, Δ/Δt, min / max / průměr / σ mezi nimi) a hodnotové
+ * Y₁ / Y₂ pro zvolený signál; zapínají se nezávisle. Klik = A, Shift+klik = B; jsou-li zapnuté i hodnotové, Alt+klik = Y₁,
+ * Alt+Shift+klik = Y₂ (jen hodnotové: klik / Shift+klik); tažení kurzor posune, Esc kurzory skryje. Tabulka hodnot
+ * zobrazeného úseku (klik = kurzor A), export CSV výřezu nebo úseku mezi kurzory a obrázek PNG.
+ * Volitelně: D.groups = [{label, names}] (seznam signálů ve skupinách, např. podle smyček) a component.listHost
+ * (prvek, do kterého se vloží seznam signálů – např. pravý panel stránky).
  *
  * Data z Pythonu: key, sig, view_key, sigs [{name, role, color, unit, ti, off, n}], times [{off, n}], T, decim, hash,
  * url + base (binární soubor) nebo b64, clock (ms epochy pro t = 0 nebo null), tunit, dec, dark, txt, fname,
@@ -20,6 +24,7 @@ export default function (component) {
   const prev = reg[D.key];
   if (prev && prev.sig === D.sig && prev.box && prev.box.isConnected && root.contains(prev.box)) {
     if (D.layout && D.layout !== prev.lastLay && prev.applyLayout) prev.applyLayout(D.layout);
+    if ((component.listHost || null) !== (prev.host || null) && prev.setHost) prev.setHost(component.listHost || null);
     return;
   }
   root.querySelectorAll(".pidv").forEach((n) => n.remove());
@@ -91,7 +96,7 @@ export default function (component) {
   const box = el("div", "pidv" + (D.dark ? " dark" : ""));
   box.tabIndex = 0;
   root.appendChild(box);
-  const me = (reg[D.key] = { sig: D.sig, box, lastLay: null });
+  const me = (reg[D.key] = { sig: D.sig, box, lastLay: null, host: component.listHost || null });
   const DC = (window.__pidViewData = window.__pidViewData || {});
 
   async function fetchBuf() {
@@ -158,7 +163,7 @@ export default function (component) {
       const s = entry.sigs[d.name] || (entry.sigs[d.name] = {
         t: new Float64Array(entry.buf, tt.off, tt.n), v: new Float32Array(entry.buf, d.off, d.n), n: d.n,
       });
-      Object.assign(s, { name: d.name, role: d.role, color0: d.color, unit0: d.unit, ti: d.ti });
+      Object.assign(s, { name: d.name, role: d.role, color0: d.color, unit0: d.unit, ti: d.ti, axis: d.axis || null });
       SG[d.name] = initSig(s);
       order.push(d.name);
     }
@@ -310,6 +315,16 @@ export default function (component) {
       hist.length = 0; hpos = -1;
       build();
     };
+    me.setHost = (h) => { component.listHost = h || undefined; me.host = h || null; build(); };
+    me.state = () => S;                         // stav pro stránku (kurzory pro „Vyznačit úsek“, panely)
+    me.setGroups = (g) => { D.groups = g; if (me.rows) me.rows(); };
+    me.setPanels = (ps) => {                    // rozvržení panelů zvenku (např. „panel na smyčku“)
+      const Lx = JSON.parse(JSON.stringify(S));
+      Lx.panels = ps.map((p) => Object.assign({ h: 160, shared: false, lo: null, hi: null }, p));
+      S = sanitize(Lx);
+      views[D.view_key] = S;
+      build(); save();
+    };
 
     // ---------------------------------------------------------------- min / max pyramida, součty
     function pyr(s) {
@@ -399,12 +414,23 @@ export default function (component) {
         const us = [...new Set(p.sigs.map(unitOf).filter(Boolean))];
         return [{ key: "§" + pi, names: p.sigs, color: "var", unit: us.join(", "), lo: r[0], hi: r[1], manual: p.lo !== null, ya: p.ya }];
       }
-      return p.sigs.map((n) => {
+      // signály stejné veličiny (D.sigs[].axis, např. PV a SP) sdílí osu; nastavení osy je u prvního z nich
+      const out = [], byG = {};
+      for (const n of p.sigs) {
+        const g = SG[n].axis;
+        if (g && byG[g]) { byG[g].names.push(n); continue; }
         const c = S.sig[n];
-        const man = c && c.lo !== undefined;
-        const r = man ? [c.lo, c.hi] : autoRange([n], c && c.ya);
-        return { key: n, names: [n], color: colorOf(n), unit: unitOf(n), lo: r[0], hi: r[1], manual: man, ya: c && c.ya };
-      });
+        const ax = { key: n, names: [n], color: colorOf(n), unit: unitOf(n), manual: !!(c && c.lo !== undefined), ya: c && c.ya };
+        out.push(ax);
+        if (g) byG[g] = ax;
+      }
+      for (const ax of out) {
+        const c = S.sig[ax.key];
+        const r = ax.manual ? [c.lo, c.hi] : autoRange(ax.names, ax.ya);
+        ax.lo = r[0]; ax.hi = r[1];
+        if (ax.names.length > 1) ax.unit = [...new Set(ax.names.map(unitOf).filter(Boolean))].join(", ");
+      }
+      return out;
     }
     function setAxis(pi, key, lo, hi) {
       if (!(hi > lo) || !isFinite(lo) || !isFinite(hi)) return;
@@ -464,9 +490,12 @@ export default function (component) {
       box.innerHTML = "";
       box.classList.toggle("dark", !!D.dark);
       buildBar();
-      body = el("div", "pidv-body" + (S.list ? "" : " nolist"));
-      listBox = el("div", "pidv-card pidv-list");
-      if (S.list) body.appendChild(listBox);
+      const host = component.listHost;
+      if (host) S.list = true;                 // seznam v pravém panelu stránky
+      body = el("div", "pidv-body" + (S.list && !host ? "" : " nolist"));
+      listBox = el("div", "pidv-card pidv-list" + (host ? " pidv-list-host" : ""));
+      if (host) { host.innerHTML = ""; host.classList.add("pidv-hostvars"); host.classList.toggle("dark", !!D.dark); host.appendChild(listBox); }
+      else if (S.list) body.appendChild(listBox);
       plots = el("div", "pidv-plots");
       body.appendChild(plots);
       box.appendChild(body);
@@ -498,10 +527,11 @@ export default function (component) {
         `<button class="pidv-btn ${S.hc.on ? "on" : ""}" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button></div>` +
         `<div class="pidv-grp"><span class="pidv-lab">${esc(X.yauto)}</span>${seg("ya", [["view", X.ya_view], ["all", X.ya_all]], S.ya)}</div>` +
         `<div class="pidv-grp"><span class="pidv-lab">${esc(X.interp)}</span>${seg("step", [["0", X.line], ["1", X.step]], S.step ? "1" : "0")}</div>` +
-        `<div class="pidv-grp"><button class="pidv-btn ${S.list ? "on" : ""}" data-a="list">${esc(X.list)}</button>` +
+        `<div class="pidv-grp">` + (component.listHost ? "" : `<button class="pidv-btn ${S.list ? "on" : ""}" data-a="list">${esc(X.list)}</button>`) +
         `<button class="pidv-btn ${S.tab ? "on" : ""}" data-a="tab">${esc(X.table)}</button>` +
         `<button class="pidv-btn" data-a="csv_view">${esc(X.csv_view)}</button>` +
         `<button class="pidv-btn" data-a="csv_cur" ${S.cur.on ? "" : "disabled"}>${esc(X.csv_cur)}</button>` +
+        `<button class="pidv-btn" data-a="png">${esc(X.png || "PNG")}</button>` +
         `<span class="pidv-help" title="${esc(X.help)}">?</span></div>` +
         (D.decim > 1 ? `<span class="pidv-note">${esc(String(X.decim || "").replace("{g}", D.decim))}</span>` : "");
       box.appendChild(bar);
@@ -519,6 +549,7 @@ export default function (component) {
         tab: () => { S.tab = !S.tab; rebar(); redraw(); save(); },
         csv_view: () => exportCsv(S.view[0], S.view[1]),
         csv_cur: () => { if (S.cur.on) exportCsv(Math.min(S.cur.a, S.cur.b), Math.max(S.cur.a, S.cur.b)); },
+        png: exportPng,
       };
       bar.querySelectorAll("[data-a]").forEach((b) => b.onclick = act[b.dataset.a]);
     }
@@ -530,7 +561,7 @@ export default function (component) {
     }
 
     // ---- seznam signálů
-    const opened = new Set();
+    const opened = new Set(), closedG = new Set();
     let filter = "";
     function buildList() {
       if (!S.list) return;
@@ -538,6 +569,7 @@ export default function (component) {
       const q = el("input");
       q.type = "search";
       q.placeholder = X.search || "";
+      q.title = X.search_h || X.search || "";
       q.value = filter;
       q.oninput = () => { filter = q.value; rows(); };
       listBox.appendChild(q);
@@ -546,8 +578,8 @@ export default function (component) {
       function rows() {
         wrap.innerHTML = "";
         const f = filter.trim().toLowerCase();
-        for (const n of order) {
-          if (f && !n.toLowerCase().includes(f)) continue;
+        const addRow = (n) => {
+          if (f && !n.toLowerCase().includes(f) && !(grpOf[n] || "").toLowerCase().includes(f)) return;
           const pi = panelOf(n), on = pi >= 0;
           const r = el("div", "pidv-sig" + (S.act === n ? " act" : ""));
           const opts = S.panels.map((_, i) => `<option value="${i}" ${i === pi ? "selected" : ""}>${i + 1}</option>`).join("") +
@@ -585,7 +617,7 @@ export default function (component) {
           };
           r.querySelector(".pidv-x").onclick = () => { if (opened.has(n)) opened.delete(n); else opened.add(n); rows(); };
           const yb = r.querySelector(".pidv-yb");
-          if (yb) yb.onclick = () => { const rc = yb.getBoundingClientRect(); openScale(pi, S.panels[pi].shared ? "§" + pi : n, rc.left, rc.bottom); };
+          if (yb) yb.onclick = () => { const rc = yb.getBoundingClientRect(); openScale(pi, S.panels[pi].shared ? "§" + pi : ((axesOf(pi).find((q) => q.names.includes(n)) || { key: n }).key), rc.left, rc.bottom); };
           wrap.appendChild(r);
           if (opened.has(n)) {
             const c = S.sig[n] || {}, mo = el("div", "pidv-more");
@@ -600,6 +632,25 @@ export default function (component) {
             wrap.appendChild(mo);
             if (SG[n].calc) wrap.appendChild(calcForm(S.calc.find((c) => c.name === n), false));
           }
+                };
+        const groups = Array.isArray(D.groups) ? D.groups : null;
+        const grpOf = {};
+        if (groups) for (const gq of groups) for (const n of gq.names || []) if (grpOf[n] === undefined) grpOf[n] = gq.label;
+        if (!groups) order.forEach(addRow);
+        else {                                    // skupiny (např. smyčky); signál může být ve více skupinách
+          const seen = new Set();
+          const head = (label, names) => {
+            const shown = names.filter((n) => SG[n] && (!f || n.toLowerCase().includes(f) || String(label).toLowerCase().includes(f)));
+            if (!shown.length) return;
+            const on = shown.filter((n) => panelOf(n) >= 0).length;
+            const hd = el("div", "pidv-ghead" + (closedG.has(label) ? " closed" : ""));
+            hd.innerHTML = `<span>${closedG.has(label) ? "▸" : "▾"} ${esc(label)}</span><span class="pidv-lab">${on}/${shown.length}</span>`;
+            hd.onclick = () => { if (closedG.has(label)) closedG.delete(label); else closedG.add(label); rows(); };
+            wrap.appendChild(hd);
+            if (!closedG.has(label)) shown.forEach(addRow);
+          };
+          for (const gq of groups) { head(gq.label, (gq.names || []).filter((n) => SG[n])); (gq.names || []).forEach((n) => seen.add(n)); }
+          head(X.other || "Other", order.filter((n) => !seen.has(n)));
         }
         for (const c of S.calc) {                // vypočtené signály s chybou ve vzorci (nejsou v grafu)
           if (SG[c.name]) continue;
@@ -670,7 +721,8 @@ export default function (component) {
     }
     function scaleText(pi, n) {              // popis měřítka Y signálu: „auto“, „auto ∀“ nebo „min – max“
       const p = S.panels[pi];
-      const c = p.shared ? { lo: p.lo === null ? undefined : p.lo, hi: p.hi, ya: p.ya } : (S.sig[n] || {});
+      const lead = p.shared ? n : ((axesOf(pi).find((a) => a.names.includes(n)) || { key: n }).key);
+      const c = p.shared ? { lo: p.lo === null ? undefined : p.lo, hi: p.hi, ya: p.ya } : (S.sig[lead] || {});
       if (c.lo !== undefined) return `${fmtG(c.lo, 4)} – ${fmtG(c.hi, 4)}`;
       return (c.ya || S.ya) === "all" ? X.sc_all_s : X.sc_view_s;
     }
@@ -969,12 +1021,12 @@ export default function (component) {
       };
       if (hoverT !== null) line(tx(hoverT, P), col("--pv-muted"), [2, 3]);
       if (S.cur.on) {
-        line(tx(S.cur.a, P), "#d97706", null, "C1");
-        line(tx(S.cur.b, P), "#7c3aed", null, "C2");
+        line(tx(S.cur.a, P), "#d97706", null, "A");
+        line(tx(S.cur.b, P), "#7c3aed", null, "B");
       }
       if (S.hc.on && S.hc.sig && P.p.sigs.includes(S.hc.sig)) {
         const a = P.axes.find((q) => q.names.includes(S.hc.sig));
-        if (a) for (const [v, c, lab] of [[S.hc.a, "#0891b2", "H1"], [S.hc.b, "#db2777", "H2"]]) {
+        if (a) for (const [v, c, lab] of [[S.hc.a, "#0891b2", "Y₁"], [S.hc.b, "#db2777", "Y₂"]]) {
           const y = ty(v, a, P);
           if (y < TOP || y > h - BOT) continue;
           g.strokeStyle = c; g.lineWidth = 1.3; g.setLineDash([6, 3]);
@@ -1104,7 +1156,9 @@ export default function (component) {
       if (!inView(S.cur.b)) S.cur.b = snapT(a + 2 * (b - a) / 3);
     }
     function initH() {
-      if (!S.hc.sig || panelOf(S.hc.sig) < 0) S.hc.sig = S.act && panelOf(S.act) >= 0 ? S.act : visible()[0];
+      if (!S.hc.sig || panelOf(S.hc.sig) < 0) {          // zvolený signál, jinak první PV, jinak první zobrazený
+        S.hc.sig = S.act && panelOf(S.act) >= 0 ? S.act : (visible().find((n) => SG[n].role === "PV") || visible()[0]);
+      }
       if (!S.hc.sig) { S.hc.on = false; return; }
       const pi = panelOf(S.hc.sig), a = axesOf(pi).find((q) => q.names.includes(S.hc.sig));
       const inR = (v) => v !== null && v >= a.lo && v <= a.hi;
@@ -1112,6 +1166,16 @@ export default function (component) {
       if (!inR(S.hc.b)) S.hc.b = a.lo + 2 * (a.hi - a.lo) / 3;
     }
     function valAt(s, t) { const i = nearest(s, t); return i >= 0 ? s.v[i] : null; }
+    function aboveTxt(s) {                   // podíl vzorků nad Y₁ / Y₂ mezi A a B (obojí kurzory zapnuté)
+      if (!S.cur.on) return "";
+      const a = Math.min(S.cur.a, S.cur.b), b = Math.max(S.cur.a, S.cur.b);
+      const i0 = lb(s.t, a, s.n), i1 = lb(s.t, b + 1e-12, s.n);
+      if (i1 - i0 < 1) return "";
+      let n1 = 0, n2 = 0;
+      for (let i = i0; i < i1; i++) { if (s.v[i] > S.hc.a) n1++; if (s.v[i] > S.hc.b) n2++; }
+      const pc = (k) => dc((100 * k / (i1 - i0)).toFixed(0));
+      return `<span>${esc(X.above_ab || "A–B: above")} Y₁ <b>${pc(n1)} %</b> · Y₂ <b>${pc(n2)} %</b></span>`;
+    }
     function readout() {
       if (!readBox) return;
       readBox.style.display = S.cur.on || S.hc.on ? "" : "none";
@@ -1119,11 +1183,11 @@ export default function (component) {
       let h = "";
       if (S.cur.on) {
         const a = S.cur.a, b = S.cur.b, dt = b - a;
-        h += `<div class="pidv-rhead"><span><span style="color:#d97706">C1</span> <b>${esc(fmtT(a))}</b></span>` +
-          `<span><span style="color:#7c3aed">C2</span> <b>${esc(fmtT(b))}</b></span>` +
+        h += `<div class="pidv-rhead"><span><span style="color:#d97706">A</span> <b>${esc(fmtT(a))}</b></span>` +
+          `<span><span style="color:#7c3aed">B</span> <b>${esc(fmtT(b))}</b></span>` +
           `<span>Δt <b>${esc(fmtDur(dt))}</b></span>` + (dt ? `<span>1/Δt <b>${esc(fmtG(1 / Math.abs(dt), 4))} Hz</b></span>` : "") +
           `<span class="pidv-note">${esc(X.nearest)}</span></div>`;
-        h += `<table class="pidv-tbl"><thead><tr><th>${esc(X.signal)}</th><th>C1</th><th>C2</th><th>Δ</th><th>${esc(X.slope)}</th>` +
+        h += `<table class="pidv-tbl"><thead><tr><th>${esc(X.signal)}</th><th>A</th><th>B</th><th>Δ</th><th>${esc(X.slope)}</th>` +
           `<th>${esc(X.min)}</th><th>${esc(X.max)}</th><th>${esc(X.mean)}</th><th>σ</th></tr></thead><tbody>`;
         for (const n of visible()) {
           const s = SG[n], v1 = valAt(s, a), v2 = valAt(s, b), st = stats(s, a, b), u = unitOf(n);
@@ -1138,9 +1202,9 @@ export default function (component) {
       if (S.hc.on && S.hc.sig) {
         const s = SG[S.hc.sig], u = unitOf(S.hc.sig);
         h += `<div class="pidv-rhead" style="margin-top:${S.cur.on ? 8 : 0}px"><span style="color:${colorOf(S.hc.sig)};font-weight:600">${esc(S.hc.sig)}</span>` +
-          `<span><span style="color:#0891b2">H1</span> <b>${fmtV(S.hc.a, s)}</b> ${esc(u)}</span>` +
-          `<span><span style="color:#db2777">H2</span> <b>${fmtV(S.hc.b, s)}</b> ${esc(u)}</span>` +
-          `<span>ΔH <b>${fmtV(S.hc.b - S.hc.a, s)}</b> ${esc(u)}</span></div>`;
+          `<span><span style="color:#0891b2">Y₁</span> <b>${fmtV(S.hc.a, s)}</b> ${esc(u)}</span>` +
+          `<span><span style="color:#db2777">Y₂</span> <b>${fmtV(S.hc.b, s)}</b> ${esc(u)}</span>` +
+          `<span>Y₂ − Y₁ <b>${fmtV(S.hc.b - S.hc.a, s)}</b> ${esc(u)}</span>` + aboveTxt(s) + `</div>`;
       }
       readBox.innerHTML = h;
       readBox.querySelectorAll("tbody tr").forEach((r) => r.onclick = () => setAct(r.dataset.n));
@@ -1241,6 +1305,29 @@ export default function (component) {
       document.body.appendChild(lnk);
       lnk.click();
       setTimeout(() => { URL.revokeObjectURL(url); lnk.remove(); }, 2000);
+    }
+
+    function exportPng() {                    // panely pod sebou (graf + kurzory) do jednoho obrázku
+      if (!panelsUI.length) return;
+      const k = window.devicePixelRatio || 1, W = panelsUI[0].cv.width, gap = Math.round(6 * k);
+      const H = panelsUI.reduce((h, P) => h + P.cv.height + gap, 0);
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const g = c.getContext("2d");
+      g.fillStyle = getComputedStyle(box).backgroundColor || "#fff";
+      if (!g.fillStyle || g.fillStyle === "rgba(0, 0, 0, 0)") g.fillStyle = D.dark ? "#0b1220" : "#ffffff";
+      g.fillRect(0, 0, W, H);
+      let y = 0;
+      for (const P of panelsUI) { g.drawImage(P.cv, 0, y); g.drawImage(P.ov, 0, y); y += P.cv.height + gap; }
+      c.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob), lnk = document.createElement("a");
+        lnk.href = url;
+        lnk.download = (D.fname || "data").replace(/\.[^.]+$/, "") + "_view.png";
+        document.body.appendChild(lnk);
+        lnk.click();
+        setTimeout(() => { URL.revokeObjectURL(url); lnk.remove(); }, 2000);
+      }, "image/png");
     }
 
     // ---------------------------------------------------------------- analýza: události, odezva, korelace, XY, srovnání
@@ -1658,10 +1745,13 @@ export default function (component) {
             redraw();
           }, () => {
             if (moved) { push(true); save(); return; }
-            if (S.cur.on) {                      // klik = nejbližší kurzor sem
-              const t = snapT(clamp(xt(x, P), 0, D.T));
-              const k = Math.abs(t - S.cur.a) <= Math.abs(t - S.cur.b) ? "a" : "b";
-              S.cur[k] = t; S.acur = k; me.followRow = true;
+            const k = e.shiftKey ? "b" : "a";
+            if (S.hc.on && (e.altKey || !S.cur.on)) {      // hodnotový kurzor: Alt+klik (jen hodnotové: klik)
+              if (!P.p.sigs.includes(S.hc.sig)) S.hc.sig = (P.p.sigs.includes(S.act) ? S.act : P.p.sigs[0]);
+              const ax = P.axes.find((q) => q.names.includes(S.hc.sig));
+              if (ax) { S.hc[k] = yv(clamp(y, TOP, P.h - BOT), ax, P); redraw(); save(); }
+            } else if (S.cur.on) {                         // časový kurzor: klik = A, Shift+klik = B
+              S.cur[k] = snapT(clamp(xt(x, P), 0, D.T)); S.acur = k; me.followRow = true;
               redrawOverlay(true); save();
             }
           });
@@ -1789,6 +1879,7 @@ export default function (component) {
         else redrawOverlay(true);
         save();
       } else if (e.key === "Escape" && band) { band = null; redrawOverlay(); }
+      else if (e.key === "Escape" && (S.cur.on || S.hc.on)) { S.cur.on = S.hc.on = false; rebar(); redraw(); renderAn(); save(); }
     });
 
     build();
