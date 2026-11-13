@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ApiError, rawRequest, request } from "../api/client";
 import { uploadFile } from "../data";
 import { useT } from "../i18n";
+import { PublicNotice } from "../deploy";
 import { OpcButton } from "../tabs/OpcDialog";
 import { useSources } from "../tabs/data/sources/api";
 import { FilesCard } from "../tabs/data/sources/FilesCard";
@@ -90,6 +91,7 @@ export function StartScreen({ compact = false }: { compact?: boolean }) {
     <div className="start" data-testid="start-screen">
       <div className="st-main" data-testid="no-data">
         <h1>{T("app_start_title")}</h1>
+        <PublicNotice short />
         <Recovery />
         {compact && (
           <div className="st-btns st-row">

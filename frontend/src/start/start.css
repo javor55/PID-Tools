@@ -22,3 +22,6 @@
 .st-n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--pid-accent-bg); color: var(--pid-accent); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 @media (max-width: 900px) { .start { grid-template-columns: 1fr; } }
 .st-row { justify-content: flex-start; }
+
+.pub-notice { font-size: 0.9em; }
+.pub-notice h3 { margin: 0 0 4px; }

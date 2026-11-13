@@ -8,6 +8,7 @@ import { useT } from "../i18n";
 import { Commit, parse } from "../tabs/data/sources/Commit";
 import { type AppSettings, exportSettings, importSettings, patchSettings, removeLogo, resetSettings, uploadLogo, useAppSettings, useThresholdSchema } from "./appSettings";
 import { saveBlob, useControllers } from "./ctlApi";
+import { usePublic } from "../deploy";
 
 type Upd = (fn: (s: AppSettings) => void) => void;
 
@@ -222,6 +223,7 @@ export function ReportSec({ s }: { s: AppSettings }) {
   const file = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState("");
   const r = s.report;
+  const pub = usePublic();
   const logoUrl = useLogo(r.logo);
   const up = async (f: File | undefined) => {
     if (!f) return;
@@ -234,17 +236,17 @@ export function ReportSec({ s }: { s: AppSettings }) {
         <Commit value={r.company} label={T("app_s_company")} title={T("app_s_company_h")} testid="set-company"
           onCommit={(v) => set((n) => { n.report.company = v.trim(); })} />
       </Row>
-      <div className="field" data-testid="set-logo-row">
+      {!pub && <div className="field" data-testid="set-logo-row">
         <span className="lbl"><span>{T("app_s_logo")}</span><LabelHelp text={T("app_s_logo_h")} /></span>
         <span className="rg-actions">
           {r.logo && logoUrl && <img className="set-logo" alt={T("app_s_logo")} data-testid="set-logo-img" src={logoUrl} />}
           <button type="button" className="btn" data-testid="set-logo-pick" title={T("app_s_logo_h")} onClick={() => file.current?.click()}>{T("app_s_logo_pick")}</button>
           {r.logo && <button type="button" className="btn" data-testid="set-logo-remove" title={T("app_s_logo_remove_h")}
             onClick={() => void removeLogo().catch(() => undefined)}>{T("app_s_logo_remove")}</button>}
-          <input ref={file} type="file" hidden accept=".png,.jpg,.jpeg,.svg" data-testid="set-logo-file"
+          <input ref={file} type="file" hidden accept=".png,.jpg,.jpeg" data-testid="set-logo-file"
             onChange={(e) => { void up(e.target.files?.[0]); e.target.value = ""; }} />
         </span>
-      </div>
+      </div>}
       {err && <div className="rg-err" role="alert">{err}</div>}
       <Row label={T("app_s_rep_lang")} help="app_s_rep_lang_h">
         <Choice value={r.language} options={["app", "cs", "en"] as const} label={T("app_s_rep_lang")} testid="set-rep-lang"
@@ -267,8 +269,10 @@ export function ConnectionsSec({ s }: { s: AppSettings }) {
   const set = useSet();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  const pub = usePublic();
   const ok = name.trim() !== "" && url.trim().toLowerCase().startsWith("opc.tcp://");
   const hist = [["pcs7", "app_s_h_pcs7"], ["deltav", "app_s_h_deltav"], ["pi", "app_s_h_pi"]] as const;
+  if (pub) return <Sec id="connections" title={T("app_s_conn")} note={T("opc_disabled")}>{null}</Sec>;
   return (
     <Sec id="connections" title={T("app_s_conn")} note={T("app_s_conn_note")}>
       <h3>{T("app_s_opc")}<LabelHelp text={T("app_s_opc_h")} /></h3>

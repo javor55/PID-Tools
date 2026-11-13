@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>report</title>
+<!-- Hostitel náhledu protokolu: server ho vrací s vlastní, uvolněnější hlavičkou CSP (skripty Plotly v protokolu) a
+     sandboxem bez přístupu k síti a k aplikaci; protokol sem přijde zprávou od rodiče (viz ProjectTab). -->
+<script>
+addEventListener("message", function (e) {
+  if (e.source !== parent || !e.data || typeof e.data.pidReport !== "string") return;
+  document.open();
+  document.write(e.data.pidReport);
+  document.close();
+});
+parent.postMessage({ pidReportReady: true }, "*");
+</script>

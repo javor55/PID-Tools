@@ -5,6 +5,7 @@ import type { components } from "./schema";
 export type JobInfo = components["schemas"]["JobInfo"];
 export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
 export type Health = components["schemas"]["Health"];
+export type Config = components["schemas"]["Config"];
 
 declare global {
   interface Window { __PID__?: { token?: string; api?: string } }
@@ -41,7 +42,21 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   return h;
 }
 
+let session: Promise<Config | null> | null = null;
+
+/**
+ * Nasazení (`/config`): režim desktop / team / public a limity. Ve veřejném režimu server tímto prvním voláním vydá
+ * relaci (cookie), proto všechna další volání čekají – souběžné požadavky bez cookie by dostaly každý jinou relaci.
+ */
+export function ensureSession(): Promise<Config | null> {
+  session ??= fetch(base + "/config", { headers: headers() })
+    .then(async (r) => { if (r.ok) return (await r.json()) as Config; session = null; return null; })
+    .catch(() => { session = null; return null; });
+  return session;
+}
+
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  if (path !== "/config") await ensureSession();
   const init: RequestInit = { method, headers: headers(body !== undefined ? { "Content-Type": "application/json" } : {}) };
   if (body !== undefined) init.body = JSON.stringify(body);
   const r = await fetch(base + path, init);
@@ -57,6 +72,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 
 /** Požadavek s binárním tělem (soubor) – odpověď JSON. */
 export async function rawRequest<T>(method: string, path: string, body: ArrayBuffer): Promise<T> {
+  await ensureSession();
   const r = await fetch(base + path, { method, headers: headers({ "Content-Type": "application/octet-stream" }), body });
   if (!r.ok) {
     let msg = r.statusText;
@@ -68,6 +84,7 @@ export async function rawRequest<T>(method: string, path: string, body: ArrayBuf
 
 /** Binární odpověď (signály, průběhy); s tělem jako POST JSON. */
 export async function binary(path: string, body?: unknown): Promise<ArrayBuffer> {
+  await ensureSession();
   const r = await fetch(base + path, body === undefined ? { headers: headers() }
     : { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify(body) });
   if (!r.ok) throw new ApiError(r.status, r.statusText);
@@ -76,6 +93,7 @@ export async function binary(path: string, body?: unknown): Promise<ArrayBuffer>
 
 /** Odpověď jako bajty bez ohledu na typ (soubor ke stažení: projekt, protokol); tělo JSON jen u POST. */
 export async function bytes(method: string, path: string, body?: unknown): Promise<ArrayBuffer> {
+  await ensureSession();
   const init: RequestInit = { method, headers: headers(body !== undefined ? { "Content-Type": "application/json" } : {}) };
   if (body !== undefined) init.body = JSON.stringify(body);
   const r = await fetch(base + path, init);
@@ -89,6 +107,7 @@ export async function bytes(method: string, path: string, body?: unknown): Promi
 
 export const api = {
   health: () => request<Health>("GET", "/health"),
+  config: () => ensureSession().then((c) => { if (!c) throw new ApiError(0, "config"); return c; }),
   texts: (l: string) => request<Record<string, string>>("GET", `/i18n/${l}`),
   createWorkspace: () => request<WorkspaceInfo>("POST", "/workspaces"),
   workspace: (wid: string) => request<WorkspaceInfo>("GET", `/workspaces/${wid}`),
@@ -100,6 +119,7 @@ export const api = {
 export function watchJob(jid: string, onInfo: (j: JobInfo) => void): () => void {
   const ctl = new AbortController();
   (async () => {
+    await ensureSession();
     const r = await fetch(`${base}/jobs/${jid}/events`, { headers: headers(), signal: ctl.signal });
     if (!r.ok || !r.body) return;
     const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();

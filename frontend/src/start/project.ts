@@ -6,6 +6,7 @@ import type { components } from "../api/schema";
 import { queryClient } from "../queryClient";
 import { useSettingsUi } from "../settings/settingsStore";
 import { useAppSettings } from "../settings/appSettings";
+import { usePublic } from "../deploy";
 import { useUi } from "../store";
 
 export type SaveState = components["schemas"]["SaveState"];
@@ -29,12 +30,13 @@ export const lastSaved = (st: SaveState | undefined) => (st ? Math.max(st.saved_
 /** Záchranná kopie: po změnách a v klidu (nejvýš jednou za zvolený počet minut; 0 = vypnuto) zapíše projekt na server. */
 export function useAutosave() {
   const wid = useUi((s) => s.wid);
+  const pub = usePublic();                    // veřejný režim: server nic neukládá, projekt se ukládá do souboru
   const st = useSaveState().data;
   const minutes = useAppSettings().data?.general.autosave_min ?? 1;
   const ref = useRef({ st, minutes, rev: -1, since: 0, busy: false });
   useEffect(() => { ref.current.st = st; ref.current.minutes = minutes; });
   useEffect(() => {
-    if (!wid) return;
+    if (!wid || pub) return;
     const tick = async () => {
       const r = ref.current;
       const s = r.st;
@@ -50,7 +52,7 @@ export function useAutosave() {
     };
     const t = window.setInterval(() => void tick(), 2000);
     return () => window.clearInterval(t);
-  }, [wid]);
+  }, [wid, pub]);
 }
 
 export const useRecovery = () =>

@@ -1,7 +1,7 @@
 // Záložka Projekt a report (M21): uložení / otevření projektu (soubor), údaje a volby protokolu, náhled protokolu
 // (HTML v izolovaném iframe) a jeho stažení.
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 import { ApiError, bytes, rawRequest } from "../api/client";
 import { Card } from "../components/Card";
@@ -59,6 +59,12 @@ export function usePendingOpen() {
   }, [wid, qc, T]);
 }
 
+function hashOf(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return `${s.length}:${h}`;
+}
+
 function saveAs(name: string, data: BlobPart, type: string) {
   const a = document.createElement("a");
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -91,6 +97,17 @@ function ReportMain() {
   const { html, busy, err } = useReport();
   const base = useBaseName();
   const frame = useRef<HTMLIFrameElement>(null);
+  // Protokol se do izolovaného rámce posílá zprávou (stránka rámce má vlastní CSP, `srcdoc` by zdědil přísné CSP aplikace)
+  const htmlKey = useMemo(() => (html ? hashOf(html) : ""), [html]);
+  useEffect(() => {
+    if (!html) return;
+    const on = (e: MessageEvent) => {
+      if (e.source === frame.current?.contentWindow && (e.data as { pidReportReady?: boolean } | null)?.pidReportReady)
+        frame.current?.contentWindow?.postMessage({ pidReport: html }, "*");
+    };
+    window.addEventListener("message", on);
+    return () => window.removeEventListener("message", on);
+  }, [html, htmlKey]);
   return (
     <div className="stack">
       <Card title={T("rp_preview")} help={T("rp_pdf_hint")} testid="report-card"
@@ -104,8 +121,8 @@ function ReportMain() {
       </Card>
       {html && (
         <div className="rcanvas">
-          <iframe ref={frame} className="report-frame" title="report" sandbox="allow-scripts allow-modals" srcDoc={html}
-            data-testid="report-frame" />
+          <iframe key={htmlKey} ref={frame} className="report-frame" title="report" sandbox="allow-scripts allow-modals"
+            src="/report-host.html" data-testid="report-frame" data-report-len={html.length} />
         </div>)}
     </div>
   );
