@@ -159,7 +159,7 @@ class PublicGate:
         gated = is_api and path != self.prefix + "/health"
         if gated:
             if not self.general.allow(ip):
-                return await _respond(send, 429, "rate limit", [(b"retry-after", b"10")])
+                return await _respond(send, 429, "pub_rate", [(b"retry-after", b"10")])
             hdr = dict(scope.get("headers") or [])
             if method in UNSAFE:
                 if self._cross_origin(hdr):
@@ -170,21 +170,21 @@ class PublicGate:
                 except ValueError:
                     return await _respond(send, 400, "bad content-length")
                 if n > cfg.max_upload:
-                    return await _respond(send, 413, "request too large")
+                    return await _respond(send, 413, "data_too_big")
                 if clen is None and b"transfer-encoding" in hdr:
                     return await _respond(send, 411, "content-length required")
                 if n >= 256 * 1024 and not self.uploads.allow(ip):
-                    return await _respond(send, 429, "upload rate limit", [(b"retry-after", b"30")])
+                    return await _respond(send, 429, "pub_rate", [(b"retry-after", b"30")])
         sid = _cookie_of(scope)
         sid = sid if _SID_RE.fullmatch(sid) and self.sessions.touch(sid) else ""
         fresh = False
         if not sid and gated:
             if not self.creations.allow(ip):
-                return await _respond(send, 429, "rate limit", [(b"retry-after", b"30")])
+                return await _respond(send, 429, "pub_rate", [(b"retry-after", b"30")])
             try:
                 sid, fresh = self.sessions.create(), True
             except SessionLimitError:
-                return await _respond(send, 503, "server busy", [(b"retry-after", b"60")])
+                return await _respond(send, 503, "pub_busy", [(b"retry-after", b"60")])
         if sid:
             deploy.USER.set(sid)
             scope[deploy.SCOPE_USER] = fingerprint(sid)
@@ -228,6 +228,14 @@ SECURITY_HEADERS = {
 }
 
 
+# Hostitel náhledu protokolu (frontend/public/report-host.html): protokol nese skripty Plotly a vlastní styly, proto má
+# vlastní CSP – ale v sandboxu bez přístupu k aplikaci a k síti (žádné connect-src, jen data: obrázky).
+REPORT_HOST = "/report-host.html"
+REPORT_CSP = ("default-src 'none'; script-src 'unsafe-inline' https://cdn.plot.ly; style-src 'unsafe-inline'; "
+              "img-src data: blob:; font-src data:; sandbox allow-scripts allow-modals; frame-ancestors 'self'; "
+              "base-uri 'none'; form-action 'none'")
+
+
 class SecurityHeaders:
     """ASGI: bezpečnostní hlavičky na každé odpovědi (co nastavila cesta sama, např. logo, se nepřepisuje)."""
 
@@ -239,6 +247,7 @@ class SecurityHeaders:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         api = scope["path"].startswith(self.prefix + "/")
+        host = scope["path"] == REPORT_HOST
         docs = scope["path"] in ("/docs", "/redoc")          # Swagger UI / ReDoc (jen mimo veřejný režim) potřebují CDN
 
         async def send_(msg):
@@ -247,6 +256,8 @@ class SecurityHeaders:
                 add = {**SECURITY_HEADERS, **self.extra}
                 if docs:
                     del add["content-security-policy"]
+                if host:
+                    add.update({"content-security-policy": REPORT_CSP, "x-frame-options": "SAMEORIGIN"})
                 if self.no_store and api:
                     add["cache-control"] = "no-store"
                 msg = dict(msg, headers=[*msg["headers"], *((k.encode(), v.encode()) for k, v in add.items()

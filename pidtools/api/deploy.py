@@ -359,7 +359,7 @@ def install(app, cfg, on_expire=None):
     @app.exception_handler(JobLimitError)
     async def _job_limit(_request, ex):
         if isinstance(ex, ServerBusyError):
-            return JSONResponse({"detail": "server busy"}, status_code=503, headers={"Retry-After": "30"})
+            return JSONResponse({"detail": "pub_busy"}, status_code=503, headers={"Retry-After": "30"})
         return JSONResponse({"detail": "job limit reached"}, status_code=429)
 
     if cfg.public:

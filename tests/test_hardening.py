@@ -30,6 +30,23 @@ def test_security_headers_in_desktop_mode():
         assert "content-security-policy" not in c.get("/docs").headers          # Swagger UI potřebuje CDN
 
 
+def test_report_host_has_its_own_csp(tmp_path):
+    ui = tmp_path / "ui"
+    ui.mkdir()
+    (ui / "index.html").write_text("<!doctype html>")
+    (ui / "report-host.html").write_text("<!doctype html>")
+    import pidtools.api as api
+    old, api.UI_DIR = api.UI_DIR, ui
+    try:
+        with TestClient(create_app()) as c:
+            h = c.get("/report-host.html").headers
+            assert "sandbox allow-scripts" in h["content-security-policy"] and "connect-src" not in h["content-security-policy"]
+            assert "'unsafe-inline'" in h["content-security-policy"] and h["x-frame-options"] == "SAMEORIGIN"
+            assert "script-src 'self'" in c.get("/").headers["content-security-policy"]          # aplikace zůstává přísná
+    finally:
+        api.UI_DIR = old
+
+
 def test_svg_logo_not_accepted_and_old_one_served_as_attachment(tmp_path):
     cfgd = tmp_path / "c"
     cfgd.mkdir()
