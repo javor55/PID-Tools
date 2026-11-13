@@ -4,13 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import type { components } from "../api/schema";
-import { RecordViewer } from "../components/RecordViewer";
 import { PrimaryAction, SideCard } from "../components/Ui";
 import { uploadFile, useSettings, useWs, useWsQuery } from "../data";
-import { useT, useTexts } from "../i18n";
+import { useT } from "../i18n";
 import { useUi } from "../store";
 import "../styles/data.css";
-import { DataQualityCard } from "./DataQuality";
+import { QualityMain } from "./data/QualityView";
 import { FullPreview, PreviewCard } from "./DataPreview";
 import { UnitsBody } from "./DataLayout";
 
@@ -62,7 +61,6 @@ function usePageDrop(load: (f: File | undefined) => Promise<void>) {
 
 export function DataMain() {
   const T = useT();
-  const texts = useTexts();
   const ws = useWs().data;
   const { load, err } = useUpload();
   const over = usePageDrop(load);
@@ -88,12 +86,7 @@ export function DataMain() {
   return (
     <div className="dt-main">
       {overlay}
-      <div className="dt-top">
-        <span className="dt-note">{T("ui_data_viewer_note")}</span>
-        <button type="button" className="dt-linkbtn" onClick={() => setFull(true)} data-testid="full-open">{T("ui_data_full")}</button>
-      </div>
-      {texts && <RecordViewer texts={texts} />}
-      <DataQualityCard />
+      <QualityMain />
       <PreviewCard onFull={() => setFull(true)} />
       {full && <FullPreview onClose={() => setFull(false)} />}
     </div>

@@ -51,7 +51,7 @@ export function PreviewCard({ onFull }: { onFull: () => void }) {
     <section className="dt-card" aria-label={T("tn_prev")} data-testid="data-preview">
       <div className="dt-head">
         <h2>{T("tn_prev")}</h2>
-        <button type="button" className="link" onClick={onFull}>{T("ui_data_all_table")}</button>
+        <button type="button" className="link" onClick={onFull} data-testid="full-open">{T("ui_data_all_table")}</button>
         <span className="dt-sub">{T("tn_prev_note")}</span>
       </div>
       <div className="dt-scroll">

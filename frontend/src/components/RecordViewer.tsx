@@ -21,7 +21,8 @@ const DIST = ["#0d9488", "#8b5cf6", "#ca8a04", "#64748b"];
 
 declare global { interface Window { __pidViewData?: Record<string, { buf: ArrayBuffer; sigs: Record<string, unknown> }> } }
 
-export function RecordViewer({ texts }: { texts: Record<string, string> }) {
+/** simple = jednoduchý graf smyčky (Kvalita dat): pevné panely SP + PV / MV / DV, bez seznamu signálů, rozložení se neukládá. */
+export function RecordViewer({ texts, simple }: { texts: Record<string, string>; simple?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const wid = useUi((s) => s.wid);
   const lang = useUi((s) => s.lang);
@@ -48,14 +49,17 @@ export function RecordViewer({ texts }: { texts: Record<string, string> }) {
     let k = 0;
     const sigs = meta.sigs.map((s) => {
       const [role, color, unit] = roles[s.name] ?? ["", OTHER[k++ % OTHER.length], ""];
-      return { ...s, role, color, unit };
+      return { ...s, role, color, unit, axis: role === "PV" || role === "SP" ? "pv" : role === "MV" || role === "POS" ? "mv" : null };
     });
     window.__pidViewData = { [meta.hash]: { buf: blob, sigs: {} } };
     const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
     const txt = Object.fromEntries(Object.entries(texts).filter(([kk]) => kk.startsWith("vw_")).map(([kk, v]) => [kk.slice(3), v]));
-    const lay = typeof st.dview === "string" ? st.dview : null;
+    const fixed = simple ? JSON.stringify({ list: false, panels: [
+      { sigs: [ws.pv, ws.sp].filter(Boolean), h: 210 }, { sigs: [ws.mv, ws.pos].filter(Boolean), h: 140 },
+      ...((ws.dists ?? []).length ? [{ sigs: ws.dists ?? [], h: 120 }] : [])] }) : null;
+    const lay = simple ? fixed : typeof st.dview === "string" ? st.dview : null;
     const data = {
-      key: "data_view", view_key: `${ws.fname}|${meta.hash}`, sigs, times: meta.times, T: meta.T, decim: meta.decim,
+      key: simple ? "quality_view" : "data_view", view_key: `${simple ? "q|" : ""}${ws.fname}|${meta.hash}|${ws.pv}`, sigs, times: meta.times, T: meta.T, decim: meta.decim,
       hash: meta.hash, clock: Number.isFinite(clock) ? clock : null, tunit: "auto", dec: decOf(lang),
       dark, txt, fname: ws.fname, layout: lay, b64: null as string | null, url: null as string | null,
     };
@@ -64,12 +68,12 @@ export function RecordViewer({ texts }: { texts: Record<string, string> }) {
       data: { ...data, sig }, parentElement: box.current,
       setStateValue: (key, value) => {
         // viewer.js posílá rozložení až po 1,5 s klidu
-        if (key === "layout" && typeof value === "string" && value.length <= 65536) {
+        if (!simple && key === "layout" && typeof value === "string" && value.length <= 65536) {
           void request("PATCH", `/workspaces/${wid}/settings`, { dview: value });
         }
       },
     });
-  }, [pack.data, ws, settings.data, texts, lang, dark, wid]);
+  }, [pack.data, ws, settings.data, texts, lang, dark, wid, simple]);
 
   return <div ref={box} className="viewer-host" data-testid="record-viewer" />;
 }

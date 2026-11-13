@@ -168,7 +168,9 @@ def test_data_tab_viewer_columns_layout(page, server):
     page.locator('[data-sub="quality"]').click()
     page.wait_for_selector(".pidv-panel canvas", timeout=30000)
     page.wait_for_timeout(500)
-    assert page.locator(".pidv-panel").count() >= 3 and page.locator(".pidv-sig").count() >= 4
+    assert page.locator(".pidv-panel").count() >= 3 and page.locator(".pidv-sig").count() == 0     # jednoduchý graf bez seznamu
+    assert page.locator('[data-testid="dq-verdict"]').get_attribute("data-level") == "0"
+    assert page.locator('[data-testid="dq-seg"]').count() >= 1 and page.locator('[data-testid="dq-event"]').count() >= 6
     page.wait_for_selector('[data-testid="quality"] li')
     assert page.locator('[data-testid="quality"] li').count() == 2
     assert "AUTO" in page.locator('[data-testid="loopmode"]').inner_text()
@@ -189,9 +191,12 @@ def test_data_tab_viewer_columns_layout(page, server):
         page.wait_for_timeout(80)
     page.wait_for_timeout(300)
     assert rows() < n0
-    page.wait_for_timeout(2500)                                   # viewer.js ukládá rozložení po 1,5 s klidu
-    lay = _api(server, "/workspaces/{wid}/settings", page).get("dview")
-    assert isinstance(lay, str) and "panels" in lay
+    # navržený úsek → Model (úsek identifikace)
+    page.locator('[data-testid="dq-use-0"]').click()
+    page.wait_for_selector('[data-testid="model-trend"]', timeout=30000)
+    seg = _api(server, "/workspaces/{wid}/dataquality/summary", page)["segments"][0]
+    assert _api(server, "/workspaces/{wid}", page)["rng"] == [seg["a"], seg["b"]]
+    page.locator('[data-tab="data"]').click()
 
 
 def test_data_tab_design_structure(page, server):

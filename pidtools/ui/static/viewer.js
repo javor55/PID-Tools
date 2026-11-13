@@ -316,6 +316,13 @@ export default function (component) {
       build();
     };
     me.setHost = (h) => { component.listHost = h || undefined; me.host = h || null; build(); };
+    me.goto = (t) => {                          // výřez kolem času t (např. událost ze seznamu stránky)
+      const Ln = Math.min(S.view[1] - S.view[0], D.T);
+      const a = clamp(t - Ln / 2, 0, Math.max(0, D.T - Ln));
+      push(true); S.view = [a, a + Ln]; push(true);
+      if (S.cur.on) S.cur.a = snapT(clamp(t, 0, D.T));
+      redraw(); save();
+    };
     me.state = () => S;                         // stav pro stránku (kurzory pro „Vyznačit úsek“, panely)
     me.setGroups = (g) => { D.groups = g; if (me.rows) me.rows(); };
     me.setPanels = (ps) => {                    // rozvržení panelů zvenku (např. „panel na smyčku“)

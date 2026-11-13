@@ -280,7 +280,7 @@ def _dq_summary(ws):
         segs.append(DqSegment(a=float(g["start"]), b=float(g["end"]), level=int(qq["level"]) if qq else 2,
                               n_mv=int(g["n_mv"]), n_sp=int(g["n_sp"])))
     segs.sort(key=lambda x: (x.level, -(x.n_mv + x.n_sp)))
-    return DqSummary(level=int(q["level"]), checks=[Check(key=k, level=int(lv), args=_plain(ar)) for k, lv, ar in q["checks"]],
+    return DqSummary(level=int(q["level"]), checks=[Check(key=k, level=int(lv), args=_plain(sg.format_args(ar))) for k, lv, ar in q["checks"]],
                      events=ev[:200], segments=segs, auto_frac=_plain(ws.auto_frac()))
 
 
