@@ -14,6 +14,7 @@ a desktop application (a window for engineering stations). Both use the same com
 | **Offline PC / engineering station** (portable package via USB, desktop application) | PCs without internet, PCS 7 engineering stations | stay on the PC |
 | **Internal server / local web** (`python -m pidtools.api`) | a team / company | stay in the company network |
 | **Team web (new UI)** – one container, sign-in via Cloudflare Access | a team / company | stay on your server |
+| **Public mode** – the same container without sign-in, nothing stored on the server | public demo / trial | processed in memory for the session only |
 
 ---
 
@@ -208,6 +209,84 @@ open it again. Projects saved by an older version open in a newer one. Limits ar
 values.
 
 ---
+
+## Public mode (no sign-in)
+
+`PIDTOOLS_AUTH=public` runs the same container for **anyone on the internet without a login** - meant for a demo / trial
+instance behind a Cloudflare Tunnel on a small VM. It reuses the team-mode machinery (every workspace and job belongs to
+a *session* instead of a user), but because nobody is vetted the server keeps **nothing on disk** and is limited
+per session, per client IP and globally.
+
+```bash
+docker run -d --name pid-tools-public --restart unless-stopped -p 127.0.0.1:8080:8080 \
+  -e PIDTOOLS_AUTH=public -e PIDTOOLS_TRUST_CF_IP=1 --read-only --tmpfs /tmp pid-tools-web
+```
+
+**Sessions.** The first call of the UI (`GET /api/v1/config`) makes the server issue a random 256-bit session id in the
+cookie `pidtools_sid` (`HttpOnly; Secure; SameSite=Strict`, `Max-Age` = idle time). The id is the "user": another
+session's workspace or job id returns **404**. A session expires after `PIDTOOLS_SESSION_TTL` seconds without a request
+and its workspaces, jobs and in-memory settings are freed. A cookie value the server does not know (forged, expired) is
+replaced. Writes with an `Origin` header that differs from `Host` get **403** (CSRF defence in addition to
+`SameSite=Strict`). Without HTTPS the browser drops `Secure` cookies - for a local test over plain http set
+`PIDTOOLS_COOKIE_SECURE=0`.
+
+| Variable | Public default | Meaning |
+|---|---|---|
+| `PIDTOOLS_AUTH` | - | `public` enables the mode |
+| `PIDTOOLS_COOKIE_SECURE` | `1` | `Secure` flag of the session cookie (and `Strict-Transport-Security`); `0` only for local http |
+| `PIDTOOLS_SESSION_TTL` | 7200 | idle expiry of a session in seconds |
+| `PIDTOOLS_MAX_SESSIONS` | 200 | sessions in total; when full, new visitors get **503** `pub_busy` (existing sessions keep working) |
+| `PIDTOOLS_MAX_UPLOAD_MB` | 20 | largest request body (data file, project, settings); bigger gives **413** from `Content-Length`; a body without `Content-Length` (chunked) gives 411 |
+| `PIDTOOLS_MAX_WORKSPACES_USER` | 3 | workspaces per session (a new one frees the least recently used one) |
+| `PIDTOOLS_MAX_WORKSPACES` | 100 | workspaces in total |
+| `PIDTOOLS_MAX_JOBS_USER` | 2 | queued + running jobs per session; more gives **429** |
+| `PIDTOOLS_MAX_JOBS` | number of CPUs | jobs running at once (processes) |
+| `PIDTOOLS_MAX_QUEUE` | 4 | jobs waiting beyond the running ones, server-wide; when running + waiting is full: **503** `pub_busy` with `Retry-After` |
+| `PIDTOOLS_RATE_LIMIT` | 300 | API requests per minute and client IP (token bucket, burst = 1/6 of it; `/health` is exempt); over: **429** |
+| `PIDTOOLS_RATE_UPLOAD` | 10 | uploads of 256 kB or more and job submissions per minute and client IP (burst = half) |
+| `PIDTOOLS_TRUST_CF_IP` | off | `1` takes the client IP from `CF-Connecting-IP` (only behind Cloudflare Tunnel; otherwise the socket peer is used) |
+| `PIDTOOLS_WORKSPACE_TTL` | 3600 | idle expiry of a workspace in seconds |
+
+New sessions are also limited to 10 per minute (burst 5) per IP, so one client cannot fill the session table.
+**Behind the tunnel set `PIDTOOLS_TRUST_CF_IP=1`** - otherwise all visitors share the IP of `cloudflared` and one rate
+bucket - and make sure the container port is reachable **only** from the tunnel (`-p 127.0.0.1:...` or a private Docker
+network), because with the flag on anyone who can reach the port could forge the header. In public mode
+`X-Forwarded-For` is not trusted (the server starts uvicorn without proxy headers unless you set
+`PIDTOOLS_FORWARDED_ALLOW_IPS` yourself).
+
+**What is disabled or kept in memory**
+
+| Feature | In public mode |
+|---|---|
+| App settings (`/app-settings`) | in memory of the session, bounded by the validation; lost with the session (export / import still work); connections are never stored |
+| Report logo upload | **403** `logo_disabled`; the UI hides it |
+| Recovery copy (autosave), recent projects | off (`/autosave` gives **403**, `/recent` is empty); the UI does not autosave - users save the project as a file |
+| User controller library (create, import, edit, delete) | read-only (**403**); presets work; a loop can still carry its own controller inside the project |
+| OPC UA (browse, find, history) and historian addresses | **403** `opc_disabled`; the UI hides the buttons |
+| Journal attachments | **403** `attachments_disabled` (journal snapshots and notes work) |
+| `/docs`, `/redoc`, `/openapi.json` | off |
+| Disk | nothing is written under the config, data or controller directories (a test asserts it); run the container with a read-only root filesystem and a `tmpfs` for `/tmp` |
+
+**Privacy.** The UI shows a notice on the Start screen and in the help (`?`): data is processed only on the server for
+the session and discarded when it ends or after the idle time; save the project to a file. Access logs contain only a
+short hash of the session id (`user=s-1a2b3c4d`), never the id itself, the query string or uploaded data. Responses of
+the API carry `Cache-Control: no-store`.
+
+## Security hardening (all modes)
+
+- Every response carries `Content-Security-Policy` (`default-src 'self'; script-src 'self'; style-src 'self'
+  'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none';
+  form-action 'self'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`,
+  `Cross-Origin-Opener-Policy: same-origin` and a minimal `Permissions-Policy`. The report preview lives in a sandboxed
+  frame served from `/report-host.html` with its own CSP (the report carries Plotly scripts) and no network access.
+  A reverse proxy must not strip or override these headers.
+- The report logo accepts **png / jpg only** (SVG can carry scripts). An old SVG logo is still readable but served as an
+  attachment with `Content-Security-Policy: sandbox`.
+- Input limits: CSV / Excel are limited to 2 000 000 rows and 500 columns; an `.xlsx` (a zip) is rejected before parsing
+  when its unpacked size exceeds 128 MB or it holds more than 2 000 files (zip bomb); project and settings files have
+  size caps and absurdly nested JSON is a 400; the controller equation language has limits on source length (20 000
+  characters), statements, parameters, tree nodes and depth.
+- Errors never contain stack traces; file paths are removed from job errors in public mode.
 
 ## Data and privacy
 

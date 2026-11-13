@@ -2,6 +2,17 @@
 
 ## Nevydáno
 
+- **Veřejný režim** (`PIDTOOLS_AUTH=public`, docs/cs/nasazeni.md): web bez přihlášení. Anonymní relace v cookie
+  `HttpOnly; Secure; SameSite=Strict` vlastní prostory a úlohy (cizí relace dostane 404, po nečinnosti se uvolní); na disk
+  se nezapisuje nic (nastavení v paměti relace; záchranná kopie, nedávné projekty, logo, přílohy deníku, zápis do knihovny
+  regulátorů a OPC UA vrací 403 a rozhraní je skrývá); limity velikosti nahrání, prostorů a úloh na relaci, celkový strop
+  úloh s frontou (503), počet relací a omezení četnosti po IP (IP z `CF-Connecting-IP` jen s `PIDTOOLS_TRUST_CF_IP=1`);
+  upozornění na soukromí na Startu a v nápovědě; nové `GET /api/v1/config` (režim a limity).
+- **Zabezpečení ve všech režimech:** `Content-Security-Policy` a další bezpečnostní hlavičky na každé odpovědi (náhled
+  protokolu je v izolovaném rámci `/report-host.html` s vlastním CSP); nahrání loga SVG zrušeno (staré se vrací jako příloha
+  v sandboxu); meze řádků a sloupců CSV / Excel a kontrola zip bomby u `.xlsx`; příliš hluboký JSON projektu je 400; chyby
+  úloh ve veřejném režimu bez cest k souborům.
+
 ## 4.0.0 beta 2 – oprava instalátorů
 
 - Instalátory **4.0.0 beta 1 obsahovaly staré výpočetní jádro a rozhraní** (sestavení z 11. 11. 2026, bez nového

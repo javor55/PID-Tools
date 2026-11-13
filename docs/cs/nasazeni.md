@@ -93,6 +93,36 @@ docker run -d --name pid-tools-web --restart unless-stopped -p 127.0.0.1:8080:80
 - Běží jeden proces (prostory a úlohy jsou v paměti): po restartu je nutné projekt znovu otevřít, proto uživatelé
   průběžně ukládají projekt.
 
+## Veřejný režim (bez přihlášení)
+
+`PIDTOOLS_AUTH=public` spustí stejný kontejner **bez přihlášení pro kohokoli** – pro ukázkovou / zkušební instanci za
+Cloudflare Tunnelem na malém VM. Využívá týmový režim (prostory a úlohy patří *relaci* místo uživatele), ale server
+**nic neukládá na disk** a omezuje relaci, IP klienta i server jako celek. Podrobnosti anglicky v
+[deployment.md](../deployment.md#public-mode-no-sign-in); stručně:
+
+- **Relace:** první volání rozhraní (`/api/v1/config`) vydá náhodné 256bitové ID v cookie `pidtools_sid`
+  (`HttpOnly; Secure; SameSite=Strict`). ID je „uživatel“: cizí prostor nebo úloha dává 404. Po
+  `PIDTOOLS_SESSION_TTL` s nečinnosti (7200) se relace zruší i s prostory, úlohami a nastavením. Zápis s cizím `Origin` = 403.
+  Pro místní zkoušku přes http: `PIDTOOLS_COOKIE_SECURE=0`.
+- **Limity (výchozí):** `PIDTOOLS_MAX_UPLOAD_MB` 20, `PIDTOOLS_MAX_WORKSPACES_USER` 3, `PIDTOOLS_MAX_JOBS_USER` 2
+  (429), `PIDTOOLS_MAX_JOBS` = počet CPU, `PIDTOOLS_MAX_QUEUE` 4 (celkem čekajících úloh; plno = 503),
+  `PIDTOOLS_MAX_SESSIONS` 200 (plno = 503), `PIDTOOLS_RATE_LIMIT` 300 požadavků / min a IP, `PIDTOOLS_RATE_UPLOAD` 10
+  nahrání a spuštění úloh / min a IP, `PIDTOOLS_WORKSPACE_TTL` 3600.
+- **IP klienta:** za tunelem nastavte `PIDTOOLS_TRUST_CF_IP=1` (IP z `CF-Connecting-IP`) a port kontejneru
+  zpřístupněte jen tunelu; jinak se bere protistrana spojení. `X-Forwarded-For` se ve veřejném režimu nepřijímá.
+- **Vypnuto / jen v paměti:** nastavení aplikace jen v paměti relace (bez připojení), logo reportu (403),
+  záchranná kopie a nedávné projekty (projekt si uživatel ukládá do souboru), úpravy knihovny regulátorů (jen čtení),
+  OPC UA a historiany (403), přílohy deníku (403), `/docs` a `/openapi.json`. Na disk se nezapisuje nic
+  (hlídá test); kontejner spusťte s `--read-only --tmpfs /tmp`.
+- **Soukromí:** rozhraní na Startu a v nápovědě upozorní, že se data zpracovávají jen na serveru po dobu relace a pak
+  se zahodí. V logu je jen krátký otisk ID relace.
+
+**Zabezpečení ve všech režimech:** hlavičky `Content-Security-Policy` (jen vlastní zdroje), `nosniff`,
+`Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `COOP`, `Permissions-Policy`; logo reportu jen png / jpg (SVG
+se nepřijímá, starý se vrací jako příloha v sandboxu); meze vstupů (CSV / Excel 2 000 000 řádků a 500 sloupců,
+`.xlsx` se před čtením kontroluje na rozbalenou velikost 128 MB, projekt a nastavení mají strop velikosti); chyby bez
+výpisu volání a cest.
+
 ## Data a soukromí
 
 - Nahraná data se zpracovávají jen v paměti serveru po dobu relace (a v mezipaměti výpočtů); aplikace nic
