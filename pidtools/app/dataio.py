@@ -75,12 +75,19 @@ def _check_size(df):
     return df
 
 
+try:                                                      # rychlé čtení sešitů (Rust); bez balíčku výchozí openpyxl
+    import python_calamine  # noqa: F401
+    _EXCEL_ENGINE = "calamine"
+except ImportError:                                       # pragma: no cover
+    _EXCEL_ENGINE = None
+
+
 def read_table(name, raw_bytes):
     if name.lower().endswith(".xlsx"):
         _check_xlsx(raw_bytes)
     if name.lower().endswith((".xlsx", ".xls")):
         try:
-            df = pd.read_excel(io.BytesIO(raw_bytes))
+            df = pd.read_excel(io.BytesIO(raw_bytes), engine=_EXCEL_ENGINE)
         except ValueError:
             raise
         except Exception:                                  # noqa: BLE001 – poškozený sešit: bez podrobností (cesty, trasování)
@@ -244,6 +251,16 @@ _TIME_WORDS = ("time", "čas", "cas", "date", "datum", "timestamp", "zeit", "uhr
 
 def time_columns(df):
     """Sloupce, které obsahují čas: podle názvu (a čitelného obsahu), nebo datum/čas v textu."""
+    key = (tuple(map(str, df.columns)), df.shape)          # tatáž tabulka se prochází opakovaně (rozvržení, signály)
+    hit = df.attrs.get("_pid_time_columns")
+    if hit and hit[0] == key:
+        return list(hit[1])
+    out = _time_columns(df)
+    df.attrs["_pid_time_columns"] = (key, tuple(out))
+    return out
+
+
+def _time_columns(df):
     out = []
     for c in df.columns:
         toks = _tokens(c)

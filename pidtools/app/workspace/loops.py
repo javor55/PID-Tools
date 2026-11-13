@@ -101,8 +101,8 @@ class Project(SourcesMixin):
         ls = Workspace()
         ls.time_fmt, ls.unit, ls.ts_user = src.time_fmt, src.unit, src.ts_user
         ls.origin_hint, ls.merged_df = src.origin_hint, src.merged_df
-        ls.load_frame(src.df, src.fname, src.layout, c_time=src.c_time, c_tag=src.c_tag, c_val=src.c_val,
-                      row_dt=src.row_dt)
+        ls.load_frame(src.df, src.fname, src.layout, sig=src.sig, c_time=src.c_time, c_tag=src.c_tag,
+                      c_val=src.c_val, row_dt=src.row_dt)          # signály se sdílí (tatáž tabulka), nečtou se znovu
         ls.src_ids, ls.name_refs = list(src.src_ids), dict(src.name_refs)
         g = guess_roles(ls.sig.sigs, ls.sig.get, [x.c_pv for x in self.loops])
         ls.set_columns(g["pv"], g["mv"], g["sp"] or "—", [], g["pos"] or "—")

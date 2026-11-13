@@ -18,10 +18,11 @@ class DataMixin:
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     # ---- data
-    def load_frame(self, df, name, layout=None, **opts):
+    def load_frame(self, df, name, layout=None, sig=None, **opts):
         """
         Nová tabulka: rozložení, signály, odhad sloupců, celý záznam jako úsek identifikace. `opts` = volby čtení
         tabulky zdroje (time_fmt, unit, c_time, c_tag, c_val, row_dt); bez nich se sloupce času odhadnou.
+        `sig` = signály téže tabulky už přečtené se stejnými volbami (zdroj, jiná smyčka) – tabulka se znovu neparsuje.
         """
         self.df, self.fname = df, name
         self.layout = layout or ds.default_layout(df)
@@ -29,7 +30,7 @@ class DataMixin:
         self.c_time, self.c_tag, self.c_val = opts.get("c_time"), opts.get("c_tag"), opts.get("c_val")
         if opts.get("row_dt"):
             self.row_dt = float(opts["row_dt"])
-        self.sig = self._signals()
+        self.sig = sig if sig is not None else self._signals()
         g = guess_roles(self.sig.sigs, self.sig.get)
         self.c_pv, self.c_mv = g["pv"], g["mv"]
         self.c_sp = g["sp"] or "—"
@@ -58,14 +59,14 @@ class DataMixin:
             sig.origin = self.origin_hint + pd.Timedelta(seconds=float(np.nanmin(sig.t_all)))
         return sig
 
-    def swap_data(self, df, name, layout=None, **opts):
+    def swap_data(self, df, name, layout=None, sig=None, **opts):
         """
         Jiná data (jiný posun, rozvržení nebo složení zdrojů) při zachování smyčky: vybrané sloupce, úsek, úseky podle
         vstupů, vyřazení a nastavení zůstanou, pokud sloupce v nových datech jsou; nafitované modely se zahodí
         (jsou ze starých dat).
         """
         keep = (self.c_pv, self.c_mv, self.c_sp, list(self.c_d), self.c_pos, self.rng, self.wins, self.excl)
-        self.load_frame(df, name, layout, **opts)
+        self.load_frame(df, name, layout, sig=sig, **opts)
         pv, mv, sp, dd, pos, rng, wins, excl = keep
         have = set(self.sig.sigs)
         if pv in have and mv in have:
