@@ -2,6 +2,15 @@
 
 ## Nevydáno
 
+- **Přestavba záložky Data** (docs/cs/navrh-data.md): *Zdroje a smyčky* jsou jediné místo pro úpravu smyček (klik na
+  sloupec → přiřazení do smyčky a role nebo nová smyčka; karty smyček ve dvou řádcích; ukázková data a nastavení čtení
+  v Souborech). *Trendy* běží na sdíleném prohlížeči (panely, zoom X / Y, zpět / vpřed, události, tabulka, CSV / PNG,
+  vypočtené signály) se seznamem signálů v pravém panelu podle smyček nebo souborů, nezávislými časovými kurzory A / B
+  a hodnotovými Y₁ / Y₂ s odečtem obojího, společnou osou Y pro stejnou veličinu a všemi soubory v jednom binárním
+  balíku (`GET /signals/all`). *Kvalita dat* odpovídá, zda je záznam smyčky vhodný pro identifikaci: přepínač smyček,
+  verdikt s kontrolami a radou, jednoduchý graf smyčky, události posouvající graf a navržené úseky s *Použít v Modelu*
+  (`GET /dataquality/summary`). *Diagnostika* ukazuje smyčky jen pro čtení a analyzuje všechny smyčky projektu.
+  *Projekt a report* je 6. hlavní záložka. Graf Modelu / Diagnostiky má zoom Y, zpět / vpřed a přehled.
 - **Rychlejší načítání:** CSV 20 MB (86 400 řádků × 15 sloupců) se nahraje za ~0,6 s místo ~2 s, přidání další smyčky
   z načteného souboru trvá ~0,03 s místo ~0,5 s (časové sloupce se hledají a převádějí jednou, hodnoty sloupců se
   převedou jednou a smyčky je sdílejí); Excel se čte přes `python-calamine` (4–7× rychleji, stejné hodnoty).

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Data tab redesign** (docs/cs/navrh-data.md): *Sources & loops* is the only place to edit loops (click a column → assign it
+  to a loop and role or create a new loop from it; two-row loop cards; demo data and read settings in Files). *Trends* run on
+  the shared viewer (panels, zoom X / Y, back / forward, events, table, CSV / PNG, computed signals) with the signal list in
+  the side panel grouped by loops or files, independent time cursors A / B and value cursors Y₁ / Y₂ with a readout of both,
+  a shared Y axis for signals of the same quantity and all files in one binary pack (`GET /signals/all`). *Data quality*
+  answers whether the record of a loop is fit for identification: loop switcher, verdict with checks and advice, a simple
+  chart of the loop, events that move the chart and suggested segments with *Use in Model* (`GET /dataquality/summary`).
+  *Diagnostics* shows loops read-only and analyses all project loops (`audit/analyse {project: true}`).
+  *Project & report* is the 6th main tab. The Model / Diagnostics chart has Y zoom, back / forward and an overview.
 - **Faster loading:** a 20 MB CSV (86 400 rows × 15 columns) uploads in ~0.6 s instead of ~2 s, adding another loop
   from an already loaded file takes ~0.03 s instead of ~0.5 s (time columns are detected and parsed once, column values
   are converted once and shared by the loops); Excel files are read with `python-calamine` (4–7× faster, same values).
