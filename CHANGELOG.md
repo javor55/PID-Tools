@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 4.0.0 beta 3 – Data tab redesign, English UI, faster loading
 
 - **Data tab redesign** (docs/cs/navrh-data.md): *Sources & loops* is the only place to edit loops (click a column → assign it
   to a loop and role or create a new loop from it; two-row loop cards; demo data and read settings in Files). *Trends* run on

@@ -1,6 +1,6 @@
 # Změny
 
-## Nevydáno
+## 4.0.0 beta 3 – přestavba záložky Data, anglické rozhraní, rychlejší načítání
 
 - **Přestavba záložky Data** (docs/cs/navrh-data.md): *Zdroje a smyčky* jsou jediné místo pro úpravu smyček (klik na
   sloupec → přiřazení do smyčky a role nebo nová smyčka; karty smyček ve dvou řádcích; ukázková data a nastavení čtení
