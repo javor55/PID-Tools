@@ -46,7 +46,7 @@
 /* společný úsek: modrý pás přes všechny řádky (osa začíná za sloupcem názvů: 150 px + mezera 8 px) */
 .src-tl-common { position: absolute; top: -4px; bottom: -4px; left: 0; background: color-mix(in srgb, var(--pid-accent) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--pid-accent) 50%, transparent); border-radius: 4px; z-index: 0; pointer-events: none; }
-.src-tl-axis { position: relative; height: 16px; margin-left: 158px; font-size: 11px; color: var(--pid-muted); }
+.src-tl-axis { position: relative; height: 16px; margin-top: 10px; margin-left: 158px; font-size: 11px; color: var(--pid-muted); }
 .src-tl-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 
 /* smyčky: karta na smyčku ve dvou řádcích (nic nepřetéká ani při 1024 px) */
@@ -111,3 +111,6 @@
 .src-use { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: var(--pid-accent-bg); color: var(--pid-accent); white-space: nowrap; }
 .scard-body > input[type="search"] { width: 100%; box-sizing: border-box; }
 .src-active { padding: 6px 2px 0; }
+.src-tl-leg { display: flex; align-items: center; gap: 6px; margin: 4px 0 0 158px; order: 2; }
+.src-tl-legbox { display: inline-block; width: 18px; height: 10px; border: 1.5px solid var(--pid-accent); border-radius: 3px;
+  background: color-mix(in srgb, var(--pid-accent) 14%, transparent); }

@@ -3426,5 +3426,6 @@
  "mw_overview": "Přehled",
  "mw_ov_hint": "Celý záznam – klikem nebo tažením se posune zobrazený výřez.",
  "mw_y_hint": "Kolečko nad osou (nebo Shift + kolečko v grafu) = zoom Y; dvojklik na osu = automatický rozsah.",
- "ui_tuning_pending_rest": "IAE, překmit a šum: Spočítat všechny metody"
+ "ui_tuning_pending_rest": "IAE, překmit a šum: Spočítat všechny metody",
+ "src_ui_common_leg": "Společný úsek – čas, který pokrývají všechny soubory současně; smyčky skládané ze sloupců více souborů používají jen tento úsek (Překryv). Sjednocení použije celý čas všech souborů."
 }

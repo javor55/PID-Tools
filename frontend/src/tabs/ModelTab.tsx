@@ -152,7 +152,7 @@ function ModelTable({ model }: { model?: ModelState }) {
               <td>{r.status !== null && r.status !== undefined ? T("st_" + r.status) : "–"}</td>
               {anyCl && <td className="mono" data-testid={`fit-cl-${r.code}`}>{r.fit_cl_pv == null ? "—" :
                 `PV ${r.fit_cl_pv.toFixed(1)} / MV ${(r.fit_cl_mv ?? NaN).toFixed(1)}`}</td>}
-              <td className="mono small">{r.p.map((x) => x.toPrecision(4)).join(", ")}</td>
+              <td className="mono small">{r.p.map((x, i) => `${r.names?.[i] ?? "p" + (i + 1)} = ${+x.toPrecision(4)}`).join(" · ")}</td>
             </tr>
           ))}
         </tbody>
@@ -172,7 +172,7 @@ function ModelTable({ model }: { model?: ModelState }) {
       {anyCl && <div className="muted small">{T("idm_table_note")}</div>}
       {model.results.filter((r) => r.p_open && r.method === "cl").map((r) => (
         <div key={r.code} className="small" data-testid={`open-model-${r.code}`}>
-          {T("idm_open_model", { p: `${T("model_" + r.code)}: ${r.p_open!.map((x) => x.toPrecision(4)).join(", ")}` })}</div>))}
+          {T("idm_open_model", { p: `${T("model_" + r.code)}: ${r.p_open!.map((x, i) => `${r.names?.[i] ?? "p" + (i + 1)} = ${+x.toPrecision(4)}`).join(" · ")}` })}</div>))}
       {model.results.filter((r) => r.mixed && r.fit_cl_pv != null && r.fit_cl_pv < 50).map((r) => (
         <div key={r.code} className="warn small" data-testid="mix-set1-bad">{T("mix_set1_bad", { m: T("model_" + r.code),
           f: (r.fit_cl_pv ?? 0).toFixed(0) })}</div>))}

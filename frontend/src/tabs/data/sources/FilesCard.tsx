@@ -148,6 +148,7 @@ function Coverage({ data }: { data: Sources }) {
             {ticks(tl.lo, tl.hi, origin ?? null).map((t) => (
               <span key={t} style={{ left: `${((t - tl.lo) / (tl.hi - tl.lo)) * 100}%` }}>{fmtClock(t, origin ?? null, dates)}</span>))}
           </div>
+          {tl.common && <div className="src-tl-leg small muted"><i className="src-tl-legbox" aria-hidden="true" />{T("src_ui_common_leg")}</div>}
         </div>)}
     </div>
   );

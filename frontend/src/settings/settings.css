@@ -47,7 +47,8 @@
 .rg-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--pid-line); }
 .rg-tabs button { font: inherit; font-size: 13px; background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 12px; cursor: pointer; color: var(--pid-muted); }
 .rg-tabs button[aria-selected="true"] { color: var(--pid-accent); border-bottom-color: var(--pid-accent); font-weight: 500; }
-.rg-eq, .rg-src { font: 13px/1.5 var(--pid-mono); background: var(--pid-side); border: 1px solid var(--pid-line); border-radius: 6px; padding: 10px 12px; margin: 0 0 10px; overflow: auto; white-space: pre; }
+.rg-eq, .rg-src { font: 13px/1.5 var(--pid-mono); background: var(--pid-side); border: 1px solid var(--pid-line); border-radius: 6px; padding: 10px 12px; margin: 0 0 10px; overflow: auto; white-space: pre; min-width: 0; max-width: 100%; }
+.rg-eq { white-space: pre-wrap; overflow-wrap: anywhere; }   /* rovnice se zalomí do šířky pole */
 .rg-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin: 0 0 12px; }
 .rg-facts div { border: 1px solid var(--pid-line); border-radius: 6px; padding: 6px 10px; }
 .rg-facts dt { font-size: 11px; color: var(--pid-muted); }

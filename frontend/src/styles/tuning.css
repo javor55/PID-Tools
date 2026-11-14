@@ -46,10 +46,10 @@
 .tn-scroll { overflow-x: auto; }
 
 /* ---- graf odezvy */
-.tc { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px; }
+.tc { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 6px; row-gap: 20px; padding-top: 16px; }
 .tc-y { position: relative; font: 11px var(--pid-mono); color: var(--pid-muted); }
 .tc-y > span { position: absolute; right: 0; transform: translateY(-50%); }
-.tc-lab { position: absolute; left: 0; top: 0; font: 600 12px var(--pid-font); }
+.tc-lab { position: absolute; left: 0; top: -18px; font: 600 12px var(--pid-font); white-space: nowrap; }   /* nad osou, ne přes její čísla */
 .tc-lab.pv { color: var(--pid-pv); }
 .tc-lab.mv { color: var(--pid-mv); }
 .tc-plot { position: relative; border-left: 1px solid var(--pid-ctl); border-bottom: 1px solid var(--pid-ctl); }
@@ -144,3 +144,13 @@
 .tn-vcurve { width: 140px; height: 140px; margin: 6px 0; border: 1px solid var(--pid-soft); border-radius: 4px; }
 .tn-export { margin-top: 6px; }
 .tn-exp-box { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 8px; border: 1px solid var(--pid-soft); border-radius: 6px; }
+/* délka simulace: pole + jednotka + „Automaticky“ na jednom řádku */
+.tn-len input { flex: 1 1 70px; min-width: 56px; width: 70px; }
+.tn-len select { flex: 0 0 auto; width: auto !important; padding: 6px 4px; }
+.tn-len-auto { white-space: nowrap; }
+/* blok regulátoru: parametry pod sebou s mezerou, popisek | pole ve stejné mřížce */
+[data-testid="blk-params"] { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 10px; }
+[data-testid="blk-params"] .field { grid-template-columns: 130px minmax(0, 1fr); gap: 10px; }
+[data-testid="blk-params"] .field input, [data-testid="blk-params"] .field select { padding: 5px 8px; }
+.tn-grid3.blk { margin: 4px 0 8px; row-gap: 8px; }
+.tc-x { margin-top: -14px; }

@@ -3426,5 +3426,6 @@
  "mw_overview": "Overview",
  "mw_ov_hint": "Whole record – click or drag to move the visible window.",
  "mw_y_hint": "Wheel over the axis (or Shift + wheel in the chart) = zoom Y; double-click the axis = automatic range.",
- "ui_tuning_pending_rest": "IAE, overshoot and noise: Compute all methods"
+ "ui_tuning_pending_rest": "IAE, overshoot and noise: Compute all methods",
+ "src_ui_common_leg": "Common span – the time all files cover together; loops that combine columns of several files use only this span (Overlap). Union uses the whole time of all files."
 }

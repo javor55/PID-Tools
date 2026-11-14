@@ -149,21 +149,21 @@ export function ScenarioSide() {
               testid="scen-dv-t" label={T("ui_tuning_at")} title={T("h_sc_start")} />
           </>}
           <span className="tn-lab">{T("ui_tuning_len")}</span>
-          <NumCell v={tm(T_end)} onCommit={(x) => { if (x !== null && x > 0) set({ tend: x * mult, lenUnit: lu }); }}
-            className="tn-in" testid="scen-len" label={T("sim_len")} title={T("h_sim_len")} />
-          <select value={lu} aria-label={T("time_unit")} title={T("h_sim_len")} data-testid="scen-len-unit"
-            onChange={(e) => set({ lenUnit: e.target.value as Unit })}>
-            {(["s", "min", "h"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
-          </select>
+          <span className="tn-pair tn-len">
+            <NumCell v={tm(T_end)} onCommit={(x) => { if (x !== null && x > 0) set({ tend: x * mult, lenUnit: lu }); }}
+              className="tn-in" testid="scen-len" label={T("sim_len")} title={T("h_sim_len")} />
+            <select value={lu} aria-label={T("time_unit")} title={T("h_sim_len")} data-testid="scen-len-unit"
+              onChange={(e) => set({ lenUnit: e.target.value as Unit })}>
+              {(["s", "min", "h"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </span>
+          <label className="tn-check tn-len-auto" title={T("h_sim_len_auto")}>
+            <input type="checkbox" checked={tend === null} data-testid="scen-len-auto"
+              onChange={(e) => set({ tend: e.target.checked ? null : T_end })} /> {T("sim_len_auto")}
+          </label>
         </div>
       )}
-      {!replay && (
-        <label className="tn-check" title={T("h_sim_len_auto")}>
-          <input type="checkbox" checked={tend === null} data-testid="scen-len-auto"
-            onChange={(e) => set({ tend: e.target.checked ? null : T_end })} /> {T("sim_len_auto")}
-          {tend === null && sim.data?.src && <span className="tn-sub">{T("sim_len_src_" + sim.data.src)}</span>}
-        </label>
-      )}
+      {!replay && tend === null && sim.data?.src && <div className="tn-sub">{T("sim_len_src_" + sim.data.src)}</div>}
     </div>
   );
 }
