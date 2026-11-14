@@ -3425,5 +3425,6 @@
  "mw_fwd": "Forward",
  "mw_overview": "Overview",
  "mw_ov_hint": "Whole record – click or drag to move the visible window.",
- "mw_y_hint": "Wheel over the axis (or Shift + wheel in the chart) = zoom Y; double-click the axis = automatic range."
+ "mw_y_hint": "Wheel over the axis (or Shift + wheel in the chart) = zoom Y; double-click the axis = automatic range.",
+ "ui_tuning_pending_rest": "IAE, overshoot and noise: Compute all methods"
 }

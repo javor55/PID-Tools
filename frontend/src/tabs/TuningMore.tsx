@@ -224,7 +224,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const calc = useCalc();
   const dec = useDec();
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
-  const { cmp: rows, cmpBusy: busy, method, view, set } = useTun();
+  const { cmp: rows, cmpBusy: busy, method, view, set, sug } = useTun();
   const m = method ?? info.data?.default_method;
   const mr = (Number(st.mv_hi ?? 100) - Number(st.mv_lo ?? 0)) / 100;    // šum MV v % rozsahu → jednotky MV
   const go = async () => {
@@ -285,7 +285,11 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
               <tr key={x} className={"pick" + (x === m ? " sel" : "")} data-testid="cmp-pending"
                 onClick={() => void pick({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null, ctype: String(st.ctype ?? "PI") })}>
                 <td>{T("m_" + x)}{x === m && <b className="tn-ok"> ✓</b>}</td>
-                <td colSpan={8} className="tn-faint">{x === "OPT" ? T("ui_tuning_pending_opt") : T("ui_tuning_pending")}</td>
+                {sug && !sug.fromRow && sug.method === x ? (<>        {/* spočítaný návrh této metody (zbytek až s „Spočítat vše“) */}
+                  <td className="r mono" data-testid="cmp-sug">{f(sug.Kc)}</td><td className="r mono">{f(sug.Ti)}</td><td className="r mono">{f(sug.Td)}</td>
+                  <td className="r mono">{f(sug.robust?.Ms ?? null, 3)}</td>
+                  <td colSpan={4} className="tn-faint">{T("ui_tuning_pending_rest")}</td></>)
+                  : <td colSpan={8} className="tn-faint">{x === "OPT" ? T("ui_tuning_pending_opt") : T("ui_tuning_pending")}</td>}
                 <td className="tn-sub">{use({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null })}</td></tr>))}
           </tbody></table>
       </div>
