@@ -1894,7 +1894,7 @@
  "mw_zoom": "Zoom (všechny grafy spolu)",
  "mw_zoom_all": "Celý rozsah",
  "mw_zoom_win": "Na úsek ±20 %",
- "mw_zoom_note": "Úseky se nastavují táhly pod grafy. Kolečko = zoom času, Shift + kolečko nebo kolečko nad osou = zoom Y, tažení v grafu = posun, Backspace = zpět.",
+ "mw_zoom_note": "Úseky se nastavují táhly pod grafy. Kolečko = zoom času, tažení = posun; kolečko nad osou = zoom Y, tažení osy = posun Y; Kurzory A / B: klik = A, Shift + klik = B; Backspace = zpět.",
  "mw_excluded": "vyřazeno",
  "mw_m_all": "Model MV + poruchy",
  "mw_m_mv": "Jen MV",
@@ -3425,7 +3425,9 @@
  "mw_fwd": "Vpřed",
  "mw_overview": "Přehled",
  "mw_ov_hint": "Celý záznam – klikem nebo tažením se posune zobrazený výřez.",
- "mw_y_hint": "Kolečko nad osou (nebo Shift + kolečko v grafu) = zoom Y; dvojklik na osu = automatický rozsah.",
+ "mw_y_hint": "Tažení osy = posun Y, kolečko nad osou (nebo Shift + kolečko v grafu) = zoom Y, dvojklik na osu = automatický rozsah. Shift + tažení v grafu také posune Y.",
  "ui_tuning_pending_rest": "IAE, překmit a šum: Spočítat všechny metody",
- "src_ui_common_leg": "Společný úsek – čas, který pokrývají všechny soubory současně; smyčky skládané ze sloupců více souborů používají jen tento úsek (Překryv). Sjednocení použije celý čas všech souborů."
+ "src_ui_common_leg": "Společný úsek – čas, který pokrývají všechny soubory současně; smyčky skládané ze sloupců více souborů používají jen tento úsek (Překryv). Sjednocení použije celý čas všech souborů.",
+ "mw_cur": "Kurzory A / B",
+ "mw_cur_hint": "Klik do grafu = kurzor A, Shift + klik = B. Odečet ukáže časy, Δt a hodnoty všech grafů – např. dopravní zpoždění od skoku MV po první pohyb PV."
 }

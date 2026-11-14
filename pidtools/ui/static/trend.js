@@ -31,7 +31,8 @@ export default function (component) {
   const views = (window.__pidTrendView = window.__pidTrendView || {});
   const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: false });   // model výchozí na celém záznamu
   if (!(S.view[1] > S.view[0]) || S.view[1] > D.T * 1.0001) S.view = [0, D.T];
-  S.ylim = S.ylim || {};                               // ruční rozsah osy Y řádku (zoom Y), jinak auto
+  S.ylim = S.ylim || {};
+  S.cur = S.cur || { on: false, a: null, b: null };   // kurzory A / B (odečet Δt, např. dopravní zpoždění)                               // ruční rozsah osy Y řádku (zoom Y), jinak auto
   // historie zoomu (zpět / vpřed): stav = výřez času a rozsahy os Y
   const hist = [], hsnap = () => JSON.stringify({ v: S.view, y: S.ylim });
   let hpos = -1, lastPush = 0;
@@ -97,6 +98,7 @@ export default function (component) {
   reg[D.key] = { sig: D.sig, box };
 
   const B = D.bar || {};
+  let cread = null;
   if (B.title || B.mode_switch || B.zoom || (B.legend && B.legend.length)) {
     const bar = el("div", "pidw-card pidw-bar");
     let h = B.title ? `<div class="pidw-grp"><h2 class="pidw-title">${esc(B.title)}</h2>` +
@@ -112,6 +114,7 @@ export default function (component) {
         (editable ? `<button data-v="win">${esc(X.zoom_win)}</button>` : "") + `</div>` +
         `<button type="button" class="pidw-mini" data-h="back" title="Backspace">◀ ${esc(X.back || "Back")}</button>` +
         `<button type="button" class="pidw-mini" data-h="fwd">${esc(X.fwd || "Forward")} ▶</button>` +
+        `<button type="button" class="pidw-mini" data-h="cur" title="${esc(X.cur_hint || "")}">${esc(X.cur || "A / B")}</button>` +
         `<span class="pidw-note">${esc(X.zoom_note)}</span></div>`;
     h += `<div class="pidw-leg">${(B.legend || []).map(([c, t, st]) =>
       st === "hatch" ? `<span><i class="pidw-hatch"></i>${esc(t)}</span>`
@@ -119,6 +122,9 @@ export default function (component) {
           : `<span><i style="background:${st || "transparent"};border-color:${c}"></i>${esc(t)}</span>`).join("")}</div>`;
     bar.innerHTML = h;
     box.appendChild(bar);
+    cread = el("div", "pidw-card pidw-cread");
+    cread.title = X.cur_hint || "";
+    box.appendChild(cread);
     bar.querySelectorAll('[data-g="mode"] button').forEach((b) => {
       b.classList.toggle("on", b.dataset.v === W.mode);
       b.onclick = () => { if (b.dataset.v !== W.mode) component.setTriggerValue("mode", b.dataset.v); };
@@ -128,6 +134,15 @@ export default function (component) {
     const hb = bar.querySelector('[data-h="back"]'), hf = bar.querySelector('[data-h="fwd"]');
     if (hb) hb.onclick = () => go(-1);
     if (hf) hf.onclick = () => go(1);
+    const hc = bar.querySelector('[data-h="cur"]');
+    if (hc) hc.onclick = () => {
+      S.cur.on = !S.cur.on;
+      if (S.cur.on && (S.cur.a === null || S.cur.a < S.view[0] || S.cur.a > S.view[1])) {
+        const L = S.view[1] - S.view[0];
+        S.cur.a = S.view[0] + L / 3; S.cur.b = S.view[0] + 2 * L / 3;
+      }
+      draw();
+    };
     const zw = bar.querySelector('[data-v="win"]');
     if (zw) zw.onclick = () => {
       const all = winsFor(null).map((x) => x.w);
@@ -411,7 +426,28 @@ export default function (component) {
     }
     xa.appendChild(el("span", "pidw-xu", esc(D.unit.u)));
   }
+  function nearestIdx(t) {
+    let lo = 0, hi = D.t.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (D.t[m] < t) lo = m; else hi = m; }
+    return Math.abs(D.t[hi] - t) < Math.abs(D.t[lo] - t) ? hi : lo;
+  }
+  function curRead() {                               // odečet kurzorů: časy, Δt, hodnoty řádků v A a B a jejich rozdíl
+    const hb = box.querySelector('.pidw-bar [data-h="cur"]');
+    if (hb) hb.classList.toggle("on", !!S.cur.on);
+    if (!cread) return;
+    cread.style.display = S.cur.on ? "" : "none";
+    if (!S.cur.on || S.cur.a === null || S.cur.b === null) return;
+    const ia = nearestIdx(S.cur.a), ib = nearestIdx(S.cur.b);
+    const tf = (t) => (D.clock ? clockStr(t, true) : `${fmtS(t)} ${D.unit.u}`);
+    const parts = [`<b>A</b> ${esc(tf(D.t[ia]))}`, `<b>B</b> ${esc(tf(D.t[ib]))}`, `<b>Δt</b> ${esc(fmtS(D.t[ib] - D.t[ia]))} ${esc(D.unit.u)}`];
+    for (const r of D.rows) {
+      const a = r.y[ia], b = r.y[ib];
+      parts.push(`${esc(r.id)} ${fmtN(a, 4)} → ${fmtN(b, 4)} (Δ ${fmtN(b - a, 4)})`);
+    }
+    cread.innerHTML = parts.join(" · ");
+  }
   function draw() {
+    curRead();
     for (const card of cards) {
       const r = card.r;
       card.head.querySelectorAll(".pidw-model button").forEach((b) => b.classList.toggle("on", b.dataset.v === S.model));
@@ -425,6 +461,13 @@ export default function (component) {
         lines.push([m, "#5b3fa8", "6 4", 2.4]);
       }
       drawArea(card, card.area, ylo, yhi, { own: !!card.track, labels: !!card.track, lines });
+      if (S.cur.on) for (const [t, lab] of [[S.cur.a, "A"], [S.cur.b, "B"]]) {
+        if (t === null || t < S.view[0] || t > S.view[1]) continue;
+        const ln = el("div", "pidw-cur " + lab.toLowerCase());
+        ln.style.left = tx(t, card.area.clientWidth || 600) + "px";
+        if (card === cards[0]) ln.appendChild(el("span", "", lab));
+        card.area.appendChild(ln);
+      }
       if (card.resid) {
         card.resid.style.display = S.resid ? "" : "none";
         if (S.resid) {
@@ -506,6 +549,10 @@ export default function (component) {
     tr.addEventListener("dblclick", (e) => pullLimit(card, tAt(tr, e)));
   }
 
+  function panY(card, frac) {                         // posun osy Y řádku o podíl výšky (dolů = vyšší hodnoty)
+    const r = card.r, [lo, hi] = S.ylim[r.id] || [r.lo, r.hi], d = frac * (hi - lo);
+    S.ylim[r.id] = [lo + d, hi + d];
+  }
   // ---------------------------------------------------------------- zoom, posun, hodnoty
   for (const card of cards) {
     const a = card.area;
@@ -519,6 +566,17 @@ export default function (component) {
       draw();
     };
     card.ax.addEventListener("wheel", (e) => { e.preventDefault(); zoomY(e, a); }, { passive: false });
+    card.ax.style.cursor = "ns-resize";
+    card.ax.addEventListener("pointerdown", (e) => {          // tažení osy Y = posun osy
+      if (e.button !== 0) return;
+      push(true);
+      let ly = e.clientY;
+      const hgt = a.clientHeight || card.r.h;
+      const move = (ev) => { panY(card, (ev.clientY - ly) / hgt); ly = ev.clientY; draw(); };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); push(true); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
     card.ax.addEventListener("dblclick", () => { push(true); delete S.ylim[card.r.id]; push(true); draw(); });
     card.ax.title = X.y_hint || "";
     a.addEventListener("wheel", (e) => {
@@ -537,16 +595,23 @@ export default function (component) {
     a.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
       push(true);
-      let last = e.clientX;
-      const w = a.clientWidth;
+      let last = e.clientX, lastY = e.clientY, moved = false;
+      const x0 = e.clientX, y0 = e.clientY;
+      const w = a.clientWidth, hgt = a.clientHeight || card.r.h;
       const move = (ev) => {
+        if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 3) moved = true;
+        if (!moved) return;
+        if (e.shiftKey) { panY(card, (ev.clientY - lastY) / hgt); lastY = ev.clientY; draw(); return; }   // Shift = posun osy Y
         const L = S.view[1] - S.view[0], dt = -(ev.clientX - last) / w * L;
         last = ev.clientX;
         const v0 = clamp(S.view[0] + dt, 0, D.T - L);
         S.view = [v0, v0 + L];
         draw();
       };
-      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        if (!moved && S.cur.on) { S.cur[e.shiftKey ? "b" : "a"] = tAt(a, e); draw(); }   // klik = A, Shift+klik = B
+      };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     });

@@ -1894,7 +1894,7 @@
  "mw_zoom": "Zoom (all charts together)",
  "mw_zoom_all": "Full range",
  "mw_zoom_win": "To segments ±20 %",
- "mw_zoom_note": "Segments are set with the handles under the charts. Wheel = zoom time, Shift + wheel or wheel over an axis = zoom Y, drag in the chart = pan, Backspace = back.",
+ "mw_zoom_note": "Segments are set with the handles under the charts. Wheel = zoom time, drag = pan; wheel over an axis = zoom Y, drag an axis = pan Y; Cursors A / B: click = A, Shift + click = B; Backspace = back.",
  "mw_excluded": "excluded",
  "mw_m_all": "Model MV + disturbances",
  "mw_m_mv": "MV only",
@@ -3425,7 +3425,9 @@
  "mw_fwd": "Forward",
  "mw_overview": "Overview",
  "mw_ov_hint": "Whole record – click or drag to move the visible window.",
- "mw_y_hint": "Wheel over the axis (or Shift + wheel in the chart) = zoom Y; double-click the axis = automatic range.",
+ "mw_y_hint": "Drag the axis = pan Y, wheel over the axis (or Shift + wheel in the chart) = zoom Y, double-click the axis = automatic range. Shift + drag in the chart also pans Y.",
  "ui_tuning_pending_rest": "IAE, overshoot and noise: Compute all methods",
- "src_ui_common_leg": "Common span – the time all files cover together; loops that combine columns of several files use only this span (Overlap). Union uses the whole time of all files."
+ "src_ui_common_leg": "Common span – the time all files cover together; loops that combine columns of several files use only this span (Overlap). Union uses the whole time of all files.",
+ "mw_cur": "Cursors A / B",
+ "mw_cur_hint": "Click in a chart = cursor A, Shift + click = B. The readout shows the times, Δt and the values of all charts – e.g. the dead time from an MV step to the first PV move."
 }

@@ -69,3 +69,11 @@
 .pidw-ovarea svg { display: block; width: 100%; height: 30px; }
 .pidw-ovwin { position: absolute; top: 0; bottom: 0; border: 1.5px solid var(--pidw-acc, #1f5fa8); background: rgba(31, 95, 168, .12);
   border-radius: 3px; pointer-events: none; }
+/* kurzory A / B (odečet Δt) */
+.pidw-cur { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid #d97706; pointer-events: none; z-index: 2; }
+.pidw-cur.b { border-left-color: #7c3aed; }
+.pidw-cur span { position: absolute; top: 2px; left: 3px; font: 600 10px sans-serif; color: inherit; }
+.pidw-cur.a span { color: #d97706; } .pidw-cur.b span { color: #7c3aed; }
+.pidw-cread { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 6px 12px; }
+.pidw-yax { touch-action: none; }
+.pidw-mini.on { background: var(--pidw-acc, #1f5fa8); color: #fff; border-color: var(--pidw-acc, #1f5fa8); }
