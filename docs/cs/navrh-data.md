@@ -1,6 +1,6 @@
 # Přestavba záložky Data – specifikace ke schválení
 
-Stav: **schváleno, implementuje se** (viz kap. 6 Stav prací – podle ní se navazuje po přerušení). Vychází z poznámek z testování desktopové verze 4.0.0-beta.2 (listopad 2026).
+Stav: **implementováno** (D1–D7) (viz kap. 6 Stav prací – podle ní se navazuje po přerušení). Vychází z poznámek z testování desktopové verze 4.0.0-beta.2 (listopad 2026).
 
 ## 1. Co je dnes špatně
 
@@ -123,7 +123,7 @@ smyček jen pro čtení; pořadí prací volím sám.
 | D4 Kvalita dat: přepínač smyček, verdikt, kontroly, jednoduchý graf (RecordViewer `simple`), události (klik posune graf, `me.goto`), navržené úseky + „Použít v Modelu“ (`GET /dataquality/summary`) | hotovo | commit „Data quality page“ |
 | D5 Diagnostika – hotovo v D1 | hotovo | |
 | D6 Projekt a report jako záložka 6 (místo tlačítka v hlavičce) | hotovo | commit „Project & report as tab 6“ |
-| D7 Model: zoom X / Y, zpět / vpřed, přehled v trend.js | čeká | `pidtools/ui/static/trend.js` |
+| D7 Model: zoom Y (kolečko nad osou / Shift + kolečko, dvojklik = auto), zpět / vpřed (tlačítka, Backspace), přehled celého záznamu s výřezem – sdílený trend.js (Model i Diagnostika) | hotovo | commit „Model chart: Y zoom, back / forward, overview“ |
 
 Ověření každého kroku: `cd frontend && npm run lint && npm run typecheck && npm run test && npm run build`,
 `ruff check pidtools tests`, `QT_QPA_PLATFORM=offscreen python -m pytest -q tests/test_frontend*.py` + dotčené API testy,

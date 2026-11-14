@@ -31,6 +31,27 @@ export default function (component) {
   const views = (window.__pidTrendView = window.__pidTrendView || {});
   const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: false });   // model výchozí na celém záznamu
   if (!(S.view[1] > S.view[0]) || S.view[1] > D.T * 1.0001) S.view = [0, D.T];
+  S.ylim = S.ylim || {};                               // ruční rozsah osy Y řádku (zoom Y), jinak auto
+  // historie zoomu (zpět / vpřed): stav = výřez času a rozsahy os Y
+  const hist = [], hsnap = () => JSON.stringify({ v: S.view, y: S.ylim });
+  let hpos = -1, lastPush = 0;
+  function push(force) {
+    const now = Date.now();
+    if (!force && now - lastPush < 500) return;       // kolečko: jeden krok historie za otočení
+    lastPush = now;
+    const c = hsnap();
+    if (hist[hpos] === c) return;
+    hist.splice(hpos + 1); hist.push(c); hpos = hist.length - 1;
+  }
+  function go(d) {
+    push(true);
+    const i = hpos + d;
+    if (i < 0 || i >= hist.length) return;
+    hpos = i;
+    const o = JSON.parse(hist[i]);
+    S.view = o.v; S.ylim = o.y;
+    draw();
+  }
   const W = { mode: D.mode, wins: {}, common: (D.common || [0, D.T]).slice(),
               ab: D.ab ? { a: D.ab.a.slice(), b: D.ab.b ? D.ab.b.slice() : null } : null };
   for (const r of D.rows) if (r.kind === "in") W.wins[r.id] = (r.wins || []).map((w) => w.slice());
@@ -89,6 +110,8 @@ export default function (component) {
       h += `<div class="pidw-grp"><span class="pidw-lab">${esc(X.zoom)}</span>` +
         `<div class="pidw-seg" data-g="zoom"><button data-v="all">${esc(X.zoom_all)}</button>` +
         (editable ? `<button data-v="win">${esc(X.zoom_win)}</button>` : "") + `</div>` +
+        `<button type="button" class="pidw-mini" data-h="back" title="Backspace">◀ ${esc(X.back || "Back")}</button>` +
+        `<button type="button" class="pidw-mini" data-h="fwd">${esc(X.fwd || "Forward")} ▶</button>` +
         `<span class="pidw-note">${esc(X.zoom_note)}</span></div>`;
     h += `<div class="pidw-leg">${(B.legend || []).map(([c, t, st]) =>
       st === "hatch" ? `<span><i class="pidw-hatch"></i>${esc(t)}</span>`
@@ -101,13 +124,18 @@ export default function (component) {
       b.onclick = () => { if (b.dataset.v !== W.mode) component.setTriggerValue("mode", b.dataset.v); };
     });
     const za = bar.querySelector('[data-v="all"]');
-    if (za) za.onclick = () => { S.view = [0, D.T]; draw(); };
+    if (za) za.onclick = () => { push(true); S.view = [0, D.T]; S.ylim = {}; push(true); draw(); };
+    const hb = bar.querySelector('[data-h="back"]'), hf = bar.querySelector('[data-h="fwd"]');
+    if (hb) hb.onclick = () => go(-1);
+    if (hf) hf.onclick = () => go(1);
     const zw = bar.querySelector('[data-v="win"]');
     if (zw) zw.onclick = () => {
       const all = winsFor(null).map((x) => x.w);
       if (!all.length) return;
       const a = Math.min(...all.map((w) => w[0])), b = Math.max(...all.map((w) => w[1])), m = 0.2 * (b - a);
+      push(true);
       S.view = [Math.max(0, a - m), Math.min(D.T, b + m)];
+      push(true);
       draw();
     };
   }
@@ -389,13 +417,14 @@ export default function (component) {
       card.head.querySelectorAll(".pidw-model button").forEach((b) => b.classList.toggle("on", b.dataset.v === S.model));
       card.head.querySelectorAll(".pidw-chk input").forEach((inp) => { inp.checked = S.resid; });
       card.head.querySelectorAll(".pidw-range button").forEach((b) => b.classList.toggle("on", (b.dataset.v === "win") === S.onlyWin));
-      yTicks(card.ax, r.lo, r.hi, r.h);
+      const [ylo, yhi] = S.ylim[r.id] || [r.lo, r.hi];
+      yTicks(card.ax, ylo, yhi, r.h);
       const lines = (r.lines || []).map((l) => [l[0], l[1], l[2], l[3] || 1.4]).concat([[r.y, r.color, null, 1.8]]);
       if (r.kind === "pv" && r.model) {
         const m = modelOf(r);
         lines.push([m, "#5b3fa8", "6 4", 2.4]);
       }
-      drawArea(card, card.area, r.lo, r.hi, { own: !!card.track, labels: !!card.track, lines });
+      drawArea(card, card.area, ylo, yhi, { own: !!card.track, labels: !!card.track, lines });
       if (card.resid) {
         card.resid.style.display = S.resid ? "" : "none";
         if (S.resid) {
@@ -480,8 +509,22 @@ export default function (component) {
   // ---------------------------------------------------------------- zoom, posun, hodnoty
   for (const card of cards) {
     const a = card.area;
+    const zoomY = (e, node) => {                       // zoom osy Y řádku kolem hodnoty pod kurzorem
+      const r = card.r, rect = node.getBoundingClientRect();
+      const [lo, hi] = S.ylim[r.id] || [r.lo, r.hi];
+      const fy = clamp((e.clientY - rect.top) / rect.height, 0, 1), v = hi - fy * (hi - lo);
+      const k = e.deltaY > 0 ? 1.25 : 0.8;
+      push();
+      S.ylim[r.id] = [v - (v - lo) * k, v + (hi - v) * k];
+      draw();
+    };
+    card.ax.addEventListener("wheel", (e) => { e.preventDefault(); zoomY(e, a); }, { passive: false });
+    card.ax.addEventListener("dblclick", () => { push(true); delete S.ylim[card.r.id]; push(true); draw(); });
+    card.ax.title = X.y_hint || "";
     a.addEventListener("wheel", (e) => {
       e.preventDefault();
+      if (e.shiftKey) { zoomY(e, a); return; }
+      push();
       const rect = a.getBoundingClientRect(), f = (e.clientX - rect.left) / rect.width;
       const t0 = S.view[0] + f * (S.view[1] - S.view[0]);
       const k = e.deltaY > 0 ? 1.25 : 0.8;
@@ -493,6 +536,7 @@ export default function (component) {
     }, { passive: false });
     a.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
+      push(true);
       let last = e.clientX;
       const w = a.clientWidth;
       const move = (ev) => {
@@ -526,7 +570,42 @@ export default function (component) {
     });
     a.addEventListener("mouseleave", () => { tip.style.display = "none"; });
   }
+  // ---------------------------------------------------------------- přehled celého záznamu s výřezem
+  const ovr = D.rows.find((r) => r.kind === "pv") || D.rows[0];
+  const ov = el("div", "pidw-card pidw-ov");
+  ov.innerHTML = `<span class="pidw-lab">${esc(X.overview || "")}</span><div class="pidw-ovarea"><svg></svg><i class="pidw-ovwin"></i></div>`;
+  ov.title = X.ov_hint || "";
+  box.insertBefore(ov, tip);
+  const ova = ov.querySelector(".pidw-ovarea"), ovw = ov.querySelector(".pidw-ovwin");
+  function drawOv() {
+    const w = ova.clientWidth || 600, h = 30, sv = ova.querySelector("svg");
+    if (!ovr) return;
+    const keep = S.view;
+    S.view = [0, D.T];
+    sv.setAttribute("viewBox", `0 0 ${w} ${h}`); sv.setAttribute("width", w); sv.setAttribute("height", h);
+    sv.innerHTML = `<path d="${path(D.t, ovr.y, w, h, ovr.lo, ovr.hi)}" fill="none" stroke="${ovr.color}" stroke-width="1"/>`;
+    S.view = keep;
+    ovw.style.left = (S.view[0] / D.T * 100) + "%";
+    ovw.style.width = Math.max(0.5, (S.view[1] - S.view[0]) / D.T * 100) + "%";
+  }
+  ova.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    push(true);
+    const rc = ova.getBoundingClientRect(), L = S.view[1] - S.view[0];
+    const at = (ev) => { const t = (ev.clientX - rc.left) / rc.width * D.T; const v0 = clamp(t - L / 2, 0, D.T - L); S.view = [v0, v0 + L]; draw(); };
+    at(e);
+    const up = () => { window.removeEventListener("pointermove", at); window.removeEventListener("pointerup", up); push(true); };
+    window.addEventListener("pointermove", at);
+    window.addEventListener("pointerup", up);
+  });
+  box.tabIndex = 0;
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" && e.target === box) { e.preventDefault(); go(-1); }
+  });
+  const draw0 = draw;
+  draw = function () { draw0(); drawOv(); };            // eslint-disable-line no-func-assign
   draw();
+  push(true);
   let lastW = box.clientWidth;
   const ro = new ResizeObserver(() => {              // překreslit jen při změně šířky (výška se mění kreslením)
     if (box.clientWidth !== lastW) { lastW = box.clientWidth; draw(); }

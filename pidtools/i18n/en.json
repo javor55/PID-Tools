@@ -1894,7 +1894,7 @@
  "mw_zoom": "Zoom (all charts together)",
  "mw_zoom_all": "Full range",
  "mw_zoom_win": "To segments ±20 %",
- "mw_zoom_note": "Segments are set with the handles under the charts; zoom in for finer steps. Wheel = zoom, drag in the chart = pan.",
+ "mw_zoom_note": "Segments are set with the handles under the charts. Wheel = zoom time, Shift + wheel or wheel over an axis = zoom Y, drag in the chart = pan, Backspace = back.",
  "mw_excluded": "excluded",
  "mw_m_all": "Model MV + disturbances",
  "mw_m_mv": "MV only",
@@ -3420,5 +3420,10 @@
  "dq_seg_why": "Rating",
  "dq_seg_steps": "{n} steps",
  "dq_use": "Use in Model",
- "dq_use_h": "Sets this segment as the identification segment of the loop and opens the Model tab."
+ "dq_use_h": "Sets this segment as the identification segment of the loop and opens the Model tab.",
+ "mw_back": "Back",
+ "mw_fwd": "Forward",
+ "mw_overview": "Overview",
+ "mw_ov_hint": "Whole record – click or drag to move the visible window.",
+ "mw_y_hint": "Wheel over the axis (or Shift + wheel in the chart) = zoom Y; double-click the axis = automatic range."
 }

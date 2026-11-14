@@ -1894,7 +1894,7 @@
  "mw_zoom": "Zoom (všechny grafy spolu)",
  "mw_zoom_all": "Celý rozsah",
  "mw_zoom_win": "Na úsek ±20 %",
- "mw_zoom_note": "Úseky se nastavují táhly pod grafy; po přiblížení táhla jemněji. Kolečko = zoom, tažení v grafu = posun.",
+ "mw_zoom_note": "Úseky se nastavují táhly pod grafy. Kolečko = zoom času, Shift + kolečko nebo kolečko nad osou = zoom Y, tažení v grafu = posun, Backspace = zpět.",
  "mw_excluded": "vyřazeno",
  "mw_m_all": "Model MV + poruchy",
  "mw_m_mv": "Jen MV",
@@ -3420,5 +3420,10 @@
  "dq_seg_why": "Hodnocení",
  "dq_seg_steps": "skoky: {n}",
  "dq_use": "Použít v Modelu",
- "dq_use_h": "Nastaví úsek jako úsek identifikace smyčky a otevře záložku Model."
+ "dq_use_h": "Nastaví úsek jako úsek identifikace smyčky a otevře záložku Model.",
+ "mw_back": "Zpět",
+ "mw_fwd": "Vpřed",
+ "mw_overview": "Přehled",
+ "mw_ov_hint": "Celý záznam – klikem nebo tažením se posune zobrazený výřez.",
+ "mw_y_hint": "Kolečko nad osou (nebo Shift + kolečko v grafu) = zoom Y; dvojklik na osu = automatický rozsah."
 }

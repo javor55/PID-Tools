@@ -22,7 +22,7 @@ type ModelState = components["schemas"]["ModelState"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
 
 const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time"];
+  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint"];
 function useModelData() {
   const wid = useUi((s) => s.wid);
   const ws = useWs().data;

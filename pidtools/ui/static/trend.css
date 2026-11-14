@@ -63,3 +63,9 @@
 .pidw-tip { position: absolute; display: none; pointer-events: none; z-index: 5; font-family: 'IBM Plex Mono', monospace;
   font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--pidw-line); background: var(--pidw-card);
   box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; color: var(--pidw-text); }
+/* přehled celého záznamu s výřezem (klik / tažení = posun výřezu) */
+.pidw-ov { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 10px; }
+.pidw-ovarea { position: relative; height: 30px; cursor: pointer; }
+.pidw-ovarea svg { display: block; width: 100%; height: 30px; }
+.pidw-ovwin { position: absolute; top: 0; bottom: 0; border: 1.5px solid var(--pidw-acc, #1f5fa8); background: rgba(31, 95, 168, .12);
+  border-radius: 3px; pointer-events: none; }

@@ -19,7 +19,7 @@ import "../styles/diag.css";
 type Diagnostics = components["schemas"]["Diagnostics"];
 type Win = [number, number];
 const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time"];
+  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint"];
 const C_A = "#1f5fa8", C_B = "#7c3aed";
 const g = (x: unknown, n: number) => (typeof x === "number" && Number.isFinite(x) ? String(+x.toPrecision(n)) : "—");
 const f = (x: unknown, n: number) => (typeof x === "number" && Number.isFinite(x) ? x.toFixed(n) : "—");
