@@ -134,7 +134,7 @@ def validate_settings(patch, current=None):
     Zkontroluje změnu nastavení před zápisem. Vrací seznam chyb ve tvaru "<klíč>: <důvod>" (prázdný = v pořádku).
     Typy jen u klíčů z NUM_KEYS / BOOL_KEYS / LIST_KEYS (ostatní klíče a prefixy se typově nekontrolují);
     `None` smí číselný klíč, jehož výchozí hodnota je None nebo který nemá výchozí hodnotu. `current` = stávající
-    nastavení, se kterým se změna sloučí pro křížové kontroly (pv_hi > pv_lo, mv_hi > mv_lo).
+    nastavení, se kterým se změna sloučí pro křížové kontroly (pv_hi != pv_lo, mv_hi != mv_lo).
     """
     from .workspace import DEFAULTS                     # až za běhu: workspace importuje tento modul
     errs = []
@@ -163,8 +163,8 @@ def validate_settings(patch, current=None):
     merged = {**DEFAULTS, **(current or {}), **(patch or {})}
     for lo_k, hi_k in (("pv_lo", "pv_hi"), ("mv_lo", "mv_hi")):
         if (lo_k in patch or hi_k in patch) and _num(merged.get(lo_k)) and _num(merged.get(hi_k)) \
-                and not merged[hi_k] > merged[lo_k]:
-            errs.append(f"{hi_k}: must be greater than {lo_k}")
+                and merged[hi_k] == merged[lo_k]:        # nulový rozsah = dělení nulou; obrácený rozsah se dovoluje,
+            errs.append(f"{hi_k}: must differ from {lo_k}")   # aby šly meze měnit po jedné (0–100 → 200–300)
     return errs
 
 

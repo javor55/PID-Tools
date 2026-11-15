@@ -178,7 +178,7 @@ def ident_ws():
 
 @pytest.mark.parametrize("raw", [
     '{"samp": "abc"}', '{"set2_gain": null}', '{"samp": 0}', '{"samp": -1}', '{"pv_lo": 50, "pv_hi": 50}',
-    '{"mv_lo": 100, "mv_hi": 0}', '{"chosen": "x"}', '{"ctype": [1]}', '{"set2_gain": NaN}',
+    '{"mv_lo": 100, "mv_hi": 100}', '{"chosen": "x"}', '{"ctype": [1]}', '{"set2_gain": NaN}',
     '{"opt_ms": 5}', '{"dfb": "yes"}', '{"gain_sign": "up"}', '{"set1_ti": -1}'])
 def test_patch_settings_rejects_bad_values(ident_ws, raw):
     """Špatná hodnota nastavení = 422 a stav se nezmění; výpočty dál vracejí 200 (TICKET-001)."""
