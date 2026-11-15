@@ -76,6 +76,20 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool) and np.isfinite(v)
 
 
+def _typed_ok(k, v):
+    """
+    Hodnota odpovídá typu klíče (NUM_KEYS / BOOL_KEYS / LIST_KEYS a prefixy); klíč bez předepsaného typu → None.
+    Jediné místo logiky typů: používá ji načtení projektu (`clean_state`) i kontrola změny (`validate_settings`).
+    """
+    if k in NUM_KEYS or k.startswith(NUM_PREFIX):
+        return _num(v)
+    if k in BOOL_KEYS or k.startswith(BOOL_PREFIX):
+        return isinstance(v, bool)
+    if k in LIST_KEYS:
+        return isinstance(v, list)
+    return None
+
+
 def clean_state(state):
     """
     Nastavení z projektu jen s povolenými klíči a hodnotami správného typu (ostatní se vynechají).
@@ -87,19 +101,71 @@ def clean_state(state):
         if not is_state_key(k):
             bad += 1
             continue
-        if k in NUM_KEYS or k.startswith(NUM_PREFIX):
-            ok = _num(v)
-        elif k in BOOL_KEYS or k.startswith(BOOL_PREFIX):
-            ok = isinstance(v, bool)
-        elif k in LIST_KEYS:
-            ok = isinstance(v, list)
-        else:
+        ok = _typed_ok(k, v)
+        if ok is None:
             ok = isinstance(v, (str, int, float, bool, list)) or v is None
         if ok:
             out[k] = v
         else:
             bad += 1
     return out, bad
+
+
+# meze číselných nastavení: klíč → (dolní, horní, dolní mez včetně?, horní mez včetně?, popis)
+RANGES = {
+    "samp": (0, None, False, True, "must be > 0"),
+    "diffgain": (0, None, False, True, "must be > 0"),
+    "opt_ms": (1.0, 3.0, True, True, "must be between 1.0 and 3.0"),
+    **{k: (0, None, True, True, "must be >= 0")
+       for k in ("set1_ti", "set2_ti", "set1_td", "set2_td", "pvfilt", "mvrate", "sprate", "db")},
+}
+# výčty textových nastavení (hodnoty skutečně používané v kódu)
+ENUMS = {
+    "ctype": ("PI", "PID", "PD"),                 # app.appsettings.SIM_CTYPES
+    "gain_sign": ("auto", "pos", "neg"),          # app.model.SIGN
+    "dist_level": ("none", "medium", "high"),     # core.identification
+    "db_mode": ("cont", "step"),                  # app.loop.block_ctrl, volba v TuningProfile.tsx
+    "sim_len_u": ("s", "min", "h"),               # jednotka délky simulace (násobky 1 / 60 / 3600 s)
+}
+
+
+def validate_settings(patch, current=None):
+    """
+    Zkontroluje změnu nastavení před zápisem. Vrací seznam chyb ve tvaru "<klíč>: <důvod>" (prázdný = v pořádku).
+    Typy jen u klíčů z NUM_KEYS / BOOL_KEYS / LIST_KEYS (ostatní klíče a prefixy se typově nekontrolují);
+    `None` smí číselný klíč, jehož výchozí hodnota je None nebo který nemá výchozí hodnotu. `current` = stávající
+    nastavení, se kterým se změna sloučí pro křížové kontroly (pv_hi > pv_lo, mv_hi > mv_lo).
+    """
+    from .workspace import DEFAULTS                     # až za běhu: workspace importuje tento modul
+    errs = []
+    for k, v in (patch or {}).items():
+        k = str(k)
+        if k in NUM_KEYS:
+            if v is None:
+                if k in DEFAULTS and DEFAULTS[k] is not None:
+                    errs.append(f"{k}: must be a number (null is not allowed)")
+                continue
+            if not _typed_ok(k, v):
+                errs.append(f"{k}: must be a finite number")
+                continue
+            if k in RANGES:
+                lo, hi, lo_in, hi_in, why = RANGES[k]
+                if (lo is not None and (v < lo or (v == lo and not lo_in))) or \
+                        (hi is not None and (v > hi or (v == hi and not hi_in))):
+                    errs.append(f"{k}: {why}")
+        elif k in BOOL_KEYS or k in LIST_KEYS:
+            if not _typed_ok(k, v):
+                errs.append(f"{k}: must be {'a boolean' if k in BOOL_KEYS else 'a list'}")
+        if k in ENUMS and v not in ENUMS[k]:
+            errs.append(f"{k}: must be one of {', '.join(ENUMS[k])}")
+    if errs:
+        return errs
+    merged = {**DEFAULTS, **(current or {}), **(patch or {})}
+    for lo_k, hi_k in (("pv_lo", "pv_hi"), ("mv_lo", "mv_hi")):
+        if (lo_k in patch or hi_k in patch) and _num(merged.get(lo_k)) and _num(merged.get(hi_k)) \
+                and not merged[hi_k] > merged[lo_k]:
+            errs.append(f"{hi_k}: must be greater than {lo_k}")
+    return errs
 
 
 def jsonable(v):

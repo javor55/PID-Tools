@@ -153,3 +153,57 @@ def test_workspace_locks_are_released():
         assert c.get(f"/api/v1/workspaces/{live}/settings").status_code == 200
         keys = {k for d in app.state.ws_locks.values() for k in d}
         assert keys <= {live}
+
+
+@pytest.fixture(scope="module")
+def ident_ws():
+    """Prostor s ukázkovými daty a identifikací (jako test_api_tuning)."""
+    with TestClient(create_app()) as c:
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        base = f"/api/v1/workspaces/{wid}"
+        assert c.post(f"{base}/data/demo").status_code == 200
+        assert c.patch(f"{base}/settings", json={"chosen": ["P1D", "I1D"]}).status_code == 200
+        job = c.post(f"{base}/identify").json()
+        t0 = time.time()
+        while time.time() - t0 < 600:
+            st = c.get(f"/api/v1/jobs/{job['id']}").json()
+            if st["state"] not in ("queued", "running"):
+                assert st["state"] == "done", st
+                break
+            time.sleep(0.2)
+        else:
+            raise AssertionError("job timeout")
+        yield c, base
+
+
+@pytest.mark.parametrize("raw", [
+    '{"samp": "abc"}', '{"set2_gain": null}', '{"samp": 0}', '{"samp": -1}', '{"pv_lo": 50, "pv_hi": 50}',
+    '{"mv_lo": 100, "mv_hi": 0}', '{"chosen": "x"}', '{"ctype": [1]}', '{"set2_gain": NaN}',
+    '{"opt_ms": 5}', '{"dfb": "yes"}', '{"gain_sign": "up"}', '{"set1_ti": -1}'])
+def test_patch_settings_rejects_bad_values(ident_ws, raw):
+    """Špatná hodnota nastavení = 422 a stav se nezmění; výpočty dál vracejí 200 (TICKET-001)."""
+    c, base = ident_ws
+    before = c.get(f"{base}/settings").json()
+    r = c.patch(f"{base}/settings", content=raw, headers={"Content-Type": "application/json"})
+    assert r.status_code == 422, r.text
+    assert ":" in r.json()["detail"]
+    assert c.get(f"{base}/settings").json() == before
+    assert c.get(f"{base}/tuning").status_code == 200
+    assert c.post(f"{base}/simulate", json={}).status_code == 200
+
+
+def test_patch_settings_accepts_valid_values(ident_ws):
+    c, base = ident_ws
+    ok = {"set2_gain": 2.0, "thmax": None, "ctype": "PID", "dfb": False, "chosen": ["I1D"], "pv_lo": 0, "pv_hi": 10}
+    r = c.patch(f"{base}/settings", json=ok)
+    assert r.status_code == 200, r.text
+    assert c.patch(f"{base}/settings", json={"ctype": "PI", "dfb": True, "chosen": ["P1D", "I1D"],
+                                            "pv_hi": 100}).status_code == 200
+
+
+def test_upload_empty_file_is_400(client):
+    wid = client.post("/api/v1/workspaces", headers=H).json()["id"]
+    for body in (b"", b"\n  \n"):
+        r = client.post(f"/api/v1/workspaces/{wid}/data/file?name=x.csv", content=body, headers=H)
+        assert r.status_code == 400, r.text
+        assert r.json()["detail"]

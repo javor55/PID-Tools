@@ -2,6 +2,7 @@
 API – data smyčky (M7): načtení souboru / ukázky, rozložení tabulky, sloupce, úsek, nastavení, signály binárně,
 kvalita dat a režim smyčky (MAN / AUTO).
 """
+import csv
 from typing import Annotated, Literal
 
 import numpy as np
@@ -314,9 +315,11 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         raw = await request.body()
         if len(raw) > max_upload:
             raise HTTPException(413, "file too large")
+        if not raw.strip():
+            raise HTTPException(400, "empty file")
         try:
             p.load_frame(read_table(name, raw), name)
-        except (ValueError, KeyError, IndexError) as ex:
+        except (ValueError, KeyError, IndexError, csv.Error) as ex:      # csv.Error: nelze určit oddělovač
             _err(ex)
         return info(wid, p.state)
 
@@ -372,6 +375,9 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         bad = [k for k in body if not prj.is_state_key(k)]
         if bad:
             raise HTTPException(422, f"unknown setting: {', '.join(map(str, bad))}")
+        errs = prj.validate_settings(body, ws.settings)      # před zápisem: špatná hodnota stav nezmění
+        if errs:
+            raise HTTPException(422, errs[0])
         ws.set(**body)
         return get_settings(wid)
 
