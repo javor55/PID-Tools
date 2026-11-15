@@ -140,7 +140,7 @@ function ModelTable({ model }: { model?: ModelState }) {
         {T("ms_cmp_tab", { k: 1, n: "MV" })}</div>
       <table className="tbl" data-testid="models">
         <thead><tr><th /><th>{T("col_model")}</th><th>FIT [%]</th><th>NRMSE [%]</th><th>{T("col_status")}</th>
-          {anyCl && <th title={T("idm_table_note")}>{T("idm_fit_cl")}</th>}<th>{T("dk_params")}</th></tr></thead>
+          {anyCl && <th title={T("idm_table_note")}>{T("idm_fit_cl")}</th>}<th>{T("ui_model_params")}</th></tr></thead>
         <tbody>
           {model.results.map((r) => (
             <tr key={r.code} className={r.code === model.selected ? "sel" : ""}>

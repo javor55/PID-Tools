@@ -101,9 +101,12 @@ function ReportMain() {
   const htmlKey = useMemo(() => (html ? hashOf(html) : ""), [html]);
   useEffect(() => {
     if (!html) return;
+    // v náhledu je „Tisk / PDF“ nad rámečkem – tlačítko uvnitř protokolu (pro samostatný soubor) se skryje
+    const hide = "<style>button.print{display:none}</style>";
+    const shown = html.includes("</head>") ? html.replace("</head>", hide + "</head>") : hide + html;
     const on = (e: MessageEvent) => {
       if (e.source === frame.current?.contentWindow && (e.data as { pidReportReady?: boolean } | null)?.pidReportReady)
-        frame.current?.contentWindow?.postMessage({ pidReport: html }, "*");
+        frame.current?.contentWindow?.postMessage({ pidReport: shown }, "*");
     };
     window.addEventListener("message", on);
     return () => window.removeEventListener("message", on);

@@ -47,7 +47,7 @@ export default function (component) {
   let S = store[CFG.sim_id];
   if (!S) {
     S = store[CFG.sim_id] = {
-      run: false, speed: CFG.speed0, set: "2", auto: true, compare: false, win: "auto", struct: "pid",
+      run: false, speed: CFG.speed0, set: CFG.set0 || "2", auto: true, compare: false, win: "auto", struct: "pid",
       sp: EP(CFG.pv0), mv: EM(CFG.mv0),
       tune: Object.assign({}, CFG.sets["2"]), setsKey: "",
       noise: CFG.noise0, pvf: CFG.pvf0,

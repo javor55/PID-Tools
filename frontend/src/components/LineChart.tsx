@@ -12,7 +12,8 @@ function ticks(lo: number, hi: number, n = 5): number[] {
   const step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= step0) ?? step0;
   const out = [];
-  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9 * span; v += step) out.push(+v.toPrecision(12));
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9 * span; v += step)
+    out.push(Math.abs(v) < step * 1e-6 ? 0 : +v.toPrecision(12));     // nula místo zbytku zaokrouhlení (−7.8e-17)
   return out;
 }
 
@@ -28,7 +29,7 @@ export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, te
   // šířka podle skutečného místa (výška zůstane zadaná v px – graf se neroztahuje do výšky se šířkou okna)
   const box = useRef<HTMLElement>(null);
   const [W, setW] = useState(720);
-  const H = heightProp ?? chartH, L = 52, R = 10, Tm = 10, B = 28;
+  const H = heightProp ?? chartH, L = 52, R = 10, Tm = yLabel ? 20 : 10, B = 28;   // popisek osy Y nad grafem, ne přes čísla
   const prep = useMemo(() => {
     const tx = (v: number) => (logX ? Math.log10(Math.max(v, 1e-12)) : v);
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -58,7 +59,7 @@ export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, te
       return d;
     });
     return { x0, x1, y0, y1, sx, sy, paths };
-  }, [series, logX, H, W, xDomain, yDomain]);
+  }, [series, logX, H, W, Tm, xDomain, yDomain]);
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -87,7 +88,7 @@ export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, te
         {series.map((s, i) => <path key={i} d={paths[i]} fill="none" stroke={s.color} strokeWidth={s.width ?? (s.dots ? 4 : 1.6)}
           strokeDasharray={s.dash} strokeLinecap={s.dots ? "round" : undefined} vectorEffect="non-scaling-stroke" />)}
         {xLabel && <text x={W - R} y={H - 2} textAnchor="end" className="lab">{xLabel}</text>}
-        {yLabel && <text x={4} y={Tm + 8} className="lab">{yLabel}</text>}
+        {yLabel && <text x={4} y={12} className="lab">{yLabel}</text>}
       </svg>
       <figcaption>{series.map((s, i) => s.legend !== false && <span key={i}><i style={{ background: s.color }} />{s.name}</span>)}</figcaption>
     </figure>

@@ -4,7 +4,11 @@ body { background: var(--pid-bg); color: var(--pid-text); font: 13px/1.45 var(--
 button { font: inherit; color: inherit; }
 .mono { font-family: var(--pid-mono); font-variant-numeric: tabular-nums; }
 
-.shell { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+.shell { display: flex; flex-direction: column; height: 100%; }
+/* roste jen pracovní plocha (.body, úvodní obrazovka, nastavení); hlavička, kontextový řádek a stavový řádek mají svou výšku */
+.shell > * { flex: none; }
+.shell > .body, .shell > .start, .shell > .settings-page { flex: 1 1 0; min-height: 0; }
+.shell > .start, .shell > .settings-page { overflow: auto; }
 /* ---- hlavička a záložky (návrh: bílý pruh, dva řádky, záložky s podtržením) */
 .header { background: var(--pid-card); border-bottom: 1px solid var(--pid-line); padding: 12px 24px 0; }
 .hrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; justify-content: space-between; }

@@ -76,7 +76,7 @@ export function PairError({ err, loop }: { err: unknown; loop?: number }) {
   if (!loops.length) return <div className="card muted" data-testid="apc-need-loop">{T("apc_need_loop")}</div>;
   const sel = loops.find((l) => l.index === (loop ?? loops[0].index));
   if (sel && !sel.has_model) {
-    return <div className="card warn" data-testid="apc-loop-nomodel">⚠ {T("g_chk_model", { n: sel.name })}</div>;
+    return <div className="card warn" data-testid="apc-loop-nomodel">⚠ {T("apc_loop_nomodel", { n: sel.name })}</div>;
   }
   if (err instanceof ApiError && err.status === 409) return <div className="card muted">{T("need_model")}</div>;
   return <div className="card err">{String((err as Error)?.message ?? err)}</div>;

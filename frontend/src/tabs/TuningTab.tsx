@@ -102,7 +102,8 @@ export function TuningMain() {
         .map((n) => (n === "sug" ? T("dk_suggest") : T("set_" + n)))} />
       {view === "time" && (
         <>
-          <ResponseCard curves={curves.data} sc={sc.data} T_end={T_end} u={u} spread={spread} sug={sug} dec={dec} />
+          <ResponseCard curves={curves.data} sc={sc.data} T_end={T_end} u={u} spread={spread} sug={sug} dec={dec}
+            set2Empty={!!info.data.sets.find((x) => x.n === 2)?.placeholder} />
           <KpiCard k={k} freq={freq.data} info={info.data} sug={sug} dec={dec} />
           <CompareCard />
           <ScenarioEvents />
@@ -115,9 +116,10 @@ export function TuningMain() {
 }
 
 // ---- odezva scénáře
-function ResponseCard({ curves, sc, T_end, u, spread, sug, dec }: {
+function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty }: {
   curves: ReturnType<typeof useSim>["curves"]["data"]; sc: components["schemas"]["Scenario"] | undefined; T_end: number;
   u: "s" | "min" | "h"; spread: boolean; sug: Suggestion | null; dec: string;
+  set2Empty?: boolean;                 // Set 2 ještě bez hodnot ([z PLC]) – nekreslit, jinak rozbije měřítko
 }) {
   const T = useT();
   const st = useSettings().data ?? {};
@@ -136,15 +138,15 @@ function ResponseCard({ curves, sc, T_end, u, spread, sug, dec }: {
     pv.push(...mk(T(nm), n, nm === "new_err" ? "var(--pid-set2)" : "var(--pid-sp)", "2 3", 1.4));
   });
   pv.push(...mk("SP", "sp", "var(--pid-text)", "6 4", 1.5), ...mk("Set 1", "pv_1", "var(--pid-set1)", "2 3", 1.5),
-    ...mk("Set 2", "pv_2", preview ? "var(--pid-sp)" : "var(--pid-pv)", preview ? "5 3" : undefined, preview ? 1.8 : 2.4));
+    ...(set2Empty ? [] : mk("Set 2", "pv_2", preview ? "var(--pid-sp)" : "var(--pid-pv)", preview ? "5 3" : undefined, preview ? 1.8 : 2.4)));
   if (preview) pv.push(...mk(T("dk_suggest"), "pv_sug", "var(--tn-sug)", undefined, 2.5));
   const mv: Line[] = [...mk("Set 1", "mv_1", "var(--pid-set1)", "2 3", 1.4),
-    ...mk("Set 2", "mv_2", preview ? "var(--pid-sp)" : "var(--pid-mv)", preview ? "5 3" : undefined, preview ? 1.6 : 2.2),
+    ...(set2Empty ? [] : mk("Set 2", "mv_2", preview ? "var(--pid-sp)" : "var(--pid-mv)", preview ? "5 3" : undefined, preview ? 1.6 : 2.2)),
     ...(preview ? mk(T("dk_suggest"), "mv_sug", "var(--pid-mv)", undefined, 2.2) : [])];
   const rows = (sc?.rows ?? []) as [boolean, string, string, number, number | null][];
   const markers = rows.filter((r) => r[0] && r[1] !== "SP" && r[4] !== null).map((r) => ({ t: r[4] as number, label:
     r[1].startsWith("M") ? "DV" : T("tg_" + r[1]).split(" ").slice(0, 1).join(" ") }));
-  const mainName = preview ? T("dk_suggest") : "Set 2";
+  const mainName = preview ? T("dk_suggest") : set2Empty ? "Set 1" : "Set 2";
   const legend = pv.filter((l) => l.legend !== false).map((l, i, a) => a.findIndex((x) => x.name === l.name) === i && l);
   const kindNote = sc ? `${T("dk_sc_" + sc.kind)} · ${T("sim_len")} ${dur(T_end, dec)}` : "";
   return (
@@ -173,7 +175,8 @@ function KpiCard({ k, freq, info, sug, dec }: { k: Record<string, Kpi>; freq: Fr
   const st = useSettings().data ?? {};
   const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");
   const cols = [["1", "Set 1"], ["2", "Set 2"], ...(sug ? [["sug", `${T("dk_suggest")} · ${T("m_" + sug.method)}`]] : [])]
-    .filter(([n]) => n in k);
+    .filter(([n]) => n in k)
+    .filter(([n]) => n !== "2" || !info.sets.find((x) => x.n === 2)?.placeholder);   // Set 2 bez hodnot se neporovnává
   if (!cols.length) return null;
   const val = (n: string, f: (r: Record<string, unknown>) => unknown): number | null => {
     const r = k[n];
@@ -359,7 +362,7 @@ export function TuningSide() {
       <SideCard title={T("tn_sec_scen")} help={T("ui_tuning_help_scen")} testid="card-scenario"><ScenarioSide /></SideCard>
 
       <SideCard title={T("tn_sec_rob")} help={T("ui_tuning_help_rob")} testid="card-robust">
-        <RobTiles freq={freq.data} sug={!!sug} dec={dec} />
+        <RobTiles freq={freq.data} sug={!!sug} dec={dec} set2Empty={!!info.data.sets.find((x) => x.n === 2)?.placeholder} />
         <RobTable rows={rob.data} dec={dec} />
         <label className="tn-check" title={T("h_robust_on")}>
           <input type="checkbox" checked={robust} data-testid="sim-robust" onChange={(e) => set({ robust: e.target.checked })} /> {T("robust_on")}</label>
@@ -415,11 +418,14 @@ function NumBare({ k, def, min, step, label, title }: { k: string; def?: number;
 }
 
 /** Pole sady v PLC: hodnota se zapíše po opuštění pole; zástupné hodnoty (výchozí) se ukážou jako „[z PLC]“. */
-function RobTiles({ freq, sug, dec }: { freq: FreqSet[] | undefined; sug: boolean; dec: string }) {
+function RobTiles({ freq, sug, dec, set2Empty }: { freq: FreqSet[] | undefined; sug: boolean; dec: string; set2Empty?: boolean }) {
   const T = useT();
   if (!freq) return null;
-  const main = freq.find((x) => x.name === (sug ? "sug" : "set2")), ref = freq.find((x) => x.name === (sug ? "set2" : "set1"));
-  const refName = sug ? T("set_2") : T("set_1");
+  // hlavní = návrh, jinak Set 2; když Set 2 ještě nemá hodnoty, hlavní je Set 1 (bez srovnání)
+  const mainKey = sug ? "sug" : set2Empty ? "set1" : "set2";
+  const refKey = sug ? (set2Empty ? "set1" : "set2") : set2Empty ? "" : "set1";
+  const main = freq.find((x) => x.name === mainKey), ref = freq.find((x) => x.name === refKey);
+  const refName = refKey === "set2" ? T("set_2") : T("set_1");
   const val = (f: FreqSet | undefined, key: "Ms" | "GM" | "PM", p: number) => (f?.stable && f[key] != null ? fnum(f[key], dec, p) : "—");
   const lvl = (x: number | null | undefined, ok: number, warn: number, low: boolean) => {
     if (x == null) return "bad";
@@ -435,7 +441,8 @@ function RobTiles({ freq, sug, dec }: { freq: FreqSet[] | undefined; sug: boolea
     <div className="tn-tiles" data-testid="rob-tiles">
       {tiles.map((t) => (
         <div key={t.k} className={"tn-tile " + t.c} data-testid={`tile-${t.k}`}>
-          <div className="k">{t.k}</div><div className="v mono">{t.v}</div><div className="r">{refName}: {t.r}</div></div>))}
+          <div className="k">{t.k}</div><div className="v mono">{t.v}</div>
+          {refKey ? <div className="r">{refName}: {t.r}</div> : <div className="r">{T("set_1")}</div>}</div>))}
     </div>
   );
 }

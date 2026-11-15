@@ -50,7 +50,7 @@ class TwoLoopPanel(Panel):
             return
         a, b = p
         if b["model"] is None:
-            self.need.setText(T("g_chk_model", n=b["name"]))
+            self.need.setText(T("apc_loop_nomodel", n=b["name"]))
             return
         self.need.setText("")
         self.update_pair(a, b)
