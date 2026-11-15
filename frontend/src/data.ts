@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { rawRequest, request, type WorkspaceInfo } from "./api/client";
 import type { components } from "./api/schema";
+import { toastError } from "./components/Toasts";
 import { useUi } from "./store";
 
 export type Quality = components["schemas"]["Quality"];
@@ -49,13 +50,31 @@ export async function uploadFile(wid: string, file: File): Promise<WorkspaceInfo
     await file.arrayBuffer());
 }
 
-/** Změna nastavení smyčky: hned v rozhraní (optimisticky), pak PATCH /settings a znovu načíst prostor. */
+/**
+ * Změna nastavení smyčky: hned v rozhraní (optimisticky), pak PATCH /settings a znovu načíst prostor.
+ * Při chybě se vrátí předchozí hodnoty měněných klíčů, ukáže se toast a chyba se znovu vyhodí.
+ */
 export function usePatchSettings() {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   return async (patch: Record<string, unknown>) => {
-    qc.setQueryData<Record<string, unknown>>(["ws", wid, "settings"], (old) => ({ ...(old ?? {}), ...patch }));
-    await request("PATCH", `/workspaces/${wid}/settings`, patch);
+    const key = ["ws", wid, "settings"];
+    const prev = qc.getQueryData<Record<string, unknown>>(key);
+    qc.setQueryData<Record<string, unknown>>(key, (old) => ({ ...(old ?? {}), ...patch }));
+    try {
+      await request("PATCH", `/workspaces/${wid}/settings`, patch);
+    } catch (e) {
+      // Vrátit jen měněné klíče (souběžná změna jiného klíče zůstane).
+      qc.setQueryData<Record<string, unknown>>(key, (cur) => {
+        const out = { ...(cur ?? {}) };
+        for (const k of Object.keys(patch)) {
+          if (prev && k in prev) out[k] = prev[k]; else delete out[k];
+        }
+        return out;
+      });
+      toastError(e);
+      throw e;
+    }
     await qc.invalidateQueries({ queryKey: ["ws", wid] });
   };
 }
