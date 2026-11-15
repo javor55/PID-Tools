@@ -27,7 +27,7 @@ REF = golden.load("demo_common")
 def _wait(client, job, t=600):
     t0 = time.time()
     while time.time() - t0 < t:
-        st = client.get(f"/jobs/{job['id']}").json()
+        st = client.get(f"/api/v1/jobs/{job['id']}").json()
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             return st
@@ -38,24 +38,24 @@ def _wait(client, job, t=600):
 @pytest.fixture(scope="module")
 def ws():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
-        c.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
-        _wait(c, c.post(f"/workspaces/{wid}/identify").json())
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+        _wait(c, c.post(f"/api/v1/workspaces/{wid}/identify").json())
         yield c, wid, c.app.state.workspace(wid)
 
 
 def test_requires_model():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        assert c.get(f"/workspaces/{wid}/apc/ff").status_code == 409
-        assert c.get(f"/workspaces/{wid}/apc/smith").status_code == 409
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        assert c.get(f"/api/v1/workspaces/{wid}/apc/ff").status_code == 409
+        assert c.get(f"/api/v1/workspaces/{wid}/apc/smith").status_code == 409
 
 
 def test_ff_default_roundtrip_reset(ws):
     c, wid, s = ws
     code, p, pdl = s.model
-    url = f"/workspaces/{wid}/apc/ff"
+    url = f"/api/v1/workspaces/{wid}/apc/ff"
     info = c.get(url).json()
     ref = ffm.design(code, p, pdl, None)
     assert info["model"] == code and len(info["dists"]) == len(pdl) == 1
@@ -85,7 +85,7 @@ def test_ff_default_roundtrip_reset(ws):
 
 def test_ff_simulation_like_desktop(ws):
     c, wid, s = ws
-    url = f"/workspaces/{wid}/apc/ff"
+    url = f"/api/v1/workspaces/{wid}/apc/ff"
     c.put(url, json=[{"use": True, "dyn": True}])
     step = c.get(url).json()["dists"][0]["step"]
     code, p, pdl = s.model
@@ -107,9 +107,9 @@ def test_ff_simulation_like_desktop(ws):
 
 def test_ff_changes_tuning_simulation(ws):
     c, wid, s = ws
-    ff = f"/workspaces/{wid}/apc/ff"
-    sim_url = f"/workspaces/{wid}/simulate"
-    c.put(f"/workspaces/{wid}/scenario", json={"kind": "meas"})         # skok měřené poruchy
+    ff = f"/api/v1/workspaces/{wid}/apc/ff"
+    sim_url = f"/api/v1/workspaces/{wid}/simulate"
+    c.put(f"/api/v1/workspaces/{wid}/scenario", json={"kind": "meas"})         # skok měřené poruchy
     c.put(ff, json=[{"use": False}])
     off = c.post(sim_url, json={}).json()["kpis"]["2"]
     code, p, pdl = s.model
@@ -122,14 +122,14 @@ def test_ff_changes_tuning_simulation(ws):
     assert on != off
     c.put(ff, json=[{"use": False}])
     assert c.post(sim_url, json={}).json()["kpis"]["2"] == off
-    c.put(f"/workspaces/{wid}/scenario", json={"kind": "sp"})
+    c.put(f"/api/v1/workspaces/{wid}/scenario", json={"kind": "sp"})
 
 
 def test_smith_like_direct_calls(ws):
     c, wid, s = ws
     code, p, _ = s.model
     samp = float(s.get("samp"))
-    url = f"/workspaces/{wid}/apc/smith"
+    url = f"/api/v1/workspaces/{wid}/apc/smith"
     info = c.get(url).json()
     inp = info["inputs"]
     assert inp["method"] == "SIMC" and inp["ctype"] == "PI" and info["opt_ready"]
@@ -161,15 +161,15 @@ def test_smith_like_direct_calls(ws):
 def test_smith_settings_and_values():
     """Model bez integrace: hodnoty šablony, ruční metoda a klíče nastavení jako desktop."""
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
-        c.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D"]})
-        _wait(c, c.post(f"/workspaces/{wid}/identify").json())
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D"]})
+        _wait(c, c.post(f"/api/v1/workspaces/{wid}/identify").json())
         s = c.app.state.workspace(wid)
-        c.patch(f"/workspaces/{wid}/settings", json={"mcode": "P1D"})
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"mcode": "P1D"})
         code, p, _ = s.model
         assert code == "P1D"
-        url = f"/workspaces/{wid}/apc/smith"
+        url = f"/api/v1/workspaces/{wid}/apc/smith"
         samp = float(s.get("samp"))
         pv_id, mv_id = s.segment()[1:3]
         pv_op, mv_op = asm.operating_point(pv_id, mv_id)
@@ -197,21 +197,21 @@ def test_smith_optimize_job(ws):
     c, wid, s = ws
     code, p, _ = s.model
     samp = float(s.get("samp"))
-    url = f"/workspaces/{wid}/apc/smith"
-    c.patch(f"/workspaces/{wid}/settings", json={"apc_sm_method": "OPT", "apc_sm_ct": "PI"})
+    url = f"/api/v1/workspaces/{wid}/apc/smith"
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"apc_sm_method": "OPT", "apc_sm_ct": "PI"})
     pre = c.get(url).json()
     assert not pre["opt_ready"] and pre["controller"] is None
     assert c.post(f"{url}/simulate", json={}).status_code == 409
     job = c.post(f"{url}/optimize").json()
     _wait(c, job)
-    res = c.get(f"/jobs/{job['id']}/result").json()
+    res = c.get(f"/api/v1/jobs/{job['id']}/result").json()
     ref = asm.controller(code, p, "OPT", "PI", None, samp, s.base_ctrl())
     assert {k: res[k] for k in ("Kc", "Ti", "Td")} == pytest.approx({k: ref[k] for k in ("Kc", "Ti", "Td")})
     post = c.get(url).json()
     assert post["opt_ready"] and post["controller"]["Kc"] == pytest.approx(ref["Kc"])
     assert post["controller"]["notes"][0]["key"] == "sm_opt_note"
     assert c.post(f"{url}/simulate", json={}).status_code == 200
-    c.patch(f"/workspaces/{wid}/settings", json={"apc_sm_method": "SIMC"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"apc_sm_method": "SIMC"})
 
 
 def test_apc_uses_set1_while_set2_is_default(ws):
@@ -219,10 +219,10 @@ def test_apc_uses_set1_while_set2_is_default(ws):
     c, wid, s = ws
     old = {k: s.get(k) for k in ("set2_gain", "set2_ti", "set2_td")}
     try:
-        c.patch(f"/workspaces/{wid}/settings", json={"set2_gain": 1.0, "set2_ti": 100.0, "set2_td": 0.0})
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": 1.0, "set2_ti": 100.0, "set2_td": 0.0})
         assert s.set2_empty() and s.work_ctrl() == s.set_ctrl(1) and s.apc_record()["ctrl"] == s.set_ctrl(1)
-        c.patch(f"/workspaces/{wid}/settings", json={"set2_gain": -1.5, "set2_ti": 150.0, "set2_td": 0.0})
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": -1.5, "set2_ti": 150.0, "set2_td": 0.0})
         assert not s.set2_empty() and s.work_ctrl() == s.set_ctrl(2)
         assert s.report_record()["ctrl"] == s.set_ctrl(2)          # protokol dál ukazuje Set 2 tak, jak je
     finally:
-        c.patch(f"/workspaces/{wid}/settings", json=old)
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json=old)

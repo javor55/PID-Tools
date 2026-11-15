@@ -13,7 +13,7 @@ from pidtools.app import triage  # noqa: E402
 def _wait(c, job, t=300):
     t0 = time.time()
     while time.time() - t0 < t:
-        st = c.get(f"/jobs/{job['id']}").json()
+        st = c.get(f"/api/v1/jobs/{job['id']}").json()
         if st["state"] not in ("queued", "running"):
             return st
         time.sleep(0.2)
@@ -23,8 +23,8 @@ def _wait(c, job, t=300):
 @pytest.fixture(scope="module")
 def ws():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
         yield c, f"/api/v1/workspaces/{wid}"
 
 
@@ -36,7 +36,7 @@ def test_no_result_before_run(ws):
 
 def test_triage_needs_data():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
+        wid = c.post("/api/v1/workspaces").json()["id"]
         assert c.post(f"/api/v1/workspaces/{wid}/triage").status_code == 409
 
 

@@ -77,7 +77,7 @@ def test_shell_tabs_and_connection(page):
     assert [b.get_attribute("data-sub") for b in page.locator('[data-testid="data-subtabs"] [role="tab"]').all()] == [
         "sources", "trends", "quality", "diag"]
     assert "version" in page.locator('[data-testid="api-ok"]').inner_text()
-    assert any(m == "POST" and u.endswith("/workspaces") for m, u in page.requested)     # pracovní prostor
+    assert any(m == "POST" and u.endswith("/api/v1/workspaces") for m, u in page.requested)     # pracovní prostor
     assert "#token" not in page.url                                                       # token z adresy pryč
     page.locator('[data-tab="model"]').click()
     assert page.locator('[data-testid="tab-model"], [data-testid="start-screen"]').count() == 1          # bez dat Start
@@ -129,7 +129,7 @@ def test_offline_and_fonts(page, server):
 
 def test_api_still_needs_token(server):
     with pytest.raises(urllib.error.HTTPError):
-        urllib.request.urlopen(server + "/i18n/en", timeout=5)
+        urllib.request.urlopen(server + "/api/v1/i18n/en", timeout=5)
     assert urllib.request.urlopen(server + "/", timeout=5).status == 200      # rozhraní samo je veřejné
 
 
@@ -194,8 +194,8 @@ def test_data_tab_viewer_columns_layout(page, server):
     # navržený úsek → Model (úsek identifikace)
     page.locator('[data-testid="dq-use-0"]').click()
     page.wait_for_selector('[data-testid="model-trend"]', timeout=30000)
-    seg = _api(server, "/workspaces/{wid}/dataquality/summary", page)["segments"][0]
-    assert _api(server, "/workspaces/{wid}", page)["rng"] == [seg["a"], seg["b"]]
+    seg = _api(server, "/api/v1/workspaces/{wid}/dataquality/summary", page)["segments"][0]
+    assert _api(server, "/api/v1/workspaces/{wid}", page)["rng"] == [seg["a"], seg["b"]]
     page.locator('[data-tab="data"]').click()
 
 
@@ -242,14 +242,14 @@ def test_data_file_upload(page, server):
     """Přidání souboru ve Zdrojích a smyčkách: další zdroj vedle stávajících, jeho sloupce jsou v panelu sloupců."""
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="sources"]').click()
-    n0 = len(_api(server, "/workspaces/{wid}/sources", page)["sources"])
+    n0 = len(_api(server, "/api/v1/workspaces/{wid}/sources", page)["sources"])
     page.set_input_files('[data-testid="src-add-file"]', os.path.join(ROOT, "tests", "data", "ff_example.csv"))
-    src = _until(lambda: (lambda x: x if len(x["sources"]) == n0 + 1 else None)(_api(server, "/workspaces/{wid}/sources", page)))
+    src = _until(lambda: (lambda x: x if len(x["sources"]) == n0 + 1 else None)(_api(server, "/api/v1/workspaces/{wid}/sources", page)))
     new = src["sources"][-1]
     assert new["name"] == "ff_example.csv" and {"CV", "MV", "SP", "DV"} <= set(new["columns"])
     page.wait_for_selector(f'[data-testid="src-col-{new["id"]}-CV"]', timeout=20000)
     page.locator(f'[data-testid="src-del-{new["id"]}"]').click()
-    _until(lambda: len(_api(server, "/workspaces/{wid}/sources", page)["sources"]) == n0)
+    _until(lambda: len(_api(server, "/api/v1/workspaces/{wid}/sources", page)["sources"]) == n0)
 
 
 def test_model_tab_identify(page, server):
@@ -271,12 +271,12 @@ def test_model_tab_identify(page, server):
     page.wait_for_selector('[data-testid="models"] tbody tr', timeout=120000)
     rows = page.locator('[data-testid="models"] tbody tr')
     assert rows.count() == 2
-    m = _api(server, "/workspaces/{wid}/model", page)
+    m = _api(server, "/api/v1/workspaces/{wid}/model", page)
     assert m["selected"] == "I1D" and abs(m["current"]["p"][0] - (-0.00394)) < 2e-4      # = zlatý případ demo
     page.locator('[data-testid="models"] input[aria-label="P1D"]').click()
     page.wait_for_function("() => document.querySelector('[data-testid=\"models\"] input[aria-label=\"P1D\"]').checked")
     page.wait_for_timeout(800)
-    assert _api(server, "/workspaces/{wid}/model", page)["selected"] == "P1D"
+    assert _api(server, "/api/v1/workspaces/{wid}/model", page)["selected"] == "P1D"
     page.wait_for_timeout(1000)
     assert page.locator('[data-testid="model-trend"] svg').count() >= 2              # karty grafu (SVG)
     paths = page.evaluate("() => document.querySelectorAll('[data-testid=\"model-trend\"] svg path').length")
@@ -284,7 +284,7 @@ def test_model_tab_identify(page, server):
     # úseky podle vstupů: přepínač v grafu → nastavení win_mode
     page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="inputs"]').click()
     page.wait_for_timeout(800)
-    assert _api(server, "/workspaces/{wid}/settings", page)["win_mode"] == "inputs"
+    assert _api(server, "/api/v1/workspaces/{wid}/settings", page)["win_mode"] == "inputs"
     page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="common"]').click()
     page.wait_for_timeout(500)
 
@@ -304,12 +304,12 @@ def test_model_edit_refit_validation_uncertainty(page, server):
     page.wait_for_timeout(600)
     page.locator('[data-testid="refit"]').click()
     wait_jobs()
-    p = _api(server, "/workspaces/{wid}/model", page)["current"]["p"]
+    p = _api(server, "/api/v1/workspaces/{wid}/model", page)["current"]["p"]
     assert abs(p[2] - 30.0) < 1e-6
     page.locator('[data-testid="fx-fx|P1D|2"]').click()
     page.locator('[data-testid="reset"]').click()
     page.wait_for_timeout(800)
-    st = _api(server, "/workspaces/{wid}/settings", page)
+    st = _api(server, "/api/v1/workspaces/{wid}/settings", page)
     assert abs(st["ed|P1D|2"] - 30.0) < 1e-6                 # návrat = hodnoty posledního (dofitovaného) výsledku
     page.locator('[data-testid="uncertainty"] input.num').fill("3")
     page.locator('[data-testid="unc-run"]').click()
@@ -323,7 +323,7 @@ def test_model_residuals_and_dist_structs(page, server):
     _track(page)
     page.locator('[data-tab="model"]').click()
     page.wait_for_selector('[data-testid="residuals"] [data-testid="acf-chart"]', timeout=30000)
-    v = _api(server, "/workspaces/{wid}/model/validation", page)["metrics"]
+    v = _api(server, "/api/v1/workspaces/{wid}/model/validation", page)["metrics"]
     for key in ("acf", "ccf"):
         page.wait_for_function(f"() => document.querySelectorAll('[data-testid=\"{key}-chart\"] rect').length === {len(v[key])}")
         assert page.locator(f'[data-testid="{key}-chart"] line.bound').count() == 2
@@ -332,13 +332,13 @@ def test_model_residuals_and_dist_structs(page, server):
         assert page.locator(f'[data-testid="{key}-chart"] rect[data-bad="1"]').count() == bad
     import numpy as np
     from pidtools.app import signalpack
-    meta, sig = signalpack.unframe(_api_raw(server, "/workspaces/{wid}/model/curves", page))
+    meta, sig = signalpack.unframe(_api_raw(server, "/api/v1/workspaces/{wid}/model/curves", page))
     n_res = int(np.isfinite(sig["residual"][1]).sum())
     page.wait_for_selector('[data-testid="resid-chart"] path')
     assert int(page.locator('[data-testid="resid-chart"]').get_attribute("data-n")) == n_res > 0
     assert page.locator('[data-testid="resid-verdict"]').inner_text().strip()
     # porovnání struktur poruchy
-    m = _api(server, "/workspaces/{wid}/model", page)
+    m = _api(server, "/api/v1/workspaces/{wid}/model", page)
     code = m["selected"]
     d = next(r for r in m["results"] if r["code"] == code)["dists"][0]
     assert len(d["cmp"]) == 5
@@ -349,13 +349,13 @@ def test_model_residuals_and_dist_structs(page, server):
     assert page.locator('[data-testid="dist-cmp-0"] tr[data-current="1"]').get_attribute("data-struct") == d["struct"]
     other = next(c["struct"] for c in d["cmp"] if c["fit"] is not None and c["struct"] != d["struct"])
     page.locator(f'[data-testid="dist-use-0-{other}"]').click()
-    _until(lambda: next(r for r in _api(server, "/workspaces/{wid}/model", page)["results"]
+    _until(lambda: next(r for r in _api(server, "/api/v1/workspaces/{wid}/model", page)["results"]
                         if r["code"] == code)["dists"][0]["struct"] == other)
     page.wait_for_selector(f'[data-testid="dist-cmp-0"] tr[data-struct="{other}"][data-current="1"]')
-    assert _api(server, "/workspaces/{wid}/settings", page)[f"dsel|{code}|0"] == other
+    assert _api(server, "/api/v1/workspaces/{wid}/settings", page)[f"dsel|{code}|0"] == other
     # zpět na identifikovanou strukturu (sdílený stav testů: demo + identifikovaný model)
     page.locator('[data-testid="reset"]').click()
-    _until(lambda: next(r for r in _api(server, "/workspaces/{wid}/model", page)["results"]
+    _until(lambda: next(r for r in _api(server, "/api/v1/workspaces/{wid}/model", page)["results"]
                         if r["code"] == code)["dists"][0]["struct"] == d["ident"])
     page.wait_for_selector(f'[data-testid="dist-cmp-0"] tr[data-struct="{d["ident"]}"][data-current="1"]')
     _quiet(page)
@@ -370,7 +370,7 @@ def test_model_side_structure(page, server):
     assert first.locator('[data-testid="identify"]').count() == 1               # tlačítko jako první blok panelu
     assert side.locator('[data-testid="side-struct"]').count() == 1
     assert side.locator('[data-testid="side-struct"] .seg button').count() == 3  # Auto / Samoregulační / Integrační
-    n_dv = len(_api(server, "/workspaces/{wid}", page)["dists"])
+    n_dv = len(_api(server, "/api/v1/workspaces/{wid}", page)["dists"])
     assert side.locator(".mcard details.scard").count() == 1 + n_dv
     assert side.locator('[data-testid="params"] .mparams input[type="checkbox"]').count() >= 2   # sloupec Identif.
     assert side.locator('[data-testid="side-validation"]').count() == 1
@@ -387,11 +387,11 @@ def test_tuning_tab(page, server):
     page.select_option('[data-testid="method"]', "SIMC")
     page.locator('[data-testid="calc"]').click()
     page.wait_for_selector('[data-testid="sug-values"]')
-    sug = _api_post(server, "/workspaces/{wid}/tuning/suggest", {"method": "SIMC"}, page)
+    sug = _api_post(server, "/api/v1/workspaces/{wid}/tuning/suggest", {"method": "SIMC"}, page)
     assert f"{sug['Kc']:.4g}".rstrip("0").rstrip(".") in page.locator('[data-testid="sug-values"]').inner_text()
     page.locator('[data-testid="to-set2"]').click()
     page.wait_for_timeout(800)
-    s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
+    s2 = next(s for s in _api(server, "/api/v1/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
     assert abs(s2["gain"] - sug["Kc"]) < 1e-9 and abs(s2["ti"] - sug["Ti"]) < 1e-9
     page.wait_for_function("() => document.querySelectorAll('[data-testid=\"kpis\"] thead th').length === 4",
                            timeout=20000)                                       # řádek popisků + Set 1, Set 2, návrh
@@ -401,7 +401,7 @@ def test_tuning_tab(page, server):
     page.locator('[data-testid="set-samp"]').fill("2")
     page.locator('[data-testid="set-samp"]').press("Enter")
     page.wait_for_timeout(600)
-    assert _api(server, "/workspaces/{wid}/settings", page)["samp"] == 2.0
+    assert _api(server, "/api/v1/workspaces/{wid}/settings", page)["samp"] == 2.0
     page.locator('[data-testid="set-samp"]').fill("1")
     page.locator('[data-testid="set-samp"]').press("Enter")
 
@@ -412,16 +412,16 @@ def test_tuning_scenario_compare_frequency(page, server):
     page.wait_for_selector('[data-testid="scen-kind"]')
     page.select_option('[data-testid="scen-kind"]', "in")
     page.wait_for_function("() => document.querySelector('[data-testid=\"scen-kind\"]').value === 'in'")
-    assert _api(server, "/workspaces/{wid}/scenario", page)["kind"] == "in"
+    assert _api(server, "/api/v1/workspaces/{wid}/scenario", page)["kind"] == "in"
     n = page.locator('[data-testid="scen-row"]').count()
     page.locator('[data-testid="scen-add"]').click()
     page.wait_for_function(f"() => document.querySelectorAll('[data-testid=\"scen-row\"]').length === {n + 1}")
-    sc = _api(server, "/workspaces/{wid}/scenario", page)
+    sc = _api(server, "/api/v1/workspaces/{wid}/scenario", page)
     assert sc["kind"] == "custom" and len(sc["rows"]) == n + 1 and sc["rows"][-1][1] == "IN"
     page.locator(f'[data-testid="scen-{n}-3"]').fill("2.5")
     page.locator(f'[data-testid="scen-{n}-3"]').press("Enter")
     page.wait_for_timeout(600)
-    assert _api(server, "/workspaces/{wid}/scenario", page)["rows"][-1][3] == 2.5
+    assert _api(server, "/api/v1/workspaces/{wid}/scenario", page)["rows"][-1][3] == 2.5
     page.select_option('[data-testid="scen-kind"]', "sp")                     # zpět na výchozí
 
     page.locator('[data-testid="tun-view"] [data-value="freq"]').click()
@@ -481,16 +481,16 @@ def test_live_tab(page, server):
     assert page.locator("#read").inner_text().strip()
     page.locator("#run").click()                                                    # pauza
     page.locator("details:has(#tune) > summary").click()
-    g0 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)["gain"]
+    g0 = next(s for s in _api(server, "/api/v1/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)["gain"]
     gain = page.locator("#tune input.num").first
     gain.fill(f"{g0 * 1.5:.6g}")
     gain.dispatch_event("change")
     page.locator("#apply").click()
     page.wait_for_function(
-        "async ([a]) => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/tuning', "
+        "async ([a]) => { const r = await fetch('/api/v1/workspaces/' + sessionStorage.getItem('pid.wid') + '/tuning', "
         "{headers: {'X-PID-Token': '" + TOKEN + "'}}); const s = (await r.json()).sets.find((x) => x.n === 2); "
         "return Math.abs(s.gain - a) < 1e-9 * Math.max(1, Math.abs(a)); }", arg=[float(f"{g0 * 1.5:.6g}")])
-    s2 = next(s for s in _api(server, "/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
+    s2 = next(s for s in _api(server, "/api/v1/workspaces/{wid}/tuning", page)["sets"] if s["n"] == 2)
     assert s2["gain"] == pytest.approx(float(f"{g0 * 1.5:.6g}"))
     page.locator('[data-tab="data"]').click()                                       # odpojení komponenty bez chyby
     page.locator('[data-sub="quality"]').click()
@@ -527,7 +527,7 @@ def test_live_tab_structures_dv_and_journal(page, server):
     """E9-B: přepínač struktury sady 2, porucha DV přes přenos modelu, zápis výsledku do nastavení projektu."""
     page.locator('[data-tab="live"]').click()
     page.wait_for_selector('[data-testid="live-sim"] canvas#cv', timeout=20000)
-    cfg = _api(server, "/workspaces/{wid}/live", page)
+    cfg = _api(server, "/api/v1/workspaces/{wid}/live", page)
     assert page.locator("#struct button").count() == 3 and page.locator("#struct button.on").inner_text() == "PID"
     assert page.locator("#dloc option").count() == 2 + len(cfg["dvs"])
     page.locator("details:has(#struct) > summary").scroll_into_view_if_needed()
@@ -550,10 +550,10 @@ def test_live_tab_structures_dv_and_journal(page, server):
     page.locator("#run").click()
     page.locator("#journal").click()                                                 # souhrn běhu do deníku ladění
     page.wait_for_function(
-        "async () => { const r = await fetch('/workspaces/' + sessionStorage.getItem('pid.wid') + '/journal', "
+        "async () => { const r = await fetch('/api/v1/workspaces/' + sessionStorage.getItem('pid.wid') + '/journal', "
         "{headers: {'X-PID-Token': '" + TOKEN + "'}}); const s = await r.json(); "
         "return s.snapshots.some((x) => x.kind === 'live'); }", timeout=20000)
-    run = [x for x in _api(server, "/workspaces/{wid}/journal", page)["snapshots"] if x["kind"] == "live"][-1]
+    run = [x for x in _api(server, "/api/v1/workspaces/{wid}/journal", page)["snapshots"] if x["kind"] == "live"][-1]
     assert run["live"]["struct"] == "pid" and run["live"]["kpi"]
     page.locator('[data-tab="project"]').click()
     page.locator('[data-testid="proj-sub"] [data-value="journal"]').click()
@@ -577,7 +577,7 @@ def test_apc_tab_recommendations_ff_smith(page, server):
     """APC (M19, 1. část): doporučení, dopředná vazba (zapnutí, úprava, reset, simulace), Smith = API, optimalizace."""
     page.locator('[data-tab="apc"]').click()
     page.wait_for_selector('[data-testid="apc-reco"]', timeout=20000)
-    reco = _api(server, "/workspaces/{wid}/apc/recommend", page)
+    reco = _api(server, "/api/v1/workspaces/{wid}/apc/recommend", page)
     page.wait_for_function("() => document.querySelector('[data-testid=\"apc-reco\"] li, [data-testid=\"apc-reco-none\"]')")
     assert page.locator('[data-testid="apc-reco"] li').count() == len(reco)
     for r in reco:
@@ -585,7 +585,7 @@ def test_apc_tab_recommendations_ff_smith(page, server):
     assert page.locator('[data-testid="apc-techs"] [role="tab"]').count() == 11
     # dopředná vazba
     page.locator('[data-testid="apc-tech-ff"]').click()
-    ff = _api(server, "/workspaces/{wid}/apc/ff", page)
+    ff = _api(server, "/api/v1/workspaces/{wid}/apc/ff", page)
     if not ff["dists"]:
         page.wait_for_selector('[data-testid="ff-none"]')
     else:
@@ -597,14 +597,14 @@ def test_apc_tab_recommendations_ff_smith(page, server):
         page.wait_for_selector('[data-testid="ff-kpis-dynamic-iae"]', timeout=20000)
         assert page.locator('[data-testid="ff-kpis"] tbody tr').count() == 2      # tabulka variant: sloupce = varianty
         page.wait_for_selector('[data-testid="ff-values-0"] tbody tr', timeout=20000)    # hodnoty pro PIDConL
-        cur = _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]
+        cur = _api(server, "/api/v1/workspaces/{wid}/apc/ff", page)["dists"][0]
         assert cur["design"]["use"] and cur["design"]["dyn"]
         page.locator('[data-testid="ff-gain-0"]').fill("2.5")
         page.locator('[data-testid="ff-gain-0"]').press("Enter")
         page.wait_for_selector('[data-testid="ff-edited-0"]')
-        cur = _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]
+        cur = _api(server, "/api/v1/workspaces/{wid}/apc/ff", page)["dists"][0]
         assert cur["design"]["gain"] == 2.5 and cur["edited"]
-        sim = _api_post(server, "/workspaces/{wid}/apc/ff/simulate", {"dist": 0}, page)
+        sim = _api_post(server, "/api/v1/workspaces/{wid}/apc/ff/simulate", {"dist": 0}, page)
         want = sim["kpis"]["dynamic"]["iae"]
         page.wait_for_function(
             "(w) => { const t = document.querySelector('[data-testid=\"ff-kpis-dynamic-iae\"]');"
@@ -613,16 +613,16 @@ def test_apc_tab_recommendations_ff_smith(page, server):
         assert page.locator('[data-testid="ff-pv"] path').count() == 3
         page.locator('[data-testid="ff-reset-0"]').click()
         page.wait_for_function("() => !document.querySelector('[data-testid=\"ff-edited-0\"]')")
-        cur = _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]
+        cur = _api(server, "/api/v1/workspaces/{wid}/apc/ff", page)["dists"][0]
         assert cur["design"]["gain"] == pytest.approx(cur["defaults"]["gain"]) and not cur["edited"]
         page.locator('[data-testid="ff-use-0"]').click()
         page.locator('[data-testid="ff-dyn-0"] [data-value="static"]').click()
         page.wait_for_selector('[data-testid="ff-all-off"]')
-        assert not _api(server, "/workspaces/{wid}/apc/ff", page)["dists"][0]["design"]["use"]
+        assert not _api(server, "/api/v1/workspaces/{wid}/apc/ff", page)["dists"][0]["design"]["use"]
     # Smithův prediktor: hodnoty = API
     page.locator('[data-testid="apc-tech-smith"]').click()
     page.wait_for_selector('[data-testid="sm-kc"]', timeout=20000)
-    sm = _api(server, "/workspaces/{wid}/apc/smith", page)
+    sm = _api(server, "/api/v1/workspaces/{wid}/apc/smith", page)
     assert sm["inputs"]["method"] == "SIMC" and sm["opt_ready"]
     assert _rel(float(page.locator('[data-testid="sm-kc"]').inner_text()), sm["controller"]["Kc"])
     assert _rel(float(page.locator('[data-testid="sm-ti"]').inner_text()), sm["controller"]["Ti"])
@@ -635,7 +635,7 @@ def test_apc_tab_recommendations_ff_smith(page, server):
         assert page.locator('[data-testid="sm-general"] tbody tr').count() == len(sm["general_rows"])
         assert page.locator('[data-testid="sm-op"]').count() == 1
     page.wait_for_selector('[data-testid="sm-kpis-smith-iae_sp"]', timeout=30000)
-    sim = _api_post(server, "/workspaces/{wid}/apc/smith/simulate", {}, page)
+    sim = _api_post(server, "/api/v1/workspaces/{wid}/apc/smith/simulate", {}, page)
     for k in ("pid", "smith"):
         got = page.locator(f'[data-testid="sm-kpis-{k}-iae_sp"]').inner_text()
         assert _rel(float(got), sim["kpis"][k]["iae_sp"], 5e-3)
@@ -643,20 +643,20 @@ def test_apc_tab_recommendations_ff_smith(page, server):
     # změna typu regulátoru přes nastavení → regulátor z API
     page.select_option('[data-testid="set-apc_sm_ct"]', "PID")
     page.wait_for_timeout(1200)
-    assert _api(server, "/workspaces/{wid}/settings", page)["apc_sm_ct"] == "PID"
-    sm = _api(server, "/workspaces/{wid}/apc/smith", page)
+    assert _api(server, "/api/v1/workspaces/{wid}/settings", page)["apc_sm_ct"] == "PID"
+    sm = _api(server, "/api/v1/workspaces/{wid}/apc/smith", page)
     _wait_num(page, "sm-kc", sm["controller"]["Kc"])            # do načtení zůstává vidět předchozí hodnota
     page.select_option('[data-testid="set-apc_sm_ct"]', "PI")
     # robustní optimalizace jako úloha
     page.select_option('[data-testid="set-apc_sm_method"]', "OPT")
     page.wait_for_selector('[data-testid="sm-opt"]')
     page.wait_for_timeout(800)
-    if not _api(server, "/workspaces/{wid}/apc/smith", page)["opt_ready"]:
+    if not _api(server, "/api/v1/workspaces/{wid}/apc/smith", page)["opt_ready"]:
         page.wait_for_selector('[data-testid="sm-need-opt"]')
         page.locator('[data-testid="sm-opt"]').click()
     page.wait_for_function("() => document.querySelector('[data-testid=\"sm-opt\"]') && "
                            "!document.querySelector('[data-testid=\"sm-opt\"]').disabled", timeout=180000)
-    sm = _api(server, "/workspaces/{wid}/apc/smith", page)
+    sm = _api(server, "/api/v1/workspaces/{wid}/apc/smith", page)
     assert sm["opt_ready"] and sm["inputs"]["method"] == "OPT"
     _wait_num(page, "sm-kc", sm["controller"]["Kc"])
     page.select_option('[data-testid="set-apc_sm_method"]', "SIMC")
@@ -698,7 +698,7 @@ def _until(fn, timeout=30.0):
 
 def _job_done(server, page, job, timeout=240):
     st = _until(lambda: (lambda s: s if s["state"] not in ("queued", "running") else None)(
-        _api(server, f"/jobs/{job['id']}", page)), timeout)
+        _api(server, f"/api/v1/jobs/{job['id']}", page)), timeout)
     assert st["state"] == "done", st
 
 
@@ -737,7 +737,7 @@ def _quiet(page, timeout=60.0):
 
 def _setting(server, page, key):
     """Hodnota klíče nastavení (levný dotaz: nezatěžuje výpočty techniky, které si žádá rozhraní)."""
-    return _api(server, "/workspaces/{wid}/settings", page).get(key)
+    return _api(server, "/api/v1/workspaces/{wid}/settings", page).get(key)
 
 
 def _apc_tech(page, tech):
@@ -756,13 +756,13 @@ def test_apc_split_vpc_ratio_rga(page, server):
     # split range
     page.locator('[data-testid="apc-tech-split"]').click()
     page.wait_for_selector('[data-testid="split-val-b"]', timeout=20000)
-    info = _api(server, "/workspaces/{wid}/apc/split", page)
+    info = _api(server, "/api/v1/workspaces/{wid}/apc/split", page)
     d = info["design"]
     _wait_num(page, "split-val-b", d["bstar"])
     _wait_num(page, "split-val-corr", d["corr"])
     assert page.locator('[data-testid="split-checks"] li').count() == len(d["checks"])
     assert f"{d['bstar']:.1f}".replace(".", ",") in page.locator('[data-testid="split-result"]').inner_text().replace(".", ",")
-    sim = _api_post(server, "/workspaces/{wid}/apc/split/simulate", info["defaults"], page)
+    sim = _api_post(server, "/api/v1/workspaces/{wid}/apc/split/simulate", info["defaults"], page)
     page.wait_for_selector('[data-testid="split-kpis-new-iae"]', timeout=30000)
     _wait_sel(page, '[data-testid="split-kpis-new-iae"]', sim["kpis"]["new"]["iae"])
     _wait_sel(page, '[data-testid="split-kpis-now-maxdev"]', sim["kpis"]["now"]["maxdev"])
@@ -773,22 +773,22 @@ def test_apc_split_vpc_ratio_rga(page, server):
     assert page.locator('[data-testid="split-va-reset"]').is_disabled()
     _set_num(page, "split-va-0", va[0] * 2)
     body = dict(info["defaults"], valve_a=[va[0] * 2, *va[1:]])
-    d2 = _api_post(server, "/workspaces/{wid}/apc/split/design", body, page)
+    d2 = _api_post(server, "/api/v1/workspaces/{wid}/apc/split/design", body, page)
     assert d2["bstar"] != pytest.approx(d["bstar"])
     _wait_num(page, "split-val-b", d2["bstar"])
-    sim2 = _api_post(server, "/workspaces/{wid}/apc/split/simulate", body, page)
+    sim2 = _api_post(server, "/api/v1/workspaces/{wid}/apc/split/simulate", body, page)
     _wait_sel(page, '[data-testid="split-kpis-new-iae"]', sim2["kpis"]["new"]["iae"])
     page.locator('[data-testid="split-va-reset"]').click()
     _wait_num(page, "split-val-b", d["bstar"])
     # VPC
     page.locator('[data-testid="apc-tech-vpc"]').click()
     page.wait_for_selector('[data-testid="vpc-val-kc"]', timeout=20000)
-    info = _api(server, "/workspaces/{wid}/apc/vpc", page)
+    info = _api(server, "/api/v1/workspaces/{wid}/apc/vpc", page)
     _wait_num(page, "vpc-val-kc", info["design"]["controller"]["Kc"])
     _wait_num(page, "vpc-val-ti", info["design"]["controller"]["Ti"])
     _wait_num(page, "vpc-val-tc", info["design"]["tc"])
     assert page.locator('[data-testid="vpc-checks"] li').count() == len(info["design"]["checks"])
-    sim = _api_post(server, "/workspaces/{wid}/apc/vpc/simulate", info["defaults"], page)
+    sim = _api_post(server, "/api/v1/workspaces/{wid}/apc/vpc/simulate", info["defaults"], page)
     page.wait_for_selector('[data-testid="vpc-kpis-on-iae"]', timeout=30000)
     _wait_sel(page, '[data-testid="vpc-kpis-on-iae"]', sim["kpis"]["on"]["iae"])
     _wait_sel(page, '[data-testid="vpc-kpis-on-reserve"]', sim["kpis"]["on"]["reserve"])
@@ -796,11 +796,11 @@ def test_apc_split_vpc_ratio_rga(page, server):
     g2 = info["defaults"]["mv2"]
     _set_num(page, "vpc-mv2-0", g2[0] * 1.5)
     body = dict(info["defaults"], mv2=[g2[0] * 1.5, *g2[1:]])
-    d2 = _api_post(server, "/workspaces/{wid}/apc/vpc/design", body, page)
+    d2 = _api_post(server, "/api/v1/workspaces/{wid}/apc/vpc/design", body, page)
     _wait_num(page, "vpc-val-kc", d2["controller"]["Kc"])
     _set_num(page, "vpc-sp", 60)
     _wait_num(page, "vpc-val-sp", 60)
-    sim2 = _api_post(server, "/workspaces/{wid}/apc/vpc/simulate", dict(body, sp=60), page)
+    sim2 = _api_post(server, "/api/v1/workspaces/{wid}/apc/vpc/simulate", dict(body, sp=60), page)
     _wait_sel(page, '[data-testid="vpc-kpis-on-at_lim"]', sim2["kpis"]["on"]["at_lim"])
     page.locator('[data-testid="vpc-reset"]').click()
     page.locator('[data-testid="vpc-mv2-reset"]').click()
@@ -809,20 +809,20 @@ def test_apc_split_vpc_ratio_rga(page, server):
     # poměrová regulace (jedna smyčka → jen ruční model vzduchu)
     page.locator('[data-testid="apc-tech-ratio"]').click()
     page.wait_for_selector('[data-testid="ratio-kpis-cross-iae"]', timeout=30000)
-    info = _api(server, "/workspaces/{wid}/apc/ratio", page)
+    info = _api(server, "/api/v1/workspaces/{wid}/apc/ratio", page)
     assert info["design"]["sources"] == [] and page.locator('[data-testid="ratio-src"] option').count() == 1
-    sim = _api_post(server, "/workspaces/{wid}/apc/ratio/simulate", info["defaults"], page)
+    sim = _api_post(server, "/api/v1/workspaces/{wid}/apc/ratio/simulate", info["defaults"], page)
     _wait_sel(page, '[data-testid="ratio-kpis-cross-lam_min"]', sim["kpis"]["cross"]["lam_min"])
     _wait_sel(page, '[data-testid="ratio-kpis-plain-t_rich"]', sim["kpis"]["plain"]["t_rich"])
     assert page.locator('[data-testid="ratio-checks"] li').count() == len(info["design"]["checks"])
     assert page.locator('[data-testid="ratio-flows"] path').count() == 4
     _set_num(page, "ratio-R", 2)
     _wait_num(page, "ratio-val-R", 2)
-    sim2 = _api_post(server, "/workspaces/{wid}/apc/ratio/simulate", dict(info["defaults"], R=2.0), page)
+    sim2 = _api_post(server, "/api/v1/workspaces/{wid}/apc/ratio/simulate", dict(info["defaults"], R=2.0), page)
     _wait_sel(page, '[data-testid="ratio-kpis-plain-lam_min"]', sim2["kpis"]["plain"]["lam_min"])
     air = info["defaults"]["air"]
     _set_num(page, "ratio-air-1", air[1] * 3)
-    sim3 = _api_post(server, "/workspaces/{wid}/apc/ratio/simulate", dict(info["defaults"], R=2.0, air=[air[0], air[1] * 3, *air[2:]]), page)
+    sim3 = _api_post(server, "/api/v1/workspaces/{wid}/apc/ratio/simulate", dict(info["defaults"], R=2.0, air=[air[0], air[1] * 3, *air[2:]]), page)
     assert sim3["kpis"]["cross"] != sim2["kpis"]["cross"]
     _wait_sel(page, '[data-testid="ratio-kpis-cross-iae"]', sim3["kpis"]["cross"]["iae"])
     page.locator('[data-testid="ratio-reset"]').click()
@@ -832,7 +832,7 @@ def test_apc_split_vpc_ratio_rga(page, server):
     # RGA s jednou smyčkou: kontrolní seznam, co chybí
     page.locator('[data-testid="apc-tech-rga"]').click()
     page.wait_for_selector('[data-testid="rga-notready"]', timeout=20000)
-    rga = _api(server, "/workspaces/{wid}/apc/rga", page)
+    rga = _api(server, "/api/v1/workspaces/{wid}/apc/rga", page)
     assert rga["ready"] is False
     assert page.locator('[data-testid="rga-checks"] li').count() == len(rga["checks"])
     assert page.locator('[data-testid="rga-k"]').count() == 0
@@ -844,7 +844,7 @@ def test_apc_split_vpc_ratio_rga(page, server):
 def test_apc_cascade(page, server):
     """APC: kaskáda – hodnoty = API, ruční model a reset, model vnitřní smyčky z dat (úloha), jediná smyčka v projektu."""
     _track(page)
-    url = "/workspaces/{wid}/apc/cascade"
+    url = "/api/v1/workspaces/{wid}/apc/cascade"
     _apc_tech(page, "cascade")
     page.wait_for_selector('[data-testid="cas-inner-kc"]', timeout=60000)
     cas = _api(server, url, page)
@@ -876,7 +876,7 @@ def test_apc_cascade(page, server):
     # model vnitřní smyčky z dat (úloha): do spuštění identifikace chybí model
     page.select_option('[data-testid="set-cas_src"]', "data")
     page.wait_for_selector('[data-testid="cas-need-inner"]', timeout=60000)
-    ws = _api(server, "/workspaces/{wid}", page)
+    ws = _api(server, "/api/v1/workspaces/{wid}", page)
     page.select_option('[data-testid="cas-ipv"]', ws["pv"])
     page.select_option('[data-testid="cas-imv"]', ws["mv"])
     page.locator('[data-testid="cas-fit"]').click()
@@ -909,7 +909,7 @@ def test_apc_two_loop_techniques_single_loop(page, server):
     _track(page)
     for tech, kind in (("decouple", "decouple"), ("override", "override")):
         with pytest.raises(urllib.error.HTTPError) as e:
-            _api(server, f"/workspaces/{{wid}}/apc/{kind}", page)
+            _api(server, f"/api/v1/workspaces/{{wid}}/apc/{kind}", page)
         assert e.value.code == 409
         _apc_tech(page, tech)
         page.wait_for_selector('[data-testid="apc-need-loop"]', timeout=60000)
@@ -923,7 +923,7 @@ def test_apc_gainsched_integrating_then_fit(page, server):
     """APC: gain scheduling (PV a ER) – integrační model vrací API s integ=true; po přechodu na P1D identifikace bodů
     (úloha), ladění v bodech, tabulka pro GainSched, simulace a zastaralé úseky."""
     _track(page)
-    gs_url, er_url = "/workspaces/{wid}/apc/gainsched", "/workspaces/{wid}/apc/gainsched_er"
+    gs_url, er_url = "/api/v1/workspaces/{wid}/apc/gainsched", "/api/v1/workspaces/{wid}/apc/gainsched_er"
     if _api(server, gs_url, page)["integ"]:
         _apc_tech(page, "gainsched")
         page.wait_for_selector('[data-testid="gs-integ"]', timeout=60000)
@@ -932,9 +932,9 @@ def test_apc_gainsched_integrating_then_fit(page, server):
         page.wait_for_selector('[data-testid="er-integ"]', timeout=60000)
         assert page.locator('[data-testid="er-sim"]').count() == 0
         # samoregulační model P1D (identifikace jako úloha, pak vybraný model)
-        sets = "/workspaces/{wid}/settings"
+        sets = "/api/v1/workspaces/{wid}/settings"
         _api_send(server, "PATCH", sets, {"chosen": ["P1D"]}, page)
-        _job_done(server, page, _api_post(server, "/workspaces/{wid}/identify", {}, page))
+        _job_done(server, page, _api_post(server, "/api/v1/workspaces/{wid}/identify", {}, page))
         _api_send(server, "PATCH", sets, {"mcode": "P1D"}, page)
         page.locator('[data-tab="data"]').click()                                   # návrat načte dotazy znovu
         page.locator('[data-sub="quality"]').click()
@@ -1015,7 +1015,7 @@ def test_apc_override_decouple_second_loop(page, server):
     """APC: s druhou smyčkou na stejném ventilu – override (hodnoty = API, MIN / MAX, vlastní mez), rozvazbení bez
     modelu vazby ukáže vysvětlení, výběr druhé smyčky."""
     _track(page)
-    base, sets = "/workspaces/{wid}", "/workspaces/{wid}/settings"
+    base, sets = "/api/v1/workspaces/{wid}", "/api/v1/workspaces/{wid}/settings"
     _api_send(server, "POST", base + "/loops", {"name": "FIC", "pv": "FI100.Pritok", "mv": "LIC101.MV"}, page)
     _api_send(server, "PUT", base + "/loops/active", {"index": 1}, page)
     _api_send(server, "PATCH", sets, {"chosen": ["P1D"]}, page)
@@ -1086,7 +1086,7 @@ def _open_project(page, raw, name="projekt.pidproj"):
 def test_project_save_open_report(page, server):
     """Projekt (M21): uložení = GET /project, otevření téhož souboru nic nezmění; report: náhled v iframe a stažení."""
     _track(page)
-    base = "/workspaces/{wid}"
+    base = "/api/v1/workspaces/{wid}"
     loops = _api(server, base + "/loops", page)
     if not loops["loops"][loops["active"]]["has_model"]:
         i = next(i for i, lp in enumerate(loops["loops"]) if lp["has_model"])
@@ -1156,7 +1156,7 @@ def _csv_upload(page, name, text):
 def test_data_layout_units_ranges(page, server):
     """Data (M13): rozložení tabulky (dlouhý formát, bez času s periodou), jednotky v popiscích os, rozsahy PV / MV.
     Nahrání mění data prostoru, proto se na konci vrátí projekt uložený na začátku."""
-    base = "/workspaces/{wid}"
+    base = "/api/v1/workspaces/{wid}"
     backup = _api_raw(server, base + "/project?data=true", page)
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="quality"]').click()
@@ -1203,12 +1203,12 @@ def test_data_layout_units_ranges(page, server):
 def test_pending_project_opens_on_event(page, server):
     """Poklep na .pidproj v okně desktopu: Rust vloží soubor do /pending-open a pošle stránce událost → projekt se otevře."""
     _track(page)
-    raw = _api_raw(server, "/workspaces/{wid}/project?data=true", page)
-    req = urllib.request.Request(server + "/pending-open", data=raw, method="PUT", headers={"X-PID-Token": TOKEN})
+    raw = _api_raw(server, "/api/v1/workspaces/{wid}/project?data=true", page)
+    req = urllib.request.Request(server + "/api/v1/pending-open", data=raw, method="PUT", headers={"X-PID-Token": TOKEN})
     assert urllib.request.urlopen(req, timeout=60).status == 204
     page.evaluate("window.dispatchEvent(new Event('pidtools:pending-open'))")
     page.wait_for_selector('[data-testid="proj-msg"].ok', timeout=60000)
-    req = urllib.request.Request(server + "/pending-open", headers={"X-PID-Token": TOKEN})
+    req = urllib.request.Request(server + "/api/v1/pending-open", headers={"X-PID-Token": TOKEN})
     assert urllib.request.urlopen(req, timeout=60).status == 204          # vyzvednuto, místo je prázdné
     _quiet(page)
 
@@ -1217,7 +1217,7 @@ def test_opc_dialog_history(page, server):
     """OPC UA (M21): dialog nad lokálním testovacím serverem – připojení, hledání, výběr rolí, historie jako úloha."""
     pytest.importorskip("asyncua")
     from pidtools.app import opc
-    base = "/workspaces/{wid}"
+    base = "/api/v1/workspaces/{wid}"
     assert _api(server, "/opc/available", page) is True
     backup = _api_raw(server, base + "/project?data=true", page)
     url, stop = opc.test_server(port=_free_port(), n=300)
@@ -1255,7 +1255,7 @@ def test_opc_dialog_history(page, server):
 
 def _ensure_model(server, page):
     """Diagnostika potřebuje model aktivní smyčky (předchozí testy ho mohou nechat jiný, nebo žádný)."""
-    base = "/workspaces/{wid}"
+    base = "/api/v1/workspaces/{wid}"
     if _api(server, base + "/model", page).get("current") is None:
         _api_send(server, "PATCH", base + "/settings", {"chosen": ["P1D"]}, page)
         _job_done(server, page, _api_post(server, base + "/identify", {}, page))
@@ -1309,7 +1309,7 @@ def test_diagnostics_tab(page, server):
     """Diagnostika (M20): KPI, ventil, nelinearita a grafy = API; úsek A / B, porovnání a nastavení mění výsledky."""
     _track(page)
     _ensure_model(server, page)
-    base = "/workspaces/{wid}"
+    base = "/api/v1/workspaces/{wid}"
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="diag"]').click()
     page.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
@@ -1394,7 +1394,7 @@ def test_loops_overview_add_switch_delete(page, server):
     (nabídka u sloupce „+ Nová smyčka“), přepnutí aktivní smyčky v Diagnostice (obnoví dotazy, výběr v záhlaví),
     analýza všech smyček projektu = API; odebrání smyčky ve Zdrojích a smyčkách."""
     _track(page)
-    base = "/workspaces/{wid}"
+    base = "/api/v1/workspaces/{wid}"
     l0 = _api(server, base + "/loops", page)
     n0, act0 = len(l0["loops"]), l0["active"]
     page.locator('[data-tab="data"]').click()

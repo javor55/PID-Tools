@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(HERE), "tools"))
 def _wait(client, job, t=600):
     t0 = time.time()
     while time.time() - t0 < t:
-        st = client.get(f"/jobs/{job['id']}").json()
+        st = client.get(f"/api/v1/jobs/{job['id']}").json()
         if st["state"] not in ("queued", "running"):
             return st
         time.sleep(0.2)
@@ -56,11 +56,11 @@ def _pid(d):
 def ws():
     """Demo s modely P1D a I1D (jedna smyčka)."""
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
-        c.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
-        _done(c, c.post(f"/workspaces/{wid}/identify").json())
-        c.patch(f"/workspaces/{wid}/settings", json={"mcode": "P1D"})
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+        _done(c, c.post(f"/api/v1/workspaces/{wid}/identify").json())
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"mcode": "P1D"})
         yield c, wid, c.app.state.workspace(wid)
 
 
@@ -82,8 +82,8 @@ def _two_frame():
 def two():
     """Projekt se dvěma smyčkami s modely; aktivní je smyčka 0 (FIC1), druhá (index 1) je FIC2."""
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        u = f"/workspaces/{wid}"
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        u = f"/api/v1/workspaces/{wid}"
         buf = io.StringIO()
         _two_frame().to_csv(buf, index=False)
         assert c.post(f"{u}/data/file", params={"name": "two.csv"}, content=buf.getvalue().encode(),
@@ -101,25 +101,25 @@ def two():
 
 def test_requires_model():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
+        wid = c.post("/api/v1/workspaces").json()["id"]
         for k in ("cascade", "gainsched", "gainsched_er", "decouple", "override"):
-            assert c.get(f"/workspaces/{wid}/apc/{k}").status_code == 409
+            assert c.get(f"/api/v1/workspaces/{wid}/apc/{k}").status_code == 409
 
 
 def test_two_loop_techniques_need_second_loop(ws):
     c, wid, _ = ws
     for k in ("decouple", "override"):
-        assert c.get(f"/workspaces/{wid}/apc/{k}").status_code == 409
-        assert c.post(f"/workspaces/{wid}/apc/{k}/simulate", json={}).status_code == 409
-        assert c.post(f"/workspaces/{wid}/apc/{k}/simulate/curves", json={}).status_code == 409
-    info = c.get(f"/workspaces/{wid}/apc/cascade").json()
+        assert c.get(f"/api/v1/workspaces/{wid}/apc/{k}").status_code == 409
+        assert c.post(f"/api/v1/workspaces/{wid}/apc/{k}/simulate", json={}).status_code == 409
+        assert c.post(f"/api/v1/workspaces/{wid}/apc/{k}/simulate/curves", json={}).status_code == 409
+    info = c.get(f"/api/v1/workspaces/{wid}/apc/cascade").json()
     assert info["inputs"]["source"] == "manual" and info["inputs"]["loops"] == []
 
 
 # ---- kaskáda
 def test_cascade_manual_like_desktop(ws):
     c, wid, s = ws
-    url = f"/workspaces/{wid}/apc/cascade"
+    url = f"/api/v1/workspaces/{wid}/apc/cascade"
     samp, dg = float(s.get("samp")), float(s.get("diffgain"))
     info = c.get(url).json()
     inner = acas.manual_inner(1.0, 5.0, 0.0, 1.0)
@@ -156,9 +156,9 @@ def test_cascade_manual_like_desktop(ws):
 
 def test_cascade_settings_roundtrip_and_reset(ws):
     c, wid, s = ws
-    url = f"/workspaces/{wid}/apc/cascade"
+    url = f"/api/v1/workspaces/{wid}/apc/cascade"
     base = c.get(url).json()
-    c.patch(f"/workspaces/{wid}/settings", json={"cas_k": 2.0, "cas_t1": 8.0, "cas_t2": 3.0, "cas_th": 0.5,
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"cas_k": 2.0, "cas_t1": 8.0, "cas_t2": 3.0, "cas_th": 0.5,
                                                  "cas_tci": 4.0, "cas_tco": 50.0, "cas_oct": "PID", "cas_samp": 0.5})
     info = c.get(url).json()
     inp = info["inputs"]
@@ -172,22 +172,22 @@ def test_cascade_settings_roundtrip_and_reset(ws):
         info = c.post(f"{url}/reset", json={"part": part}).json()
     assert info["inputs"]["manual"] == [1.0, 5.0, 0.0, 1.0] and not info["inputs"]["tci_edited"]
     assert info["inputs"]["samp_i"] == pytest.approx(float(s.get("samp")))
-    c.patch(f"/workspaces/{wid}/settings", json={"cas_oct": "PI"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"cas_oct": "PI"})
     assert c.get(url).json()["outer"] == base["outer"]
     assert c.post(f"{url}/reset", json={"part": "x"}).status_code == 422
     # OPT: MIGO jako v desktopu
-    c.patch(f"/workspaces/{wid}/settings", json={"cas_om": "OPT"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"cas_om": "OPT"})
     opt = c.get(url).json()
     assert opt["inputs"]["outer_method"] == "OPT"
     co, po = base["outer_model"]["code"], [x["value"] for x in base["outer_model"]["params"]]
     ref = acas.tune_loop(co, po, "OPT", "PI", float(s.get("samp")), float(s.get("diffgain")), None)
     assert _pid(opt["outer"]) == pytest.approx({"Kc": ref["Kc"], "Ti": ref["Ti"], "Td": ref["Td"]}, rel=1e-3)
-    c.patch(f"/workspaces/{wid}/settings", json={"cas_om": "SIMC"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"cas_om": "SIMC"})
 
 
 def test_cascade_inner_from_loop_and_data(two):
     c, wid, proj = two
-    url = f"/workspaces/{wid}/apc/cascade"
+    url = f"/api/v1/workspaces/{wid}/apc/cascade"
     ws0, ws1 = proj.loops
     info = c.get(url).json()
     assert info["inputs"]["source"] == "loop" and info["inputs"]["loop"] == 1
@@ -201,23 +201,23 @@ def test_cascade_inner_from_loop_and_data(two):
     assert c.get(url, params={"loop": 7}).status_code == 404
     assert c.post(f"{url}/simulate", params={"loop": 1}).json()["ok"]
     # model vnitřní smyčky z dat (úloha)
-    c.patch(f"/workspaces/{wid}/settings", json={"cas_src": "data"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"cas_src": "data"})
     assert c.get(url).json()["inner_model"] is None and c.post(f"{url}/simulate").status_code == 409
     job = c.post(f"{url}/fit", json={"ipv": "FIC2.PV", "imv": "FIC2.MV"}).json()
     _done(c, job)
-    fit = c.get(f"/jobs/{job['id']}/result").json()
+    fit = c.get(f"/api/v1/jobs/{job['id']}/result").json()
     after = c.get(url).json()
     assert after["inner_fit"]["model"]["code"] == fit["code"] and after["inner_model"]["code"] == fit["code"]
     assert after["inner_fit"]["fit"] == pytest.approx(fit["fit"]) and fit["fit"] > 50
     assert c.post(f"{url}/simulate").status_code == 200
     assert c.post(f"{url}/fit", json={"ipv": "NOPE", "imv": "FIC2.MV"}).status_code == 422
-    c.patch(f"/workspaces/{wid}/settings", json={"cas_src": "loop"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"cas_src": "loop"})
 
 
 # ---- gain scheduling podle PV
 def test_gainsched_fit_job_and_values(ws):
     c, wid, s = ws
-    url = f"/workspaces/{wid}/apc/gainsched"
+    url = f"/api/v1/workspaces/{wid}/apc/gainsched"
     pre = c.get(url).json()
     assert not pre["integ"] and not pre["fitted"] and pre["points"] == [] and pre["inputs"]["ranges_auto"]
     g = s.grid
@@ -262,8 +262,8 @@ def test_gainsched_fit_job_and_values(ws):
 
 def test_gainsched_settings_stale_auto_reset(ws):
     c, wid, s = ws
-    url = f"/workspaces/{wid}/apc/gainsched"
-    patch = f"/workspaces/{wid}/settings"
+    url = f"/api/v1/workspaces/{wid}/apc/gainsched"
+    patch = f"/api/v1/workspaces/{wid}/settings"
     c.patch(patch, json={"gs_m": "AMIGO", "gs_ct": "PID", "gs_tcf": 2.0, "gs_ms": 1.8})
     info = c.get(url).json()
     assert info["inputs"]["method"] == "AMIGO" and info["inputs"]["ctype"] == "PID" and info["inputs"]["tcf"] == 2.0
@@ -298,21 +298,21 @@ def test_gainsched_settings_stale_auto_reset(ws):
 
 def test_gainsched_integrating_process(ws):
     c, wid, _ = ws
-    c.patch(f"/workspaces/{wid}/settings", json={"mcode": "I1D"})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"mcode": "I1D"})
     try:
         for k in ("gainsched", "gainsched_er"):
-            info = c.get(f"/workspaces/{wid}/apc/{k}").json()
+            info = c.get(f"/api/v1/workspaces/{wid}/apc/{k}").json()
             assert info["integ"] and info["checks"]
-            assert c.post(f"/workspaces/{wid}/apc/{k}/simulate").status_code == 409
-        assert c.post(f"/workspaces/{wid}/apc/gainsched/fit").status_code == 409
+            assert c.post(f"/api/v1/workspaces/{wid}/apc/{k}/simulate").status_code == 409
+        assert c.post(f"/api/v1/workspaces/{wid}/apc/gainsched/fit").status_code == 409
     finally:
-        c.patch(f"/workspaces/{wid}/settings", json={"mcode": "P1D"})
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"mcode": "P1D"})
 
 
 # ---- gain scheduling podle ER
 def test_gainsched_er_like_desktop(ws):
     c, wid, s = ws
-    url = f"/workspaces/{wid}/apc/gainsched_er"
+    url = f"/api/v1/workspaces/{wid}/apc/gainsched_er"
     code, p, _ = s.model
     PR = s.PR
     info = c.get(url).json()
@@ -330,7 +330,7 @@ def test_gainsched_er_like_desktop(ws):
     assert [x["text"] for x in info["checks"]] == [x[1] for x in guides.apc_gs_er(dict(s.apc_record(),
                                                                                        name=s.c_pv), ms_k)]
     # změna přes PATCH /settings, reset
-    c.patch(f"/workspaces/{wid}/settings", json={"gs_er_E": 3.0, "gs_er_k": 1.5, "gs_er_spstep": 8.0, "gs_er_d": 5.0})
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"gs_er_E": 3.0, "gs_er_k": 1.5, "gs_er_spstep": 8.0, "gs_er_d": 5.0})
     ed = c.get(url).json()
     assert ed["inputs"]["edited"] and ed["inputs"]["E"] == 3.0 and ed["table"][0]["values"][0] == pytest.approx(-3.0)
     sim = c.post(f"{url}/simulate").json()
@@ -357,7 +357,7 @@ def test_gainsched_er_like_desktop(ws):
 # ---- rozvazbení
 def test_decouple_like_desktop(two):
     c, wid, proj = two
-    url = f"/workspaces/{wid}/apc/decouple"
+    url = f"/api/v1/workspaces/{wid}/apc/decouple"
     (bi, b), = proj.others()
     a = dict(proj.state.apc_record(), name=proj.names()[proj.active])
     assert bi == 1
@@ -396,8 +396,8 @@ def test_decouple_like_desktop(two):
 def test_decouple_without_cross_coupling_and_missing_model():
     """Demo + druhá smyčka na stejném ventilu: bez modelu 409, pak bez vazby (decoupler nejde), override ano."""
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        u = f"/workspaces/{wid}"
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        u = f"/api/v1/workspaces/{wid}"
         c.post(f"{u}/data/demo")
         c.patch(f"{u}/settings", json={"chosen": ["P1D"]})
         _done(c, c.post(f"{u}/identify").json())
@@ -422,7 +422,7 @@ def test_decouple_without_cross_coupling_and_missing_model():
 # ---- override
 def test_override_like_desktop(two):
     c, wid, proj = two
-    url = f"/workspaces/{wid}/apc/override"
+    url = f"/api/v1/workspaces/{wid}/apc/override"
     (bi, b), = proj.others()
     a = dict(proj.state.apc_record(), name=proj.names()[proj.active])
     for sel in ("min", "max"):

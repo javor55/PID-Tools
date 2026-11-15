@@ -155,7 +155,7 @@ class PublicGate:
         cfg, path, method = self.cfg, scope["path"], scope["method"]
         ip = client_ip(scope, cfg.trust_cf_ip)
         CLIENT_IP.set(ip)
-        is_api = path.startswith(self.prefix + "/") or path.startswith(("/workspaces", "/jobs"))
+        is_api = path.startswith(self.prefix + "/")
         gated = is_api and path != self.prefix + "/health"
         if gated:
             if not self.general.allow(ip):

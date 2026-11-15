@@ -16,10 +16,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 @pytest.fixture()
 def ws():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
+        wid = c.post("/api/v1/workspaces").json()["id"]
         text = open(os.path.join(HERE, "golden", "tic001.json"), encoding="utf-8").read()
-        assert c.put(f"/workspaces/{wid}/project", content=text.encode(), headers={"Content-Type": "application/json"}).status_code == 200
-        yield c, f"/workspaces/{wid}"
+        assert c.put(f"/api/v1/workspaces/{wid}/project", content=text.encode(), headers={"Content-Type": "application/json"}).status_code == 200
+        yield c, f"/api/v1/workspaces/{wid}"
 
 
 def test_create_list_detail(ws):
@@ -70,7 +70,7 @@ def test_compare_restore_roundtrip(ws):
     assert c.get(f"{w}/journal/compare", params={"a": "j1", "b": "x"}).status_code == 404
     # deník je v souboru projektu a po načtení do nového prostoru zůstane
     proj = c.get(f"{w}/project").content
-    w2 = "/workspaces/" + c.post("/workspaces").json()["id"]
+    w2 = "/api/v1/workspaces/" + c.post("/api/v1/workspaces").json()["id"]
     assert c.put(f"{w2}/project", content=proj, headers={"Content-Type": "application/json"}).status_code == 200
     assert [s["id"] for s in c.get(f"{w2}/journal").json()["snapshots"]] == ["j3", "j2", "j1"]
 
@@ -82,7 +82,7 @@ def test_live_entry_and_settings_migration(ws):
     # starší projekt s live_runs v nastavení: po otevření jsou souhrny v deníku
     proj = json.loads(open(os.path.join(HERE, "golden", "tic001.json"), encoding="utf-8").read())
     proj["state"]["live_runs"] = [{"when": "2026-10-01T08:00:00", "struct": "pid", "kpi": {"1": {"iae": 3.0}}}]
-    w2 = "/workspaces/" + c.post("/workspaces").json()["id"]
+    w2 = "/api/v1/workspaces/" + c.post("/api/v1/workspaces").json()["id"]
     assert c.put(f"{w2}/project", content=json.dumps(proj).encode(), headers={"Content-Type": "application/json"}).status_code == 200
     snaps = c.get(f"{w2}/journal").json()["snapshots"]
     assert [x["kind"] for x in snaps] == ["live_migrated"] and snaps[0]["live"]["kpi"]["1"]["iae"] == 3.0
@@ -114,9 +114,9 @@ def test_report_sections_snapshot_and_summary(ws):
 def test_author_and_required_note_from_app_settings(ws):
     """Nastavení aplikace › Deník: autor záznamů (mimo týmový režim) a povinná poznámka při změně stavu."""
     c, w = ws
-    s = c.get("/app-settings").json()
+    s = c.get("/api/v1/app-settings").json()
     s["journal"] = {"author": "J. Novák", "require_note": True}
-    assert c.put("/app-settings", json=s).status_code == 200
+    assert c.put("/api/v1/app-settings", json=s).status_code == 200
     try:
         d = c.post(f"{w}/journal", json={"label": "v"}).json()
         assert d["author"] == "J. Novák"
@@ -124,4 +124,4 @@ def test_author_and_required_note_from_app_settings(ws):
         r = c.patch(f"{w}/journal/{d['id']}", json={"status": "deployed", "status_note": "nasazeno na noční"})
         assert r.status_code == 200 and r.json()["status"] == "deployed"
     finally:
-        c.delete("/app-settings")
+        c.delete("/api/v1/app-settings")

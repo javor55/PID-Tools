@@ -73,9 +73,9 @@ def team_client(cfg, jwks=None, **vkw):
 def test_cloudflare_valid_token_and_cached_keys(jwks):
     with team_client(cf_cfg(), jwks) as c:
         assert c.get("/health").status_code == 200                       # zdraví bez přihlášení
-        assert c.post("/workspaces").status_code == 401                  # chybí hlavička
+        assert c.post("/api/v1/workspaces").status_code == 401                  # chybí hlavička
         for _ in range(3):
-            assert c.post("/workspaces", headers=hdr()).status_code == 200
+            assert c.post("/api/v1/workspaces", headers=hdr()).status_code == 200
     assert jwks.calls == 1                                               # klíče se stáhly jednou
 
 
@@ -85,35 +85,35 @@ def test_cloudflare_valid_token_and_cached_keys(jwks):
 ], ids=["audience", "issuer", "expired", "foreign-signature", "unknown-kid"])
 def test_cloudflare_rejects_invalid_token(jwks, bad):
     with team_client(cf_cfg(), jwks, min_refresh=3600) as c:
-        assert c.post("/workspaces", headers=hdr(**bad)).status_code == 401
-        assert c.get("/workspaces/x", headers=hdr(**bad)).status_code == 401
-        assert c.post("/workspaces", headers=hdr()).status_code == 200   # platný dál projde
+        assert c.post("/api/v1/workspaces", headers=hdr(**bad)).status_code == 401
+        assert c.get("/api/v1/workspaces/x", headers=hdr(**bad)).status_code == 401
+        assert c.post("/api/v1/workspaces", headers=hdr()).status_code == 200   # platný dál projde
 
 
 def test_cloudflare_rejects_garbage_and_wrong_algorithm(jwks):
     with team_client(cf_cfg(), jwks) as c:
-        assert c.post("/workspaces", headers={CF_HEADER: "not-a-jwt"}).status_code == 401
+        assert c.post("/api/v1/workspaces", headers={CF_HEADER: "not-a-jwt"}).status_code == 401
         hs = jwt.encode({"aud": [AUD], "iss": ISS, "exp": int(time.time()) + 99, "email": "a@b.cz"}, "s" * 32,
                         algorithm="HS256", headers={"kid": "k1"})
-        assert c.post("/workspaces", headers={CF_HEADER: hs}).status_code == 401
+        assert c.post("/api/v1/workspaces", headers={CF_HEADER: hs}).status_code == 401
         none = jwt.encode({"aud": [AUD], "iss": ISS, "exp": int(time.time()) + 99, "email": "a@b.cz"}, None,
                           algorithm="none", headers={"kid": "k1"})
-        assert c.post("/workspaces", headers={CF_HEADER: none}).status_code == 401
+        assert c.post("/api/v1/workspaces", headers={CF_HEADER: none}).status_code == 401
         # hlavička uživatele se v režimu cloudflare nebere
-        assert c.post("/workspaces", headers={"X-Forwarded-Email": "alice@acme.com"}).status_code == 401
+        assert c.post("/api/v1/workspaces", headers={"X-Forwarded-Email": "alice@acme.com"}).status_code == 401
 
 
 def test_cloudflare_key_rotation_and_outage(jwks):
     with team_client(cf_cfg(), jwks, min_refresh=0) as c:
-        assert c.post("/workspaces", headers=hdr()).status_code == 200
+        assert c.post("/api/v1/workspaces", headers=hdr()).status_code == 200
         jwks.keys = [dict(JWK_OTHER, kid="k2", alg="RS256", use="sig")]            # Cloudflare rotoval klíč
-        assert c.post("/workspaces", headers=hdr(pem=PEM_OTHER, kid="k2")).status_code == 200
+        assert c.post("/api/v1/workspaces", headers=hdr(pem=PEM_OTHER, kid="k2")).status_code == 200
         assert jwks.calls == 2
     down = FakeJwks(("k1", JWK))
     down.fail = True
     with team_client(cf_cfg(), down) as c:                                         # klíče nejdou stáhnout
-        assert c.post("/workspaces", headers=hdr()).status_code == 503
-        assert c.post("/workspaces", headers=hdr()).status_code == 503
+        assert c.post("/api/v1/workspaces", headers=hdr()).status_code == 503
+        assert c.post("/api/v1/workspaces", headers=hdr()).status_code == 503
     assert down.calls == 1                                                         # výpadek nezahlcuje JWKS
 
 
@@ -121,27 +121,27 @@ def test_service_token_identity(jwks):
     """Servisní token Cloudflare nemá e-mail: uživatelem je common_name."""
     tok = make_token(email=None, common_name="ci-client.access")
     with team_client(cf_cfg(), jwks) as c:
-        assert c.post("/workspaces", headers={CF_HEADER: tok}).status_code == 200
+        assert c.post("/api/v1/workspaces", headers={CF_HEADER: tok}).status_code == 200
 
 
 # ---- izolace uživatelů
 def test_user_isolation_workspaces_and_jobs(jwks):
     alice, bob = hdr("alice@acme.com"), hdr("bob@acme.com")
     with team_client(cf_cfg(), jwks) as c:
-        wid = c.post("/workspaces", headers=alice).json()["id"]
-        assert c.post(f"/workspaces/{wid}/data/demo", headers=alice).status_code == 200
-        for method, url in [("get", f"/workspaces/{wid}"), ("delete", f"/workspaces/{wid}"),
-                            ("post", f"/workspaces/{wid}/data/demo"), ("post", f"/workspaces/{wid}/identify"),
-                            ("get", f"/workspaces/{wid}/layout")]:
+        wid = c.post("/api/v1/workspaces", headers=alice).json()["id"]
+        assert c.post(f"/api/v1/workspaces/{wid}/data/demo", headers=alice).status_code == 200
+        for method, url in [("get", f"/api/v1/workspaces/{wid}"), ("delete", f"/api/v1/workspaces/{wid}"),
+                            ("post", f"/api/v1/workspaces/{wid}/data/demo"), ("post", f"/api/v1/workspaces/{wid}/identify"),
+                            ("get", f"/api/v1/workspaces/{wid}/layout")]:
             assert getattr(c, method)(url, headers=bob).status_code == 404, url
-        assert c.get(f"/workspaces/{wid}", headers=alice).json()["has_data"] is True
-        jid = c.post(f"/workspaces/{wid}/identify", headers=alice).json()["id"]
-        for method, url in [("get", f"/jobs/{jid}"), ("post", f"/jobs/{jid}/cancel"), ("get", f"/jobs/{jid}/result"),
-                            ("get", f"/jobs/{jid}/events")]:
+        assert c.get(f"/api/v1/workspaces/{wid}", headers=alice).json()["has_data"] is True
+        jid = c.post(f"/api/v1/workspaces/{wid}/identify", headers=alice).json()["id"]
+        for method, url in [("get", f"/api/v1/jobs/{jid}"), ("post", f"/api/v1/jobs/{jid}/cancel"), ("get", f"/api/v1/jobs/{jid}/result"),
+                            ("get", f"/api/v1/jobs/{jid}/events")]:
             assert getattr(c, method)(url, headers=bob).status_code == 404, url
-        assert c.get(f"/jobs/{jid}", headers=alice).status_code == 200
-        c.post(f"/jobs/{jid}/cancel", headers=alice)
-        assert c.delete(f"/workspaces/{wid}", headers=alice).status_code == 204
+        assert c.get(f"/api/v1/jobs/{jid}", headers=alice).status_code == 200
+        c.post(f"/api/v1/jobs/{jid}/cancel", headers=alice)
+        assert c.delete(f"/api/v1/workspaces/{wid}", headers=alice).status_code == 204
 
 
 def test_store_owner():
@@ -162,12 +162,12 @@ def test_store_owner():
 def test_limit_workspaces_per_user_and_total(jwks):
     cfg = cf_cfg(max_workspaces_user=2, max_workspaces=3)
     with team_client(cfg, jwks) as c:
-        a = [c.post("/workspaces", headers=hdr("a@x.cz")) for _ in range(3)]
+        a = [c.post("/api/v1/workspaces", headers=hdr("a@x.cz")) for _ in range(3)]
         assert [r.status_code for r in a] == [200, 200, 200]
         ids = [r.json()["id"] for r in a]                                           # třetí uvolnil nejstarší
-        assert c.get(f"/workspaces/{ids[0]}", headers=hdr("a@x.cz")).status_code == 404
-        assert c.get(f"/workspaces/{ids[2]}", headers=hdr("a@x.cz")).status_code == 200
-        assert c.post("/workspaces", headers=hdr("b@x.cz")).status_code == 200      # jiný uživatel
+        assert c.get(f"/api/v1/workspaces/{ids[0]}", headers=hdr("a@x.cz")).status_code == 404
+        assert c.get(f"/api/v1/workspaces/{ids[2]}", headers=hdr("a@x.cz")).status_code == 200
+        assert c.post("/api/v1/workspaces", headers=hdr("b@x.cz")).status_code == 200      # jiný uživatel
         assert len(c.app.state.store) <= 3                                          # celkový strop drží
 
 
@@ -176,35 +176,35 @@ def test_limit_jobs_per_user(jwks):
     with team_client(cfg, jwks) as c:
         ids = {}
         for u in ("a@x.cz", "b@x.cz"):
-            wid = c.post("/workspaces", headers=hdr(u)).json()["id"]
-            c.post(f"/workspaces/{wid}/data/demo", headers=hdr(u))
+            wid = c.post("/api/v1/workspaces", headers=hdr(u)).json()["id"]
+            c.post(f"/api/v1/workspaces/{wid}/data/demo", headers=hdr(u))
             ids[u] = wid
-        first = c.post(f"/workspaces/{ids['a@x.cz']}/identify", headers=hdr("a@x.cz"))
+        first = c.post(f"/api/v1/workspaces/{ids['a@x.cz']}/identify", headers=hdr("a@x.cz"))
         assert first.status_code == 200
-        assert c.post(f"/workspaces/{ids['a@x.cz']}/identify", headers=hdr("a@x.cz")).status_code == 429
-        other = c.post(f"/workspaces/{ids['b@x.cz']}/identify", headers=hdr("b@x.cz"))
+        assert c.post(f"/api/v1/workspaces/{ids['a@x.cz']}/identify", headers=hdr("a@x.cz")).status_code == 429
+        other = c.post(f"/api/v1/workspaces/{ids['b@x.cz']}/identify", headers=hdr("b@x.cz"))
         assert other.status_code == 200                                             # fronta jiného uživatele
         for u, r in (("a@x.cz", first), ("b@x.cz", other)):
-            c.post(f"/jobs/{r.json()['id']}/cancel", headers=hdr(u))
-        assert c.post(f"/workspaces/{ids['a@x.cz']}/identify", headers=hdr("a@x.cz")).status_code == 200
+            c.post(f"/api/v1/jobs/{r.json()['id']}/cancel", headers=hdr(u))
+        assert c.post(f"/api/v1/workspaces/{ids['a@x.cz']}/identify", headers=hdr("a@x.cz")).status_code == 200
 
 
 def test_upload_limit_configurable(jwks):
     cfg = cf_cfg(max_upload_mb=0.001)                                               # ~1 kB
     with team_client(cfg, jwks) as c:
-        wid = c.post("/workspaces", headers=hdr()).json()["id"]
-        r = c.post(f"/workspaces/{wid}/data/file", params={"name": "x.csv"}, content=b"t,y\n" * 1000, headers=hdr())
+        wid = c.post("/api/v1/workspaces", headers=hdr()).json()["id"]
+        r = c.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "x.csv"}, content=b"t,y\n" * 1000, headers=hdr())
         assert r.status_code == 413
-        r = c.post(f"/workspaces/{wid}/data/file", params={"name": "x.csv"}, content=b"t,y\n1,2\n", headers=hdr())
+        r = c.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "x.csv"}, content=b"t,y\n1,2\n", headers=hdr())
         assert r.status_code != 413
 
 
 def test_idle_expiry_configurable(jwks):
     with team_client(cf_cfg(ttl=0.2), jwks) as c:
-        wid = c.post("/workspaces", headers=hdr()).json()["id"]
-        assert c.get(f"/workspaces/{wid}", headers=hdr()).status_code == 200
+        wid = c.post("/api/v1/workspaces", headers=hdr()).json()["id"]
+        assert c.get(f"/api/v1/workspaces/{wid}", headers=hdr()).status_code == 200
         time.sleep(0.4)
-        assert c.get(f"/workspaces/{wid}", headers=hdr()).status_code == 404
+        assert c.get(f"/api/v1/workspaces/{wid}", headers=hdr()).status_code == 404
 
 
 # ---- režim hlavičky od proxy
@@ -214,13 +214,13 @@ def test_header_mode_needs_explicit_opt_in():
     cfg = DeployConfig.from_env({"PIDTOOLS_AUTH": "header", "PIDTOOLS_TRUST_USER_HEADER": "1",
                                  "PIDTOOLS_USER_HEADER": "X-Auth-Request-Email"})
     with team_client(cfg) as c:
-        assert c.post("/workspaces").status_code == 401
-        assert c.post("/workspaces", headers={"X-Forwarded-Email": "a@x.cz"}).status_code == 401     # jiná hlavička
-        assert c.post("/workspaces", headers={"X-Auth-Request-Email": "bad user\n"}).status_code == 401
+        assert c.post("/api/v1/workspaces").status_code == 401
+        assert c.post("/api/v1/workspaces", headers={"X-Forwarded-Email": "a@x.cz"}).status_code == 401     # jiná hlavička
+        assert c.post("/api/v1/workspaces", headers={"X-Auth-Request-Email": "bad user\n"}).status_code == 401
         ha, hb = {"X-Auth-Request-Email": "A@x.cz"}, {"X-Auth-Request-Email": "b@x.cz"}
-        wid = c.post("/workspaces", headers=ha).json()["id"]
-        assert c.get(f"/workspaces/{wid}", headers={"X-Auth-Request-Email": "a@x.cz"}).status_code == 200   # malá písmena
-        assert c.get(f"/workspaces/{wid}", headers=hb).status_code == 404
+        wid = c.post("/api/v1/workspaces", headers=ha).json()["id"]
+        assert c.get(f"/api/v1/workspaces/{wid}", headers={"X-Auth-Request-Email": "a@x.cz"}).status_code == 200   # malá písmena
+        assert c.get(f"/api/v1/workspaces/{wid}", headers=hb).status_code == 404
 
 
 # ---- nastavení z prostředí, desktop beze změny
@@ -242,13 +242,13 @@ def test_config_from_env():
 def test_desktop_mode_unchanged():
     app = app_from_env({"PIDTOOLS_TOKEN": "t0k"})
     with TestClient(app) as c:
-        assert c.post("/workspaces").status_code == 401
+        assert c.post("/api/v1/workspaces").status_code == 401
         h = {"Authorization": "Bearer t0k"}
-        wid = c.post("/workspaces", headers=h).json()["id"]
-        assert c.get(f"/workspaces/{wid}", headers={"X-PID-Token": "t0k"}).status_code == 200
-        assert c.get(f"/workspaces/{wid}", headers={CF_HEADER: make_token()}).status_code == 401     # JWT nic neznamená
+        wid = c.post("/api/v1/workspaces", headers=h).json()["id"]
+        assert c.get(f"/api/v1/workspaces/{wid}", headers={"X-PID-Token": "t0k"}).status_code == 200
+        assert c.get(f"/api/v1/workspaces/{wid}", headers={CF_HEADER: make_token()}).status_code == 401     # JWT nic neznamená
         for _ in range(8):                                                       # žádný limit na uživatele
-            assert c.post("/workspaces", headers=h).status_code == 200
+            assert c.post("/api/v1/workspaces", headers=h).status_code == 200
     plain = create_app(token="t")
     assert type(plain.state.jobs).__name__ == "JobManager"
     assert not any(m.cls.__name__ == "AccessLog" for m in plain.user_middleware)
@@ -258,16 +258,16 @@ def test_desktop_mode_unchanged():
 def test_logs_contain_user(jwks, caplog):
     caplog.set_level(logging.DEBUG, logger="pidtools")
     with team_client(cf_cfg(), jwks) as c:
-        wid = c.post("/workspaces", headers=hdr("alice@acme.com")).json()["id"]
-        c.get(f"/workspaces/{wid}", headers=hdr("bob@acme.com"))
-        c.post("/workspaces", headers={CF_HEADER: "junk"})
+        wid = c.post("/api/v1/workspaces", headers=hdr("alice@acme.com")).json()["id"]
+        c.get(f"/api/v1/workspaces/{wid}", headers=hdr("bob@acme.com"))
+        c.post("/api/v1/workspaces", headers={CF_HEADER: "junk"})
         c.get("/health")
-        c.post(f"/workspaces/{wid}/data/demo", headers=hdr("alice@acme.com"))
-        jid = c.post(f"/workspaces/{wid}/identify", headers=hdr("alice@acme.com")).json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo", headers=hdr("alice@acme.com"))
+        jid = c.post(f"/api/v1/workspaces/{wid}/identify", headers=hdr("alice@acme.com")).json()["id"]
         deadline = time.time() + 20                      # zrušení ještě čekající úlohy by start do logu nedalo
-        while time.time() < deadline and c.get(f"/jobs/{jid}", headers=hdr("alice@acme.com")).json()["state"] == "queued":
+        while time.time() < deadline and c.get(f"/api/v1/jobs/{jid}", headers=hdr("alice@acme.com")).json()["state"] == "queued":
             time.sleep(0.02)
-        c.post(f"/jobs/{jid}/cancel", headers=hdr("alice@acme.com"))
+        c.post(f"/api/v1/jobs/{jid}/cancel", headers=hdr("alice@acme.com"))
         deadline = time.time() + 20
         while time.time() < deadline and not any("job end" in r.getMessage() for r in caplog.records):
             time.sleep(0.05)

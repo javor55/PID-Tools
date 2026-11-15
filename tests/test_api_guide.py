@@ -19,7 +19,7 @@ TABS = ["data", "model", "tuning", "apc", "live", "diag", "loops", "project"]
 def _wait(c, job, t=600):
     t0 = time.time()
     while time.time() - t0 < t:
-        st = c.get(f"/jobs/{job['id']}").json()
+        st = c.get(f"/api/v1/jobs/{job['id']}").json()
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             return
@@ -28,7 +28,7 @@ def _wait(c, job, t=600):
 
 
 def _g(c, wid, tab, lang="cs"):
-    r = c.get(f"/workspaces/{wid}/guide/{tab}", params={"lang": lang})
+    r = c.get(f"/api/v1/workspaces/{wid}/guide/{tab}", params={"lang": lang})
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -45,19 +45,19 @@ def client():
 
 @pytest.fixture()
 def wid(client):
-    w = client.post("/workspaces").json()["id"]
+    w = client.post("/api/v1/workspaces").json()["id"]
     yield w
-    client.delete(f"/workspaces/{w}")
+    client.delete(f"/api/v1/workspaces/{w}")
 
 
 def test_unknown_tab_and_workspace(client, wid):
-    assert client.get(f"/workspaces/{wid}/guide/nope").status_code == 404
-    assert client.get("/workspaces/nope/guide/data").status_code == 404
+    assert client.get(f"/api/v1/workspaces/{wid}/guide/nope").status_code == 404
+    assert client.get("/api/v1/workspaces/nope/guide/data").status_code == 404
 
 
 @pytest.mark.parametrize("lang", ["cs", "en"])
 def test_every_tab_has_shape_content_and_glossary(client, wid, lang):
-    client.post(f"/workspaces/{wid}/data/demo")
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
     for tab in TABS:
         g = _g(client, wid, tab, lang)
         assert g["tab"] == tab and g["title"] and g["steps"], tab
@@ -84,19 +84,19 @@ def test_no_data_checklist_points_to_data_tab(client, wid):
 
 
 def test_data_tab_checks_from_state(client, wid):
-    client.post(f"/workspaces/{wid}/data/demo")
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
     g = _g(client, wid, "data")
     loaded = _find(g, "Data načtena")
     assert loaded and loaded[0]["ok"] == "ok" and loaded[0]["action"] is None
     rng = _find(g, "Rozsah regulátoru")
     assert rng and rng[0]["ok"] == "todo"                       # výchozí 0–100
     assert rng[0]["action"]["tab"] == "tuning" and rng[0]["action"]["target"] == "set-pv_hi"
-    client.patch(f"/workspaces/{wid}/settings", json={"pv_hi": 250.0})
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"pv_hi": 250.0})
     assert _find(_g(client, wid, "data"), "Rozsah regulátoru")[0]["ok"] == "ok"
 
 
 def test_model_and_tuning_checks_follow_the_workspace(client, wid):
-    client.post(f"/workspaces/{wid}/data/demo")
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
     g = _g(client, wid, "model")
     mdl = _find(g, "má identifikovaný model")
     assert mdl[0]["ok"] == "warn" and mdl[0]["action"] is None            # na záložce Model není kam odkazovat
@@ -104,8 +104,8 @@ def test_model_and_tuning_checks_follow_the_workspace(client, wid):
     assert t["checklist"][0]["ok"] == "warn" and t["checklist"][0]["action"]["tab"] == "model"
     assert len(t["checklist"]) == 1                                        # bez modelu zbytek nedává smysl
 
-    client.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
-    _wait(client, client.post(f"/workspaces/{wid}/identify").json())
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+    _wait(client, client.post(f"/api/v1/workspaces/{wid}/identify").json())
     g = _g(client, wid, "model")
     assert _find(g, "Model ")[0]["ok"] in ("ok", "warn", "todo")
     fit = _find(g, "FIT")
@@ -114,30 +114,30 @@ def test_model_and_tuning_checks_follow_the_workspace(client, wid):
     ok_model = [x for x in g["checklist"] if x["text"].startswith("Smyčka") and "model" in x["text"]]
     assert ok_model and ok_model[0]["ok"] == "ok"
 
-    client.patch(f"/workspaces/{wid}/settings", json={"set1_gain": 1.0, "set1_ti": 100.0, "set2_gain": 1.0, "set2_ti": 100.0,
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"set1_gain": 1.0, "set1_ti": 100.0, "set2_gain": 1.0, "set2_ti": 100.0,
                                                       "set2_td": 0.0, "set1_td": 0.0})       # výchozí hodnoty = nezadáno
     t = _g(client, wid, "tuning")
     s1 = _find(t, "Sada 1")
     assert s1 and s1[0]["ok"] == "todo" and s1[0]["action"]["target"] == "set1-gain"
     ms = _find(t, "Ms =")
     assert ms and ms[0]["action"]["target"] == "method"
-    client.patch(f"/workspaces/{wid}/settings", json={"set1_gain": 2.0, "set1_ti": 50.0})
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"set1_gain": 2.0, "set1_ti": 50.0})
     assert _find(_g(client, wid, "tuning"), "Sada 1")[0]["ok"] == "ok"
-    client.patch(f"/workspaces/{wid}/settings", json={"set2_gain": 3.0})
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": 3.0})
     assert _find(_g(client, wid, "tuning"), "Sada 2")[0]["ok"] == "ok"
     live = _find(_g(client, wid, "tuning"), "Živé simulaci")
     assert live[0]["ok"] == "todo" and live[0]["action"]["tab"] == "live"
 
 
 def test_apc_structures_have_checks_and_implementation(client, wid):
-    client.post(f"/workspaces/{wid}/data/demo")
-    client.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
-    _wait(client, client.post(f"/workspaces/{wid}/identify").json())
-    sm = client.get(f"/workspaces/{wid}/apc/smith").json()
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+    _wait(client, client.post(f"/api/v1/workspaces/{wid}/identify").json())
+    sm = client.get(f"/api/v1/workspaces/{wid}/apc/smith").json()
     assert sm["checks"] and sm["checks"][0]["text"]
-    ff = client.get(f"/workspaces/{wid}/apc/ff").json()
+    ff = client.get(f"/api/v1/workspaces/{wid}/apc/ff").json()
     assert ff["checks"] and "FfwdDisturbCompensat" in ff["impl_text"]
-    rga = client.get(f"/workspaces/{wid}/apc/rga").json()
+    rga = client.get(f"/api/v1/workspaces/{wid}/apc/rga").json()
     assert rga["checks"] and rga["impl_text"]
 
 

@@ -34,11 +34,11 @@ def test_health_without_token(client):
 
 
 def test_token_required(client):
-    assert client.get("/i18n/en").status_code == 401
-    assert client.get("/i18n/en", headers={"Authorization": "Bearer wrong"}).status_code == 401
-    r = client.get("/i18n/cs", headers={"X-PID-Token": TOKEN})
+    assert client.get("/api/v1/i18n/en").status_code == 401
+    assert client.get("/api/v1/i18n/en", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    r = client.get("/api/v1/i18n/cs", headers={"X-PID-Token": TOKEN})
     assert r.status_code == 200 and r.json()["set_1"]
-    assert client.get("/i18n/xx", headers=H).status_code == 404
+    assert client.get("/api/v1/i18n/xx", headers=H).status_code == 404
 
 
 def test_cors_only_for_app_window(client):
@@ -49,13 +49,13 @@ def test_cors_only_for_app_window(client):
 
 
 def test_workspace_lifecycle(client):
-    r = client.post("/workspaces", headers=H)
+    r = client.post("/api/v1/workspaces", headers=H)
     assert r.status_code == 200
     w = r.json()
     assert w["has_data"] is False and w["id"]
-    assert client.get(f"/workspaces/{w['id']}", headers=H).json()["id"] == w["id"]
-    assert client.delete(f"/workspaces/{w['id']}", headers=H).status_code == 204
-    assert client.get(f"/workspaces/{w['id']}", headers=H).status_code == 404
+    assert client.get(f"/api/v1/workspaces/{w['id']}", headers=H).json()["id"] == w["id"]
+    assert client.delete(f"/api/v1/workspaces/{w['id']}", headers=H).status_code == 204
+    assert client.get(f"/api/v1/workspaces/{w['id']}", headers=H).status_code == 404
 
 
 def test_store_expiry_and_limit():
@@ -75,17 +75,17 @@ def test_store_expiry_and_limit():
 def test_job_status_cancel_and_events(client):
     jobs = client.app.state.jobs
     jid = jobs.submit(f.slow, 10, 0.05)
-    with client.stream("GET", f"/jobs/{jid}/events", headers=H) as r:
+    with client.stream("GET", f"/api/v1/jobs/{jid}/events", headers=H) as r:
         assert r.headers["content-type"].startswith("text/event-stream")
         events = [json.loads(line[6:]) for line in r.iter_lines() if line.startswith("data: ")]
     assert events[-1]["state"] == "done" and events[-1]["progress"] == 1.0
     assert any(0 < e["progress"] < 1 for e in events)
-    assert client.get(f"/jobs/{jid}", headers=H).json()["state"] == "done"
+    assert client.get(f"/api/v1/jobs/{jid}", headers=H).json()["state"] == "done"
     jid2 = jobs.submit(f.slow, 1000, 0.05)
     time.sleep(0.5)
-    r = client.post(f"/jobs/{jid2}/cancel", headers=H)
+    r = client.post(f"/api/v1/jobs/{jid2}/cancel", headers=H)
     assert r.json()["state"] == "cancelled"
-    assert client.get("/jobs/nope", headers=H).status_code == 404
+    assert client.get("/api/v1/jobs/nope", headers=H).status_code == 404
 
 
 def test_openapi_file_is_current():
@@ -128,10 +128,28 @@ def test_cli_server_localhost_with_token():
                 break
             except Exception:
                 time.sleep(0.1)
-        req = urllib.request.Request(url + "/i18n/en", headers={"X-PID-Token": token})
+        req = urllib.request.Request(url + "/api/v1/i18n/en", headers={"X-PID-Token": token})
         assert json.loads(urllib.request.urlopen(req, timeout=5).read())["set_1"]
         with pytest.raises(urllib.error.HTTPError):
-            urllib.request.urlopen(url + "/i18n/en", timeout=5)
+            urllib.request.urlopen(url + "/api/v1/i18n/en", timeout=5)
     finally:
         p.terminate()
         p.wait(10)
+
+
+def test_workspace_locks_are_released():
+    """Zámky serializace požadavků nezůstávají po smazaných ani neznámých prostorech (TICKET-012)."""
+    from pidtools.api import create_app
+    app = create_app()
+    with TestClient(app) as c:
+        ids = [c.post("/api/v1/workspaces").json()["id"] for _ in range(20)]
+        live = ids.pop()
+        for w in ids:
+            assert c.get(f"/api/v1/workspaces/{w}/settings").status_code == 200
+            assert c.delete(f"/api/v1/workspaces/{w}").status_code == 204
+            assert c.get(f"/api/v1/workspaces/{w}/settings").status_code == 404
+        for i in range(30):
+            assert c.get(f"/api/v1/workspaces/unknown{i}/settings").status_code == 404
+        assert c.get(f"/api/v1/workspaces/{live}/settings").status_code == 200
+        keys = {k for d in app.state.ws_locks.values() for k in d}
+        assert keys <= {live}

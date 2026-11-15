@@ -21,7 +21,7 @@ from pidtools.app.apc import vpc as avpc  # noqa: E402
 def _wait(client, job, t=600):
     t0 = time.time()
     while time.time() - t0 < t:
-        st = client.get(f"/jobs/{job['id']}").json()
+        st = client.get(f"/api/v1/jobs/{job['id']}").json()
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             return st
@@ -30,34 +30,34 @@ def _wait(client, job, t=600):
 
 
 def _identify(c, wid):
-    c.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
-    _wait(c, c.post(f"/workspaces/{wid}/identify").json())
+    c.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+    _wait(c, c.post(f"/api/v1/workspaces/{wid}/identify").json())
 
 
 @pytest.fixture(scope="module")
 def ws():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
         _identify(c, wid)
         yield c, wid, c.app.state.workspace(wid), c.app.state.store.get(wid)
 
 
 def test_requires_model():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
+        wid = c.post("/api/v1/workspaces").json()["id"]
         for u in ("split", "vpc", "ratio", "rga"):
-            assert c.get(f"/workspaces/{wid}/apc/{u}").status_code == 409
-        c.post(f"/workspaces/{wid}/data/demo")
-        assert c.get(f"/workspaces/{wid}/apc/split").status_code == 409
-        assert c.post(f"/workspaces/{wid}/apc/vpc/simulate", json={}).status_code == 409
+            assert c.get(f"/api/v1/workspaces/{wid}/apc/{u}").status_code == 409
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
+        assert c.get(f"/api/v1/workspaces/{wid}/apc/split").status_code == 409
+        assert c.post(f"/api/v1/workspaces/{wid}/apc/vpc/simulate", json={}).status_code == 409
 
 
 # ---- split range
 @pytest.mark.parametrize("mode", ["opposite", "sequence"])
 def test_split_matches_app(ws, mode):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/split"
+    url = f"/api/v1/workspaces/{wid}/apc/split"
     info = c.get(url, params={"mode": mode, "b0": 40, "gap": 2}).json()
     gb = asr.valve_b(s.model, 40.0)
     ga = asr.default_a(gb, mode)
@@ -82,7 +82,7 @@ def test_split_matches_app(ws, mode):
 
 def test_split_simulate_and_curves(ws):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/split"
+    url = f"/api/v1/workspaces/{wid}/apc/split"
     body = {"mode": "opposite", "b0": 45, "gap": 1.5, "valve_a": None}
     gb = asr.valve_b(s.model, 45.0)
     ga = asr.default_a(gb, "opposite")
@@ -111,7 +111,7 @@ def _unpack(raw):
 
 def test_split_custom_valve_and_errors(ws):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/split"
+    url = f"/api/v1/workspaces/{wid}/apc/split"
     p = list(asr.default_a(asr.valve_b(s.model, 50.0), "opposite")[1])
     p[0] *= 2
     d = c.post(f"{url}/design", json={"valve_a": p}).json()
@@ -123,13 +123,13 @@ def test_split_custom_valve_and_errors(ws):
     assert c.post(f"{url}/design", json={"b0": 100}).status_code == 422
     assert c.post(f"{url}/simulate", json={"mode": "x"}).status_code == 422
     assert c.get(url, params={"b0": 0}).status_code == 422
-    assert c.get("/workspaces/nope/apc/split").status_code == 404
+    assert c.get("/api/v1/workspaces/nope/apc/split").status_code == 404
 
 
 # ---- VPC
 def test_vpc_matches_app(ws):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/vpc"
+    url = f"/api/v1/workspaces/{wid}/apc/vpc"
     info = c.get(url).json()
     g1 = (s.model[0], list(s.model[1]))
     g2 = avpc.default_mv2(g1)
@@ -150,7 +150,7 @@ def test_vpc_matches_app(ws):
 
 def test_vpc_simulate_and_curves(ws):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/vpc"
+    url = f"/api/v1/workspaces/{wid}/apc/vpc"
     body = {"sp": 55, "factor": 6, "d": 25}
     g1 = (s.model[0], list(s.model[1]))
     g2 = avpc.default_mv2(g1)
@@ -173,7 +173,7 @@ def test_vpc_simulate_and_curves(ws):
 # ---- poměr
 def test_ratio_manual_matches_app(ws):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/ratio"
+    url = f"/api/v1/workspaces/{wid}/apc/ratio"
     info = c.get(url).json()
     gf = (s.model[0], list(s.model[1]))
     ga = aratio.default_air(gf)
@@ -199,7 +199,7 @@ def test_ratio_manual_matches_app(ws):
 
 def test_ratio_errors(ws):
     c, wid, s, _ = ws
-    url = f"/workspaces/{wid}/apc/ratio"
+    url = f"/api/v1/workspaces/{wid}/apc/ratio"
     assert c.post(f"{url}/simulate", json={"R": 0}).status_code == 422
     assert c.post(f"{url}/simulate", json={"air": [1.0]}).status_code == 422
     assert c.post(f"{url}/simulate", json={"air_loop": 7}).status_code == 404
@@ -211,12 +211,12 @@ def test_ratio_errors(ws):
 @pytest.fixture(scope="module")
 def two():
     with TestClient(create_app()) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
         _identify(c, wid)
         proj = c.app.state.store.get(wid)
-        one = c.get(f"/workspaces/{wid}/apc/rga").json()
-        c.post(f"/workspaces/{wid}/loops", json={"name": "L2"})
+        one = c.get(f"/api/v1/workspaces/{wid}/apc/rga").json()
+        c.post(f"/api/v1/workspaces/{wid}/loops", json={"name": "L2"})
         proj.active = 1
         _identify(c, wid)
         proj.active = 0
@@ -231,7 +231,7 @@ def test_rga_single_loop(two):
 
 def test_rga_matches_app(two):
     c, wid, proj, _ = two
-    info = c.get(f"/workspaces/{wid}/apc/rga").json()
+    info = c.get(f"/api/v1/workspaces/{wid}/apc/rga").json()
     recs = [dict(proj.state.apc_record(), name=proj.names()[0])] + [rec for _, rec in proj.others()]
     assert len(recs) == 2
     ref = rgan.analyse(recs)
@@ -247,7 +247,7 @@ def test_rga_matches_app(two):
 
 def test_ratio_air_from_loop(two):
     c, wid, proj, _ = two
-    url = f"/workspaces/{wid}/apc/ratio"
+    url = f"/api/v1/workspaces/{wid}/apc/ratio"
     s, other = proj.loops[0], proj.loops[1]
     info = c.get(url, params={"air_loop": 1}).json()
     assert info["design"]["sources"] == [{"index": 1, "name": "L2"}]

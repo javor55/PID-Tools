@@ -52,23 +52,24 @@ def _setup(client):
     return wid
 
 
-# ---- prefix a alias
-def test_v1_prefix_and_hidden_alias(client):
+# ---- prefix (alias bez prefixu zrušen, TICKET-012)
+def test_v1_prefix_only(client):
     assert client.get(f"{V1}/health").json()["status"] == "ok" and client.get("/health").status_code == 200
     wid = _ws(client)
     assert client.get(f"{V1}/workspaces/{wid}").status_code == 200
-    assert client.get(f"/workspaces/{wid}").status_code == 200                   # alias bez prefixu
+    assert client.get(f"/workspaces/{wid}").status_code == 404                          # bez prefixu už ne
+    assert client.post("/workspaces").status_code in (404, 405)
     assert client.post(f"{V1}/workspaces/{wid}/data/demo").json()["has_data"]
-    assert client.get(f"/workspaces/{wid}/loops").json()["loops"]
+    assert client.get(f"/api/v1/workspaces/{wid}/loops").json()["loops"]
     paths = client.get("/openapi.json").json()["paths"]
     assert paths and all(p.startswith(V1 + "/") for p in paths)                   # v OpenAPI jen /api/v1
     assert f"{V1}/workspaces/{{wid}}/sources" in paths and f"{V1}/workspaces/{{wid}}/loops/{{index}}/mapping" in paths
 
 
-def test_v1_requires_token_like_alias():
+def test_v1_requires_token():
     with TestClient(create_app(token="tok")) as c:
         assert c.get(f"{V1}/health").status_code == 200
-        assert c.get(f"{V1}/workspaces/x").status_code == 401 and c.get("/workspaces/x").status_code == 401
+        assert c.get(f"{V1}/workspaces/x").status_code == 401 and c.get("/workspaces/x").status_code == 404
         wid = c.post(f"{V1}/workspaces", headers={"Authorization": "Bearer tok"}).json()["id"]
         assert c.get(f"{V1}/workspaces/{wid}", headers={"X-PID-Token": "tok"}).status_code == 200
 

@@ -31,10 +31,10 @@ def prepared(page, server):
     page.locator('[data-sub="sources"]').click()
     page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
-    _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
-    j = _call(server, page, "POST", "/workspaces/{wid}/identify", {})
+    _call(server, page, "PATCH", "/api/v1/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
+    j = _call(server, page, "POST", "/api/v1/workspaces/{wid}/identify", {})
     for _ in range(600):
-        if _call(server, page, "GET", f"/jobs/{j['id']}")["state"] not in ("queued", "running"):
+        if _call(server, page, "GET", f"/api/v1/jobs/{j['id']}")["state"] not in ("queued", "running"):
             break
         time.sleep(0.2)
     page.reload(wait_until="networkidle")
@@ -64,26 +64,26 @@ def test_tc_and_plant(prepared, server):
     pg = prepared
     pg.select_option('[data-testid="method"]', "SIMC")
     pg.wait_for_selector('[data-testid="set-tc"]')
-    base = _call(server, pg, "POST", "/workspaces/{wid}/tuning/suggest", {"method": "SIMC"})
+    base = _call(server, pg, "POST", "/api/v1/workspaces/{wid}/tuning/suggest", {"method": "SIMC"})
     pg.locator('[data-testid="set-tc"]').fill(str(round(base["tc"] * 3, 3)))
     pg.locator('[data-testid="set-tc"]').press("Enter")
     pg.wait_for_selector('[data-testid="sug-robust"]')
-    st = _call(server, pg, "GET", "/workspaces/{wid}/settings")
+    st = _call(server, pg, "GET", "/api/v1/workspaces/{wid}/settings")
     key = next(k for k in st if k.startswith("tc|") and k.endswith("|SIMC|PI"))
     assert abs(st[key] - base["tc"] * 3) < 1e-2
-    slow = _call(server, pg, "POST", "/workspaces/{wid}/tuning/suggest", {"method": "SIMC", "tc": st[key]})
+    slow = _call(server, pg, "POST", "/api/v1/workspaces/{wid}/tuning/suggest", {"method": "SIMC", "tc": st[key]})
     assert abs(slow["Ti"]) > 0 and slow["tc"] == pytest.approx(st[key])
     # proces a ventil v simulaci
     pg.locator('[data-testid="card-plant"] > summary').click()
     pg.locator('[data-testid="plant-noise"]').fill("0.2")
     pg.locator('[data-testid="plant-noise"]').press("Enter")
     deadline = time.time() + 10
-    while time.time() < deadline and _call(server, pg, "GET", "/workspaces/{wid}/tuning/plant")["noise"] != 0.2:
+    while time.time() < deadline and _call(server, pg, "GET", "/api/v1/workspaces/{wid}/tuning/plant")["noise"] != 0.2:
         time.sleep(0.2)
-    assert _call(server, pg, "GET", "/workspaces/{wid}/tuning/plant")["noise"] == 0.2
+    assert _call(server, pg, "GET", "/api/v1/workspaces/{wid}/tuning/plant")["noise"] == 0.2
     pg.locator('[data-testid="plant-noise"]').fill("0")
     pg.locator('[data-testid="plant-noise"]').press("Enter")
-    _call(server, pg, "PATCH", "/workspaces/{wid}/settings", {f"tc|{st['mcode']}|SIMC|PI": 0})
+    _call(server, pg, "PATCH", "/api/v1/workspaces/{wid}/settings", {f"tc|{st['mcode']}|SIMC|PI": 0})
 
 
 def test_change_profile_renames_parameters(prepared, server):
@@ -91,11 +91,11 @@ def test_change_profile_renames_parameters(prepared, server):
     pg.select_option('[data-testid="ctrl-select"]', "isa_parallel")
     pg.wait_for_function("() => [...document.querySelectorAll('[data-testid=\"sets\"] tbody th')].some(e => e.innerText.startsWith('Kp'))")
     assert [n.split(" ")[0] for n in _names(pg)] == ["Kp", "Ki", "Kd"]
-    assert "isa_parallel" in json.dumps(_call(server, pg, "GET", "/workspaces/{wid}/controller")["profile"]["id"])
+    assert "isa_parallel" in json.dumps(_call(server, pg, "GET", "/api/v1/workspaces/{wid}/controller")["profile"]["id"])
     pg.select_option('[data-testid="ctrl-select"]', "isa_series")
     pg.wait_for_function("() => [...document.querySelectorAll('[data-testid=\"sets\"] tbody th')].some(e => e.innerText.startsWith('Kc'))")
     # sada s Ti < 4·Td nemá sériový ekvivalent: varování mapování
-    _call(server, pg, "PUT", "/workspaces/{wid}/tuning/sets/2", {"Kc": -2.0, "Ti": 20.0, "Td": 10.0})
+    _call(server, pg, "PUT", "/api/v1/workspaces/{wid}/tuning/sets/2", {"Kc": -2.0, "Ti": 20.0, "Td": 10.0})
     pg.reload(wait_until="networkidle")
     pg.locator('[data-tab="tuning"]').click()
     pg.wait_for_selector('[data-testid="set2-map-warn"]', timeout=30000)
@@ -129,5 +129,5 @@ def test_export_download_and_csv(prepared, server):
     # zpět na výchozí PIDConL (sdílený stav testů)
     pg.select_option('[data-testid="ctrl-select"]', "pcs7_pidconl")
     pg.wait_for_function("() => [...document.querySelectorAll('[data-testid=\"sets\"] tbody th')].some(e => e.innerText.startsWith('Gain'))")
-    assert _call(server, pg, "GET", "/workspaces/{wid}/controller")["is_default"] is True
+    assert _call(server, pg, "GET", "/api/v1/workspaces/{wid}/controller")["is_default"] is True
 

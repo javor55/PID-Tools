@@ -120,15 +120,15 @@ fn expect(cond: bool, what: &str) -> Result<(), String> {
     if cond { Ok(()) } else { Err(format!("check failed: {what}")) }
 }
 
-/// `--smoke --open soubor.pidproj`: soubor se předá jako při poklepu a z `/pending-open` se musí vrátit beze změny
+/// `--smoke --open soubor.pidproj`: soubor se předá jako při poklepu a z `/api/v1/pending-open` se musí vrátit beze změny
 /// (jednou; podruhé je místo prázdné).
 fn smoke_open(sc: &Sidecar, file: &str, log: &mut Log) -> Result<(), String> {
     let (port, tok) = (sc.ready.port, Some(sc.ready.token.as_str()));
     openfile::deliver(port, &sc.ready.token, std::path::Path::new(file))?;
-    let got = http::request(port, "GET", "/pending-open", tok)?;
+    let got = http::request(port, "GET", "/api/v1/pending-open", tok)?;
     let want = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
     expect(got.status == 200 && got.body == want, "GET /pending-open returns the delivered project")?;
-    expect(http::request(port, "GET", "/pending-open", tok)?.status == 204, "pending project is taken once")?;
+    expect(http::request(port, "GET", "/api/v1/pending-open", tok)?.status == 204, "pending project is taken once")?;
     log.line(&format!("open: {file} delivered ({} bytes) and taken", want.len()));
     Ok(())
 }
@@ -138,16 +138,16 @@ fn smoke_steps(sc: &Sidecar, open: Option<&str>, log: &mut Log) -> Result<(), St
     let h = http::request(port, "GET", "/health", None)?;
     expect(h.status == 200 && h.body.contains("\"ok\""), "GET /health")?;
     log.line(&format!("health: {}", h.body.trim()));
-    expect(http::request(port, "GET", "/workspaces/x", None)?.status == 401, "no token -> 401")?;
+    expect(http::request(port, "GET", "/api/v1/workspaces/x", None)?.status == 401, "no token -> 401")?;
     let ui = http::request(port, "GET", "/", None)?;
     expect(ui.status == 200 && ui.body.to_lowercase().contains("<html"), "GET / serves the UI")?;
-    let ws = http::request(port, "POST", "/workspaces", tok)?;
+    let ws = http::request(port, "POST", "/api/v1/workspaces", tok)?;
     expect(ws.status == 200 || ws.status == 201, "POST /workspaces")?;
     let id = serde_json::from_str::<serde_json::Value>(&ws.body)
         .ok()
         .and_then(|v| v["id"].as_str().map(String::from))
         .ok_or("workspace id missing")?;
-    let path = format!("/workspaces/{id}");
+    let path = format!("/api/v1/workspaces/{id}");
     expect(http::request(port, "GET", &path, tok)?.status == 200, "GET /workspaces/{id}")?;
     expect(http::request(port, "DELETE", &path, tok)?.status == 204, "DELETE /workspaces/{id}")?;
     log.line(&format!("workspace {id}: created, read, deleted"));

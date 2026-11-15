@@ -145,8 +145,8 @@ def smoke_steps(base, token, log=print):
     """Cesta přes API: health, workspace, demo, identifikace (úloha v samostatném procesu), protokol."""
     h = _call(base, token, "GET", "/health")
     assert h["status"] == "ok", h
-    wid = _call(base, token, "POST", "/workspaces")["id"]
-    w = f"/workspaces/{wid}"
+    wid = _call(base, token, "POST", "/api/v1/workspaces")["id"]
+    w = f"/api/v1/workspaces/{wid}"
     _call(base, token, "POST", w + "/data/demo")
     _call(base, token, "PATCH", w + "/settings", {"chosen": ["P1D"]})
     job = _call(base, token, "POST", w + "/identify")
@@ -155,7 +155,7 @@ def smoke_steps(base, token, log=print):
         if time.time() - t0 > 240:
             raise TimeoutError("identification job did not finish")
         time.sleep(0.2)
-        job = _call(base, token, "GET", f"/jobs/{job['id']}")
+        job = _call(base, token, "GET", f"/api/v1/jobs/{job['id']}")
     assert job["state"] == "done", job
     log(f"identification job: done in {time.time() - t0:.1f} s")
     m = _call(base, token, "GET", w + "/model")

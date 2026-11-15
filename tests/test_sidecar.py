@@ -101,7 +101,7 @@ def test_start_serves_health_and_requires_token(cmd):
         assert info["token"] == "sekret" and info["port"] > 0
         print(f"sidecar ready after {dt:.2f} s")
         assert json.loads(_get(info, "/health")[1])["status"] == "ok"
-        assert _get(info, "/i18n/cs")[0] == 200
+        assert _get(info, "/api/v1/i18n/cs")[0] == 200
         with pytest.raises(urllib.error.HTTPError) as ex:
             urllib.request.urlopen(f"http://127.0.0.1:{info['port']}/i18n/cs", timeout=10)      # bez tokenu
         assert ex.value.code == 401

@@ -29,7 +29,7 @@ def prepared(page, server):
     """Prostor s projektem tic001 (model, sady) a otevřeným Deníkem ladění."""
     wid = page.evaluate("sessionStorage.getItem('pid.wid')")
     text = open(os.path.join(HERE, "golden", "tic001.json"), "rb").read()
-    req = urllib.request.Request(server + f"/workspaces/{wid}/project", method="PUT", data=text,
+    req = urllib.request.Request(server + f"/api/v1/workspaces/{wid}/project", method="PUT", data=text,
                                  headers={"X-PID-Token": TOKEN, "Content-Type": "application/json"})
     urllib.request.urlopen(req, timeout=60).read()
     page.reload(wait_until="networkidle")
@@ -49,8 +49,8 @@ def test_empty_journal_and_save_versions(prepared, server):
     assert pg.locator('[data-testid="jr-detail"] [data-testid="jr-pill"]').first.get_attribute("data-status") == "draft"
     assert pg.locator('[data-testid="jr-verified"]').get_attribute("data-ok") == "true"
     # změna nastavení smyčky a druhá verze
-    g = _call(server, pg, "GET", "/workspaces/{wid}/settings")["set2_gain"]
-    _call(server, pg, "PATCH", "/workspaces/{wid}/settings", {"set2_gain": g * 2})
+    g = _call(server, pg, "GET", "/api/v1/workspaces/{wid}/settings")["set2_gain"]
+    _call(server, pg, "PATCH", "/api/v1/workspaces/{wid}/settings", {"set2_gain": g * 2})
     pg.locator('[data-testid="jr-save"]').click()
     pg.wait_for_function("() => document.querySelectorAll('[data-testid=\"jr-row\"]').length === 2", timeout=10000)
     assert pg.locator('[data-testid="jr-count"]').inner_text().startswith("2")
@@ -81,11 +81,11 @@ def test_compare_restore_and_report(prepared, server):
     assert any("set2_gain" in t for t in diffs)
     pg.locator('[data-testid="jr-cmp-close"]').click()
     # obnova první verze: nastavení se vrátí, předchozí stav je uložen jako nová verze
-    g1 = _call(server, pg, "GET", "/workspaces/{wid}/journal/j1")["content"]["sets"]["set2_gain"]
+    g1 = _call(server, pg, "GET", "/api/v1/workspaces/{wid}/journal/j1")["content"]["sets"]["set2_gain"]
     pg.locator('[data-testid="jr-row"][data-sid="j1"]').click()
     pg.locator('[data-testid="jr-restore"]').click()
     pg.wait_for_selector('[data-testid="jr-msg"]', timeout=20000)
-    assert _call(server, pg, "GET", "/workspaces/{wid}/settings")["set2_gain"] == pytest.approx(g1)
+    assert _call(server, pg, "GET", "/api/v1/workspaces/{wid}/settings")["set2_gain"] == pytest.approx(g1)
     assert pg.locator('[data-testid="jr-row"]').count() == 3
     # report z verze se zobrazí v náhledu
     pg.locator('[data-testid="jr-report"]').click()

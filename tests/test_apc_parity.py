@@ -29,7 +29,7 @@ def test_inner_range_from_data():
 
 def test_cascade_irange_endpoint_matches_fit(ws):
     c, wid, s = ws
-    u = f"/workspaces/{wid}"
+    u = f"/api/v1/workspaces/{wid}"
     sig = next(str(x) for x in s.sig.sigs if str(x) != str(s.c_pv))
     r = c.get(f"{u}/apc/cascade/irange", params={"ipv": sig})
     assert r.status_code == 200
@@ -67,7 +67,7 @@ def test_assess_keeps_recommend_and_decouple_weak():
 
 def test_recommend_endpoint_status(ws):
     c, wid, _ = ws
-    items = c.get(f"/workspaces/{wid}/apc/recommend").json()
+    items = c.get(f"/api/v1/workspaces/{wid}/apc/recommend").json()
     assert items and {x["status"] for x in items} <= {"rec", "unsuitable", "skip"}
     order = [x["status"] for x in items]
     assert order == sorted(order, key=["rec", "unsuitable", "skip"].index)
@@ -80,7 +80,7 @@ def test_one_way_decoupling(two):
     (bi, b), = proj.others()
     a = dict(proj.state.report_record(), name=proj.names()[proj.active])
     dz = adec.design(a, b)
-    url = f"/workspaces/{wid}/apc/decouple"
+    url = f"/api/v1/workspaces/{wid}/apc/decouple"
     assert [p["way"] for p in c.get(url).json()["params"]] == ["ab", "ba"]
     assert [p[1] for p in adec.params(dz, a, b, "ab")] == [a["name"]] and [p[1] for p in adec.params(dz, a, b, "ba")] == [b["name"]]
     k = {}
@@ -99,7 +99,7 @@ def test_one_way_decoupling(two):
 # ---- GS: Ms bodů a úseky; override: pásma
 def test_gainsched_ms_and_segments(ws):
     c, wid, _ = ws
-    u = f"/workspaces/{wid}/apc/gainsched"
+    u = f"/api/v1/workspaces/{wid}/apc/gainsched"
     _done(c, c.post(f"{u}/fit").json())
     info = c.get(u).json()
     assert info["fitted"]
@@ -113,6 +113,6 @@ def test_gainsched_ms_and_segments(ws):
 
 def test_override_band_signal(two):
     c, wid, _ = two
-    sig = signalpack.unframe(c.post(f"/workspaces/{wid}/apc/override/simulate/curves", json={}).content)[1]
+    sig = signalpack.unframe(c.post(f"/api/v1/workspaces/{wid}/apc/override/simulate/curves", json={}).content)[1]
     act = sig["act"][1]
     assert set(np.unique(act)) <= {0.0, 1.0} and len(act) == len(sig["pv_b"][1])

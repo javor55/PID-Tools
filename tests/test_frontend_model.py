@@ -34,10 +34,10 @@ def ready(page, server):
     page.locator('[data-sub="sources"]').click()
     page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
-    _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
-    j = _call(server, page, "POST", "/workspaces/{wid}/identify", {})
+    _call(server, page, "PATCH", "/api/v1/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
+    j = _call(server, page, "POST", "/api/v1/workspaces/{wid}/identify", {})
     for _ in range(600):
-        st = _call(server, page, "GET", f"/jobs/{j['id']}")
+        st = _call(server, page, "GET", f"/api/v1/jobs/{j['id']}")
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             break
@@ -60,9 +60,9 @@ def test_validation_range_and_rating(page, server, ready):
     a.press("Enter")
     page.wait_for_function("() => document.querySelector('[data-testid=\"val-a\"]').value === '1800'")
     page.wait_for_timeout(1500)
-    st = _call(server, page, "GET", "/workspaces/{wid}/settings")
+    st = _call(server, page, "GET", "/api/v1/workspaces/{wid}/settings")
     assert st["val_rng"][0] == 1800
-    v = _call(server, page, "GET", "/workspaces/{wid}/model/validate")
+    v = _call(server, page, "GET", "/api/v1/workspaces/{wid}/model/validate")
     assert v["rng"][0] == 1800
     assert abs(_fit(page, "val") - v["val"]["FIT"]) < 0.06
     assert abs(_fit(page, "id") - v["id"]["FIT"]) < 0.06
@@ -85,7 +85,7 @@ def test_validation_loop_sets_and_views(page, server, ready):
     assert page.locator('[data-testid="val-fit-pv"]').inner_text().strip().endswith("%")
     page.locator('[data-testid="val-reset"]').click()
     page.wait_for_timeout(1200)
-    assert _call(server, page, "GET", "/workspaces/{wid}/settings").get("val_rng") in (None, [])
+    assert _call(server, page, "GET", "/api/v1/workspaces/{wid}/settings").get("val_rng") in (None, [])
     # pohledy na model
     page.wait_for_selector('[data-testid="step-chart"]')
     assert int(page.locator('[data-testid="step-chart"]').get_attribute("data-n")) >= 1
@@ -111,7 +111,7 @@ def test_closed_loop_panel(page, server, ready):
     g.fill("1.25")
     g.press("Enter")
     page.wait_for_function("() => Math.abs(+document.querySelector('[data-testid=\"rec-Gain\"]').value - 1.25) < 1e-9")
-    assert _call(server, page, "GET", "/workspaces/{wid}/settings")["set1_gain"] == 1.25
+    assert _call(server, page, "GET", "/api/v1/workspaces/{wid}/settings")["set1_gain"] == 1.25
     page.locator('[data-testid="set1-estimate"]').click()
     page.wait_for_selector('[data-testid="set1-msg"]', timeout=30000)
     # odhad ze záznamu přepíše Sadu 1 a karta se obnoví

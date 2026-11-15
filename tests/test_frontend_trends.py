@@ -46,8 +46,8 @@ def trends(page, server):
     b = pd.DataFrame({"Time": t0 + pd.to_timedelta(t5, unit="s"), "FIC205.PV [t/h]": 45 + 3 * np.sin(t5 / 200),
                       "PI201 [bar]": 8 + 0.5 * np.sin(t5 / 700)})
     for name, df in (("a.csv", a), ("b.csv", b)):
-        _call(server, page, "POST", f"/workspaces/{{wid}}/sources?name={name}&timezone=UTC", raw=_csv(df))
-    _call(server, page, "POST", "/workspaces/{wid}/loops/suggest", {"apply": True})
+        _call(server, page, "POST", f"/api/v1/workspaces/{{wid}}/sources?name={name}&timezone=UTC", raw=_csv(df))
+    _call(server, page, "POST", "/api/v1/workspaces/{wid}/loops/suggest", {"apply": True})
     page.reload(wait_until="networkidle")
     page.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
     page.locator('[data-tab="data"]').click()
@@ -149,11 +149,11 @@ def test_mark_range_for_model(trends, server):
     trends.locator('[data-testid="trd-mark-model"]').click()                      # bez kurzorů: hláška
     trends.wait_for_selector('[data-testid="trd-mark-msg"].trd-err')
     trends.locator('[data-testid="trd-viewer"] .pidv-bar [data-a=cur]').click()
-    before = _call(server, trends, "GET", "/workspaces/{wid}")["rng"]
+    before = _call(server, trends, "GET", "/api/v1/workspaces/{wid}")["rng"]
     st = trends.evaluate("() => window.__pidView.trends_view.state().cur")
     trends.locator('[data-testid="trd-mark-model"]').click()
     trends.wait_for_selector('[data-testid="trd-mark-msg"].trd-ok')
-    after = _call(server, trends, "GET", "/workspaces/{wid}")["rng"]
+    after = _call(server, trends, "GET", "/api/v1/workspaces/{wid}")["rng"]
     assert after != before and 0 <= after[0] < after[1]
     assert after[1] - after[0] == pytest.approx(abs(st["b"] - st["a"]), abs=2)
     assert trends.locator('[data-testid="trd-mark-diag"]').is_enabled()

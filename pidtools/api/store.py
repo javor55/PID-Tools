@@ -67,5 +67,8 @@ class WorkspaceStore:
         """Počet prostorů uživatele."""
         return sum(v[2] == owner for v in list(self._d.values()))
 
+    def __contains__(self, wid):
+        return wid in self._d
+
     def __len__(self):
         return len(self._d)
