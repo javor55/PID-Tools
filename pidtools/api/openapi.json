@@ -29,11 +29,6 @@
      },
      "language": {
       "default": "",
-      "enum": [
-       "",
-       "cs",
-       "en"
-      ],
       "title": "Language",
       "type": "string"
      },
@@ -267,11 +262,6 @@
      },
      "language": {
       "default": "app",
-      "enum": [
-       "app",
-       "cs",
-       "en"
-      ],
       "title": "Language",
       "type": "string"
      },
@@ -724,6 +714,11 @@
        }
       ],
       "title": "Loops"
+     },
+     "project": {
+      "default": false,
+      "title": "Project",
+      "type": "boolean"
      }
     },
     "title": "AuditReq",
@@ -1863,6 +1858,36 @@
     "title": "CompileResult",
     "type": "object"
    },
+   "Config": {
+    "description": "Co potřebuje rozhraní vědět o nasazení: režim (desktop / team / public), limit nahrání a doba relace.",
+    "properties": {
+     "max_upload_mb": {
+      "title": "Max Upload Mb",
+      "type": "number"
+     },
+     "mode": {
+      "title": "Mode",
+      "type": "string"
+     },
+     "session_ttl_min": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Session Ttl Min"
+     }
+    },
+    "required": [
+     "mode",
+     "max_upload_mb"
+    ],
+    "title": "Config",
+    "type": "object"
+   },
    "ControllerParam": {
     "additionalProperties": true,
     "properties": {
@@ -2656,6 +2681,133 @@
      "res"
     ],
     "title": "DqCheck",
+    "type": "object"
+   },
+   "DqEvent": {
+    "properties": {
+     "kind": {
+      "enum": [
+       "mv",
+       "sp",
+       "mode"
+      ],
+      "title": "Kind",
+      "type": "string"
+     },
+     "size": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size"
+     },
+     "t": {
+      "title": "T",
+      "type": "number"
+     },
+     "text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Text"
+     }
+    },
+    "required": [
+     "t",
+     "kind"
+    ],
+    "title": "DqEvent",
+    "type": "object"
+   },
+   "DqSegment": {
+    "properties": {
+     "a": {
+      "title": "A",
+      "type": "number"
+     },
+     "b": {
+      "title": "B",
+      "type": "number"
+     },
+     "level": {
+      "title": "Level",
+      "type": "integer"
+     },
+     "n_mv": {
+      "title": "N Mv",
+      "type": "integer"
+     },
+     "n_sp": {
+      "title": "N Sp",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "a",
+     "b",
+     "level",
+     "n_mv",
+     "n_sp"
+    ],
+    "title": "DqSegment",
+    "type": "object"
+   },
+   "DqSummary": {
+    "description": "Vhodnost záznamu aktivní smyčky pro identifikaci (Data › Kvalita dat): verdikt celého záznamu, události, úseky.",
+    "properties": {
+     "auto_frac": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Auto Frac"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/pidtools__api__data__Check"
+      },
+      "title": "Checks",
+      "type": "array"
+     },
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/DqEvent"
+      },
+      "title": "Events",
+      "type": "array"
+     },
+     "level": {
+      "title": "Level",
+      "type": "integer"
+     },
+     "segments": {
+      "items": {
+       "$ref": "#/components/schemas/DqSegment"
+      },
+      "title": "Segments",
+      "type": "array"
+     }
+    },
+    "required": [
+     "level",
+     "checks",
+     "events",
+     "segments"
+    ],
+    "title": "DqSummary",
     "type": "object"
    },
    "Evidence": {
@@ -4185,6 +4337,29 @@
      "statuses"
     ],
     "title": "JournalList",
+    "type": "object"
+   },
+   "Language": {
+    "properties": {
+     "code": {
+      "title": "Code",
+      "type": "string"
+     },
+     "coverage": {
+      "title": "Coverage",
+      "type": "number"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "code",
+     "name",
+     "coverage"
+    ],
+    "title": "Language",
     "type": "object"
    },
    "Layout": {
@@ -6687,6 +6862,31 @@
      "text"
     ],
     "title": "Recommendation",
+    "type": "object"
+   },
+   "RecordSet": {
+    "description": "Regulátor v záznamu (Sada 1) pro identifikaci v uzavřené smyčce – nepotřebuje model (sdílí se s Laděním).",
+    "properties": {
+     "controller": {
+      "$ref": "#/components/schemas/LoopCtrlRef"
+     },
+     "set": {
+      "$ref": "#/components/schemas/SetInfo"
+     },
+     "tuning_params": {
+      "items": {
+       "$ref": "#/components/schemas/ParamRef"
+      },
+      "title": "Tuning Params",
+      "type": "array"
+     }
+    },
+    "required": [
+     "controller",
+     "tuning_params",
+     "set"
+    ],
+    "title": "RecordSet",
     "type": "object"
    },
    "RecoveryInfo": {
@@ -10833,7 +11033,7 @@
  "info": {
   "description": "Identification, tuning and simulation of PIDConL loops (PCS 7).",
   "title": "PID Tools API",
-  "version": "4.0.0b2"
+  "version": "4.0.0b3"
  },
  "openapi": "3.1.0",
  "paths": {
@@ -11376,16 +11576,16 @@
     ]
    },
    "post": {
-    "description": "Nahraje logo firmy pro report (png / jpg / svg do 1 MB).",
+    "description": "Nahraje logo firmy pro report (png / jpg do 1 MB; SVG se nepřijímá, ve veřejném režimu 403).",
     "operationId": "put_logo_api_v1_app_settings_logo_post",
     "parameters": [
      {
-      "description": "file name (extension png, jpg or svg)",
+      "description": "file name (extension png or jpg)",
       "in": "query",
       "name": "name",
       "required": true,
       "schema": {
-       "description": "file name (extension png, jpg or svg)",
+       "description": "file name (extension png or jpg)",
        "title": "Name",
        "type": "string"
       }
@@ -11585,6 +11785,72 @@
     "tags": [
      "app-settings",
      "app-settings"
+    ]
+   }
+  },
+  "/api/v1/config": {
+   "get": {
+    "description": "Režim nasazení a limity pro rozhraní (ve veřejném režimu tímto voláním prohlížeč dostane relaci).",
+    "operationId": "config_api_v1_config_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Config"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Config",
+    "tags": [
+     "system"
     ]
    }
   },
@@ -12507,6 +12773,76 @@
      }
     },
     "summary": "Health",
+    "tags": [
+     "system"
+    ]
+   }
+  },
+  "/api/v1/i18n": {
+   "get": {
+    "description": "Dostupné jazyky rozhraní (soubory pidtools/i18n/*.json), angličtina (výchozí) první.",
+    "operationId": "languages_api_v1_i18n_get",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Language"
+         },
+         "title": "Response Languages Api V1 I18N Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Languages",
     "tags": [
      "system"
     ]
@@ -17641,7 +17977,7 @@
   },
   "/api/v1/workspaces/{wid}/autosave": {
    "post": {
-    "description": "Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic.",
+    "description": "Zapíše záchrannou kopii projektu (včetně dat) do složky uživatelských dat; bez dat nic (veřejný režim: 403).",
     "operationId": "autosave_api_v1_workspaces__wid__autosave_post",
     "parameters": [
      {
@@ -18441,6 +18777,81 @@
      }
     },
     "summary": "Dataquality",
+    "tags": [
+     "data"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/dataquality/summary": {
+   "get": {
+    "description": "Verdikt celého záznamu (kontroly q_*), události (skoky MV / SP, přepnutí režimu) a navržené úseky pro identifikaci\n(shluky skoků, každý s vlastním hodnocením).",
+    "operationId": "dataquality_summary_api_v1_workspaces__wid__dataquality_summary_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DqSummary"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Dataquality Summary",
     "tags": [
      "data"
     ]
@@ -19448,7 +19859,6 @@
   },
   "/api/v1/workspaces/{wid}/journal/{sid}/attachments": {
    "post": {
-    "description": "Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu).",
     "operationId": "attach_api_v1_workspaces__wid__journal__sid__attachments_post",
     "parameters": [
      {
@@ -23765,6 +24175,88 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/signals/all": {
+   "get": {
+    "description": "Signály všech zdrojů binárně (bez převzorkování) na společné ose [s od nejdřívějšího zdroje] – Trendy.\nNázev signálu je sloupec; když je stejný sloupec ve více souborech, „soubor › sloupec“.",
+    "operationId": "sources_signals_api_v1_workspaces__wid__signals_all_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "cap",
+      "required": false,
+      "schema": {
+       "default": 6000000,
+       "minimum": 1000,
+       "title": "Cap",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {}
+      },
+      "description": "app.signalpack.frame; popis navíc `refs` {název: `zdroj:sloupec`}, `origin`"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Sources Signals",
+    "tags": [
+     "sources"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/signals/trend": {
    "get": {
     "description": "Signály všech zdrojů na společné ose [s od nejdřívějšího zdroje]: zředěné na min / max po skupinách (špičky\nzůstanou), statistika v úseku `a`–`b` a hodnoty v časech kurzorů `at` (interpolace, v mezeře `null`).",
@@ -25539,6 +26031,164 @@
      }
     },
     "summary": "Set Plant",
+    "tags": [
+     "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/tuning/record-set": {
+   "get": {
+    "description": "Sada 1 (regulátor, se kterým smyčka v záznamu běžela) v jednotkách bloku – i bez modelu (záložka Model).",
+    "operationId": "get_record_set_api_v1_workspaces__wid__tuning_record_set_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecordSet"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Record Set",
+    "tags": [
+     "tuning"
+    ]
+   },
+   "put": {
+    "description": "Zápis Sady 1 bez modelu (identifikace v uzavřené smyčce potřebuje regulátor ze záznamu dřív než model).",
+    "operationId": "put_record_set_api_v1_workspaces__wid__tuning_record_set_put",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WriteSet"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecordSet"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Put Record Set",
     "tags": [
      "tuning"
     ]

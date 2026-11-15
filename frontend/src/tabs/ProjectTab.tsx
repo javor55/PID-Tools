@@ -1,14 +1,14 @@
 // Záložka Projekt a report (M21): uložení / otevření projektu (soubor), údaje a volby protokolu, náhled protokolu
 // (HTML v izolovaném iframe) a jeho stažení.
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 import { ApiError, bytes, rawRequest } from "../api/client";
 import { Card } from "../components/Card";
 import { TextSetting } from "../components/Fields";
 import { PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { usePatchSettings, useSettings } from "../data";
-import { useT } from "../i18n";
+import { useLanguages, useT } from "../i18n";
 import { useUi } from "../store";
 import { useSections } from "./project/api";
 import { JournalMain } from "./project/JournalMain";
@@ -59,6 +59,12 @@ export function usePendingOpen() {
   }, [wid, qc, T]);
 }
 
+function hashOf(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return `${s.length}:${h}`;
+}
+
 function saveAs(name: string, data: BlobPart, type: string) {
   const a = document.createElement("a");
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -91,6 +97,17 @@ function ReportMain() {
   const { html, busy, err } = useReport();
   const base = useBaseName();
   const frame = useRef<HTMLIFrameElement>(null);
+  // Protokol se do izolovaného rámce posílá zprávou (stránka rámce má vlastní CSP, `srcdoc` by zdědil přísné CSP aplikace)
+  const htmlKey = useMemo(() => (html ? hashOf(html) : ""), [html]);
+  useEffect(() => {
+    if (!html) return;
+    const on = (e: MessageEvent) => {
+      if (e.source === frame.current?.contentWindow && (e.data as { pidReportReady?: boolean } | null)?.pidReportReady)
+        frame.current?.contentWindow?.postMessage({ pidReport: html }, "*");
+    };
+    window.addEventListener("message", on);
+    return () => window.removeEventListener("message", on);
+  }, [html, htmlKey]);
   return (
     <div className="stack">
       <Card title={T("rp_preview")} help={T("rp_pdf_hint")} testid="report-card"
@@ -104,8 +121,8 @@ function ReportMain() {
       </Card>
       {html && (
         <div className="rcanvas">
-          <iframe ref={frame} className="report-frame" title="report" sandbox="allow-scripts allow-modals" srcDoc={html}
-            data-testid="report-frame" />
+          <iframe key={htmlKey} ref={frame} className="report-frame" title="report" sandbox="allow-scripts allow-modals"
+            src="/report-host.html" data-testid="report-frame" data-report-len={html.length} />
         </div>)}
     </div>
   );
@@ -156,6 +173,7 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
   const uiLang = useUi((s) => s.lang);
   const { lang: rlang, setLang } = useProjSub();
   const lang = rlang ?? uiLang;
+  const langs = useLanguages();
   const sections = useSections(lang).data ?? [];
   const [picked, setPicked] = useState<string[] | null>(null);
   const secs = picked ?? sections.filter((x) => x.default).map((x) => x.id);
@@ -192,13 +210,13 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
       <button type="button" className="btn" disabled={busy} onClick={() => void summary()} title={T("h_jr_sum_btn")} data-testid="report-summary">{T("jr_sum_btn")}</button>
       {pre}
       <SideCard title={T("rep_title")} help={T("rep_help")} testid="report-opts">
-        <div className="field"><span>{T("rp_status")}</span>
+        <div className="field wide"><span>{T("rp_status")}</span>
           <Seg value={status} options={STATUSES} label={T("rp_status")} testid="set-rep_status" small help="h_rp_status" fmt={(v) => T("rp_st_" + v)}
             onChange={(v) => void patch({ rep_status: v })} /></div>
         <TextSetting k="rep_plant" label={T("rp_plant")} placeholder={T("rp_plant_ph")} help="h_rp_plant" />
         <TextSetting k="rep_author" label={T("rp_author")} help="h_rp_author" />
         <div className="field wide"><span>{T("rp_lang")}</span>
-          <Seg value={lang} options={["cs", "en"] as const} label={T("rp_lang")} testid="rep-lang" small help="h_rp_lang"
+          <Seg value={lang} options={langs.map((l) => l.code)} label={T("rp_lang")} testid="rep-lang" small help="h_rp_lang"
             fmt={(v) => v.toUpperCase()} onChange={setLang} /></div>
         <div className="field wide"><span>{T("rp_charts")}</span>
           <Seg value={charts} options={["inline", "cdn"] as const} label={T("rp_charts")} testid="rep-charts" small help="h_rp_charts"

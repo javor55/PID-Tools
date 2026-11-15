@@ -29,8 +29,30 @@ export default function (component) {
   if (prev && prev.box && prev.box.isConnected) prev.box.remove();
 
   const views = (window.__pidTrendView = window.__pidTrendView || {});
-  const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: true });
+  const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: false });   // model výchozí na celém záznamu
   if (!(S.view[1] > S.view[0]) || S.view[1] > D.T * 1.0001) S.view = [0, D.T];
+  S.ylim = S.ylim || {};
+  S.cur = S.cur || { on: false, a: null, b: null };   // kurzory A / B (odečet Δt, např. dopravní zpoždění)                               // ruční rozsah osy Y řádku (zoom Y), jinak auto
+  // historie zoomu (zpět / vpřed): stav = výřez času a rozsahy os Y
+  const hist = [], hsnap = () => JSON.stringify({ v: S.view, y: S.ylim });
+  let hpos = -1, lastPush = 0;
+  function push(force) {
+    const now = Date.now();
+    if (!force && now - lastPush < 500) return;       // kolečko: jeden krok historie za otočení
+    lastPush = now;
+    const c = hsnap();
+    if (hist[hpos] === c) return;
+    hist.splice(hpos + 1); hist.push(c); hpos = hist.length - 1;
+  }
+  function go(d) {
+    push(true);
+    const i = hpos + d;
+    if (i < 0 || i >= hist.length) return;
+    hpos = i;
+    const o = JSON.parse(hist[i]);
+    S.view = o.v; S.ylim = o.y;
+    draw();
+  }
   const W = { mode: D.mode, wins: {}, common: (D.common || [0, D.T]).slice(),
               ab: D.ab ? { a: D.ab.a.slice(), b: D.ab.b ? D.ab.b.slice() : null } : null };
   for (const r of D.rows) if (r.kind === "in") W.wins[r.id] = (r.wins || []).map((w) => w.slice());
@@ -76,6 +98,7 @@ export default function (component) {
   reg[D.key] = { sig: D.sig, box };
 
   const B = D.bar || {};
+  let cread = null;
   if (B.title || B.mode_switch || B.zoom || (B.legend && B.legend.length)) {
     const bar = el("div", "pidw-card pidw-bar");
     let h = B.title ? `<div class="pidw-grp"><h2 class="pidw-title">${esc(B.title)}</h2>` +
@@ -89,6 +112,9 @@ export default function (component) {
       h += `<div class="pidw-grp"><span class="pidw-lab">${esc(X.zoom)}</span>` +
         `<div class="pidw-seg" data-g="zoom"><button data-v="all">${esc(X.zoom_all)}</button>` +
         (editable ? `<button data-v="win">${esc(X.zoom_win)}</button>` : "") + `</div>` +
+        `<button type="button" class="pidw-mini" data-h="back" title="Backspace">◀ ${esc(X.back || "Back")}</button>` +
+        `<button type="button" class="pidw-mini" data-h="fwd">${esc(X.fwd || "Forward")} ▶</button>` +
+        `<button type="button" class="pidw-mini" data-h="cur" title="${esc(X.cur_hint || "")}">${esc(X.cur || "A / B")}</button>` +
         `<span class="pidw-note">${esc(X.zoom_note)}</span></div>`;
     h += `<div class="pidw-leg">${(B.legend || []).map(([c, t, st]) =>
       st === "hatch" ? `<span><i class="pidw-hatch"></i>${esc(t)}</span>`
@@ -96,18 +122,35 @@ export default function (component) {
           : `<span><i style="background:${st || "transparent"};border-color:${c}"></i>${esc(t)}</span>`).join("")}</div>`;
     bar.innerHTML = h;
     box.appendChild(bar);
+    cread = el("div", "pidw-card pidw-cread");
+    cread.title = X.cur_hint || "";
+    box.appendChild(cread);
     bar.querySelectorAll('[data-g="mode"] button').forEach((b) => {
       b.classList.toggle("on", b.dataset.v === W.mode);
       b.onclick = () => { if (b.dataset.v !== W.mode) component.setTriggerValue("mode", b.dataset.v); };
     });
     const za = bar.querySelector('[data-v="all"]');
-    if (za) za.onclick = () => { S.view = [0, D.T]; draw(); };
+    if (za) za.onclick = () => { push(true); S.view = [0, D.T]; S.ylim = {}; push(true); draw(); };
+    const hb = bar.querySelector('[data-h="back"]'), hf = bar.querySelector('[data-h="fwd"]');
+    if (hb) hb.onclick = () => go(-1);
+    if (hf) hf.onclick = () => go(1);
+    const hc = bar.querySelector('[data-h="cur"]');
+    if (hc) hc.onclick = () => {
+      S.cur.on = !S.cur.on;
+      if (S.cur.on && (S.cur.a === null || S.cur.a < S.view[0] || S.cur.a > S.view[1])) {
+        const L = S.view[1] - S.view[0];
+        S.cur.a = S.view[0] + L / 3; S.cur.b = S.view[0] + 2 * L / 3;
+      }
+      draw();
+    };
     const zw = bar.querySelector('[data-v="win"]');
     if (zw) zw.onclick = () => {
       const all = winsFor(null).map((x) => x.w);
       if (!all.length) return;
       const a = Math.min(...all.map((w) => w[0])), b = Math.max(...all.map((w) => w[1])), m = 0.2 * (b - a);
+      push(true);
       S.view = [Math.max(0, a - m), Math.min(D.T, b + m)];
+      push(true);
       draw();
     };
   }
@@ -383,19 +426,48 @@ export default function (component) {
     }
     xa.appendChild(el("span", "pidw-xu", esc(D.unit.u)));
   }
+  function nearestIdx(t) {
+    let lo = 0, hi = D.t.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (D.t[m] < t) lo = m; else hi = m; }
+    return Math.abs(D.t[hi] - t) < Math.abs(D.t[lo] - t) ? hi : lo;
+  }
+  function curRead() {                               // odečet kurzorů: časy, Δt, hodnoty řádků v A a B a jejich rozdíl
+    const hb = box.querySelector('.pidw-bar [data-h="cur"]');
+    if (hb) hb.classList.toggle("on", !!S.cur.on);
+    if (!cread) return;
+    cread.style.display = S.cur.on ? "" : "none";
+    if (!S.cur.on || S.cur.a === null || S.cur.b === null) return;
+    const ia = nearestIdx(S.cur.a), ib = nearestIdx(S.cur.b);
+    const tf = (t) => (D.clock ? clockStr(t, true) : `${fmtS(t)} ${D.unit.u}`);
+    const parts = [`<b>A</b> ${esc(tf(D.t[ia]))}`, `<b>B</b> ${esc(tf(D.t[ib]))}`, `<b>Δt</b> ${esc(fmtS(D.t[ib] - D.t[ia]))} ${esc(D.unit.u)}`];
+    for (const r of D.rows) {
+      const a = r.y[ia], b = r.y[ib];
+      parts.push(`${esc(r.id)} ${fmtN(a, 4)} → ${fmtN(b, 4)} (Δ ${fmtN(b - a, 4)})`);
+    }
+    cread.innerHTML = parts.join(" · ");
+  }
   function draw() {
+    curRead();
     for (const card of cards) {
       const r = card.r;
       card.head.querySelectorAll(".pidw-model button").forEach((b) => b.classList.toggle("on", b.dataset.v === S.model));
       card.head.querySelectorAll(".pidw-chk input").forEach((inp) => { inp.checked = S.resid; });
       card.head.querySelectorAll(".pidw-range button").forEach((b) => b.classList.toggle("on", (b.dataset.v === "win") === S.onlyWin));
-      yTicks(card.ax, r.lo, r.hi, r.h);
+      const [ylo, yhi] = S.ylim[r.id] || [r.lo, r.hi];
+      yTicks(card.ax, ylo, yhi, r.h);
       const lines = (r.lines || []).map((l) => [l[0], l[1], l[2], l[3] || 1.4]).concat([[r.y, r.color, null, 1.8]]);
       if (r.kind === "pv" && r.model) {
         const m = modelOf(r);
         lines.push([m, "#5b3fa8", "6 4", 2.4]);
       }
-      drawArea(card, card.area, r.lo, r.hi, { own: !!card.track, labels: !!card.track, lines });
+      drawArea(card, card.area, ylo, yhi, { own: !!card.track, labels: !!card.track, lines });
+      if (S.cur.on) for (const [t, lab] of [[S.cur.a, "A"], [S.cur.b, "B"]]) {
+        if (t === null || t < S.view[0] || t > S.view[1]) continue;
+        const ln = el("div", "pidw-cur " + lab.toLowerCase());
+        ln.style.left = tx(t, card.area.clientWidth || 600) + "px";
+        if (card === cards[0]) ln.appendChild(el("span", "", lab));
+        card.area.appendChild(ln);
+      }
       if (card.resid) {
         card.resid.style.display = S.resid ? "" : "none";
         if (S.resid) {
@@ -477,11 +549,40 @@ export default function (component) {
     tr.addEventListener("dblclick", (e) => pullLimit(card, tAt(tr, e)));
   }
 
+  function panY(card, frac) {                         // posun osy Y řádku o podíl výšky (dolů = vyšší hodnoty)
+    const r = card.r, [lo, hi] = S.ylim[r.id] || [r.lo, r.hi], d = frac * (hi - lo);
+    S.ylim[r.id] = [lo + d, hi + d];
+  }
   // ---------------------------------------------------------------- zoom, posun, hodnoty
   for (const card of cards) {
     const a = card.area;
+    const zoomY = (e, node) => {                       // zoom osy Y řádku kolem hodnoty pod kurzorem
+      const r = card.r, rect = node.getBoundingClientRect();
+      const [lo, hi] = S.ylim[r.id] || [r.lo, r.hi];
+      const fy = clamp((e.clientY - rect.top) / rect.height, 0, 1), v = hi - fy * (hi - lo);
+      const k = e.deltaY > 0 ? 1.25 : 0.8;
+      push();
+      S.ylim[r.id] = [v - (v - lo) * k, v + (hi - v) * k];
+      draw();
+    };
+    card.ax.addEventListener("wheel", (e) => { e.preventDefault(); zoomY(e, a); }, { passive: false });
+    card.ax.style.cursor = "ns-resize";
+    card.ax.addEventListener("pointerdown", (e) => {          // tažení osy Y = posun osy
+      if (e.button !== 0) return;
+      push(true);
+      let ly = e.clientY;
+      const hgt = a.clientHeight || card.r.h;
+      const move = (ev) => { panY(card, (ev.clientY - ly) / hgt); ly = ev.clientY; draw(); };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); push(true); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+    card.ax.addEventListener("dblclick", () => { push(true); delete S.ylim[card.r.id]; push(true); draw(); });
+    card.ax.title = X.y_hint || "";
     a.addEventListener("wheel", (e) => {
       e.preventDefault();
+      if (e.shiftKey) { zoomY(e, a); return; }
+      push();
       const rect = a.getBoundingClientRect(), f = (e.clientX - rect.left) / rect.width;
       const t0 = S.view[0] + f * (S.view[1] - S.view[0]);
       const k = e.deltaY > 0 ? 1.25 : 0.8;
@@ -493,16 +594,24 @@ export default function (component) {
     }, { passive: false });
     a.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
-      let last = e.clientX;
-      const w = a.clientWidth;
+      push(true);
+      let last = e.clientX, lastY = e.clientY, moved = false;
+      const x0 = e.clientX, y0 = e.clientY;
+      const w = a.clientWidth, hgt = a.clientHeight || card.r.h;
       const move = (ev) => {
+        if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) > 3) moved = true;
+        if (!moved) return;
+        if (e.shiftKey) { panY(card, (ev.clientY - lastY) / hgt); lastY = ev.clientY; draw(); return; }   // Shift = posun osy Y
         const L = S.view[1] - S.view[0], dt = -(ev.clientX - last) / w * L;
         last = ev.clientX;
         const v0 = clamp(S.view[0] + dt, 0, D.T - L);
         S.view = [v0, v0 + L];
         draw();
       };
-      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        if (!moved && S.cur.on) { S.cur[e.shiftKey ? "b" : "a"] = tAt(a, e); draw(); }   // klik = A, Shift+klik = B
+      };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     });
@@ -526,7 +635,42 @@ export default function (component) {
     });
     a.addEventListener("mouseleave", () => { tip.style.display = "none"; });
   }
+  // ---------------------------------------------------------------- přehled celého záznamu s výřezem
+  const ovr = D.rows.find((r) => r.kind === "pv") || D.rows[0];
+  const ov = el("div", "pidw-card pidw-ov");
+  ov.innerHTML = `<span class="pidw-lab">${esc(X.overview || "")}</span><div class="pidw-ovarea"><svg></svg><i class="pidw-ovwin"></i></div>`;
+  ov.title = X.ov_hint || "";
+  box.insertBefore(ov, tip);
+  const ova = ov.querySelector(".pidw-ovarea"), ovw = ov.querySelector(".pidw-ovwin");
+  function drawOv() {
+    const w = ova.clientWidth || 600, h = 30, sv = ova.querySelector("svg");
+    if (!ovr) return;
+    const keep = S.view;
+    S.view = [0, D.T];
+    sv.setAttribute("viewBox", `0 0 ${w} ${h}`); sv.setAttribute("width", w); sv.setAttribute("height", h);
+    sv.innerHTML = `<path d="${path(D.t, ovr.y, w, h, ovr.lo, ovr.hi)}" fill="none" stroke="${ovr.color}" stroke-width="1"/>`;
+    S.view = keep;
+    ovw.style.left = (S.view[0] / D.T * 100) + "%";
+    ovw.style.width = Math.max(0.5, (S.view[1] - S.view[0]) / D.T * 100) + "%";
+  }
+  ova.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    push(true);
+    const rc = ova.getBoundingClientRect(), L = S.view[1] - S.view[0];
+    const at = (ev) => { const t = (ev.clientX - rc.left) / rc.width * D.T; const v0 = clamp(t - L / 2, 0, D.T - L); S.view = [v0, v0 + L]; draw(); };
+    at(e);
+    const up = () => { window.removeEventListener("pointermove", at); window.removeEventListener("pointerup", up); push(true); };
+    window.addEventListener("pointermove", at);
+    window.addEventListener("pointerup", up);
+  });
+  box.tabIndex = 0;
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" && e.target === box) { e.preventDefault(); go(-1); }
+  });
+  const draw0 = draw;
+  draw = function () { draw0(); drawOv(); };            // eslint-disable-line no-func-assign
   draw();
+  push(true);
   let lastW = box.clientWidth;
   const ro = new ResizeObserver(() => {              // překreslit jen při změně šířky (výška se mění kreslením)
     if (box.clientWidth !== lastW) { lastW = box.clientWidth; draw(); }

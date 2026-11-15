@@ -157,3 +157,5 @@ dialog.dt-full::backdrop { background: rgba(59, 70, 82, .85); }
   .dtf-charts { overflow: visible; border-right: 0; }
   .dtf-tab { min-height: 460px; height: 100%; }
 }
+.dt-ro { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 8px; font-size: 13px; }
+.dt-ro b { font-size: 12px; }

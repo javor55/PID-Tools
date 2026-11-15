@@ -46,23 +46,23 @@ class Registry:
 
     def get(self, key):
         if key not in self.items:
-            raise ValueError(f"{self.name}: neznámá položka '{key}' (známé: {', '.join(sorted(self.items))})")
+            raise ValueError(f"{self.name}: unknown item '{key}' (known: {', '.join(sorted(self.items))})")
         obj, planned = self.items[key]
         if planned:
-            raise NotImplementedError(f"{self.name}: '{key}' je v návrhu a bude doplněno (fáze R3 / R4)")
+            raise NotImplementedError(f"{self.name}: '{key}' is planned and not implemented yet")
         return obj
 
 
-FORMS = Registry("forma")
-DEADBANDS = Registry("mrtvé pásmo")
-D_SOURCES = Registry("zdroj D")
-D_FILTERS = Registry("filtr D")
+FORMS = Registry("form")
+DEADBANDS = Registry("deadband")
+D_SOURCES = Registry("D source")
+D_FILTERS = Registry("D filter")
 ANTIWINDUPS = Registry("anti-windup")
-ALGORITHMS = Registry("algoritmus")
-NORMALISATIONS = Registry("normování")
-PV_FILTERS = Registry("filtr PV")
-NL_GAINS = Registry("nelineární zesílení")
-OUTPUT_STAGES = Registry("výstupní stupeň")
+ALGORITHMS = Registry("algorithm")
+NORMALISATIONS = Registry("normalisation")
+PV_FILTERS = Registry("PV filter")
+NL_GAINS = Registry("nonlinear gain")
+OUTPUT_STAGES = Registry("output stage")
 REGISTRIES = dict(forms=FORMS, deadbands=DEADBANDS, d_sources=D_SOURCES, d_filters=D_FILTERS,
                   antiwindups=ANTIWINDUPS, algorithms=ALGORITHMS, normalisations=NORMALISATIONS,
                   pv_filters=PV_FILTERS, nl_gains=NL_GAINS, output_stages=OUTPUT_STAGES)
@@ -82,7 +82,7 @@ _form_ideal.roles = ("Kc", "Ti", "Td")
 def _form_parallel(kp, ki, kd):
     """Paralelní: u = Kp·e + Ki·∫e + Kd·de/dt → Kc = Kp, Ti = Kp / Ki, Td = Kd / Kp."""
     if kp == 0:
-        raise ValueError("paralelní forma: Kp = 0 nelze převést na ideální tvar")
+        raise ValueError("parallel form: Kp = 0 cannot be converted to the ideal form")
     return kp, (kp / ki if ki and ki > 0 else None), kd / kp
 
 
@@ -230,7 +230,7 @@ def _nl_table(ctl, P, spec):
     """Zesílení podle tabulky (gain scheduling): e' = e · g(x), x = PV / SP / MV / odchylka (`input`), g lineárně z tabulky."""
     xs, ys, src = [float(v) for v in spec["x"]], [float(v) for v in spec["y"]], spec.get("input", "pv")
     if len(xs) < 2 or len(xs) != len(ys) or any(b <= a for a, b in zip(xs, xs[1:])):
-        raise ValueError("tabulka zesílení: x musí být rostoucí a mít stejný počet bodů jako y (min. 2)")
+        raise ValueError("gain table: x must be increasing and have as many points as y (min. 2)")
     if src == "pv":
         return lambda e: e * _interp(xs, ys, ctl.yf)
     if src == "sp":
@@ -239,7 +239,7 @@ def _nl_table(ctl, P, spec):
         return lambda e: e * _interp(xs, ys, ctl.u_prev)
     if src == "error":
         return lambda e: e * _interp(xs, ys, e)
-    raise ValueError(f"tabulka zesílení: neznámý vstup '{src}' (pv, sp, mv, error)")
+    raise ValueError(f"gain table: unknown input '{src}' (pv, sp, mv, error)")
 
 
 # ================================================================ registry: výstupní stupně
@@ -348,7 +348,7 @@ class Profile:
     def __init__(self, data):
         data = parse_profile(data)
         if data.get("kind") == "program":
-            raise ValueError("profil typu program vykonává ProgramProfile (použijte make_profile)")
+            raise ValueError("a program profile is executed by ProgramProfile (use make_profile)")
         self.data, self.id = data, data["id"]
         st = data["structure"]
         self.form = st.get("form", "ideal")
@@ -363,7 +363,7 @@ class Profile:
         NORMALISATIONS.get(st.get("normalisation", {}).get("kind", "percent"))
         self.pv_lag = bool(PV_FILTERS.get(st.get("pv", {}).get("filter", "lag1")))
         db = st.get("error", {}).get("deadband")
-        self.db_modes = (db or {}).get("modes", {})
+        self.db_modes = _db_aliases((db or {}).get("modes", {}))
         self.db_other = (db or {}).get("other", "step")
         for m in list(self.db_modes.values()) + [self.db_other]:
             DEADBANDS.get(m)
@@ -399,6 +399,20 @@ class Profile:
         if self.reprs:                  # jednotky profilu (PB, min, opakování/min, Tf …) → kanonické (K, s, N)
             out = apply_reprs(out, self.reprs, ctrl.get("_ranges"), "to_canon")
         return out
+
+
+_DB_LEGACY = {"spojité": "cont", "skokové": "step"}      # hodnoty DbMode ze starších projektů a vlastních profilů
+
+
+def _db_aliases(modes):
+    """Mapování hodnot DbMode → druh mrtvého pásma, doplněné o staré (české) i nové názvy hodnot."""
+    out = dict(modes)
+    for old, new in _DB_LEGACY.items():
+        if old in out and new not in out:
+            out[new] = out[old]
+        elif new in out and old not in out:
+            out[old] = out[new]
+    return out
 
 
 _ROLE_DEFAULTS = dict(b=1.0, d_on_pv=False, deadband=0.0, deadband_mode="", mv_lo=-_INF, mv_hi=_INF, pv_filter=0.0,

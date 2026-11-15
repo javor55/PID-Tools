@@ -22,7 +22,7 @@ def test_list_and_get(client):
     rows = client.get(f"{V1}/controllers").json()
     by = {r["id"]: r for r in rows}
     assert {"pcs7_pidconl", "isa_ideal", "isa_parallel", "isa_series"} <= set(by)
-    assert by["isa_ideal"] == dict(id="isa_ideal", vendor="Obecný", name="ISA ideální PID", tag="preset", verified=True)
+    assert by["isa_ideal"] == dict(id="isa_ideal", vendor="Generic", name="ISA ideal PID", tag="preset", verified=True)
     assert by["siemens_cont_c"]["verified"] is False and by["pcs7_pidconl"]["tag"] == "preset"
     p = client.get(f"{V1}/controllers/pcs7_pidconl").json()
     assert p["format"] == "pidctrl" and p["params"][0]["key"] == "Gain" and p["structure"]["form"] == "ideal"

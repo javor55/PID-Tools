@@ -1,4 +1,4 @@
-"""Texty CZ / EN (pidtools/i18n/*.json): stejné klíče, stejné zástupné hodnoty, platné formáty."""
+"""Texty (pidtools/i18n/*.json): angličtina výchozí a úplná, čeština úplná, další jazyky doplněné z angličtiny."""
 import json
 import re
 import string
@@ -9,13 +9,23 @@ FIELD = re.compile(r"\{(\w*)(?:[:!][^}]*)?\}")
 
 
 def test_same_keys():
-    assert set(i18n.TEXTS["cs"]) == set(i18n.TEXTS["en"])
-    assert len(i18n.TEXTS["cs"]) > 1000
+    assert set(i18n.RAW["cs"]) == set(i18n.RAW["en"])               # čeština je úplný překlad (bez doplňování)
+    assert len(i18n.RAW["cs"]) > 1000
+
+
+def test_languages_default_english_and_fallback():
+    assert i18n.DEFAULT_LANG == "en" and i18n.LANGS[0] == "en"
+    langs = {c: (n, cv) for c, n, cv in i18n.languages()}
+    assert langs["en"] == ("English", 1.0) and langs["cs"] == ("Čeština", 1.0)
+    for code in i18n.LANGS:                                         # neúplný jazyk: chybějící klíče anglicky
+        assert set(i18n.TEXTS[code]) >= set(i18n.RAW["en"])
+        assert i18n.TEXTS[code][i18n.DECIMAL_KEY] in (".", ",")
+    assert i18n.decimal("cs") == "," and i18n.decimal("en") == "."
 
 
 def test_same_placeholders_and_valid_format():
     fmt = string.Formatter()
-    for k, cs in i18n.TEXTS["cs"].items():
+    for k, cs in i18n.RAW["cs"].items():
         en = i18n.TEXTS["en"][k]
         assert sorted(FIELD.findall(cs)) == sorted(FIELD.findall(en)), k
         for s in (cs, en):

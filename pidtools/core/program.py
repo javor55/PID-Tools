@@ -82,7 +82,7 @@ _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 def _ident(name):
     """Pojistka před `exec`: do kódu smí jen identifikátor (strom normálně vzniká jen z překladače)."""
     if not isinstance(name, str) or not _IDENT.match(name):
-        raise ValueError(f"neplatný název v programu: {name!r}")
+        raise ValueError(f"invalid name in program: {name!r}")
     return name
 
 
@@ -104,7 +104,7 @@ def _emit(n):
     if k == "call":
         name, args = _ident(n[1]), ", ".join(_emit(a) for a in n[2])
         if (f"_s_{name}" if n[3] is not None else name if name in ("min", "max", "abs") else f"_{name}") not in _NS:
-            raise ValueError(f"neznámá funkce v programu: {name!r}")
+            raise ValueError(f"unknown function in program: {name!r}")
         if n[3] is not None:
             return f"_s_{name}(H, {int(n[3])}, {args}{'' if name == 'prev' else ', v_dt'})"
         return f"{name}({args})" if name in ("min", "max", "abs") else f"_{name}({args})"
@@ -118,7 +118,7 @@ def _emit(n):
     if op in _CMP:
         return f"(1.0 if {a} {op} {b} else 0.0)"
     if op not in _LOGIC:
-        raise ValueError(f"neznámá operace v programu: {op!r}")
+        raise ValueError(f"unknown operation in program: {op!r}")
     return f"(1.0 if ({a} != 0.0 {op} {b} != 0.0) else 0.0)"
 
 

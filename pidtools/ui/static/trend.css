@@ -63,3 +63,17 @@
 .pidw-tip { position: absolute; display: none; pointer-events: none; z-index: 5; font-family: 'IBM Plex Mono', monospace;
   font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--pidw-line); background: var(--pidw-card);
   box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; color: var(--pidw-text); }
+/* přehled celého záznamu s výřezem (klik / tažení = posun výřezu) */
+.pidw-ov { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 10px; }
+.pidw-ovarea { position: relative; height: 30px; cursor: pointer; }
+.pidw-ovarea svg { display: block; width: 100%; height: 30px; }
+.pidw-ovwin { position: absolute; top: 0; bottom: 0; border: 1.5px solid var(--pidw-acc, #1f5fa8); background: rgba(31, 95, 168, .12);
+  border-radius: 3px; pointer-events: none; }
+/* kurzory A / B (odečet Δt) */
+.pidw-cur { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid #d97706; pointer-events: none; z-index: 2; }
+.pidw-cur.b { border-left-color: #7c3aed; }
+.pidw-cur span { position: absolute; top: 2px; left: 3px; font: 600 10px sans-serif; color: inherit; }
+.pidw-cur.a span { color: #d97706; } .pidw-cur.b span { color: #7c3aed; }
+.pidw-cread { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 6px 12px; }
+.pidw-yax { touch-action: none; }
+.pidw-mini.on { background: var(--pidw-acc, #1f5fa8); color: #fff; border-color: var(--pidw-acc, #1f5fa8); }

@@ -202,3 +202,15 @@ console.log(JSON.stringify(out));
     r = _node(body, inner=inner, outer=outer, ictrl=ictrl, octrl=octrl, h=h, sp=sp.tolist(), di=d_i.tolist())
     assert np.max(np.abs(r[:, 2] - ref[:, 1])) < 1e-9
     assert np.max(np.abs(r[:, 3] - ref[:, 4])) < 1e-9
+
+
+@pytest.mark.parametrize("old,new", [("spojité", "cont"), ("skokové", "step")])
+def test_deadband_mode_values_old_and_new(old, new):
+    """DbMode: nové hodnoty cont / step a starší české (uložené projekty) dávají v Pythonu i v JS stejný průběh."""
+    steps = _scenario(400)
+    a = _python("P1D", CASES["P1D"][1], dict(CTRL, DeadBand=1.0, DbMode=old), PLANT, 1.0, steps)
+    b = _python("P1D", CASES["P1D"][1], dict(CTRL, DeadBand=1.0, DbMode=new), PLANT, 1.0, steps)
+    assert np.array_equal(np.asarray(a), np.asarray(b))
+    if NODE:
+        j = _js("P1D", CASES["P1D"][1], dict(CTRL, DeadBand=1.0, DbMode=new), PLANT, 1.0, steps)
+        assert np.allclose(np.asarray(j), np.asarray(b), atol=1e-9)

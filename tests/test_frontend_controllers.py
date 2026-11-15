@@ -113,5 +113,5 @@ def test_create_custom_edit_text_with_error_fix_save_and_test(page):
 def test_back_to_project_and_no_js_errors(page):
     page.locator('[data-testid="settings-back"]').click()
     assert page.locator('[data-testid="settings-page"]').count() == 0
-    assert page.locator('nav.tabs [role="tab"]').count() == 5
+    assert page.locator('nav.tabs [role="tab"]').count() == 6
     assert not page.errors

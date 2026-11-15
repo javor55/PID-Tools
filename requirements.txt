@@ -3,5 +3,6 @@ plotly>=5.21,<8
 scipy>=1.10,<2
 numpy>=1.24,<3
 pandas>=2.0,<4
-openpyxl>=3.1          # Excel .xlsx
+openpyxl>=3.1          # Excel .xlsx (záloha; rychlé čtení: python-calamine)
+python-calamine==0.9.1 # rychlé čtení Excelu (.xlsx, .xls)
 xlrd>=2.0              # older Excel .xls

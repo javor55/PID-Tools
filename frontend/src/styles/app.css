@@ -88,7 +88,7 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .seg-help.stretch { display: flex; }
 .seg-help.stretch > .seg { flex: 1; }
 /* přepínač (segmented control) */
-.seg { display: inline-flex; border: 1px solid var(--pid-ctl); border-radius: 8px; overflow: hidden; max-width: 100%; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--pid-ctl); border-radius: 8px; overflow: hidden; max-width: 100%; }
 .seg.stretch { display: flex; }
 .seg button { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; border-left: 1px solid var(--pid-ctl);
   background: var(--pid-card); color: var(--pid-text); cursor: pointer; white-space: nowrap; }
@@ -117,7 +117,8 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .btn { border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 4px 12px;
   cursor: pointer; display: inline-flex; align-items: center; }
 .btn:hover { border-color: var(--pid-accent); color: var(--pid-accent); }
-.field { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; }
+.field { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; align-items: center; }
+.field > * { min-width: 0; }                  /* ovládací prvek se vejde do sloupce, nepřetéká z karty */
 .field span { color: var(--pid-muted); font-size: 12px; }
 .field select { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
 .field select[multiple] { min-height: 64px; }

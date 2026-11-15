@@ -68,6 +68,57 @@ def pack(names, t_all, get, cap=CAP):
                 hash=hashlib.md5(blob).hexdigest()[:16])
 
 
+def pack_groups(groups, cap=CAP):
+    """
+    Signály z více časových os (zdroje projektu): groups = [(časy, [(název, hodnoty)])]; časy už jsou na společné ose.
+    Výstup jako pack() (tmin = nejmenší čas ze všech os); stejné časy uvnitř skupiny se sdílejí.
+    """
+    prep = []
+    for t_all, items in groups:
+        t = np.asarray(t_all, float)
+        order = np.argsort(np.where(np.isfinite(t), t, np.inf), kind="stable")
+        t = t[order]
+        for nm, vals in items:
+            v = np.asarray(vals, float)[order]
+            m = np.isfinite(v) & np.isfinite(t)
+            if m.sum() >= 2:
+                prep.append((nm, t, v, m, id(t_all)))
+    if not prep:
+        return dict(blob=b"", sigs=[], times=[], tmin=0.0, T=1.0, decim=1, hash="0" * 16)
+    tmin = min(float(t[m][0]) for _, t, _, m, _ in prep)
+    total = sum(int(m.sum()) for *_, m, _ in prep)
+    g = int(np.ceil(total / cap)) if cap and total > cap else 1
+    times, tkeys, sigs, vparts = [], {}, [], []
+    for nm, t, v, m, gid in prep:
+        tt, vv = t[m] - tmin, v[m]
+        if g > 1:
+            idx = minmax_idx(vv, 2 * g)
+            tt, vv = tt[idx], vv[idx]
+            key_t = None
+        else:
+            key_t = (gid, hashlib.md5(np.packbits(m).tobytes()).hexdigest())
+        if key_t is not None and key_t in tkeys:
+            ti = tkeys[key_t]
+        else:
+            ti = len(times)
+            times.append(tt.astype(np.float64))
+            if key_t is not None:
+                tkeys[key_t] = ti
+        sigs.append(dict(name=str(nm), ti=ti, n=int(len(vv))))
+        vparts.append(vv.astype(np.float32))
+    off, tdesc = 0, []
+    for a_ in times:
+        tdesc.append(dict(off=off, n=int(len(a_))))
+        off += a_.nbytes
+    for s_, a_ in zip(sigs, vparts):
+        s_["off"] = off
+        off += a_.nbytes
+    blob = b"".join([a_.tobytes() for a_ in times] + [a_.tobytes() for a_ in vparts])
+    T_end = max((float(a_[-1]) for a_ in times if len(a_)), default=1.0)
+    return dict(blob=blob, sigs=sigs, times=tdesc, tmin=tmin, T=max(T_end, 1e-9), decim=g,
+                hash=hashlib.md5(blob).hexdigest()[:16])
+
+
 def minmax_idx(v, g):
     """Indexy min a max v každé skupině g vzorků (seřazené)."""
     n = len(v)

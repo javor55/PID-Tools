@@ -1,0 +1,38 @@
+# Dependency vulnerability scan: on pull requests, pushes to main / deploy and weekly.
+name: Audit
+
+on:
+  pull_request:
+  push:
+    branches: [main, deploy]
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pip-audit
+      - name: pip-audit (API requirements)
+        run: pip-audit -r requirements-api.txt --progress-spinner off
+
+  npm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: npm audit (production dependencies, high and above)
+        working-directory: frontend
+        run: npx -y npm@11.21.0 audit --omit=dev --audit-level=high

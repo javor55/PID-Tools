@@ -56,6 +56,20 @@ class Signals:
     time_note: str = ""            # "rows_auto": čas nerozpoznán → co řádek, to vzorek
 
 
+def _memo(fn):
+    """Hodnoty sloupce se převedou jednou (to_num nad velkou tabulkou je drahé); vrací se pole jen pro čtení."""
+    cache = {}
+
+    def get(c):
+        v = cache.get(c)
+        if v is None:
+            v = np.asarray(fn(c), float)
+            v.setflags(write=False)
+            cache[c] = v
+        return v
+    return get
+
+
 def signals(df, layout="wide", time_fmt="auto", unit="s", c_time=None, c_tag=None, c_val=None, row_dt=1.0):
     """
     Tabulka → Signals podle rozložení. Sloupce času, tagu a hodnoty se doplní odhadem, nejsou-li zadané.
@@ -80,25 +94,25 @@ def signals(df, layout="wide", time_fmt="auto", unit="s", c_time=None, c_tag=Non
         wide, origin = pairs_to_wide(df, pair_time_columns(df, tcols), um, time_fmt)
         src = list(tcols)
     else:
-        note = ""
+        note, parsed = "", None
         if c_time is None:
             c_time = tcols[0] if tcols else cols[guess_col(cols, ["cas", "čas", "time", "datum", "date"])]
             try:
-                parse_time(df[c_time], um, time_fmt)
+                parsed = parse_time(df[c_time], um, time_fmt)        # zkouška = výsledek (neparsovat dvakrát)
             except ValueError:
                 c_time, note = ROWS, "rows_auto"
         if c_time == ROWS:
             sigs = [c for c in cols if c not in tcols and np.isfinite(to_num(df[c])).mean() > 0.5]
-            return Signals(row_time(len(df), row_dt, um), sigs, lambda c: to_num(df[c]), None, [ROWS], note)
-        v, origin = parse_time(df[c_time], um, time_fmt)
+            return Signals(row_time(len(df), row_dt, um), sigs, _memo(lambda c: to_num(df[c])), None, [ROWS], note)
+        v, origin = parsed if parsed is not None else parse_time(df[c_time], um, time_fmt)
         t0 = float(np.nanmin(v))
         sigs = [c for c in cols if c != c_time and c not in tcols]
-        return Signals(v - t0, sigs, lambda c: to_num(df[c]),
+        return Signals(v - t0, sigs, _memo(lambda c: to_num(df[c])),
                        (origin + pd.Timedelta(seconds=t0)) if origin is not None else None, [c_time])
     t0 = float(wide["t"].min())
     wide["t"] -= t0
     return Signals(wide["t"].to_numpy(float), [c for c in wide.columns if c != "t"],
-                   lambda c: wide[c].to_numpy(float), (origin + pd.Timedelta(seconds=t0)) if origin is not None else None,
+                   _memo(lambda c: wide[c].to_numpy(float)), (origin + pd.Timedelta(seconds=t0)) if origin is not None else None,
                    src)
 
 

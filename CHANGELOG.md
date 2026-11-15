@@ -1,6 +1,47 @@
 # Changelog
 
-## Unreleased
+## 4.0.0 beta 3 – Data tab redesign, English UI, faster loading
+
+- **Data tab redesign** (docs/cs/navrh-data.md): *Sources & loops* is the only place to edit loops (click a column → assign it
+  to a loop and role or create a new loop from it; two-row loop cards; demo data and read settings in Files). *Trends* run on
+  the shared viewer (panels, zoom X / Y, back / forward, events, table, CSV / PNG, computed signals) with the signal list in
+  the side panel grouped by loops or files, independent time cursors A / B and value cursors Y₁ / Y₂ with a readout of both,
+  a shared Y axis for signals of the same quantity and all files in one binary pack (`GET /signals/all`). *Data quality*
+  answers whether the record of a loop is fit for identification: loop switcher, verdict with checks and advice, a simple
+  chart of the loop, events that move the chart and suggested segments with *Use in Model* (`GET /dataquality/summary`).
+  *Diagnostics* shows loops read-only and analyses all project loops (`audit/analyse {project: true}`).
+  *Project & report* is the 6th main tab. The Model / Diagnostics chart has Y zoom, back / forward and an overview.
+- **Faster loading:** a 20 MB CSV (86 400 rows × 15 columns) uploads in ~0.6 s instead of ~2 s, adding another loop
+  from an already loaded file takes ~0.03 s instead of ~0.5 s (time columns are detected and parsed once, column values
+  are converted once and shared by the loops); Excel files are read with `python-calamine` (4–7× faster, same values).
+- **English by default, more languages possible:** the UI is 100 % English unless another language is chosen in Settings
+  (the browser language is no longer used). Each language is a file `pidtools/i18n/<code>.json` with `_lang_name` and
+  `_decimal`; a new file (e.g. `es.json`) appears in the language lists automatically and missing texts fall back to
+  English (`GET /api/v1/i18n` lists the languages and their coverage). Remaining Czech in the code was translated:
+  generic controller profiles (`Generic · ISA ideal PID` …), validation messages of profiles and programs, the new
+  program template; deadband mode values are now `cont` / `step` (old Czech values in projects and custom profiles still
+  work, in Python and in the browser simulation). A Playwright test walks all tabs in English and fails on any Czech text.
+- **Model: controller in the record (Set 1)** can be entered right in the Model tab (block names and units of the loop's
+  controller profile) – closed-loop identification no longer needs a model first; it is the same Set 1 as in Tuning
+  (`GET/PUT /tuning/record-set`, works without a model).
+- Model: the model curve is shown over the whole record by default ("segments only" stays as an option).
+- Project & report: the report status switch and other fields no longer overflow the side panel.
+- Deployment: **public instance on Oracle Cloud Free Tier (ARM64)** – the workflow `web-image.yml` builds a multi-arch
+  (amd64 + arm64) image on a push to the branch `deploy`, smoke-tests it, scans it with Trivy and pushes it to
+  `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); `deploy/` with `compose.yml` (app, Cloudflare
+  Tunnel, updates by a systemd timer `install-update-timer.sh`; read-only root filesystem, no published ports), `.env.example` and a Czech guide. `Dockerfile.web`
+  writes only to `/tmp`. New workflow `audit.yml` (`pip-audit`, `npm audit`) on PRs and weekly.
+- **Public mode** (`PIDTOOLS_AUTH=public`, docs/deployment.md): the web container without sign-in. Anonymous sessions in an
+  `HttpOnly; Secure; SameSite=Strict` cookie own workspaces and jobs (other sessions get 404, idle expiry frees them);
+  nothing is written to disk (settings in session memory, no autosave / recent projects / logo upload / journal
+  attachments / controller library writes / OPC UA, which return 403 and are hidden in the UI); limits for upload size,
+  workspaces and jobs per session, a global job cap with a queue (503), sessions in total and a per-IP token-bucket rate
+  limit (client IP from `CF-Connecting-IP` only with `PIDTOOLS_TRUST_CF_IP=1`); a privacy notice on the Start screen and in
+  the help; new `GET /api/v1/config` (mode and limits).
+- **Security hardening (all modes):** `Content-Security-Policy` and the other security headers on every response (the report
+  preview moved to a sandboxed frame `/report-host.html` with its own CSP); SVG logo upload removed (old SVG logos are
+  served as attachments in a sandbox); row / column limits for CSV and Excel and a zip-bomb check for `.xlsx`; deeply nested
+  project JSON is a 400; job errors in public mode carry no file paths.
 
 ## 4.0.0 beta 2 – installer fix
 

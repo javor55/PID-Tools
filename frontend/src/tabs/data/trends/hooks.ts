@@ -1,5 +1,5 @@
-// Trendy – dotazy na API: zdroje a smyčky (strom signálů), zředěné průběhy z `/signals/trend` a stav po pracovním prostoru.
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+// Trendy – dotazy na API: zdroje a smyčky (skupiny signálů podle smyček), aktivní smyčka.
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { request } from "../../../api/client";
 import type { components } from "../../../api/schema";
@@ -7,7 +7,6 @@ import { useUi } from "../../../store";
 import { describeSignals, type LoopLite, type SigInfo } from "./model";
 
 export type SourcesInfo = components["schemas"]["Sources"];
-export type TrendOut = components["schemas"]["Trend"];
 export type LoopMapping = components["schemas"]["LoopMapping"];
 
 export function useTrendSources() {
@@ -61,22 +60,4 @@ export function useActiveLoop() {
     queryKey: ["ws", wid, "trends", "active"], enabled: !!wid,
     queryFn: () => request<components["schemas"]["Loops"]>("GET", `/workspaces/${wid}/loops`),
   }).data?.active ?? null;
-}
-
-/** Zředěné průběhy v úseku [a, b] (zředění min / max na serveru), volitelně se statistikou a hodnotami v časech `at`. */
-export function useTrendSeries(refs: string[], a: number | null, b: number | null, n: number, at: number[] = [], enabled = true) {
-  const wid = useUi((s) => s.wid);
-  const key = [...refs].sort().join("|");
-  return useQuery({
-    queryKey: ["ws", wid, "trends", "series", key, a, b, n, at.join(",")],
-    enabled: !!wid && enabled && refs.length > 0 && a !== null && b !== null && b > a,
-    placeholderData: keepPreviousData, staleTime: 30_000, retry: false,
-    queryFn: () => {
-      const q = new URLSearchParams();
-      refs.forEach((r) => q.append("names", r));
-      q.set("a", String(a)); q.set("b", String(b)); q.set("n", String(n));
-      at.forEach((x) => q.append("at", String(x)));
-      return request<TrendOut>("GET", `/workspaces/${wid}/signals/trend?${q.toString()}`);
-    },
-  });
 }

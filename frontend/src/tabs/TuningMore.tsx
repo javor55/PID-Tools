@@ -7,7 +7,7 @@ import type { components } from "../api/schema";
 import { unframe } from "../api/signals";
 import { LineChart, type Series } from "../components/LineChart";
 import { useSettings, useWs, useWsQuery, usePatchSettings } from "../data";
-import { useT } from "../i18n";
+import { useDec, useT } from "../i18n";
 import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
 import { Md } from "../components/Ui";
@@ -149,21 +149,21 @@ export function ScenarioSide() {
               testid="scen-dv-t" label={T("ui_tuning_at")} title={T("h_sc_start")} />
           </>}
           <span className="tn-lab">{T("ui_tuning_len")}</span>
-          <NumCell v={tm(T_end)} onCommit={(x) => { if (x !== null && x > 0) set({ tend: x * mult, lenUnit: lu }); }}
-            className="tn-in" testid="scen-len" label={T("sim_len")} title={T("h_sim_len")} />
-          <select value={lu} aria-label={T("time_unit")} title={T("h_sim_len")} data-testid="scen-len-unit"
-            onChange={(e) => set({ lenUnit: e.target.value as Unit })}>
-            {(["s", "min", "h"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
-          </select>
+          <span className="tn-pair tn-len">
+            <NumCell v={tm(T_end)} onCommit={(x) => { if (x !== null && x > 0) set({ tend: x * mult, lenUnit: lu }); }}
+              className="tn-in" testid="scen-len" label={T("sim_len")} title={T("h_sim_len")} />
+            <select value={lu} aria-label={T("time_unit")} title={T("h_sim_len")} data-testid="scen-len-unit"
+              onChange={(e) => set({ lenUnit: e.target.value as Unit })}>
+              {(["s", "min", "h"] as const).map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </span>
+          <label className="tn-check tn-len-auto" title={T("h_sim_len_auto")}>
+            <input type="checkbox" checked={tend === null} data-testid="scen-len-auto"
+              onChange={(e) => set({ tend: e.target.checked ? null : T_end })} /> {T("sim_len_auto")}
+          </label>
         </div>
       )}
-      {!replay && (
-        <label className="tn-check" title={T("h_sim_len_auto")}>
-          <input type="checkbox" checked={tend === null} data-testid="scen-len-auto"
-            onChange={(e) => set({ tend: e.target.checked ? null : T_end })} /> {T("sim_len_auto")}
-          {tend === null && sim.data?.src && <span className="tn-sub">{T("sim_len_src_" + sim.data.src)}</span>}
-        </label>
-      )}
+      {!replay && tend === null && sim.data?.src && <div className="tn-sub">{T("sim_len_src_" + sim.data.src)}</div>}
     </div>
   );
 }
@@ -222,9 +222,9 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
   const calc = useCalc();
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
-  const { cmp: rows, cmpBusy: busy, method, view, set } = useTun();
+  const { cmp: rows, cmpBusy: busy, method, view, set, sug } = useTun();
   const m = method ?? info.data?.default_method;
   const mr = (Number(st.mv_hi ?? 100) - Number(st.mv_lo ?? 0)) / 100;    // šum MV v % rozsahu → jednotky MV
   const go = async () => {
@@ -285,7 +285,11 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
               <tr key={x} className={"pick" + (x === m ? " sel" : "")} data-testid="cmp-pending"
                 onClick={() => void pick({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null, ctype: String(st.ctype ?? "PI") })}>
                 <td>{T("m_" + x)}{x === m && <b className="tn-ok"> ✓</b>}</td>
-                <td colSpan={8} className="tn-faint">{x === "OPT" ? T("ui_tuning_pending_opt") : T("ui_tuning_pending")}</td>
+                {sug && !sug.fromRow && sug.method === x ? (<>        {/* spočítaný návrh této metody (zbytek až s „Spočítat vše“) */}
+                  <td className="r mono" data-testid="cmp-sug">{f(sug.Kc)}</td><td className="r mono">{f(sug.Ti)}</td><td className="r mono">{f(sug.Td)}</td>
+                  <td className="r mono">{f(sug.robust?.Ms ?? null, 3)}</td>
+                  <td colSpan={4} className="tn-faint">{T("ui_tuning_pending_rest")}</td></>)
+                  : <td colSpan={8} className="tn-faint">{x === "OPT" ? T("ui_tuning_pending_opt") : T("ui_tuning_pending")}</td>}
                 <td className="tn-sub">{use({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null })}</td></tr>))}
           </tbody></table>
       </div>

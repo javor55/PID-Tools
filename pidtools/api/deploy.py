@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -41,13 +41,17 @@ class JobLimitError(RuntimeError):
     """Uživatel má už nejvyšší povolený počet čekajících a běžících úloh."""
 
 
+class ServerBusyError(JobLimitError):
+    """Server má už nejvyšší celkový počet úloh (veřejný režim) – 503, klient to zkusí později."""
+
+
 def _env_bool(v):
     return str(v).strip().lower() in ("1", "true", "yes", "on")
 
 
 @dataclass(frozen=True)
 class DeployConfig:
-    auth: str = "token"                    # token (desktop) | cloudflare | header
+    auth: str = "token"                    # token (desktop) | cloudflare | header | public (bez přihlášení)
     token: str = ""
     cf_team: str = ""                      # tým Cloudflare Zero Trust: "firma" nebo "firma.cloudflareaccess.com"
     cf_aud: str = ""                       # Application Audience (AUD) tag aplikace
@@ -61,10 +65,26 @@ class DeployConfig:
     max_upload_mb: float = 100.0
     log_level: str = "INFO"
     cors: tuple = ()
+    # ---- veřejný režim (auth=public)
+    cookie_secure: bool = True             # cookie relace jen přes HTTPS (pro místní http zkoušky vypnout)
+    session_ttl: float = 7200.0            # vypršení relace po nečinnosti [s]
+    max_sessions: int = 200                # relací celkem
+    max_queue: int = 4                     # čekajících úloh celkem (nad běžící); víc = 503
+    trust_cf_ip: bool = False              # IP klienta z CF-Connecting-IP (jen za Cloudflare Tunnel)
+    rate_limit: float = 300.0              # požadavků na API za minutu a IP
+    rate_upload: float = 10.0              # nahrání souboru / spuštění úlohy za minutu a IP
 
     @property
     def team(self):
         return self.auth != "token"
+
+    @property
+    def public(self):
+        return self.auth == "public"
+
+    @property
+    def mode(self):
+        return "public" if self.public else "team" if self.team else "desktop"
 
     @property
     def max_upload(self):
@@ -74,6 +94,9 @@ class DeployConfig:
     def from_env(cls, env=None):
         e = os.environ if env is None else env
         d = cls()
+        if e.get("PIDTOOLS_AUTH", "").strip().lower() == "public":
+            d = replace(d, ttl=3600.0, max_workspaces=100, max_workspaces_user=3, max_jobs=max(1, os.cpu_count() or 1),
+                        max_jobs_user=2, max_upload_mb=20.0)        # veřejné výchozí hodnoty (docs/deployment.md)
 
         def num(name, default, conv=float):
             raw = e.get(f"PIDTOOLS_{name}", "").strip()
@@ -92,13 +115,19 @@ class DeployConfig:
             max_jobs=num("MAX_JOBS", d.max_jobs, int), max_jobs_user=num("MAX_JOBS_USER", d.max_jobs_user, int),
             max_upload_mb=num("MAX_UPLOAD_MB", d.max_upload_mb),
             log_level=e.get("PIDTOOLS_LOG_LEVEL", d.log_level).strip().upper() or d.log_level,
-            cors=tuple(x.strip() for x in e.get("PIDTOOLS_CORS", "").split(",") if x.strip()))
+            cors=tuple(x.strip() for x in e.get("PIDTOOLS_CORS", "").split(",") if x.strip()),
+            cookie_secure=_env_bool(e.get("PIDTOOLS_COOKIE_SECURE", "1")),
+            session_ttl=num("SESSION_TTL", d.session_ttl), max_sessions=num("MAX_SESSIONS", d.max_sessions, int),
+            max_queue=num("MAX_QUEUE", d.max_queue, int), trust_cf_ip=_env_bool(e.get("PIDTOOLS_TRUST_CF_IP", "")),
+            rate_limit=num("RATE_LIMIT", d.rate_limit), rate_upload=num("RATE_UPLOAD", d.rate_upload))
         cfg.validate()
         return cfg
 
     def validate(self):
-        if self.auth not in ("token", "cloudflare", "header"):
-            raise ValueError(f"PIDTOOLS_AUTH: unknown mode {self.auth!r} (token, cloudflare, header)")
+        if self.auth not in ("token", "cloudflare", "header", "public"):
+            raise ValueError(f"PIDTOOLS_AUTH: unknown mode {self.auth!r} (token, cloudflare, header, public)")
+        if self.public and (self.session_ttl <= 0 or self.max_sessions < 1 or self.max_upload_mb <= 0):
+            raise ValueError("PIDTOOLS_SESSION_TTL, PIDTOOLS_MAX_SESSIONS and PIDTOOLS_MAX_UPLOAD_MB must be positive")
         if self.auth == "cloudflare" and not (self.cf_team and self.cf_aud):
             raise ValueError("PIDTOOLS_AUTH=cloudflare needs PIDTOOLS_CF_TEAM and PIDTOOLS_CF_AUD")
         if self.auth == "header" and not self.trust_header:
@@ -182,6 +211,9 @@ class CloudflareVerifier:
 
 def make_auth(cfg, verifier=None):
     """Závislost FastAPI: určí uživatele, uloží ho (contextvar + scope pro log) nebo odpoví 401."""
+    if cfg.public:
+        from .public import public_auth
+        return public_auth
     verifier = verifier or (CloudflareVerifier(cfg.cf_team, cfg.cf_aud) if cfg.auth == "cloudflare" else None)
 
     async def auth(request: Request):
@@ -206,8 +238,11 @@ def make_auth(cfg, verifier=None):
 class TeamJobs(JobManager):
     """Úlohy s vlastníkem: limit čekajících + běžících na uživatele a log začátku a konce úlohy."""
 
-    def __init__(self, max_parallel=2, max_per_user=2, **kw):
+    def __init__(self, max_parallel=2, max_per_user=2, max_total=0, gate=None, **kw):
         self.max_per_user = int(max_per_user)
+        self.scrub = bool(max_total)                        # veřejný režim: v chybě úlohy bez cest k souborům
+        self.max_total = int(max_total)                     # čekajících + běžících celkem (0 = bez limitu)
+        self.gate = gate                                    # veřejný režim: povolení spuštění po IP (limit četnosti)
         self._owners = {}                                   # id úlohy → uživatel
         self._team_lock = threading.Lock()
         super().__init__(max_parallel=max_parallel, **kw)
@@ -217,6 +252,10 @@ class TeamJobs(JobManager):
         with self._team_lock:
             if user is not None and self.max_per_user and self.active(user) >= self.max_per_user:
                 raise JobLimitError(user)
+            if self.max_total and self.active_total() >= self.max_total:
+                raise ServerBusyError("busy")
+            if self.gate is not None and not self.gate():
+                raise JobLimitError("rate")
             jid = super().submit(fn, *args, **kwargs)
             self._owners[jid] = user
             for k in [k for k in self._owners if k not in self._jobs]:      # zapomenuté úlohy
@@ -230,6 +269,25 @@ class TeamJobs(JobManager):
     def active(self, user):
         with self._lock:
             return sum(self._owners.get(j.id) == user and j.state not in FINAL for j in self._jobs.values())
+
+    def status(self, jid):
+        st = super().status(jid)
+        if self.scrub and st.get("error"):
+            st = dict(st, error=scrub(st["error"]))
+        return st
+
+    def active_total(self):
+        with self._lock:
+            return sum(j.state not in FINAL for j in self._jobs.values())
+
+    def drop_owner(self, user):
+        """Zrušení všech úloh uživatele (vypršení relace)."""
+        for jid in [j for j, u in list(self._owners.items()) if u == user]:
+            try:
+                self.cancel(jid)
+            except KeyError:
+                pass
+            self._owners.pop(jid, None)
 
     def _who(self, job):
         return self._owners.get(job.id) or USER.get() or "-"
@@ -246,13 +304,23 @@ class TeamJobs(JobManager):
 
 
 def make_jobs(team, max_jobs):
-    """Správce úloh: v týmovém režimu s vlastníky a limity."""
-    return JobManager(max_parallel=max_jobs) if team is None else TeamJobs(max_jobs, team.max_jobs_user)
+    """Správce úloh: v týmovém režimu s vlastníky a limity; ve veřejném i s celkovým limitem (běžící + fronta)."""
+    if team is None:
+        return JobManager(max_parallel=max_jobs)
+    return TeamJobs(max_jobs, team.max_jobs_user, max_total=max_jobs + team.max_queue if team.public else 0)
 
 
 def visible(jobs, jid):
     """Úloha je viditelná přihlášenému uživateli (jeho vlastní); bez vlastníků (desktop) vždy."""
     return not isinstance(jobs, TeamJobs) or jobs.owner(jid) == USER.get()
+
+
+_PATH_RE = re.compile(r"(?:[A-Za-z]:\\[^\s'\"]+|(?<![\w.])/(?:[\w.\-]+/)+[\w.\-]*)")
+
+
+def scrub(text):
+    """Text chyby bez cest k souborům (veřejný režim: odpověď nesmí prozradit strukturu serveru)."""
+    return _PATH_RE.sub("<path>", str(text)) if text else text
 
 
 def _clean(s):
@@ -282,15 +350,24 @@ class AccessLog:
                            scope["method"], _clean(scope["path"]), status[0], (time.perf_counter() - t0) * 1000)
 
 
-def install(app, cfg):
-    """Týmový režim: limit úloh jako 429 a přístupový log (nejvnější vrstva); bez týmu nic."""
+def install(app, cfg, on_expire=None):
+    """Týmový režim: limit úloh jako 429 (celkový limit veřejného režimu 503), veřejná vrstva a přístupový log
+    (nejvnější vrstva); bez týmu nic."""
     if cfg is None:
         return
 
     @app.exception_handler(JobLimitError)
-    async def _job_limit(_request, _ex):
+    async def _job_limit(_request, ex):
+        if isinstance(ex, ServerBusyError):
+            return JSONResponse({"detail": "pub_busy"}, status_code=503, headers={"Retry-After": "30"})
         return JSONResponse({"detail": "job limit reached"}, status_code=429)
 
+    if cfg.public:
+        from .public import CLIENT_IP, PublicGate, RateLimiter, Sessions
+        app.state.sessions = Sessions(cfg.session_ttl, cfg.max_sessions, on_expire)
+        job_rate = RateLimiter(cfg.rate_upload, burst=max(1.0, cfg.rate_upload / 2))      # spuštění úloh po IP
+        app.state.jobs.gate = lambda: job_rate.allow(CLIENT_IP.get())
+        app.add_middleware(PublicGate, cfg=cfg, sessions=app.state.sessions, api_prefix="/api/v1")
     app.add_middleware(AccessLog)
 
 

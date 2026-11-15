@@ -1,6 +1,47 @@
 # Změny
 
-## Nevydáno
+## 4.0.0 beta 3 – přestavba záložky Data, anglické rozhraní, rychlejší načítání
+
+- **Přestavba záložky Data** (docs/cs/navrh-data.md): *Zdroje a smyčky* jsou jediné místo pro úpravu smyček (klik na
+  sloupec → přiřazení do smyčky a role nebo nová smyčka; karty smyček ve dvou řádcích; ukázková data a nastavení čtení
+  v Souborech). *Trendy* běží na sdíleném prohlížeči (panely, zoom X / Y, zpět / vpřed, události, tabulka, CSV / PNG,
+  vypočtené signály) se seznamem signálů v pravém panelu podle smyček nebo souborů, nezávislými časovými kurzory A / B
+  a hodnotovými Y₁ / Y₂ s odečtem obojího, společnou osou Y pro stejnou veličinu a všemi soubory v jednom binárním
+  balíku (`GET /signals/all`). *Kvalita dat* odpovídá, zda je záznam smyčky vhodný pro identifikaci: přepínač smyček,
+  verdikt s kontrolami a radou, jednoduchý graf smyčky, události posouvající graf a navržené úseky s *Použít v Modelu*
+  (`GET /dataquality/summary`). *Diagnostika* ukazuje smyčky jen pro čtení a analyzuje všechny smyčky projektu.
+  *Projekt a report* je 6. hlavní záložka. Graf Modelu / Diagnostiky má zoom Y, zpět / vpřed a přehled.
+- **Rychlejší načítání:** CSV 20 MB (86 400 řádků × 15 sloupců) se nahraje za ~0,6 s místo ~2 s, přidání další smyčky
+  z načteného souboru trvá ~0,03 s místo ~0,5 s (časové sloupce se hledají a převádějí jednou, hodnoty sloupců se
+  převedou jednou a smyčky je sdílejí); Excel se čte přes `python-calamine` (4–7× rychleji, stejné hodnoty).
+- **Výchozí angličtina, další jazyky:** rozhraní je 100 % anglicky, dokud se v Nastavení nezvolí jiný jazyk (jazyk
+  prohlížeče se už nepoužívá). Každý jazyk je soubor `pidtools/i18n/<kód>.json` s `_lang_name` a `_decimal`; nový
+  soubor (např. `es.json`) se sám objeví ve výběru jazyků a chybějící texty se doplní anglicky (`GET /api/v1/i18n`
+  vrací jazyky a jejich pokrytí). Zbylá čeština v kódu přeložena: obecné profily regulátorů (`Generic · ISA ideal PID`
+  …), hlášky kontroly profilů a programů, šablona nového programu; hodnoty režimu mrtvého pásma jsou `cont` / `step`
+  (staré české hodnoty v projektech a vlastních profilech dál fungují v Pythonu i v simulaci v prohlížeči). Test
+  v Playwrightu projde v angličtině všechny záložky a selže na jakémkoli českém textu.
+- **Model: regulátor v záznamu (Set 1)** jde zadat přímo v záložce Model (názvy a jednotky bloku podle profilu
+  smyčky) – identifikace v uzavřené smyčce už nepotřebuje nejdřív model; je to tentýž Set 1 jako v Ladění
+  (`GET/PUT /tuning/record-set`, funguje i bez modelu).
+- Model: průběh modelu se ve výchozím stavu kreslí přes celý záznam („jen v úsecích“ zůstává jako volba).
+- Projekt a report: přepínač stavu reportu a další pole už nepřetékají z panelu.
+- Nasazení: **veřejná instance na Oracle Cloud Free Tier (ARM64)** – workflow `web-image.yml` při pushi do větve
+  `deploy` postaví víceplatformní obraz (amd64 + arm64), odzkouší ho, proskenuje Trivy a nahraje do
+  `ghcr.io/javor55/pid-tools` (`deploy`, `latest`, `sha-<hash>`); složka `deploy/` s `compose.yml` (aplikace,
+  Cloudflare Tunnel, aktualizace systemd časovačem `install-update-timer.sh`; kořenový souborový systém jen pro čtení, žádné publikované porty), `.env.example`
+  a českým návodem. `Dockerfile.web` zapisuje jen do `/tmp`. Nové workflow `audit.yml` (`pip-audit`, `npm audit`)
+  na PR a týdně.
+- **Veřejný režim** (`PIDTOOLS_AUTH=public`, docs/cs/nasazeni.md): web bez přihlášení. Anonymní relace v cookie
+  `HttpOnly; Secure; SameSite=Strict` vlastní prostory a úlohy (cizí relace dostane 404, po nečinnosti se uvolní); na disk
+  se nezapisuje nic (nastavení v paměti relace; záchranná kopie, nedávné projekty, logo, přílohy deníku, zápis do knihovny
+  regulátorů a OPC UA vrací 403 a rozhraní je skrývá); limity velikosti nahrání, prostorů a úloh na relaci, celkový strop
+  úloh s frontou (503), počet relací a omezení četnosti po IP (IP z `CF-Connecting-IP` jen s `PIDTOOLS_TRUST_CF_IP=1`);
+  upozornění na soukromí na Startu a v nápovědě; nové `GET /api/v1/config` (režim a limity).
+- **Zabezpečení ve všech režimech:** `Content-Security-Policy` a další bezpečnostní hlavičky na každé odpovědi (náhled
+  protokolu je v izolovaném rámci `/report-host.html` s vlastním CSP); nahrání loga SVG zrušeno (staré se vrací jako příloha
+  v sandboxu); meze řádků a sloupců CSV / Excel a kontrola zip bomby u `.xlsx`; příliš hluboký JSON projektu je 400; chyby
+  úloh ve veřejném režimu bez cest k souborům.
 
 ## 4.0.0 beta 2 – oprava instalátorů
 

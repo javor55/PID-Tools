@@ -6,6 +6,7 @@ import { ApiError, request } from "../api/client";
 import type { components } from "../api/schema";
 import { useJobRunner } from "../jobs";
 import { useT } from "../i18n";
+import { usePublic } from "../deploy";
 import { useUi } from "../store";
 
 type OpcNode = components["schemas"]["Node"];
@@ -30,8 +31,10 @@ export function useOpcAvailable() {
 /** Tlačítko v panelu zdroje dat; bez balíčku asyncua je vypnuté. */
 export function OpcButton() {
   const T = useT();
+  const pub = usePublic();
   const avail = useOpcAvailable();
   const [open, setOpen] = useState(false);
+  if (pub) return null;                       // veřejný režim: server se na cizí adresy nepřipojuje
   return (
     <>
       <button className="btn" disabled={avail.data !== true} title={avail.data === false ? T("opc_missing") : undefined}

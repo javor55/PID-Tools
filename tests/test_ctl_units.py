@@ -43,11 +43,11 @@ def test_no_integral_and_no_filter():
 
 
 def test_errors():
-    with pytest.raises(ValueError, match="neznámá varianta"):
+    with pytest.raises(ValueError, match="unknown variant"):
         units.to_canon("gain", "XX", 1.0)
-    with pytest.raises(ValueError, match="potřebuje 'K'"):
+    with pytest.raises(ValueError, match="needs 'K'"):
         units.to_canon("integral", "Ki", 1.0)
-    with pytest.raises(ValueError, match="potřebuje 'mv_range'"):
+    with pytest.raises(ValueError, match="needs 'mv_range'"):
         units.from_canon("gain", "K_eng", 1.0)
 
 

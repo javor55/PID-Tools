@@ -336,7 +336,7 @@ def test_mapping_roundtrip_and_rules():
     assert m2["values"] == dict(PB=25.0, Timin=1.5)
     c2 = profile_to_canonical(d2, m2["values"])
     assert c2["Kc"] == pytest.approx(4.0) and c2["Ti"] == pytest.approx(90.0)
-    with pytest.raises(ValueError, match="mapování"):
+    with pytest.raises(ValueError, match="mapping"):
         canonical_to_profile(_data("param a = 1\nMV = a"), dict(Kc=1.0))
 
 

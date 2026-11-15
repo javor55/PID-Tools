@@ -11,7 +11,7 @@ import { CheckSetting, NumSetting } from "../components/Fields";
 import { Trend } from "../components/Trend";
 import { SideCard, Seg } from "../components/Ui";
 import { useSettings, useWs } from "../data";
-import { useT } from "../i18n";
+import { decOf, useT } from "../i18n";
 import { decimate, pick, range, timeUnit } from "../lib/series";
 import { type DiagWin, useUi } from "../store";
 import "../styles/diag.css";
@@ -19,7 +19,7 @@ import "../styles/diag.css";
 type Diagnostics = components["schemas"]["Diagnostics"];
 type Win = [number, number];
 const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time"];
+  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint", "cur", "cur_hint"];
 const C_A = "#1f5fa8", C_B = "#7c3aed";
 const g = (x: unknown, n: number) => (typeof x === "number" && Number.isFinite(x) ? String(+x.toPrecision(n)) : "—");
 const f = (x: unknown, n: number) => (typeof x === "number" && Number.isFinite(x) ? x.toFixed(n) : "—");
@@ -76,7 +76,7 @@ function RecordTrend({ win }: { win: DiagWin }) {
     const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
     return {
       key: "diag_trend", view_key: `diag|${ws.fname}|${n}`, T: T_end, unit: timeUnit(T_end), clock: Number.isFinite(clock) ? clock : null,
-      dec: lang === "cs" ? "," : ".", dark: document.documentElement.dataset.theme === "dark",
+      dec: decOf(lang), dark: document.documentElement.dataset.theme === "dark",
       txt: Object.fromEntries(TXT.map((k) => [k, T("mw_" + k)])), mode: "ab", t: pick(t, idx), step: ws.Ts, rows, excl: [],
       bar: { title: T("diag_rec_title"), note: T("diag_rec_help"), zoom: true },
       ab: { a: win.a, b: win.cmp ? win.b : null, ca: C_A, cb: C_B, la: T("seg_a"), lb: T("seg_b") },

@@ -1,5 +1,5 @@
 // Jednoduchý graf průběhů (SVG) – odezvy ladění, frekvenční charakteristiky. Řady se zředí na ~1500 bodů.
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useUi } from "../store";
 
 // legend: false = bez položky v legendě; NaN v x nebo y přeruší čáru (body mimo rozsah se tak jen vynechají);
@@ -25,7 +25,10 @@ export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, te
   bands?: Band[];                                                // svislá pásma (bez logX)
 }) {
   const chartH = useUi((st) => st.chartH);
-  const W = 720, H = heightProp ?? chartH, L = 52, R = 10, Tm = 10, B = 28;
+  // šířka podle skutečného místa (výška zůstane zadaná v px – graf se neroztahuje do výšky se šířkou okna)
+  const box = useRef<HTMLElement>(null);
+  const [W, setW] = useState(720);
+  const H = heightProp ?? chartH, L = 52, R = 10, Tm = 10, B = 28;
   const prep = useMemo(() => {
     const tx = (v: number) => (logX ? Math.log10(Math.max(v, 1e-12)) : v);
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -55,13 +58,20 @@ export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, te
       return d;
     });
     return { x0, x1, y0, y1, sx, sy, paths };
-  }, [series, logX, H, xDomain, yDomain]);
+  }, [series, logX, H, W, xDomain, yDomain]);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => { const w = Math.round(el.clientWidth); if (w > 100) setW(w); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [!prep]);              // eslint-disable-line react-hooks/exhaustive-deps
   if (!prep) return null;
   const { x0, x1, y0, y1, sx, sy, paths } = prep;
   const xt = logX ? Array.from({ length: Math.floor(x1) - Math.ceil(x0) + 1 }, (_, i) => 10 ** (Math.ceil(x0) + i)) : ticks(x0, x1);
   return (
-    <figure className="chart" data-testid={testid}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img">
+    <figure className="chart" data-testid={testid} ref={box}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" role="img">
         {!logX && bands?.map((b, i) => {
           const a = Math.max(L, sx(b.from)), z = Math.min(W - R, sx(b.to));
           return z > a ? (

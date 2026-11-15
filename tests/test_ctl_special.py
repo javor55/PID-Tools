@@ -148,7 +148,7 @@ def test_table_gain_scheduling_by_pv():
     _, u1 = _run(prof, ctrl, [39.0], sp=40.0, y0=40.0, u0=0.0)       # PV < 40 → násobek 2
     _, u2 = _run(prof, ctrl, [50.0], sp=51.0, y0=51.0, u0=0.0)       # PV = 50 → 1.5
     assert u1[0] == pytest.approx(2.0 * 1.0) and u2[0] == pytest.approx(1.5 * 1.0)
-    with pytest.raises(ValueError, match="rostoucí"):
+    with pytest.raises(ValueError, match="increasing"):
         Controller(_profile(error=dict(nonlinear=dict(nl, x=[60, 40]))), ctrl, 1.0)
 
 
@@ -287,7 +287,7 @@ def test_catalog_covers_registries_and_nonlinear_parts():
     assert nonlinear_parts(_profile(error=GAP_DB, add=GAP_ADD)) == ["gap"]
     assert nonlinear_parts(_profile(structure={"output": _out(stage="pwm")}, error=dict(nonlinear={"kind": "squared"}))) \
         == ["nonlinear_gain", "pwm"]
-    with pytest.raises(ValueError, match="neznámá položka"):
+    with pytest.raises(ValueError, match="unknown item"):
         Profile(_profile(structure={"output": _out(stage="nesmysl")}))
 
 

@@ -14,12 +14,12 @@ _cache = {}
 def parse_profile(data):
     """Zkontroluje slovník profilu (format, version, struktura, parametry) a vrátí ho převedený na aktuální verzi."""
     if not isinstance(data, dict) or data.get("format") != FORMAT:
-        raise ValueError(f"není profil regulátoru (chybí format = '{FORMAT}')")
+        raise ValueError(f"not a controller profile (missing format = '{FORMAT}')")
     ver = data.get("version")
     if not isinstance(ver, int) or ver < 1:
-        raise ValueError("profil regulátoru nemá platnou verzi")
+        raise ValueError("the controller profile has no valid version")
     if ver > VERSION:
-        raise ValueError(f"profil verze {ver} je novější než podporovaná {VERSION} – aktualizujte aplikaci")
+        raise ValueError(f"profile version {ver} is newer than the supported {VERSION} – update the application")
     while ver < VERSION:
         data = MIGRATIONS[ver](data)
         ver = data["version"]
@@ -27,11 +27,11 @@ def parse_profile(data):
         data = _program_profile(data)
     for k in ("id", "structure", "params"):
         if k not in data:
-            raise ValueError(f"profil regulátoru nemá položku '{k}'")
+            raise ValueError(f"the controller profile has no item '{k}'")
     if isinstance(data["params"], list) and all(isinstance(p, dict) for p in data["params"]):
         roles = [p.get("role") for p in data["params"]]
         if len(set(roles)) != len(roles) or not all(isinstance(r, str) for r in roles):
-            raise ValueError("role parametrů profilu musí být jedinečné")
+            raise ValueError("profile parameter roles must be unique")
     return data
 
 
@@ -39,7 +39,7 @@ def _program_profile(data):
     """Profil `kind = program`: `source` je závazný, `program` (strom) a `params` se z něj odvodí (kopie profilu)."""
     from .program import ProgramErrors, compile_program, program_params
     if not isinstance(data.get("source"), str) or not data["source"].strip():
-        raise ValueError("profil typu program nemá zdrojový text (source)")
+        raise ValueError("a program profile has no source text (source)")
     try:
         prog = compile_program(data["source"])["program"]
     except ProgramErrors as ex:

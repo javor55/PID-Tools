@@ -109,8 +109,27 @@ def test_live_config(ws):
     en = c.get(f"/workspaces/{wid}/live?lang=en").json()
     cs = c.get(f"/workspaces/{wid}/live?lang=cs").json()
     assert en["labels"]["start"] != cs["labels"]["start"] and cs["decimal"] == "," and en["decimal"] == "."
-    assert {k: v for k, v in en.items() if k not in ("labels", "decimal")} == {
-        k: v for k, v in cs.items() if k not in ("labels", "decimal")}
+    assert {k: v for k, v in en.items() if k not in ("labels", "decimal", "lang")} == {
+        k: v for k, v in cs.items() if k not in ("labels", "decimal", "lang")}
+
+
+def test_record_set_without_model():
+    """Sada 1 (regulátor v záznamu) jde číst a zapsat i bez modelu – identifikace v uzavřené smyčce ji potřebuje dřív
+    než model; je to táž sada jako v Ladění (jednotky bloku podle profilu)."""
+    with TestClient(create_app()) as c:
+        wid = c.post("/workspaces").json()["id"]
+        assert c.get(f"/workspaces/{wid}/tuning/record-set").status_code == 409            # bez dat
+        c.post(f"/workspaces/{wid}/data/demo")
+        assert c.get(f"/workspaces/{wid}/tuning").status_code == 409                       # Ladění bez modelu ne
+        r = c.get(f"/workspaces/{wid}/tuning/record-set").json()
+        assert r["controller"]["id"] == "pcs7_pidconl" and [q["key"] for q in r["tuning_params"]] == ["Gain", "TI", "TD"]
+        assert r["set"]["n"] == 1 and r["set"]["metrics"] is None
+        r = c.put(f"/workspaces/{wid}/tuning/record-set", json={"values": {"Gain": 1.5, "TI": 80, "TD": 0}}).json()
+        assert r["set"]["values"]["Gain"] == pytest.approx(1.5) and r["set"]["values"]["TI"] == pytest.approx(80)
+        assert not r["set"]["placeholder"]
+        assert c.put(f"/workspaces/{wid}/tuning/record-set", json={}).status_code == 422
+        s = c.get(f"/workspaces/{wid}/settings").json()
+        assert s["set1_gain"] == pytest.approx(1.5) and s["set1_ti"] == pytest.approx(80)
 
 
 def test_live_config_needs_model():

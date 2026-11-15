@@ -9,6 +9,7 @@ import json
 import numpy as np
 
 from ..core import LiveLoop
+from .. import i18n
 from ..i18n import T
 from .apc.common import tchar
 from .colors import C_MV, C_PV, C_SET1, C_SET2, C_SP, FONT
@@ -252,7 +253,7 @@ def web_config(*, model, samp, pv0, mv0, set1, set2, plant, pv_rng, mv_rng, u_pv
         ch=int(height), noise0=float(plant.get("Noise", 0.0) * PR / 100), pvf0=float(pvfilt or 0.0),
         pvf_max=float(max(10 * samp, 0.5 * (lags + p[-1]), 5.0)),
         dist_p0=float(max(4 * (lags + p[-1]), 10 * samp)), dist_pmax=float(max(40 * (lags + p[-1]), 100 * samp)),
-        decimal="," if lang == "cs" else ".",
+        decimal=i18n.decimal(lang), lang=lang,
         light=dict(pv=C_PV, sp=C_SP, mv=C_MV, set1=C_SET1, set2=C_SET2, dist="#7c3aed", event="#b45309", acc="#1f5fa8"),
         dark=dict(pv="#60a5fa", sp="#9aa5b1", mv="#fb923c", set1="#94a3b8", set2="#4ade80", dist="#a78bfa",
                   event="#fbbf24", acc="#60a5fa"))

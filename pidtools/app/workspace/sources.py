@@ -46,13 +46,14 @@ class SourceRT:
     def __init__(self, src: Source, df=None, origin=None, auto=False):
         self.src, self.df, self.origin, self.auto = src, df, origin, auto
         self._sig = None
+        self._layout = None                 # odhad rozvržení tabulky (drahý: prochází všechny sloupce)
 
     @property
     def id(self):
         return self.src.id
 
     def invalidate(self):
-        self._sig = None
+        self._sig = self._layout = None
 
     def read_options(self):
         """Volby čtení tabulky pro `ds.signals` / `Workspace.load_frame` (bez prázdných)."""
@@ -62,7 +63,11 @@ class SourceRT:
         return o
 
     def layout(self):
-        return self.src.options.get("layout") or ds.default_layout(self.df)
+        if self.src.options.get("layout"):
+            return self.src.options["layout"]
+        if self._layout is None:
+            self._layout = ds.default_layout(self.df)
+        return self._layout
 
     def signals(self):
         """Signály zdroje (čas od začátku záznamu [s], sloupce, počátek s hodinami); čte se jednou."""
@@ -74,7 +79,7 @@ class SourceRT:
 
     def _read(self, options):
         o = dict(self.read_options(), **{k: v for k, v in options.items() if k != "layout" and v is not None})
-        layout = options.get("layout") or ds.default_layout(self.df)
+        layout = options.get("layout") or self.layout()
         unit = o.get("unit") or "s"
         sig = ds.signals(self.df, layout, o.get("time_fmt") or "auto", unit, o.get("c_time"), o.get("c_tag"),
                          o.get("c_val"), float(o.get("row_dt") or 1.0))
@@ -316,7 +321,7 @@ class SourcesMixin:
         if len(rts) == 1:
             rt = rts[0]
             ws.origin_hint, ws.merged_df = rt.origin, None
-            ws.swap_data(rt.df, fname or ws.fname or rt.src.name, rt.layout(), **rt.read_options())
+            ws.swap_data(rt.df, fname or ws.fname or rt.src.name, rt.layout(), sig=rt.signals(), **rt.read_options())
             refs = {str(c): SourceRef(rt.id, str(c)) for c in ws.sig.sigs}
             rt._sig = ws.sig
         else:

@@ -4,7 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError, rawRequest, request } from "../api/client";
 import { uploadFile } from "../data";
-import { useT } from "../i18n";
+import { dateLocale, useT } from "../i18n";
+import { PublicNotice } from "../deploy";
 import { OpcButton } from "../tabs/OpcDialog";
 import { useSources } from "../tabs/data/sources/api";
 import { FilesCard } from "../tabs/data/sources/FilesCard";
@@ -16,7 +17,7 @@ const ACCEPT = ".csv,.txt,.xlsx,.xls";
 const STEPS = ["data", "model", "tuning", "apc", "live"] as const;
 
 const fmtWhen = (epoch: number, lang: string) =>
-  new Date(epoch * 1000).toLocaleString(lang === "cs" ? "cs-CZ" : "en-GB", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+  new Date(epoch * 1000).toLocaleString(dateLocale(lang), { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
 
 function Recovery() {
   const T = useT();
@@ -90,6 +91,7 @@ export function StartScreen({ compact = false }: { compact?: boolean }) {
     <div className="start" data-testid="start-screen">
       <div className="st-main" data-testid="no-data">
         <h1>{T("app_start_title")}</h1>
+        <PublicNotice short />
         <Recovery />
         {compact && (
           <div className="st-btns st-row">

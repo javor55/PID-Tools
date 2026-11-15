@@ -308,9 +308,9 @@ def c_numerics(X):
             c.init(50.0, 50.0, 50.0)
             u = [c.step(60.0, 50.0) for _ in range(50)]
             if not np.all(np.isfinite(u)):
-                problems.append("extrém")
+                problems.append("non-finite output")
         except Exception as ex:                    # noqa: BLE001
-            problems.append(f"extrém: {type(ex).__name__}")
+            problems.append(f"exception: {type(ex).__name__}")
     if problems:
         return _res("fail", "ctl_m_num_bad", dict(detail="; ".join(problems[:4])), "critical")
     return _res("ok", "ctl_m_num_ok")

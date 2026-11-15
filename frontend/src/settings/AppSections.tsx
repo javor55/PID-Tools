@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { api, ApiError, bytes } from "../api/client";
 import { LabelHelp } from "../components/Ui";
-import { useT } from "../i18n";
+import { useLanguages, useT } from "../i18n";
 import { Commit, parse } from "../tabs/data/sources/Commit";
 import { type AppSettings, exportSettings, importSettings, patchSettings, removeLogo, resetSettings, uploadLogo, useAppSettings, useThresholdSchema } from "./appSettings";
 import { saveBlob, useControllers } from "./ctlApi";
+import { usePublic } from "../deploy";
 
 type Upd = (fn: (s: AppSettings) => void) => void;
 
@@ -77,12 +78,14 @@ export function GeneralSec({ s }: { s: AppSettings }) {
 
 export function AppearanceSec({ s }: { s: AppSettings }) {
   const T = useT();
+  const langs = useLanguages();
+  const langName = (c: string) => langs.find((l) => l.code === c)?.name ?? c;
   const set = useSet();
   return (
     <Sec id="appearance" title={T("app_s_appearance")} note={T("app_s_appearance_note")}>
       <Row label={T("ui_lang")} help="rg_ui_lang_h">
-        <Choice value={s.appearance.language || "cs"} options={["cs", "en"] as const} label={T("ui_lang")} testid="set-lang"
-          fmt={(v) => (v === "cs" ? "Čeština" : "English")} onChange={(v) => set((n) => { n.appearance.language = v; })} />
+        <Choice value={s.appearance.language || "en"} options={langs.map((l) => l.code)} label={T("ui_lang")} testid="set-lang"
+          fmt={(v) => langName(v)} onChange={(v) => set((n) => { n.appearance.language = v; })} />
       </Row>
       <Row label={T("ui_theme")} help="rg_ui_theme_h">
         <Choice value={s.appearance.theme || "system"} options={["system", "light", "dark"] as const} label={T("ui_theme")} testid="set-theme"
@@ -218,10 +221,13 @@ function useLogo(name: string) {
 
 export function ReportSec({ s }: { s: AppSettings }) {
   const T = useT();
+  const langs = useLanguages();
+  const langName = (c: string) => langs.find((l) => l.code === c)?.name ?? c;
   const set = useSet();
   const file = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState("");
   const r = s.report;
+  const pub = usePublic();
   const logoUrl = useLogo(r.logo);
   const up = async (f: File | undefined) => {
     if (!f) return;
@@ -234,21 +240,21 @@ export function ReportSec({ s }: { s: AppSettings }) {
         <Commit value={r.company} label={T("app_s_company")} title={T("app_s_company_h")} testid="set-company"
           onCommit={(v) => set((n) => { n.report.company = v.trim(); })} />
       </Row>
-      <div className="field" data-testid="set-logo-row">
+      {!pub && <div className="field" data-testid="set-logo-row">
         <span className="lbl"><span>{T("app_s_logo")}</span><LabelHelp text={T("app_s_logo_h")} /></span>
         <span className="rg-actions">
           {r.logo && logoUrl && <img className="set-logo" alt={T("app_s_logo")} data-testid="set-logo-img" src={logoUrl} />}
           <button type="button" className="btn" data-testid="set-logo-pick" title={T("app_s_logo_h")} onClick={() => file.current?.click()}>{T("app_s_logo_pick")}</button>
           {r.logo && <button type="button" className="btn" data-testid="set-logo-remove" title={T("app_s_logo_remove_h")}
             onClick={() => void removeLogo().catch(() => undefined)}>{T("app_s_logo_remove")}</button>}
-          <input ref={file} type="file" hidden accept=".png,.jpg,.jpeg,.svg" data-testid="set-logo-file"
+          <input ref={file} type="file" hidden accept=".png,.jpg,.jpeg" data-testid="set-logo-file"
             onChange={(e) => { void up(e.target.files?.[0]); e.target.value = ""; }} />
         </span>
-      </div>
+      </div>}
       {err && <div className="rg-err" role="alert">{err}</div>}
       <Row label={T("app_s_rep_lang")} help="app_s_rep_lang_h">
-        <Choice value={r.language} options={["app", "cs", "en"] as const} label={T("app_s_rep_lang")} testid="set-rep-lang"
-          fmt={(v) => (v === "app" ? T("app_s_rep_lang_app") : v === "cs" ? "Čeština" : "English")} onChange={(v) => set((n) => { n.report.language = v; })} />
+        <Choice value={r.language} options={["app", ...langs.map((l) => l.code)]} label={T("app_s_rep_lang")} testid="set-rep-lang"
+          fmt={(v) => (v === "app" ? T("app_s_rep_lang_app") : langName(v))} onChange={(v) => set((n) => { n.report.language = v; })} />
       </Row>
       <Row label={T("app_s_rep_header")} help="app_s_rep_header_h">
         <Commit value={r.header} label={T("app_s_rep_header")} title={T("app_s_rep_header_h")} testid="set-rep-header"
@@ -267,8 +273,10 @@ export function ConnectionsSec({ s }: { s: AppSettings }) {
   const set = useSet();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  const pub = usePublic();
   const ok = name.trim() !== "" && url.trim().toLowerCase().startsWith("opc.tcp://");
   const hist = [["pcs7", "app_s_h_pcs7"], ["deltav", "app_s_h_deltav"], ["pi", "app_s_h_pi"]] as const;
+  if (pub) return <Sec id="connections" title={T("app_s_conn")} note={T("opc_disabled")}>{null}</Sec>;
   return (
     <Sec id="connections" title={T("app_s_conn")} note={T("app_s_conn_note")}>
       <h3>{T("app_s_opc")}<LabelHelp text={T("app_s_opc_h")} /></h3>

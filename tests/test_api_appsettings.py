@@ -113,7 +113,7 @@ def test_team_mode_settings_isolated_per_user(tmp_path):
         s = c.get(f"{V}/app-settings", headers=a).json()
         s["journal"]["author"] = "Alice"
         c.put(f"{V}/app-settings", json=s, headers=a)
-        c.post(f"{V}/app-settings/logo?name=l.svg", content=b"<svg/>", headers=a)
+        c.post(f"{V}/app-settings/logo?name=l.png", content=b"\x89PNG", headers=a)
         assert c.get(f"{V}/app-settings", headers=b).json()["journal"]["author"] == ""
         assert c.get(f"{V}/app-settings/logo", headers=b).status_code == 404
         assert c.get(f"{V}/app-settings/logo", headers=a).status_code == 200

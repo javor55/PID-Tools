@@ -8,7 +8,7 @@
   "block": "PID_Compact",
   "verification": {
     "status": "unverified",
-    "note": "Koncept (neověřeno proti manuálu): Gain, Ti, Td, filtr D jako poměr TdFiltRatio (α = Tf / Td), váha P (PropWeight); jednotky zesílení a anti-windup ověřit."
+    "note": "Draft (not verified against the manual): Gain, Ti, Td, D filter as the ratio TdFiltRatio (α = Tf / Td), P weight (PropWeight); gain units and anti-windup to be verified."
   },
   "structure": {
     "normalisation": {
@@ -23,8 +23,8 @@
     "error": {
       "deadband": {
         "modes": {
-          "spojité": "continuous",
-          "skokové": "step"
+          "cont": "continuous",
+          "step": "step"
         },
         "other": "step"
       }

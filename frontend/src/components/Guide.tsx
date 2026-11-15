@@ -9,6 +9,7 @@ import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { useT, useTexts } from "../i18n";
 import { type TabId, useUi } from "../store";
+import { PublicNotice } from "../deploy";
 import { LabelHelp, Md } from "./Ui";
 
 export type Guide = components["schemas"]["Guide"];
@@ -188,6 +189,7 @@ export function HelpButton() {
             </button>))}
         </nav>
         <div className="g-body">
+          {!q.trim() && <PublicNotice />}
           {!data ? <p className="muted">{g.isError ? T("ui_guide_err") : "…"}</p>
             : q.trim() ? <Results q={q} g={data} />
             : card === "steps" ? <Steps g={data} />

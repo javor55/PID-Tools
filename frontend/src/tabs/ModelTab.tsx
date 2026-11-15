@@ -12,7 +12,7 @@ import { DIST_STYLE, MV_STYLE, windowFits } from "./modelConst";
 import { ModelViews, ValidationCard } from "./ModelValidation";
 import "../styles/model.css";
 import { usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
-import { useT } from "../i18n";
+import { decOf, useDec, useT } from "../i18n";
 import { dur } from "../lib/format";
 import { decimate, pick, range, runs, timeUnit } from "../lib/series";
 import { useUi } from "../store";
@@ -22,7 +22,7 @@ type ModelState = components["schemas"]["ModelState"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
 
 const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time"];
+  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint", "cur", "cur_hint"];
 function useModelData() {
   const wid = useUi((s) => s.wid);
   const ws = useWs().data;
@@ -92,7 +92,7 @@ export function ModelMain() {
     const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
     return {
       key: "model_wins", view_key: `model|${ws.fname}|${n}`, T: T_end, unit: timeUnit(T_end),
-      clock: Number.isFinite(clock) ? clock : null, dec: lang === "cs" ? "," : ".",
+      clock: Number.isFinite(clock) ? clock : null, dec: decOf(lang),
       dark: document.documentElement.dataset.theme === "dark",
       txt: Object.fromEntries(TXT.map((k) => [k, T("mw_" + k)])), mode: winMode, t: pick(t, idx), step: ws.Ts,
       rows, excl, common: ws.rng ?? [0, T_end],
@@ -121,7 +121,7 @@ export function ModelMain() {
 
 function ModelTable({ model }: { model?: ModelState }) {
   const T = useT();
-  const dec = useUi((s) => s.lang) === "cs" ? "," : ".";
+  const dec = useDec();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const sel = model?.results.find((r) => r.code === model.selected);
@@ -152,7 +152,7 @@ function ModelTable({ model }: { model?: ModelState }) {
               <td>{r.status !== null && r.status !== undefined ? T("st_" + r.status) : "–"}</td>
               {anyCl && <td className="mono" data-testid={`fit-cl-${r.code}`}>{r.fit_cl_pv == null ? "—" :
                 `PV ${r.fit_cl_pv.toFixed(1)} / MV ${(r.fit_cl_mv ?? NaN).toFixed(1)}`}</td>}
-              <td className="mono small">{r.p.map((x) => x.toPrecision(4)).join(", ")}</td>
+              <td className="mono small">{r.p.map((x, i) => `${r.names?.[i] ?? "p" + (i + 1)} = ${+x.toPrecision(4)}`).join(" · ")}</td>
             </tr>
           ))}
         </tbody>
@@ -172,7 +172,7 @@ function ModelTable({ model }: { model?: ModelState }) {
       {anyCl && <div className="muted small">{T("idm_table_note")}</div>}
       {model.results.filter((r) => r.p_open && r.method === "cl").map((r) => (
         <div key={r.code} className="small" data-testid={`open-model-${r.code}`}>
-          {T("idm_open_model", { p: `${T("model_" + r.code)}: ${r.p_open!.map((x) => x.toPrecision(4)).join(", ")}` })}</div>))}
+          {T("idm_open_model", { p: `${T("model_" + r.code)}: ${r.p_open!.map((x, i) => `${r.names?.[i] ?? "p" + (i + 1)} = ${+x.toPrecision(4)}`).join(" · ")}` })}</div>))}
       {model.results.filter((r) => r.mixed && r.fit_cl_pv != null && r.fit_cl_pv < 50).map((r) => (
         <div key={r.code} className="warn small" data-testid="mix-set1-bad">{T("mix_set1_bad", { m: T("model_" + r.code),
           f: (r.fit_cl_pv ?? 0).toFixed(0) })}</div>))}

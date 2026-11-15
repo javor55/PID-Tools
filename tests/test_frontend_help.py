@@ -46,7 +46,8 @@ def prepared(page, server):
     """Demo, model aktivní smyčky a druhá smyčka s modelem (aby šly zobrazit i struktury se dvěma smyčkami)."""
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="quality"]').click()
-    page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
+    page.locator('[data-sub="sources"]').click()
+    page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
     _job(server, page, "/workspaces/{wid}/identify")

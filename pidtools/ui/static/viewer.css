@@ -1,8 +1,8 @@
 /* Prohlížeč záznamu (viewer.js) – sdílí Streamlit web (pidtools/ui/viewer.py) i nové rozhraní (frontend). */
-.pidv { position: relative; display: flex; flex-direction: column; gap: 10px; font-family: inherit; outline: none;
-  color: var(--pv-text); --pv-text: #1f2933; --pv-muted: #52606d; --pv-line: #d7dde5; --pv-card: #ffffff;
+.pidv, .pidv-hostvars { color: var(--pv-text); --pv-text: #1f2933; --pv-muted: #52606d; --pv-line: #d7dde5; --pv-card: #ffffff;
   --pv-grid: #e8ecf1; --pv-axis: #c3ccd6; --pv-btn: #ffffff; --pv-hl: #eef4fb; --pv-acc: #1f5fa8; --pv-sel: #dbe8f7; }
-.pidv.dark { --pv-text: #e2e8f0; --pv-muted: #94a3b8; --pv-line: #26324a; --pv-card: #111a2e; --pv-grid: #1c2740;
+.pidv { position: relative; display: flex; flex-direction: column; gap: 10px; font-family: inherit; outline: none; }
+.pidv.dark, .pidv-hostvars.dark { --pv-text: #e2e8f0; --pv-muted: #94a3b8; --pv-line: #26324a; --pv-card: #111a2e; --pv-grid: #1c2740;
   --pv-axis: #334155; --pv-btn: #0f172a; --pv-hl: #16223a; --pv-acc: #60a5fa; --pv-sel: #1e3a5f; }
 .pidv-card { background: var(--pv-card); border: 1px solid var(--pv-line); border-radius: 10px; }
 .pidv-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; }
@@ -112,3 +112,8 @@
   background: var(--pv-btn); color: var(--pv-text); width: 80px; }
 .pidv-pop input:disabled { opacity: .5; }
 .pidv-cerr { font-size: 11px; color: #b91c1c; padding: 0 4px; }
+/* seznam signálů v pravém panelu stránky (component.listHost) a skupiny (D.groups) */
+.pidv-list.pidv-list-host { border: 0; padding: 0; max-height: none; background: transparent; }
+.pidv-ghead { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 2px 2px; margin-top: 4px;
+  border-top: 1px solid var(--pv-line); font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; }
+.pidv-ghead:first-of-type { border-top: 0; margin-top: 0; }

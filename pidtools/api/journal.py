@@ -161,7 +161,7 @@ def _author(settings=None):
     return deploy.USER.get() or _journal_cfg(settings).get("author") or "local"
 
 
-def router(get_proj, settings=None):
+def router(get_proj, settings=None, public=False):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["journal"])
 
     def guard(fn, *a, **kw):
@@ -217,6 +217,8 @@ def router(get_proj, settings=None):
 
     @r.post("/journal/{sid}/attachments", response_model=AttachmentInfo)
     def attach(wid: str, sid: str, body: NewAttachment):
+        if public:
+            raise HTTPException(403, "attachments_disabled")
         """Příloha (malý soubor v base64; velikost je omezená, uloží se do projektu)."""
         _, a = guard(jr.add_attachment, get_proj(wid), sid, body.name, body.data_b64, body.mime, body.desc, _author(settings))
         return {k: v for k, v in a.items() if k != "data"}

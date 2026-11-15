@@ -1,4 +1,4 @@
-// Data › Zdroje a smyčky: karta „Smyčky“ – tabulka smyček (tag, popis, role PV / SP / MV / poloha / DV / režim jako
+// Data › Zdroje a smyčky: karta „Smyčky“ – karta na smyčku ve dvou řádcích (tag, popis, role PV / SP / MV / poloha / DV / režim jako
 // „soubor › sloupec“, rozsahy, kaskáda, stav mapování), přidání a odebrání smyčky, výběr aktivní smyčky, návrh podle
 // názvů tagů a import mapování z CSV (návrh se nejdřív ukáže ke kontrole). Role jde zadat výběrem i přetažením sloupce.
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,12 +40,14 @@ function ColSelect({ value, sources, onPick, label, title, empty, testid }: {
   );
 }
 
-/** Buňka tabulky, na kterou lze pustit sloupec přetažený z panelu vpravo. */
-function DropCell({ onDropRef, children, className }: { onDropRef: (r: Ref) => void; children: React.ReactNode; className?: string }) {
+/** Pole role (popisek nad výběrem), na které lze pustit sloupec přetažený z panelu vpravo. */
+function DropCell({ onDropRef, children, className, label, help }: {
+  onDropRef: (r: Ref) => void; children: React.ReactNode; className?: string; label: string; help?: string;
+}) {
   const [over, setOver] = useState(false);
   const has = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes(COL_MIME);
   return (
-    <td className={(className ?? "") + (over ? " src-dropover" : "")}
+    <div className={"src-lf " + (className ?? "") + (over ? " src-dropover" : "")}
       onDragOver={(e) => { if (has(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setOver(true); } }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
@@ -53,7 +55,7 @@ function DropCell({ onDropRef, children, className }: { onDropRef: (r: Ref) => v
         if (!has(e)) return;
         e.preventDefault();
         try { const r = JSON.parse(e.dataTransfer.getData(COL_MIME)) as Ref; if (r?.source && r?.column) onDropRef(r); } catch { /* cizí data */ }
-      }}>{children}</td>
+      }}><span className="lbl">{label}{help && <LabelHelp text={help} />}</span>{children}</div>
   );
 }
 
@@ -151,7 +153,6 @@ export function LoopsCard({ data }: { data: Sources | undefined }) {
     setProp(null);
   });
 
-  const th = (txt: string, help?: string) => <th><span className="lbl">{txt}{help && <LabelHelp text={help} />}</span></th>;
   const casted = new Map<number, number>();                     // podřazená smyčka → nadřazená
   maps.forEach((m, i) => { if (m.cascade_to != null) casted.set(m.cascade_to, i); });
   const names = maps.map((m, i) => loopName(m, i, T("src_ui_loop")));
@@ -174,67 +175,73 @@ export function LoopsCard({ data }: { data: Sources | undefined }) {
       {prop && <Proposal p={prop} sources={sources} apply={() => void apply()} close={() => setProp(null)} busy={busy} />}
       {err && <div className="err small" role="alert" data-testid="src-loops-err">{err}</div>}
       {maps.length > 0 && (
-        <div className="lscroll">
-          <table className="ltbl src-loops" data-testid="src-loops-table">
-            <thead><tr>
-              <th><span className="sr-only">{T("src_ui_h_active")}</span></th>
-              {th(T("src_ui_h_tagdesc"), "h_loop_tag")}
-              {th("PV")}{th("SP")}{th("MV")}
-              {th(T("src_ui_h_pos"), "src_ui_pos_h")}{th("DV", "src_ui_dv_h")}{th(T("src_ui_h_mode"), "src_ui_mode_h")}
-              {th(T("src_ui_h_ranges"), "src_ui_range_h")}
-            </tr></thead>
-            <tbody>
-              {maps.map((m, i) => {
-                const st = mappingStatus(m);
-                const up = casted.get(i);
-                return (
-                  <tr key={i} className={i === active ? "sel" : ""} data-testid={`src-loop-${i}`}>
-                    <td><div className="src-actcell"><button type="button" className={"src-act" + (i === active ? " on" : "")} aria-pressed={i === active}
-                      aria-label={T("src_ui_activate", { n: names[i] })} title={T("src_ui_activate_h")} data-testid={`src-activate-${i}`}
-                      onClick={() => void run(() => act("PUT", "/loops/active", { index: i }))}>{i === active ? "●" : "○"}</button>
-                      <button type="button" className="btn small src-x" aria-label={T("src_ui_remove_loop", { n: names[i] })}
-                        title={maps.length < 2 ? T("src_ui_remove_last") : T("src_ui_remove_loop_h")} disabled={maps.length < 2 || busy}
-                        data-testid={`src-rm-${i}`} onClick={() => void run(() => act("DELETE", `/loops/${i}`))}>×</button></div></td>
-                    <td className="src-tagcell">
+        <div className="src-lcards" data-testid="src-loops-table">
+          {maps.map((m, i) => {
+            const st = mappingStatus(m);
+            const up = casted.get(i);
+            return (
+              <div key={i} className={"src-lcard" + (i === active ? " sel" : "")} data-testid={`src-loop-${i}`}>
+                <div className="src-lrow1">
+                  <div className="src-lf src-tagcell">
+                    <span className="lbl">{T("src_ui_h_tagdesc")}<LabelHelp text="h_loop_tag" /></span>
+                    <span className="src-tagline">
+                      <button type="button" className={"src-act" + (i === active ? " on" : "")} aria-pressed={i === active}
+                        aria-label={T("src_ui_activate", { n: names[i] })} title={T("src_ui_activate_h")} data-testid={`src-activate-${i}`}
+                        onClick={() => void run(() => act("PUT", "/loops/active", { index: i }))}>{i === active ? "●" : "○"}</button>
                       <Commit value={m.tag} label={T("src_ui_tag")} title={T("h_loop_tag")} className="src-tag" testid={`src-tag-${i}`}
                         onCommit={(v) => void save(i, { ...m, tag: v.trim() })} />
-                      <Commit value={m.description} label={T("src_ui_desc")} title={T("src_ui_desc_h")} className="src-desc"
+                    </span>
+                    <Commit value={m.description} label={T("src_ui_desc")} title={T("src_ui_desc_h")} className="src-desc"
                       onCommit={(v) => void save(i, { ...m, description: v })} />
-                      <select aria-label={T("src_ui_cascade")} title={T("src_ui_cascade_h")} className="src-casc" value={m.cascade_to ?? ""}
-                        data-testid={`src-casc-${i}`} onChange={(e) => void save(i, { ...m, cascade_to: e.target.value === "" ? null : +e.target.value })}>
-                        <option value="">{T("src_ui_no_cascade")}</option>
-                        {maps.map((_, j) => j !== i && <option key={j} value={j}>{T("src_ui_cascade_to", { n: names[j] })}</option>)}
-                      </select>
-                      {up !== undefined && <span className="ltag ok" title={T("src_ui_cascade_h")}>{T("src_ui_cascade_from", { n: names[up] })}</span>}
-                      <span className={"ltag " + st.level} data-testid={`src-status-${i}`} title={T(`src_ui_st_${st.kind}_h`)}>{T(`src_ui_st_${st.kind}`)}</span>
-                    </td>
-                    {(["pv", "sp", "mv", "pos"] as const).map((role) => (
-                      <DropCell key={role} onDropRef={(r) => setRole(i, role, r)}>
-                        <ColSelect value={m.roles[role]} sources={sources} label={`${role.toUpperCase()} – ${names[i]}`} title={T(`src_ui_role_${role}_h`)}
-                          empty={T("src_ui_unassigned")} testid={`src-${role}-${i}`} onPick={(r) => setRole(i, role, r)} />
-                      </DropCell>))}
-                    <DropCell onDropRef={(r) => setRole(i, "dv", r)} className="src-dvcell">
-                      <span className="src-dvs">
-                        {(m.roles.dv ?? []).map((d, j) => (
-                          <span className="src-chip" key={refKey(d)} title={refLabel(d, sources)}>{d.column}
-                            <button type="button" aria-label={T("src_ui_dv_remove", { n: d.column })} title={T("src_ui_dv_remove", { n: d.column })}
-                              onClick={() => void save(i, withoutDv(m, j))}>×</button></span>))}
-                        <ColSelect value={null} sources={sources} label={`+ DV – ${names[i]}`} title={T("src_ui_dv_add_h")} empty="+ DV"
-                          testid={`src-dv-${i}`} onPick={(r) => setRole(i, "dv", r)} />
-                      </span>
-                    </DropCell>
-                    <DropCell onDropRef={(r) => setRole(i, "mode", r)}>
-                      <ColSelect value={m.roles.mode} sources={sources} label={`${T("src_ui_h_mode")} – ${names[i]}`} title={T("src_ui_mode_h")}
-                        empty={T("src_ui_unassigned")} testid={`src-mode-${i}`} onPick={(r) => setRole(i, "mode", r)} />
-                    </DropCell>
-                    <td className="src-ranges">
-                      <Range norm={m.norm_pv} label="PV" onChange={(v) => void save(i, { ...m, norm_pv: v })} />
-                      <Range norm={m.norm_mv} label="MV" onChange={(v) => void save(i, { ...m, norm_mv: v })} />
-                    </td>
-</tr>);
-              })}
-            </tbody>
-          </table>
+                  </div>
+                  {(["pv", "sp", "mv", "pos"] as const).map((role) => (
+                    <DropCell key={role} onDropRef={(r) => setRole(i, role, r)} label={role === "pos" ? T("src_ui_h_pos") : role.toUpperCase()}
+                      help={role === "pos" ? "src_ui_pos_h" : undefined}>
+                      <ColSelect value={m.roles[role]} sources={sources} label={`${role.toUpperCase()} – ${names[i]}`} title={T(`src_ui_role_${role}_h`)}
+                        empty={T("src_ui_unassigned")} testid={`src-${role}-${i}`} onPick={(r) => setRole(i, role, r)} />
+                    </DropCell>))}
+                  <DropCell onDropRef={(r) => setRole(i, "mode", r)} label={T("src_ui_h_mode")} help="src_ui_mode_h">
+                    <ColSelect value={m.roles.mode} sources={sources} label={`${T("src_ui_h_mode")} – ${names[i]}`} title={T("src_ui_mode_h")}
+                      empty={T("src_ui_unassigned")} testid={`src-mode-${i}`} onPick={(r) => setRole(i, "mode", r)} />
+                  </DropCell>
+                </div>
+                <div className="src-lrow2">
+                  <div className="src-lf src-stat">
+                    <span className={"ltag " + st.level} data-testid={`src-status-${i}`} title={T(`src_ui_st_${st.kind}_h`)}>{T(`src_ui_st_${st.kind}`)}</span>
+                    {i === active && <span className="small muted">{T("src_ui_active")}</span>}
+                  </div>
+                  <DropCell onDropRef={(r) => setRole(i, "dv", r)} className="src-dvcell" label={T("src_ui_h_dv")} help="src_ui_dv_h">
+                    <span className="src-dvs">
+                      {(m.roles.dv ?? []).map((d, j) => (
+                        <span className="src-chip" key={refKey(d)} title={refLabel(d, sources)}>{d.column}
+                          <button type="button" aria-label={T("src_ui_dv_remove", { n: d.column })} title={T("src_ui_dv_remove", { n: d.column })}
+                            onClick={() => void save(i, withoutDv(m, j))}>×</button></span>))}
+                      <ColSelect value={null} sources={sources} label={`+ DV – ${names[i]}`} title={T("src_ui_dv_add_h")} empty="+ DV"
+                        testid={`src-dv-${i}`} onPick={(r) => setRole(i, "dv", r)} />
+                    </span>
+                  </DropCell>
+                  <div className="src-lf src-ranges">
+                    <span className="lbl">{T("src_ui_h_ranges")}<LabelHelp text="src_ui_range_h" /></span>
+                    <span className="src-rngs">
+                      <Range norm={m.norm_pv} label="PV" onChange={(v) => void save(i, { ...m, norm_pv: v })} /><span className="small muted">PV</span>
+                      <Range norm={m.norm_mv} label="MV" onChange={(v) => void save(i, { ...m, norm_mv: v })} /><span className="small muted">MV</span>
+                    </span>
+                  </div>
+                  <div className="src-lf">
+                    <span className="lbl">{T("src_ui_cascade")}<LabelHelp text="src_ui_cascade_h" /></span>
+                    <select aria-label={T("src_ui_cascade")} title={T("src_ui_cascade_h")} className="src-casc" value={m.cascade_to ?? ""}
+                      data-testid={`src-casc-${i}`} onChange={(e) => void save(i, { ...m, cascade_to: e.target.value === "" ? null : +e.target.value })}>
+                      <option value="">{T("src_ui_no_cascade")}</option>
+                      {maps.map((_, j) => j !== i && <option key={j} value={j}>{T("src_ui_cascade_to", { n: names[j] })}</option>)}
+                    </select>
+                    {up !== undefined && <span className="ltag ok" title={T("src_ui_cascade_h")}>{T("src_ui_cascade_from", { n: names[up] })}</span>}
+                  </div>
+                  <button type="button" className="btn small src-x" aria-label={T("src_ui_remove_loop", { n: names[i] })}
+                    title={maps.length < 2 ? T("src_ui_remove_last") : T("src_ui_remove_loop_h")} disabled={maps.length < 2 || busy}
+                    data-testid={`src-rm-${i}`} onClick={() => void run(() => act("DELETE", `/loops/${i}`))}>×</button>
+                </div>
+              </div>);
+          })}
         </div>)}
       {!maps.length && <p className="small muted" data-testid="src-loops-empty">{T("src_ui_loops_empty")}</p>}
       <p className="small muted src-tip">{T("src_ui_loops_tip")}</p>

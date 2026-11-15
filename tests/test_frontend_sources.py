@@ -95,10 +95,10 @@ def test_suggest_review_apply(sources_page):
     pg.locator('[data-testid="src-suggest"]').click()
     pg.wait_for_selector('[data-testid="src-proposal"]')
     assert pg.locator('[data-testid="src-prop-table"] tbody tr').count() == 2
-    n_before = pg.locator('[data-testid="src-loops-table"] tbody tr').count()
+    n_before = pg.locator('[data-testid="src-loops-table"] .src-lcard').count()
     pg.locator('[data-testid="src-prop-apply"]').click()
     pg.wait_for_selector('[data-testid="src-proposal"]', state="detached")
-    rows = pg.locator('[data-testid="src-loops-table"] tbody tr')
+    rows = pg.locator('[data-testid="src-loops-table"] .src-lcard')
     assert rows.count() >= n_before
     tags = pg.eval_on_selector_all('[data-testid^="src-tag-"]', "els => els.map(e => e.value)")
     assert "TIC101" in tags and "FIC205" in tags
@@ -119,9 +119,18 @@ def test_edit_role_select_and_drag(sources_page):
     # přetažení sloupce z panelu do buňky DV smyčky
     pg.drag_and_drop('[data-testid="src-col-s1-TIC101.OUT"]', f'[data-testid="src-dv-{i}"]')
     pg.wait_for_selector(f'[data-testid="src-loop-{i}"] .src-chip')
-    # klávesnicová alternativa: „Použít jako…“ aktivní smyčce
-    pg.locator('[data-testid="src-col-s1-TIC101.PV"] select').select_option("sp")
+    # klik na sloupec: nabídka „Přiřadit do smyčky“ (výchozí aktivní smyčka), zvolit smyčku FIC205 a roli SP
+    pg.locator('[data-testid="src-col-s1-TIC101.PV"]').click()
+    pg.wait_for_selector('[data-testid="src-assign"]')
+    assert pg.locator('[data-testid="src-assign-loop"] option').count() == len(tags) + 1          # + nová smyčka
+    pg.select_option('[data-testid="src-assign-loop"]', str(i))
+    assert pg.locator('[data-testid="src-assign-sp"]').get_attribute("aria-pressed") == "false"
+    pg.locator('[data-testid="src-assign-sp"]').click()
+    pg.wait_for_selector('[data-testid="src-assign"]', state="detached")
     pg.wait_for_function("() => document.querySelectorAll('[data-testid=\"src-col-s1-TIC101.PV\"] .src-use').length >= 2")
+    pg.wait_for_function("(s) => document.querySelector(s).value.endsWith('TIC101.PV')", arg=sp)
+    pg.select_option(sp, key_sp)
+    pg.wait_for_function("(s) => document.querySelector(s).value.endsWith('FIC205.SP')", arg=sp)
 
 
 def test_cascade_and_active(sources_page):
@@ -139,10 +148,10 @@ def test_remove_used_source_refused_then_loop_and_source_removed(sources_page):
     pg = sources_page
     pg.locator('[data-testid="src-del-s2"]').click()
     pg.wait_for_selector('[data-testid="src-err"]')                              # zdroj používá smyčka (409)
-    n = pg.locator('[data-testid="src-loops-table"] tbody tr').count()
+    n = pg.locator('[data-testid="src-loops-table"] .src-lcard').count()
     tags = pg.eval_on_selector_all('[data-testid^="src-tag-"]', "els => els.map(e => e.value)")
     pg.locator(f'[data-testid="src-rm-{tags.index("FIC205")}"]').click()
-    pg.wait_for_function("(n) => document.querySelectorAll('[data-testid=\"src-loops-table\"] tbody tr').length < n", arg=n)
+    pg.wait_for_function("(n) => document.querySelectorAll('[data-testid=\"src-loops-table\"] .src-lcard').length < n", arg=n)
     pg.locator('[data-testid="src-del-s2"]').click()
     pg.wait_for_selector('[data-testid="src-row-s2"]', state="detached")
 

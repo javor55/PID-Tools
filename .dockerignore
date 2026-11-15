@@ -14,3 +14,4 @@ dist
 # the built UI comes from the Node stage of Dockerfile.web
 pidtools/api/ui
 frontend/dist
+deploy

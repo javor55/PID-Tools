@@ -83,7 +83,7 @@ def block_ctrl(sc, samp, diffgain, propfac, dfb, deadband, db_mode, mv_lolim, mv
     sc: Scaling; deadband [PV], MV_LoLim / MV_HiLim [MV], mvrate [MV/s], sprate [PV/s], db_mode "cont" / "step".
     """
     return dict(SampleTime=samp, DiffGain=diffgain, PropFacSP=propfac, DiffFbk=dfb,
-                DeadBand=deadband / sc.PR * 100, DbMode="spojité" if db_mode == "cont" else "skokové",
+                DeadBand=deadband / sc.PR * 100, DbMode="cont" if db_mode == "cont" else "step",
                 MV_Lo=float(sc.M(mv_lolim)), MV_Hi=float(sc.M(mv_hilim)), PVFilt=pvfilt,
                 MVRate=mvrate / sc.MR * 100, SPRate=sprate / sc.PR * 100)
 

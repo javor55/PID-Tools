@@ -74,7 +74,7 @@ def router(get_proj):
             raise HTTPException(422, f"unknown export format: {fmt}")
         f = tex.FORMATS[fmt]
         ctx = ws.export_ctx(n)
-        ctx["dec"] = "," if i18n.lang() == "cs" else "."
+        ctx["dec"] = i18n.decimal()
         return Response(tex.export(fmt, ctx), media_type=f"{f['mime']}; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="tuning_set{n}_{fmt}.{f["ext"]}"'})
 

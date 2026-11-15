@@ -20,7 +20,7 @@ interface ProjSub {
   cmp: string | null; setCmp: (id: string | null) => void;       // verze, se kterou se porovnává
   loop: string; setLoop: (l: string) => void;                    // filtr smyčky ("" = všechny)
   status: string; setStatus: (s: string) => void;                // filtr stavu ("" = všechny)
-  lang: "cs" | "en" | null; setLang: (l: "cs" | "en") => void;   // jazyk reportu (null = jako rozhraní)
+  lang: string | null; setLang: (l: string) => void;   // jazyk reportu (null = jako rozhraní)
 }
 export const useProjSub = create<ProjSub>((set) => ({
   sub: "report", setSub: (sub) => set({ sub }),

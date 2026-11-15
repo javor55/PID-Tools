@@ -3,17 +3,17 @@
 import type { components } from "../api/schema";
 import { Help } from "../components/Ui";
 import { type LoopMode, type Quality, useWsQuery } from "../data";
-import { useT } from "../i18n";
+import { decOf, useT } from "../i18n";
 import { useUi } from "../store";
 import "../styles/data.css";
 
 type DataQualityT = components["schemas"]["DataQuality"];
 
-/** Čísla v argumentech textů: čeština má desetinnou čárku, delší reálná čísla se zaokrouhlí na 4 platné číslice. */
+/** Čísla v argumentech textů: desetinný oddělovač podle jazyka, delší reálná čísla se zaokrouhlí na 4 platné číslice. */
 function loc(args: Record<string, unknown>, lang: string): Record<string, unknown> {
   return Object.fromEntries(Object.entries(args).map(([k, v]) => [k,
     typeof v === "number" && Number.isFinite(v) ? (+v.toPrecision(4)).toLocaleString(lang, { maximumFractionDigits: 6 })
-      : typeof v === "string" && lang === "cs" ? v.replace(/(\d)\.(\d)/g, "$1,$2") : v]));
+      : typeof v === "string" && decOf(lang) !== "." ? v.replace(/(\d)\.(\d)/g, `$1${decOf(lang)}$2`) : v]));
 }
 
 const ICON = { ok: "✓", warn: "!", info: "i" } as const;

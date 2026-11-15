@@ -176,18 +176,18 @@ export function offsetOf(source: string, line: number, col: number): number {
   return Math.min(o + Math.max(0, col - 1), source.length);
 }
 
-export const NEW_PROGRAM = `# PID regulátor (ideální) – jeden krok výpočtu
-param Kp = 1.0  "Zesílení"        [-]
-param Ti = 60   "Integrační čas"  [s]  min 0.1
-param Td = 0    "Derivační čas"   [s]
-param N  = 10   "Filtr D"         [-]
+export const NEW_PROGRAM = `# PID controller (ideal) – one calculation step
+param Kp = 1.0  "Gain"             [-]
+param Ti = 60   "Integral time"    [s]  min 0.1
+param Td = 0    "Derivative time"  [s]
+param N  = 10   "D filter"         [-]
 state I  = 0    [%] init MV0 - Kp * (SP - PV) - FF
 
 e   = SP - PV
 d   = lag(Td * ddt(-PV), Td / N)
 v   = Kp * e + I + Kp * d + FF
 MV  = clamp(v, MV_LO, MV_HI)
-I   = I + Kp / Ti * e * dt + (MV - v) * dt / Ti      # zpětný výpočet
+I   = I + Kp / Ti * e * dt + (MV - v) * dt / Ti      # back-calculation
 
 map Kp = Kc
 map Ti = Ti
@@ -196,7 +196,7 @@ map N = N
 `;
 
 export const SNIPPETS: [string, string][] = [
-  ["param", 'param Kx = 1.0 "Popis" [-] min 0\n'],
+  ["param", 'param Kx = 1.0 "Description" [-] min 0\n'],
   ["state", "state X = 0 [%]\n"],
   ["e = SP − PV", "e = SP - PV\n"],
   ["clamp", "MV = clamp(v, MV_LO, MV_HI)\n"],

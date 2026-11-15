@@ -1,0 +1,19 @@
+/* Data › Kvalita dat */
+.dq-loops { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dq-loop { font: inherit; display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--pid-line); background: var(--pid-card);
+  color: var(--pid-text); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.dq-loop[aria-pressed="true"] { border-color: var(--pid-accent); box-shadow: 0 0 0 3px var(--pid-accent-bg); }
+.dq-verdict { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; border-radius: 8px; padding: 12px 14px;
+  border: 1px solid var(--pid-line); background: var(--pid-card); }
+.dq-verdict h3 { margin: 0; font-size: 16px; }
+.dq-verdict.ok { border-color: var(--pid-ok); } .dq-verdict.warn { border-color: var(--pid-warn); } .dq-verdict.err { border-color: var(--pid-err); }
+.dq-big { font-size: 26px; font-weight: 700; line-height: 1; }
+.dq-verdict.ok .dq-big { color: var(--pid-ok); } .dq-verdict.warn .dq-big { color: var(--pid-warn); } .dq-verdict.err .dq-big { color: var(--pid-err); }
+.dq-counts { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.dq-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.dq-chk { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; }
+.dq-ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--pid-soft); }
+.dq-chk.ok .dq-ic { color: var(--pid-ok); } .dq-chk.warn .dq-ic { color: var(--pid-warn); } .dq-chk.err .dq-ic { color: var(--pid-err); }
+.dq-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 1200px) { .dq-two { grid-template-columns: minmax(0, 1fr); } }
+.dq-scroll { max-height: 260px; overflow: auto; }

@@ -34,7 +34,7 @@
   };
 
   function deadband(e, db, mode) {
-    if (db <= 0 || Math.abs(e) >= db) return (db > 0 && mode === "spojité") ? e - Math.sign(e) * db : e;
+    if (db <= 0 || Math.abs(e) >= db) return (db > 0 && (mode === "cont" || mode === "spojité")) ? e - Math.sign(e) * db : e;
     return 0;
   }
   function num(v, d) { return (v === undefined || v === null) ? d : v; }
@@ -44,7 +44,7 @@
     this.m = Math.max(1, Math.round(ctrl.SampleTime / h));
     this.Tc = this.m * h;
     this.lo = num(ctrl.MV_Lo, -Infinity); this.hi = num(ctrl.MV_Hi, Infinity);
-    this.db = num(ctrl.DeadBand, 0); this.dbm = num(ctrl.DbMode, "spojité");
+    this.db = num(ctrl.DeadBand, 0); this.dbm = num(ctrl.DbMode, "cont");                 // "cont" | "step" (starší projekty: "spojité" / "skokové")
     this.b = (ctrl.PropFacSP === undefined || ctrl.PropFacSP === null) ? (ctrl.PropFbk ? 0 : 1)
       : Math.min(Math.max(ctrl.PropFacSP, 0), 1);
     this.dfb = !!ctrl.DiffFbk;

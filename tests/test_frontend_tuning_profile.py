@@ -28,7 +28,8 @@ def _call(server, page, method, path, body=None):
 def prepared(page, server):
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="quality"]').click()
-    page.locator('[data-testid="src-seg"] [data-value="demo"]').click()
+    page.locator('[data-sub="sources"]').click()
+    page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
     j = _call(server, page, "POST", "/workspaces/{wid}/identify", {})
