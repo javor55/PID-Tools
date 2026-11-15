@@ -3441,5 +3441,8 @@
  "toast_close": "Zavřít oznámení",
  "ui_guide_keys": "Klávesnice",
  "app_save": "Uložit",
- "app_save_h": "Uloží projekt do souboru (změny se označí jako uložené)"
+ "app_save_h": "Uloží projekt do souboru (změny se označí jako uložené)",
+ "qs_loading": "Načítání…",
+ "qs_retry": "Zkusit znovu",
+ "qs_recalc": "Přepočítávám…"
 }

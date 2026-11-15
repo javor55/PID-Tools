@@ -1,0 +1,29 @@
+/* Jednotné stavy dotazů (TICKET-007): přepočet (.is-busy), kostra načítání, prázdný stav a chyba. */
+.is-busy { position: relative; }
+/* pruh průběhu nahoře; objeví se až po 300 ms, aby rychlé odpovědi neblikaly */
+.is-busy::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 2; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--pid-accent), transparent) 0 0 / 40% 100% no-repeat;
+  opacity: 0; animation: qs-bar 1.1s linear infinite, qs-show 0s linear 300ms forwards;
+}
+.is-busy > * { opacity: 1; transition: opacity .15s linear 0s; }
+.is-busy > * { animation: qs-dim 0s linear 300ms forwards; }
+@keyframes qs-bar { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+@keyframes qs-show { to { opacity: 1; } }
+@keyframes qs-dim { to { opacity: .6; } }
+@media (prefers-reduced-motion: reduce) {
+  .is-busy::before { animation: qs-show 0s linear 300ms forwards; background-size: 100% 100%;
+    background-image: linear-gradient(var(--pid-accent), var(--pid-accent)); }
+}
+
+.qs-skeleton { display: grid; gap: 8px; padding: 8px 0; }
+.qs-skeleton i { display: block; height: 14px; border-radius: var(--pid-radius); background: var(--pid-soft);
+  animation: qs-pulse 1.4s ease-in-out infinite; }
+.qs-skeleton i:nth-child(2) { width: 80%; }
+.qs-skeleton i:nth-child(3) { width: 60%; }
+@keyframes qs-pulse { 50% { opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .qs-skeleton i { animation: none; } }
+.qs-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.qs-msg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; color: var(--pid-muted); }
+.qs-err { color: var(--pid-err); }
+.recalc { color: var(--pid-muted); margin-left: 8px; }

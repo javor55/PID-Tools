@@ -3441,5 +3441,8 @@
  "toast_close": "Close notification",
  "ui_guide_keys": "Keyboard",
  "app_save": "Save",
- "app_save_h": "Saves the project to a file (marks the changes as saved)"
+ "app_save_h": "Saves the project to a file (marks the changes as saved)",
+ "qs_loading": "Loading…",
+ "qs_retry": "Try again",
+ "qs_recalc": "Recalculating…"
 }
