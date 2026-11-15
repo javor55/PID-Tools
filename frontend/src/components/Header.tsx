@@ -1,15 +1,14 @@
 // Hlavička podle návrhu: název, aktivní smyčka a „+ Další smyčka“, souhrn dat; vpravo Projekt a report, Nastavení a „?“.
 // Pod ní řádek záložek s podtržením (Projekt a report není záložka, otevírá se tlačítkem).
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import { request } from "../api/client";
+import { useEffect, useRef, useState } from "react";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { dateLocale, useLanguages, useT } from "../i18n";
 import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
 import { useSettingsUi } from "../settings/settingsStore";
-import { lastSaved, newProject, useSaveState } from "../start/project";
+import { lastSaved, newProject, pickLoop, saveProjectToast, useSaveState } from "../start/project";
+import { toastError } from "./Toasts";
 import { Seg } from "./Ui";
 
 type LoopsT = components["schemas"]["Loops"];
@@ -48,17 +47,12 @@ const loopLabel = (l: Loop, m: Mapping | undefined, T: ReturnType<typeof useT>) 
 /** Aktivní smyčka (výběr s hlavičkami skupin, stav) a „+ Smyčka“ (otevře Data › Zdroje a smyčky). */
 function Loops() {
   const T = useT();
-  const wid = useUi((s) => s.wid);
   const setDataSub = useUi((s) => s.setDataSub);
   const ws = useWs().data;
-  const qc = useQueryClient();
   const loops = useWsQuery<LoopsT>("loops", "/loops").data;
   const maps = useWsQuery<Mapping[]>("mappings", "/loops/mappings").data;
   const tri = useWsQuery<components["schemas"]["TriageResult"]>("triage", "/triage").data;
-  const pick = async (index: number) => {
-    await request("PUT", `/workspaces/${wid}/loops/active`, { index });
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-  };
+  const pick = pickLoop;                      // stejná cesta jako zkratky Alt+↑ / Alt+↓
   if (!ws?.has_data || !loops) return null;
   const mapOf = (l: Loop) => maps?.find((m) => m.index === l.index);
   const act = loops.loops.find((l) => l.index === loops.active);
@@ -70,7 +64,7 @@ function Loops() {
   return (
     <div className="hloops" role="group" aria-label={T("ui_loops_group")}>
       <select aria-label={T("dk_loop")} title={T("h_loop_sel")} value={loops.active} data-testid="loop-select"
-        onChange={(e) => void pick(+e.target.value)}>
+        onChange={(e) => { pick(+e.target.value).catch(toastError); }}>
         {groups.map((g) => {
           const ls = loops.loops.filter((l) => groupOf(l) === g);
           return ls.length > 0 && (
@@ -108,6 +102,18 @@ function Summary() {
   const t = at ? new Date(at * 1000).toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" }) : "";
   const a = { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t };
   return <span className="hsum" data-testid="data-sum" data-dirty={st?.dirty ? "1" : "0"} title={T("app_hsum_h")}>{T(at ? "app_hsum" : "app_hsum_unsaved", a)}{st?.dirty && at ? " •" : ""}</span>;
+}
+
+/** Tlačítko „Uložit“ (Ctrl+S): primární, když jsou neuložené změny; bez dat nedostupné; chyba jde do toastu. */
+function SaveButton() {
+  const T = useT();
+  const st = useSaveState().data;
+  const [busy, setBusy] = useState(false);
+  const onClick = () => { setBusy(true); void saveProjectToast().finally(() => setBusy(false)); };
+  return (
+    <button type="button" className={st?.dirty ? "hbtn small primary" : "hbtn small"} data-testid="head-save" onClick={onClick}
+      disabled={!st?.has_data || busy} aria-busy={busy} title={`${T("app_save_h")} (Ctrl+S)`}>{T("app_save")}</button>
+  );
 }
 
 /** Nastavení (jazyk, vzhled) jako rozbalovací panel pod tlačítkem. */
@@ -170,6 +176,7 @@ export function Header() {
           <h1>PID Tools</h1>
           <Loops />
           <Summary />
+          <SaveButton />
         </div>
         <div className="hright">
           <NewButton />

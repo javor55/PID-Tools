@@ -19,7 +19,7 @@ type Loops = components["schemas"]["Loops"];
 const TAB_KEY: Record<TabId, string> = {
   data: "data", model: "model", tuning: "tuning", live: "live", apc: "apc", diag: "diag", loops: "audit", project: "project",
 };
-const CARDS = ["steps", "checklist", "tables", "glossary"] as const;
+const CARDS = ["steps", "checklist", "tables", "glossary", "keys"] as const;
 type Card = (typeof CARDS)[number];
 const MARK = { ok: "✓", warn: "!", todo: "–" } as const;
 
@@ -86,6 +86,16 @@ function Tables({ g }: { g: Guide }) {
     <section aria-label={T("ui_guide_tables")} className="g-col" data-testid="guide-tables">
       {g.tables.length === 0 && <p className="muted small">{T("ui_guide_no_tables")}</p>}
       {g.tables.map((t, i) => <div key={i}><h3>{t.title}</h3><Md text={t.md} /></div>)}
+    </section>
+  );
+}
+
+/** Přehled klávesových zkratek (stejný text jako v dk_keys_body, tabulku vykreslí Md). */
+function Keys() {
+  const T = useT();
+  return (
+    <section aria-label={T("ui_guide_keys")} className="g-col" data-testid="guide-keys">
+      <Md text={T("dk_keys_body")} />
     </section>
   );
 }
@@ -195,6 +205,7 @@ export function HelpButton() {
             : card === "steps" ? <Steps g={data} />
             : card === "checklist" ? <Checklist g={data} go={go} />
             : card === "tables" ? <Tables g={data} />
+            : card === "keys" ? <Keys />
             : <Glossary g={data} extra />}
         </div>
         <div className="g-foot">

@@ -1570,7 +1570,7 @@
  "dk_recent_clear": "Clear the list",
  "dk_missing": "The file no longer exists: {f}",
  "dk_keys": "Keyboard shortcuts",
- "dk_keys_body": "| Key | Action |\n|---|---|\n| Ctrl+O | Open data |\n| Ctrl+Shift+O | Open project |\n| Ctrl+S | Save project |\n| Ctrl+P | Export the tuning protocol |\n| Ctrl+1 … Ctrl+7 | Switch tabs |\n| F5 | Calculate (Tuning tab) |\n| F1 | Guide of the current tab |\n| Ctrl+Q | Quit |\n\n**Charts:** mouse wheel = zoom, drag = pan, right drag = zoom an axis, right click = chart menu. Buttons above the chart: cursor with values, measuring cursors (Δt, ΔY), full range, PNG, CSV, copy to clipboard, separate window. Click a legend item to hide or show the curve.\n\nData and project files can also be dragged into the window.",
+ "dk_keys_body": "| Key | Action |\n|---|---|\n| Ctrl+S | Save the project (downloads the project file) |\n| Ctrl+P | Open the Project and report tab |\n| Ctrl+1 … Ctrl+6 | Switch tabs (Data, Model, Tuning, Simulation, APC, Project) |\n| Alt+↑ / Alt+↓ | Previous / next loop of the project |\n| F5 | Calculate (Tuning tab) |\n| F1 | Guide of the current tab |\n\nShortcuts with Ctrl, Alt or F5 also work while typing in a field. While the application settings are open, only Ctrl+S works.",
  "dk_sec_hist": "Tuning history",
  "dk_hist_help": "Every suggestion written to a set is recorded here (also saved in the project). Select a row and return it to a set.",
  "dk_hist_s1": "→ Set 1",
@@ -3438,5 +3438,8 @@
  "apc_set1_note": "Set 2 still has the default values, so APC uses Set 1 (the current PLC values) as the feedback controller wherever Set 2 is mentioned. Write a tuning to Set 2 in the Tuning tab to design APC with it.",
  "err_boundary_title": "Something went wrong in this view",
  "err_boundary_retry": "Try again",
- "toast_close": "Close notification"
+ "toast_close": "Close notification",
+ "ui_guide_keys": "Keyboard",
+ "app_save": "Save",
+ "app_save_h": "Saves the project to a file (marks the changes as saved)"
 }

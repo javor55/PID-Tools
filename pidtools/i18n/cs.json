@@ -1570,7 +1570,7 @@
  "dk_recent_clear": "Vymazat seznam",
  "dk_missing": "Soubor už neexistuje: {f}",
  "dk_keys": "Klávesové zkratky",
- "dk_keys_body": "| Klávesa | Akce |\n|---|---|\n| Ctrl+O | Otevřít data |\n| Ctrl+Shift+O | Otevřít projekt |\n| Ctrl+S | Uložit projekt |\n| Ctrl+P | Export protokolu ladění |\n| Ctrl+1 … Ctrl+7 | Přepnutí záložek |\n| F5 | Vypočítat (záložka Ladění) |\n| F1 | Průvodce aktuální záložky |\n| Ctrl+Q | Konec |\n\n**Grafy:** kolečko myši = zoom, tažení = posun, tažení pravým tlačítkem = zoom osy, pravé tlačítko = menu grafu. Tlačítka nad grafem: kurzor s hodnotami, měřicí kurzory (Δt, ΔY), celý rozsah, PNG, CSV, kopie do schránky, samostatné okno. Kliknutím na položku legendy se křivka skryje nebo zobrazí.\n\nSoubory dat i projektů lze do okna také přetáhnout.",
+ "dk_keys_body": "| Klávesa | Akce |\n|---|---|\n| Ctrl+S | Uložit projekt (stáhne soubor projektu) |\n| Ctrl+P | Otevřít záložku Projekt a report |\n| Ctrl+1 … Ctrl+6 | Přepnutí záložek (Data, Model, Ladění, Simulace, APC, Projekt) |\n| Alt+↑ / Alt+↓ | Předchozí / další smyčka projektu |\n| F5 | Vypočítat (záložka Ladění) |\n| F1 | Průvodce aktuální záložky |\n\nZkratky s Ctrl, Alt a F5 fungují i při psaní do pole. Je-li otevřené nastavení aplikace, funguje jen Ctrl+S.",
  "dk_sec_hist": "Historie ladění",
  "dk_hist_help": "Každý návrh zapsaný do sady se tu zaznamená (ukládá se i do projektu). Vyberte řádek a vraťte ho do sady.",
  "dk_hist_s1": "→ Sada 1",
@@ -3438,5 +3438,8 @@
  "apc_set1_note": "Set 2 má zatím výchozí hodnoty, proto APC všude, kde se mluví o Setu 2, počítá se Setem 1 (aktuální hodnoty z PLC). Pro návrh APC s novým laděním zapiš v záložce Ladění návrh do Setu 2.",
  "err_boundary_title": "V tomto pohledu se něco pokazilo",
  "err_boundary_retry": "Zkusit znovu",
- "toast_close": "Zavřít oznámení"
+ "toast_close": "Zavřít oznámení",
+ "ui_guide_keys": "Klávesnice",
+ "app_save": "Uložit",
+ "app_save_h": "Uloží projekt do souboru (změny se označí jako uložené)"
 }

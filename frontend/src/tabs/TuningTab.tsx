@@ -253,6 +253,13 @@ export function TuningSide() {
   const rob = useRob(preview);
   const m = useMethod(info.data);
   const sigNow = `${m}|${settingsSig(st)}`;
+  // Akce Calculate pro zkratku F5: ref drží vždy aktuální metodu a data, do úložiště se zapíše jen stabilní obálka
+  const calcRef = useRef<() => void>(() => undefined);
+  useEffect(() => { calcRef.current = () => { if (ws?.has_data && info.data) void calc(m); }; });
+  useEffect(() => {
+    useTun.setState({ calc: () => calcRef.current() });
+    return () => useTun.setState({ calc: null });
+  }, []);
   const tried = useRef<string | null>(null);
   // rychlé metody (pravidla) se přepočítají samy, optimalizace (sekundy) až na tlačítko Vypočítat
   useEffect(() => {
@@ -325,7 +332,7 @@ export function TuningSide() {
         {!sug ? <div className="tn-note"><Md text={T("dk_calc_hint")} /></div>
           : stale ? <div className="tn-warn">{T("web_stale")}</div>
           : sug.t ? <div className="tn-note ok">✓ {T("web_calc_done", { t: sug.t })}</div> : null}
-        <PrimaryAction onClick={() => void calc(m)} disabled={busy} testid="calc" title={T("dk_calc_help")}>
+        <PrimaryAction onClick={() => void calc(m)} disabled={busy} testid="calc" title={`${T("dk_calc_help")} (F5)`}>
           {busy ? "…" : T("dk_calc")}</PrimaryAction>
       </SideCard>
 

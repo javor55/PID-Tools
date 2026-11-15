@@ -21,6 +21,7 @@ import { useSettingsUi } from "./settings/settingsStore";
 import { useAppSettingsSync } from "./settings/appSettings";
 import { StartScreen } from "./start/StartScreen";
 import { useAutosave } from "./start/project";
+import { useShortcuts } from "./shortcuts";
 import { useWs } from "./data";
 import { type TabId, TABS, useUi } from "./store";
 
@@ -63,6 +64,7 @@ export default function App() {
   usePendingOpen();
   useAppSettingsSync();
   useAutosave();
+  useShortcuts();
   const ws = useWs();
   const settingsOpen = useSettingsUi((s) => s.open);
   // Start: bez dat v pohledech, které jinak nemají co ukázat (Data › Zdroje a smyčky, Model, Ladění, APC);

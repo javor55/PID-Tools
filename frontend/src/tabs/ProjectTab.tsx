@@ -10,14 +10,14 @@ import { PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { usePatchSettings, useSettings } from "../data";
 import { useLanguages, useT } from "../i18n";
 import { useUi } from "../store";
+import { PROJECT_EXT, projectBaseName, saveAs, saveProject, useSaveOpts } from "../start/project";
 import { useSections } from "./project/api";
 import { JournalMain } from "./project/JournalMain";
 import { JournalSide } from "./project/JournalSide";
 import { STATUSES, useProjSub, useReport } from "./project/state";
 import "../styles/project.css";
 
-/** Přípona souborů projektu: výchozí `.pidproj`, otevřít jde i starší `.json` (obsah je stejný JSON). */
-export const PROJECT_EXT = ".pidproj";
+/** Výběr souboru při otevření projektu: vedle `.pidproj` (PROJECT_EXT ve start/project.ts) jde i starší `.json`. */
 export const PROJECT_ACCEPT = `${PROJECT_EXT},.json,application/json`;
 const PENDING_EVENT = "pidtools:pending-open";      // okno desktopu ho vyvolá po uložení souboru k otevření
 
@@ -65,18 +65,9 @@ function hashOf(s: string): string {
   return `${s.length}:${h}`;
 }
 
-function saveAs(name: string, data: BlobPart, type: string) {
-  const a = document.createElement("a");
-  const url = URL.createObjectURL(new Blob([data], { type }));
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
-
 function useBaseName() {
   const tag = String(useSettings().data?.loop_tag ?? "");
-  const base = (tag || "pidtools").replace(/[^\w.-]+/gu, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "pidtools";
-  return `${base}_${new Date().toISOString().slice(0, 10)}`;
+  return projectBaseName(tag);
 }
 
 export function ProjectMain() {
@@ -136,13 +127,14 @@ function ProjectBox() {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const base = useBaseName();
-  const [withData, setWithData] = useState(true);
+  const withData = useSaveOpts((s) => s.withData);
+  const setWithData = useSaveOpts((s) => s.setWithData);
   const { msg, set: setMsg } = useProjMsg();
 
   async function save() {
     if (!wid) return;
     setMsg(null);
-    try { saveAs(`${base}_projekt${PROJECT_EXT}`, await bytes("GET", `/workspaces/${wid}/project?data=${withData}`), "application/json"); }
+    try { await saveProject({ wid, withData, base }); }
     catch (e) { setMsg({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) }); }
   }
   async function open(f: File | undefined) {

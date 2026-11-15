@@ -39,6 +39,8 @@ button { font: inherit; color: inherit; }
 .hbtn.small { font-size: 12px; padding: 5px 10px; }
 .hbtn:hover { border-color: var(--pid-accent); color: var(--pid-accent); }
 .hbtn[aria-pressed="true"] { border-color: var(--pid-accent); color: var(--pid-accent); background: var(--pid-accent-bg); }
+.hbtn.primary { background: var(--pid-accent); color: #fff; border-color: var(--pid-accent); }
+.hbtn.primary:hover { color: #fff; filter: brightness(1.08); }
 .hbtn:disabled { opacity: .55; cursor: default; }
 .qbtn { font-weight: 600; }
 .tabs { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
