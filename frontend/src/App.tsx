@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { api, ApiError, setLang } from "./api/client";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Toasts } from "./components/Toasts";
 import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
 import { useT } from "./i18n";
@@ -77,11 +79,13 @@ export default function App() {
       {settingsOpen ? <SettingsPage /> : showStart ? <StartScreen compact={cur.id === "data"} /> : <>
       {CONTEXT_TABS.includes(cur.id) && <ContextRow />}
       <div className={cur.id === "live" ? "body body-wide" : "body"}>
+        <ErrorBoundary resetKey={tab + sub}>
         <main className="main" data-testid={`tab-${cur.id}`} data-dsub={cur.id === "data" ? sub : undefined}>
           {cur.id === "data" ? dataView[0] : cur.id === "model" ? <ModelMain /> : cur.id === "tuning" ? <TuningMain />
             : cur.id === "live" ? <LiveMain /> : cur.id === "apc" ? <ApcMain />
             : <ProjectMain />}
         </main>
+        </ErrorBoundary>
         {cur.id !== "live" && <aside className="side" aria-label={T("ui_settings")}>
           <div className="side-all">
             <button type="button" className="link" onClick={() => sideAll(true)} data-testid="side-expand">{T("side_expand_all")}</button>
@@ -94,6 +98,7 @@ export default function App() {
       </div>
       </>}
       <StatusBar />
+      <Toasts />
     </div>
   );
 }
