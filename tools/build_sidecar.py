@@ -21,9 +21,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "pidtools-api"
-# desktop (Qt), webová část a vývojové knihovny sidecar nepotřebuje
-EXCLUDE = ["PySide6", "shiboken6", "pyqtgraph", "streamlit", "tornado", "altair", "pydeck", "watchdog", "pytest",
-           "IPython", "matplotlib", "tkinter", "pyarrow", "playwright", "pidtools.desktop", "pidtools.ui"]
+# Streamlit a vývojové knihovny sidecar nepotřebuje
+EXCLUDE = ["streamlit", "tornado", "altair", "pydeck", "watchdog", "pytest",
+           "IPython", "matplotlib", "tkinter", "pyarrow", "playwright", "pidtools.ui"]
 
 
 def target_triple():

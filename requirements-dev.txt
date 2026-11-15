@@ -2,3 +2,4 @@ pytest>=8
 ruff==0.15.20
 playwright>=1.48            # web UI test in a real browser (tests/test_frontend.py)
 httpx>=0.27                 # FastAPI TestClient (tests/test_api.py)
+asyncua>=1.1,<3         # OPC UA: testy čtení z OPC UA (dříve v requirements-desktop.txt; bez něj se tyto testy přeskočí)
