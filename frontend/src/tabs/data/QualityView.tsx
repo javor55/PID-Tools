@@ -12,6 +12,7 @@ import { dur } from "../../lib/format";
 import { useUi } from "../../store";
 import { DataQualityCard } from "../DataQuality";
 import "../../styles/quality.css";
+import { rowPick } from "../../lib/a11y";
 
 type Summary = components["schemas"]["DqSummary"];
 type Loops = components["schemas"]["Loops"];
@@ -89,7 +90,7 @@ export function QualityMain() {
               <div className="dq-scroll"><table className="ltbl compact">
                 <thead><tr><th>{T("dq_ev_time")}</th><th>{T("dq_ev_kind")}</th><th className="r">{T("dq_ev_size")}</th></tr></thead>
                 <tbody>{s.events.map((e, i) => (
-                  <tr key={i} className="pick" data-testid="dq-event" title={T("dq_events_h")} onClick={() => goto(e.t)}>
+                  <tr key={i} className="pick" data-testid="dq-event" title={T("dq_events_h")} {...rowPick(() => goto(e.t))}>
                     <td className="mono">{t(e.t)}</td>
                     <td>{T(`dq_ev_${e.kind}`, { m: e.text ?? "" })}{e.size != null ? (e.size > 0 ? " ↑" : " ↓") : ""}</td>
                     <td className="r mono">{e.size != null ? (+e.size.toPrecision(3)).toLocaleString() : ""}</td></tr>))}</tbody>

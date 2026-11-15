@@ -4,7 +4,7 @@
   --tn-good-bg: #e6f4ea; --tn-good-bd: #a8d5b5; --tn-good-fg: #2f6f3e;
   --tn-warn-bg: #fef3c7; --tn-warn-bd: #f1d28a; --tn-warn-fg: #92400e;
   --tn-bad-bg: #fde8e8; --tn-bad-bd: #f0b4b4; --tn-bad-fg: #b91c1c;
-  --tn-faint: #9aa5b1; --tn-row: #eef1f5;
+  --tn-faint: var(--pid-muted); --tn-row: #eef1f5;
 }
 :root[data-theme="dark"] {
   --tn-sug: #a78bfa; --tn-dv: #2dd4bf; --tn-cur1: #fbbf24;

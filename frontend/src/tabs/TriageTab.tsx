@@ -13,6 +13,7 @@ import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
 import { LoopsMain, LoopsSide } from "./LoopsTab";
 import "../styles/tri.css";
+import { rowPick } from "../lib/a11y";
 
 export type TriageResult = components["schemas"]["TriageResult"];
 type Row = components["schemas"]["TriageLoop"];
@@ -134,7 +135,7 @@ function Table({ res, f, sel, setSel }: { res: TriageResult; f: string; sel: num
           const go = goOf(r.verdict);
           const stic = met(r, "stic_ratio"), hy = met(r, "hyst_pct");
           return (
-            <tr key={r.index} className={"pick" + (sel === r.index ? " sel" : "")} onClick={() => setSel(r.index)} data-testid={`tri-row-${r.index}`}>
+            <tr key={r.index} className={"pick" + (sel === r.index ? " sel" : "")} {...rowPick(() => setSel(r.index), sel === r.index)} data-testid={`tri-row-${r.index}`}>
               <td><b>{r.tag}</b></td>
               <td className="mono">{num(met(r, "auto_pct"), 3)} %</td>
               <td className="mono">{met(r, "harris") == null ? "–" : `Harris ${num(met(r, "harris"))}`}</td>

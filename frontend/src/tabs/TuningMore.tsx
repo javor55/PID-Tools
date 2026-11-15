@@ -12,6 +12,7 @@ import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
 import { Md } from "../components/Ui";
 import { type CmpRow, type Suggestion, type Unit, useCalc, useTun } from "./tuningState";
+import { rowPick } from "../lib/a11y";
 
 type Scenario = components["schemas"]["Scenario"];
 type FreqSet = components["schemas"]["FreqSet"];
@@ -274,7 +275,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
           <th className="r">{T("iae_load")}</th><th className="r">{T("iae_sp")}</th><th className="r">{T("ovs_col")}</th>
           <th className="r">{T("noise_col", { u: String(st.u_mv || "MV") })}</th><th>{T("use_col")}</th></tr></thead>
           <tbody>{rows ? rows.map((q, i) => (
-            <tr key={i} className={"pick" + (cur(q) ? " sel" : "")} data-testid="cmp-row" onClick={() => void pick(q)}>
+            <tr key={i} className={"pick" + (cur(q) ? " sel" : "")} data-testid="cmp-row" {...rowPick(() => void pick(q), cur(q))}>
               <td>{T("m_" + q.method) + (q.crit ? ` · ${T("crit_" + q.crit)}` : "")} <span className="tn-sub">{q.ctype}</span>
                 {cur(q) && <b className="tn-ok"> ✓</b>}</td>
               <td className="r mono">{f(q.Kc)}</td><td className="r mono">{f(q.Ti)}</td><td className="r mono">{f(q.Td)}</td>
@@ -283,7 +284,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
               <td className="r mono">{q.noise === null ? "–" : f(q.noise * mr, 3)}</td><td className="tn-sub">{use(q)}</td>
             </tr>)) : (info.data?.methods ?? []).map((x) => (
               <tr key={x} className={"pick" + (x === m ? " sel" : "")} data-testid="cmp-pending"
-                onClick={() => void pick({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null, ctype: String(st.ctype ?? "PI") })}>
+                {...rowPick(() => void pick({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null, ctype: String(st.ctype ?? "PI") }), x === m)}>
                 <td>{T("m_" + x)}{x === m && <b className="tn-ok"> ✓</b>}</td>
                 {sug && !sug.fromRow && sug.method === x ? (<>        {/* spočítaný návrh této metody (zbytek až s „Spočítat vše“) */}
                   <td className="r mono" data-testid="cmp-sug">{f(sug.Kc)}</td><td className="r mono">{f(sug.Ti)}</td><td className="r mono">{f(sug.Td)}</td>

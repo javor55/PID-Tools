@@ -20,10 +20,11 @@ function ticks(lo: number, hi: number, n = 5): number[] {
 /** Podbarvené pásmo osy x (úseky dat, doba řízení omezujícím regulátorem); label = číslo / text uprostřed pásma. */
 export interface Band { from: number; to: number; color?: string; label?: string }
 
-export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, testid, xDomain, yDomain, bands }: {
+export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, testid, xDomain, yDomain, bands, title }: {
   series: Series[]; height?: number; xLabel?: string; yLabel?: string; logX?: boolean; testid?: string;
   xDomain?: [number, number]; yDomain?: [number, number];        // pevný rozsah os (v jednotkách dat, bez logX)
   bands?: Band[];                                                // svislá pásma (bez logX)
+  title?: string;                                                // přístupný název grafu (výchozí: názvy řad a popisky os)
 }) {
   const chartH = useUi((st) => st.chartH);
   // šířka podle skutečného místa (výška zůstane zadaná v px – graf se neroztahuje do výšky se šířkou okna)
@@ -72,7 +73,8 @@ export function LineChart({ series, height: heightProp, xLabel, yLabel, logX, te
   const xt = logX ? Array.from({ length: Math.floor(x1) - Math.ceil(x0) + 1 }, (_, i) => 10 ** (Math.ceil(x0) + i)) : ticks(x0, x1);
   return (
     <figure className="chart" data-testid={testid} ref={box}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" role="img">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" role="img"
+        aria-label={title ?? [...series.filter((s) => s.legend !== false).map((s) => s.name), yLabel, xLabel].filter(Boolean).join(", ")}>
         {!logX && bands?.map((b, i) => {
           const a = Math.max(L, sx(b.from)), z = Math.min(W - R, sx(b.to));
           return z > a ? (
