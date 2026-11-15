@@ -140,7 +140,7 @@ def test_cascade_manual_like_desktop(ws):
     assert inp["tci"] is None and inp["tci_default"] == pytest.approx(core.default_tc(ci, pi, samp))
     assert not inp["tci_edited"] and not inp["tco_edited"] and info["impl_text"]
     assert {r["param"] for r in info["rows"]} >= {"inner.Gain", "outer.TI"}
-    a = dict(s.report_record(), name=s.get("loop_tag") or str(s.c_pv))
+    a = dict(s.apc_record(), name=s.get("loop_tag") or str(s.c_pv))
     assert [x["text"] for x in info["checks"]] == [x[1] for x in guides.apc_cascade(a, [])]
     # simulace
     sim = c.post(f"{url}/simulate").json()
@@ -245,10 +245,10 @@ def test_gainsched_fit_job_and_values(ws):
     assert np.allclose([r["values"] for r in info["table"]], [v for _, v, _ in tab])
     assert info["issues"] == core.gs_issues(pts) and info["impl_text"]
     assert [x["text"] for x in info["checks"]] == [x[1] for x in guides.apc_gainsched(
-        dict(s.report_record(), name=s.c_pv), False, info["spread"], pts, False, info["issues"])]
+        dict(s.apc_record(), name=s.c_pv), False, info["spread"], pts, False, info["issues"])]
     # simulace
     sim = c.post(f"{url}/simulate").json()
-    ref = ags.simulate_pv(s.model[0], pts, s.base_ctrl(), s.set_ctrl(2), float(s.get("samp")))
+    ref = ags.simulate_pv(s.model[0], pts, s.base_ctrl(), s.work_ctrl(), float(s.get("samp")))
     f = s.PR / 100
     assert sim["T_end"] == pytest.approx(float(ref["t"][-1]))
     assert [k["iae_sched"] for k in sim["kpis"]] == pytest.approx([x[3] * f for x in ref["iae"]])
@@ -320,14 +320,14 @@ def test_gainsched_er_like_desktop(ws):
     assert (inp["E"], inp["k"], inp["spstep"], inp["d"]) == pytest.approx((round(0.05 * PR, 6), 2.0,
                                                                           round(0.2 * PR, 6), 10.0))
     assert not inp["edited"]
-    set2 = clean(s.set_ctrl(2))
-    assert info["k_max"] == pytest.approx(ags.k_max(code, p, s.set_ctrl(2)))
+    set2 = clean(s.work_ctrl())
+    assert info["k_max"] == pytest.approx(ags.k_max(code, p, s.work_ctrl()))
     rb = core.robustness(code, list(p), dict(set2, Gain=2.0 * set2["Gain"]))
     ms_k = rb["Ms"] if rb["stable"] and np.isfinite(rb["Ms"]) else np.inf
     assert (info["ms_k"] if info["ms_k"] is not None else np.inf) == pytest.approx(ms_k)
     tab = ags.er_table(inp["E"], 2.0, set2, s.get("u_pv") or "PV")
     assert np.allclose([r["values"] for r in info["table"]], [v for _, v, _ in tab])
-    assert [x["text"] for x in info["checks"]] == [x[1] for x in guides.apc_gs_er(dict(s.report_record(),
+    assert [x["text"] for x in info["checks"]] == [x[1] for x in guides.apc_gs_er(dict(s.apc_record(),
                                                                                        name=s.c_pv), ms_k)]
     # změna přes PATCH /settings, reset
     c.patch(f"/workspaces/{wid}/settings", json={"gs_er_E": 3.0, "gs_er_k": 1.5, "gs_er_spstep": 8.0, "gs_er_d": 5.0})
@@ -359,7 +359,7 @@ def test_decouple_like_desktop(two):
     c, wid, proj = two
     url = f"/workspaces/{wid}/apc/decouple"
     (bi, b), = proj.others()
-    a = dict(proj.state.report_record(), name=proj.names()[proj.active])
+    a = dict(proj.state.apc_record(), name=proj.names()[proj.active])
     assert bi == 1
     dz = adec.design(a, b)
     info = c.get(url).json()
@@ -424,7 +424,7 @@ def test_override_like_desktop(two):
     c, wid, proj = two
     url = f"/workspaces/{wid}/apc/override"
     (bi, b), = proj.others()
-    a = dict(proj.state.report_record(), name=proj.names()[proj.active])
+    a = dict(proj.state.apc_record(), name=proj.names()[proj.active])
     for sel in ("min", "max"):
         info = c.get(url, params={"sel": sel}).json()
         step, lim = aov.defaults(a, b, sel)

@@ -94,7 +94,7 @@ def _store(ws):
 
 
 def _a_record(proj):
-    return dict(proj.state.report_record(), name=proj.names()[proj.active])
+    return dict(proj.state.apc_record(), name=proj.names()[proj.active])
 
 
 def _ep(rng):
@@ -479,7 +479,7 @@ def _gs_info(ws, proj):
                checks=_checks(guides.apc_gainsched(a, False, spread, pts, stale, issues)))
     if fitted:
         pts = _gs_tune(ws, inp, pts)
-        set2 = clean(ws.set_ctrl(2))
+        set2 = clean(ws.work_ctrl())
         tab, filled = ags.table(pts, ws.EP, ws.get("u_pv") or "PV")
         names = MODELS[code]["params"]
         out.update(points=[GsPoint(index=i, x=float(ws.EP(q["x"])), u=float(ws.EM(q["u"])), fit=float(q["fit"]),
@@ -505,7 +505,7 @@ def _gs_run(ws):
     if len(pts) < 2:
         raise HTTPException(409, "points not identified")
     pts = _gs_tune(ws, inp, pts)
-    return ags.simulate_pv(ws.model[0], pts, ws.base_ctrl(), ws.set_ctrl(2), float(ws.get("samp")))
+    return ags.simulate_pv(ws.model[0], pts, ws.base_ctrl(), ws.work_ctrl(), float(ws.get("samp")))
 
 
 def _gs_frame(ws, sim):
@@ -582,7 +582,7 @@ def _er_inputs(ws):
 
 
 def _er_set2(ws):
-    return clean(ws.set_ctrl(2))
+    return clean(ws.work_ctrl())
 
 
 def _er_info(ws, proj):
@@ -594,7 +594,7 @@ def _er_info(ws, proj):
     rb = robustness(code, list(p), dict(set2, Gain=inp.k * set2["Gain"]))
     ms_k = rb["Ms"] if rb["stable"] and np.isfinite(rb["Ms"]) else np.inf
     u_pv = ws.get("u_pv") or "PV"
-    return GsErInfo(model=code, integ=False, inputs=inp, k_max=ags.k_max(code, p, ws.set_ctrl(2)), ms_k=_fin(ms_k),
+    return GsErInfo(model=code, integ=False, inputs=inp, k_max=ags.k_max(code, p, ws.work_ctrl()), ms_k=_fin(ms_k),
                     base=Tuned(Kc=float(set2["Gain"]), Ti=float(set2["TI"]), Td=float(set2.get("TD", 0.0))),
                     table=[PointRow(input=nm, values=[_fin(v) for v in vals], unit=u)
                            for nm, vals, u in ags.er_table(inp.E, inp.k, set2, u_pv)],

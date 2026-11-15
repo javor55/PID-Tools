@@ -129,7 +129,7 @@ class Project(SourcesMixin):
     def others(self, include_without_model=False):
         """Ostatní smyčky jako záznamy pro APC (stejný tvar jako ui.loops.loop_data): [(index, záznam)]."""
         names = self.names()
-        return [(i, dict(ls.report_record(), id=i + 1, name=names[i])) for i, ls in enumerate(self.loops)
+        return [(i, dict(ls.apc_record(), id=i + 1, name=names[i])) for i, ls in enumerate(self.loops)
                 if i != self.active and ls.has_data and (include_without_model or ls.model is not None)]
 
     # ---- soubor projektu
@@ -228,7 +228,7 @@ class Project(SourcesMixin):
         act = self.state
         apc = {}
         if act.model is not None:
-            apc["items"] = reco.recommend(act.report_record(), self.others(), None,
+            apc["items"] = reco.recommend(act.apc_record(), self.others(), None,
                                           any(d.get("use") for d in act.ff_state))
 
         def model_data(r):

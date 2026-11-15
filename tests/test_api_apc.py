@@ -89,7 +89,7 @@ def test_ff_simulation_like_desktop(ws):
     c.put(url, json=[{"use": True, "dyn": True}])
     step = c.get(url).json()["dists"][0]["step"]
     code, p, pdl = s.model
-    t, outs = aff.simulate(code, p, pdl, s.set_ctrl(2), ffm.design(code, p, pdl, s.ff_state), 0, step,
+    t, outs = aff.simulate(code, p, pdl, s.work_ctrl(), ffm.design(code, p, pdl, s.ff_state), 0, step,
                            float(s.get("samp")))
     ref = aff.sim_kpis(t, outs, s.PR)
     sim = c.post(f"{url}/simulate", json={"dist": 0}).json()
@@ -146,7 +146,7 @@ def test_smith_like_direct_calls(ws):
     # simulace PID vs Smith s chybou procesu
     body = {"ek": 10, "et": -5, "eth": 20}
     sim = c.post(f"{url}/simulate", json=body).json()
-    ref = asm.simulate(code, p, asm.plant_error(p, 10, -5, 20), s.base_ctrl(), s.set_ctrl(2), "PI", inp["tc"], samp,
+    ref = asm.simulate(code, p, asm.plant_error(p, 10, -5, 20), s.base_ctrl(), s.work_ctrl(), "PI", inp["tc"], samp,
                        r=r)
     f = s.PR / 100
     for k in ("pid", "smith"):
@@ -212,3 +212,17 @@ def test_smith_optimize_job(ws):
     assert post["controller"]["notes"][0]["key"] == "sm_opt_note"
     assert c.post(f"{url}/simulate", json={}).status_code == 200
     c.patch(f"/workspaces/{wid}/settings", json={"apc_sm_method": "SIMC"})
+
+
+def test_apc_uses_set1_while_set2_is_default(ws):
+    """Set 2 s výchozími hodnotami (Gain 1, TI 100) → APC počítá se Setem 1 (hodnoty z PLC); po zápisu Setu 2 s ním."""
+    c, wid, s = ws
+    old = {k: s.get(k) for k in ("set2_gain", "set2_ti", "set2_td")}
+    try:
+        c.patch(f"/workspaces/{wid}/settings", json={"set2_gain": 1.0, "set2_ti": 100.0, "set2_td": 0.0})
+        assert s.set2_empty() and s.work_ctrl() == s.set_ctrl(1) and s.apc_record()["ctrl"] == s.set_ctrl(1)
+        c.patch(f"/workspaces/{wid}/settings", json={"set2_gain": -1.5, "set2_ti": 150.0, "set2_td": 0.0})
+        assert not s.set2_empty() and s.work_ctrl() == s.set_ctrl(2)
+        assert s.report_record()["ctrl"] == s.set_ctrl(2)          # protokol dál ukazuje Set 2 tak, jak je
+    finally:
+        c.patch(f"/workspaces/{wid}/settings", json=old)

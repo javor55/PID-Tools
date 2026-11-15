@@ -140,7 +140,7 @@ def _ff_run(ws, body):
         raise HTTPException(404, "disturbance not found")
     step = _ff_step(ws, body.dist) if body.step is None else float(body.step)
     des = ffm.design(code, p, pdl, ws.ff_state)
-    t, outs = aff.simulate(code, p, pdl, ws.set_ctrl(2), des, body.dist, step, float(ws.get("samp")))
+    t, outs = aff.simulate(code, p, pdl, ws.work_ctrl(), des, body.dist, step, float(ws.get("samp")))
     return t, outs, aff.sim_kpis(t, outs, ws.PR), step
 
 
@@ -237,7 +237,8 @@ def _manual(ws):
     man = ws.get("apc_sm_man")
     if not man and all(ws.get(k) is not None for k in ("apc_sm_mg", "apc_sm_mti", "apc_sm_mtd")):      # projekt z webu
         man = [ws.get("apc_sm_mg"), ws.get("apc_sm_mti"), ws.get("apc_sm_mtd")]
-    man = man or [ws.get("set2_gain", 1.0), ws.get("set2_ti", 100.0), ws.get("set2_td", 0.0)]
+    n = 1 if ws.set2_empty() else 2                     # pracovní sada (Set 1, dokud je Set 2 výchozí)
+    man = man or [ws.get(f"set{n}_gain", 1.0), ws.get(f"set{n}_ti", 100.0), ws.get(f"set{n}_td", 0.0)]
     return [float(x) for x in man]
 
 
@@ -318,7 +319,7 @@ def _smith_run(ws, body):
         raise HTTPException(409, "optimization not run")
     e = [x if x is not None else d for x, d in ((body.ek, inp.ek), (body.et, inp.et), (body.eth, inp.eth))]
     plant = asm.plant_error(p, *e)
-    sim = asm.simulate(code, p, plant, ws.base_ctrl(), ws.set_ctrl(2), inp.ctype, inp.tc, float(ws.get("samp")), r=r)
+    sim = asm.simulate(code, p, plant, ws.base_ctrl(), ws.work_ctrl(), inp.ctype, inp.tc, float(ws.get("samp")), r=r)
     return sim, r
 
 

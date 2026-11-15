@@ -194,9 +194,10 @@ export function useRob(preview: { Kc: number; Ti: number; Td: number } | null) {
     placeholderData: keepPreviousData, queryFn: () => request<RobRow[]>("POST", `/workspaces/${wid}/tuning/robustness`, preview ?? undefined) });
 }
 
-export function RobTable({ rows, dec }: { rows: RobRow[] | undefined; dec: string }) {
+export function RobTable({ rows: all, dec, set2Empty }: { rows: RobRow[] | undefined; dec: string; set2Empty?: boolean }) {
   const T = useT();
   const st = useSettings().data ?? {};
+  const rows = set2Empty ? all?.filter((r) => r.name !== "set2") : all;   // Set 2 ještě bez hodnot – neukazovat
   if (!rows?.length) return null;
   const nm = (n: string) => (n === "sug" ? T("dk_suggest") : n === "set1" ? T("set_1") : T("set_2"));
   const f = (x: number | null | undefined, p = 3) => fnum(x, dec, p);

@@ -87,12 +87,15 @@ export function ApcMain() {
   const ws = useWs().data;
   const id = useUi((s) => s.apcTech);
   const reco = useApc<Recommendation[]>("reco", "/apc/recommend");
+  const tun = useWsQuery<components["schemas"]["TuningInfo"]>("tuning", "/tuning", !!ws?.has_data);
+  const set2Empty = !!tun.data?.sets.find((x) => x.n === 2)?.placeholder;
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   const tech = technique(id);
   const Main = tech.Main;
   return (
     <div className="stack apc-main">
       <RecoCard />
+      {set2Empty && <div className="tn-info small" data-testid="apc-set1-note">{T("apc_set1_note")}</div>}
       <Tabs rec={new Set((reco.data ?? []).filter((r) => r.status === "rec").map((r) => r.kind))} />
       {tech.intro && (
         <p className="apc-intro small muted" data-testid="apc-intro">

@@ -78,6 +78,10 @@ class ProjectMixin:
                     c_pv=self.c_pv, c_mv=self.c_mv, c_sp=self.c_sp, c_d=list(self.c_d), pv_rng=(self.pv_lo, self.pv_hi),
                     mv_rng=(self.mv_lo, self.mv_hi), u_pv=self.get("u_pv", ""), u_mv=self.get("u_mv", ""))
 
+    def apc_record(self):
+        """Záznam smyčky pro APC: jako report_record, regulátor = pracovní sada (Set 1, dokud je Set 2 výchozí)."""
+        return dict(self.report_record(), ctrl=self.work_ctrl())
+
     def report_html(self, meta, sections, chart_mode="inline"):
         from .. import report
         from ..apc import recommend as reco

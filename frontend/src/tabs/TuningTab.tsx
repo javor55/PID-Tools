@@ -75,7 +75,7 @@ export function TuningMain() {
         <div className="tn-barrow">
           <Seg<View> value={view} options={["time", "freq", "all"]} onChange={(v) => set({ view: v })} label={T("tn_view")}
             fmt={(v) => T("tn_view_" + v)} testid="tun-view" help="h_tn_view" />
-          <span className="tn-cmp" dangerouslySetInnerHTML={{ __html: T("tn_cmp_line", { a: T("dk_suggest"), b: T("set_2") }) }} />
+          <span className="tn-cmp" dangerouslySetInnerHTML={{ __html: T("tn_cmp_line", { a: T("dk_suggest"), b: T(info.data.sets.find((x) => x.n === 2)?.placeholder ? "set_1" : "set_2") }) }} />
           <div className="tn-right tn-axis">
             <span>{T("ui_tuning_axis")}</span>
             <select value={unit} aria-label={T("time_unit")} title={T("h_chart_tunit")} data-testid="tun-unit" onChange={(e) => set({ unit: e.target.value as Unit })}>
@@ -363,7 +363,7 @@ export function TuningSide() {
 
       <SideCard title={T("tn_sec_rob")} help={T("ui_tuning_help_rob")} testid="card-robust">
         <RobTiles freq={freq.data} sug={!!sug} dec={dec} set2Empty={!!info.data.sets.find((x) => x.n === 2)?.placeholder} />
-        <RobTable rows={rob.data} dec={dec} />
+        <RobTable rows={rob.data} dec={dec} set2Empty={!!info.data.sets.find((x) => x.n === 2)?.placeholder} />
         <label className="tn-check" title={T("h_robust_on")}>
           <input type="checkbox" checked={robust} data-testid="sim-robust" onChange={(e) => set({ robust: e.target.checked })} /> {T("robust_on")}</label>
         <label className="tn-check" title={T("h_spread_on")}>

@@ -58,7 +58,7 @@ export function ModelDetails({ model }: { model: ModelState }) {
   return (
     <div className="grid2">
       <div className="card" data-testid="validation">
-        <h3>{T("val_title")}</h3>
+        <h3>{T("val_sum_title")}</h3>
         {m ? (
           <table className="tbl"><tbody>
             <tr><td>FIT</td><td className="mono">{m.FIT?.toFixed(1)} %</td></tr>

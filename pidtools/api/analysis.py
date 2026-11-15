@@ -107,7 +107,7 @@ def router(get_proj):
             raise HTTPException(409, "no model")
         ts, pv, mv, dv = ws.segment()
         spread = reco.nl_spread(ws.model[0], ws.model[1], ws.model[2], ts, pv, mv, dv, ws.grid.Ts)
-        items = reco.assess(ws.report_record(), p.others(), spread, any(d.get("use") for d in ws.ff_state))
+        items = reco.assess(ws.apc_record(), p.others(), spread, any(d.get("use") for d in ws.ff_state))
         return [Recommendation(kind=k, status=st, text=t, other=o) for k, st, t, o in items]
 
     @r.post("/report", response_class=Response,

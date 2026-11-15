@@ -3433,5 +3433,7 @@
  "rp_set2_empty": "Set 2 (nové parametry) zatím není zadaný – v záložce Ladění spočítejte návrh a zapište ho do Set 2.",
  "ui_model_params": "Parametry modelu",
  "dq_seg_title": "Aktuální úsek identifikace (záložka Model)",
- "apc_loop_nomodel": "Smyčka {n} zatím nemá identifikovaný model – vyber ji v hlavičce a nafituj model v záložce 2 · Model."
+ "apc_loop_nomodel": "Smyčka {n} zatím nemá identifikovaný model – vyber ji v hlavičce a nafituj model v záložce 2 · Model.",
+ "val_sum_title": "Souhrn shody modelu",
+ "apc_set1_note": "Set 2 má zatím výchozí hodnoty, proto APC všude, kde se mluví o Setu 2, počítá se Setem 1 (aktuální hodnoty z PLC). Pro návrh APC s novým laděním zapiš v záložce Ladění návrh do Setu 2."
 }

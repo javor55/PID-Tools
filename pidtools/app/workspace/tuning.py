@@ -47,6 +47,14 @@ class TuningMixin:
         return set_ctrl(self.base_ctrl(), float(self.get(f"set{n}_gain")), float(self.get(f"set{n}_ti")),
                         float(self.get(f"set{n}_td")), ff, ffll)
 
+    def set2_empty(self):
+        """Set 2 má ještě výchozí hodnoty (Gain 1, TI 100, TD 0) – nebyl zadán ani převzat z návrhu."""
+        return tun.is_placeholder(float(self.get("set2_gain")), float(self.get("set2_ti")), float(self.get("set2_td")))
+
+    def work_ctrl(self):
+        """Pracovní sada pro APC a simulace: Set 2; dokud je Set 2 výchozí, Set 1 (hodnoty z PLC)."""
+        return self.set_ctrl(1 if self.set2_empty() else 2)
+
     # ---- regulátor smyčky (profil): sady se ukládají kanonicky (Kc, Ti, Td), v jednotkách bloku se zobrazují / zadávají
     def ranges(self):
         return dict(pv_range=(float(self.pv_lo), float(self.pv_hi)), mv_range=(float(self.mv_lo), float(self.mv_hi)))

@@ -67,7 +67,7 @@ def test_split_matches_app(ws, mode):
     bstar = asr.balanced(ga[1][0], gb[1][0])
     assert d["bstar"] == pytest.approx(bstar) and d["valve_b"]["values"] == pytest.approx(gb[1])
     assert len(d["valve_a"]["params"]) == len(ga[1])
-    ctrl = s.set_ctrl(2)
+    ctrl = s.work_ctrl()
     for key, b in (("now", 40.0), ("new", bstar)):
         h = asr.halves(ga, gb, ctrl, b, mode)
         for half, ref in zip(("lower", "upper"), h):
@@ -87,7 +87,7 @@ def test_split_simulate_and_curves(ws):
     gb = asr.valve_b(s.model, 45.0)
     ga = asr.default_a(gb, "opposite")
     bstar = asr.balanced(ga[1][0], gb[1][0])
-    runs, amp = asr.simulate(ga, gb, s.set_ctrl(2), 45.0, bstar, "opposite", 1.5, float(s.get("samp")))
+    runs, amp = asr.simulate(ga, gb, s.work_ctrl(), 45.0, bstar, "opposite", 1.5, float(s.get("samp")))
     sim = c.post(f"{url}/simulate", json=body).json()
     assert sim["amp"] == pytest.approx(amp) and sim["bstar"] == pytest.approx(bstar)
     assert sim["T_end"] == pytest.approx(runs["new"][0][-1])
@@ -134,15 +134,15 @@ def test_vpc_matches_app(ws):
     g1 = (s.model[0], list(s.model[1]))
     g2 = avpc.default_mv2(g1)
     assert info["defaults"] == dict(mv2=pytest.approx(g2[1]), sp=50.0, factor=5.0, d=35.0)
-    cv, p, tc = avpc.tune_vpc(g1, g2, s.set_ctrl(2), s.base_ctrl(), 5.0)
+    cv, p, tc = avpc.tune_vpc(g1, g2, s.work_ctrl(), s.base_ctrl(), 5.0)
     d = info["design"]
     assert d["controller"] == pytest.approx(dict(Kc=cv["Gain"], Ti=cv["TI"], Td=cv["TD"]))
     assert d["surrogate"]["values"] == pytest.approx(p) and d["tc"] == pytest.approx(tc)
-    assert d["loop_time"] == pytest.approx(avpc.loop_time(g1, s.set_ctrl(2)))
+    assert d["loop_time"] == pytest.approx(avpc.loop_time(g1, s.work_ctrl()))
     assert d["mv2"]["code"] == s.model[0] and "{" not in d["impl_text"]
     body = {"mv2": [g2[1][0] * 1.5, *g2[1][1:]], "sp": 60, "factor": 8, "d": -20}
     g2b = (g1[0], body["mv2"])
-    cv, p, tc = avpc.tune_vpc(g1, g2b, s.set_ctrl(2), s.base_ctrl(), 8.0)
+    cv, p, tc = avpc.tune_vpc(g1, g2b, s.work_ctrl(), s.base_ctrl(), 8.0)
     d2 = c.post(f"{url}/design", json=body).json()
     assert d2["controller"]["Kc"] == pytest.approx(cv["Gain"]) and d2["tc"] == pytest.approx(tc)
     assert d2["controller"]["Kc"] != pytest.approx(d["controller"]["Kc"])
@@ -154,8 +154,8 @@ def test_vpc_simulate_and_curves(ws):
     body = {"sp": 55, "factor": 6, "d": 25}
     g1 = (s.model[0], list(s.model[1]))
     g2 = avpc.default_mv2(g1)
-    cv, _, _ = avpc.tune_vpc(g1, g2, s.set_ctrl(2), s.base_ctrl(), 6.0)
-    runs = avpc.simulate(g1, g2, s.set_ctrl(2), cv, 25.0, 55.0, float(s.get("samp")))
+    cv, _, _ = avpc.tune_vpc(g1, g2, s.work_ctrl(), s.base_ctrl(), 6.0)
+    runs = avpc.simulate(g1, g2, s.work_ctrl(), cv, 25.0, 55.0, float(s.get("samp")))
     sim = c.post(f"{url}/simulate", json=body).json()
     assert sim["T_end"] == pytest.approx(runs["on"][0][-1])
     assert sim["controller"]["Kc"] == pytest.approx(cv["Gain"])
@@ -183,7 +183,7 @@ def test_ratio_manual_matches_app(ws):
     assert [x["state"] for x in info["design"]["checks"]] == [x[0] for x in guides.apc_ratio(
         dict(name=s.c_pv, model=s.model, c_mv=s.c_mv), 0)]
     body = {"R": 2.0, "step": -10.0}
-    runs = aratio.simulate(gf, ga, s.set_ctrl(2), s.set_ctrl(2), 2.0, -10.0, float(s.get("samp")))
+    runs = aratio.simulate(gf, ga, s.work_ctrl(), s.work_ctrl(), 2.0, -10.0, float(s.get("samp")))
     sim = c.post(f"{url}/simulate", json=body).json()
     assert sim["T_end"] == pytest.approx(runs["cross"][0][-1])
     for k in ("plain", "cross"):
@@ -232,7 +232,7 @@ def test_rga_single_loop(two):
 def test_rga_matches_app(two):
     c, wid, proj, _ = two
     info = c.get(f"/workspaces/{wid}/apc/rga").json()
-    recs = [dict(proj.state.report_record(), name=proj.names()[0])] + [rec for _, rec in proj.others()]
+    recs = [dict(proj.state.apc_record(), name=proj.names()[0])] + [rec for _, rec in proj.others()]
     assert len(recs) == 2
     ref = rgan.analyse(recs)
     assert info["ready"] and info["names"] == ref["names"] and info["mvs"] == ref["mvs"]
@@ -254,7 +254,7 @@ def test_ratio_air_from_loop(two):
     assert info["design"]["air"]["values"] == pytest.approx(other.model[1])
     assert info["defaults"]["air"] is None and info["defaults"]["air_loop"] == 1
     gf = (s.model[0], list(s.model[1]))
-    runs = aratio.simulate(gf, (other.model[0], list(other.model[1])), s.set_ctrl(2), other.set_ctrl(2), 1.2, 15.0,
+    runs = aratio.simulate(gf, (other.model[0], list(other.model[1])), s.work_ctrl(), other.set_ctrl(2), 1.2, 15.0,
                            float(s.get("samp")))
     sim = c.post(f"{url}/simulate", json={"air_loop": 1}).json()
     for k in ("plain", "cross"):

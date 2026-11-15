@@ -3433,5 +3433,7 @@
  "rp_set2_empty": "Set 2 (new parameters) has not been entered yet – calculate a suggestion in the Tuning tab and write it to Set 2.",
  "ui_model_params": "Model parameters",
  "dq_seg_title": "Current identification segment (Model tab)",
- "apc_loop_nomodel": "Loop {n} has no identified model yet – select it in the header and fit a model in tab 2 · Model."
+ "apc_loop_nomodel": "Loop {n} has no identified model yet – select it in the header and fit a model in tab 2 · Model.",
+ "val_sum_title": "Fit summary",
+ "apc_set1_note": "Set 2 still has the default values, so APC uses Set 1 (the current PLC values) as the feedback controller wherever Set 2 is mentioned. Write a tuning to Set 2 in the Tuning tab to design APC with it."
 }

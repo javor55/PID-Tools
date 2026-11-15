@@ -158,7 +158,7 @@ def _split_design(proj, body):
     ws = proj.state
     ga, gb = _split_models(ws, body)
     bstar = asr.balanced(ga[1][0], gb[1][0])
-    ctrl = ws.set_ctrl(2)
+    ctrl = ws.work_ctrl()
     up1 = asr.eff_gains(ga[1][0], gb[1][0], bstar, body.mode)[1]
     return SplitDesign(mode=body.mode, b0=body.b0, gap=body.gap, valve_a=_model_info(ga), valve_b=_model_info(gb),
                        bstar=bstar, corr=float(ws.model[1][0] / up1 if up1 else 1.0),
@@ -171,7 +171,7 @@ def _split_design(proj, body):
 def _split_run(ws, body):
     ga, gb = _split_models(ws, body)
     bstar = asr.balanced(ga[1][0], gb[1][0])
-    runs, amp = asr.simulate(ga, gb, ws.set_ctrl(2), body.b0, bstar, body.mode, body.gap, float(ws.get("samp")))
+    runs, amp = asr.simulate(ga, gb, ws.work_ctrl(), body.b0, bstar, body.mode, body.gap, float(ws.get("samp")))
     return runs, amp, bstar
 
 
@@ -223,7 +223,7 @@ class VpcSim(BaseModel):
 def _vpc_tune(ws, body):
     g1 = (ws.model[0], list(ws.model[1]))
     g2 = _own_model(ws, body.mv2, "mv2") or avpc.default_mv2(g1)
-    cv, p, tc = avpc.tune_vpc(g1, g2, ws.set_ctrl(2), ws.base_ctrl(), body.factor)
+    cv, p, tc = avpc.tune_vpc(g1, g2, ws.work_ctrl(), ws.base_ctrl(), body.factor)
     return g1, g2, cv, p, tc
 
 
@@ -232,14 +232,14 @@ def _vpc_design(proj, body):
     g1, g2, cv, p, tc = _vpc_tune(ws, body)
     return VpcDesign(mv2=_model_info(g2), controller=Pid(Kc=float(cv["Gain"]), Ti=float(cv["TI"]), Td=float(cv["TD"])),
                      surrogate=ModelInfo(code="P1D", params=list(MODELS["P1D"]["params"]), values=[float(x) for x in p]),
-                     tc=float(tc), loop_time=float(avpc.loop_time(g1, ws.set_ctrl(2))),
+                     tc=float(tc), loop_time=float(avpc.loop_time(g1, ws.work_ctrl())),
                      impl_text=T("g_impl_vpc", sp=f"{body.sp:.3g}", g=f"{cv['Gain']:.4g}", ti=f"{cv['TI']:.4g}"),
                      checks=_checks(guides.apc_actuators(_rec_a(proj), "vpc")))
 
 
 def _vpc_run(ws, body):
     g1, g2, cv, _, _ = _vpc_tune(ws, body)
-    return cv, avpc.simulate(g1, g2, ws.set_ctrl(2), cv, body.d, body.sp, float(ws.get("samp")))
+    return cv, avpc.simulate(g1, g2, ws.work_ctrl(), cv, body.d, body.sp, float(ws.get("samp")))
 
 
 def _vpc_frame(ws, runs):
@@ -295,13 +295,13 @@ def _ratio_air(proj, body):
     ws = proj.state
     gf = (ws.model[0], list(ws.model[1]))
     if body.air_loop is None:
-        return (_own_model(ws, body.air, "air") or aratio.default_air(gf)), ws.set_ctrl(2)
+        return (_own_model(ws, body.air, "air") or aratio.default_air(gf)), ws.work_ctrl()
     if body.air is not None:
         raise HTTPException(422, "air and air_loop are mutually exclusive")
     rec = dict(proj.others()).get(body.air_loop)
     if rec is None:
         raise HTTPException(404, "loop not found or without model")
-    return (rec["model"][0], list(rec["model"][1])), proj.loops[body.air_loop].set_ctrl(2)
+    return (rec["model"][0], list(rec["model"][1])), proj.loops[body.air_loop].work_ctrl()
 
 
 def _ratio_design(proj, body):
@@ -317,7 +317,7 @@ def _ratio_run(proj, body):
     ws = proj.state
     ga, ctrl_a = _ratio_air(proj, body)
     gf = (ws.model[0], list(ws.model[1]))
-    return aratio.simulate(gf, ga, ws.set_ctrl(2), ctrl_a, body.R, body.step, float(ws.get("samp")))
+    return aratio.simulate(gf, ga, ws.work_ctrl(), ctrl_a, body.R, body.step, float(ws.get("samp")))
 
 
 def _ratio_frame(runs, R):
@@ -346,7 +346,7 @@ class RgaInfo(BaseModel):
 
 def _rga_records(proj):
     pr = proj.state
-    return [dict(pr.report_record(), name=_loop_name(proj))] + [rec for _, rec in proj.others()]
+    return [dict(pr.apc_record(), name=_loop_name(proj))] + [rec for _, rec in proj.others()]
 
 
 def _rga_info(proj):
