@@ -2,6 +2,7 @@
 
 ## 4.0.0 beta 3 – přestavba záložky Data, anglické rozhraní, rychlejší načítání
 
+- Odstraněno (TICKET-010): staré **rozhraní v Qt** (`pidtools/desktop`, PySide6 + pyqtgraph) včetně testů, `requirements-desktop.txt`, `tools/build_desktop.py`, `tools/pid_tools_desktop.py` a workflow `offline-package.yml`; desktopová aplikace je okno Tauri (`desktop/`) nad API. `asyncua` (testy OPC UA) přesunut do `requirements-dev.txt`.
 - **Přestavba záložky Data** (docs/cs/navrh-data.md): *Zdroje a smyčky* jsou jediné místo pro úpravu smyček (klik na
   sloupec → přiřazení do smyčky a role nebo nová smyčka; karty smyček ve dvou řádcích; ukázková data a nastavení čtení
   v Souborech). *Trendy* běží na sdíleném prohlížeči (panely, zoom X / Y, zpět / vpřed, události, tabulka, CSV / PNG,

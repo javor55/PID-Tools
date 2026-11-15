@@ -2,6 +2,7 @@
 
 ## 4.0.0 beta 3 – Data tab redesign, English UI, faster loading
 
+- Removed (TICKET-010): the old **Qt desktop interface** (`pidtools/desktop`, PySide6 + pyqtgraph) with its tests, `requirements-desktop.txt`, `tools/build_desktop.py`, `tools/pid_tools_desktop.py` and the workflow `offline-package.yml`; the desktop application is the Tauri window (`desktop/`) over the API. `asyncua` (OPC UA tests) moved to `requirements-dev.txt`.
 - **Data tab redesign** (docs/cs/navrh-data.md): *Sources & loops* is the only place to edit loops (click a column → assign it
   to a loop and role or create a new loop from it; two-row loop cards; demo data and read settings in Files). *Trends* run on
   the shared viewer (panels, zoom X / Y, back / forward, events, table, CSV / PNG, computed signals) with the signal list in

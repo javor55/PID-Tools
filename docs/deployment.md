@@ -40,30 +40,20 @@ or have the libraries installed by your IT.
 
 ## Offline PC (USB)
 
-For a PC without internet there is a **Windows (x64)** download. It contains everything it needs (Python,
-libraries, the application); no internet and no admin rights are needed. Download them on a PC with internet from
-the repository's GitHub **Releases** or from the latest run of the *Offline package (Windows)* workflow (*Actions*
-tab › run › *Artifacts*; an artifact is a ZIP that contains the package files).
-
-**Desktop application** (window, no browser, no network port) – a classic Windows application with its icon:
+For a PC without internet there is a **Windows (x64)** installer of the desktop application (Tauri window with the
+bundled API, no browser and no network port). It contains everything it needs; no admin rights are needed. Download it
+on a PC with internet from the repository's GitHub **Releases** or from the latest run of the *Desktop (Windows)*
+workflow (*Actions* tab › run › *Artifacts*).
 
 - `PID-Tools-<version>-setup.exe` – installer for the current user (no admin rights): installs to
-  `%LOCALAPPDATA%\Programs\PID Tools`, adds PID Tools to the Start menu (optionally to the desktop) and to
-  *Settings › Apps* for uninstalling. Start **PID Tools** from the Start menu.
-- `PID-Tools-<version>-desktop-win64-portable.zip` – the same without installing: unzip (e.g. to a USB stick or
-  `C:\Tools`) and run **`PID Tools.exe`**. A data file or a project can be dropped on the exe to open it.
+  `%LOCALAPPDATA%\Programs\PID Tools`, adds PID Tools to the Start menu and to *Settings › Apps* for uninstalling.
+  Start **PID Tools** from the Start menu. A data file or a project (`.pidproj`) opens by double-click.
+- `PID-Tools-<version>-setup-offline.exe` – the same with the WebView2 runtime embedded (closed networks).
+- `PID-Tools-<version>-x64.msi` – MSI for administrators (silent: `msiexec /i … /qn`).
 
-Windows 10 or 11 (x64). To remove the portable versions delete the folder; to update replace it (or run a newer
-installer). Project files are interchangeable between the desktop and the web app.
-
-**Building the packages yourself** (Windows PC with internet and Python 3.11):
-```bash
-pip install -r requirements.txt -r requirements-desktop.txt pyinstaller
-python tools/build_desktop.py   # -> dist/PID Tools/PID Tools.exe, portable ZIP, installer (needs Inno Setup 6)
-```
-The workflow `.github/workflows/offline-package.yml` does the same on GitHub: it builds the desktop on Windows, tests it
-(the exe runs a self-test with `--smoke`) and publishes it as an artifact; for a version tag (`v*`) it attaches it
-to a release. The Tauri desktop with the bundled API (`desktop/`) is built by `desktop.yml` / `sidecar.yml`.
+Windows 10 or 11 (x64). To update run a newer installer. Project files are interchangeable between the desktop and
+the web app. The packages are built by `release.yml` (on a version tag) and `desktop.yml` / `sidecar.yml` (see
+`desktop/README.md`).
 
 ## Internal server
 

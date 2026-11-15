@@ -1,14 +1,14 @@
 # Architecture
 
 PID Tools is split into three layers. The aim is that the same computations and the same workflow can be used
-by more than one frontend – today the React web UI over the FastAPI API (also the Tauri desktop window) and the Qt desktop for engineering stations. The old Streamlit web app was removed from `main` (M28) and lives on in the branch `streamlit`.
+by more than one frontend – today the React web UI over the FastAPI API (also the Tauri desktop window for engineering stations). The former Qt desktop (`pidtools/desktop`) was removed (TICKET-010). The old Streamlit web app was removed from `main` (M28) and lives on in the branch `streamlit`.
 
 A plan to replace both frontends with one TypeScript UI over a Python API (web and fully offline desktop) is in
 [docs/cs/plan-jednotne-ui.md](cs/plan-jednotne-ui.md) (Czech), milestones in [docs/cs/milniky.md](cs/milniky.md).
 
 ```
-frontend   pidtools/api + frontend/ (FastAPI + React)   pidtools/desktop (Qt)
-              │                                   │
+frontend   pidtools/api + frontend/ (FastAPI + React; Tauri window in desktop/)
+              │
 application   pidtools/app  – workflow, project format, report      (no UI framework)
               │
 core          pidtools/core – identification, tuning, simulation, APC  (numpy / scipy)
@@ -77,7 +77,7 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 ## Web frontend (`pidtools/api`, `frontend/`)
 
 The React UI (`frontend/`, Vite) talks to the FastAPI API (`pidtools/api`, `/api/v1`); `npm run build` writes it to
-`pidtools/api/ui`, which the API serves. The browser JS shared with the Qt desktop lives in `pidtools/ui/static`
+`pidtools/api/ui`, which the API serves. The browser JS shared with the frontend lives in `pidtools/ui/static`
 (record viewer, trend, live simulation `live_engine.js` = port of `core/simulation.py`, controller engine
 `ctrl_engine.js`; checked by `tests/test_live_js.py`, `test_viewer_js.py`, `test_ctrl_engine_js.py`) and is imported
 by `frontend/` from there (no Python in `pidtools/ui` any more).
@@ -85,9 +85,9 @@ by `frontend/` from there (no Python in `pidtools/ui` any more).
 Shared modules of the application layer: `app.frequency` (Bode, Nyquist, sensitivity), `app.closedloop`
 (identification with the loop in AUTO), `app.audit` (loop overview), `app.apc.splitrange`, `app.apc.vpc`,
 `app.apc.ratio`, `app.apc.rgan` and `app.opc` (OPC UA, read only; optional dependency `asyncua`, part of
-`requirements-desktop.txt`).
+`requirements-dev.txt`, tests only).
 
-## Desktop frontend (`pidtools/desktop`)
+## Application state (`pidtools.app.workspace`)
 
 The state lives in the application layer, **`pidtools.app.workspace`**:
 - `Workspace` holds one loop: data, columns, ranges, identification segment, models, PIDConL block, parameter sets,
@@ -96,16 +96,9 @@ The state lives in the application layer, **`pidtools.app.workspace`**:
 - It is split by area into mixins: `data`, `ident`, `tuning`, `analysis` and `project`.
 - `workspace.loops.Project` holds the loops of a project over one data file.
 
-Both have no UI dependency. They are used by the desktop (`desktop/state.py` `LoopState` and `desktop/project.py`
-are aliases), by the golden cases and later by the API. The windows (`main.py`, `tabs/`) only read and change the
-state; identification and optimizations run in a background thread (`widgets.run_task`). Charts use
-pyqtgraph. Start: `python -m pidtools.desktop`.
-
-Every tab is a `layout.Workspace`: the main area on the left (`main` – charts, tables) and a settings panel on the
-right (`section()` adds a collapsible `layout.Section`; expanded state and panel width are stored in `QSettings`).
-Charts are `chartbox.ChartBox` (one or more plots with a shared time axis, cursor read-out, measuring cursors,
-PNG / CSV export, detachable window); `widgets.plot()` and `widgets.stack()` create them.
+Both have no UI dependency. They are used by the API (`pidtools/api`) and by the golden cases; long computations
+run as jobs (`app/jobs.py`).
 
 ## Deployment
 
-The web is one container (`Dockerfile.web`: Node builds the UI, Python 3.11 runs `pidtools.api`), see `docs/deployment.md`. The Tauri desktop (`desktop/`) packs the API as a PyInstaller sidecar (`tools/build_sidecar.py`). Desktop-only dependencies (Qt) are in `requirements-desktop.txt`.
+The web is one container (`Dockerfile.web`: Node builds the UI, Python 3.11 runs `pidtools.api`), see `docs/deployment.md`. The Tauri desktop (`desktop/`) packs the API as a PyInstaller sidecar (`tools/build_sidecar.py`). 

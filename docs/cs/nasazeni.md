@@ -35,30 +35,19 @@ nechte knihovny nainstalovat správcem.
 
 ## Offline PC a inženýrská stanice (USB)
 
-Pro PC bez internetu je soubor ke stažení pro **Windows (x64)**. Obsahuje vše potřebné (Python, knihovny,
-aplikaci); není potřeba internet ani práva správce. Stáhněte jej na PC s internetem z **Releases** repozitáře na
-GitHubu nebo z posledního běhu workflow *Offline package (Windows)* (záložka *Actions* › běh › *Artifacts*;
-artefakt je ZIP, ve kterém jsou soubory balíčku).
-
-**Desktopová aplikace** (okno, bez prohlížeče, bez síťového portu) – klasická aplikace pro Windows s vlastní ikonou:
+Pro PC bez internetu je instalátor desktopové aplikace pro **Windows (x64)** (okno Tauri s přibaleným API, bez
+prohlížeče a bez síťového portu). Obsahuje vše potřebné; nejsou potřeba práva správce. Stáhněte jej na PC s internetem
+z **Releases** repozitáře na GitHubu nebo z posledního běhu workflow *Desktop (Windows)* (záložka *Actions* › běh ›
+*Artifacts*).
 
 - `PID-Tools-<verze>-setup.exe` – instalátor pro přihlášeného uživatele (bez práv správce): nainstaluje do
-  `%LOCALAPPDATA%\Programs\PID Tools`, přidá PID Tools do nabídky Start (volitelně na plochu) a do *Nastavení ›
-  Aplikace* pro odinstalaci. Spuštění: **PID Tools** v nabídce Start.
-- `PID-Tools-<verze>-desktop-win64-portable.zip` – totéž bez instalace: rozbalte (např. na USB nebo do `C:\Tools`)
-  a spusťte **`PID Tools.exe`**. Datový soubor nebo projekt lze na exe přetáhnout a rovnou otevřít.
+  `%LOCALAPPDATA%\Programs\PID Tools`, přidá PID Tools do nabídky Start a do *Nastavení › Aplikace* pro odinstalaci.
+  Spuštění: **PID Tools** v nabídce Start. Datový soubor nebo projekt (`.pidproj`) se otevře dvojklikem.
+- `PID-Tools-<verze>-setup-offline.exe` – totéž s vloženým WebView2 (uzavřené sítě).
+- `PID-Tools-<verze>-x64.msi` – MSI pro správce (tiše: `msiexec /i … /qn`).
 
-Windows 10 nebo 11 (x64). Přenosné verze odstraníte smazáním složky, aktualizujete nahrazením složky (nebo novějším
-instalátorem). Projektové soubory jsou zaměnitelné mezi desktopem a webem.
-
-**Sestavení balíčků** (PC s Windows, internetem a Pythonem 3.11):
-```bash
-pip install -r requirements.txt -r requirements-desktop.txt pyinstaller
-python tools/build_desktop.py   # -> dist/PID Tools/PID Tools.exe, přenosný ZIP, instalátor (potřebuje Inno Setup 6)
-```
-Totéž dělá na GitHubu workflow `.github/workflows/offline-package.yml`: desktop sestaví na Windows, otestuje (exe spustí
-vlastní kontrolu `--smoke`) a zveřejní jako artefakt; u tagu verze (`v*`) jej přiloží k release. Desktop v Tauri
-s přibaleným API (`desktop/`) sestavují `desktop.yml` a `sidecar.yml`.
+Windows 10 nebo 11 (x64). Aktualizujete novějším instalátorem. Projektové soubory jsou zaměnitelné mezi desktopem
+a webem. Balíčky sestavují `release.yml` (u tagu verze) a `desktop.yml` / `sidecar.yml` (viz `desktop/README.md`).
 
 ## Interní server
 
