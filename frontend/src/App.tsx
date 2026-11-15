@@ -21,7 +21,6 @@ import { StartScreen } from "./start/StartScreen";
 import { useAutosave } from "./start/project";
 import { useWs } from "./data";
 import { type TabId, TABS, useUi } from "./store";
-import "./styles/compact.css";
 
 const CONTEXT_TABS: TabId[] = ["model", "tuning", "apc", "live"];
 

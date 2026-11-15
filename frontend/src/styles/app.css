@@ -63,7 +63,7 @@ dialog.help details.sec { margin-top: 8px; }
 .tools select, .tools button { border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius);
   padding: 3px 8px; cursor: pointer; }
 
-.body { display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 340px); min-height: 0; }
 .main { overflow: auto; padding: 16px 16px 32px 24px; min-width: 0; }
 .side { overflow: auto; background: var(--pid-side); border-left: 1px solid var(--pid-line); padding: 12px 24px 32px 16px;
   display: flex; flex-direction: column; gap: 12px; }
@@ -190,3 +190,34 @@ dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
 .md th { text-align: left; font-weight: 500; color: var(--pid-muted); padding: 5px 8px; border-bottom: 1px solid var(--pid-line); }
 .md td { padding: 6px 8px; border-top: 1px solid var(--pid-soft); vertical-align: top; }
 .md td:first-child { font-weight: 600; }
+
+/* ---- hustší pravý panel (aplikace se používá na desktopu): menší písmo a ovládací prvky, menší mezery.
+   Selektory začínají „.body > .side“, aby platily bez ohledu na pořadí načtení stylů záložek. */
+.body > .side { padding: 10px 14px 24px 12px; font-size: 12.5px; }
+.body > .side .side-all { margin-bottom: -2px; }
+
+/* karty */
+.body > .side details.scard { padding: 10px 12px; border-radius: 8px; }
+.body > .side details.scard[open] > summary { margin-bottom: 8px; }
+.body > .side details.scard > summary h2 { font-size: 13.5px; }
+.body > .side .scard-body { gap: 6px; }
+
+/* vstupy, výběry, přepínače, tlačítka */
+.body > .side input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.body > .side select, .body > .side textarea {
+  font-size: 12px; padding: 3px 6px; min-height: 0; line-height: 1.35; }
+.body > .side .seg button { font-size: 11.5px; padding: 3px 8px; }
+.body > .side .btn { font-size: 12px; padding: 3px 9px; }
+.body > .side .btn.big, .body > .side .tn-btn.primary, .body > .side .btn.primary.big { font-size: 13.5px; padding: 7px 12px; }
+.body > .side .tn-btn { font-size: 12px; padding: 5px 8px; }
+
+/* řádky formulářů */
+.body > .side .field { grid-template-columns: 100px minmax(0, 1fr); gap: 6px; }
+.body > .side .field.wide { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.body > .side .trow { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 8px; font-size: 12.5px; }
+.body > .side .tn-side { gap: 10px; }
+.body > .side .tn-grid3 { gap: 6px; font-size: 12.5px; }
+
+/* drobné texty */
+.body > .side .tn-note, .body > .side .small, .body > .side p, .body > .side .dt-p { font-size: 11.5px; }
+.body > .side .tn-info, .body > .side .tn-warn { font-size: 11.5px; padding: 5px 7px; }
