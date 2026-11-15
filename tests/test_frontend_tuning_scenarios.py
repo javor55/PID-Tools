@@ -49,7 +49,7 @@ def tuning(page, server):
     page.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
     page.locator('[data-tab="tuning"]').click()
     page.wait_for_selector('[data-testid="scen-kind"]', timeout=30000)
-    page.wait_for_selector('[data-testid="response"] svg path', timeout=30000)
+    page.wait_for_selector('[data-testid="response"] svg path', timeout=30000, state="attached")
     return page
 
 
@@ -91,7 +91,8 @@ def test_every_scenario_switches(tuning, server):
         assert seen[k]["kind"] == k, k
         assert seen[k]["sub"].strip() and seen[k]["note"].strip(), k
         assert seen[k]["rows"] >= 1 or k == "replay", k
-    same = [(a, b) for i, a in enumerate(kinds) for b in kinds[i + 1:] if seen[a]["chart"] == seen[b]["chart"]]
+    fixed = [k for k in kinds if k != "custom"]                # vlastní scénář přebírá události naposledy zvoleného
+    same = [(a, b) for i, a in enumerate(fixed) for b in fixed[i + 1:] if seen[a]["chart"] == seen[b]["chart"]]
     assert not same, f"chart did not change between scenarios: {same}"
     notes = {seen[k]["note"] for k in kinds}
     assert len(notes) == len(kinds), "scenario note is the same for two scenarios"
@@ -121,7 +122,7 @@ def test_scenario_survives_reload_and_loop_switch(tuning, server):
     want = _pick(pg, server, k)
     pg.reload(wait_until="networkidle")
     pg.wait_for_selector('[data-testid="scen-kind"]', timeout=30000)
-    pg.wait_for_selector('[data-testid="response"] svg path', timeout=30000)
+    pg.wait_for_selector('[data-testid="response"] svg path', timeout=30000, state="attached")
     _until(lambda: pg.locator('[data-testid="scen-kind"]').input_value() == k)
     _until(lambda: _chart(pg) == want["chart"], 20)
     # druhá smyčka bez modelu a zpět: scénář první smyčky zůstane

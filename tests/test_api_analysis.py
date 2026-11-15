@@ -88,11 +88,11 @@ def test_opc_history_to_workspace():
     url, stop = opc.test_server(port=48431, n=300)
     try:
         with TestClient(create_app()) as c:
-            assert c.get("/opc/available").json() is True
-            found = c.post("/opc/find", json={"url": url, "text": "FIC101"}).json()
+            assert c.get("/api/v1/opc/available").json() is True
+            found = c.post("/api/v1/opc/find", json={"url": url, "text": "FIC101"}).json()
             nodes = {n["node_id"]: n["path"] for n in found if n["is_var"]}
             assert {"FIC101.PV", "FIC101.MV"} <= set(nodes.values())
-            top = c.post("/opc/browse", json={"url": url}).json()
+            top = c.post("/api/v1/opc/browse", json={"url": url}).json()
             assert any(n["name"] == "FIC101" for n in top)
             wid = c.post("/api/v1/workspaces").json()["id"]
             now = dt.datetime.now(dt.timezone.utc)
@@ -102,7 +102,7 @@ def test_opc_history_to_workspace():
             _wait(c, job)
             w = c.get(f"/api/v1/workspaces/{wid}").json()
             assert w["has_data"] and w["fname"] == "OPC UA" and w["n"] > 100
-            assert c.post("/opc/browse", json={"url": "opc.tcp://127.0.0.1:1/x", "timeout": 1}).status_code == 502
+            assert c.post("/api/v1/opc/browse", json={"url": "opc.tcp://127.0.0.1:1/x", "timeout": 1}).status_code == 502
     finally:
         stop()
 

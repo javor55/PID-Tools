@@ -272,9 +272,9 @@ def test_logs_contain_user(jwks, caplog):
         while time.time() < deadline and not any("job end" in r.getMessage() for r in caplog.records):
             time.sleep(0.05)
     lines = [r.getMessage() for r in caplog.records]
-    assert "user=alice@acme.com method=POST path=/workspaces status=200" in " ".join(lines)
-    assert any(ln.startswith("user=bob@acme.com method=GET path=/workspaces/") and "status=404" in ln for ln in lines)
-    assert any(ln.startswith("user=- method=POST path=/workspaces status=401") for ln in lines)
+    assert "user=alice@acme.com method=POST path=/api/v1/workspaces status=200" in " ".join(lines)
+    assert any(ln.startswith("user=bob@acme.com method=GET path=/api/v1/workspaces/") and "status=404" in ln for ln in lines)
+    assert any(ln.startswith("user=- method=POST path=/api/v1/workspaces status=401") for ln in lines)
     assert any(ln.startswith("user=- method=GET path=/health status=200") for ln in lines)        # jen na úrovni DEBUG
     assert all("ms=" in ln for ln in lines if ln.startswith("user="))
     assert any(f"job submit id={jid} user=alice@acme.com" in ln for ln in lines)

@@ -1144,7 +1144,7 @@ def _csv_upload(page, name, text):
     """Nahradí data projektu souborem (POST /data/file) a obnoví Zdroje a smyčky (data aktivní smyčky, čtení)."""
     import urllib.parse
     wid = page.evaluate("sessionStorage.getItem('pid.wid')")
-    req = urllib.request.Request(f"{page.server}/workspaces/{wid}/data/file?name={urllib.parse.quote(name)}", data=text.encode(),
+    req = urllib.request.Request(f"{page.server}/api/v1/workspaces/{wid}/data/file?name={urllib.parse.quote(name)}", data=text.encode(),
                                  method="POST", headers={"X-PID-Token": TOKEN, "Content-Type": "application/octet-stream"})
     urllib.request.urlopen(req, timeout=60).read()
     page.locator('[data-tab="data"]').click()
@@ -1218,7 +1218,7 @@ def test_opc_dialog_history(page, server):
     pytest.importorskip("asyncua")
     from pidtools.app import opc
     base = "/api/v1/workspaces/{wid}"
-    assert _api(server, "/opc/available", page) is True
+    assert _api(server, "/api/v1/opc/available", page) is True
     backup = _api_raw(server, base + "/project?data=true", page)
     url, stop = opc.test_server(port=_free_port(), n=300)
     try:

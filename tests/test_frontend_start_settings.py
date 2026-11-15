@@ -84,17 +84,17 @@ def test_new_project_confirms_when_unsaved_and_returns_to_start(page, server):
     page.once("dialog", lambda d: d.accept())
     page.locator('[data-testid="new-project"]').click()
     page.wait_for_selector('[data-testid="start-screen"]', timeout=15000)
-    assert not _api(server, "GET", "/api/v1/workspaces/{wid}", page)["has_data"]
+    assert not _api(server, "GET", "/workspaces/{wid}", page)["has_data"]
 
 
 def test_autosave_then_recovery_banner_after_lost_workspace(page, server):
     page.locator('[data-testid="start-demo"]').click()
     page.wait_for_selector('[data-testid="start-screen"]', state="detached")
     for _ in range(60):                                  # v klidu ~8 s a kontrola po 2 s
-        if _api(server, "GET", "/api/v1/autosave/latest")["available"]:
+        if _api(server, "GET", "/autosave/latest")["available"]:
             break
         time.sleep(1)
-    rec = _api(server, "GET", "/api/v1/autosave/latest")
+    rec = _api(server, "GET", "/autosave/latest")
     assert rec["available"] and rec["loops"] == 1
     page.wait_for_function("() => /saved \\d/.test((document.querySelector('[data-testid=\"data-sum\"]')||{}).innerText||'')", timeout=15000)
     # „pád“: prostor zmizí (restart serveru), po obnově stránky nabídne Start záchrannou kopii
@@ -103,13 +103,13 @@ def test_autosave_then_recovery_banner_after_lost_workspace(page, server):
     page.wait_for_selector('[data-testid="start-recovery"]', timeout=15000)
     page.locator('[data-testid="start-restore"]').click()
     page.wait_for_selector('[data-testid="start-screen"]', state="detached", timeout=15000)
-    assert _api(server, "GET", "/api/v1/workspaces/{wid}", page)["has_data"]
-    assert _api(server, "GET", "/api/v1/workspaces/{wid}/save-state", page)["dirty"]          # obnovený projekt je neuložený
+    assert _api(server, "GET", "/workspaces/{wid}", page)["has_data"]
+    assert _api(server, "GET", "/workspaces/{wid}/save-state", page)["dirty"]          # obnovený projekt je neuložený
     # nový projekt záchrannou kopii smaže (úmyslné zahození)
     page.once("dialog", lambda d: d.accept())
     page.locator('[data-testid="new-project"]').click()
     page.wait_for_selector('[data-testid="start-screen"]')
-    assert not _api(server, "GET", "/api/v1/autosave/latest")["available"]
+    assert not _api(server, "GET", "/autosave/latest")["available"]
     assert page.locator('[data-testid="start-recovery"]').count() == 0
 
 
@@ -124,7 +124,7 @@ def test_recent_projects_after_manual_save(page, server):
     page.wait_for_selector('[data-testid="start-recent-item"]', timeout=15000)
     page.locator('[data-testid="start-recent-item"] .st-recent-open').first.click()
     page.wait_for_selector('[data-testid="start-screen"]', state="detached", timeout=15000)
-    assert not _api(server, "GET", "/api/v1/workspaces/{wid}/save-state", page)["dirty"]               # otevřený projekt je „uložený“
+    assert not _api(server, "GET", "/workspaces/{wid}/save-state", page)["dirty"]               # otevřený projekt je „uložený“
     page.locator('[data-testid="new-project"]').click()                 # otevřený projekt je uložený, bez dialogu
     page.wait_for_selector('[data-testid="start-screen"]')
 
@@ -132,7 +132,7 @@ def test_recent_projects_after_manual_save(page, server):
 def test_start_example_ff_loads_apc_data(page, server):
     page.locator('[data-testid="start-example-ff"]').click()
     page.wait_for_selector('[data-testid="start-screen"]', state="detached", timeout=15000)
-    w = _api(server, "GET", "/api/v1/workspaces/{wid}", page)
+    w = _api(server, "GET", "/workspaces/{wid}", page)
     assert w["fname"] == "apc_ff_example.csv" and w["has_data"]
     page.once("dialog", lambda d: d.accept())
     page.locator('[data-testid="new-project"]').click()
@@ -156,7 +156,7 @@ def test_settings_sections_and_server_persistence(page, server):
     page.locator('[data-testid="set-chart-h"]').fill("350")
     page.locator('[data-testid="set-chart-h"]').press("Enter")
     for _ in range(30):
-        s = _api(server, "GET", "/api/v1/app-settings")
+        s = _api(server, "GET", "/app-settings")
         if s["charts"]["height"] == 350 and s["general"]["autosave_min"] == 5:
             break
         time.sleep(0.2)
@@ -185,7 +185,7 @@ def test_settings_diagnostics_defaults_apply_to_new_project(page, server):
     page.locator('[data-testid="set-def-ctl"]').select_option("isa_ideal")
     page.locator('[data-testid="set-def-ctype"]').select_option("PID")
     for _ in range(30):
-        s = _api(server, "GET", "/api/v1/app-settings")
+        s = _api(server, "GET", "/app-settings")
         if s["defaults"]["controller"] == "isa_ideal" and s["defaults"]["sim"]["ctype"] == "PID":
             break
         time.sleep(0.2)
@@ -196,8 +196,8 @@ def test_settings_diagnostics_defaults_apply_to_new_project(page, server):
     page.locator('[data-testid="new-project"]').click()
     page.wait_for_function("(o) => sessionStorage.getItem('pid.wid') !== o", arg=old)
     page.wait_for_selector('[data-testid="start-screen"]')
-    assert _api(server, "GET", "/api/v1/workspaces/{wid}/controller", page)["profile"]["id"] == "isa_ideal"
-    thr = _api(server, "GET", "/api/v1/workspaces/{wid}/triage/thresholds", page)["values"]
+    assert _api(server, "GET", "/workspaces/{wid}/controller", page)["profile"]["id"] == "isa_ideal"
+    thr = _api(server, "GET", "/workspaces/{wid}/triage/thresholds", page)["values"]
     rule, name = tid[len("set-thr-"):].split("-", 1)
     assert thr[rule][name] == 33
     # reset prahů v nastavení
@@ -214,7 +214,7 @@ def test_settings_report_logo_connections_export_import(page, server, tmp_path):
     logo.write_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))
     page.set_input_files('[data-testid="set-logo-file"]', str(logo))
     page.wait_for_selector('[data-testid="set-logo-img"]', timeout=10000)
-    assert _api(server, "GET", "/api/v1/app-settings")["report"]["logo"] == "logo.png"
+    assert _api(server, "GET", "/app-settings")["report"]["logo"] == "logo.png"
     _open_settings(page, "connections")
     assert page.locator('[data-testid="set-opc-add"]').is_disabled()
     page.fill('[data-testid="set-opc-name"]', "Reaktor K2")
@@ -224,7 +224,7 @@ def test_settings_report_logo_connections_export_import(page, server, tmp_path):
     page.locator('[data-testid="set-hist-pi"]').fill("https://pi.firma.cz/piwebapi")
     page.locator('[data-testid="set-hist-pi"]').press("Enter")
     for _ in range(30):
-        s = _api(server, "GET", "/api/v1/app-settings")
+        s = _api(server, "GET", "/app-settings")
         if s["connections"]["historians"]["pi"] and s["connections"]["opc"]:
             break
         time.sleep(0.2)
@@ -239,10 +239,10 @@ def test_settings_report_logo_connections_export_import(page, server, tmp_path):
     page.once("dialog", lambda d: d.accept())
     page.locator('[data-testid="set-reset"]').click()
     page.wait_for_function("() => /restored|obnoveno/i.test(document.querySelector('[data-testid=\"set-io-msg\"]')?.innerText || '')")
-    assert _api(server, "GET", "/api/v1/app-settings")["report"]["company"] == ""
+    assert _api(server, "GET", "/app-settings")["report"]["company"] == ""
     page.set_input_files('[data-testid="set-import-file"]', str(exp))
     page.wait_for_function("() => /imported|načteno/i.test(document.querySelector('[data-testid=\"set-io-msg\"]')?.innerText || '')")
-    assert _api(server, "GET", "/api/v1/app-settings")["report"]["company"] == "ACME Chemie"
+    assert _api(server, "GET", "/app-settings")["report"]["company"] == "ACME Chemie"
     bad = tmp_path / "bad.json"
     bad.write_text("{}")
     page.set_input_files('[data-testid="set-import-file"]', str(bad))
@@ -254,8 +254,8 @@ def test_controller_default_and_test_memo_are_server_side(page, server):
     page.locator('[data-testid="rg-item-pcs7_pidconl"]').click()
     page.locator('[data-testid="rg-default"]').click()
     for _ in range(30):
-        if _api(server, "GET", "/api/v1/app-settings")["defaults"]["controller"] == "pcs7_pidconl":
+        if _api(server, "GET", "/app-settings")["defaults"]["controller"] == "pcs7_pidconl":
             break
         time.sleep(0.2)
-    assert _api(server, "GET", "/api/v1/app-settings")["defaults"]["controller"] == "pcs7_pidconl"
+    assert _api(server, "GET", "/app-settings")["defaults"]["controller"] == "pcs7_pidconl"
     assert page.evaluate("localStorage.getItem('pid.defctl')") is None
