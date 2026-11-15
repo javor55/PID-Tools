@@ -43,9 +43,9 @@ export function ModelResiduals({ model }: { model: ModelState }) {
       {m && (
         <div className="grid2">
           <div><div className="small">{T("eval_acf_t")}</div>
-            <BarChart testid="acf-chart" lags={lags(m.acf.length, 1)} values={m.acf} bound={m.bound} xLabel={T("lag_s")} /></div>
+            <BarChart testid="acf-chart" lags={lags(m.acf.length, 1)} values={m.acf} bound={m.bound} xLabel={T("lag_s")} title={T("eval_acf_t")} /></div>
           <div><div className="small">{T("eval_ccf_t")}</div>
-            <BarChart testid="ccf-chart" lags={lags(m.ccf.length, 0)} values={m.ccf} bound={m.bound} xLabel={T("lag_s")} /></div>
+            <BarChart testid="ccf-chart" lags={lags(m.ccf.length, 0)} values={m.ccf} bound={m.bound} xLabel={T("lag_s")} title={T("eval_ccf_t")} /></div>
         </div>
       )}
       <div className="small" data-testid="resid-verdict">{msgs.map((s, i) => <div key={i}>{s.replace(/\*\*/g, "")}</div>)}</div>
