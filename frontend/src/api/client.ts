@@ -56,53 +56,57 @@ export function ensureSession(): Promise<Config | null> {
   return session;
 }
 
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/** Text chyby ze serveru: `detail` (řetězec, jinak JSON), bez čitelného těla `statusText`. */
+async function errorText(r: Response): Promise<string> {
+  try {
+    const j = await r.json();
+    if (j?.detail === undefined) return r.statusText;
+    return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+  } catch { return r.statusText; }
+}
+
+interface CallOpts { json?: unknown; raw?: ArrayBuffer; signal?: AbortSignal }
+
+/** Jediná cesta všech požadavků: relace, hlavičky, odeslání a jediné čtení chyby. */
+async function call(method: string, path: string, opts: CallOpts = {}): Promise<Response> {
   if (path !== "/config") await ensureSession();
-  const init: RequestInit = { method, headers: headers(body !== undefined ? { "Content-Type": "application/json" } : {}) };
-  if (body !== undefined) init.body = JSON.stringify(body);
-  const r = await fetch(base + path, init);
-  if (!r.ok) {
-    let msg = r.statusText;
-    try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* text */ }
-    throw new ApiError(r.status, msg);
+  const init: RequestInit = { method, signal: opts.signal };
+  if (opts.raw !== undefined) {
+    init.headers = headers({ "Content-Type": "application/octet-stream" });
+    init.body = opts.raw;
+  } else if (opts.json !== undefined) {
+    init.headers = headers({ "Content-Type": "application/json" });
+    init.body = JSON.stringify(opts.json);
+  } else {
+    init.headers = headers();
   }
+  const r = await fetch(base + path, init);
+  if (!r.ok) throw new ApiError(r.status, await errorText(r));
+  return r;
+}
+
+export async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const r = await call(method, path, { json: body, signal });
   if (r.status === 204) return undefined as T;
   const ct = r.headers.get("content-type") ?? "";
   return (ct.includes("json") ? r.json() : r.arrayBuffer()) as Promise<T>;
 }
 
 /** Požadavek s binárním tělem (soubor) – odpověď JSON. */
-export async function rawRequest<T>(method: string, path: string, body: ArrayBuffer): Promise<T> {
-  await ensureSession();
-  const r = await fetch(base + path, { method, headers: headers({ "Content-Type": "application/octet-stream" }), body });
-  if (!r.ok) {
-    let msg = r.statusText;
-    try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* text */ }
-    throw new ApiError(r.status, msg);
-  }
+export async function rawRequest<T>(method: string, path: string, body: ArrayBuffer, signal?: AbortSignal): Promise<T> {
+  const r = await call(method, path, { raw: body, signal });
   return r.json() as Promise<T>;
 }
 
 /** Binární odpověď (signály, průběhy); s tělem jako POST JSON. */
-export async function binary(path: string, body?: unknown): Promise<ArrayBuffer> {
-  await ensureSession();
-  const r = await fetch(base + path, body === undefined ? { headers: headers() }
-    : { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify(body) });
-  if (!r.ok) throw new ApiError(r.status, r.statusText);
+export async function binary(path: string, body?: unknown, signal?: AbortSignal): Promise<ArrayBuffer> {
+  const r = await call(body === undefined ? "GET" : "POST", path, { json: body, signal });
   return r.arrayBuffer();
 }
 
 /** Odpověď jako bajty bez ohledu na typ (soubor ke stažení: projekt, protokol); tělo JSON jen u POST. */
-export async function bytes(method: string, path: string, body?: unknown): Promise<ArrayBuffer> {
-  await ensureSession();
-  const init: RequestInit = { method, headers: headers(body !== undefined ? { "Content-Type": "application/json" } : {}) };
-  if (body !== undefined) init.body = JSON.stringify(body);
-  const r = await fetch(base + path, init);
-  if (!r.ok) {
-    let msg = r.statusText;
-    try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* text */ }
-    throw new ApiError(r.status, msg);
-  }
+export async function bytes(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<ArrayBuffer> {
+  const r = await call(method, path, { json: body, signal });
   return r.arrayBuffer();
 }
 
