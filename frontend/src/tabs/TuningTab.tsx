@@ -61,6 +61,7 @@ export function TuningMain() {
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
   if (info.isError || (info.data === undefined && !info.isLoading)) return <div className="card muted">{T("need_model")}</div>;
   if (!info.data) return <div className="card muted">…</div>;
+  const busy = sim.isFetching || curves.isFetching;
   const T_end = sim.data?.T_end ?? 0;
   const u = unitOf(unit, T_end);
   const k = (sim.data?.kpis ?? {}) as Record<string, Kpi>;
@@ -103,8 +104,8 @@ export function TuningMain() {
       {view === "time" && (
         <>
           <ResponseCard curves={curves.data} sc={sc.data} T_end={T_end} u={u} spread={spread} sug={sug} dec={dec}
-            set2Empty={!!info.data.sets.find((x) => x.n === 2)?.placeholder} />
-          <KpiCard k={k} freq={freq.data} info={info.data} sug={sug} dec={dec} />
+            set2Empty={!!info.data.sets.find((x) => x.n === 2)?.placeholder} busy={busy} />
+          <KpiCard k={k} freq={freq.data} info={info.data} sug={sug} dec={dec} busy={busy} />
           <CompareCard />
           <ScenarioEvents />
         </>
@@ -116,7 +117,8 @@ export function TuningMain() {
 }
 
 // ---- odezva scénáře
-function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty }: {
+function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty, busy }: {
+  busy?: boolean;                      // simulace se znovu načítá (stará čísla zůstávají, ale jsou označená)
   curves: ReturnType<typeof useSim>["curves"]["data"]; sc: components["schemas"]["Scenario"] | undefined; T_end: number;
   u: "s" | "min" | "h"; spread: boolean; sug: Suggestion | null; dec: string;
   set2Empty?: boolean;                 // Set 2 ještě bez hodnot ([z PLC]) – nekreslit, jinak rozbije měřítko
@@ -150,7 +152,7 @@ function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty }: {
   const legend = pv.filter((l) => l.legend !== false).map((l, i, a) => a.findIndex((x) => x.name === l.name) === i && l);
   const kindNote = sc ? `${T("dk_sc_" + sc.kind)} · ${T("sim_len")} ${dur(T_end, dec)}` : "";
   return (
-    <section className="tn-card" data-testid="response">
+    <section className={"tn-card" + (busy ? " is-busy" : "")} data-testid="response" aria-busy={busy ? "true" : undefined}>
       <div className="tn-head">
         <h2>{T("tn_chart")}</h2><span className="tn-sub">{kindNote}</span>
         <span className="tn-legend tn-right">{legend.map((l) => l && (
@@ -169,7 +171,7 @@ function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty }: {
 // ---- ukazatele kvality: Set 1 / Set 2 / Návrh, lepší hodnota v řádku zvýrazněná
 type KRow = { key: string; label: string; val: (n: string) => number | null; text: (n: string) => string; better?: "low" | "none" };
 
-function KpiCard({ k, freq, info, sug, dec }: { k: Record<string, Kpi>; freq: FreqSet[] | undefined; info: TuningInfo;
+function KpiCard({ k, freq, info, sug, dec, busy }: { busy?: boolean; k: Record<string, Kpi>; freq: FreqSet[] | undefined; info: TuningInfo;
   sug: Suggestion | null; dec: string }) {
   const T = useT();
   const st = useSettings().data ?? {};
@@ -216,7 +218,7 @@ function KpiCard({ k, freq, info, sug, dec }: { k: Record<string, Kpi>; freq: Fr
     return new Set(v.filter((x) => Math.abs(x[1] - lo) < 1e-9 * Math.max(1, Math.abs(lo))).map((x) => x[0]));
   };
   return (
-    <section className="tn-card" data-testid="kpi-card">
+    <section className={"tn-card" + (busy ? " is-busy" : "")} data-testid="kpi-card" aria-busy={busy ? "true" : undefined}>
       <div className="tn-head"><h2>{T("tn_kpi")}<Qm text={T("ui_tuning_help_kpi")} /></h2><span className="tn-sub">{T("tn_kpi_note")}</span></div>
       <div className="tn-scroll">
         <table className="tn-tbl kpi" data-testid="kpis"><thead><tr><th scope="col" />
