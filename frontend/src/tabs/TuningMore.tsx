@@ -80,6 +80,9 @@ function NumCell({ v, onCommit, testid, label, className, title }: { v: number |
   );
 }
 
+/** Název sloupce (přístupný název pole) podle indexu sloupce řádku scénáře. */
+const SC_COL: Record<number, string> = { 3: "sc_amp", 4: "sc_start", 5: "sc_end", 6: "sc_period", 7: "sc_tau" };
+
 /** Nápověda sloupců tabulky událostí (index sloupce řádku scénáře). */
 const HELP_COL: Record<number, string> = { 3: "h_sc_amp", 4: "h_sc_start", 5: "h_sc_end", 6: "h_sc_period", 7: "h_sc_tau" };
 
@@ -193,13 +196,13 @@ export function ScenarioEvents() {
           <th title={T("h_sc_period")}>{T("sc_period")}</th><th title={T("h_sc_tau")}>{T("sc_tau")}</th><th /></tr></thead>
           <tbody>{rows.map((r, i) => (
             <tr key={`${s.kind}-${i}-${r.join("|")}`} data-testid="scen-row">
-              <td><input type="checkbox" checked={!!r[0]} title={T("h_sc_on")} onChange={(e) => setRow(i, 0, e.target.checked)} /></td>
-              <td><select value={r[1]} title={T("h_sc_target")} onChange={(e) => setRow(i, 1, e.target.value)}>
+              <td><input type="checkbox" checked={!!r[0]} aria-label={T("sc_on")} title={T("h_sc_on")} onChange={(e) => setRow(i, 0, e.target.checked)} /></td>
+              <td><select value={r[1]} aria-label={T("sc_target")} title={T("h_sc_target")} onChange={(e) => setRow(i, 1, e.target.value)}>
                 {targets.map((t) => <option key={t} value={t}>{tgLabel(t)}</option>)}</select></td>
-              <td><select value={r[2]} title={T("h_sc_type")} onChange={(e) => setRow(i, 2, e.target.value)}>
+              <td><select value={r[2]} aria-label={T("sc_type")} title={T("h_sc_type")} onChange={(e) => setRow(i, 2, e.target.value)}>
                 {TYPES.map((t) => <option key={t} value={t}>{T("ty_" + t)}</option>)}</select></td>
               {[3, 4, 5, 6, 7].map((j) => (
-                <td key={j}><NumCell v={r[j] as number | null} testid={`scen-${i}-${j}`} title={T(HELP_COL[j])}
+                <td key={j}><NumCell v={r[j] as number | null} testid={`scen-${i}-${j}`} label={T(SC_COL[j])} title={T(HELP_COL[j])}
                   onCommit={(x) => setRow(i, j, j === 3 || j === 4 ? (x ?? 0) : x)} /></td>))}
               <td><button className="btn" title="×" onClick={() => void put({ rows: rows.filter((_, k) => k !== i), T_end: s.T_end })}>×</button></td>
             </tr>))}
