@@ -11,10 +11,29 @@ Pravidla pro agenty: `AGENTS.md`.
   `pidtools/i18n/en.json` + `cs.json` (ponechat klíče obou stran), `pidtools/api/openapi.json` +
   `frontend/src/api/schema.d.ts` (vygenerovat znovu). Jiný konflikt = chyba plánu, zastavit.
 - **Brána vlny (vždy):** `ruff check pidtools tests`; `cd frontend && npm run lint && npm run typecheck && npm test &&
-  npm run build`; `QT_QPA_PLATFORM=offscreen python -m pytest -q` celé; zlaté případy beze změny; sonda prohlížeče
+  npm run build`; `python -m pytest -q` celé; zlaté případy beze změny; sonda prohlížeče
   bez chyb JS a bez přetékání (1 024 a 1 440 px).
 - **Rozhodnutí vlastníka před vlnou 1:** TICKET-010 varianta A (odstranit Qt) nebo B. Bez rozhodnutí se TICKET-010
   vynechá; TICKET-016 pak maže jen texty nepoužité nikde.
+
+## Stav (průběžně)
+
+| Úkol | Stav | Commit |
+|---|---|---|
+| TICKET-005 šířka pravého panelu | hotovo, změřeno (340 px při 1 440, 300 px při 1 024) | ee0903c |
+| TICKET-012 cesty jen `/api/v1`, zámky | hotovo | f00789c, 8878a82 |
+| TICKET-020 e2e scénářů Ladění | hotovo, test prochází – chyba z beta 3 (bod 7) se nezopakovala | 8878a82 |
+| TICKET-001 kontrola hodnot nastavení | hotovo; odchylka: odmítá se jen rozsah nulové šířky (meze se v rozhraní mění po jedné) | a2c5d82, 828100c |
+| TICKET-003 hranice chyb, toasty | hotovo; chybí tlačítko „Uložit záchrannou kopii“ v kartě chyby (doplnit s TICKET-014) | d2d2c44 … 5f0c47b |
+| TICKET-011 klient API | hotovo | 8c33b8f |
+| TICKET-010 odstranění Qt (rozhodnutí vlastníka: varianta A) | hotovo; `asyncua` přesunuto do `requirements-dev.txt` | 39241c6 … ab86444 |
+| FEATURE-001, TICKET-007, 008, 009 | zbývá z vlny 1 | |
+
+Úkoly běží po jednom (nebo po dvou nad různými soubory) přímo v integrační větvi; každý hotový úkol se hned pushuje.
+
+Otevřené k rozhodnutí: `asyncua` (OPC UA) není v `requirements-api.txt`, takže vydávaný desktop i webový obraz se
+staví bez něj a čtení z OPC UA v nich není dostupné (`/opc/available` vrací `false`). Přidat do
+`requirements-api.txt`?
 
 ## Vlna 0 – mechanické změny napříč repozitářem (nic jiného neběží)
 

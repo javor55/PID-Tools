@@ -24,13 +24,13 @@ Zadání: `docs/cs/audit-2026-11.md` (TICKET), `docs/cs/navrh-vylepseni-2026-11.
 ## Zakázáno
 16. Stav vyjádřený magickou hodnotou („nezadáno“ = výchozí čísla) – použij výslovný příznak.
 17. `except Exception: pass`, zachycení výjimky bez hlášení, záloha stavu přes `ws.__dict__`.
-18. Nové závislosti nebo změna verzí bez zadání. Nový kód v `pidtools/desktop` (Qt) – čeká na rozhodnutí TICKET-010.
+18. Nové závislosti nebo změna verzí bez zadání. Rozhraní Qt (`pidtools/desktop`) je odstraněno (TICKET-010) – nevracej ho; desktop = Tauri (`desktop/`) + sidecar API.
 19. Úpravy mimo „Dotčené soubory“ zadání. Je-li nutná, zastav a napiš proč – jiný agent může soubor právě měnit.
 20. Tvrzení o rozhraní bez měření: šířky, počty požadavků a kontrast ověř v prohlížeči (Playwright), ne čtením CSS.
 
 ## Postup a odevzdání
 21. Jeden úkol = jedna větev `agent/<ID>` z integrační větve; malé commity; žádný PR ani push jinam bez pokynu vlastníka.
 22. Nové e2e testy do nového souboru `tests/test_frontend_<id>.py`; stávající testy měň jen kvůli zadané změně chování. Test nikdy nevypínej.
-23. Před odevzdáním musí projít: `ruff check pidtools tests`; `cd frontend && npm run lint && npm run typecheck && npm test && npm run build`; `QT_QPA_PLATFORM=offscreen python -m pytest -q` (celé, ne výběr).
+23. Před odevzdáním musí projít: `ruff check pidtools tests`; `cd frontend && npm run lint && npm run typecheck && npm test && npm run build`; `python -m pytest -q` (celé, ne výběr).
 24. Zpráva o hotovém úkolu: co je změřeno a jak, co splňuje akceptační kritéria, co ne a proč. Nesplněné kritérium se nezamlčuje.
 25. Komentáře v kódu česky, texty rozhraní anglicky + česky, desetinný oddělovač podle jazyka (`useDec`).
