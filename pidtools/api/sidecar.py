@@ -163,6 +163,10 @@ def smoke_steps(base, token, log=print):
     html = _call(base, token, "POST", w + "/report", {"meta": {}})
     assert b"<html" in html.lower() and len(html) > 10_000, "report too short"
     log(f"report: {len(html) // 1024} kB")
+    opc = _call(base, token, "GET", "/api/v1/opc/available")
+    log(f"OPC UA client available: {opc}")
+    if getattr(sys, "frozen", False):                # zabalený program musí umět čtení z OPC UA (asyncua přibalené)
+        assert opc is True, "asyncua is missing in the packaged program"
     ui = _call(base, token, "GET", "/") if os.environ.get("PIDTOOLS_SMOKE_UI") else None
     return {"version": h["version"], "ui": ui is not None}
 

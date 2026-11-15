@@ -49,7 +49,7 @@ def pyinstaller(out, triple):
     cmd = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--console", "--name", full,
            "--distpath", str(out), "--workpath", str(out / "_build"), "--specpath", str(out / "_build"),
            "--collect-submodules", "pidtools", "--collect-submodules", "uvicorn", "--collect-data", "plotly",
-           "--hidden-import", "asyncua",
+           "--collect-submodules", "asyncua", "--collect-data", "asyncua",      # OPC UA (čtení dat smyček)
            "--add-data", f"{ui}{sep}pidtools/api/ui",
            "--add-data", f"{ROOT / 'static' / 'fonts'}{sep}static/fonts",
            "--add-data", f"{ROOT / 'pidtools' / 'i18n' / '*.json'}{sep}pidtools/i18n",
