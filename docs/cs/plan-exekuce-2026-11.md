@@ -32,7 +32,12 @@ Pravidla pro agenty: `AGENTS.md`.
 | TICKET-006 cílené zneplatnění (17 → 9 požadavků) | hotovo | 8a6bcfb, b323c1b |
 | TICKET-002 prostor bez vypršení, obnova | hotovo | ec7458e, 8185005 |
 | TICKET-014 záchranná kopie při zavření, tlačítko v kartě chyby | hotovo v prohlížeči; desktop viz TICKET-021 | TICKET-014 commity |
-| TICKET-015, 017, FEATURE-002, FEATURE-003 | zbývá z vlny 2 | |
+| TICKET-015 číselná pole ukážou chybu u pole | hotovo | c1ac8d0 |
+| TICKET-017 barvy z tokens.css; Trendy v tmavém vzhledu čitelné | hotovo | 9f4595a … 0ee67f5 |
+| FEATURE-002 kopírování do schránky | hotovo | 6b2a419, 8a74016 |
+| FEATURE-003 stav postupu na záložkách, „Next“; validace modelu se pamatuje | hotovo | 00d7545 … 80ea391 |
+| TICKET-021 záchranná kopie při zavření okna desktopu | hotovo; sestavení a smoke test obalu v CI zelené | 0e2e3e2 |
+| **Vlna 2 dokončena** | CI Tests + Desktop zelené nad 0e2e3e2 | |
 
 **TICKET-021 (nový, z kontroly TICKET-014, priorita HIGH pro desktop):** obal Tauri při zavření okna sidecar
 natvrdo ukončí (`desktop/src/lib.rs`, `RunEvent::Exit` → `sc.kill()`), takže záchranná kopie odeslaná stránkou
