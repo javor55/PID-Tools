@@ -216,3 +216,48 @@ def test_batch_cancel_keeps_finished_loops():
         assert done and out["job"]["state"] == "cancelled" and len(out["rows"]) < 5
         stages = {i: r["stage"] for i, r in _rows(c, u).items()}
         assert all(stages[i] == ("model" if i in done else "data") for i in (0, 1, 3, 4, 5))
+
+
+# ---- hromadný export
+def _single(c, u, i, fmt, n):
+    c.put(f"{u}/loops/active", json={"index": i})
+    r = c.get(f"{u}/tuning/export", params={"fmt": fmt, "n": n})
+    assert r.status_code == 200
+    return r.text
+
+
+@pytest.mark.parametrize("fmt", ["csv", "pcs7", "tia", "deltav"])
+def test_batch_export_same_rows_as_single_export(env, fmt):
+    c, _, u = env
+    for n in (1, 2):
+        r = c.get(f"{u}/batch/export", params={"fmt": fmt, "loops": "0,1,2", "n": n})
+        assert r.status_code == 200 and r.headers["x-skipped-loops"] == "2"      # smyčka bez modelu se nevyexportuje
+        assert f"tuning_set{n}_{fmt}_loops." in r.headers["content-disposition"]
+        text, names = r.text, {0: "FIC1", 1: "FIC2"}
+        singles = {i: _single(c, u, i, fmt, n) for i in (0, 1)}
+        c.put(f"{u}/loops/active", json={"index": 0})
+        lines = text.splitlines()
+        if fmt == "csv":
+            head = singles[0].splitlines()[0]
+            assert lines[0] == "loop;" + head
+            assert [x for x in lines if x.startswith("FIC3")] == []
+            for i, nm in names.items():
+                rows = singles[i].splitlines()[1:]
+                assert [x for x in lines[1:] if x.startswith(nm + ";")] == [f"{nm};{x}" for x in rows]
+        elif fmt == "deltav":
+            for i, nm in names.items():
+                assert [x for x in lines if x.startswith(nm + "\t")] == [f"{nm}\t{x}" for x in singles[i].splitlines()]
+            assert len(lines) == sum(len(s.splitlines()) for s in singles.values())
+        else:
+            for i, nm in names.items():
+                assert f"// ===== loop {nm} =====\n{singles[i]}" in text
+            assert "FIC3" not in text
+
+
+def test_batch_export_errors(env):
+    c, _, u = env
+    assert c.get(f"{u}/batch/export", params={"fmt": "xml", "loops": "0"}).status_code == 422
+    assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": ""}).status_code == 422
+    assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": "a"}).status_code == 422
+    assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": "9"}).status_code == 404
+    assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": "2"}).status_code == 409      # jen smyčka bez modelu
