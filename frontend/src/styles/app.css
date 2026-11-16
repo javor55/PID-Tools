@@ -232,5 +232,9 @@ dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
 .copybtn { font-size: 12px; padding: 2px 8px; white-space: nowrap; }
 .copy-right { margin-left: auto; }
 .tn-scroll > .copybtn { float: right; margin: 0 0 4px 8px; }
-.tn-copy { padding: 0 5px; margin-left: 4px; line-height: 1.4; }
+.tn-copy { padding: 0 3px; margin-left: 3px; line-height: 1.2; font-size: 11px; border: 0; background: transparent;
+  color: var(--pid-muted); vertical-align: baseline; }
+.tn-copy:not(:disabled):hover { color: var(--pid-accent); }
+.tn-sets thead th { white-space: nowrap; }            /* ikona kopírování u názvu sloupce se nezalamuje pod něj */
+.tn-sets tbody th { white-space: nowrap; }            /* „TD [s]“ v jednom řádku */
 .tn-copy:disabled { opacity: .5; cursor: default; }
