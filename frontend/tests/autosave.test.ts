@@ -61,7 +61,7 @@ describe("ErrorBoundary: Save recovery copy", () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   async function mount(mode: string, wid: string | null) {
-    const f = vi.fn(async (url: string, _init?: RequestInit) => new Response(
+    const f = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (url) => new Response(
       url.endsWith("/config") ? JSON.stringify({ mode }) : "{}", { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", f);
     const { queryClient } = await import("../src/queryClient");
