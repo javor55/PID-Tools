@@ -1,7 +1,7 @@
 // Ladění 2: sdílené dotazy (simulace, scénář, frekvence), karta Scénář simulace v panelu, události scénáře, srovnání
 // všech metod (úloha) a frekvenční analýza (Bode, citlivost S / T, Nyquist) pro sadu 1, 2 a návrh.
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { unframe } from "../api/signals";
@@ -10,6 +10,7 @@ import { useSettings, useWs, useWsQuery, usePatchSettings } from "../data";
 import { useDec, useT } from "../i18n";
 import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
+import { CopyTableButton } from "../components/Card";
 import { Md } from "../components/Ui";
 import { type CmpRow, type Suggestion, type Unit, useCalc, useTun } from "./tuningState";
 import { rowPick } from "../lib/a11y";
@@ -222,6 +223,7 @@ export function ScenarioEvents() {
 // ---- Všechny metody pro tento model (klepnutím na řádek se metoda převezme do Návrhu)
 export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const T = useT();
+  const cmpRef = useRef<HTMLTableElement>(null);
   const run = useJobRunner();
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
@@ -269,11 +271,12 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
       <div className="tn-head"><h2>{T("tn_methods")}</h2><span className="tn-sub">{T("tn_methods_note")}</span>
         {rows && <button type="button" className="btn tn-right" data-testid="cmp-csv" title={T("tun_ui_cmp_csv_help")} onClick={csv}>
           {T("tun_ui_cmp_csv")}</button>}
+        {rows && <CopyTableButton target={() => cmpRef.current} />}
         {withRun && <button className={"btn" + (rows ? "" : " tn-right")} disabled={busy} onClick={() => void go()} data-testid="cmp-run">
           {busy ? "…" : T("tn_methods_run")}</button>}
       </div>
       <div className="tn-scroll">
-        <table className="tn-tbl" data-testid="cmp-table"><thead><tr><th>{T("col_method")}</th>
+        <table ref={cmpRef} className="tn-tbl" data-testid="cmp-table"><thead><tr><th>{T("col_method")}</th>
           <th className="r">Gain</th><th className="r">TI [s]</th><th className="r">TD [s]</th><th className="r">Ms</th>
           <th className="r">{T("iae_load")}</th><th className="r">{T("iae_sp")}</th><th className="r">{T("ovs_col")}</th>
           <th className="r">{T("noise_col", { u: String(st.u_mv || "MV") })}</th><th>{T("use_col")}</th></tr></thead>

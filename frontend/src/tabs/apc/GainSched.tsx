@@ -179,7 +179,7 @@ export function GainSchedMain() {
         <KpiTable d={d} />
       </ACard>
       {d.fitted && (
-        <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="gs-table-card">
+        <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="gs-table-card" copy>
           <PointTable rows={d.table} testid="gs-table" />
         </ACard>
       )}

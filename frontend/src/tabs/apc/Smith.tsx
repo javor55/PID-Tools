@@ -91,7 +91,7 @@ function ValuesCards({ d }: { d: SmithInfo }) {
           <tbody>{d.general_rows.map((r) => <tr key={r.key}><td>{T(r.key)}</td><td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>)}</tbody></table></div>
         <p className="small muted"><Bold text={T("sm_gen_help")} /></p>
       </ACard>
-      <ACard title={T("sm_apl_title")} help={T("ui_apc_pcs_h")} testid="sm-template">
+      <ACard title={T("sm_apl_title")} help={T("ui_apc_pcs_h")} testid="sm-template" copy>
         <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("sm_apl_block")}</th><th>{T("sm_apl_input")}</th><th>{T("sm_apl_value")}</th>
           <th>{T("sm_apl_unit")}</th></tr></thead>
           <tbody>{d.rows.map((r, i) => <tr key={i}><td>{r.block}</td><td>{r.input}</td><td className="mono">{num(r.value)}</td><td>{r.unit}</td></tr>)}</tbody></table></div>

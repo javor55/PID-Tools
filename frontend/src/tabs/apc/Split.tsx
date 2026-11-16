@@ -98,7 +98,7 @@ export function SplitMain() {
             { key: "rev", label: T("kpi_rev"), best: "min", values: (["now", "new"] as const).map((k) => sim.kpis[k]?.rev), fmt: String }]} />
         )}
       </ACard>
-      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="split-template">
+      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="split-template" copy>
         <ValueTable testid="split-val" rows={[
           { key: "b", name: "b*", value: d.bstar, unit: "%" },
           { key: "gap", name: T("sr_gap"), value: d.gap, unit: "%" },

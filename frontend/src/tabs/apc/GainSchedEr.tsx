@@ -110,7 +110,7 @@ export function GainSchedErMain() {
         </div>
         <KpiBlock d={d} />
       </ACard>
-      <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="er-table-card">
+      <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="er-table-card" copy>
         <PointTable rows={d.table} testid="er-table" />
       </ACard>
       <Impl text={d.impl_text} testid="er-impl" />

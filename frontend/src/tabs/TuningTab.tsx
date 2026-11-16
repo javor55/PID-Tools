@@ -7,10 +7,13 @@ import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { series } from "../api/signals";
 import { CheckSetting } from "../components/Fields";
+import { CopyTableButton } from "../components/Card";
 import { SetInput } from "../components/SetInput";
+import { toastError, useToasts } from "../components/Toasts";
 import { LabelHelp, Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
 import { useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
 import { useDec, useT } from "../i18n";
+import { copyText } from "../lib/clipboard";
 import { dur } from "../lib/format";
 import { useUi } from "../store";
 import "../styles/tuning.css";
@@ -174,6 +177,7 @@ type KRow = { key: string; label: string; val: (n: string) => number | null; tex
 function KpiCard({ k, freq, info, sug, dec, busy }: { busy?: boolean; k: Record<string, Kpi>; freq: FreqSet[] | undefined; info: TuningInfo;
   sug: Suggestion | null; dec: string }) {
   const T = useT();
+  const kpiRef = useRef<HTMLTableElement>(null);
   const st = useSettings().data ?? {};
   const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");
   const cols = [["1", "Set 1"], ["2", "Set 2"], ...(sug ? [["sug", `${T("dk_suggest")} · ${T("m_" + sug.method)}`]] : [])]
@@ -219,9 +223,10 @@ function KpiCard({ k, freq, info, sug, dec, busy }: { busy?: boolean; k: Record<
   };
   return (
     <section className={"tn-card" + (busy ? " is-busy" : "")} data-testid="kpi-card" aria-busy={busy ? "true" : undefined}>
-      <div className="tn-head"><h2>{T("tn_kpi")}<Qm text={T("ui_tuning_help_kpi")} /></h2><span className="tn-sub">{T("tn_kpi_note")}</span></div>
+      <div className="tn-head"><h2>{T("tn_kpi")}<Qm text={T("ui_tuning_help_kpi")} /></h2><span className="tn-sub">{T("tn_kpi_note")}</span>
+        <CopyTableButton className="tn-right" target={() => kpiRef.current} /></div>
       <div className="tn-scroll">
-        <table className="tn-tbl kpi" data-testid="kpis"><thead><tr><th scope="col" />
+        <table ref={kpiRef} className="tn-tbl kpi" data-testid="kpis"><thead><tr><th scope="col" />
           {cols.map(([n, lab]) => <th key={n} scope="col" className={"r " + (n === "sug" ? "sug" : "")}>{lab}</th>)}</tr></thead>
           <tbody>{rows.map((r) => {
             const b = best(r);
@@ -287,6 +292,22 @@ export function TuningSide() {
   };
   const write = (n: number) => { if (sug) void writeSet(n, { Kc: sug.Kc, Ti: sug.Ti, Td: sug.Td }, { method: T("m_" + sug.method) }); };
   const fq = (n: string) => freq.data?.find((x) => x.name === n);
+  // Kopírování parametrů do schránky: značka smyčky · blok: název = hodnota jednotka; … (názvy a jednotky bloku jako v tabulce)
+  const loopTag = String(st.loop_tag ?? "").trim() || ws.pv || "";
+  const copyParams = (get: (q: { key: string; role: string }) => number | null) => {
+    const pars = info.data!.tuning_params.map((q) => {
+      const v = get(q);
+      return `${q.name} = ${fnum(v, dec, 6)}${q.unit && q.unit !== "-" ? " " + q.unit : ""}`;
+    });
+    const head = [loopTag, info.data!.controller?.block].filter(Boolean).join(" · ");
+    copyText(`${head}: ${pars.join("; ")}`)
+      .then(() => useToasts.getState().push({ kind: "ok", text: T("copied") }))
+      .catch(toastError);
+  };
+  const copyBtn = (id: string, name: string, enabled: boolean, get: (q: { key: string; role: string }) => number | null) => (
+    <button type="button" className="btn copybtn tn-copy" data-testid={`copy-${id}`} disabled={!enabled} title={T("copy_name", { name })}
+      aria-label={T("copy_name", { name })} onClick={() => copyParams(get)}>⧉</button>);
+  const setOf = (n: number) => info.data!.sets.find((x) => x.n === n);
 
   return (
     <div className="tn-side">
@@ -340,8 +361,11 @@ export function TuningSide() {
 
       <SideCard title={T("tn_sec_sets")} testid="card-sets">
         <table className="tn-sets" data-testid="sets">
-          <thead><tr><th scope="col" /><th scope="col" className="sug" title={T("dk_calc_help")}>{T("dk_suggest")}</th>
-            <th scope="col" title={T("h_set_1")}>{T("set_1")}</th><th scope="col" title={T("h_set_2")}>{T("set_2")}</th></tr></thead>
+          <thead><tr><th scope="col" /><th scope="col" className="sug" title={T("dk_calc_help")}>{T("dk_suggest")}{" "}
+              {copyBtn("sug", T("dk_suggest"), !!sug, (q) => (sug ? sugVal(sug, q, info.data!.controller?.is_default) : null))}</th>
+            {[1, 2].map((n) => (
+              <th key={n} scope="col" title={T("h_set_" + n)}>{T("set_" + n)}{" "}
+                {copyBtn(`set-${n}`, T("set_" + n), !!setOf(n) && !setOf(n)!.placeholder, (q) => (setOf(n)?.values[q.key] as number | null) ?? null)}</th>))}</tr></thead>
           <tbody data-testid="sug-values">{info.data.tuning_params.map((q) => (
             <tr key={q.key}><th scope="row" title={T(ROLE_TIP[q.role] ?? "tun_ui_sets_units", { b: info.data!.controller?.block ?? "" })}>{label(q)}</th>
               <td className="sugv mono">{sug ? fnum(sugVal(sug, q, info.data!.controller?.is_default), dec, 4) : "—"}</td>

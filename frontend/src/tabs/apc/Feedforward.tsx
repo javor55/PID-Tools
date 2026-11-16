@@ -173,7 +173,7 @@ function PcsCard({ info }: { info: FFInfo }) {
   const T = useT();
   const used = info.dists.filter((d) => d.design.use && d.values.length > 0);
   return (
-    <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="ff-pcs">
+    <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="ff-pcs" copy>
       {!info.dists.some((d) => d.design.use) && <div className="muted small" data-testid="ff-all-off">{T("ff_none_on")}</div>}
       {used.map((d) => (
         <div key={d.index} className="apc-tblwrap">

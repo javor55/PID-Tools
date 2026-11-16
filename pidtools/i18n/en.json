@@ -3453,5 +3453,9 @@
  "num_err_min": "Must be at least {min}",
  "num_err_gt": "Must be greater than {min}",
  "num_err_max": "Must be at most {max}",
- "num_err_int": "Must be a whole number"
+ "num_err_int": "Must be a whole number",
+ "copy": "Copy",
+ "copy_table": "Copy table",
+ "copy_name": "Copy {name}",
+ "copied": "Copied to the clipboard"
 }

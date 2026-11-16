@@ -3453,5 +3453,9 @@
  "num_err_min": "Musí být alespoň {min}",
  "num_err_gt": "Musí být větší než {min}",
  "num_err_max": "Musí být nejvýše {max}",
- "num_err_int": "Musí být celé číslo"
+ "num_err_int": "Musí být celé číslo",
+ "copy": "Kopírovat",
+ "copy_table": "Kopírovat tabulku",
+ "copy_name": "Kopírovat {name}",
+ "copied": "Zkopírováno do schránky"
 }

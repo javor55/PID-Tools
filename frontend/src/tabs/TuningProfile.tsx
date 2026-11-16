@@ -2,10 +2,11 @@
 // bloku generované z parametrů profilu), Proces a ventil v simulaci, tabulka robustnosti, upozornění ladění, τc
 // a Export pro řídicí systém (PCS 7 / TIA / DeltaV / CSV).
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { bytes, request } from "../api/client";
 import type { components } from "../api/schema";
 import { CheckSetting, NumSetting, SelectSetting } from "../components/Fields";
+import { CopyTableButton } from "../components/Card";
 import { LabelHelp } from "../components/Ui";
 import { useSettings, usePatchSettings, useWsQuery } from "../data";
 import { useT } from "../i18n";
@@ -197,6 +198,7 @@ export function useRob(preview: { Kc: number; Ti: number; Td: number } | null) {
 export function RobTable({ rows: all, dec, set2Empty }: { rows: RobRow[] | undefined; dec: string; set2Empty?: boolean }) {
   const T = useT();
   const st = useSettings().data ?? {};
+  const robRef = useRef<HTMLTableElement>(null);
   const rows = set2Empty ? all?.filter((r) => r.name !== "set2") : all;   // Set 2 ještě bez hodnot – neukazovat
   if (!rows?.length) return null;
   const nm = (n: string) => (n === "sug" ? T("dk_suggest") : n === "set1" ? T("set_1") : T("set_2"));
@@ -204,7 +206,8 @@ export function RobTable({ rows: all, dec, set2Empty }: { rows: RobRow[] | undef
   const mvr = Number(st.mv_hi ?? 100) - Number(st.mv_lo ?? 0);
   return (
     <div className="tn-scroll">
-      <table className="tn-tbl" data-testid="rob-table" aria-label={T("tun_ui_rob_title")}>
+      <CopyTableButton target={() => robRef.current} />
+      <table ref={robRef} className="tn-tbl" data-testid="rob-table" aria-label={T("tun_ui_rob_title")}>
         <thead><tr><th scope="col" /><th scope="col" className="r" title={T("ui_tuning_help_rob")}>Ms</th>
           <th scope="col" className="r" title={T("tun_ui_rob_mt")}>Mt</th><th scope="col" className="r">GM</th>
           <th scope="col" className="r">PM [°]</th><th scope="col" className="r" title={T("tun_ui_rob_worst")}>Ms max</th>

@@ -1,12 +1,13 @@
 // Záložka Model (M14): graf s úseky pro identifikaci (sdílený trend.js), tabulka modelů a výběr modelu;
 // panel: data pro identifikaci (MAN / AUTO), režim úseků MV, modely a nastavení identifikace, Identifikovat.
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { unframe, series } from "../api/signals";
 import { Trend } from "../components/Trend";
 import type { TrendData, TrendRow } from "../legacy/trend.js";
+import { CopyTableButton } from "../components/Card";
 import { Help } from "../components/Ui";
 import { DistCompare, ModelDetails } from "./ModelDetails";
 import { DIST_STYLE, MV_STYLE, windowFits } from "./modelConst";
@@ -125,6 +126,7 @@ function ModelTable({ model }: { model?: ModelState }) {
   const dec = useDec();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
+  const tblRef = useRef<HTMLTableElement>(null);
   const sel = model?.results.find((r) => r.code === model.selected);
   const anyCl = !!model?.results.some((r) => r.method === "cl" || r.mixed);
   if (!model?.has_fit) return <div className="card muted" data-testid="no-model">{T("info_fit")}</div>;
@@ -135,11 +137,11 @@ function ModelTable({ model }: { model?: ModelState }) {
   };
   return (
     <div className="card mcmp" data-testid="model-cmp">
-      <h3>{T("ms_cmp")} <Help text={T("h_ms_cmp")} /></h3>
+      <h3>{T("ms_cmp")} <Help text={T("h_ms_cmp")} /> <CopyTableButton target={() => tblRef.current} /></h3>
       {model.stale && <div className="warn small" data-testid="stale">{T("warn_stale")}</div>}
       <div className="mcmp-head" style={{ "--mc": MV_STYLE[0] } as React.CSSProperties}>
         {T("ms_cmp_tab", { k: 1, n: "MV" })}</div>
-      <table className="tbl" data-testid="models">
+      <table ref={tblRef} className="tbl" data-testid="models">
         <thead><tr><th /><th>{T("col_model")}</th><th>FIT [%]</th><th>NRMSE [%]</th><th>{T("col_status")}</th>
           {anyCl && <th title={T("idm_table_note")}>{T("idm_fit_cl")}</th>}<th>{T("ui_model_params")}</th></tr></thead>
         <tbody>
