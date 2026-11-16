@@ -5,7 +5,7 @@ import { bytes } from "../../api/client";
 import type { components } from "../../api/schema";
 import { Card } from "../../components/Card";
 import { QueryState } from "../../components/QueryState";
-import { toastError, useToasts } from "../../components/Toasts";
+import { toastError } from "../../components/Toasts";
 import { Seg } from "../../components/Ui";
 import { useSettings, useWsMutation } from "../../data";
 import { useDec, useT } from "../../i18n";
@@ -87,7 +87,6 @@ function ExportDialog({ rows, onClose }: { rows: Row[]; onClose: () => void }) {
     try {
       const buf = await bytes("GET", `/workspaces/${wid}/batch/export?fmt=${fmt}&n=${n}&loops=${withModel.map((r) => r.index).join(",")}`);
       saveAs(`tuning_set${n}_${fmt}_loops.${EXPORT_EXT[fmt]}`, new Blob(["﻿", buf]), "text/plain;charset=utf-8");
-      useToasts.getState().push({ kind: "ok", text: T("bt_exp_ok", { n: withModel.length }) });
       ref.current?.close();
     } catch (e) { toastError(e); }
   };

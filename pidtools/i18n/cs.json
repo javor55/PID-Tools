@@ -3528,7 +3528,6 @@
  "bt_exp_title": "Export sad vybraných smyček",
  "bt_exp_note": "Smyčky bez modelu se nevyexportují: {names}",
  "bt_exp_none": "Žádná z vybraných smyček nemá model.",
- "bt_exp_ok": "Vyexportováno smyček: {n}.",
  "bt_res_title": "Výsledek poslední hromadné akce",
  "bt_res_action": "Akce",
  "bt_res_counts": "{ok} v pořádku · {skipped} přeskočeno · {error} chyb",
@@ -3545,5 +3544,6 @@
  "batch_skip_no_model": "Smyčka nemá model: nejdřív ji identifikujte.",
  "batch_skip_no_proposal": "Smyčka nemá návrh ladění pro svůj současný model.",
  "batch_skip_method": "Metoda {method} není pro model {model} k dispozici.",
- "batch_error": "{text}"
+ "batch_error": "{text}",
+ "batch_bad_proposal": "Metoda {method} vrátila nepoužitelný návrh (Gain {kc:.4g}, TI {ti:.4g} s)."
 }

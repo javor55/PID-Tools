@@ -95,7 +95,7 @@ def _tune(ws, params):
     s = ws.suggest(method, params.get("tc"))
     val = [float(s["Kc"]), float(s["Ti"]), float(s["Td"]), method]
     if not prj.sug_ok(val):
-        return "error", ("batch_error", dict(text=f"{method}: {val[:3]}")), None
+        return "error", ("batch_bad_proposal", dict(method=method, kc=val[0], ti=val[1])), None
     return "ok", None, dict(drop=sug_keys(ws), set={prj.SUG_PREFIX + ws.get("mcode"): val})
 
 

@@ -17,3 +17,6 @@
 dialog.batch { width: min(520px, 94vw); padding: 14px; border: 1px solid var(--pid-line);
   border-radius: var(--pid-radius); background: var(--pid-card); color: var(--pid-text); }
 dialog.batch::backdrop { background: rgba(0, 0, 0, .4); }
+dialog.batch .trow { display: flex; gap: var(--pid-gap); align-items: center; }
+dialog.batch .trow > span { min-width: 96px; }
+dialog.batch .trow select { flex: 1; }

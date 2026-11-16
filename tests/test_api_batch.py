@@ -261,3 +261,24 @@ def test_batch_export_errors(env):
     assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": "a"}).status_code == 422
     assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": "9"}).status_code == 404
     assert c.get(f"{u}/batch/export", params={"fmt": "csv", "loops": "2"}).status_code == 409      # jen smyčka bez modelu
+
+
+def test_batch_unusable_proposal_is_an_error_row():
+    """Metoda vrátí nepoužitelný návrh (záporné zesílení): smyčka je `error` s důvodem, ostatní pokračují."""
+    from pidtools.app import batch
+
+    class Fake:
+        settings: dict = {}
+        def get(self, k, default=None):
+            return {"mcode": "I1D"}.get(k, default)
+        def set(self, **kw):
+            pass
+        def suggest(self, method, tc=None):
+            return {"Kc": -0.01, "Ti": 3e4, "Td": 0.0}
+
+    rows, parts = [], []
+    items = [dict(loop=3, name="X", skip=None, ws=Fake()), dict(loop=4, name="Y", skip=("batch_skip_no_model", {}), ws=None)]
+    out = batch.run(items, "tune", {"method": "SIMC"}, None, partial=parts.append)
+    rows = [dict(r) for r in out]
+    assert [r["status"] for r in rows] == ["error", "skipped"] and rows[0]["reason"]["key"] == "batch_bad_proposal"
+    assert [p["delta"] for p in parts] == [None, None]

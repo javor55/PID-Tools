@@ -3528,7 +3528,6 @@
  "bt_exp_title": "Export sets of the selected loops",
  "bt_exp_note": "Loops without a model are not exported: {names}",
  "bt_exp_none": "None of the selected loops has a model.",
- "bt_exp_ok": "Exported {n} loops.",
  "bt_res_title": "Result of the last batch action",
  "bt_res_action": "Action",
  "bt_res_counts": "{ok} ok · {skipped} skipped · {error} errors",
@@ -3545,5 +3544,6 @@
  "batch_skip_no_model": "The loop has no model: identify it first.",
  "batch_skip_no_proposal": "The loop has no tuning proposal for its current model.",
  "batch_skip_method": "Method {method} is not available for model {model}.",
- "batch_error": "{text}"
+ "batch_error": "{text}",
+ "batch_bad_proposal": "Method {method} returned an unusable proposal (Gain {kc:.4g}, TI {ti:.4g} s)."
 }
