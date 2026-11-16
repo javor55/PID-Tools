@@ -1079,7 +1079,9 @@ def _api_raw(server, path, page):
 def _open_project(page, raw, name="projekt.pidproj"):
     """Otevře projekt (soubor) v záložce Projekt a počká na potvrzení."""
     page.locator('[data-tab="project"]').click()
-    page.set_input_files('[data-testid="proj-open"]', files=[{"name": name, "mimeType": "application/json", "buffer": raw}])
+    # čekat na odpověď tohoto otevření – zpráva „otevřeno“ může na stránce zůstat z minula
+    with page.expect_response(lambda r: r.request.method == "PUT" and r.url.endswith("/project"), timeout=60000):
+        page.set_input_files('[data-testid="proj-open"]', files=[{"name": name, "mimeType": "application/json", "buffer": raw}])
     page.wait_for_selector('[data-testid="proj-msg"].ok', timeout=60000)
 
 

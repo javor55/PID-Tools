@@ -104,7 +104,8 @@ def test_faint_text_contrast(ready):
     pg = ready
     pg.locator('[data-tab="tuning"]').click()
     _view(pg, "all")
-    pg.wait_for_selector(".tn-faint, [data-testid=\"cmp-pending\"] td", timeout=30000)
+    # první .tn-faint bývá ve sbalené kartě – čekat na kterýkoli viditelný
+    pg.locator(".tn-faint:visible, [data-testid=\"cmp-pending\"] td:visible").first.wait_for(timeout=30000)
     for theme in ("light", "dark"):
         pg.evaluate(f"document.documentElement.dataset.theme = '{theme}'")
         ratios = pg.evaluate(CONTRAST)
