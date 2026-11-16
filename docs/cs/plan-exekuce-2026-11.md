@@ -27,7 +27,18 @@ Pravidla pro agenty: `AGENTS.md`.
 | TICKET-003 hranice chyb, toasty | hotovo; chybí tlačítko „Uložit záchrannou kopii“ v kartě chyby (doplnit s TICKET-014) | d2d2c44 … 5f0c47b |
 | TICKET-011 klient API | hotovo | 8c33b8f |
 | TICKET-010 odstranění Qt (rozhodnutí vlastníka: varianta A) | hotovo; `asyncua` přesunuto do `requirements-dev.txt` | 39241c6 … ab86444 |
-| FEATURE-001, TICKET-007, 008, 009 | zbývá z vlny 1 | |
+| FEATURE-001, TICKET-007, 008, 009 | hotovo (vlna 1 dokončena) | 329cec8 … 2c825f0 |
+| TICKET-004 příznak `set2_defined` | hotovo | 8561395, 09ada67 |
+| TICKET-006 cílené zneplatnění (17 → 9 požadavků) | hotovo | 8a6bcfb, b323c1b |
+| TICKET-002 prostor bez vypršení, obnova | hotovo | ec7458e, 8185005 |
+| TICKET-014 záchranná kopie při zavření, tlačítko v kartě chyby | hotovo v prohlížeči; desktop viz TICKET-021 | TICKET-014 commity |
+| TICKET-015, 017, FEATURE-002, FEATURE-003 | zbývá z vlny 2 | |
+
+**TICKET-021 (nový, z kontroly TICKET-014, priorita HIGH pro desktop):** obal Tauri při zavření okna sidecar
+natvrdo ukončí (`desktop/src/lib.rs`, `RunEvent::Exit` → `sc.kill()`), takže záchranná kopie odeslaná stránkou
+(`pagehide` + `keepalive`) nemusí doběhnout. Návrh: nový endpoint `POST /api/v1/autosave/flush` (zapíše kopii všech
+prostorů s neuloženými změnami, jen desktopový režim) a v Rustu před `kill()` jeho volání s časovým limitem ~2 s;
+test: smoke test obalu (`--smoke`) ověří, že po změně a ukončení existuje kopie.
 
 Úkoly běží po jednom (nebo po dvou nad různými soubory) přímo v integrační větvi; každý hotový úkol se hned pushuje.
 
