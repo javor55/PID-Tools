@@ -100,13 +100,18 @@ def make_server(app, sock):
     return uvicorn.Server(uvicorn.Config(app, log_level="warning", lifespan="on")), [sock]
 
 
+def build_app(token, cors=()):
+    """Aplikace sidecaru desktopu: pracovní prostor nevyprší (po uspání počítače by jinak zmizela rozdělaná práce)."""
+    from . import create_app
+    return create_app(token=token, cors_origins=list(cors), workspace_ttl=None)
+
+
 def serve(token=None, port=0, parent_pid=None, out=None, cors=()):
     """Spustí server (blokuje do ukončení). out(řádek) dostane READY řádek; vrací kód ukončení."""
     from .. import __version__
-    from . import create_app
     token = token or secrets.token_urlsafe(24)
     sock = free_socket(port)
-    server, socks = make_server(create_app(token=token, cors_origins=list(cors)), sock)
+    server, socks = make_server(build_app(token, cors), sock)
     real_port = sock.getsockname()[1]
 
     def announce():

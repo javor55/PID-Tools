@@ -72,6 +72,41 @@ def test_store_expiry_and_limit():
     assert len(st) == 0
 
 
+class _Clock:
+    """Řízené hodiny pro WorkspaceStore."""
+    def __init__(self):
+        self.t = 1000.0
+
+    def __call__(self):
+        return self.t
+
+
+def test_store_ttl_none_never_expires():
+    clk = _Clock()
+    st = WorkspaceStore(ttl_s=None, clock=clk)
+    wid, _ = st.create()
+    clk.t += 10 * 3600                       # 10 h (např. uspání notebooku)
+    st.get(wid)
+    assert wid in st and len(st) == 1
+
+
+def test_store_ttl_expires_with_fake_clock():
+    clk = _Clock()
+    st = WorkspaceStore(ttl_s=60, clock=clk)
+    wid, _ = st.create()
+    clk.t += 59
+    st.get(wid)                              # přístup obnoví čas
+    clk.t += 61
+    with pytest.raises(KeyError):
+        st.get(wid)
+
+
+def test_default_ttl_and_sidecar_without_expiry():
+    from pidtools.api.sidecar import build_app
+    assert create_app().state.store.ttl_s == 3600.0          # výchozí (web, testy) zůstává
+    assert build_app("t").state.store.ttl_s is None          # desktop: bez vypršení
+
+
 def test_job_status_cancel_and_events(client):
     jobs = client.app.state.jobs
     jid = jobs.submit(f.slow, 10, 0.05)

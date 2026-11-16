@@ -12,12 +12,17 @@ from ..app.workspace.loops import Project
 
 
 class WorkspaceStore:
-    def __init__(self, ttl_s=3600.0, max_count=20):
-        self.ttl_s, self.max_count = float(ttl_s), int(max_count)
+    def __init__(self, ttl_s=3600.0, max_count=20, clock=time.time):
+        """ttl_s=None = prostory nevypršejí (desktop); clock = zdroj času v sekundách (pro testy)."""
+        self.ttl_s = None if ttl_s is None else float(ttl_s)
+        self.max_count = int(max_count)
+        self._clock = clock
         self._d = {}                         # id → [Project, poslední přístup, vlastník]
         self._lock = threading.Lock()
 
     def _sweep(self, now):
+        if self.ttl_s is None:
+            return
         for k in [k for k, v in self._d.items() if now - v[1] > self.ttl_s]:
             del self._d[k]
 
@@ -26,7 +31,7 @@ class WorkspaceStore:
         Nový prázdný projekt; při plném úložišti se uvolní nejdéle nepoužitý. Vrací (id, Project).
         S vlastníkem a max_per_owner platí limit na uživatele: uvolní se jeho nejdéle nepoužitý prostor.
         """
-        now = time.time()
+        now = self._clock()
         with self._lock:
             self._sweep(now)
             if owner is not None and max_per_owner is not None:
@@ -42,7 +47,7 @@ class WorkspaceStore:
 
     def get(self, wid, owner=None):
         """Projekt podle ID (obnoví čas přístupu), jinak KeyError; s vlastníkem i cizí prostor je KeyError."""
-        now = time.time()
+        now = self._clock()
         with self._lock:
             self._sweep(now)
             item = self._d[wid]
