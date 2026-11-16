@@ -3462,5 +3462,17 @@
  "nav_prog_warn": "{ok} of {n} done, {w} with a warning",
  "nav_next": "Next: {t}",
  "nav_open": "Open",
- "nav_open_h": "Go to the next step and highlight the control"
+ "nav_open_h": "Go to the next step and highlight the control",
+ "lc_menu": "Chart menu",
+ "lc_copy_tsv": "Copy data (TSV)",
+ "lc_save_csv": "Save CSV",
+ "lc_save_png": "Save PNG",
+ "lc_copied": "Chart data copied",
+ "lc_legend_toggle": "Show / hide series",
+ "lc_x": "x",
+ "lc_pin_a": "A",
+ "lc_pin_b": "B",
+ "lc_delta": "Δ",
+ "lc_dx": "Δx (B − A)",
+ "lc_dy": "Δy (B − A)"
 }
