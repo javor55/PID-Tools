@@ -12,6 +12,9 @@ use tauri::{Manager, RunEvent, Url, WebviewWindow};
 
 use sidecar::Sidecar;
 
+/// Nejdéle, jak dlouho se při zavření čeká na zápis záchranných kopií (okno se zavírá, nesmí viset).
+const FLUSH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+
 struct State {
     sidecar: Mutex<Option<Sidecar>>,
     /// Projekt k otevření (z argumentů při startu nebo z druhého spuštění), než ho převezme sidecar.
@@ -96,6 +99,12 @@ pub fn run() {
     app.run(|app, event| {
         if let RunEvent::Exit = event {
             if let Some(mut sc) = app.state::<State>().sidecar.lock().ok().and_then(|mut s| s.take()) {
+                // záchranná kopie neuložených změn dřív, než se sidecar ukončí (stránka ji při zavření nemusí stihnout)
+                match http::request_timeout(sc.ready.port, "POST", "/api/v1/autosave/flush", Some(&sc.ready.token), FLUSH_TIMEOUT) {
+                    Ok(r) if r.status == 200 => {}
+                    Ok(r) => eprintln!("autosave flush: HTTP {}", r.status),
+                    Err(e) => eprintln!("autosave flush: {e}"),
+                }
                 sc.kill(); // pro pád aplikace hlídá sidecar --parent-pid
             }
         }
@@ -133,6 +142,22 @@ fn smoke_open(sc: &Sidecar, file: &str, log: &mut Log) -> Result<(), String> {
     Ok(())
 }
 
+/// Ukázková data (to je změna projektu; klient `http` neposílá JSON tělo) → `POST /autosave/flush` zapíše záchrannou kopii (do dočasné složky dat, viz `smoke`).
+fn smoke_flush(port: u16, tok: Option<&str>, log: &mut Log) -> Result<(), String> {
+    let json = |r: &http::Response| serde_json::from_str::<serde_json::Value>(&r.body).unwrap_or_default();
+    let ws = http::request(port, "POST", "/api/v1/workspaces", tok)?;
+    let id = json(&ws)["id"].as_str().map(String::from).ok_or("workspace id missing")?;
+    let w = format!("/api/v1/workspaces/{id}");
+    expect(http::request(port, "POST", &format!("{w}/data/demo"), tok)?.status == 200, "POST /data/demo")?;
+    let fl = http::request(port, "POST", "/api/v1/autosave/flush", tok)?;
+    expect(fl.status == 200 && json(&fl)["saved"].as_u64().unwrap_or(0) >= 1, "POST /autosave/flush saves >= 1")?;
+    let latest = http::request(port, "GET", "/api/v1/autosave/latest", tok)?;
+    expect(latest.status == 200 && json(&latest)["available"] == true, "GET /autosave/latest is available")?;
+    http::request(port, "DELETE", &w, tok)?;
+    log.line(&format!("flush: saved {}, recovery available", json(&fl)["saved"]));
+    Ok(())
+}
+
 fn smoke_steps(sc: &Sidecar, open: Option<&str>, log: &mut Log) -> Result<(), String> {
     let (port, tok) = (sc.ready.port, Some(sc.ready.token.as_str()));
     let h = http::request(port, "GET", "/health", None)?;
@@ -151,6 +176,7 @@ fn smoke_steps(sc: &Sidecar, open: Option<&str>, log: &mut Log) -> Result<(), St
     expect(http::request(port, "GET", &path, tok)?.status == 200, "GET /workspaces/{id}")?;
     expect(http::request(port, "DELETE", &path, tok)?.status == 204, "DELETE /workspaces/{id}")?;
     log.line(&format!("workspace {id}: created, read, deleted"));
+    smoke_flush(port, tok, log)?;
     open.map_or(Ok(()), |f| smoke_open(sc, f, log))
 }
 
@@ -158,6 +184,10 @@ fn smoke_steps(sc: &Sidecar, open: Option<&str>, log: &mut Log) -> Result<(), St
 /// GUI program bez konzole, proto se průběh zapisuje i do souboru.
 pub fn smoke(log_path: Option<&str>, open: Option<&str>) -> i32 {
     let mut log = Log(log_path.and_then(|p| std::fs::File::create(p).ok()));
+    // sidecar dědí prostředí: nastavení a záchranná kopie smoke testu patří do dočasné složky, ne do dat uživatele
+    let tmp = std::env::temp_dir().join(format!("pidtools-smoke-{}", std::process::id()));
+    std::env::set_var("PIDTOOLS_DATA_DIR", tmp.join("data"));
+    std::env::set_var("PIDTOOLS_CONFIG_DIR", tmp.join("config"));
     let t0 = std::time::Instant::now();
     let result = sidecar::locate().and_then(|exe| {
         log.line(&format!("sidecar: {}", exe.display()));
@@ -184,5 +214,6 @@ pub fn smoke(log_path: Option<&str>, open: Option<&str>) -> i32 {
             1
         }
     };
+    let _ = std::fs::remove_dir_all(&tmp);
     code
 }

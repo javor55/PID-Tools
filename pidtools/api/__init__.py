@@ -120,13 +120,13 @@ def _opt(team, names, defaults):
     return tuple(defaults) if team is None else tuple(getattr(team, n) for n in names)
 
 
-def _routers(project, jobs, team, library, settings, userdata):
+def _routers(project, jobs, team, library, settings, userdata, store):
     """Všechny routery API (jeden prostor = jedna cesta `/workspaces/{wid}/…`)."""
     max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
     public = team is not None and team.public
     return [data.router(project, *max_upload),
             projects.router(project, appsettings.remember(userdata), max_upload[0] if public else projects.MAX_PROJECT),
-            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library, public),
+            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library, public, store),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
             tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
             apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs, not public), guide.router(project),
@@ -271,7 +271,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
     library = Library(controllers_dir)
     settings, userdata = _stores(public, config_dir, data_dir)
-    routers = _routers(project, jobs, team, library, settings, userdata)
+    routers = _routers(project, jobs, team, library, settings, userdata, app.state.store)
     system = APIRouter()
 
     @system.get("/health", response_model=Health, tags=["system"])

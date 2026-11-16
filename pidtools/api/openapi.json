@@ -3271,6 +3271,19 @@
     "title": "Find",
     "type": "object"
    },
+   "FlushResult": {
+    "properties": {
+     "saved": {
+      "title": "Saved",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "saved"
+    ],
+    "title": "FlushResult",
+    "type": "object"
+   },
    "FreqSet": {
     "properties": {
      "GM": {
@@ -11864,6 +11877,73 @@
      }
     },
     "summary": "Drop Autosave",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/autosave/flush": {
+   "post": {
+    "description": "Zapíše záchranné kopie prostorů s neuloženými změnami (volá obal desktopu před ukončením; veřejný režim: 403).\nV týmovém režimu jen prostory přihlášeného uživatele. Záchranná kopie je jedna na uživatele, takže vyhrává\nnaposledy zapsaný prostor. Pozor: zápis běží mimo zámek prostoru (`_serialize_workspaces` zamyká jen cesty\n`/workspaces/{wid}/…`); souběh se zápisem téhož prostoru je přijatelný – okno se zavírá.",
+    "operationId": "flush_api_v1_autosave_flush_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FlushResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Flush",
     "tags": [
      "app-settings",
      "app-settings"

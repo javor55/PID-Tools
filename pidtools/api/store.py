@@ -68,6 +68,12 @@ class WorkspaceStore:
             for k in [k for k, v in self._d.items() if v[2] == owner]:
                 del self._d[k]
 
+    def items(self, owner=None):
+        """Seznam (id, Project) prostorů; s vlastníkem jen jeho (bez vlastníka všechny – desktop). Čas přístupu se nemění."""
+        with self._lock:
+            self._sweep(self._clock())
+            return [(k, v[0]) for k, v in self._d.items() if owner is None or v[2] == owner]
+
     def count(self, owner):
         """Počet prostorů uživatele."""
         return sum(v[2] == owner for v in list(self._d.values()))

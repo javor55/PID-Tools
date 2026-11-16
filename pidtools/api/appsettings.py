@@ -159,7 +159,7 @@ def new_defaults(settings, lib: Library):
     return aps.new_project_defaults(settings, profile)
 
 
-def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library, public=False):
+def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library, public=False, workspaces=None):
     r = APIRouter(tags=["app-settings"])
 
     def user():
@@ -241,11 +241,27 @@ def router(get_proj, store: aps.SettingsStore, data: UserData, lib: Library, pub
     def delete_logo():
         return out(store.drop_logo(user()))
 
-    r.include_router(save_router(get_proj, data, public))
+    r.include_router(save_router(get_proj, data, public, workspaces))
     return r
 
 
-def save_router(get_proj, data: UserData, public=False):
+class FlushResult(BaseModel):
+    saved: int                                            # počet prostorů, jejichž záchranná kopie se zapsala
+
+
+def autosave_pending(p) -> bool:
+    """Prostor má data a změny, které nejsou ani v ručně uloženém projektu, ani v záchranné kopii."""
+    return p.state.has_data and p.rev != p.autosaved_rev and p.rev != p.saved_rev
+
+
+def write_recovery(p, data: UserData, owner=None):
+    """Zapíše záchrannou kopii projektu (včetně dat) a označí ji jako zapsanou."""
+    raw = prj.serialize_project(p.to_project(include_data=True)).encode("utf-8")
+    data.save_recovery(raw, dict(name=project_label(p), loops=len(p.loops)), owner)
+    p.mark_saved(manual=False)
+
+
+def save_router(get_proj, data: UserData, public=False, workspaces=None):
     """Stav uložení, záchranná kopie, nedávné projekty a ukázková data."""
     r = APIRouter(tags=["app-settings"])
 
@@ -257,7 +273,7 @@ def save_router(get_proj, data: UserData, public=False):
         p = get_proj(wid)
         has = p.state.has_data
         return SaveState(has_data=has, dirty=has and p.rev != p.saved_rev, rev=p.rev,
-                         autosave_pending=has and p.rev != p.autosaved_rev and p.rev != p.saved_rev,
+                         autosave_pending=autosave_pending(p),
                          saved_at=p.saved_at, autosaved_at=p.autosaved_at)
 
     @r.post("/workspaces/{wid}/autosave", response_model=SaveState)
@@ -268,10 +284,23 @@ def save_router(get_proj, data: UserData, public=False):
             raise HTTPException(403, "autosave_disabled")
         if not p.state.has_data:
             raise HTTPException(409, "no data")
-        raw = prj.serialize_project(p.to_project(include_data=True)).encode("utf-8")
-        data.save_recovery(raw, dict(name=project_label(p), loops=len(p.loops)), user())
-        p.mark_saved(manual=False)
+        write_recovery(p, data, user())
         return save_state(wid)
+
+    @r.post("/autosave/flush", response_model=FlushResult)
+    def flush():
+        """Zapíše záchranné kopie prostorů s neuloženými změnami (volá obal desktopu před ukončením; veřejný režim: 403).
+        V týmovém režimu jen prostory přihlášeného uživatele. Záchranná kopie je jedna na uživatele, takže vyhrává
+        naposledy zapsaný prostor. Pozor: zápis běží mimo zámek prostoru (`_serialize_workspaces` zamyká jen cesty
+        `/workspaces/{wid}/…`); souběh se zápisem téhož prostoru je přijatelný – okno se zavírá."""
+        if public:
+            raise HTTPException(403, "autosave_disabled")
+        n = 0
+        for _, p in (workspaces.items(user()) if workspaces is not None else []):
+            if autosave_pending(p):
+                write_recovery(p, data, user())
+                n += 1
+        return FlushResult(saved=n)
 
     @r.get("/autosave/latest", response_model=RecoveryInfo)
     def latest():

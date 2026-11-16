@@ -12,10 +12,20 @@ pub fn request(port: u16, method: &str, path: &str, token: Option<&str>) -> Resu
     request_body(port, method, path, token, &[])
 }
 
+/// Totéž s vlastním časovým limitem (spojení, zápis i čtení) – pro volání při zavírání okna, které nesmí viset.
+pub fn request_timeout(port: u16, method: &str, path: &str, token: Option<&str>, timeout: Duration) -> Result<Response, String> {
+    request_body_timeout(port, method, path, token, &[], timeout)
+}
+
 /// Totéž s tělem požadavku (soubor projektu pro `PUT /pending-open`).
 pub fn request_body(port: u16, method: &str, path: &str, token: Option<&str>, body: &[u8]) -> Result<Response, String> {
-    let mut s = TcpStream::connect(("127.0.0.1", port)).map_err(|e| format!("connect: {e}"))?;
-    let t = Some(Duration::from_secs(30));
+    request_body_timeout(port, method, path, token, body, Duration::from_secs(30))
+}
+
+fn request_body_timeout(port: u16, method: &str, path: &str, token: Option<&str>, body: &[u8], timeout: Duration) -> Result<Response, String> {
+    let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    let mut s = TcpStream::connect_timeout(&addr, timeout).map_err(|e| format!("connect: {e}"))?;
+    let t = Some(timeout);
     s.set_read_timeout(t).and_then(|_| s.set_write_timeout(t)).map_err(|e| e.to_string())?;
     let auth = token.map(|t| format!("X-PID-Token: {t}\r\n")).unwrap_or_default();
     let req = format!("{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n{auth}Content-Length: {}\r\nConnection: close\r\n\r\n", body.len());

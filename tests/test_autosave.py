@@ -89,3 +89,44 @@ def test_manual_save_clears_dirty_and_feeds_recent(client):
     assert client.put(f"{w3}/project", content=raw).status_code == 200
     assert not client.get(f"{w3}/save-state").json()["dirty"]
     assert client.delete(f"/api/v1/recent/{rec[0]['id']}").status_code == 204 or True
+
+
+def test_flush_writes_only_workspaces_with_unsaved_changes(client):
+    """TICKET-021: `POST /autosave/flush` zapíše kopii prostorů s neuloženými změnami (volá obal desktopu při zavření)."""
+    a, b = _ws(client), _ws(client)
+    client.post(f"{a}/data/demo")
+    client.post(f"{b}/data/demo")
+    client.post(f"{b}/autosave")                                            # b je zachráněný, a změněný
+    assert client.delete("/api/v1/autosave").status_code == 204
+    r = client.post("/api/v1/autosave/flush")
+    assert r.status_code == 200 and r.json() == {"saved": 1}
+    assert client.get("/api/v1/autosave/latest").json()["available"]
+    assert not client.get(f"{a}/save-state").json()["autosave_pending"]
+    assert client.post("/api/v1/autosave/flush").json() == {"saved": 0}     # beze změn nic
+
+
+def test_flush_without_changes_and_empty_workspace(client):
+    _ws(client)                                                             # prázdný prostor se nezapisuje
+    assert client.post("/api/v1/autosave/flush").json() == {"saved": 0}
+    assert not client.get("/api/v1/autosave/latest").json()["available"]
+
+
+def test_flush_disabled_in_public_mode(tmp_path):
+    from pidtools.api.deploy import DeployConfig
+    app = create_app(team=DeployConfig(auth="public", cookie_secure=False))
+    with TestClient(app) as c:
+        assert c.post("/api/v1/autosave/flush").status_code == 403
+
+
+def test_flush_only_own_workspaces_in_team_mode(tmp_path):
+    from pidtools.api.deploy import DeployConfig
+    cfg = DeployConfig(auth="header", trust_header=True)
+    with TestClient(create_app(team=cfg, config_dir=str(tmp_path / "c"), data_dir=str(tmp_path / "d"))) as c:
+        a, b = {"X-Forwarded-Email": "alice@acme.com"}, {"X-Forwarded-Email": "bob@acme.com"}
+        for h in (a, b):
+            wid = c.post("/api/v1/workspaces", headers=h).json()["id"]
+            assert c.post(f"/api/v1/workspaces/{wid}/data/demo", headers=h).status_code == 200
+        assert c.post("/api/v1/autosave/flush", headers=a).json() == {"saved": 1}
+        assert c.get("/api/v1/autosave/latest", headers=a).json()["available"]
+        assert not c.get("/api/v1/autosave/latest", headers=b).json()["available"]     # Bobův prostor se nedotkl
+        assert c.post("/api/v1/autosave/flush").status_code == 401

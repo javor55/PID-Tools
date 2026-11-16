@@ -131,6 +131,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/autosave/flush": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Flush
+         * @description Zapíše záchranné kopie prostorů s neuloženými změnami (volá obal desktopu před ukončením; veřejný režim: 403).
+         *     V týmovém režimu jen prostory přihlášeného uživatele. Záchranná kopie je jedna na uživatele, takže vyhrává
+         *     naposledy zapsaný prostor. Pozor: zápis běží mimo zámek prostoru (`_serialize_workspaces` zamyká jen cesty
+         *     `/workspaces/{wid}/…`); souběh se zápisem téhož prostoru je přijatelný – okno se zavírá.
+         */
+        post: operations["flush_api_v1_autosave_flush_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/autosave/latest": {
         parameters: {
             query?: never;
@@ -4619,6 +4642,11 @@ export interface components {
             /** User */
             user?: string | null;
         };
+        /** FlushResult */
+        FlushResult: {
+            /** Saved */
+            saved: number;
+        };
         /** FreqSet */
         FreqSet: {
             /** Gm */
@@ -7843,6 +7871,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    flush_api_v1_autosave_flush_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlushResult"];
+                };
             };
             /** @description Validation Error */
             422: {
