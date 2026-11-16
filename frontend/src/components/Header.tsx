@@ -10,6 +10,7 @@ import { useSettingsUi } from "../settings/settingsStore";
 import { lastSaved, newProject, pickLoop, saveProjectToast, useSaveState } from "../start/project";
 import { toastError } from "./Toasts";
 import { Seg } from "./Ui";
+import { navMark } from "../lib/navStatus";
 
 type LoopsT = components["schemas"]["Loops"];
 type Loop = components["schemas"]["Loop"];
@@ -165,10 +166,33 @@ function NewButton() {
   );
 }
 
-export function Header() {
+/** Záložky hlavní navigace: za názvem značka stavu postupu (✓ vše splněno, ! varování) a shrnutí v `title` / `aria-label`. */
+function NavTabs() {
   const T = useT();
   const { tab, setTab } = useUi();
   const closeSettings = useSettingsUi((s) => s.close);
+  const st = useWsQuery<components["schemas"]["GuideStatus"]>("guide-status", "/guide/status").data;
+  return (
+    <nav className="tabs" role="tablist" aria-label={T("ui_tabs")}>
+      {NAV_TABS.map((t) => {
+        const s = st?.tabs[t.id];
+        const mark = navMark(s);
+        const n = s ? s.ok + s.warn + s.todo : 0;
+        const sum = s && n > 0 ? T(s.warn > 0 ? "nav_prog_warn" : "nav_prog", { ok: s.ok, n, w: s.warn }) : "";
+        return (
+          <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => { closeSettings(); setTab(t.id); }}
+            data-tab={t.id} aria-label={sum ? `${T(t.label)}: ${sum}` : undefined} title={sum || undefined}>
+            {T(t.label)}
+            {mark && <span className={`tab-mark ${mark}`} aria-hidden="true" data-testid={`tab-mark-${t.id}`}>{mark === "ok" ? "✓" : "!"}</span>}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function Header() {
+  const { tab } = useUi();
   return (
     <header className="header">
       <div className="hrow">
@@ -184,14 +208,7 @@ export function Header() {
           <HelpButton />
         </div>
       </div>
-      <nav className="tabs" role="tablist" aria-label={T("ui_tabs")}>
-        {NAV_TABS.map((t) => (
-          <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => { closeSettings(); setTab(t.id); }}
-            data-tab={t.id}>
-            {T(t.label)}
-          </button>
-        ))}
-      </nav>
+      <NavTabs />
       {tab === "data" && <DataSubNav />}
     </header>
   );

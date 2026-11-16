@@ -3457,5 +3457,10 @@
  "copy": "Kopírovat",
  "copy_table": "Kopírovat tabulku",
  "copy_name": "Kopírovat {name}",
- "copied": "Zkopírováno do schránky"
+ "copied": "Zkopírováno do schránky",
+ "nav_prog": "{ok} z {n} splněno",
+ "nav_prog_warn": "{ok} z {n} splněno, {w} s varováním",
+ "nav_next": "Další krok: {t}",
+ "nav_open": "Otevřít",
+ "nav_open_h": "Přejít na další krok a zvýraznit prvek"
 }

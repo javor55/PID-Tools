@@ -172,3 +172,44 @@ def test_guide_texts_exist_in_both_languages():
         k = guides.tab_key(tab)
         for lang in ("cs", "en"):
             assert i18n.TEXTS[lang].get(f"tg_{k}_what"), (tab, lang)
+
+
+# ---------------------------------------------------------------- souhrn stavu postupu (FEATURE-003)
+def _status(c, wid):
+    r = c.get(f"/api/v1/workspaces/{wid}/guide/status")
+    assert r.status_code == 200, r.text                    # „status“ nesmí spadnout do „/guide/{tab}“ (404)
+    return r.json()
+
+
+def test_status_empty_workspace_points_to_data(client, wid):
+    s = _status(client, wid)
+    assert list(s["tabs"]) == ["data", "model", "tuning", "apc", "live", "project"]
+    assert s["tabs"]["data"] == {"ok": 0, "warn": 1, "todo": 0}
+    assert s["tabs"]["project"] == {"ok": 0, "warn": 0, "todo": 0}      # průvodce Projektu bez dat nemá položky
+    assert s["next"]["tab"] == "data" and s["next"]["action"]["tab"] == "data"
+
+
+def test_status_matches_guides_and_picks_next(client, wid):
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+    _wait(client, client.post(f"/api/v1/workspaces/{wid}/identify").json())
+    s = _status(client, wid)
+    for tab, n in s["tabs"].items():                       # počty = položky průvodce téže záložky
+        cl = _g(client, wid, tab)["checklist"]
+        assert n == {k: sum(1 for x in cl if x["ok"] == k) for k in ("ok", "warn", "todo")}, tab
+    assert s["tabs"]["model"]["ok"] > 0 and s["tabs"]["model"]["warn"] == 0
+    # ověření modelu na jiném úseku se dnes nikde nezapisuje (Model.val_status zůstává None) → vždy 1 položka `todo`
+    assert s["tabs"]["model"]["todo"] == 1
+    # první `todo` v pořadí záložek: Data (rozsah regulátoru ještě výchozí 0–100), akce vede do Ladění
+    assert s["next"]["tab"] == "data"
+    assert s["next"]["action"]["tab"] == "tuning" and s["next"]["action"]["target"] == "set-pv_hi"
+    # po nastavení rozsahu je Data hotová a další krok je ověření modelu na záložce Model (bez akce)
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"pv_hi": 250.0})
+    s = _status(client, wid)
+    assert s["tabs"]["data"] == {"ok": 3, "warn": 0, "todo": 0}
+    assert s["next"]["tab"] == "model" and s["next"]["action"] is None
+    assert "another data segment" in s["next"]["text"] or "jiném úseku" in s["next"]["text"]
+
+
+def test_status_unknown_workspace(client):
+    assert client.get("/api/v1/workspaces/nope/guide/status").status_code == 404

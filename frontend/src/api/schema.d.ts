@@ -1808,6 +1808,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/guide/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Guide Status
+         * @description Souhrn kontrolních seznamů hlavních záložek a „další krok“ (stejné kontroly jako průvodci).
+         */
+        get: operations["guide_status_api_v1_workspaces__wid__guide_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/guide/{tab}": {
         parameters: {
             query?: never;
@@ -4892,6 +4912,14 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** GuideStatus */
+        GuideStatus: {
+            next?: components["schemas"]["NextStep"] | null;
+            /** Tabs */
+            tabs: {
+                [key: string]: components["schemas"]["TabStatus"];
+            };
+        };
         /** GuideStep */
         GuideStep: {
             /** Text */
@@ -5545,6 +5573,14 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** NextStep */
+        NextStep: {
+            action?: components["schemas"]["GuideAction"] | null;
+            /** Tab */
+            tab: string;
+            /** Text */
+            text: string;
         };
         /** Node */
         Node: {
@@ -6894,6 +6930,15 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             };
+        };
+        /** TabStatus */
+        TabStatus: {
+            /** Ok */
+            ok: number;
+            /** Todo */
+            todo: number;
+            /** Warn */
+            warn: number;
         };
         /** ThresholdInfo */
         ThresholdInfo: {
@@ -11104,6 +11149,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FreqSet"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guide_status_api_v1_workspaces__wid__guide_status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideStatus"];
                 };
             };
             /** @description Validation Error */

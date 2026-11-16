@@ -26,6 +26,12 @@ const MARK = { ok: "✓", warn: "!", todo: "–" } as const;
 /** Text bez diakritiky a velkých písmen (hledání „ladeni“ najde „Ladění“). */
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+/** Akce kontrolního seznamu: přepne záložku a zvýrazní cílový prvek (sdílí průvodce i řádek „Další krok“). */
+export function runGuideAction(a: { tab: string; target?: string | null }) {
+  useUi.getState().setTab(a.tab as TabId);
+  focusTarget(a.target);
+}
+
 /** Přepnutí na prvek záložky (data-testid): rozbalí nadřazené karty, posune, zaostří a krátce zvýrazní. */
 export function focusTarget(target: string | null | undefined) {
   if (!target) return;
@@ -150,7 +156,6 @@ export function HelpButton() {
   const tab: TabId = tab0 === "data" ? (sub === "diag-all" ? "loops" : sub === "diag-detail" ? "diag" : "data") : tab0;      // průvodce Diagnostiky
   const wid = useUi((s) => s.wid);
   const lang = useUi((s) => s.lang);
-  const setTab = useUi((s) => s.setTab);
   const ws = useWs().data;
   const loops = useWsQuery<Loops>("loops", "/loops").data;
   const ref = useRef<HTMLDialogElement>(null);
@@ -174,8 +179,7 @@ export function HelpButton() {
   const loopName = loop ? (loop.name || T("loop_n", { n: loop.index + 1 })) : "";
   const go = (a: Action) => {
     hide();
-    setTab(a.tab as TabId);
-    focusTarget(a.target);
+    runGuideAction(a);
   };
   const data = g.data;
   return (

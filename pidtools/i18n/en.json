@@ -3457,5 +3457,10 @@
  "copy": "Copy",
  "copy_table": "Copy table",
  "copy_name": "Copy {name}",
- "copied": "Copied to the clipboard"
+ "copied": "Copied to the clipboard",
+ "nav_prog": "{ok} of {n} done",
+ "nav_prog_warn": "{ok} of {n} done, {w} with a warning",
+ "nav_next": "Next: {t}",
+ "nav_open": "Open",
+ "nav_open_h": "Go to the next step and highlight the control"
 }

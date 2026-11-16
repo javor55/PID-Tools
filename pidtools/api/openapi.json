@@ -4125,6 +4125,32 @@
     "title": "GuideCheck",
     "type": "object"
    },
+   "GuideStatus": {
+    "properties": {
+     "next": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/NextStep"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tabs": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/TabStatus"
+      },
+      "title": "Tabs",
+      "type": "object"
+     }
+    },
+    "required": [
+     "tabs"
+    ],
+    "title": "GuideStatus",
+    "type": "object"
+   },
    "GuideStep": {
     "properties": {
      "text": {
@@ -5884,6 +5910,34 @@
      }
     },
     "title": "NewSnapshot",
+    "type": "object"
+   },
+   "NextStep": {
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/GuideAction"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tab": {
+      "title": "Tab",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "tab",
+     "text"
+    ],
+    "title": "NextStep",
     "type": "object"
    },
    "Node": {
@@ -9643,6 +9697,29 @@
      }
     },
     "title": "SummaryReq",
+    "type": "object"
+   },
+   "TabStatus": {
+    "properties": {
+     "ok": {
+      "title": "Ok",
+      "type": "integer"
+     },
+     "todo": {
+      "title": "Todo",
+      "type": "integer"
+     },
+     "warn": {
+      "title": "Warn",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "ok",
+     "warn",
+     "todo"
+    ],
+    "title": "TabStatus",
     "type": "object"
    },
    "ThresholdInfo": {
@@ -19224,6 +19301,81 @@
     "summary": "Frequency",
     "tags": [
      "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/guide/status": {
+   "get": {
+    "description": "Souhrn kontrolních seznamů hlavních záložek a „další krok“ (stejné kontroly jako průvodci).",
+    "operationId": "guide_status_api_v1_workspaces__wid__guide_status_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GuideStatus"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Guide Status",
+    "tags": [
+     "guide"
     ]
    }
   },

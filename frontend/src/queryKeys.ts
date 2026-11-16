@@ -22,6 +22,7 @@ const PART_GROUPS: Record<string, Group[]> = {
   scenario: ["tuning"], twarn: ["tuning"], "record-set": ["tuning", "model"],
   // APC, živá simulace, projekt
   apc: ["apc"], live: ["live"],
+  "guide-status": ["data", "model", "tuning", "apc", "live", "project"],     // stav postupu na záložkách (FEATURE-003)
   journal: ["project"], "report-sections": ["project"], "save-state": ["project"], guide: ["project"],
   // nastavení se zneplatňuje vždy zvlášť (invalidateGroups)
   settings: ["ws"],
