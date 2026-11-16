@@ -613,7 +613,7 @@ def _quality_preview(r, need_data):
             offset = int(np.searchsorted(ws.t[sel], t))
         offset = max(0, min(offset, max(len(sel) - 1, 0)))
         part = sel[offset:offset + limit]
-        notes = {i: [] for i in part.tolist()}
+        notes: dict[int, list[str]] = {i: [] for i in part.tolist()}
         for c in checks:
             if c.mask is not None and len(c.mask) == len(ws.t):
                 for i in part[np.asarray(c.mask, bool)[part]].tolist():

@@ -2,6 +2,8 @@
 Ladění a simulace: blok PIDConL a sady parametrů, dopředná vazba, metody a návrh ladění, porovnání metod,
 robustnost sad a scénář (M4c).
 """
+from typing import Any
+
 import numpy as np
 
 from ...core import pidconl_sim_full
@@ -10,9 +12,10 @@ from .. import feedforward as ffm
 from .. import scenario as scn
 from .. import tuning as tun
 from ..loop import block_ctrl, set_ctrl
+from .base import WsBase
 
 
-class TuningMixin:
+class TuningMixin(WsBase):
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     def compare_methods(self):
@@ -120,14 +123,14 @@ class TuningMixin:
                 out.append(("sim_mv0_out", dict(m=f"{self.EM(mv0):.4g}", lo=f"{float(self.get('mvl_lo', self.mv_lo)):g}",
                                                 hi=f"{float(self.get('mvl_hi', self.mv_hi)):g}", u=self.get("u_mv") or "MV")))
             code = self.get("mcode")
-            if self.fit and code in self.fit["res"] and self.fit["res"][code].get("fit", 100) < 70:
+            if self.fit is not None and code in self.fit["res"] and self.fit["res"][code].get("fit", 100) < 70:
                 out.append(("warn_low_fit", {}))
         return out
 
     def plant_view(self):
         """Proces a ventil v simulaci: stikce, skluz, šum PV a charakteristika ventilu (se základem z identifikace)."""
         code = self.get("mcode")
-        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit and code in self.fit["res"] else 0.0
+        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit is not None and code in self.fit["res"] else 0.0
         gains = [float(v) for v in (self.get("vchar_last") or [1.0] * 10)]
         x, y = scn.valve_curve(gains)
         return dict(stic=float(self.get(self.stic_key, st0)), stic_default=float(st0), slip=float(self.get("sim_J", 100.0)),
@@ -286,7 +289,7 @@ class TuningMixin:
     def plant(self):
         """Proces a ventil v simulaci: stikce [MV] (výchozí z identifikace), skluz [%], šum PV [PV], charakteristika."""
         code = self.get("mcode")
-        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit and code in self.fit["res"] else 0.0
+        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit is not None and code in self.fit["res"] else 0.0
         return scn.plant(float(self.get(self.stic_key, st0)), float(self.get("sim_J", 100.0)),
                          float(self.get("sim_noise", 0.0)), self.get("vchar_last") or [1.0] * 10, self.PR, self.MR)
 
@@ -338,7 +341,8 @@ class TuningMixin:
             c = dict(ctrl, **plant)
             return pidconl_sim_full(code, pp, pdl, h, sig["sp"], x["pv0"], x["mv0"], c if prof is None else self.prof_ctrl(c),
                                     sig["dmeas"], sig["dmv"], sig["dpv"], profile=prof)
-        runs, kp = {}, {}
+        runs: dict[int | str, Any] = {}
+        kp: dict[int | str, Any] = {}
         for n in (1, 2):
             runs[n] = run(self.set_ctrl(n))
             kp[n] = scn.kpis(runs[n], self.PR, self.MR) if scn.stable(runs[n]) else None

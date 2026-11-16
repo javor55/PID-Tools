@@ -9,7 +9,7 @@ výchozí je první jiná smyčka), projekt s jedinou smyčkou odpoví 409. Poma
 model vnitřní smyčky z dat) běží jako úlohy a výsledek se uloží do pracovního prostoru.
 """
 import re
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Response
@@ -27,7 +27,7 @@ from ..core import MODELS, default_tc, gs_issues, iae, robustness
 from ..core.apc import rga_advice
 from ..i18n import T
 from .apc import ValueRow
-from .common import JobInfo, job_info
+from .common import JobInfo, job_info, model_params
 from .data import _plain
 from .tuning import Note, Pid
 
@@ -188,7 +188,7 @@ class CascadeSim(BaseModel):
 
 
 def _model_out(code, p):
-    return ModelOut(code=code, params=[ParamRow(name=n, value=float(v)) for n, v in zip(MODELS[code]["params"], p)])
+    return ModelOut(code=code, params=[ParamRow(name=n, value=float(v)) for n, v in zip(model_params(code), p)])
 
 
 def _cas_others(proj):
@@ -259,7 +259,7 @@ def _cas_calc(ws, inp, inner):
 
 def _cas_state(ws, proj, loop):
     """(vstupy, vnitřní model, poznámka, výpočet nebo None); výchozí τc se doplní po výpočtu."""
-    inp = _cas_inputs(ws, proj, loop, (default_tc(*ws.model[:2], float(ws.get("samp"))), None))
+    inp = _cas_inputs(ws, proj, loop, (default_tc(ws.model[0], ws.model[1], float(ws.get("samp"))), None))
     inner, note = _cas_inner(ws, proj, inp)
     if inner is None:
         return inp, None, note, None
@@ -482,7 +482,7 @@ def _gs_info(ws, proj):
         pts = _gs_tune(ws, inp, pts)
         set2 = clean(ws.work_ctrl())
         tab, filled = ags.table(pts, ws.EP, ws.get("u_pv") or "PV")
-        names = MODELS[code]["params"]
+        names = model_params(code)
         out.update(points=[GsPoint(index=i, x=float(ws.EP(q["x"])), u=float(ws.EM(q["u"])), fit=float(q["fit"]),
                                    params=[ParamRow(name=n, value=float(v)) for n, v in zip(names, q["p"])],
                                    gain=q["gain"], ti=_fin(q["ti"]), td=q["td"],
@@ -628,7 +628,7 @@ def _er_curves(r):
 
 
 # ---- rozvazbení a override: druhá smyčka projektu
-def _pair(proj, loop):
+def _pair(proj, loop) -> tuple[int, dict[str, Any], dict[str, Any]]:
     """(index druhé smyčky, záznam A, záznam B); 409 u projektu s jedinou smyčkou nebo smyčky bez modelu."""
     others = dict(_cas_others(proj))
     if not others:
@@ -801,7 +801,7 @@ def _ov_frame(a, b, tt, o, o0):
 
 
 _LOOP_Q = Query(None, ge=0, description="index of the second loop of the project (as in GET /loops)")
-_CURVES = {200: {"content": {"application/octet-stream": {}}}}
+_CURVES: dict[int, dict[str, Any]] = {200: {"content": {"application/octet-stream": {}}}}
 
 
 class _Deps:

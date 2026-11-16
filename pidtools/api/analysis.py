@@ -12,6 +12,7 @@ from ..app import journal as jr
 from ..app import report as rpt
 from ..app.apc import recommend as reco
 from ..core import MODELS
+from .common import model_params
 from .data import _plain
 
 MAX_SCATTER = 3000          # bodů fázového grafu a grafu polohy (rovnoměrně zředěné)
@@ -67,7 +68,7 @@ def _nonlinearity(ws):
     lg, spread = nl
     gains = [dict(q, from_e=float(ws.EM(q["mv_from"])), to_e=float(ws.EM(q["mv_to"]))) for q in lg]
     code, p, _ = ws.model
-    return _plain(dict(gains=gains, spread=spread, ref=p[0], param=MODELS[code]["params"][0],
+    return _plain(dict(gains=gains, spread=spread, ref=p[0], param=model_params(code)[0],
                        integ=bool(MODELS[code]["integ"])))
 
 

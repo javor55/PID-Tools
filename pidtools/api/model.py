@@ -13,13 +13,13 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel
 
 from ..app import loopmode as lm
-from ..core import DIST_FIELDS, MODELS, step_response
+from ..core import DIST_FIELDS, step_response
 from ..app import model as mdl
 from ..app import signalpack
 from ..app import windows as wn
 from . import tasks
 from .data import _plain
-from .common import JobInfo, job_info
+from .common import JobInfo, job_info, model_params
 
 
 class Windows(BaseModel):
@@ -248,7 +248,7 @@ def model_state(ws):
         q = summ.get(c, {})
         wf = ws.window_fits(c) if r.get("method") == "win" and ws.inputs_mode else []
         out.append(ModelRes(
-            code=c, names=list(MODELS[c]["params"]),
+            code=c, names=model_params(c),
             dists=[_dist_info(ws, c, r, j, nm) for j, nm in enumerate(ws.c_d)],
             p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),

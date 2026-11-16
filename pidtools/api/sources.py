@@ -148,7 +148,7 @@ def _sources_pack(p, cap):
     if not spans:
         raise HTTPException(409, "no data")
     refs = p.column_refs()
-    count = {}
+    count: dict[str, int] = {}
     for ref in refs:
         count[ref.column] = count.get(ref.column, 0) + 1
     groups, names = [], {}

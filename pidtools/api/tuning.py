@@ -362,7 +362,7 @@ def router(get_proj, jobs):
         except (ValueError, RuntimeError) as ex:
             raise HTTPException(400, str(ex)) from ex
         code, p, _ = ws.model
-        g1 = float(ws.get("set1_gain"))
+        g1: float | None = float(ws.get("set1_gain"))
         g1 = None if tun.is_placeholder(g1, float(ws.get("set1_ti")), float(ws.get("set1_td"))) else g1
         checks = lm.tuning_checks(code, p, float(s["Kc"]), float(ws.grid.Ts), g1)
         vals, warns = _view(ws, float(s["Kc"]), float(s["Ti"]), float(s["Td"]))

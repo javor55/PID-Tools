@@ -378,7 +378,7 @@ def configure_logging(level="INFO", stream=None):
     if not any(getattr(h, "_pidtools", False) for h in lg.handlers):
         h = logging.StreamHandler(stream or sys.stderr)
         h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
-        h._pidtools = True
+        h._pidtools = True  # type: ignore[attr-defined]  # příznak na handleru, aby se nepřidal podruhé
         lg.addHandler(h)
 
 

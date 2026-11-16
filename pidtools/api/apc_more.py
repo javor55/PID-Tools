@@ -7,7 +7,7 @@ neukládají (jen stav widgetů), proto jsou vstupy tělem požadavku; GET vrac�
 hodnoty“) a výsledky pro ně. RGA nemá vstupy: počítá z modelů všech smyček projektu (aktivní + ostatní s modelem).
 Výpočty jsou na demu pod 0,1–0,3 s, proto bez úloh.
 """
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Response
@@ -18,7 +18,7 @@ from ..app.apc import ratio as aratio
 from ..app.apc import rgan
 from ..app.apc import splitrange as asr
 from ..app.apc import vpc as avpc
-from ..core import MODELS
+from .common import model_params
 from ..i18n import T
 from .data import _plain
 from .tuning import Note, Pid
@@ -52,7 +52,7 @@ def _checks(items):
 
 
 def _model_info(g):
-    return ModelInfo(code=g[0], params=list(MODELS[g[0]]["params"]), values=[float(v) for v in g[1]])
+    return ModelInfo(code=g[0], params=model_params(g[0]), values=[float(v) for v in g[1]])
 
 
 def _own_model(ws, p, what):
@@ -60,8 +60,8 @@ def _own_model(ws, p, what):
     code = ws.model[0]
     if p is None:
         return None
-    if len(p) != len(MODELS[code]["params"]):
-        raise HTTPException(422, f"{what}: expected {len(MODELS[code]['params'])} parameters for {code}")
+    if len(p) != len(model_params(code)):
+        raise HTTPException(422, f"{what}: expected {len(model_params(code))} parameters for {code}")
     if not all(np.isfinite(p)):
         raise HTTPException(422, f"{what}: parameters must be finite")
     return code, [float(p[0])] + [max(float(v), 0.0) for v in p[1:]]
@@ -86,7 +86,7 @@ def _same_grid(*ts):
         raise HTTPException(500, "inconsistent simulation grids")
 
 
-CURVES = {200: {"content": {"application/octet-stream": {}}}}
+CURVES: dict[int, dict[str, Any]] = {200: {"content": {"application/octet-stream": {}}}}
 
 
 # ---- split range
@@ -233,7 +233,7 @@ def _vpc_design(proj, body):
     ws = proj.state
     g1, g2, cv, p, tc = _vpc_tune(ws, body)
     return VpcDesign(mv2=_model_info(g2), controller=Pid(Kc=float(cv["Gain"]), Ti=float(cv["TI"]), Td=float(cv["TD"])),
-                     surrogate=ModelInfo(code="P1D", params=list(MODELS["P1D"]["params"]), values=[float(x) for x in p]),
+                     surrogate=ModelInfo(code="P1D", params=model_params("P1D"), values=[float(x) for x in p]),
                      tc=float(tc), loop_time=float(avpc.loop_time(g1, ws.work_ctrl())),
                      impl_text=T("g_impl_vpc", sp=f"{body.sp:.3g}", g=f"{cv['Gain']:.4g}", ti=f"{cv['TI']:.4g}"),
                      checks=_checks(guides.apc_actuators(_rec_a(proj), "vpc")))

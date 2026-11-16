@@ -55,7 +55,7 @@ def parse_ready(line):
 
 def parent_alive(pid):
     """Žije proces pid? Windows: OpenProcess + WaitForSingleObject; POSIX: kill(pid, 0) a změna rodiče."""
-    if os.name == "nt":
+    if sys.platform == "win32":
         import ctypes
         k32 = ctypes.windll.kernel32
         k32.OpenProcess.restype = ctypes.c_void_p

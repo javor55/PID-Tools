@@ -5,9 +5,10 @@ a nelinearita z místních zesílení (M4d). Výpočty jsou v app.diagnostics; t
 import numpy as np
 
 from .. import diagnostics as dg
+from .base import WsBase
 
 
-class AnalysisMixin:
+class AnalysisMixin(WsBase):
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     def range_mask(self, a, b):

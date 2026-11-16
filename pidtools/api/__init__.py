@@ -90,7 +90,8 @@ def _serialize_workspaces(app):
     simulace) a souběžné výpočty se přetahují o GIL – dvojice ukazatele + křivky téže simulace trvala souběžně
     několikanásobně déle než po sobě, kdy druhý požadavek vezme výsledek z mezipaměti. Úlohy běží v procesech.
     """
-    ws_locks = weakref.WeakKeyDictionary()      # {event loop: {prostor: zámek}} – zámek asyncio patří ke smyčce
+    # {event loop: {prostor: zámek}} – zámek asyncio patří ke smyčce
+    ws_locks: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, dict[str, asyncio.Lock]] = weakref.WeakKeyDictionary()
     app.state.ws_locks = ws_locks
 
     @app.middleware("http")

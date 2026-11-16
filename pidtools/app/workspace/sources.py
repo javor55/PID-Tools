@@ -10,6 +10,8 @@ skládá z nich data smyček a převádí mapování rolí (`LoopSpec`) na sloup
 Workspace zůstává fasádou výpočtů jedné smyčky a drží vybrané sloupce (`c_pv` …) pod jmény signálů; odkud signál
 pochází (`SourceRef`), říká `Workspace.name_refs`.
 """
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 
@@ -134,7 +136,7 @@ def embedded_frame(data):
 
 def unique_names(refs, rts):
     """Jména signálů složené tabulky: sloupec beze změny, při shodě sloupců různých zdrojů „sloupec (zdroj)“."""
-    count = {}
+    count: dict[str, int] = {}
     for r in refs:
         count[r.column] = count.get(r.column, 0) + 1
     label = {rt.id: rt.src.name for rt in rts}
@@ -150,6 +152,14 @@ def unique_names(refs, rts):
 
 class SourcesMixin:
     """Zdroje a mapování smyček `loops.Project` (stav: `self.sources`, `self.time_grid`, `self.loops`)."""
+    # atributy a členy `loops.Project`, které mixin používá (hodnoty nastavuje Project.__init__)
+    sources: list[SourceRT]
+    loops: list[Workspace]
+    time_grid: TimeGrid
+    if TYPE_CHECKING:
+        @property
+        def state(self) -> Workspace: ...
+        def _apply_defaults(self, ls: Workspace, first: bool = False) -> None: ...
 
     # ---- zdroje
     def rt(self, sid) -> SourceRT:
@@ -337,7 +347,7 @@ class SourcesMixin:
 
     def _zoh_refs(self):
         """Sloupce, které se při skládání drží (MV a režim všech smyček): schodovitý průběh se neinterpoluje."""
-        out = set()
+        out: set[SourceRef] = set()
         for i in range(len(self.loops)):
             r = self.loop_spec(i).roles
             out.update(x for x in (r.mv, r.mode) if x is not None)

@@ -82,10 +82,10 @@ class Request:
     """Požadavek na návrh: metoda, typ regulátoru a její nastavení."""
     method: str = "SIMC"
     ctype: str = "PI"
-    tc: float = None               # τc (SIMC, iSIMC, Lambda); None = výchozí
-    avg: tuple = None              # (ΔPV %, ΔMV %) pro průměrování
+    tc: float | None = None        # τc (SIMC, iSIMC, Lambda); None = výchozí
+    avg: tuple | None = None       # (ΔPV %, ΔMV %) pro průměrování
     ms: float = 1.6                # limit Ms (optimalizace)
-    hf: float = None               # limit šumu MV (PID)
+    hf: float | None = None        # limit šumu MV (PID)
     crit: str = "MIGO"
     target: str = "both"
     ovs: float = 0.02

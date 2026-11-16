@@ -6,6 +6,7 @@ fasádou výpočtů jedné smyčky. Formát souboru (app.project, verze 3): záz
 """
 import copy
 import time
+from typing import Any
 
 from .. import project as prj
 from .. import journal as jr
@@ -148,7 +149,7 @@ class Project(SourcesMixin):
         if len(self.loops) > 1:
             proj["loops"] = recs
             proj["active"] = self.active + 1
-        used = {}                                       # sloupce zdrojů, které používá nějaká role (ukládají se jen ty)
+        used: dict[Any, Any] = {}                                       # sloupce zdrojů, které používá nějaká role (ukládají se jen ty)
         for i in range(len(self.loops)):
             for ref in self.loop_spec(i).roles.refs():
                 used.setdefault(ref.source_id, []).append(ref.column)

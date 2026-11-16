@@ -3,6 +3,8 @@ API – mapování smyček na zdroje (plán v2, E3): role PV / SP / MV / poloha 
 NormPV / NormMV, tag, popis a vazba kaskády; návrh smyček podle názvů tagů a import mapování z CSV.
 Smyčky se číslují od 0 jako u `/loops`.
 """
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -79,7 +81,8 @@ def to_spec(m: LoopMapping):
     return LoopSpec(tag=m.tag, description=m.description,
                     roles=Roles(pv=_unref(r.pv), sp=_unref(r.sp), mv=_unref(r.mv), pos=_unref(r.pos),
                                 mode=_unref(r.mode), dv=[_unref(x) for x in r.dv]),
-                    norm_pv=tuple(m.norm_pv) if m.norm_pv else None, norm_mv=tuple(m.norm_mv) if m.norm_mv else None,
+                    norm_pv=(m.norm_pv[0], m.norm_pv[1]) if m.norm_pv else None,
+                    norm_mv=(m.norm_mv[0], m.norm_mv[1]) if m.norm_mv else None,
                     cascade_to=m.cascade_to)
 
 
@@ -159,7 +162,7 @@ def router(get_proj):
         p = get_proj(wid)
         p.sync()
         found, unused = sg.suggest(p.column_refs(set(body.source_ids) if body.source_ids is not None else None))
-        applied = []
+        applied: list[Any] = []
         try:
             applied = add_found(p, found) if body.apply else []
         except (ValueError, KeyError, IndexError) as ex:
