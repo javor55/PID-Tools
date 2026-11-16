@@ -5,18 +5,14 @@ import { Toasts } from "./components/Toasts";
 import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
 import { useT } from "./i18n";
-import { ApcMain, ApcSide } from "./tabs/ApcTab";
 import { ContextRow } from "./components/ContextRow";
 import { DataMain, DataSide } from "./tabs/DataTab";
-import { DiagMain, DiagSide } from "./tabs/DiagTab";
-import { LiveMain } from "./tabs/LiveTab";
-import { TriageMain, TriageSide } from "./tabs/TriageTab";
-import { ProjectMain, ProjectSide, usePendingOpen } from "./tabs/ProjectTab";
-import { ModelMain, ModelSide } from "./tabs/ModelTab";
-import { TuningMain, TuningSide } from "./tabs/TuningTab";
+import { usePendingOpen } from "./tabs/project/pendingOpen";
+import {
+  ApcMain, ApcSide, DiagMain, DiagSide, Lazy, LiveMain, ModelMain, ModelSide, ProjectMain, ProjectSide, SettingsPage,
+  TriageMain, TriageSide, TrendsMain, TrendsSide, TuningMain, TuningSide,
+} from "./lazy";
 import { SourcesMain, SourcesSide } from "./tabs/data/SourcesView";
-import { TrendsMain, TrendsSide } from "./tabs/data/TrendsView";
-import { SettingsPage } from "./settings/SettingsPage";
 import { useSettingsUi } from "./settings/settingsStore";
 import { useAppSettingsSync } from "./settings/appSettings";
 import { StartScreen } from "./start/StartScreen";
@@ -62,30 +58,32 @@ export default function App() {
   const cur = TABS.find((t) => t.id === tab) ?? TABS[0];
   const showStart = !!ws.data && !ws.data.has_data && (cur.id === "model" || cur.id === "tuning" || cur.id === "apc" || (cur.id === "data" && sub === "sources"));
   // Data má podzáložky; Diagnostika zůstává ve starých pohledech (E5 je přepracuje).
-  const dataView = sub === "sources" ? [<SourcesMain />, <SourcesSide />] : sub === "trends" ? [<TrendsMain />, <TrendsSide />]
-    : sub === "diag-all" ? [<TriageMain />, <TriageSide />] : sub === "diag-detail" ? [<DiagMain />, <DiagSide />]
+  const dataView = sub === "sources" ? [<SourcesMain />, <SourcesSide />] : sub === "trends" ? [<Lazy><TrendsMain /></Lazy>, <Lazy><TrendsSide /></Lazy>]
+    : sub === "diag-all" ? [<Lazy><TriageMain /></Lazy>, <Lazy><TriageSide /></Lazy>] : sub === "diag-detail" ? [<Lazy><DiagMain /></Lazy>, <Lazy><DiagSide /></Lazy>]
     : [<DataMain />, <DataSide />];
   return (
     <div className="shell">
       <Header />
-      {settingsOpen ? <SettingsPage /> : showStart ? <StartScreen compact={cur.id === "data"} /> : <>
+      {settingsOpen ? <ErrorBoundary resetKey="settings"><Lazy><SettingsPage /></Lazy></ErrorBoundary> : showStart ? <StartScreen compact={cur.id === "data"} /> : <>
       {CONTEXT_TABS.includes(cur.id) && <ContextRow />}
       <div className={cur.id === "live" ? "body body-wide" : "body"}>
         <ErrorBoundary resetKey={tab + sub}>
         <main className="main" data-testid={`tab-${cur.id}`} data-dsub={cur.id === "data" ? sub : undefined}>
-          {cur.id === "data" ? dataView[0] : cur.id === "model" ? <ModelMain /> : cur.id === "tuning" ? <TuningMain />
-            : cur.id === "live" ? <LiveMain /> : cur.id === "apc" ? <ApcMain />
-            : <ProjectMain />}
+          {cur.id === "data" ? dataView[0] : cur.id === "model" ? <Lazy><ModelMain /></Lazy> : cur.id === "tuning" ? <Lazy><TuningMain /></Lazy>
+            : cur.id === "live" ? <Lazy><LiveMain /></Lazy> : cur.id === "apc" ? <Lazy><ApcMain /></Lazy>
+            : <Lazy><ProjectMain /></Lazy>}
         </main>
         </ErrorBoundary>
         {cur.id !== "live" && <aside className="side" aria-label={T("ui_settings")}>
+          <ErrorBoundary resetKey={tab + sub}>
           <div className="side-all">
             <button type="button" className="link" onClick={() => sideAll(true)} data-testid="side-expand">{T("side_expand_all")}</button>
             <button type="button" className="link" onClick={() => sideAll(false)} data-testid="side-collapse">{T("side_collapse_all")}</button>
           </div>
-          {cur.id === "data" ? dataView[1] : cur.id === "model" ? <ModelSide /> : cur.id === "tuning" ? <TuningSide />
-            : cur.id === "apc" ? <ApcSide />
-            : <ProjectSide />}
+          {cur.id === "data" ? dataView[1] : cur.id === "model" ? <Lazy><ModelSide /></Lazy> : cur.id === "tuning" ? <Lazy><TuningSide /></Lazy>
+            : cur.id === "apc" ? <Lazy><ApcSide /></Lazy>
+            : <Lazy><ProjectSide /></Lazy>}
+          </ErrorBoundary>
         </aside>}
       </div>
       </>}

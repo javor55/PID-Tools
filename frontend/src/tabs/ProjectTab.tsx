@@ -1,9 +1,8 @@
 // Záložka Projekt a report (M21): uložení / otevření projektu (soubor), údaje a volby protokolu, náhled protokolu
 // (HTML v izolovaném iframe) a jeho stažení.
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { create } from "zustand";
-import { ApiError, bytes, rawRequest } from "../api/client";
+import { ApiError, bytes } from "../api/client";
 import { Card } from "../components/Card";
 import { TextSetting } from "../components/Fields";
 import { PrimaryAction, SideCard, Seg } from "../components/Ui";
@@ -14,51 +13,12 @@ import { PROJECT_EXT, projectBaseName, saveAs, saveProject, useSaveOpts } from "
 import { useSections } from "./project/api";
 import { JournalMain } from "./project/JournalMain";
 import { JournalSide } from "./project/JournalSide";
+import { openProject, useProjMsg } from "./project/pendingOpen";
 import { STATUSES, useProjSub, useReport } from "./project/state";
 import "../styles/project.css";
 
 /** Výběr souboru při otevření projektu: vedle `.pidproj` (PROJECT_EXT ve start/project.ts) jde i starší `.json`. */
 export const PROJECT_ACCEPT = `${PROJECT_EXT},.json,application/json`;
-const PENDING_EVENT = "pidtools:pending-open";      // okno desktopu ho vyvolá po uložení souboru k otevření
-
-interface ProjMsg { err: boolean; text: string }
-const useProjMsg = create<{ msg: ProjMsg | null; set: (m: ProjMsg | null) => void }>((set) => ({ msg: null, set: (msg) => set({ msg }) }));
-
-/** Nahraje projekt (bajty souboru) do prostoru a zneplatní jeho dotazy. */
-async function openProject(wid: string, raw: ArrayBuffer, qc: QueryClient, T: (k: string) => string) {
-  useProjMsg.getState().set(null);
-  try {
-    await rawRequest("PUT", `/workspaces/${wid}/project`, raw);
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-    useReport.getState().set({ html: null, err: null });
-    useProjMsg.getState().set({ err: false, text: T("ui_proj_opened") });
-  } catch (e) {
-    useProjMsg.getState().set({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) });
-  }
-}
-
-/** Projekt otevřený poklepem na soubor v okně desktopu: při startu a po události od okna se vyzvedne z `/pending-open`. */
-export function usePendingOpen() {
-  const T = useT();
-  const wid = useUi((s) => s.wid);
-  const qc = useQueryClient();
-  useEffect(() => {
-    if (!wid) return;
-    let busy = false;
-    const check = async () => {
-      if (busy) return;
-      busy = true;
-      try {
-        const raw = await bytes("GET", "/pending-open");
-        if (raw.byteLength > 0) { useUi.getState().setTab("project"); await openProject(wid, raw, qc, T); }
-      } catch { /* bez čekajícího souboru / nedostupné (týmový režim) */ } finally { busy = false; }
-    };
-    void check();
-    window.addEventListener(PENDING_EVENT, check);
-    return () => window.removeEventListener(PENDING_EVENT, check);
-  }, [wid, qc, T]);
-}
-
 function hashOf(s: string): string {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
