@@ -80,6 +80,8 @@ def test_tab_marks_follow_the_status(identified, server):
     # Data: po nastavení rozsahu je vše splněno → ✓ (značka je aria-hidden, shrnutí je v aria-label)
     assert pg.locator('[data-testid="tab-mark-data"]').count() == 0
     _call(server, pg, "PATCH", B + "/settings", {"pv_hi": 250.0})
+    pg.reload(wait_until="networkidle")                              # změna šla mimo UI → načíst stav znovu
+    pg.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
     mark = pg.locator('[data-testid="tab-mark-data"]')
     mark.wait_for(timeout=20000)
     assert mark.inner_text() == "✓" and mark.get_attribute("aria-hidden") == "true"
