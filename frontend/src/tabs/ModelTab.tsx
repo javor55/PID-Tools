@@ -6,6 +6,7 @@ import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { unframe, series } from "../api/signals";
 import { Trend } from "../components/Trend";
+import type { TrendData, TrendRow } from "../legacy/trend.js";
 import { Help } from "../components/Ui";
 import { DistCompare, ModelDetails } from "./ModelDetails";
 import { DIST_STYLE, MV_STYLE, windowFits } from "./modelConst";
@@ -52,7 +53,7 @@ export function ModelMain() {
   const { ws, settings, grid, windows, model, curves } = useModelData();
   const winMode = settings.win_mode === "inputs" ? "inputs" : "common";
 
-  const data = useMemo(() => {
+  const data = useMemo<TrendData | null>(() => {
     if (!ws?.has_data || !grid) return null;
     const { meta, blob } = grid;
     const get = (n: string) => series(meta, blob, n);
@@ -61,7 +62,7 @@ export function ModelMain() {
     const t = pv.t, n = t.length;
     const idx = decimate(n, pv.v);
     const [lo, hi] = range(pv.v);
-    const pvRow: Record<string, unknown> = { id: "PV", kind: "pv", title: `PV · ${ws.pv}`, color: "#1f5fa8",
+    const pvRow: TrendRow = { id: "PV", kind: "pv", title: `PV · ${ws.pv}`, color: "#1f5fa8",
       y: pick(pv.v, idx), lo, hi, h: 220 };
     if (curves) {
       const c = (k: string) => series(curves.meta, curves.blob, k)?.v;
@@ -73,7 +74,7 @@ export function ModelMain() {
     const sel = model?.results.find((x) => x.code === model.selected);
     const wf = winMode === "inputs" && sel?.method === "win" && windows && curves
       ? windowFits(windows.wins, sel.window_fits, ws.Ts ?? 1) : {};
-    const legend: unknown[] = [];
+    const legend: [string, string, string][] = [];
     const inputs: [string, ArrayLike<number>, string, string[]][] = [["MV", mv.v, ws.mv ?? "MV", MV_STYLE]];
     (ws.dists ?? []).forEach((d, j) => { const s = get(`d${j}`); if (s) inputs.push([d, s.v, d, DIST_STYLE[j % 4]]); });
     inputs.forEach(([rid, y, name, sty], k) => {

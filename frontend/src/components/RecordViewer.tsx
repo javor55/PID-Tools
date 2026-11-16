@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { binary, request } from "../api/client";
 import { unframe } from "../api/signals";
-import mountViewer from "../legacy/viewer.js";
+import mountViewer, { type ViewerData } from "../legacy/viewer.js";
 import PIDViewAn from "../legacy/viewer_an.js";
 import "../legacy/viewer.css";
 import { useSettings, useWs } from "../data";
@@ -59,10 +59,10 @@ export function RecordViewer({ texts, simple }: { texts: Record<string, string>;
       { sigs: [ws.pv, ws.sp].filter(Boolean), h: 210 }, { sigs: [ws.mv, ws.pos].filter(Boolean), h: 140 },
       ...((ws.dists ?? []).length ? [{ sigs: ws.dists ?? [], h: 120 }] : [])] }) : null;
     const lay = simple ? fixed : typeof st.dview === "string" ? st.dview : null;
-    const data = {
+    const data: Omit<ViewerData, "sig"> = {
       key: simple ? "quality_view" : "data_view", view_key: `${simple ? "q|" : ""}${ws.fname}|${meta.hash}|${ws.pv}`, sigs, times: meta.times, T: meta.T, decim: meta.decim,
       hash: meta.hash, clock: Number.isFinite(clock) ? clock : null, tunit: "auto", dec: decOf(lang),
-      dark, txt, fname: ws.fname, layout: lay, b64: null as string | null, url: null as string | null,
+      dark, txt, fname: ws.fname, layout: lay, b64: null, url: null,
     };
     const sig = `${meta.hash}|${lang}|${dark}|${JSON.stringify(sigs.map((s) => [s.name, s.role, s.color, s.unit]))}`;
     destroy.current = mountViewer({

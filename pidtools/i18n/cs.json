@@ -3444,5 +3444,6 @@
  "app_save_h": "Uloží projekt do souboru (změny se označí jako uložené)",
  "qs_loading": "Načítání…",
  "qs_retry": "Zkusit znovu",
- "qs_recalc": "Přepočítávám…"
+ "qs_recalc": "Přepočítávám…",
+ "vw_calc_expr": "Vzorec"
 }

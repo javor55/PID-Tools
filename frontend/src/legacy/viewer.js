@@ -601,6 +601,7 @@ export default function (component) {
       q.type = "search";
       q.placeholder = X.search || "";
       q.title = X.search_h || X.search || "";
+      q.setAttribute("aria-label", X.search || X.search_h || "");
       q.value = filter;
       q.oninput = () => { filter = q.value; rows(); };
       listBox.appendChild(q);
@@ -615,10 +616,10 @@ export default function (component) {
           const r = el("div", "pidv-sig" + (S.act === n ? " act" : ""));
           const opts = S.panels.map((_, i) => `<option value="${i}" ${i === pi ? "selected" : ""}>${i + 1}</option>`).join("") +
             `<option value="new">+ ${esc(X.new_panel)}</option>`;
-          r.innerHTML = `<input type="checkbox" ${on ? "checked" : ""} title="${esc(X.hide)}">` +
+          r.innerHTML = `<input type="checkbox" ${on ? "checked" : ""} title="${esc(X.hide)}" aria-label="${esc(X.hide)}">` +
             `<button class="pidv-dot" style="background:${colorOf(n)}" title="${esc(X.color)}"></button>` +
             `<span class="nm" title="${esc(n)}">${esc(n)}${SG[n].role ? `<span class="role">${esc(SG[n].role)}</span>` : ""}</span>` +
-            (on ? `<select title="${esc(X.panel)}">${opts}</select>` : "<span></span>") +
+            (on ? `<select title="${esc(X.panel)}" aria-label="${esc(X.panel)}">${opts}</select>` : "<span></span>") +
             (on ? `<button class="pidv-yb" title="${esc(X.scale)}">${esc(scaleText(pi, n))}</button>` : "<span></span>") +
             `<button class="pidv-x" title="${esc(X.more)}">${opened.has(n) ? "▴" : "⋯"}</button>`;
           const [cb] = r.querySelectorAll("input");
@@ -631,6 +632,7 @@ export default function (component) {
           dot.onclick = () => {
             const ci = el("input");
             ci.type = "color";
+            ci.setAttribute("aria-label", X.color || "");
             ci.value = colorOf(n);
             ci.style.cssText = "position:absolute;opacity:0;width:0;height:0";
             box.appendChild(ci);
@@ -654,7 +656,7 @@ export default function (component) {
             const c = S.sig[n] || {}, mo = el("div", "pidv-more");
             const ax = on ? axesOf(pi).find((a) => a.names.includes(n)) : null;
             void ax; void c;
-            mo.innerHTML = `<span>${esc(X.unit)}</span><input data-k="u" value="${esc(unitOf(n))}">` +
+            mo.innerHTML = `<span>${esc(X.unit)}</span><input data-k="u" aria-label="${esc(X.unit)}" value="${esc(unitOf(n))}">` +
               `<span></span><div class="row"><button class="pidv-btn" data-k="reset">${esc(X.reset)}</button></div>`;
             const [iu] = mo.querySelectorAll("input");
             iu.onchange = () => { sigCfg(n).u = iu.value.slice(0, 20); buildPanels(); redraw(); save(); };
@@ -707,9 +709,9 @@ export default function (component) {
     let newCalc = null;
     function calcForm(c, isNew) {               // formulář vypočteného signálu (nový / úprava)
       const f = el("div", "pidv-calc");
-      f.innerHTML = `<input data-k="name" placeholder="${esc(X.calc_name)}" value="${esc(c.name)}">` +
-        `<textarea data-k="expr" rows="3" spellcheck="false" placeholder="${esc(X.calc_ph)}">${esc(c.expr)}</textarea>` +
-        `<input data-k="unit" placeholder="${esc(X.unit)}" value="${esc(c.unit || "")}">` +
+      f.innerHTML = `<input data-k="name" aria-label="${esc(X.calc_name)}" placeholder="${esc(X.calc_name)}" value="${esc(c.name)}">` +
+        `<textarea data-k="expr" rows="3" spellcheck="false" aria-label="${esc(X.calc_expr)}" placeholder="${esc(X.calc_ph)}">${esc(c.expr)}</textarea>` +
+        `<input data-k="unit" aria-label="${esc(X.unit)}" placeholder="${esc(X.unit)}" value="${esc(c.unit || "")}">` +
         `<div class="pidv-note">${esc(X.calc_help)}</div><div class="pidv-cerr"></div>` +
         `<div class="row"><button class="pidv-btn on" data-k="ok">${esc(X.calc_save)}</button>` +
         `<button class="pidv-btn" data-k="cancel">${esc(X.calc_cancel)}</button>` +

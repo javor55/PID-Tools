@@ -1,6 +1,6 @@
 // Graf průběhů s úseky – sdílený modul dnešního webu (frontend/src/legacy/trend.js) ve stránce Reactu.
 import { useEffect, useRef } from "react";
-import mountTrend from "../legacy/trend.js";
+import mountTrend, { type TrendData } from "../legacy/trend.js";
 import "../legacy/trend.css";
 
 function hash(s: string): string {
@@ -15,7 +15,7 @@ export interface TrendHandlers {
   onMode?: (mode: string) => void;
 }
 
-export function Trend({ data, onWins, onMode, testid }: TrendHandlers & { data: Record<string, unknown>; testid?: string }) {
+export function Trend({ data, onWins, onMode, testid }: TrendHandlers & { data: TrendData; testid?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const h = useRef<TrendHandlers>({});
   const destroy = useRef<(() => void) | null>(null);   // odpojení trend.js; volá se jen při odchodu komponenty
