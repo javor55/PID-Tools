@@ -3474,5 +3474,18 @@
  "lc_pin_b": "B",
  "lc_delta": "Δ",
  "lc_dx": "Δx (B − A)",
- "lc_dy": "Δy (B − A)"
+ "lc_dy": "Δy (B − A)",
+ "ui_msubs": "Podzáložky Modelu",
+ "ui_msub_ident": "Identifikace",
+ "ui_msub_validate": "Validace",
+ "ui_msub_residuals": "Rezidua a nejistota",
+ "h_msub_ident": "Úseky, přehled identifikace a porovnání typů přenosu",
+ "h_msub_validate": "Ověření na jiném úseku, odezva na skok a porovnání modelů",
+ "h_msub_residuals": "Souhrn shody, nejistota parametrů a rozbor reziduí",
+ "msum_model": "Model",
+ "msum_val": "Validace",
+ "msum_val_ok": "rezidua v pořádku",
+ "msum_val_ccf": "rezidua závisí na MV",
+ "msum_val_acf": "rezidua jsou autokorelovaná",
+ "msum_stale": "zastaralý, identifikujte znovu"
 }

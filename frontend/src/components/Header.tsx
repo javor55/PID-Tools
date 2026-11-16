@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { dateLocale, useLanguages, useT } from "../i18n";
-import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
+import { type DataSub, isDiagSub, MODEL_SUBS, type ModelSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
 import { useSettingsUi } from "../settings/settingsStore";
 import { lastSaved, newProject, pickLoop, saveProjectToast, useSaveState } from "../start/project";
@@ -210,7 +210,25 @@ export function Header() {
       </div>
       <NavTabs />
       {tab === "data" && <DataSubNav />}
+      {tab === "model" && <ModelSubNav />}
     </header>
+  );
+}
+
+/** Položka lišty podzáložek: `to` = cíl kliknutí, `id` = hodnota `data-sub`, `help` = klíč textu pro `title`. */
+interface SubItem { id: string; label: string; help: string; on: boolean; to: () => void }
+
+/** Společná lišta podzáložek (Data, Model): stejný vzhled a role `tablist`; `children` = doplňkové ovládání vpravo. */
+function SubTabs({ items, label, testid, children }: { items: SubItem[]; label: string; testid: string; children?: React.ReactNode }) {
+  const T = useT();
+  return (
+    <nav className="subtabs" role="tablist" aria-label={label} data-testid={testid}>
+      {items.map((t) => (
+        <button key={t.label} role="tab" className="subtab" aria-selected={t.on} title={T(t.help)} data-sub={t.id}
+          onClick={t.to}>{T(t.label)}</button>
+      ))}
+      {children}
+    </nav>
   );
 }
 
@@ -218,23 +236,30 @@ export function Header() {
 function DataSubNav() {
   const T = useT();
   const { dataSub, setDataSub } = useUi();
-  const items: { id: string; to: DataSub; label: string; help: string; on: boolean }[] = [
-    { id: "sources", to: "sources", label: "ui_dsub_sources", help: "h_dsub_sources", on: dataSub === "sources" },
-    { id: "trends", to: "trends", label: "ui_dsub_trends", help: "h_dsub_trends", on: dataSub === "trends" },
-    { id: "quality", to: "quality", label: "ui_dsub_quality", help: "h_dsub_quality", on: dataSub === "quality" },
-    { id: "diag", to: isDiagSub(dataSub) ? dataSub : "diag-all", label: "ui_dsub_diag", help: "h_dsub_diag", on: isDiagSub(dataSub) },
+  const item = (id: string, to: DataSub, on: boolean): SubItem =>
+    ({ id, label: `ui_dsub_${id}`, help: `h_dsub_${id}`, on, to: () => setDataSub(to) });
+  const items = [
+    item("sources", "sources", dataSub === "sources"),
+    item("trends", "trends", dataSub === "trends"),
+    item("quality", "quality", dataSub === "quality"),
+    item("diag", isDiagSub(dataSub) ? dataSub : "diag-all", isDiagSub(dataSub)),
   ];
   return (
-    <nav className="subtabs" role="tablist" aria-label={T("ui_dsubs")} data-testid="data-subtabs">
-      {items.map((t) => (
-        <button key={t.label} role="tab" className="subtab" aria-selected={t.on} title={T(t.help)} data-sub={t.id}
-          onClick={() => setDataSub(t.to)}>{T(t.label)}</button>
-      ))}
+    <SubTabs items={items} label={T("ui_dsubs")} testid="data-subtabs">
       {isDiagSub(dataSub) && (
         <Seg value={dataSub} options={["diag-all", "diag-detail"] as const} label={T("ui_dsub_diag")} small testid="diag-sub"
           fmt={(v) => T(v === "diag-all" ? "ui_dsub_diag_all" : "ui_dsub_diag_detail")}
           titles={(v) => T(v === "diag-all" ? "h_dsub_diag_all" : "h_dsub_diag_detail")} help="h_dsub_diag" onChange={setDataSub} />
       )}
-    </nav>
+    </SubTabs>
   );
+}
+
+/** Podzáložky Modelu (FEATURE-005): Identifikace · Validace · Rezidua a nejistota. */
+function ModelSubNav() {
+  const T = useT();
+  const { modelSub, setModelSub } = useUi();
+  const items = MODEL_SUBS.map((id: ModelSub): SubItem =>
+    ({ id, label: `ui_msub_${id}`, help: `h_msub_${id}`, on: modelSub === id, to: () => setModelSub(id) }));
+  return <SubTabs items={items} label={T("ui_msubs")} testid="model-subtabs" />;
 }

@@ -17,11 +17,12 @@ import { usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
 import { decOf, useDec, useT } from "../i18n";
 import { dur } from "../lib/format";
 import { decimate, pick, range, runs, timeUnit } from "../lib/series";
-import { useUi } from "../store";
+import { type ModelSub, useUi } from "../store";
 import { useQueryClient } from "@tanstack/react-query";
 
 type ModelState = components["schemas"]["ModelState"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
+type Validation = components["schemas"]["Validation"];
 
 const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
   "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint", "cur", "cur_hint"];
@@ -52,6 +53,7 @@ export function ModelMain() {
   const qc = useQueryClient();
   const patch = usePatchSettings();
   const { ws, settings, grid, windows, model, curves } = useModelData();
+  const sub: ModelSub = useUi((s) => s.modelSub);
   const winMode = settings.win_mode === "inputs" ? "inputs" : "common";
 
   const data = useMemo<TrendData | null>(() => {
@@ -109,14 +111,47 @@ export function ModelMain() {
   };
 
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
+  // Každá podzáložka vykreslí jen své karty; zvolený model, úseky i data jsou v dotazech (cache) a na serveru, takže
+  // se přepnutím neztratí. Karta „Fit summary“ + nejistota + rezidua tvoří společně ModelDetails (nedělí se).
   return (
-    <div className="stack">
-      {data && <Trend data={data} onWins={(w) => void onWins(w)} onMode={(m) => void patch({ win_mode: m })}
-        testid="model-trend" />}
-      <ModelTable model={model} />
-      {model?.has_fit && <ValidationCard model={model} />}
-      {model?.has_fit && <ModelViews model={model} />}
-      {model?.has_fit && <ModelDetails model={model} />}
+    <div className="stack" data-msub={sub}>
+      <ModelSummary model={model} />
+      {sub === "ident" && <>
+        {data && <Trend data={data} onWins={(w) => void onWins(w)} onMode={(m) => void patch({ win_mode: m })}
+          testid="model-trend" />}
+        <ModelTable model={model} />
+      </>}
+      {sub === "validate" && (model?.has_fit
+        ? <><ValidationCard model={model} /><ModelViews model={model} /></>
+        : <div className="card muted" data-testid="no-model">{T("info_fit")}</div>)}
+      {sub === "residuals" && (model?.has_fit
+        ? <ModelDetails model={model} />
+        : <div className="card muted" data-testid="no-model">{T("info_fit")}</div>)}
+    </div>
+  );
+}
+
+/** Stálý pruh nad podzáložkami: typ vybraného modelu, FIT, hodnocení a stav validace (shoda a rezidua). */
+function ModelSummary({ model }: { model?: ModelState }) {
+  const T = useT();
+  const ok = !!model?.current && !model.stale;
+  const val = useWsQuery<Validation>("validation", "/model/validation", ok);
+  const r = model?.results.find((x) => x.code === model.selected);
+  if (!model?.has_fit || !r) return null;
+  const num = (k: string) => { const v = val.data?.metrics[k]; return typeof v === "number" ? v : undefined; };
+  const fit = ok ? (num("FIT") ?? r.fit_live ?? r.fit) : r.fit_live ?? r.fit;
+  const status = ok ? (num("status") ?? r.status) : r.status;
+  const ccf = num("frac_ccf"), acf = num("frac_acf");
+  const verdict = !ok ? T("msum_stale") : ccf === undefined || acf === undefined ? "–"
+    : T(ccf > 0.2 ? "msum_val_ccf" : acf > 0.5 ? "msum_val_acf" : "msum_val_ok");
+  const item = (k: string, label: string, v: string, id: string) => (
+    <span key={k} className="msum-i"><span className="msum-l">{label}</span> <b data-testid={id}>{v}</b></span>);
+  return (
+    <div className="msum" data-testid="model-summary" role="status" aria-busy={ok && val.isFetching} data-stale={ok ? "0" : "1"}>
+      {item("m", T("msum_model"), T("model_" + r.code) + (r.mixed ? " · AUTO" : ""), "msum-model")}
+      {item("f", "FIT", fit == null ? "–" : `${fit.toFixed(1)} %`, "msum-fit")}
+      {item("r", T("col_status"), status == null ? "–" : T("st_" + status), "msum-rating")}
+      {item("v", T("msum_val"), verdict, "msum-val")}
     </div>
   );
 }

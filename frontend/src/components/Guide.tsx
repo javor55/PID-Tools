@@ -8,7 +8,7 @@ import { api, request } from "../api/client";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { useT, useTexts } from "../i18n";
-import { type TabId, useUi } from "../store";
+import { modelSubOf, type TabId, useUi } from "../store";
 import { PublicNotice } from "../deploy";
 import { LabelHelp, Md } from "./Ui";
 
@@ -36,6 +36,10 @@ export function runGuideAction(a: { tab: string; target?: string | null }) {
 export function focusTarget(target: string | null | undefined) {
   if (!target) return;
   const id = target === "add-loop" ? "loop-add-head" : target;
+  // prvek hlavní plochy Modelu leží v jedné z podzáložek: přepne se před hledáním prvku
+  const ui = useUi.getState();
+  const msub = ui.tab === "model" ? modelSubOf(id) : null;
+  if (msub && msub !== ui.modelSub) ui.setModelSub(msub);
   let tries = 0;
   const tick = () => {
     const el = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);

@@ -3474,5 +3474,18 @@
  "lc_pin_b": "B",
  "lc_delta": "Δ",
  "lc_dx": "Δx (B − A)",
- "lc_dy": "Δy (B − A)"
+ "lc_dy": "Δy (B − A)",
+ "ui_msubs": "Model subtabs",
+ "ui_msub_ident": "Identification",
+ "ui_msub_validate": "Validation",
+ "ui_msub_residuals": "Residuals & uncertainty",
+ "h_msub_ident": "Segments, identification overview and comparison of transfer types",
+ "h_msub_validate": "Validation on another segment, step response and model comparison",
+ "h_msub_residuals": "Fit summary, parameter uncertainty and residual analysis",
+ "msum_model": "Model",
+ "msum_val": "Validation",
+ "msum_val_ok": "residuals OK",
+ "msum_val_ccf": "residuals depend on MV",
+ "msum_val_acf": "residuals autocorrelated",
+ "msum_stale": "outdated, identify again"
 }
