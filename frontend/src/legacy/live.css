@@ -1,5 +1,5 @@
 /* Živá simulace (live_ui.js): vzhled podle návrhu Live.dc.html – karty s rádiusem 10, nadpisy 15 px, přepínače
-   (segmented), ovládací řádek, ukazatele s lepší hodnotou zeleně. Sdílí ho Streamlit i nové rozhraní. */
+   (segmented), ovládací řádek, ukazatele s lepší hodnotou zeleně. Připojuje ho tabs/LiveTab.tsx. */
 .pidlive { font-family:inherit; font-size:13px; color:var(--tx); --acc:#1f5fa8; --tx:#1f2933; --mut:#52606d;
            --card:#ffffff; --ln:#d7dde5; --soft:#e5e9ef; --side:#f6f8fa; --ctl:#c3ccd6; --good:rgba(34,197,94,.16);
            --go:#2f6f3e; --teal:#0f766e; --mvc:#c2410c; }

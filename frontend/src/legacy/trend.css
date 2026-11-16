@@ -1,4 +1,4 @@
-/* Graf průběhů s úseky (trend.js) – sdílí Streamlit web (pidtools/ui/trend.py) i nové rozhraní (frontend). */
+/* Graf průběhů s úseky (trend.js), připojuje ho components/Trend.tsx. */
 .pidw { position: relative; display: flex; flex-direction: column; gap: 12px; font-family: inherit;
   color: var(--pidw-text); --pidw-text: #1f2933; --pidw-muted: #52606d; --pidw-line: #d7dde5; --pidw-card: #ffffff;
   --pidw-grid: #e5e9ef; --pidw-axis: #c3ccd6; --pidw-hbg: #eef1f5; --pidw-btn: #ffffff; }

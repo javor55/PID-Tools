@@ -1,4 +1,4 @@
-/* Prohlížeč záznamu (viewer.js) – sdílí Streamlit web (pidtools/ui/viewer.py) i nové rozhraní (frontend). */
+/* Prohlížeč záznamu (viewer.js), připojují ho components/RecordViewer.tsx a tabs/data/TrendsView.tsx. */
 .pidv, .pidv-hostvars { color: var(--pv-text); --pv-text: #1f2933; --pv-muted: #52606d; --pv-line: #d7dde5; --pv-card: #ffffff;
   --pv-grid: #e8ecf1; --pv-axis: #c3ccd6; --pv-btn: #ffffff; --pv-hl: #eef4fb; --pv-acc: #1f5fa8; --pv-sel: #dbe8f7; }
 .pidv { position: relative; display: flex; flex-direction: column; gap: 10px; font-family: inherit; outline: none; }

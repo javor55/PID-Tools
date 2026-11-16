@@ -1,8 +1,8 @@
 /*
- * Živá simulace v prohlížeči – komponenta st.components.v2 (běží přímo na stránce, ~60 snímků/s).
+ * Živá simulace v prohlížeči – čisté JS, připojuje ho tabs/LiveTab.tsx (~60 snímků/s).
  * Stav simulace se drží ve window.__pidLive, takže přežije přepnutí záložky i rerun aplikace.
- * Data z Pythonu (component.data): model, sady parametrů, prvky ventilu, rozsahy, texty, barvy.
- * Do Pythonu: trigger „apply“ = parametry sady 2 naladěné v simulaci (tlačítko „Zapsat do sady 2“).
+ * Data (component.data): model, sady parametrů, prvky ventilu, rozsahy, texty, barvy.
+ * Ven (setTriggerValue): trigger „apply“ = parametry sady 2 naladěné v simulaci (tlačítko „Zapsat do sady 2“).
  */
 export default function (component) {
   "use strict";
@@ -59,7 +59,7 @@ export default function (component) {
   }
   if (!S.struct) S.struct = "pid";
   if (S.dist.loc !== "in" && S.dist.loc !== "out" && dvLoc() < 0) S.dist.loc = "in";
-  // parametry z Pythonu se změnily (Ladění, zápis zpět) → bez resetu přeladit běžící smyčky
+  // parametry ze serveru se změnily (Ladění, zápis zpět) → bez resetu přeladit běžící smyčky
   const setsKey = JSON.stringify(CFG.sets);
   if (S.setsKey !== setsKey) {
     if (S.setsKey) { S.tune = Object.assign({}, CFG.sets["2"]); retune(); event(L.ev_tune); }
