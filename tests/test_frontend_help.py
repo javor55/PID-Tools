@@ -70,7 +70,7 @@ def test_guide_dialog_tabs_checklist_and_action(prepared):
     dlg = pg.locator('[data-testid="help-dialog"]')
     assert dlg.evaluate("e => e.open")
     assert "Guide" in dlg.locator("h2").inner_text()
-    assert dlg.locator(".g-tabs button").count() == 4
+    assert dlg.locator(".g-tabs button").count() == 5                      # kroky, kontrola, tabulky, pojmy, klávesnice (FEATURE-001)
     pg.wait_for_selector(".g-steps li")
     assert pg.locator(".g-steps li").count() >= 5
     # kontrolní seznam: stavy a tlačítka akcí
