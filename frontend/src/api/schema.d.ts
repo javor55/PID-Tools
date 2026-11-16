@@ -5497,14 +5497,14 @@ export interface components {
              * Lang
              * @default en
              */
-            lang: string | null;
+            lang: string;
             /** Live Runs */
             live_runs: unknown[] | null;
             /**
              * Loop Tag
              * @default
              */
-            loop_tag: string | null;
+            loop_tag: string;
             /** Mcode */
             mcode: string | null;
             /** Mtype */
@@ -5536,7 +5536,7 @@ export interface components {
              * Opt Crit
              * @default OVS
              */
-            opt_crit: string | null;
+            opt_crit: string;
             /**
              * Opt Ms
              * @default 1.6
@@ -5558,7 +5558,7 @@ export interface components {
              * Opt Target
              * @default both
              */
-            opt_target: string | null;
+            opt_target: string;
             /** Pfb */
             pfb: boolean | null;
             /** Plan Dpv */
@@ -5676,12 +5676,12 @@ export interface components {
              * U Mv
              * @default %
              */
-            u_mv: string | null;
+            u_mv: string;
             /**
              * U Pv
              * @default
              */
-            u_pv: string | null;
+            u_pv: string;
             /** Val Rng */
             val_rng: number[] | null;
             /** Vchar Last */

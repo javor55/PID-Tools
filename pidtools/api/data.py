@@ -29,10 +29,10 @@ class LoopSettings(BaseModel):
     model_config = ConfigDict(extra="allow", json_schema_serialization_defaults_required=True,
                               json_schema_extra=lambda schema: schema.pop("additionalProperties", None))
 
-    lang: str | None = DEFAULTS["lang"]
-    loop_tag: str | None = DEFAULTS["loop_tag"]
-    u_pv: str | None = DEFAULTS["u_pv"]
-    u_mv: str | None = DEFAULTS["u_mv"]
+    lang: str = DEFAULTS["lang"]
+    loop_tag: str = DEFAULTS["loop_tag"]
+    u_pv: str = DEFAULTS["u_pv"]
+    u_mv: str = DEFAULTS["u_mv"]
     pv_lo: float = DEFAULTS["pv_lo"]
     pv_hi: float = DEFAULTS["pv_hi"]
     mv_lo: float = DEFAULTS["mv_lo"]
@@ -79,8 +79,8 @@ class LoopSettings(BaseModel):
     opt_ms: float = DEFAULTS["opt_ms"]
     opt_noise: float | None = None
     opt_robust: bool = DEFAULTS["opt_robust"]
-    opt_crit: str | None = DEFAULTS["opt_crit"]
-    opt_target: str | None = DEFAULTS["opt_target"]
+    opt_crit: str = DEFAULTS["opt_crit"]
+    opt_target: str = DEFAULTS["opt_target"]
     opt_ovs: float = DEFAULTS["opt_ovs"]
     avg_dpv: float | None = None
     avg_dmv: float | None = None
@@ -394,11 +394,14 @@ def _dq_summary(ws):
 
 def settings_out(ws) -> LoopSettings:
     """
-    Všechny pevné klíče (chybějící z DEFAULTS) a klíče s prefixem, které prostor má. Hodnota výčtu mimo povolené
-    (stará nebo ručně upravená záloha projektu) se vynechá a platí výchozí – odpověď nesmí skončit chybou 500.
+    Všechny pevné klíče (chybějící z DEFAULTS) a klíče s prefixem, které prostor má. Klíč s výchozí hodnotou, který
+    je None, a hodnota výčtu mimo povolené (stará nebo ručně upravená záloha projektu) se vynechají a platí výchozí
+    hodnota – odpověď nesmí skončit chybou 500.
     """
     vals = {k: prj.jsonable(v) for k, v in ws.settings.items() if prj.is_state_key(k)}
-    return LoopSettings(**{k: v for k, v in vals.items() if k not in prj.ENUMS or v in prj.ENUMS[k]})
+    ok = {k: v for k, v in vals.items()
+          if not (v is None and DEFAULTS.get(k) is not None) and (k not in prj.ENUMS or v in prj.ENUMS[k])}
+    return LoopSettings(**ok)
 
 
 def router(get_proj, max_upload=MAX_UPLOAD):

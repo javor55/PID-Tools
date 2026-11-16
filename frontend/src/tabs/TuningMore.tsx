@@ -6,7 +6,7 @@ import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { unframe } from "../api/signals";
 import { LineChart, type Series } from "../components/LineChart";
-import { useSettings, useWs, useWsQuery, usePatchSettings } from "../data";
+import { useLoopSettings, useSettings, useWs, useWsQuery, usePatchSettings } from "../data";
 import { useDec, useT } from "../i18n";
 import { useJobRunner } from "../jobs";
 import { useUi } from "../store";
@@ -99,16 +99,16 @@ function usePutScenario() {
 // ---- karta panelu Scénář simulace: druh, SP z → na a čas, porucha (DV), délka s jednotkou
 export function ScenarioSide() {
   const T = useT();
-  const st = useSettings().data ?? {};
+  const st = useLoopSettings().data;
   const patch = usePatchSettings();
   const put = usePutScenario();
   const sc = useScenario();
   const { sim } = useSim();
   const { tend, lenUnit, set } = useTun();
-  if (!sc.data) return null;
+  if (!sc.data || !st) return null;
   const s = sc.data;
   const rows = s.rows as Row[];
-  const uPv = String(st.u_pv ?? ""), uMv = String(st.u_mv ?? "");
+  const uPv = st.u_pv, uMv = st.u_mv;
   const replay = s.kind === "replay";
   const T_end = tend ?? sim.data?.T_end ?? s.T_end;
   const lu = unitOf(lenUnit, T_end), mult = UNITS[lu];
@@ -117,8 +117,10 @@ export function ScenarioSide() {
   const setRow = (i: number, j: number, v: unknown) =>
     void put({ rows: rows.map((r, k) => (k === i ? r.map((x, m) => (m === j ? v : x)) : r)), T_end: s.T_end });
   const tm = (v: number | null) => (v === null ? null : +(v / mult).toPrecision(5));
-  const dvAmp = s.kind === "in" || s.kind === "sp_in" ? Number(st.scen_d_in ?? rows[iDv]?.[3] ?? 0)
-    : s.kind === "pv" ? Number(st.scen_d_pv ?? rows[iDv]?.[3] ?? 0) : Number(rows[iDv]?.[3] ?? 0);
+  // amplituda poruchy: uložená hodnota nastavení; dokud není zadaná (null), z řádku scénáře
+  const rowAmp = Number(rows[iDv]?.[3] ?? 0);
+  const dvAmp = s.kind === "in" || s.kind === "sp_in" ? (st.scen_d_in === null ? rowAmp : st.scen_d_in)
+    : s.kind === "pv" ? (st.scen_d_pv === null ? rowAmp : st.scen_d_pv) : rowAmp;
   const setDv = (x: number) => {
     if (s.kind === "in" || s.kind === "sp_in") void patch({ scen_d_in: x });
     else if (s.kind === "pv") void patch({ scen_d_pv: x });
@@ -225,14 +227,14 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
   const T = useT();
   const cmpRef = useRef<HTMLTableElement>(null);
   const run = useJobRunner();
-  const st = useSettings().data ?? {};
+  const st = useLoopSettings().data;
   const patch = usePatchSettings();
   const calc = useCalc();
   const dec = useDec();
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
   const { cmp: rows, cmpBusy: busy, method, view, set, sug } = useTun();
   const m = method ?? info.data?.default_method;
-  const mr = (Number(st.mv_hi ?? 100) - Number(st.mv_lo ?? 0)) / 100;    // šum MV v % rozsahu → jednotky MV
+  const mr = st ? (st.mv_hi - st.mv_lo) / 100 : NaN;    // šum MV v % rozsahu → jednotky MV
   const go = async () => {
     set({ cmpBusy: true });
     try {
@@ -248,7 +250,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
     await patch({ ctype: q.ctype, ...(q.crit ? { opt_crit: q.crit } : {}) });
     if (q.Kc === undefined) await calc(q.method);
   };
-  const cur = (q: CmpRow) => q.method === m && q.ctype === (st.ctype ?? "PI") && (m !== "OPT" || q.crit === (st.opt_crit ?? "OVS"));
+  const cur = (q: CmpRow) => q.method === m && q.ctype === st?.ctype && (m !== "OPT" || q.crit === st?.opt_crit);
   const use = (q: { method: string; crit: string | null }) => {
     const k = "use_" + (q.crit ?? q.method);
     const v = T(k);
@@ -279,7 +281,7 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
         <table ref={cmpRef} className="tn-tbl" data-testid="cmp-table"><thead><tr><th>{T("col_method")}</th>
           <th className="r">Gain</th><th className="r">TI [s]</th><th className="r">TD [s]</th><th className="r">Ms</th>
           <th className="r">{T("iae_load")}</th><th className="r">{T("iae_sp")}</th><th className="r">{T("ovs_col")}</th>
-          <th className="r">{T("noise_col", { u: String(st.u_mv || "MV") })}</th><th>{T("use_col")}</th></tr></thead>
+          <th className="r">{T("noise_col", { u: st?.u_mv || "MV" })}</th><th>{T("use_col")}</th></tr></thead>
           <tbody>{rows ? rows.map((q, i) => (
             <tr key={i} className={"pick" + (cur(q) ? " sel" : "")} data-testid="cmp-row" {...rowPick(() => void pick(q), cur(q))}>
               <td>{T("m_" + q.method) + (q.crit ? ` · ${T("crit_" + q.crit)}` : "")} <span className="tn-sub">{q.ctype}</span>
@@ -288,16 +290,16 @@ export function CompareCard({ withRun = true }: { withRun?: boolean }) {
               <td className="r mono">{f(q.Ms, 3)}</td><td className="r mono">{f(q.iae_load)}</td><td className="r mono">{f(q.iae_sp)}</td>
               <td className="r mono">{q.ovs === null ? "–" : q.ovs.toFixed(1)}</td>
               <td className="r mono">{q.noise === null ? "–" : f(q.noise * mr, 3)}</td><td className="tn-sub">{use(q)}</td>
-            </tr>)) : (info.data?.methods ?? []).map((x) => (
+            </tr>)) : (st ? info.data?.methods ?? [] : []).map((x) => (
               <tr key={x} className={"pick" + (x === m ? " sel" : "")} data-testid="cmp-pending"
-                {...rowPick(() => void pick({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null, ctype: String(st.ctype ?? "PI") }), x === m)}>
+                {...rowPick(() => void pick({ method: x, crit: x === "OPT" && st ? st.opt_crit : null, ctype: st!.ctype }), x === m)}>
                 <td>{T("m_" + x)}{x === m && <b className="tn-ok"> ✓</b>}</td>
                 {sug && !sug.fromRow && sug.method === x ? (<>        {/* spočítaný návrh této metody (zbytek až s „Spočítat vše“) */}
                   <td className="r mono" data-testid="cmp-sug">{f(sug.Kc)}</td><td className="r mono">{f(sug.Ti)}</td><td className="r mono">{f(sug.Td)}</td>
                   <td className="r mono">{f(sug.robust?.Ms ?? null, 3)}</td>
                   <td colSpan={4} className="tn-faint">{T("ui_tuning_pending_rest")}</td></>)
                   : <td colSpan={8} className="tn-faint">{x === "OPT" ? T("ui_tuning_pending_opt") : T("ui_tuning_pending")}</td>}
-                <td className="tn-sub">{use({ method: x, crit: x === "OPT" ? String(st.opt_crit ?? "OVS") : null })}</td></tr>))}
+                <td className="tn-sub">{use({ method: x, crit: x === "OPT" && st ? st.opt_crit : null })}</td></tr>))}
           </tbody></table>
       </div>
       {rows && <div className="tn-note">{T("cmp_help")}</div>}

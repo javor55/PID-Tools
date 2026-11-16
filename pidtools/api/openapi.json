@@ -5589,16 +5589,9 @@
       "type": "boolean"
      },
      "lang": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "en",
-      "title": "Lang"
+      "title": "Lang",
+      "type": "string"
      },
      "live_runs": {
       "anyOf": [
@@ -5613,16 +5606,9 @@
       "title": "Live Runs"
      },
      "loop_tag": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "",
-      "title": "Loop Tag"
+      "title": "Loop Tag",
+      "type": "string"
      },
      "mcode": {
       "anyOf": [
@@ -5706,16 +5692,9 @@
       "type": "number"
      },
      "opt_crit": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "OVS",
-      "title": "Opt Crit"
+      "title": "Opt Crit",
+      "type": "string"
      },
      "opt_ms": {
       "default": 1.6,
@@ -5744,16 +5723,9 @@
       "type": "boolean"
      },
      "opt_target": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "both",
-      "title": "Opt Target"
+      "title": "Opt Target",
+      "type": "string"
      },
      "pfb": {
       "anyOf": [
@@ -6063,28 +6035,14 @@
       "title": "Tune Hist"
      },
      "u_mv": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "%",
-      "title": "U Mv"
+      "title": "U Mv",
+      "type": "string"
      },
      "u_pv": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "",
-      "title": "U Pv"
+      "title": "U Pv",
+      "type": "string"
      },
      "val_rng": {
       "anyOf": [

@@ -11,7 +11,7 @@ import { CopyTableButton } from "../components/Card";
 import { SetInput } from "../components/SetInput";
 import { toastError, useToasts } from "../components/Toasts";
 import { LabelHelp, Md, PrimaryAction, Seg, SideCard } from "../components/Ui";
-import { useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
+import { useLoopSettings, useSettings, usePatchSettings, useWs, useWsQuery } from "../data";
 import { useDec, useT } from "../i18n";
 import { copyText } from "../lib/clipboard";
 import { dur } from "../lib/format";
@@ -50,7 +50,7 @@ export function TuningMain() {
   const T = useT();
   const dec = useDec();
   const ws = useWs().data;
-  const st = useSettings().data ?? {};
+  const st = useLoopSettings().data;      // undefined = nastavení se načítá
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
   const model = useWsQuery<ModelState>("model", "/model");
   const reco = useApc<components["schemas"]["Recommendation"][]>("reco", "/apc/recommend");
@@ -70,7 +70,6 @@ export function TuningMain() {
   const k = (sim.data?.kpis ?? {}) as Record<string, Kpi>;
   const cur0 = model.data?.current as { code: string; p: number[] } | null | undefined;
   const names = model.data?.results.find((r) => r.code === cur0?.code)?.names ?? [];
-  const samp = Number(st.samp ?? 1);
   const items = reco.data ?? [];
 
   return (
@@ -94,7 +93,7 @@ export function TuningMain() {
           <div className="tn-modelline" data-testid="tun-model">
             {T("model_" + info.data.model)}
             {cur0 ? " · " + cur0.p.map((x, i) => `${names[i] ?? ""} = ${fnum(Math.abs(x) < 1e-9 ? 0 : x, dec, 4)}`).join(", ") : ""}
-            {" · " + T("samp_note", { s: fnum(samp, dec, 6), h: fnum(samp / 2, dec, 6) })}
+            {st && " · " + T("samp_note", { s: fnum(st.samp, dec, 6), h: fnum(st.samp / 2, dec, 6) })}
             {items.length > 0 && <span className="tn-hint" data-testid="tun-apc-hint"> · 💡 {T("g_tuning_hint", {
               m: [...new Set(items.map((r) => T("apc_" + r.kind)))].join(", ") })}{" "}
               <button type="button" className="link" onClick={() => { setTech(items[0].kind); setTab("apc"); }}>
@@ -127,7 +126,7 @@ function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty, busy 
   set2Empty?: boolean;                 // Set 2 ještě bez hodnot ([z PLC]) – nekreslit, jinak rozbije měřítko
 }) {
   const T = useT();
-  const st = useSettings().data ?? {};
+  const st = useLoopSettings().data;
   const { measure, cur, set } = useTun();
   const preview = !!sug;
   const get = (key: string) => (curves ? series(curves.meta, curves.blob, key) : null);
@@ -164,7 +163,7 @@ function ResponseCard({ curves, sc, T_end, u, spread, sug, dec, set2Empty, busy 
         </span>
       </div>
       <ScenarioChart pv={pv} mv={mv} markers={markers} unitSec={UNITS[u]} unitName={u} cur={cur} measure={measure} dec={dec}
-        pvLabel={`PV ${String(st.u_pv ?? "")}`.trim()} mvLabel={`MV ${String(st.u_mv ?? "")}`.trim()} mainName={mainName}
+        pvLabel={`PV ${st?.u_pv || ""}`.trim()} mvLabel={`MV ${st?.u_mv || ""}`.trim()} mainName={mainName}
         onCursor={(t) => set({ cur: cur.length >= 2 ? [t] : [...cur, t] })} testid="resp-pv" />
       {measure && cur.length === 0 && <div className="tn-note">{T("ui_tuning_measure_hint")}</div>}
     </section>
@@ -249,7 +248,7 @@ export function TuningSide() {
   const dec = useDec();
   const setTab = useUi((s) => s.setTab);
   const qc = useQueryClient();
-  const st = useSettings().data ?? {};
+  const st = useLoopSettings().data;
   const patch = usePatchSettings();
   const ws = useWs().data;
   const info = useWsQuery<TuningInfo>("tuning", "/tuning");
@@ -259,7 +258,7 @@ export function TuningSide() {
   const freq = useFreq(preview);
   const rob = useRob(preview);
   const m = useMethod(info.data);
-  const sigNow = `${m}|${settingsSig(st)}`;
+  const sigNow = st ? `${m}|${settingsSig(st)}` : "";
   // Akce Calculate pro zkratku F5: ref drží vždy aktuální metodu a data, do úložiště se zapíše jen stabilní obálka
   const calcRef = useRef<() => void>(() => undefined);
   useEffect(() => { calcRef.current = () => { if (ws?.has_data && info.data) void calc(m); }; });
@@ -270,17 +269,17 @@ export function TuningSide() {
   const tried = useRef<string | null>(null);
   // rychlé metody (pravidla) se přepočítají samy, optimalizace (sekundy) až na tlačítko Vypočítat
   useEffect(() => {
-    if (!info.data || !FAST(m) || busy) return;
+    if (!info.data || !st || !FAST(m) || busy) return;
     if ((!sug || (sug.sig !== sigNow && !sug.fromRow && sug.method === m)) && tried.current !== sigNow) {
       tried.current = sigNow;
       void calc(m);
     }
-  }, [info.data, m, sigNow, sug, busy]);          // eslint-disable-line react-hooks/exhaustive-deps
-  if (!ws?.has_data || !info.data) return null;
+  }, [info.data, st, m, sigNow, sug, busy]);          // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ws?.has_data || !info.data || !st) return null;
   const uPv = String(st.u_pv || "PV"), uMv = String(st.u_mv || "MV");
-  const PR = Number(st.pv_hi ?? 100) - Number(st.pv_lo ?? 0), MR = Number(st.mv_hi ?? 100) - Number(st.mv_lo ?? 0);
-  const ctype = String(st.ctype ?? "PI") as "PI" | "PID";
-  const crit = String(st.opt_crit ?? "OVS");
+  const PR = st.pv_hi - st.pv_lo, MR = st.mv_hi - st.mv_lo;
+  const ctype = st.ctype as "PI" | "PID";
+  const crit = st.opt_crit;
   const adv = info.data.d_advice as { rec?: string; key?: string } | null;
   const stale = !!sug && !sug.fromRow && sug.sig !== undefined && sug.sig !== `${sug.method}|${settingsSig(st)}`;
   const chk = (key: string, args: Record<string, unknown>) =>
@@ -293,7 +292,7 @@ export function TuningSide() {
   const write = (n: number) => { if (sug) void writeSet(n, { Kc: sug.Kc, Ti: sug.Ti, Td: sug.Td }, { method: T("m_" + sug.method) }); };
   const fq = (n: string) => freq.data?.find((x) => x.name === n);
   // Kopírování parametrů do schránky: značka smyčky · blok: název = hodnota jednotka; … (názvy a jednotky bloku jako v tabulce)
-  const loopTag = String(st.loop_tag ?? "").trim() || ws.pv || "";
+  const loopTag = (st.loop_tag || "").trim() || ws.pv || "";
   const copyParams = (get: (q: { key: string; role: string }) => number | null) => {
     const pars = info.data!.tuning_params.map((q) => {
       const v = get(q);
@@ -329,14 +328,14 @@ export function TuningSide() {
             <select value={crit} data-testid="set-opt_crit" title={T("h_opt_crit")} onChange={(e) => void patch({ opt_crit: e.target.value })}>
               {["MIGO", "IAE", "ISE", "ITAE", "OVS"].map((x) => <option key={x} value={x}>{T("crit_" + x)}</option>)}</select></label>
           {crit !== "MIGO" && <label className="trow"><span>{T("opt_target")}</span>
-            <select value={String(st.opt_target ?? "both")} data-testid="set-opt_target" title={T("h_opt_target")}
+            <select value={st.opt_target} data-testid="set-opt_target" title={T("h_opt_target")}
               onChange={(e) => void patch({ opt_target: e.target.value })}>
               {["scen", "dist", "sp", "both"].map((x) => <option key={x} value={x}>{T("tgt_" + x)}</option>)}</select></label>}
           {crit === "OVS" && <div className="trow"><span>{T("opt_ovs")}</span>
-            <Seg<number> value={Number(st.opt_ovs ?? 2)} options={[0, 2, 5, 10]} onChange={(v) => void patch({ opt_ovs: v })}
+            <Seg<number> value={st.opt_ovs} options={[0, 2, 5, 10]} onChange={(v) => void patch({ opt_ovs: v })}
               label={T("opt_ovs")} small fmt={(x) => `${x} %`} testid="set-opt_ovs" titles={() => T("h_opt_ovs")} /></div>}
           <div className="trow"><span>{T("opt_ms")}</span>
-            <Seg<number> value={Number(st.opt_ms ?? 1.6)} options={[1.4, 1.6, 1.8, 2.0]} onChange={(v) => void patch({ opt_ms: v })}
+            <Seg<number> value={st.opt_ms} options={[1.4, 1.6, 1.8, 2.0]} onChange={(v) => void patch({ opt_ms: v })}
               label={T("opt_ms")} small fmt={(x) => x.toFixed(1)} testid="set-opt_ms" titles={() => T("opt_ms_help")} /></div>
           {ctype === "PID" && <NumRow k="opt_noise" label={T("opt_noise", { u: uMv })} def={+(0.01 * MR).toPrecision(3)} help={T("opt_noise_help")} />}
           <CheckSetting k="opt_robust" label={T("opt_robust")} title={T("h_opt_robust_corner")} />

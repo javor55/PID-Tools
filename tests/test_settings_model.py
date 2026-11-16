@@ -65,3 +65,6 @@ def test_invalid_enum_in_store_does_not_break_get(client):
     ws = Workspace()
     ws.settings["ctype"] = "XYZ"                  # poškozený projekt: výčet mimo povolené hodnoty
     assert settings_out(ws).ctype == DEFAULTS["ctype"]
+    ws.settings["ctype"] = "PI"
+    ws.settings["lang"] = None                    # None u klíče s výchozí hodnotou = platí výchozí
+    assert settings_out(ws).lang == DEFAULTS["lang"]
