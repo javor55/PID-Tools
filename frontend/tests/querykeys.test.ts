@@ -9,6 +9,7 @@ describe("affected", () => {
     expect(g).not.toContain("data");
     expect(g).not.toContain("model");
     expect(g).toContain("tuning");
+    expect(g).not.toContain("ws");
   });
   it("rozsah pv_hi zneplatní všechny skupiny", () => expect(affected(["pv_hi"])).toEqual([...ALL_GROUPS]));
   it("neznámý klíč = všechny skupiny", () => expect(affected(["neexistuje"])).toEqual([...ALL_GROUPS]));
@@ -47,6 +48,12 @@ describe("invalidateGroups", () => {
     expect(inv(qc, ["ws", "w", "validate|x"])).toBe(false);
     expect(inv(qc, ["ws", "w"])).toBe(false);
     expect(inv(qc, ["ws", "jiny", "tuning"])).toBe(false);
+  });
+  it("opts.settings = false nezneplatní settings, save-state ano", async () => {
+    const qc = mk();
+    await invalidateGroups(qc, "w", ["tuning"], { settings: false });
+    expect(inv(qc, ["ws", "w", "settings"])).toBe(false);
+    expect(inv(qc, ["ws", "w", "save-state"])).toBe(true);
   });
   it("skupina ws zahrne samotný prostor", async () => {
     const qc = mk();

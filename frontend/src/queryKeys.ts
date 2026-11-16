@@ -39,8 +39,10 @@ export function groupsOfKey(key: QueryKey): readonly Group[] {
   return PART_GROUPS[part] ?? PREFIX_GROUPS[part.split("|")[0] ?? ""] ?? ALL_GROUPS;
 }
 
-// Tabulka nastavení → skupiny. Skupina `ws` (samotný ["ws", wid]) je skoro u všeho (počty, příznaky prostoru).
-const SIM: Group[] = ["tuning", "apc", "live", "project", "ws"];
+// Tabulka nastavení → skupiny. Skupina `ws` (samotný ["ws", wid] = WorkspaceInfo: soubor, sloupce, úsek, rozložení)
+// se u ladění a simulace nemění, proto ji SIM ani OPT neobsahují; změní ji až identifikace / rozsahy / jazyk.
+const SIM: Group[] = ["tuning", "apc", "live", "project"];
+const OPT: Group[] = ["tuning", "live", "project"];   // kritéria optimalizace čte jen výpočet ladění (core.tuning)
 const IDENT: Group[] = ["model", "tuning", "apc", "live", "project", "ws"];
 const IDENT_DATA: Group[] = ["data", ...IDENT];      // identifikace, která mění i úseky / režim smyčky
 
@@ -48,14 +50,15 @@ const EXACT: Record<string, readonly Group[]> = {};
 const setExact = (keys: string[], groups: readonly Group[]) => { for (const k of keys) EXACT[k] = groups; };
 
 // ladění a simulace (blok PIDConL, sady, kritéria, scénář, simulace, kaskáda)
+setExact(["opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv"], OPT);
 setExact(["samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate",
   "sprate", "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td", "set2_defined", "ctype",
-  "opt_ms", "opt_noise", "opt_robust", "opt_crit", "opt_target", "opt_ovs", "avg_dpv", "avg_dmv", "scen_kind",
+  "scen_kind",
   "scen_d_in", "scen_d_pv", "scen2", "sim_len_u", "sim_len_u_set", "sim_J", "sim_noise", "vchar_last",
   "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct", "cas_samp", "cas_tci",
   "cas_tco"], SIM);
 // historie ladění se píše ze serveru; mění jen ladění a projekt
-setExact(["tune_hist"], ["tuning", "project", "ws"]);
+setExact(["tune_hist"], ["tuning", "project"]);
 // identifikace
 setExact(["chosen", "mcode", "mtype", "mtype0", "proc_type", "dist_level", "dist_strength", "gain_sign",
   "id_stic", "thmax", "read_manual", "plan_dpv", "plan_snr"], IDENT);
@@ -95,15 +98,17 @@ export function affected(settingKeys: string[]): Group[] {
   return ALL_GROUPS.filter((g) => out.has(g));
 }
 
-/** Zneplatní dotazy prostoru z uvedených skupin + vždy `settings` a `save-state`. */
-export function invalidateGroups(qc: QueryClient, wid: string | null, groups: readonly Group[]): Promise<void> {
+/** Zneplatní dotazy prostoru z uvedených skupin + `settings` (kromě `opts.settings === false`) a vždy `save-state`. */
+export function invalidateGroups(qc: QueryClient, wid: string | null, groups: readonly Group[],
+  opts: { settings?: boolean } = {}): Promise<void> {
   const want = new Set<Group>(groups);
   return qc.invalidateQueries({
     queryKey: ["ws", wid],
     predicate: (q) => {
       const k = q.queryKey;
       if (k[0] !== "ws" || k[1] !== wid) return false;
-      if (k.length >= 3 && (k[2] === "settings" || k[2] === "save-state")) return true;
+      if (k.length >= 3 && k[2] === "save-state") return true;
+      if (k.length >= 3 && k[2] === "settings") return opts.settings !== false;
       return groupsOfKey(k).some((g) => want.has(g));
     },
   });

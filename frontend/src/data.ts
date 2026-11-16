@@ -51,6 +51,8 @@ export async function uploadFile(wid: string, file: File): Promise<WorkspaceInfo
     await file.arrayBuffer());
 }
 
+let patchesInFlight = 0;     // souběžné změny: odpověď serveru nesmí přepsat novější optimistickou hodnotu
+
 /**
  * Změna nastavení smyčky: hned v rozhraní (optimisticky), pak PATCH /settings a znovu načíst dotazy dotčené změnou.
  * Při chybě se vrátí předchozí hodnoty měněných klíčů, ukáže se toast a chyba se znovu vyhodí.
@@ -62,8 +64,10 @@ export function usePatchSettings() {
     const key = ["ws", wid, "settings"];
     const prev = qc.getQueryData<Record<string, unknown>>(key);
     qc.setQueryData<Record<string, unknown>>(key, (old) => ({ ...(old ?? {}), ...patch }));
+    patchesInFlight++;
+    let fresh: Record<string, unknown> | undefined;
     try {
-      await request("PATCH", `/workspaces/${wid}/settings`, patch);
+      fresh = await request<Record<string, unknown>>("PATCH", `/workspaces/${wid}/settings`, patch);
     } catch (e) {
       // Vrátit jen měněné klíče (souběžná změna jiného klíče zůstane).
       qc.setQueryData<Record<string, unknown>>(key, (cur) => {
@@ -75,8 +79,14 @@ export function usePatchSettings() {
       });
       toastError(e);
       throw e;
+    } finally {
+      patchesInFlight--;
     }
+    // PATCH vrací celé nastavení (po normalizaci serverem): když nic jiného neběží, zapíše se do cache a `settings`
+    // se nemusí číst znovu; jinak se přečte ze serveru
+    const single = patchesInFlight === 0 && !!fresh;
+    if (single) qc.setQueryData<Record<string, unknown>>(key, fresh);
     // jen dotazy, kterých se změna týká (tabulka v queryKeys.ts)
-    await invalidateGroups(qc, wid, affected(Object.keys(patch)));
+    await invalidateGroups(qc, wid, affected(Object.keys(patch)), { settings: !single });
   };
 }
