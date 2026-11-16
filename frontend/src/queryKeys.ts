@@ -14,7 +14,7 @@ const PART_GROUPS: Record<string, Group[]> = {
   sources: ["data"], loops: ["data"], "loops-active": ["data"], mappings: ["data"], layout: ["data"],
   preview: ["data"], rawsignals: ["data"], trends: ["data"], spark: ["data"], quality: ["data"],
   dataquality: ["data"], dqsummary: ["data"], datastats: ["data"], triage: ["data"], "tri-thr": ["data"],
-  loopsov: ["data"], auditloops: ["data"], diag: ["data"],
+  loopsov: ["data", "model", "tuning", "project"], auditloops: ["data"], diag: ["data"],
   loopmode: ["data", "model"], windows: ["data", "model"], grid: ["data", "model"],
   // model: identifikace a ověření
   model: ["model"], modelloop: ["model"], validation: ["model"], curves: ["model"],
@@ -24,6 +24,7 @@ const PART_GROUPS: Record<string, Group[]> = {
   // APC, živá simulace, projekt
   apc: ["apc"], live: ["live"],
   "guide-status": ["guide"],                     // stav postupu na záložkách (FEATURE-003)
+  batch: ["project"],                            // výsledek hromadné úlohy (FEATURE-007)
   journal: ["project"], "report-sections": ["project"], "save-state": ["project"], guide: ["project"],
   // nastavení se zneplatňuje vždy zvlášť (invalidateGroups)
   settings: ["ws"],

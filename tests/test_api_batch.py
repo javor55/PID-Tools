@@ -84,10 +84,10 @@ def test_overview_fit_ms_change_stage():
         m = c.get(f"{u}/model").json()
         r = _rows(c, u)[0]
         assert r["stage"] == "model" and r["fit"] == pytest.approx(next(x for x in m["results"] if x["code"] == m["selected"])["fit"])
-        assert r["ms"] is None and r["change_pct"] is None            # Set 1 je zástupný, Set 2 není zadán
+        assert r["ms"] is None and r["change_pct"] is None and not r["set1_defined"]      # Set 1 je zástupný, Set 2 není zadán
         c.put(f"{u}/tuning/sets/1", json={"Kc": 0.8, "Ti": 40.0, "Td": 0.0})
         ms1 = c.post(f"{u}/tuning/robustness").json()[0]["Ms"]
-        assert _rows(c, u)[0]["ms"] == pytest.approx(ms1)
+        assert _rows(c, u)[0]["ms"] == pytest.approx(ms1) and _rows(c, u)[0]["set1_defined"]
         c.put(f"{u}/tuning/sets/2", json={"Kc": 1.2, "Ti": 30.0, "Td": 0.0})
         r = _rows(c, u)[0]
         ms2 = c.post(f"{u}/tuning/robustness").json()[1]["Ms"]

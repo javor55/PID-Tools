@@ -5485,6 +5485,11 @@
      "set1": {
       "$ref": "#/components/schemas/LoopSet"
      },
+     "set1_defined": {
+      "default": false,
+      "title": "Set1 Defined",
+      "type": "boolean"
+     },
      "set2": {
       "$ref": "#/components/schemas/LoopSet"
      },

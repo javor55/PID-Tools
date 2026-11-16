@@ -103,6 +103,7 @@ class LoopRow(BaseModel):
     health: LoopHealth
     fit: float | None = None            # FIT vybraného modelu [%]
     ms: float | None = None             # Ms Setu 2 (je-li zadán), jinak Setu 1 (je-li zadán); None = bez modelu / nestabilní
+    set1_defined: bool = False          # Set 1 je skutečné nastavení z řídicího systému (ne zástupné hodnoty)
     set2_defined: bool = False
     change_pct: float | None = None     # změna Gain Set 1 → Set 2 [%]; jen když je Set 2 zadán a Set 1 není zástupný
     stage: Literal["no_data", "data", "model", "proposal", "set2"] = "no_data"
@@ -235,7 +236,7 @@ def overview(p):
             sp=ls.c_sp if ls.c_sp not in ("", "—") else None, pos=ls.c_pos if ls.c_pos not in ("", "—") else None,
             model=ls.model[0] if ls.model else None, params=_plain(list(ls.model[1])) if ls.model else [],
             set1=_set(ls, 1), set2=_set(ls, 2), health=_health(ls), fit=_fit(ls), ms=_ms(ls),
-            set2_defined=bool(ls.get("set2_defined")), change_pct=_change(ls), stage=batch.stage(ls)))
+            set1_defined=_set1_real(ls), set2_defined=bool(ls.get("set2_defined")), change_pct=_change(ls), stage=batch.stage(ls)))
     return LoopsOverview(active=p.active, loops=rows)
 
 

@@ -5509,6 +5509,11 @@ export interface components {
             /** Pv */
             pv?: string | null;
             set1: components["schemas"]["LoopSet"];
+            /**
+             * Set1 Defined
+             * @default false
+             */
+            set1_defined: boolean;
             set2: components["schemas"]["LoopSet"];
             /**
              * Set2 Defined

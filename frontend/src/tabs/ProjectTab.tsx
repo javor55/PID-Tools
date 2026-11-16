@@ -13,6 +13,7 @@ import { PROJECT_EXT, projectBaseName, saveAs, saveProject, useSaveOpts } from "
 import { useSections } from "./project/api";
 import { JournalMain } from "./project/JournalMain";
 import { JournalSide } from "./project/JournalSide";
+import { LoopsMain } from "./project/LoopsMain";
 import { openProject, useProjMsg } from "./project/pendingOpen";
 import { STATUSES, useProjSub, useReport } from "./project/state";
 import "../styles/project.css";
@@ -36,9 +37,9 @@ export function ProjectMain() {
   const T = useT();
   return (
     <div className="stack">
-      <Seg value={sub} options={["report", "journal"] as const} label={T("jr_tab_report")} testid="proj-sub" help="h_jr_tabs"
+      <Seg value={sub} options={["report", "journal", "loops"] as const} label={T("jr_tab_report")} testid="proj-sub" help="h_jr_tabs"
         fmt={(v) => T("jr_tab_" + v)} onChange={setSub} />
-      {sub === "journal" ? <JournalMain /> : <ReportMain />}
+      {sub === "journal" ? <JournalMain /> : sub === "loops" ? <LoopsMain /> : <ReportMain />}
     </div>
   );
 }
@@ -193,5 +194,6 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
 export function ProjectSide() {
   const sub = useProjSub((s) => s.sub);
   if (sub === "journal") return <><JournalSide /><ProjectBox /></>;
+  if (sub === "loops") return <ProjectBox />;
   return <ReportBox pre={<ProjectBox />} />;
 }
