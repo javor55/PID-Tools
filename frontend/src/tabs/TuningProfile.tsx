@@ -71,7 +71,7 @@ export function ControllerCard({ info }: { info: TuningInfo }) {
       return <SelectSetting key={q.key} k={q.setting} label={lab} help={help} options={["cont", "step"] as const} def="cont"
         fmt={(x) => T("db_" + x)} />;
     return <NumSetting key={q.key} k={q.setting} label={lab} help={help} def={Number(q.value ?? q.default ?? 0)}
-      min={q.role === "mv_lo" || q.role === "mv_hi" ? undefined : 0} />;
+      min={q.role === "mv_lo" || q.role === "mv_hi" ? undefined : 0} minExclusive={q.setting === "samp" || q.setting === "diffgain"} />;
   };
   const g = (lab: string, a: [string, number], b: [string, number], title: string) => (
     <>

@@ -3448,5 +3448,10 @@
  "vw_calc_expr": "Formula",
  "ws_lost": "The working session expired; a new one was started. Restore your work from the recovery copy on the start screen.",
  "err_boundary_save_recovery": "Save recovery copy",
- "err_boundary_saved": "Recovery copy saved"
+ "err_boundary_saved": "Recovery copy saved",
+ "num_err_number": "Enter a number",
+ "num_err_min": "Must be at least {min}",
+ "num_err_gt": "Must be greater than {min}",
+ "num_err_max": "Must be at most {max}",
+ "num_err_int": "Must be a whole number"
 }

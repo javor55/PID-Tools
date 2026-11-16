@@ -126,6 +126,8 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .field { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; align-items: center; }
 .field > * { min-width: 0; }                  /* ovládací prvek se vejde do sloupce, nepřetéká z karty */
 .field span { color: var(--pid-muted); font-size: 12px; }
+.field > .field-err { grid-column: 2; color: var(--pid-err); }     /* chyba pole pod ovládacím prvkem */
+.field.wide > .field-err { grid-column: 1; }
 .field select { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
 .field select[multiple] { min-height: 64px; }
 .small { font-size: 12px; } .err { color: var(--pid-err); } .warn { color: var(--pid-warn); } .ok { color: var(--pid-ok); }
@@ -137,6 +139,7 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .btn.primary:hover { color: #fff; filter: brightness(1.08); }
 .btn:disabled { opacity: .55; cursor: default; }
 .field input[type="number"], .field input[type="text"] { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
+.field input[type="number"][aria-invalid="true"], .field input[type="text"][aria-invalid="true"] { border-color: var(--pid-err); }
 .checks-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
 .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .tbl th, .tbl td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--pid-line); }

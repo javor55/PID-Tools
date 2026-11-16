@@ -1,6 +1,7 @@
 """
-TICKET-003 v prohlížeči: neplatná hodnota nastavení (PATCH /settings → 422) ukáže toast s klíčem, pole se vrátí na
-původní hodnotu, server ji nezměnil a v konzoli stránky není nezachycená chyba.
+TICKET-003 v prohlížeči: neplatná hodnota nastavení (PATCH /settings → 422) ukáže toast s klíčem, server ji nezměnil
+a v konzoli stránky není nezachycená chyba. Od TICKET-015 zachytí `0` v poli `samp` už místní kontrola (bez PATCH),
+proto se odpověď 422 vyvolá přes `page.route`; text chyby je u pole a Esc vrátí původní hodnotu.
 Potřebuje sestavené UI (cd frontend && npm run build).
 """
 import json
@@ -44,13 +45,29 @@ def test_invalid_setting_shows_toast_and_reverts(page, server):
     before = fld.input_value()
     orig = _call(server, page, "GET", B + "/settings")["samp"]
     page.errors.clear()
-    fld.fill("0")
+    sent = []
+
+    def _reject(route):                                      # server odmítne hodnotu, kterou místní kontrola pustí
+        sent.append(route.request.post_data)
+        route.fulfill(status=422, content_type="application/json", body=json.dumps({"detail": "samp: must be > 0"}))
+
+    page.route("**/api/v1/workspaces/*/settings", lambda r: _reject(r) if r.request.method == "PATCH" else r.continue_())
+    fld.fill("5")
     fld.press("Enter")
     toast = page.locator('[data-testid="toast-err"]')
     toast.first.wait_for(timeout=10000)
     assert "samp" in toast.first.inner_text()
     assert page.locator('[data-testid="toasts"]').get_attribute("role") == "status"
+    assert len(sent) == 1
+    err = page.locator('[data-testid="set-samp-err"]')
+    err.wait_for(timeout=10000)
+    assert "samp: must be > 0" in err.inner_text()
+    assert fld.get_attribute("aria-invalid") == "true"
+    assert fld.input_value() == "5"                          # text zůstane v poli, ať jde opravit
+    fld.press("Escape")                                      # Esc vrátí původní hodnotu a smaže chybu
     page.wait_for_function("(v) => document.querySelector('[data-testid=\"set-samp\"]').value === v", arg=before, timeout=10000)
+    assert err.count() == 0
+    page.unroute("**/api/v1/workspaces/*/settings")
     assert _call(server, page, "GET", B + "/settings")["samp"] == orig
     assert toast.count() == 1                                # stejný text se neopakuje (toast z PATCH i z unhandledrejection)
     page.locator('[data-testid="toast-close"]').first.click()

@@ -3448,5 +3448,10 @@
  "vw_calc_expr": "Vzorec",
  "ws_lost": "Pracovní relace vypršela, byla založena nová. Práci obnovíte ze záchranné kopie na úvodní obrazovce.",
  "err_boundary_save_recovery": "Uložit záchrannou kopii",
- "err_boundary_saved": "Záchranná kopie uložena"
+ "err_boundary_saved": "Záchranná kopie uložena",
+ "num_err_number": "Zadejte číslo",
+ "num_err_min": "Musí být alespoň {min}",
+ "num_err_gt": "Musí být větší než {min}",
+ "num_err_max": "Musí být nejvýše {max}",
+ "num_err_int": "Musí být celé číslo"
 }

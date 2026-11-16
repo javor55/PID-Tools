@@ -108,6 +108,7 @@
 .tn-setin { font: 12px var(--pid-mono); width: 100%; min-width: 0; max-width: 78px; text-align: right; padding: 3px 4px; border: 1px solid var(--pid-ctl);
   border-radius: 4px; background: var(--pid-card); color: var(--pid-text); }
 .tn-setin::placeholder { color: var(--tn-faint); }
+input.tn-setin[aria-invalid="true"] { border-color: var(--pid-err); }
 .tn-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .tn-btns .tn-btn { flex: 1 1 auto; padding: 7px 10px; }
 .tn-grid3 { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
