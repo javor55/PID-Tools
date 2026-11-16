@@ -14,6 +14,7 @@ import test_frontend as _tf  # noqa: E402
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
 
 _HEX = re.compile(r"^#[0-9a-f]{6}$")
+TRENDS_HOST = '[data-testid="trd-viewer"]'
 
 # zachytí hodnoty strokeStyle nastavené na 2D plátnech (jednou za stránku)
 _HOOK = """() => {
@@ -98,4 +99,19 @@ def test_quality_view_colors_follow_theme(page, server):
     assert dark["roles"]["pv"] != light["roles"]["pv"]       # PV se čte z proměnné, ne z literálu
     assert dark["roles"]["pv"] not in res["light"][1]        # a ve světlém vzhledu se tmavá barva nekreslí
     assert light["roles"]["pv"] not in res["dark"][1]
+    _theme(page, "light")
+
+
+def test_trends_series_readable_in_dark_theme(page, server):
+    """Data › Trendy: barvy řad přicházejí ze serveru (navržené pro světlé pozadí); v tmavém vzhledu se málo kontrastní
+    barva zesvětlí – každá nakreslená čára signálu má kontrast ≥ 3 : 1 proti pozadí grafu."""
+    _demo(page)
+    pal, used = _measure(page, "trends", TRENDS_HOST, "dark")
+    assert _HEX.match(pal["bg"]) and used
+    # rámec grafu (mřížka, čáry, osy – proměnné --pv-grid / --pv-line / --pv-axis) je záměrně nevýrazný
+    frame = set(page.evaluate("""() => { const b = document.querySelector('.pidv'), cs = getComputedStyle(b);
+      const g = document.createElement('canvas').getContext('2d');
+      return ['--pv-grid', '--pv-line', '--pv-axis'].map(n => { g.fillStyle = cs.getPropertyValue(n).trim(); return g.fillStyle; }); }"""))
+    low = [(c, round(contrast(c, pal["bg"]), 2)) for c in used if c not in frame and contrast(c, pal["bg"]) < 3]
+    assert not low, low
     _theme(page, "light")

@@ -18,6 +18,7 @@ import "../../legacy/viewer.css";
 import { useDiagWin } from "../DiagTab";
 import { useActiveLoop, useTrendCatalog, useTrendSources } from "./trends/hooks";
 import { layoutPanels, type LayoutMode, type SigInfo, treeGroups } from "./trends/model";
+import { readable, usePalette } from "../../lib/palette";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
@@ -58,6 +59,8 @@ export function TrendsMain() {
   const setTab = useUi((s) => s.setTab);
   const setDiag = useUi((s) => s.setDiag);
   const dark = useUi((s) => s.theme) === "dark" || document.documentElement.dataset.theme === "dark";
+  const pal = usePalette();
+  const cardBg = pal.card;
   const win = useDiagWin();
   const cat = useTrendCatalog();
   const src = useTrendSources().data;
@@ -93,7 +96,9 @@ export function TrendsMain() {
     const info = new Map(cat.sigs.map((s) => [names[s.ref], s]));
     const sigs = meta.sigs.map((s) => {
       const i = info.get(s.name);
-      return { ...s, role: i?.role ?? "", color: i?.color ?? "#64748b", unit: i?.unit ?? "", axis: i?.quantity ?? null };
+      // barvy ze serveru jsou pro světlé pozadí – v tmavém vzhledu zesvětlit, pokud mají malý kontrast
+      const color = i?.color ?? pal.dist[3];
+      return { ...s, role: i?.role ?? "", color: dark ? readable(color, cardBg) : color, unit: i?.unit ?? "", axis: i?.quantity ?? null };
     });
     window.__pidViewData = { [meta.hash]: { buf: blob, sigs: {} } };
     const o = meta.origin ? Date.parse(meta.origin.replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(meta.origin) ? "" : "Z")) : NaN;
@@ -111,7 +116,7 @@ export function TrendsMain() {
     });
     if (fresh) setTimeout(() => api()?.setPanels?.(presetPanels("loop")), 0);      // výchozí: panel na smyčku
     useTrendsUi.getState().set({ names });
-  }, [pack.data, meta, texts, lang, dark, ui.host]);       // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pack.data, meta, texts, lang, dark, pal, ui.host]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ne v úklidu efektu výše (ten běží při změně balíku / hostitele a modul by ztratil zoom): odpojit až s komponentou
   useEffect(() => () => { destroy.current?.(); destroy.current = null; }, []);

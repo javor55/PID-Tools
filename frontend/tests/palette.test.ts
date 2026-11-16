@@ -50,3 +50,15 @@ describe("usePalette", () => {
     expect(result.current.pv).toBe(FALLBACK.pv);
   });
 });
+
+describe("readable", () => {
+  it("nechá kontrastní barvu beze změny a málo kontrastní zesvětlí na tmavém pozadí", async () => {
+    const { readable } = await import("../src/lib/palette");
+    expect(readable("#60a5fa", "#111a2e")).toBe("#60a5fa");
+    const out = readable("#1f5fa8", "#111a2e");
+    expect(out).not.toBe("#1f5fa8");
+    expect(out).toMatch(/^#[0-9a-f]{6}$/);
+    expect(readable("#1f5fa8", "#ffffff")).toBe("#1f5fa8");     // na bílé je kontrastní
+    expect(readable("rgb(1,2,3)", "#111a2e")).toBe("rgb(1,2,3)");
+  });
+});
