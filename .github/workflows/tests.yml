@@ -31,6 +31,9 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Types (mypy)
+        run: mypy pidtools/api pidtools/app/workspace
+
       # nové rozhraní (frontend/, React + TS): typy z openapi.json, lint, typy, testy, sestavení → pidtools/api/ui
       - uses: actions/setup-node@v5
         with:
