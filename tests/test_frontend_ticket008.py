@@ -104,8 +104,11 @@ def test_faint_text_contrast(ready):
     pg = ready
     pg.locator('[data-tab="tuning"]').click()
     _view(pg, "all")
-    # první .tn-faint bývá ve sbalené kartě – čekat na kterýkoli viditelný
-    pg.locator(".tn-faint:visible, [data-testid=\"cmp-pending\"] td:visible").first.wait_for(timeout=30000)
+    # Na stavu tabulky nezáviset: řádky „calculated when clicked“ zmizí, když dřívější test (sdílená relace) metody
+    # spočítá, a ostatní .tn-faint bývají ve sbalených kartách. Proto vlastní vzorek .tn-faint v kartě Ladění.
+    pg.wait_for_selector(".tn-card", timeout=30000)
+    pg.evaluate("""() => { const c = document.querySelector('.tn-card'); const e = document.createElement('span');
+      e.className = 'tn-faint'; e.dataset.probe = '1'; e.textContent = 'probe'; c.appendChild(e); }""")
     for theme in ("light", "dark"):
         pg.evaluate(f"document.documentElement.dataset.theme = '{theme}'")
         ratios = pg.evaluate(CONTRAST)
@@ -113,6 +116,7 @@ def test_faint_text_contrast(ready):
         print("kontrast .tn-faint", theme, ratios[:3])
         assert min(ratios) >= 4.5, (theme, ratios)
     pg.evaluate("document.documentElement.dataset.theme = 'light'")
+    pg.evaluate("() => document.querySelectorAll('[data-probe]').forEach((e) => e.remove())")
 
 
 def test_all_methods_row_keyboard(ready):
