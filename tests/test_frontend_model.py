@@ -43,6 +43,7 @@ def ready(page, server):
             break
         time.sleep(0.2)
     page.locator('[data-tab="model"]').click()
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
     page.wait_for_selector('[data-testid="models"] tbody tr', timeout=60000)
     return True
 
@@ -52,6 +53,7 @@ def _fit(page, which):
 
 
 def test_validation_range_and_rating(page, server, ready):
+    page.locator('[data-testid="model-subtabs"] [data-sub="validate"]').click()
     page.wait_for_selector('[data-testid="val-rating"]', timeout=60000)
     assert page.locator('[data-testid="val-rating"] tbody tr').count() == 2
     assert page.locator('[data-testid="val-verdict"]').get_attribute("data-verdict") == "same"   # celý záznam = úsek id
@@ -76,6 +78,7 @@ def test_validation_range_and_rating(page, server, ready):
 
 
 def test_validation_loop_sets_and_views(page, server, ready):
+    page.locator('[data-testid="model-subtabs"] [data-sub="validate"]').click()
     page.locator('[data-testid="val-mode"] [data-value="cl"]').click()
     page.wait_for_selector('[data-testid="val-which"]', timeout=20000)
     page.wait_for_function("() => (document.querySelector('[data-testid=\"val-fits\"]')||{}).innerText?.includes('MV')", timeout=60000)
@@ -96,12 +99,14 @@ def test_validation_loop_sets_and_views(page, server, ready):
 
 def test_model_on_full_record_by_default(page, server, ready):
     """Model se ve výchozím stavu kreslí přes celý záznam; „jen v úsecích“ je volba."""
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
     rng = page.locator('[data-testid="model-trend"] .pidw-range')
     rng.first.wait_for(timeout=30000)
     assert rng.first.locator("button.on").get_attribute("data-v") == "full"
 
 
 def test_closed_loop_panel(page, server, ready):
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
     page.locator('[data-testid="id-mode"]').select_option("cl")
     page.wait_for_selector('[data-testid="cl-note"]', timeout=20000)
     # regulátor v záznamu (Sada 1) se zadává přímo v Modelu, v jednotkách bloku; je to táž Sada 1 jako v Ladění
