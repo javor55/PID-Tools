@@ -57,3 +57,11 @@ def test_patch_returns_same_shape_and_prefix_key(client):
     assert d["mv_hi"] == 80 and d["fx|dummy"] is True
     assert client.get(u, headers=H).json() == d
     assert client.patch(u, json={"ctype": "XX"}, headers=H).status_code == 422
+
+
+def test_invalid_enum_in_store_does_not_break_get(client):
+    from pidtools.api.data import settings_out
+    from pidtools.app.workspace import Workspace
+    ws = Workspace()
+    ws.settings["ctype"] = "XYZ"                  # poškozený projekt: výčet mimo povolené hodnoty
+    assert settings_out(ws).ctype == DEFAULTS["ctype"]

@@ -5435,27 +5435,29 @@ export interface components {
              *       "I1D"
              *     ]
              */
-            chosen: unknown[] | null;
+            chosen: unknown[];
             /**
              * Ctype
              * @default PI
+             * @enum {string}
              */
-            ctype: ("PI" | "PID" | "PD") | null;
+            ctype: "PI" | "PID" | "PD";
             /**
              * Db
              * @default 0
              */
-            db: number | null;
+            db: number;
             /**
              * Db Mode
              * @default cont
+             * @enum {string}
              */
-            db_mode: ("cont" | "step") | null;
+            db_mode: "cont" | "step";
             /**
              * Dfb
              * @default true
              */
-            dfb: boolean | null;
+            dfb: boolean;
             /** Diag Integ */
             diag_integ: boolean | null;
             /** Diag Theta */
@@ -5464,31 +5466,33 @@ export interface components {
              * Diffgain
              * @default 5
              */
-            diffgain: number | null;
+            diffgain: number;
             /**
              * Dist Level
              * @default none
+             * @enum {string}
              */
-            dist_level: ("none" | "medium" | "high") | null;
+            dist_level: "none" | "medium" | "high";
             /**
              * Dist Strength
              * @default 4
              */
-            dist_strength: number | null;
+            dist_strength: number;
             /** Dview */
             dview: string | null;
             /**
              * Gain Sign
              * @default auto
+             * @enum {string}
              */
-            gain_sign: ("auto" | "pos" | "neg") | null;
+            gain_sign: "auto" | "pos" | "neg";
             /** Id Mode */
             id_mode: string | null;
             /**
              * Id Stic
              * @default false
              */
-            id_stic: boolean | null;
+            id_stic: boolean;
             /**
              * Lang
              * @default en
@@ -5511,12 +5515,12 @@ export interface components {
              * Mv Hi
              * @default 100
              */
-            mv_hi: number | null;
+            mv_hi: number;
             /**
              * Mv Lo
              * @default 0
              */
-            mv_lo: number | null;
+            mv_lo: number;
             /** Mv Rng User */
             mv_rng_user: boolean | null;
             /** Mvl Hi */
@@ -5527,7 +5531,7 @@ export interface components {
              * Mvrate
              * @default 0
              */
-            mvrate: number | null;
+            mvrate: number;
             /**
              * Opt Crit
              * @default OVS
@@ -5537,19 +5541,19 @@ export interface components {
              * Opt Ms
              * @default 1.6
              */
-            opt_ms: number | null;
+            opt_ms: number;
             /** Opt Noise */
             opt_noise: number | null;
             /**
              * Opt Ovs
              * @default 2
              */
-            opt_ovs: number | null;
+            opt_ovs: number;
             /**
              * Opt Robust
              * @default false
              */
-            opt_robust: boolean | null;
+            opt_robust: boolean;
             /**
              * Opt Target
              * @default both
@@ -5569,24 +5573,24 @@ export interface components {
              * Propfac
              * @default 1
              */
-            propfac: number | null;
+            propfac: number;
             /**
              * Pv Hi
              * @default 100
              */
-            pv_hi: number | null;
+            pv_hi: number;
             /**
              * Pv Lo
              * @default 0
              */
-            pv_lo: number | null;
+            pv_lo: number;
             /** Pv Rng User */
             pv_rng_user: boolean | null;
             /**
              * Pvfilt
              * @default 0
              */
-            pvfilt: number | null;
+            pvfilt: number;
             /** Read Manual */
             read_manual: boolean | null;
             /** Rep Author */
@@ -5601,7 +5605,7 @@ export interface components {
              * Samp
              * @default 1
              */
-            samp: number | null;
+            samp: number;
             /** Scen2 */
             scen2: string | null;
             /** Scen D In */
@@ -5614,44 +5618,45 @@ export interface components {
              * Set1 Gain
              * @default 1
              */
-            set1_gain: number | null;
+            set1_gain: number;
             /**
              * Set1 Td
              * @default 0
              */
-            set1_td: number | null;
+            set1_td: number;
             /**
              * Set1 Ti
              * @default 100
              */
-            set1_ti: number | null;
+            set1_ti: number;
             /**
              * Set2 Defined
              * @default false
              */
-            set2_defined: boolean | null;
+            set2_defined: boolean;
             /**
              * Set2 Gain
              * @default 1
              */
-            set2_gain: number | null;
+            set2_gain: number;
             /**
              * Set2 Td
              * @default 0
              */
-            set2_td: number | null;
+            set2_td: number;
             /**
              * Set2 Ti
              * @default 100
              */
-            set2_ti: number | null;
+            set2_ti: number;
             /** Sim J */
             sim_J: number | null;
             /**
              * Sim Len U
              * @default s
+             * @enum {string}
              */
-            sim_len_u: ("s" | "min" | "h") | null;
+            sim_len_u: "s" | "min" | "h";
             /** Sim Len U Set */
             sim_len_u_set: boolean | null;
             /** Sim Noise */
@@ -5660,7 +5665,7 @@ export interface components {
              * Sprate
              * @default 0
              */
-            sprate: number | null;
+            sprate: number;
             /** Thmax */
             thmax: number | null;
             /** Tri Thr */

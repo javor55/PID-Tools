@@ -5469,15 +5469,6 @@
       "title": "Chart Tunit"
      },
      "chosen": {
-      "anyOf": [
-       {
-        "items": {},
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": [
        "P0D",
        "P1D",
@@ -5485,64 +5476,38 @@
        "I0D",
        "I1D"
       ],
-      "title": "Chosen"
+      "items": {},
+      "title": "Chosen",
+      "type": "array"
      },
      "ctype": {
-      "anyOf": [
-       {
-        "enum": [
-         "PI",
-         "PID",
-         "PD"
-        ],
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "PI",
-      "title": "Ctype"
+      "enum": [
+       "PI",
+       "PID",
+       "PD"
+      ],
+      "title": "Ctype",
+      "type": "string"
      },
      "db": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Db"
+      "title": "Db",
+      "type": "number"
      },
      "db_mode": {
-      "anyOf": [
-       {
-        "enum": [
-         "cont",
-         "step"
-        ],
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "cont",
-      "title": "Db Mode"
+      "enum": [
+       "cont",
+       "step"
+      ],
+      "title": "Db Mode",
+      "type": "string"
      },
      "dfb": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": true,
-      "title": "Dfb"
+      "title": "Dfb",
+      "type": "boolean"
      },
      "diag_integ": {
       "anyOf": [
@@ -5567,45 +5532,24 @@
       "title": "Diag Theta"
      },
      "diffgain": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 5.0,
-      "title": "Diffgain"
+      "title": "Diffgain",
+      "type": "number"
      },
      "dist_level": {
-      "anyOf": [
-       {
-        "enum": [
-         "none",
-         "medium",
-         "high"
-        ],
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "none",
-      "title": "Dist Level"
+      "enum": [
+       "none",
+       "medium",
+       "high"
+      ],
+      "title": "Dist Level",
+      "type": "string"
      },
      "dist_strength": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 4,
-      "title": "Dist Strength"
+      "title": "Dist Strength",
+      "type": "number"
      },
      "dview": {
       "anyOf": [
@@ -5619,21 +5563,14 @@
       "title": "Dview"
      },
      "gain_sign": {
-      "anyOf": [
-       {
-        "enum": [
-         "auto",
-         "pos",
-         "neg"
-        ],
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "auto",
-      "title": "Gain Sign"
+      "enum": [
+       "auto",
+       "pos",
+       "neg"
+      ],
+      "title": "Gain Sign",
+      "type": "string"
      },
      "id_mode": {
       "anyOf": [
@@ -5647,16 +5584,9 @@
       "title": "Id Mode"
      },
      "id_stic": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": false,
-      "title": "Id Stic"
+      "title": "Id Stic",
+      "type": "boolean"
      },
      "lang": {
       "anyOf": [
@@ -5728,28 +5658,14 @@
       "title": "Mtype0"
      },
      "mv_hi": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 100.0,
-      "title": "Mv Hi"
+      "title": "Mv Hi",
+      "type": "number"
      },
      "mv_lo": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Mv Lo"
+      "title": "Mv Lo",
+      "type": "number"
      },
      "mv_rng_user": {
       "anyOf": [
@@ -5785,16 +5701,9 @@
       "title": "Mvl Lo"
      },
      "mvrate": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Mvrate"
+      "title": "Mvrate",
+      "type": "number"
      },
      "opt_crit": {
       "anyOf": [
@@ -5809,16 +5718,9 @@
       "title": "Opt Crit"
      },
      "opt_ms": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 1.6,
-      "title": "Opt Ms"
+      "title": "Opt Ms",
+      "type": "number"
      },
      "opt_noise": {
       "anyOf": [
@@ -5832,28 +5734,14 @@
       "title": "Opt Noise"
      },
      "opt_ovs": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 2,
-      "title": "Opt Ovs"
+      "title": "Opt Ovs",
+      "type": "number"
      },
      "opt_robust": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": false,
-      "title": "Opt Robust"
+      "title": "Opt Robust",
+      "type": "boolean"
      },
      "opt_target": {
       "anyOf": [
@@ -5923,40 +5811,19 @@
       "title": "Proc Type"
      },
      "propfac": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 1.0,
-      "title": "Propfac"
+      "title": "Propfac",
+      "type": "number"
      },
      "pv_hi": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 100.0,
-      "title": "Pv Hi"
+      "title": "Pv Hi",
+      "type": "number"
      },
      "pv_lo": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Pv Lo"
+      "title": "Pv Lo",
+      "type": "number"
      },
      "pv_rng_user": {
       "anyOf": [
@@ -5970,16 +5837,9 @@
       "title": "Pv Rng User"
      },
      "pvfilt": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Pvfilt"
+      "title": "Pvfilt",
+      "type": "number"
      },
      "read_manual": {
       "anyOf": [
@@ -6037,16 +5897,9 @@
       "title": "Rep Status"
      },
      "samp": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 1.0,
-      "title": "Samp"
+      "title": "Samp",
+      "type": "number"
      },
      "scen2": {
       "anyOf": [
@@ -6093,88 +5946,39 @@
       "title": "Scen Kind"
      },
      "set1_gain": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 1.0,
-      "title": "Set1 Gain"
+      "title": "Set1 Gain",
+      "type": "number"
      },
      "set1_td": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Set1 Td"
+      "title": "Set1 Td",
+      "type": "number"
      },
      "set1_ti": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 100.0,
-      "title": "Set1 Ti"
+      "title": "Set1 Ti",
+      "type": "number"
      },
      "set2_defined": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": false,
-      "title": "Set2 Defined"
+      "title": "Set2 Defined",
+      "type": "boolean"
      },
      "set2_gain": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 1.0,
-      "title": "Set2 Gain"
+      "title": "Set2 Gain",
+      "type": "number"
      },
      "set2_td": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Set2 Td"
+      "title": "Set2 Td",
+      "type": "number"
      },
      "set2_ti": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 100.0,
-      "title": "Set2 Ti"
+      "title": "Set2 Ti",
+      "type": "number"
      },
      "sim_J": {
       "anyOf": [
@@ -6188,21 +5992,14 @@
       "title": "Sim J"
      },
      "sim_len_u": {
-      "anyOf": [
-       {
-        "enum": [
-         "s",
-         "min",
-         "h"
-        ],
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": "s",
-      "title": "Sim Len U"
+      "enum": [
+       "s",
+       "min",
+       "h"
+      ],
+      "title": "Sim Len U",
+      "type": "string"
      },
      "sim_len_u_set": {
       "anyOf": [
@@ -6227,16 +6024,9 @@
       "title": "Sim Noise"
      },
      "sprate": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
       "default": 0.0,
-      "title": "Sprate"
+      "title": "Sprate",
+      "type": "number"
      },
      "thmax": {
       "anyOf": [

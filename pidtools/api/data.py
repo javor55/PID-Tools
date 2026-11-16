@@ -33,55 +33,55 @@ class LoopSettings(BaseModel):
     loop_tag: str | None = DEFAULTS["loop_tag"]
     u_pv: str | None = DEFAULTS["u_pv"]
     u_mv: str | None = DEFAULTS["u_mv"]
-    pv_lo: float | None = DEFAULTS["pv_lo"]
-    pv_hi: float | None = DEFAULTS["pv_hi"]
-    mv_lo: float | None = DEFAULTS["mv_lo"]
-    mv_hi: float | None = DEFAULTS["mv_hi"]
+    pv_lo: float = DEFAULTS["pv_lo"]
+    pv_hi: float = DEFAULTS["pv_hi"]
+    mv_lo: float = DEFAULTS["mv_lo"]
+    mv_hi: float = DEFAULTS["mv_hi"]
     pv_rng_user: bool | None = None
     mv_rng_user: bool | None = None
     plot_h: float | None = None
     chart_tunit: str | None = None
     # blok PIDConL a sady parametrů
-    samp: float | None = DEFAULTS["samp"]
-    diffgain: float | None = DEFAULTS["diffgain"]
+    samp: float = DEFAULTS["samp"]
+    diffgain: float = DEFAULTS["diffgain"]
     pfb: bool | None = None
-    propfac: float | None = DEFAULTS["propfac"]
-    dfb: bool | None = DEFAULTS["dfb"]
-    db: float | None = DEFAULTS["db"]
-    db_mode: Literal["cont", "step"] | None = DEFAULTS["db_mode"]
+    propfac: float = DEFAULTS["propfac"]
+    dfb: bool = DEFAULTS["dfb"]
+    db: float = DEFAULTS["db"]
+    db_mode: Literal["cont", "step"] = DEFAULTS["db_mode"]
     mvl_lo: float | None = DEFAULTS["mvl_lo"]          # None = bez omezení bloku (prázdné pole)
     mvl_hi: float | None = DEFAULTS["mvl_hi"]
-    pvfilt: float | None = DEFAULTS["pvfilt"]
-    mvrate: float | None = DEFAULTS["mvrate"]
-    sprate: float | None = DEFAULTS["sprate"]
-    set1_gain: float | None = DEFAULTS["set1_gain"]
-    set1_ti: float | None = DEFAULTS["set1_ti"]
-    set1_td: float | None = DEFAULTS["set1_td"]
-    set2_gain: float | None = DEFAULTS["set2_gain"]
-    set2_ti: float | None = DEFAULTS["set2_ti"]
-    set2_td: float | None = DEFAULTS["set2_td"]
-    set2_defined: bool | None = DEFAULTS["set2_defined"]
+    pvfilt: float = DEFAULTS["pvfilt"]
+    mvrate: float = DEFAULTS["mvrate"]
+    sprate: float = DEFAULTS["sprate"]
+    set1_gain: float = DEFAULTS["set1_gain"]
+    set1_ti: float = DEFAULTS["set1_ti"]
+    set1_td: float = DEFAULTS["set1_td"]
+    set2_gain: float = DEFAULTS["set2_gain"]
+    set2_ti: float = DEFAULTS["set2_ti"]
+    set2_td: float = DEFAULTS["set2_td"]
+    set2_defined: bool = DEFAULTS["set2_defined"]
     # identifikace
     thmax: float | None = DEFAULTS["thmax"]
-    chosen: list[Any] | None = DEFAULTS["chosen"]
+    chosen: list[Any] = DEFAULTS["chosen"]
     mcode: str | None = DEFAULTS["mcode"]
     mtype: str | None = None
     mtype0: str | None = None
     proc_type: str | None = None
-    dist_level: Literal["none", "medium", "high"] | None = DEFAULTS["dist_level"]
-    dist_strength: float | None = DEFAULTS["dist_strength"]
-    gain_sign: Literal["auto", "pos", "neg"] | None = DEFAULTS["gain_sign"]
-    id_stic: bool | None = DEFAULTS["id_stic"]
+    dist_level: Literal["none", "medium", "high"] = DEFAULTS["dist_level"]
+    dist_strength: float = DEFAULTS["dist_strength"]
+    gain_sign: Literal["auto", "pos", "neg"] = DEFAULTS["gain_sign"]
+    id_stic: bool = DEFAULTS["id_stic"]
     win_mode: str | None = None
     read_manual: bool | None = None
     # ladění a simulace
-    ctype: Literal["PI", "PID", "PD"] | None = DEFAULTS["ctype"]
-    opt_ms: float | None = DEFAULTS["opt_ms"]
+    ctype: Literal["PI", "PID", "PD"] = DEFAULTS["ctype"]
+    opt_ms: float = DEFAULTS["opt_ms"]
     opt_noise: float | None = None
-    opt_robust: bool | None = DEFAULTS["opt_robust"]
+    opt_robust: bool = DEFAULTS["opt_robust"]
     opt_crit: str | None = DEFAULTS["opt_crit"]
     opt_target: str | None = DEFAULTS["opt_target"]
-    opt_ovs: float | None = DEFAULTS["opt_ovs"]
+    opt_ovs: float = DEFAULTS["opt_ovs"]
     avg_dpv: float | None = None
     avg_dmv: float | None = None
     scen_kind: str | None = DEFAULTS["scen_kind"]
@@ -94,7 +94,7 @@ class LoopSettings(BaseModel):
     diag_theta: float | None = None
     val_rng: list[float] | None = None                 # úsek validace [od, do]; None = výchozí
     scen2: str | None = None
-    sim_len_u: Literal["s", "min", "h"] | None = DEFAULTS["sim_len_u"]
+    sim_len_u: Literal["s", "min", "h"] = DEFAULTS["sim_len_u"]
     sim_len_u_set: bool | None = None
     sim_J: float | None = None
     sim_noise: float | None = None
@@ -393,8 +393,12 @@ def _dq_summary(ws):
 
 
 def settings_out(ws) -> LoopSettings:
-    """Všechny pevné klíče (chybějící z DEFAULTS) a klíče s prefixem, které prostor má."""
-    return LoopSettings(**{k: prj.jsonable(v) for k, v in ws.settings.items() if prj.is_state_key(k)})
+    """
+    Všechny pevné klíče (chybějící z DEFAULTS) a klíče s prefixem, které prostor má. Hodnota výčtu mimo povolené
+    (stará nebo ručně upravená záloha projektu) se vynechá a platí výchozí – odpověď nesmí skončit chybou 500.
+    """
+    vals = {k: prj.jsonable(v) for k, v in ws.settings.items() if prj.is_state_key(k)}
+    return LoopSettings(**{k: v for k, v in vals.items() if k not in prj.ENUMS or v in prj.ENUMS[k]})
 
 
 def router(get_proj, max_upload=MAX_UPLOAD):
