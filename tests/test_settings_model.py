@@ -68,3 +68,10 @@ def test_invalid_enum_in_store_does_not_break_get(client):
     ws.settings["ctype"] = "PI"
     ws.settings["lang"] = None                    # None u klíče s výchozí hodnotou = platí výchozí
     assert settings_out(ws).lang == DEFAULTS["lang"]
+
+
+def test_invalid_enum_in_project_is_dropped_on_load():
+    """Neplatná hodnota výčtu v souboru projektu se při načtení vynechá (platí výchozí) – rozhraní i výpočty vidí totéž."""
+    from pidtools.app import project as prj
+    out, bad = prj.clean_state({"ctype": "XYZ", "gain_sign": "pos", "samp": 2.0})
+    assert "ctype" not in out and out["gain_sign"] == "pos" and out["samp"] == 2.0 and bad == 1

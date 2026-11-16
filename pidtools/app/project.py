@@ -104,6 +104,8 @@ def clean_state(state):
         ok = _typed_ok(k, v)
         if ok is None:
             ok = isinstance(v, (str, int, float, bool, list)) or v is None
+        if ok and k in ENUMS and v not in ENUMS[k]:     # neplatná hodnota výčtu (poškozený soubor) → výchozí
+            ok = False
         if ok:
             out[k] = v
         else:
