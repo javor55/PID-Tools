@@ -24,6 +24,7 @@ declare global { interface Window { __pidViewData?: Record<string, { buf: ArrayB
 /** simple = jednoduchý graf smyčky (Kvalita dat): pevné panely SP + PV / MV / DV, bez seznamu signálů, rozložení se neukládá. */
 export function RecordViewer({ texts, simple }: { texts: Record<string, string>; simple?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
+  const destroy = useRef<(() => void) | null>(null);   // odpojení viewer.js; volá se jen při odchodu komponenty
   const wid = useUi((s) => s.wid);
   const lang = useUi((s) => s.lang);
   const dark = useUi((s) => s.theme) === "dark" || document.documentElement.dataset.theme === "dark";
@@ -64,7 +65,7 @@ export function RecordViewer({ texts, simple }: { texts: Record<string, string>;
       dark, txt, fname: ws.fname, layout: lay, b64: null as string | null, url: null as string | null,
     };
     const sig = `${meta.hash}|${lang}|${dark}|${JSON.stringify(sigs.map((s) => [s.name, s.role, s.color, s.unit]))}`;
-    mountViewer({
+    destroy.current = mountViewer({
       data: { ...data, sig }, parentElement: box.current,
       setStateValue: (key, value) => {
         // viewer.js posílá rozložení až po 1,5 s klidu
@@ -74,6 +75,9 @@ export function RecordViewer({ texts, simple }: { texts: Record<string, string>;
       },
     });
   }, [pack.data, ws, settings.data, texts, lang, dark, wid, simple]);
+
+  // ne v úklidu efektu výše (ten běží při každé změně dat a modul by ztratil zoom): odpojit až s komponentou
+  useEffect(() => () => { destroy.current?.(); destroy.current = null; }, []);
 
   return <div ref={box} className="viewer-host" data-testid="record-viewer" />;
 }

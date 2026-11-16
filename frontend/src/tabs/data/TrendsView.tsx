@@ -64,6 +64,7 @@ export function TrendsMain() {
   const ui = useTrendsUi(useShallow((s) => ({ by: s.by, onlyActive: s.onlyActive, host: s.host })));
   const activeTag = useActiveTag(cat.sigs);
   const box = useRef<HTMLDivElement>(null);
+  const destroy = useRef<(() => void) | null>(null);   // odpojení viewer.js; volá se jen při odchodu stránky
   const [msg, setMsg] = useState<{ ok: boolean; text: string; to?: "model" | "diag" } | null>(null);
   const [layout, setLayout] = useState<LayoutMode | "custom">("loop");
   // balík signálů: klíč podle zdrojů (ne pod ["ws", wid], aby ho nenačítala znovu každá změna nastavení)
@@ -100,7 +101,7 @@ export function TrendsMain() {
     const txt = Object.fromEntries(Object.entries(texts).filter(([k]) => k.startsWith("vw_")).map(([k, v]) => [k.slice(3), v]));
     const sig = `${meta.hash}|${lang}|${dark}|${JSON.stringify(sigs.map((s) => [s.name, s.role, s.color]))}`;
     const fresh = !(window as unknown as { __pidViewState?: Record<string, unknown> }).__pidViewState?.[`trends|${meta.hash}`];
-    mountViewer({
+    destroy.current = mountViewer({
       data: {
         key: KEY, view_key: `trends|${meta.hash}`, sigs, times: meta.times, T: meta.T, decim: meta.decim, hash: meta.hash,
         clock, tunit: "auto", dec: decOf(lang), dark, txt, fname: "trends", layout: null, b64: null, url: null, groups, sig,
@@ -111,6 +112,9 @@ export function TrendsMain() {
     if (fresh) setTimeout(() => api()?.setPanels?.(presetPanels("loop")), 0);      // výchozí: panel na smyčku
     useTrendsUi.getState().set({ names });
   }, [pack.data, meta, texts, lang, dark, ui.host]);       // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ne v úklidu efektu výše (ten běží při změně balíku / hostitele a modul by ztratil zoom): odpojit až s komponentou
+  useEffect(() => () => { destroy.current?.(); destroy.current = null; }, []);
 
   useEffect(() => { api()?.setGroups?.(groups); }, [groups]);
 

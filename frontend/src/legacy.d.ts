@@ -7,7 +7,8 @@ declare module "*/viewer.js" {
     setTriggerValue?: (key: string, value: unknown) => void;
     listHost?: HTMLElement;              // seznam signálů mimo graf (např. pravý panel stránky)
   }
-  const mount: (component: ViewerComponent) => void;
+  /** Vrací funkci pro odpojení (ResizeObserver, překreslení, prvek, záznam v registru). */
+  const mount: (component: ViewerComponent) => () => void;
   export default mount;
 }
 declare module "*/viewer_an.js" {
@@ -16,7 +17,8 @@ declare module "*/viewer_an.js" {
 }
 declare module "*/trend.js" {
   import type { ViewerComponent } from "*/viewer.js";
-  const mount: (component: ViewerComponent) => void;
+  /** Vrací funkci pro odpojení (ResizeObserver, překreslení, prvek, záznam v registru). */
+  const mount: (component: ViewerComponent) => () => void;
   export default mount;
 }
 declare module "*/live_engine.js" {

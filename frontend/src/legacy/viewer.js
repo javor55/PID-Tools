@@ -1,5 +1,6 @@
 /*
- * Prohlížeč záznamu (záložka Data) – běží přímo ve stránce (st.components.v2).
+ * Prohlížeč záznamu (záložka Data) – čisté JS, připojuje ho React obal (frontend/src/components/RecordViewer.tsx
+ * a frontend/src/tabs/data/TrendsView.tsx); funkce modulu vrací destroy() pro odpojení při odchodu ze stránky.
  *
  * Všechny signály ze souboru (bez převzorkování) v panelech pod sebou se společnou časovou osou; v panelu má každý
  * signál vlastní osu Y (nebo jednu sdílenou). Ovládání:
@@ -13,9 +14,9 @@
  * Volitelně: D.groups = [{label, names}] (seznam signálů ve skupinách, např. podle smyček) a component.listHost
  * (prvek, do kterého se vloží seznam signálů – např. pravý panel stránky).
  *
- * Data z Pythonu: key, sig, view_key, sigs [{name, role, color, unit, ti, off, n}], times [{off, n}], T, decim, hash,
+ * Data (component.data, tvar viz frontend/src/legacy.d.ts): key, sig, view_key, sigs [{name, role, color, unit, ti, off, n}], times [{off, n}], T, decim, hash,
  * url + base (binární soubor) nebo b64, clock (ms epochy pro t = 0 nebo null), tunit, dec, dark, txt, fname,
- * layout (JSON text uloženého rozložení nebo null). Do Pythonu: stav „layout“ (JSON text).
+ * layout (JSON text uloženého rozložení nebo null). Ven: stav „layout“ (JSON text) přes component.setStateValue (název funkce je historický).
  */
 export default function (component) {
   "use strict";
@@ -25,12 +26,15 @@ export default function (component) {
   if (prev && prev.sig === D.sig && prev.box && prev.box.isConnected && root.contains(prev.box)) {
     if (D.layout && D.layout !== prev.lastLay && prev.applyLayout) prev.applyLayout(D.layout);
     if ((component.listHost || null) !== (prev.host || null) && prev.setHost) prev.setHost(component.listHost || null);
-    return;
+    return prev.destroy;                     // jen aktualizace existující instance – odpojí ji stejná funkce
   }
   root.querySelectorAll(".pidv").forEach((n) => n.remove());
   if (prev) {
-    if (prev.ro) prev.ro.disconnect();
-    if (prev.box && prev.box.isConnected) prev.box.remove();
+    if (prev.destroy) prev.destroy();        // stará instance (jiná data) – odpojí se celá
+    else {
+      if (prev.ro) prev.ro.disconnect();
+      if (prev.box && prev.box.isConnected) prev.box.remove();
+    }
   }
 
   // ------------------------------------------------------------------ pomocné
@@ -99,6 +103,23 @@ export default function (component) {
   const me = (reg[D.key] = { sig: D.sig, box, lastLay: null, host: component.listHost || null });
   const DC = (window.__pidViewData = window.__pidViewData || {});
 
+  // Odpojení instance (volá ho React obal při odchodu ze stránky): ResizeObserver, naplánovaná překreslení,
+  // kořenový prvek, seznam signálů v cizím hostiteli a záznam v registru. Posluchače pointermove / pointerup na
+  // window se přidávají jen během tažení a odebírají se při puštění, trvalé globální posluchače modul nemá.
+  let dead = false;
+  function destroy() {
+    if (dead) return;
+    dead = true;
+    if (me.ro) me.ro.disconnect();
+    if (me.stop) me.stop();
+    if (me.listBox) me.listBox.remove();
+    const host = component.listHost;
+    if (host) host.classList.remove("pidv-hostvars", "dark");
+    box.remove();
+    if (reg[D.key] === me) delete reg[D.key];
+  }
+  me.destroy = destroy;
+
   async function fetchBuf() {
     if (DC[D.hash]) return DC[D.hash];
     let buf;
@@ -144,6 +165,7 @@ export default function (component) {
   let S;                                  // stav (rozložení) – viz defaults()
   let MIN_DT = 1;                         // nejmenší perioda vzorků (počet desetinných míst času)
   function start(entry) {
+    if (dead) return;                       // data dorazila až po odpojení
     // ---------------------------------------------------------------- signály
     const SG = {}, order = [], AN = window.PIDViewAn;
     function initSig(s) {                     // perioda, práh výpadku, rozsah a počet desetinných míst
@@ -296,8 +318,9 @@ export default function (component) {
     views[D.view_key] = S;
 
     let saveT = null;
-    function save() {                        // rozložení do Pythonu (projekt) – s odstupem, ať se aplikace nespouští stále
+    function save() {                        // rozložení do projektu (přes setStateValue) – s odstupem, ať se aplikace nespouští stále
       views[D.view_key] = S;
+      if (dead) return;
       clearTimeout(saveT);
       saveT = setTimeout(() => {
         const L = JSON.stringify(S);
@@ -501,6 +524,7 @@ export default function (component) {
       if (host) S.list = true;                 // seznam v pravém panelu stránky
       body = el("div", "pidv-body" + (S.list && !host ? "" : " nolist"));
       listBox = el("div", "pidv-card pidv-list" + (host ? " pidv-list-host" : ""));
+      me.listBox = listBox;
       if (host) { host.innerHTML = ""; host.classList.add("pidv-hostvars"); host.classList.toggle("dark", !!D.dark); host.appendChild(listBox); }
       else if (S.list) body.appendChild(listBox);
       plots = el("div", "pidv-plots");
@@ -516,7 +540,7 @@ export default function (component) {
       buildPanels();
       renderAn();
       redraw();
-      if (!events) setTimeout(() => { evList(); renderAn(); redraw(); }, 30);
+      if (!events) setTimeout(() => { if (dead) return; evList(); renderAn(); redraw(); }, 30);
     }
 
     function buildBar() {
@@ -1895,5 +1919,7 @@ export default function (component) {
     const ro = new ResizeObserver(() => { if (box.clientWidth !== lastW) { lastW = box.clientWidth; redraw(); } });
     ro.observe(box);
     me.ro = ro;
+    me.stop = () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2); clearTimeout(saveT); };
   }
+  return destroy;
 }

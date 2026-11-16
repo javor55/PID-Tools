@@ -1,6 +1,6 @@
 /*
- * Graf průběhů – jedna komponenta pro celou aplikaci (Data, Model, Diagnostika). Běží přímo na stránce
- * (st.components.v2). Karty pod sebou se společnou časovou osou: kolečko = zoom, tažení v grafu = posun,
+ * Graf průběhů – jedna komponenta pro celou aplikaci (Data, Model, Diagnostika). Čisté JS, připojuje ho React
+ * obal (frontend/src/components/Trend.tsx); funkce modulu vrací destroy(). Karty pod sebou se společnou časovou osou: kolečko = zoom, tažení v grafu = posun,
  * najetí myší = hodnoty. Volitelně úseky s táhly:
  *   mode "view"    – jen průběhy (Data),
  *   "common"       – jeden společný úsek (táhla pod první kartou),
@@ -9,13 +9,13 @@
  * Úseky: tažení táhla = mez, tažení výplně nebo kdekoli na liště = posun celého úseku, dvojklik v grafu
  * nebo na liště = nejbližší mez úseku se přitáhne na místo kliknutí.
  *
- * Data z Pythonu (component.data):
+ * Data (component.data, tvar viz frontend/src/legacy.d.ts):
  *   key, sig (otisk dat – stejný otisk = nic se nepřekresluje), mode, t [s], T, step, unit {u, f}, clock (ms epochy
  *   pro t = 0 nebo null), dec, dark, bar {mode_switch, zoom, legend: [[barva, text, styl]]},
  *   rows: [{id, kind "pv" | "in" | "sig", title, badge, note, color, y, lo, hi, h, lines [[y, barva, čárkování,
  *          tloušťka, název]], wins, fits, wcol, wbg, wbd, wtx, model {all, mv, dv, full}, resid}],
  *   excl [[a, b]], common [a, b], ab {a: [a, b], b: [a, b] | null, ca, cb, la, lb}, txt {…}
- * Do Pythonu: stav „wins“ = {mode, wins, common, ab} (po puštění táhla / změně čísla), trigger „mode“.
+ * Ven (setStateValue / setTriggerValue – názvy jsou historické): stav „wins“ = {mode, wins, common, ab} (po puštění táhla / změně čísla), trigger „mode“.
  */
 export default function (component) {
   "use strict";
@@ -23,10 +23,13 @@ export default function (component) {
   const reg = (window.__pidTrend = window.__pidTrend || {});
   const prev = reg[D.key];
   // stejná data jako minule a graf je pořád na stránce → nic nedělat (rychlé běhy aplikace)
-  if (prev && prev.sig === D.sig && prev.box && prev.box.isConnected && root.contains(prev.box)) return;
+  if (prev && prev.sig === D.sig && prev.box && prev.box.isConnected && root.contains(prev.box)) return prev.destroy;
   root.querySelectorAll(".pidw").forEach((n) => n.remove());
-  if (prev && prev.ro) prev.ro.disconnect();             // sledování velikosti starého grafu pryč
-  if (prev && prev.box && prev.box.isConnected) prev.box.remove();
+  if (prev && prev.destroy) prev.destroy();              // starý graf (jiná data) se odpojí celý
+  else {
+    if (prev && prev.ro) prev.ro.disconnect();
+    if (prev && prev.box && prev.box.isConnected) prev.box.remove();
+  }
 
   const views = (window.__pidTrendView = window.__pidTrendView || {});
   const S = (views[D.view_key] = views[D.view_key] || { view: [0, D.T], model: "all", resid: false, onlyWin: false });   // model výchozí na celém záznamu
@@ -95,7 +98,19 @@ export default function (component) {
   // ---------------------------------------------------------------- kostra
   const box = el("div", "pidw" + (D.dark ? " dark" : ""));
   root.appendChild(box);
-  reg[D.key] = { sig: D.sig, box };
+  const me = (reg[D.key] = { sig: D.sig, box });
+  // Odpojení instance (volá ho React obal při odchodu ze stránky): ResizeObserver, kořenový prvek, záznam v registru.
+  // Modul nepoužívá requestAnimationFrame ani časovače a posluchače pointermove / pointerup na window přidává jen
+  // během tažení (odebírají se při puštění), trvalé globální posluchače nemá.
+  let dead = false;
+  function destroy() {
+    if (dead) return;
+    dead = true;
+    if (me.ro) me.ro.disconnect();
+    box.remove();
+    if (reg[D.key] === me) delete reg[D.key];
+  }
+  me.destroy = destroy;
 
   const B = D.bar || {};
   let cread = null;
@@ -676,5 +691,6 @@ export default function (component) {
     if (box.clientWidth !== lastW) { lastW = box.clientWidth; draw(); }
   });
   ro.observe(box);
-  reg[D.key].ro = ro;                                // odpojí ho příští vykreslení tohoto grafu
+  me.ro = ro;                                        // odpojí ho destroy()
+  return destroy;
 }
