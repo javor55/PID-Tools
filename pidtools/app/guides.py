@@ -391,7 +391,7 @@ def state_of(proj):
             set2_ctrl = None
     return GuideState(
         loop_name=name, n_samples=len(s.t), Ts=float(s.grid.Ts), c_pv=str(s.c_pv), c_mv=str(s.c_mv), norm=s.norm,
-        dq=q, model=m, fit=fit, stale=bool(s.stale), t_seg=float(ts[-1]) if len(ts) else 0.0, val_status=s.val_status,
+        dq=q, model=m, fit=fit, stale=bool(s.stale), t_seg=float(ts[-1]) if len(ts) else 0.0, val_status=s.validation_status(),
         set1=tuple(float(s.get(f"set1_{k}", d)) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
         set2=tuple(float(s.get(f"set2_{k}", d)) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
         set2_ctrl=set2_ctrl, n_loops=n_loops, report=None, plant_meta=bool(s.get("rep_plant")))

@@ -3,9 +3,10 @@
 // zneplatní jen skupiny, kterých se týká (`affected`), místo celého prostoru.
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
-export type Group = "data" | "model" | "tuning" | "apc" | "live" | "project" | "ws";
+// guide = stav postupu na záložkách (FEATURE-003): počítá se z dat, modelu, sad a projektu, ne z kritérií optimalizace
+export type Group = "data" | "model" | "tuning" | "apc" | "live" | "project" | "guide" | "ws";
 
-export const ALL_GROUPS: readonly Group[] = ["data", "model", "tuning", "apc", "live", "project", "ws"];
+export const ALL_GROUPS: readonly Group[] = ["data", "model", "tuning", "apc", "live", "project", "guide", "ws"];
 
 /** Část klíče dotazu → skupiny. Dotaz může patřit do více skupin (bezpečnější víc než míň). */
 const PART_GROUPS: Record<string, Group[]> = {
@@ -22,7 +23,7 @@ const PART_GROUPS: Record<string, Group[]> = {
   scenario: ["tuning"], twarn: ["tuning"], "record-set": ["tuning", "model"],
   // APC, živá simulace, projekt
   apc: ["apc"], live: ["live"],
-  "guide-status": ["data", "model", "tuning", "apc", "live", "project"],     // stav postupu na záložkách (FEATURE-003)
+  "guide-status": ["guide"],                     // stav postupu na záložkách (FEATURE-003)
   journal: ["project"], "report-sections": ["project"], "save-state": ["project"], guide: ["project"],
   // nastavení se zneplatňuje vždy zvlášť (invalidateGroups)
   settings: ["ws"],
@@ -42,9 +43,9 @@ export function groupsOfKey(key: QueryKey): readonly Group[] {
 
 // Tabulka nastavení → skupiny. Skupina `ws` (samotný ["ws", wid] = WorkspaceInfo: soubor, sloupce, úsek, rozložení)
 // se u ladění a simulace nemění, proto ji SIM ani OPT neobsahují; změní ji až identifikace / rozsahy / jazyk.
-const SIM: Group[] = ["tuning", "apc", "live", "project"];
+const SIM: Group[] = ["tuning", "apc", "live", "project", "guide"];
 const OPT: Group[] = ["tuning", "live", "project"];   // kritéria optimalizace čte jen výpočet ladění (core.tuning)
-const IDENT: Group[] = ["model", "tuning", "apc", "live", "project", "ws"];
+const IDENT: Group[] = ["model", "tuning", "apc", "live", "project", "guide", "ws"];
 const IDENT_DATA: Group[] = ["data", ...IDENT];      // identifikace, která mění i úseky / režim smyčky
 
 const EXACT: Record<string, readonly Group[]> = {};
@@ -59,21 +60,21 @@ setExact(["samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo"
   "cas_src", "cas_k", "cas_t1", "cas_t2", "cas_th", "cas_im", "cas_om", "cas_oct", "cas_samp", "cas_tci",
   "cas_tco"], SIM);
 // historie ladění se píše ze serveru; mění jen ladění a projekt
-setExact(["tune_hist"], ["tuning", "project"]);
+setExact(["tune_hist"], ["tuning", "project", "guide"]);
 // identifikace
 setExact(["chosen", "mcode", "mtype", "mtype0", "proc_type", "dist_level", "dist_strength", "gain_sign",
   "id_stic", "thmax", "read_manual", "plan_dpv", "plan_snr"], IDENT);
 setExact(["win_mode", "id_mode", "val_rng"], IDENT_DATA);
 // diagnostika a přehled smyček
-setExact(["diag_integ", "diag_theta"], ["data", "model", "project", "ws"]);
-setExact(["audit_loops", "tri_thr"], ["data", "project", "ws"]);
+setExact(["diag_integ", "diag_theta"], ["data", "model", "project", "guide", "ws"]);
+setExact(["audit_loops", "tri_thr"], ["data", "project", "guide", "ws"]);
 // rozsahy a jednotky – mění vše
 setExact(["pv_lo", "pv_hi", "mv_lo", "mv_hi", "u_pv", "u_mv", "pv_rng_user", "mv_rng_user"], ALL_GROUPS);
 // jazyk a název smyčky se promítají všude (texty ze serveru, názvy)
 setExact(["lang", "loop_tag"], ALL_GROUPS);
 // hlavička protokolu a historie živé simulace
-setExact(["rep_plant", "rep_author", "rep_status", "rep_comment"], ["project", "ws"]);
-setExact(["live_runs"], ["live", "project", "ws"]);
+setExact(["rep_plant", "rep_author", "rep_status", "rep_comment"], ["project", "guide", "ws"]);
+setExact(["live_runs"], ["live", "project", "guide", "ws"]);
 // jen rozhraní: výška grafu čte živá simulace, rozložení prohlížeče a jednotka času server nepoužívá
 setExact(["plot_h"], ["live", "ws"]);
 setExact(["chart_tunit", "dview"], ["ws"]);

@@ -17,7 +17,13 @@ describe("affected", () => {
   it("prefixy: method| ladění, fx| identifikace, rep_ protokol", () => {
     expect(affected(["method|abc"])).not.toContain("model");
     expect(affected(["fx|M1|0"])).toContain("model");
-    expect(affected(["rep_author"])).toEqual(["project", "ws"]);
+    expect(affected(["rep_author"])).toEqual(["project", "guide", "ws"]);     // hlavička protokolu je v kontrolách Projektu
+  });
+  it("stav postupu (guide): kritéria optimalizace ho neobnovují, sady a identifikace ano", () => {
+    expect(affected(["opt_ms"])).not.toContain("guide");
+    expect(affected(["set2_gain"])).toContain("guide");
+    expect(affected(["chosen"])).toContain("guide");
+    expect(affected(["dview"])).not.toContain("guide");
   });
   it("více klíčů = sjednocení", () => {
     const g = affected(["opt_ms", "chosen"]);

@@ -213,3 +213,29 @@ def test_status_matches_guides_and_picks_next(client, wid):
 
 def test_status_unknown_workspace(client):
     assert client.get("/api/v1/workspaces/nope/guide/status").status_code == 404
+
+
+def test_model_validation_counts_in_guide_status(client, wid):
+    """Validace modelu na jiném úseku splní položku „Model ověřený na jiném úseku“ (dříve se výsledek validace nikam
+    neukládal); po identifikaci jiného modelu výsledek neplatí."""
+    c, base = client, f"/api/v1/workspaces/{wid}"
+    val = lambda: _find(_g(c, wid, "model", "cs"), "ověřený na jiném úseku")[0]["ok"]      # noqa: E731
+    c.post(base + "/data/demo")
+    dur = c.get(base).json()["duration"]
+    c.patch(base + "/settings", json={"chosen": ["P1D", "I1D"]})
+    c.put(base + "/range", json={"a": 0, "b": dur / 2})
+    _wait(c, c.post(base + "/identify").json())
+    before = c.get(base + "/guide/status").json()["tabs"]["model"]
+    assert val() == "todo"
+    v = c.get(base + "/model/validate", params={"a": dur / 2, "b": dur}).json()
+    assert v["verdict"] == "ok", v["verdict"]
+    assert val() == "ok"
+    after = c.get(base + "/guide/status").json()["tabs"]["model"]
+    assert after["ok"] == before["ok"] + 1 and after["todo"] == before["todo"] - 1, (before, after)
+    # jiný model (jiný typ) → validace patří k předchozímu modelu a už neplatí
+    code = c.get(base + "/model").json()["current"]["code"]
+    other = "P1D" if code != "P1D" else "I1D"
+    c.patch(base + "/settings", json={"chosen": [other]})
+    _wait(c, c.post(base + "/identify").json())
+    assert c.get(base + "/model").json()["current"]["code"] == other
+    assert val() == "todo"

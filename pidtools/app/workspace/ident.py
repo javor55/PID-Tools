@@ -379,6 +379,7 @@ class IdentMixin:
             yv, fv = predict(code, p, pdl, tv, pv, mv, d, g.Ts, stic)
             out.update(sim_pv=self.EP(yv), fit_pv=float(fv))
             out["verdict"] = "same" if out["overlap"] > 0.5 else ("ok" if fv >= 70 else "weak")
+            self._remember_validation(out["verdict"])
             return out
         if not g.has_sp:
             raise ValueError("no sp")
@@ -390,7 +391,24 @@ class IdentMixin:
             out.update(sim_pv=self.EP(vr["PV"]), sim_mv=self.EM(vr["MV"]), sim_t=self.t[sv][0] + vr["t"])
         out["verdict"] = ("same" if out["overlap"] > 0.5 else "ok" if (vr["fit_pv"] or 0) >= 60 else "weak") \
             if vr["stable"] else "unstable"
+        self._remember_validation(out["verdict"])
         return out
+
+    # ---- výsledek validace pro průvodce (platí jen pro model, který byl ověřen)
+    def _model_sig(self):
+        m = self.model
+        return None if m is None else (m[0], tuple(round(float(x), 9) for x in m[1]))
+
+    def _remember_validation(self, verdict):
+        """0 dobrá, 1 stejný úsek jako identifikace, 2 slabá / nestabilní – spolu s otiskem ověřeného modelu."""
+        self.val_status = (self._model_sig(), {"ok": 0, "same": 1}.get(verdict, 2))
+
+    def validation_status(self):
+        """Výsledek poslední validace, pokud patří k aktuálnímu modelu; jinak None (neprovedena)."""
+        v = self.val_status
+        if not isinstance(v, tuple) or v[0] is None or v[0] != self._model_sig():
+            return None
+        return v[1]
 
     # ---- uzavřená smyčka (M2): Set 1 ze záznamu, jeho kontrola, buzení
     def excitation(self):
