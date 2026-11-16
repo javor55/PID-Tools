@@ -86,7 +86,7 @@ def test_live_entry_and_settings_migration(ws):
     assert c.put(f"{w2}/project", content=json.dumps(proj).encode(), headers={"Content-Type": "application/json"}).status_code == 200
     snaps = c.get(f"{w2}/journal").json()["snapshots"]
     assert [x["kind"] for x in snaps] == ["live_migrated"] and snaps[0]["live"]["kpi"]["1"]["iae"] == 3.0
-    assert "live_runs" not in c.get(f"{w2}/settings").json()
+    assert c.get(f"{w2}/settings").json()["live_runs"] is None      # klíč je vždy přítomen (LoopSettings), po migraci bez hodnoty
 
 
 def test_report_sections_snapshot_and_summary(ws):
