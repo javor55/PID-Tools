@@ -296,7 +296,9 @@ def test_model_edit_refit_validation_uncertainty(page, server):
         page.wait_for_function("() => !document.querySelector('.jobs .job')", timeout=120000)
         page.wait_for_timeout(800)
     page.wait_for_selector('[data-testid="params"]')
+    page.locator('[data-testid="model-subtabs"] [data-sub="residuals"]').click()             # souhrn shody a nejistota (FEATURE-005)
     assert "FIT" in page.locator('[data-testid="validation"]').inner_text()
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()                 # parametry modelu v pravém panelu (mimo Identifikaci sbalené)
     th = page.locator('[data-testid="ed-ed|P1D|2"]')
     th.fill("30")
     th.press("Enter")
@@ -311,6 +313,7 @@ def test_model_edit_refit_validation_uncertainty(page, server):
     page.wait_for_timeout(800)
     st = _api(server, "/api/v1/workspaces/{wid}/settings", page)
     assert abs(st["ed|P1D|2"] - 30.0) < 1e-6                 # návrat = hodnoty posledního (dofitovaného) výsledku
+    page.locator('[data-testid="model-subtabs"] [data-sub="residuals"]').click()
     page.locator('[data-testid="uncertainty"] input.num').fill("3")
     page.locator('[data-testid="unc-run"]').click()
     wait_jobs()
@@ -322,6 +325,7 @@ def test_model_residuals_and_dist_structs(page, server):
     """Model 2: rezidua (průběh, ACF, CCF) = API, porovnání struktur poruchy = API, výběr jiné struktury."""
     _track(page)
     page.locator('[data-tab="model"]').click()
+    page.locator('[data-testid="model-subtabs"] [data-sub="residuals"]').click()             # rezidua (FEATURE-005)
     page.wait_for_selector('[data-testid="residuals"] [data-testid="acf-chart"]', timeout=30000)
     v = _api(server, "/api/v1/workspaces/{wid}/model/validation", page)["metrics"]
     for key in ("acf", "ccf"):
@@ -337,7 +341,8 @@ def test_model_residuals_and_dist_structs(page, server):
     page.wait_for_selector('[data-testid="resid-chart"] path')
     assert int(page.locator('[data-testid="resid-chart"]').get_attribute("data-n")) == n_res > 0
     assert page.locator('[data-testid="resid-verdict"]').inner_text().strip()
-    # porovnání struktur poruchy
+    # porovnání struktur poruchy (podzáložka Identifikace)
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
     m = _api(server, "/api/v1/workspaces/{wid}/model", page)
     code = m["selected"]
     d = next(r for r in m["results"] if r["code"] == code)["dists"][0]
