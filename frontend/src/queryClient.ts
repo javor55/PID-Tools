@@ -3,6 +3,7 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { ApiError } from "./api/client";
 import { toastError } from "./components/Toasts";
+import { useUi } from "./store";
 
 const isAbort = (e: unknown) => e instanceof DOMException && e.name === "AbortError";
 
@@ -19,14 +20,27 @@ export function shouldToast(e: unknown, isQuery: boolean): boolean {
   return true;
 }
 
+// Obsluha ztráty prostoru se registruje z workspace.ts (přímý import by udělal cyklus queryClient ↔ workspace).
+let onLost: () => void = () => undefined;
+export const setWorkspaceLostHandler = (fn: () => void) => { onLost = fn; };
+
+/** Server hlásí, že prostor neexistuje (přesný text `project()` v API). */
+const isLost = (e: unknown) => e instanceof ApiError && e.status === 404 && e.message === "workspace not found";
+
 // Dotazy, jejichž selhání zobrazuje stavový řádek / úvodní obrazovka sama.
 const SELF_REPORTED = new Set(["health", "config"]);
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (e, q) => { if (!SELF_REPORTED.has(String(q.queryKey[0])) && shouldToast(e, true)) toastError(e); },
+    onError: (e, q) => {
+      // Jen dotaz aktuálního prostoru (pozdní odpověď staršího prostoru nic nespouští).
+      if (isLost(e) && q.queryKey[0] === "ws" && q.queryKey[1] === useUi.getState().wid) onLost();
+      if (!SELF_REPORTED.has(String(q.queryKey[0])) && shouldToast(e, true)) toastError(e);
+    },
   }),
-  mutationCache: new MutationCache({ onError: (e) => { if (shouldToast(e, false)) toastError(e); } }),
+  mutationCache: new MutationCache({
+    onError: (e) => { if (isLost(e)) onLost(); if (shouldToast(e, false)) toastError(e); },
+  }),
   defaultOptions: { queries: { refetchOnWindowFocus: false } },
 });
 

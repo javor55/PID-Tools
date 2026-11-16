@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { api, ApiError, setLang } from "./api/client";
+import { setLang } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Toasts } from "./components/Toasts";
 import { Header } from "./components/Header";
@@ -21,6 +21,7 @@ import { useSettingsUi } from "./settings/settingsStore";
 import { useAppSettingsSync } from "./settings/appSettings";
 import { StartScreen } from "./start/StartScreen";
 import { useAutosave } from "./start/project";
+import { useWorkspace } from "./workspace";
 import { useShortcuts } from "./shortcuts";
 import { useWs } from "./data";
 import { type TabId, TABS, useUi } from "./store";
@@ -39,17 +40,6 @@ function useTheme() {
     mq?.addEventListener?.("change", apply);
     return () => mq?.removeEventListener?.("change", apply);
   }, [theme]);
-}
-
-function useWorkspace() {
-  const { wid, setWid } = useUi();
-  useEffect(() => {
-    if (wid) {          // uložené ID z minula – po restartu serveru už neplatí → nový prostor
-      api.workspace(wid).catch((e) => { if (e instanceof ApiError && e.status === 404) setWid(null); });
-      return;
-    }
-    api.createWorkspace().then((w) => setWid(w.id)).catch(() => setWid(null));
-  }, [wid, setWid]);
 }
 
 export default function App() {

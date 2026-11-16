@@ -3445,5 +3445,6 @@
  "qs_loading": "Načítání…",
  "qs_retry": "Zkusit znovu",
  "qs_recalc": "Přepočítávám…",
- "vw_calc_expr": "Vzorec"
+ "vw_calc_expr": "Vzorec",
+ "ws_lost": "Pracovní relace vypršela, byla založena nová. Práci obnovíte ze záchranné kopie na úvodní obrazovce."
 }

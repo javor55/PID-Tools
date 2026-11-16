@@ -3445,5 +3445,6 @@
  "qs_loading": "Loading…",
  "qs_retry": "Try again",
  "qs_recalc": "Recalculating…",
- "vw_calc_expr": "Formula"
+ "vw_calc_expr": "Formula",
+ "ws_lost": "The working session expired; a new one was started. Restore your work from the recovery copy on the start screen."
 }
