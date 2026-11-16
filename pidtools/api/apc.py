@@ -7,6 +7,7 @@ klíče nastavení (apc_sm_method, apc_sm_ct, apc_sm_tc|…, apc_sm_man, apc_sm_
 PATCH /settings; robustní optimalizace (OPT) běží jako úloha a výsledek se drží u prostoru.
 """
 import math
+from typing import Literal
 
 import numpy as np
 from fastapi import APIRouter, HTTPException, Response
@@ -76,6 +77,7 @@ class FFInfo(BaseModel):
     theta: float = 0.0           # dopravní zpoždění procesu MV → PV [s]
     mv_unit: str
     mv_range: float
+    ctrl_set: Literal[1, 2]      # pracovní sada zpětnovazebního regulátoru (Set 2, dokud je Set 2 nezadán: Set 1)
     dists: list[FFDist]
     checks: list[Check] = []     # kontrolní seznam (app.guides.apc_ff)
     impl_text: str | None = None  # implementace v PCS 7 (šablona FfwdDisturbCompensat)
@@ -99,6 +101,7 @@ class FFSim(BaseModel):
     dist: int
     step: float
     T_end: float
+    ctrl_set: Literal[1, 2]      # pracovní sada, se kterou simulace běžela
     kpis: dict[str, FFKpi]       # none | static | dynamic
 
 
@@ -129,7 +132,7 @@ def _ff_info(ws):
                           eng_gain=float(ffm.eng_gain(d["gain"], ws.MR)), step=_ff_step(ws, j), values=vals,
                           model_params=[float(x) for x in pd]))
     names = [str(x) for x in ws.c_d] if pdl else []
-    return FFInfo(model=code, theta=float(p[-1]), mv_unit=u_mv, mv_range=float(ws.MR), dists=out,
+    return FFInfo(model=code, theta=float(p[-1]), mv_unit=u_mv, mv_range=float(ws.MR), ctrl_set=ws.work_set(), dists=out,
                   checks=_checks(guides.apc_ff(_rec(ws), names, des if pdl else [], p)), impl_text=T("g_impl_ff"))
 
 
@@ -198,6 +201,7 @@ class SmithInfo(BaseModel):
     model: str
     inputs: SmithInputs
     integ: bool
+    ctrl_set: Literal[1, 2]      # pracovní sada PID, se kterou se Smith porovnává
     ratio: float                 # θ / charakteristický čas
     opt_ready: bool              # robustní optimalizace je spočtená pro aktuální zadání
     controller: SmithController | None = None
@@ -305,7 +309,7 @@ def _smith_info(ws):
     th_lag = 0.0 if integ else float(smith_apl(p, ws.PR, ws.MR, 0.0, 0.0)["th_lag"])
     if not integ and extra.get("impl_text") and code == "P2D":
         extra["impl_text"] += "\n\n" + T("g_impl_smith_p2d", t1=f"{p[1]:.4g}", t2=f"{p[2]:.4g}")
-    return SmithInfo(model=code, inputs=inp, integ=integ, ratio=float(ratio), opt_ready=r is not None,
+    return SmithInfo(model=code, inputs=inp, integ=integ, ctrl_set=ws.work_set(), ratio=float(ratio), opt_ready=r is not None,
                      controller=None if r is None else _ctrl_out(r),
                      checks=_checks(guides.apc_smith(_rec(ws), integ, float(ratio), th_lag)), **extra)
 
@@ -380,7 +384,8 @@ def router(get_proj, jobs):
         """Skok měřené poruchy bez FF / se statickou / s dynamickou (sada 2): IAE a max. odchylka PV."""
         ws = need_model(wid)
         t, _, kp, step = _ff_run(ws, body)
-        return FFSim(dist=body.dist, step=step, T_end=float(t[-1]), kpis={k: FFKpi(**v) for k, v in kp.items()})
+        return FFSim(dist=body.dist, step=step, T_end=float(t[-1]), ctrl_set=ws.work_set(),
+                     kpis={k: FFKpi(**v) for k, v in kp.items()})
 
     @r.post("/apc/ff/simulate/curves", response_class=Response,
             responses={200: {"content": {"application/octet-stream": {}},

@@ -99,7 +99,7 @@ export function ApcMain() {
       <Tabs rec={new Set((reco.data ?? []).filter((r) => r.status === "rec").map((r) => r.kind))} />
       {tech.intro && (
         <p className="apc-intro small muted" data-testid="apc-intro">
-          {tech.id === "cascade" ? <b>{T(tech.label)}</b> : <Bold text={T(tech.intro)} />}<Help text={T(`apc_ui_desc_${tech.id}`)} /></p>)}
+          {tech.id === "cascade" ? <b>{T(tech.label)}</b> : <Bold text={T(tech.intro, { set: set2Empty ? 1 : 2 })} />}<Help text={T(`apc_ui_desc_${tech.id}`)} /></p>)}
       <div className="stack" data-testid={`apc-${tech.id}`}>
         {Main ? <Main /> : <Placeholder milestone="M19" />}
       </div>

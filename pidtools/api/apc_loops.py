@@ -359,12 +359,13 @@ class GsPoint(BaseModel):
     ti: float | None             # None = bez integrační složky
     td: float
     ms_sched: float | None = None   # Ms regulátoru naladěného v bodě (na modelu bodu); None = nestabilní / nelze určit
-    ms_fixed: float | None = None   # Ms jedné sady (Set 2) na modelu bodu
+    ms_fixed: float | None = None   # Ms jedné sady (pracovní sada, GsInfo.ctrl_set) na modelu bodu
 
 
 class GsInfo(BaseModel):
     model: str
     integ: bool                  # proces s integrací: scheduling se nenavrhuje
+    ctrl_set: Literal[1, 2]      # pracovní sada („jedna sada“ ve srovnání)
     inputs: GsInputs
     fitted: bool                 # jsou identifikované body (aspoň 2)
     stale: bool                  # body jsou z jiných úseků / rozsahů než zadání
@@ -469,13 +470,13 @@ def _gs_info(ws, proj):
     inp = _gs_inputs(ws)
     a = _a_record(proj)
     if integ:
-        return GsInfo(model=code, integ=True, inputs=inp, fitted=False, stale=False,
+        return GsInfo(model=code, integ=True, ctrl_set=ws.work_set(), inputs=inp, fitted=False, stale=False,
                       checks=_checks(guides.apc_gainsched(a, True)))
     pts, stale = _gs_points(ws, inp.ranges)
     spread = _gs_spread(ws)
     fitted = len(pts) >= 2
     issues = gs_issues(pts) if fitted else []
-    out = dict(model=code, integ=False, inputs=inp, fitted=fitted, stale=stale, spread=spread, issues=list(issues),
+    out = dict(model=code, integ=False, ctrl_set=ws.work_set(), inputs=inp, fitted=fitted, stale=stale, spread=spread, issues=list(issues),
                checks=_checks(guides.apc_gainsched(a, False, spread, pts, stale, issues)))
     if fitted:
         pts = _gs_tune(ws, inp, pts)
@@ -542,6 +543,7 @@ class GsErInputs(BaseModel):
 class GsErInfo(BaseModel):
     model: str
     integ: bool
+    ctrl_set: Literal[1, 2]      # pracovní sada, ze které scheduling vychází
     inputs: GsErInputs
     k_max: float | None = None   # největší bezpečný násobek (0 = nevyhoví ani sada sama)
     ms_k: float | None = None    # Ms při zesílení k·Gain (None = nestabilní)
@@ -589,12 +591,12 @@ def _er_info(ws, proj):
     code, p, _ = ws.model
     inp = _er_inputs(ws)
     if MODELS[code]["integ"]:
-        return GsErInfo(model=code, integ=True, inputs=inp, checks=_checks(guides.apc_gs_er(_a_record(proj), np.inf)))
+        return GsErInfo(model=code, integ=True, ctrl_set=ws.work_set(), inputs=inp, checks=_checks(guides.apc_gs_er(_a_record(proj), np.inf)))
     set2 = _er_set2(ws)
     rb = robustness(code, list(p), dict(set2, Gain=inp.k * set2["Gain"]))
     ms_k = rb["Ms"] if rb["stable"] and np.isfinite(rb["Ms"]) else np.inf
     u_pv = ws.get("u_pv") or "PV"
-    return GsErInfo(model=code, integ=False, inputs=inp, k_max=ags.k_max(code, p, ws.work_ctrl()), ms_k=_fin(ms_k),
+    return GsErInfo(model=code, integ=False, ctrl_set=ws.work_set(), inputs=inp, k_max=ags.k_max(code, p, ws.work_ctrl()), ms_k=_fin(ms_k),
                     base=Tuned(Kc=float(set2["Gain"]), Ti=float(set2["TI"]), Td=float(set2.get("TD", 0.0))),
                     table=[PointRow(input=nm, values=[_fin(v) for v in vals], unit=u)
                            for nm, vals, u in ags.er_table(inp.E, inp.k, set2, u_pv)],

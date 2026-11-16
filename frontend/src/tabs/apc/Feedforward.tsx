@@ -156,7 +156,7 @@ function SimCards({ info }: { info: FFInfo }) {
       <ACard title={T("ff_sim_title")} testid="ff-sim">
         <LineChart series={curveSeries(cv.data, defs("pv"))} height={220} yLabel="PV" xLabel={T("time_s")} testid="ff-pv" />
         <LineChart series={curveSeries(cv.data, defs("mv"))} height={140} yLabel={`MV ${info.mv_unit}`} xLabel={T("time_s")} testid="ff-mv" />
-        <p className="small muted">{T("ff_sim_help")}</p>
+        <p className="small muted">{T("ff_sim_help", { set: info.ctrl_set })}</p>
       </ACard>
       {kp && (
         <ACard title={T("ui_apc_result")} testid="ff-result">

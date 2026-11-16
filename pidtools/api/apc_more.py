@@ -125,6 +125,7 @@ class SplitDesign(BaseModel):
 
 class SplitInfo(BaseModel):
     model: str
+    ctrl_set: Literal[1, 2]      # pracovní sada regulátoru
     defaults: SplitIn            # včetně výchozího modelu ventilu A (valve_a vyplněno)
     design: SplitDesign
 
@@ -204,6 +205,7 @@ class VpcDesign(BaseModel):
 
 class VpcInfo(BaseModel):
     model: str
+    ctrl_set: Literal[1, 2]      # pracovní sada regulátoru
     defaults: VpcIn
     design: VpcDesign
 
@@ -274,6 +276,7 @@ class RatioDesign(BaseModel):
 
 class RatioInfo(BaseModel):
     model: str
+    ctrl_set: Literal[1, 2]      # pracovní sada regulátoru
     defaults: RatioIn
     design: RatioDesign
 
@@ -381,7 +384,7 @@ def router(get_proj):
         proj = need_model(wid)
         ga, _ = _split_models(proj.state, SplitIn(mode=mode, b0=b0, gap=gap))
         body = SplitIn(mode=mode, b0=b0, gap=gap, valve_a=list(ga[1]))
-        return SplitInfo(model=proj.state.model[0], defaults=body, design=_split_design(proj, body))
+        return SplitInfo(model=proj.state.model[0], ctrl_set=proj.state.work_set(), defaults=body, design=_split_design(proj, body))
 
     @r.post("/apc/split/design", response_model=SplitDesign)
     def split_design(wid: str, body: SplitIn):
@@ -411,7 +414,7 @@ def router(get_proj):
         proj = need_model(wid)
         ws = proj.state
         body = VpcIn(mv2=list(avpc.default_mv2((ws.model[0], list(ws.model[1])))[1]))
-        return VpcInfo(model=ws.model[0], defaults=body, design=_vpc_design(proj, body))
+        return VpcInfo(model=ws.model[0], ctrl_set=ws.work_set(), defaults=body, design=_vpc_design(proj, body))
 
     @r.post("/apc/vpc/design", response_model=VpcDesign)
     def vpc_design(wid: str, body: VpcIn):
@@ -443,7 +446,7 @@ def router(get_proj):
         ga, _ = _ratio_air(proj, body)
         if air_loop is None:
             body.air = list(ga[1])
-        return RatioInfo(model=proj.state.model[0], defaults=body, design=_ratio_design(proj, body))
+        return RatioInfo(model=proj.state.model[0], ctrl_set=proj.state.work_set(), defaults=body, design=_ratio_design(proj, body))
 
     @r.post("/apc/ratio/design", response_model=RatioDesign)
     def ratio_design(wid: str, body: RatioIn):

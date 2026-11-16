@@ -3064,6 +3064,14 @@
       "title": "Checks",
       "type": "array"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "dists": {
       "items": {
        "$ref": "#/components/schemas/FFDist"
@@ -3104,6 +3112,7 @@
      "model",
      "mv_unit",
      "mv_range",
+     "ctrl_set",
      "dists"
     ],
     "title": "FFInfo",
@@ -3150,6 +3159,14 @@
       "title": "T End",
       "type": "number"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "dist": {
       "title": "Dist",
       "type": "integer"
@@ -3170,6 +3187,7 @@
      "dist",
      "step",
      "T_end",
+     "ctrl_set",
      "kpis"
     ],
     "title": "FFSim",
@@ -3454,6 +3472,14 @@
       "title": "Checks",
       "type": "array"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "impl_text": {
       "anyOf": [
        {
@@ -3510,6 +3536,7 @@
     "required": [
      "model",
      "integ",
+     "ctrl_set",
      "inputs"
     ],
     "title": "GsErInfo",
@@ -3679,6 +3706,14 @@
       "title": "Checks",
       "type": "array"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "filled": {
       "default": false,
       "title": "Filled",
@@ -3753,6 +3788,7 @@
     "required": [
      "model",
      "integ",
+     "ctrl_set",
      "inputs",
      "fitted",
      "stale"
@@ -6698,6 +6734,14 @@
    },
    "RatioInfo": {
     "properties": {
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "defaults": {
       "$ref": "#/components/schemas/RatioIn"
      },
@@ -6711,6 +6755,7 @@
     },
     "required": [
      "model",
+     "ctrl_set",
      "defaults",
      "design"
     ],
@@ -7984,6 +8029,14 @@
        }
       ]
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "general_rows": {
       "anyOf": [
        {
@@ -8081,6 +8134,7 @@
      "model",
      "inputs",
      "integ",
+     "ctrl_set",
      "ratio",
      "opt_ready"
     ],
@@ -9137,6 +9191,14 @@
    },
    "SplitInfo": {
     "properties": {
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "defaults": {
       "$ref": "#/components/schemas/SplitIn"
      },
@@ -9150,6 +9212,7 @@
     },
     "required": [
      "model",
+     "ctrl_set",
      "defaults",
      "design"
     ],
@@ -10538,6 +10601,14 @@
    },
    "VpcInfo": {
     "properties": {
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "defaults": {
       "$ref": "#/components/schemas/VpcIn"
      },
@@ -10551,6 +10622,7 @@
     },
     "required": [
      "model",
+     "ctrl_set",
      "defaults",
      "design"
     ],

@@ -4520,6 +4520,11 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** Dists */
             dists: components["schemas"]["FFDist"][];
             /** Impl Text */
@@ -4552,6 +4557,11 @@ export interface components {
         FFSim: {
             /** T End */
             T_end: number;
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** Dist */
             dist: number;
             /** Kpis */
@@ -4646,6 +4656,11 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["LoopCheck"][];
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** Impl Text */
             impl_text?: string | null;
             inputs: components["schemas"]["GsErInputs"];
@@ -4729,6 +4744,11 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["LoopCheck"][];
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /**
              * Filled
              * @default false
@@ -5820,6 +5840,11 @@ export interface components {
         };
         /** RatioInfo */
         RatioInfo: {
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             defaults: components["schemas"]["RatioIn"];
             design: components["schemas"]["RatioDesign"];
             /** Model */
@@ -6295,6 +6320,11 @@ export interface components {
              */
             checks: components["schemas"]["pidtools__api__apc_more__Check"][];
             controller?: components["schemas"]["SmithController"] | null;
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** General Rows */
             general_rows?: components["schemas"]["GeneralRow"][] | null;
             /** Impl Text */
@@ -6682,6 +6712,11 @@ export interface components {
         };
         /** SplitInfo */
         SplitInfo: {
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             defaults: components["schemas"]["SplitIn"];
             design: components["schemas"]["SplitDesign"];
             /** Model */
@@ -7238,6 +7273,11 @@ export interface components {
         };
         /** VpcInfo */
         VpcInfo: {
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             defaults: components["schemas"]["VpcIn"];
             design: components["schemas"]["VpcDesign"];
             /** Model */

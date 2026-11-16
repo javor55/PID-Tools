@@ -45,9 +45,9 @@ function SimCard({ d }: { d: GsErInfo }) {
   if (d.integ) return null;
   const names = sim.data?.kpis.map((k) => k.name) ?? ["fixed", "sched"];
   const pv: CurveDef[] = [{ name: "SP", key: "sp", color: "#64748b", dash: "2 3" },
-    ...names.map((n) => ({ name: T(NAMES[n]), key: `pv_${n}`, color: COLORS[n], dash: n === "sched" ? undefined : "5 4" }))];
-  const mv = names.map((n) => ({ name: T(NAMES[n]), key: `mv_${n}`, color: COLORS[n], dash: n === "sched" ? undefined : "5 4" }));
-  const gain = ["fixed", "sched"].map((n) => ({ name: T(NAMES[n]), key: `gain_${n}`, color: COLORS[n], dash: n === "sched" ? undefined : "5 4" }));
+    ...names.map((n) => ({ name: T(NAMES[n], { set: d.ctrl_set }), key: `pv_${n}`, color: COLORS[n], dash: n === "sched" ? undefined : "5 4" }))];
+  const mv = names.map((n) => ({ name: T(NAMES[n], { set: d.ctrl_set }), key: `mv_${n}`, color: COLORS[n], dash: n === "sched" ? undefined : "5 4" }));
+  const gain = ["fixed", "sched"].map((n) => ({ name: T(NAMES[n], { set: d.ctrl_set }), key: `gain_${n}`, color: COLORS[n], dash: n === "sched" ? undefined : "5 4" }));
   return (
     <ACard title={T("gs_er_sim")} testid="er-sim">
       <LineChart series={curveSeries(cv.data, pv)} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel={T("time_s")} testid="er-pv" />
@@ -66,7 +66,7 @@ function KpiBlock({ d }: { d: GsErInfo }) {
   const ks = sim.data.kpis;
   return (
     <>
-      <VariantTable testid="er-kpis" cols={ks.map((k) => ({ key: k.name, label: T(NAMES[k.name]) }))} rows={[
+      <VariantTable testid="er-kpis" cols={ks.map((k) => ({ key: k.name, label: T(NAMES[k.name], { set: d.ctrl_set }) }))} rows={[
         { key: "iae_sp", label: T("iae_sp"), best: "min", values: ks.map((k) => k.iae_sp) },
         { key: "iae_d", label: T("iae_load"), best: "min", values: ks.map((k) => k.iae_d) },
         { key: "maxdev", label: T("gs_er_maxdev"), best: "min", values: ks.map((k) => k.maxdev) },

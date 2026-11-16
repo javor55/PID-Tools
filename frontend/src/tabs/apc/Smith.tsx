@@ -111,8 +111,8 @@ function SimCard({ d }: { d: SmithInfo }) {
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/apc/smith/simulate/curves`, {})) });
   if (!d.opt_ready) return null;
   const pv: CurveDef[] = [{ name: "SP", key: "sp", color: "#9aa5b1", dash: "5 4" },
-    { name: T("sm_pid"), key: "pv_pid", color: "#64748b", dash: "5 4" }, { name: T("sm_smith"), key: "pv_smith", color: "#15803d" }];
-  const mv: CurveDef[] = [{ name: T("sm_pid"), key: "mv_pid", color: "#64748b", dash: "5 4" },
+    { name: T("sm_pid", { set: d.ctrl_set }), key: "pv_pid", color: "#64748b", dash: "5 4" }, { name: T("sm_smith"), key: "pv_smith", color: "#15803d" }];
+  const mv: CurveDef[] = [{ name: T("sm_pid", { set: d.ctrl_set }), key: "mv_pid", color: "#64748b", dash: "5 4" },
     { name: T("sm_smith"), key: "mv_smith", color: "#15803d" }];
   return (
     <ACard title={T("ui_apc_verify")} testid="sm-sim">
