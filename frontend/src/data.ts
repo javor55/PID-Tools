@@ -1,5 +1,5 @@
 // Dotazy a změny pracovního prostoru (TanStack Query). Po změně dat / sloupců se zneplatní vše o prostoru.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, type UseQueryResult, useQueryClient } from "@tanstack/react-query";
 import { affected, type Group, invalidateGroups } from "./queryKeys";
 import { rawRequest, request, type WorkspaceInfo } from "./api/client";
 import type { components } from "./api/schema";
@@ -9,6 +9,10 @@ import { useUi } from "./store";
 export type Quality = components["schemas"]["Quality"];
 export type LoopMode = components["schemas"]["LoopMode"];
 export type Columns = components["schemas"]["Columns"];
+/** Nastavení smyčky ze serveru: pevné klíče vždy s hodnotou (výchozí z DEFAULTS doplňuje server). */
+export type LoopSettings = components["schemas"]["LoopSettings"];
+/** Pevné klíče typované, klíče s prefixem (`method|…`) a dynamický přístup `st[k]` zůstávají možné. */
+export type SettingsData = LoopSettings & Record<string, unknown>;
 
 export function useWs() {
   const wid = useUi((s) => s.wid);
@@ -28,12 +32,21 @@ export function useWsQuery<T>(part: string, path: string, enabled = true) {
   });
 }
 
-export function useSettings() {
+/** Nastavení smyčky s typovanými pevnými klíči (server posílá vždy všechny, i s výchozími hodnotami). */
+export function useLoopSettings() {
   const wid = useUi((s) => s.wid);
   return useQuery({
     queryKey: ["ws", wid, "settings"], enabled: !!wid,
-    queryFn: () => request<Record<string, unknown>>("GET", `/workspaces/${wid}/settings`),
+    queryFn: () => request<SettingsData>("GET", `/workspaces/${wid}/settings`),
   });
+}
+
+/**
+ * Totéž pro záložky, které čtou klíče dynamicky a při načítání si dosud pomáhají `?? {}`: typ klíčů je volnější
+ * (`Partial`), aby `data ?? {}` dál procházelo. Nové kódy používají `useLoopSettings()`.
+ */
+export function useSettings(): UseQueryResult<Partial<LoopSettings> & Record<string, unknown>> {
+  return useLoopSettings();
 }
 
 /** Změna prostoru (POST / PUT / PATCH) – po úspěchu znovu načíst dotazy uvedených skupin (bez `groups` vše o prostoru). */
@@ -62,20 +75,21 @@ export function usePatchSettings() {
   const qc = useQueryClient();
   return async (patch: Record<string, unknown>) => {
     const key = ["ws", wid, "settings"];
-    const prev = qc.getQueryData<Record<string, unknown>>(key);
-    qc.setQueryData<Record<string, unknown>>(key, (old) => ({ ...(old ?? {}), ...patch }));
+    const prev = qc.getQueryData<SettingsData>(key);
+    qc.setQueryData<SettingsData>(key, (old) => (old ? { ...old, ...patch } : old));
     patchesInFlight++;
-    let fresh: Record<string, unknown> | undefined;
+    let fresh: SettingsData | undefined;
     try {
-      fresh = await request<Record<string, unknown>>("PATCH", `/workspaces/${wid}/settings`, patch);
+      fresh = await request<SettingsData>("PATCH", `/workspaces/${wid}/settings`, patch);
     } catch (e) {
       // Vrátit jen měněné klíče (souběžná změna jiného klíče zůstane).
-      qc.setQueryData<Record<string, unknown>>(key, (cur) => {
-        const out = { ...(cur ?? {}) };
+      qc.setQueryData<SettingsData>(key, (cur) => {
+        if (!cur) return cur;
+        const out: Record<string, unknown> = { ...cur };
         for (const k of Object.keys(patch)) {
           if (prev && k in prev) out[k] = prev[k]; else delete out[k];
         }
-        return out;
+        return out as SettingsData;
       });
       toastError(e);
       throw e;
@@ -85,7 +99,7 @@ export function usePatchSettings() {
     // PATCH vrací celé nastavení (po normalizaci serverem): když nic jiného neběží, zapíše se do cache a `settings`
     // se nemusí číst znovu; jinak se přečte ze serveru
     const single = patchesInFlight === 0 && !!fresh;
-    if (single) qc.setQueryData<Record<string, unknown>>(key, fresh);
+    if (single) qc.setQueryData<SettingsData>(key, fresh);
     // jen dotazy, kterých se změna týká (tabulka v queryKeys.ts)
     await invalidateGroups(qc, wid, affected(Object.keys(patch)), { settings: !single });
   };

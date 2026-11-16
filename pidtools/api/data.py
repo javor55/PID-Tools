@@ -25,7 +25,9 @@ class LoopSettings(BaseModel):
     hodnoty = None) plus klíče s prefixem (STATE_PREFIX: `method|…`, `fx|…` …), které prostor má (extra="allow").
     Typy odpovídají NUM_KEYS (číslo), BOOL_KEYS (bool), LIST_KEYS (seznam) a ENUMS (výčet); hlídá tests/test_settings_model.py.
     """
-    model_config = ConfigDict(extra="allow")
+    # v OpenAPI jsou pevné klíče povinné a bez `additionalProperties` (klíče s prefixem si typ doplní frontend sám)
+    model_config = ConfigDict(extra="allow", json_schema_serialization_defaults_required=True,
+                              json_schema_extra=lambda schema: schema.pop("additionalProperties", None))
 
     lang: str | None = DEFAULTS["lang"]
     loop_tag: str | None = DEFAULTS["loop_tag"]

@@ -5396,35 +5396,35 @@ export interface components {
          */
         LoopSettings: {
             /** Audit Loops */
-            audit_loops?: unknown[] | null;
+            audit_loops: unknown[] | null;
             /** Avg Dmv */
-            avg_dmv?: number | null;
+            avg_dmv: number | null;
             /** Avg Dpv */
-            avg_dpv?: number | null;
+            avg_dpv: number | null;
             /** Cas Im */
-            cas_im?: string | null;
+            cas_im: string | null;
             /** Cas K */
-            cas_k?: number | null;
+            cas_k: number | null;
             /** Cas Oct */
-            cas_oct?: string | null;
+            cas_oct: string | null;
             /** Cas Om */
-            cas_om?: string | null;
+            cas_om: string | null;
             /** Cas Samp */
-            cas_samp?: number | null;
+            cas_samp: number | null;
             /** Cas Src */
-            cas_src?: string | null;
+            cas_src: string | null;
             /** Cas T1 */
-            cas_t1?: number | null;
+            cas_t1: number | null;
             /** Cas T2 */
-            cas_t2?: number | null;
+            cas_t2: number | null;
             /** Cas Tci */
-            cas_tci?: number | null;
+            cas_tci: number | null;
             /** Cas Tco */
-            cas_tco?: number | null;
+            cas_tco: number | null;
             /** Cas Th */
-            cas_th?: number | null;
+            cas_th: number | null;
             /** Chart Tunit */
-            chart_tunit?: string | null;
+            chart_tunit: string | null;
             /**
              * Chosen
              * @default [
@@ -5457,9 +5457,9 @@ export interface components {
              */
             dfb: boolean | null;
             /** Diag Integ */
-            diag_integ?: boolean | null;
+            diag_integ: boolean | null;
             /** Diag Theta */
-            diag_theta?: number | null;
+            diag_theta: number | null;
             /**
              * Diffgain
              * @default 5
@@ -5476,14 +5476,14 @@ export interface components {
              */
             dist_strength: number | null;
             /** Dview */
-            dview?: string | null;
+            dview: string | null;
             /**
              * Gain Sign
              * @default auto
              */
             gain_sign: ("auto" | "pos" | "neg") | null;
             /** Id Mode */
-            id_mode?: string | null;
+            id_mode: string | null;
             /**
              * Id Stic
              * @default false
@@ -5495,18 +5495,18 @@ export interface components {
              */
             lang: string | null;
             /** Live Runs */
-            live_runs?: unknown[] | null;
+            live_runs: unknown[] | null;
             /**
              * Loop Tag
              * @default
              */
             loop_tag: string | null;
             /** Mcode */
-            mcode?: string | null;
+            mcode: string | null;
             /** Mtype */
-            mtype?: string | null;
+            mtype: string | null;
             /** Mtype0 */
-            mtype0?: string | null;
+            mtype0: string | null;
             /**
              * Mv Hi
              * @default 100
@@ -5518,11 +5518,11 @@ export interface components {
              */
             mv_lo: number | null;
             /** Mv Rng User */
-            mv_rng_user?: boolean | null;
+            mv_rng_user: boolean | null;
             /** Mvl Hi */
-            mvl_hi?: number | null;
+            mvl_hi: number | null;
             /** Mvl Lo */
-            mvl_lo?: number | null;
+            mvl_lo: number | null;
             /**
              * Mvrate
              * @default 0
@@ -5539,7 +5539,7 @@ export interface components {
              */
             opt_ms: number | null;
             /** Opt Noise */
-            opt_noise?: number | null;
+            opt_noise: number | null;
             /**
              * Opt Ovs
              * @default 2
@@ -5556,15 +5556,15 @@ export interface components {
              */
             opt_target: string | null;
             /** Pfb */
-            pfb?: boolean | null;
+            pfb: boolean | null;
             /** Plan Dpv */
-            plan_dpv?: number | null;
+            plan_dpv: number | null;
             /** Plan Snr */
-            plan_snr?: number | null;
+            plan_snr: number | null;
             /** Plot H */
-            plot_h?: number | null;
+            plot_h: number | null;
             /** Proc Type */
-            proc_type?: string | null;
+            proc_type: string | null;
             /**
              * Propfac
              * @default 1
@@ -5581,35 +5581,35 @@ export interface components {
              */
             pv_lo: number | null;
             /** Pv Rng User */
-            pv_rng_user?: boolean | null;
+            pv_rng_user: boolean | null;
             /**
              * Pvfilt
              * @default 0
              */
             pvfilt: number | null;
             /** Read Manual */
-            read_manual?: boolean | null;
+            read_manual: boolean | null;
             /** Rep Author */
-            rep_author?: string | null;
+            rep_author: string | null;
             /** Rep Comment */
-            rep_comment?: string | null;
+            rep_comment: string | null;
             /** Rep Plant */
-            rep_plant?: string | null;
+            rep_plant: string | null;
             /** Rep Status */
-            rep_status?: string | null;
+            rep_status: string | null;
             /**
              * Samp
              * @default 1
              */
             samp: number | null;
             /** Scen2 */
-            scen2?: string | null;
+            scen2: string | null;
             /** Scen D In */
-            scen_d_in?: number | null;
+            scen_d_in: number | null;
             /** Scen D Pv */
-            scen_d_pv?: number | null;
+            scen_d_pv: number | null;
             /** Scen Kind */
-            scen_kind?: string | null;
+            scen_kind: string | null;
             /**
              * Set1 Gain
              * @default 1
@@ -5646,27 +5646,27 @@ export interface components {
              */
             set2_ti: number | null;
             /** Sim J */
-            sim_J?: number | null;
+            sim_J: number | null;
             /**
              * Sim Len U
              * @default s
              */
             sim_len_u: ("s" | "min" | "h") | null;
             /** Sim Len U Set */
-            sim_len_u_set?: boolean | null;
+            sim_len_u_set: boolean | null;
             /** Sim Noise */
-            sim_noise?: number | null;
+            sim_noise: number | null;
             /**
              * Sprate
              * @default 0
              */
             sprate: number | null;
             /** Thmax */
-            thmax?: number | null;
+            thmax: number | null;
             /** Tri Thr */
-            tri_thr?: string | null;
+            tri_thr: string | null;
             /** Tune Hist */
-            tune_hist?: unknown[] | null;
+            tune_hist: unknown[] | null;
             /**
              * U Mv
              * @default %
@@ -5678,13 +5678,11 @@ export interface components {
              */
             u_pv: string | null;
             /** Val Rng */
-            val_rng?: number[] | null;
+            val_rng: number[] | null;
             /** Vchar Last */
-            vchar_last?: unknown[] | null;
+            vchar_last: unknown[] | null;
             /** Win Mode */
-            win_mode?: string | null;
-        } & {
-            [key: string]: unknown;
+            win_mode: string | null;
         };
         /** Loops */
         Loops: {
