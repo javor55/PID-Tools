@@ -2837,7 +2837,7 @@ export interface paths {
         };
         /**
          * Get Settings
-         * @description Nastavení smyčky (klíče jako v projektu).
+         * @description Nastavení smyčky (klíče jako v projektu), vždy se všemi pevnými klíči.
          */
         get: operations["get_settings_api_v1_workspaces__wid__settings_get"];
         put?: never;
@@ -5387,6 +5387,304 @@ export interface components {
             td?: number | null;
             /** Ti */
             ti?: number | null;
+        };
+        /**
+         * LoopSettings
+         * @description Nastavení smyčky: všechny pevné klíče (app.project.STATE_KEYS) s výchozími hodnotami z DEFAULTS (klíč bez výchozí
+         *     hodnoty = None) plus klíče s prefixem (STATE_PREFIX: `method|…`, `fx|…` …), které prostor má (extra="allow").
+         *     Typy odpovídají NUM_KEYS (číslo), BOOL_KEYS (bool), LIST_KEYS (seznam) a ENUMS (výčet); hlídá tests/test_settings_model.py.
+         */
+        LoopSettings: {
+            /** Audit Loops */
+            audit_loops?: unknown[] | null;
+            /** Avg Dmv */
+            avg_dmv?: number | null;
+            /** Avg Dpv */
+            avg_dpv?: number | null;
+            /** Cas Im */
+            cas_im?: string | null;
+            /** Cas K */
+            cas_k?: number | null;
+            /** Cas Oct */
+            cas_oct?: string | null;
+            /** Cas Om */
+            cas_om?: string | null;
+            /** Cas Samp */
+            cas_samp?: number | null;
+            /** Cas Src */
+            cas_src?: string | null;
+            /** Cas T1 */
+            cas_t1?: number | null;
+            /** Cas T2 */
+            cas_t2?: number | null;
+            /** Cas Tci */
+            cas_tci?: number | null;
+            /** Cas Tco */
+            cas_tco?: number | null;
+            /** Cas Th */
+            cas_th?: number | null;
+            /** Chart Tunit */
+            chart_tunit?: string | null;
+            /**
+             * Chosen
+             * @default [
+             *       "P0D",
+             *       "P1D",
+             *       "P2D",
+             *       "I0D",
+             *       "I1D"
+             *     ]
+             */
+            chosen: unknown[] | null;
+            /**
+             * Ctype
+             * @default PI
+             */
+            ctype: ("PI" | "PID" | "PD") | null;
+            /**
+             * Db
+             * @default 0
+             */
+            db: number | null;
+            /**
+             * Db Mode
+             * @default cont
+             */
+            db_mode: ("cont" | "step") | null;
+            /**
+             * Dfb
+             * @default true
+             */
+            dfb: boolean | null;
+            /** Diag Integ */
+            diag_integ?: boolean | null;
+            /** Diag Theta */
+            diag_theta?: number | null;
+            /**
+             * Diffgain
+             * @default 5
+             */
+            diffgain: number | null;
+            /**
+             * Dist Level
+             * @default none
+             */
+            dist_level: ("none" | "medium" | "high") | null;
+            /**
+             * Dist Strength
+             * @default 4
+             */
+            dist_strength: number | null;
+            /** Dview */
+            dview?: string | null;
+            /**
+             * Gain Sign
+             * @default auto
+             */
+            gain_sign: ("auto" | "pos" | "neg") | null;
+            /** Id Mode */
+            id_mode?: string | null;
+            /**
+             * Id Stic
+             * @default false
+             */
+            id_stic: boolean | null;
+            /**
+             * Lang
+             * @default en
+             */
+            lang: string | null;
+            /** Live Runs */
+            live_runs?: unknown[] | null;
+            /**
+             * Loop Tag
+             * @default
+             */
+            loop_tag: string | null;
+            /** Mcode */
+            mcode?: string | null;
+            /** Mtype */
+            mtype?: string | null;
+            /** Mtype0 */
+            mtype0?: string | null;
+            /**
+             * Mv Hi
+             * @default 100
+             */
+            mv_hi: number | null;
+            /**
+             * Mv Lo
+             * @default 0
+             */
+            mv_lo: number | null;
+            /** Mv Rng User */
+            mv_rng_user?: boolean | null;
+            /** Mvl Hi */
+            mvl_hi?: number | null;
+            /** Mvl Lo */
+            mvl_lo?: number | null;
+            /**
+             * Mvrate
+             * @default 0
+             */
+            mvrate: number | null;
+            /**
+             * Opt Crit
+             * @default OVS
+             */
+            opt_crit: string | null;
+            /**
+             * Opt Ms
+             * @default 1.6
+             */
+            opt_ms: number | null;
+            /** Opt Noise */
+            opt_noise?: number | null;
+            /**
+             * Opt Ovs
+             * @default 2
+             */
+            opt_ovs: number | null;
+            /**
+             * Opt Robust
+             * @default false
+             */
+            opt_robust: boolean | null;
+            /**
+             * Opt Target
+             * @default both
+             */
+            opt_target: string | null;
+            /** Pfb */
+            pfb?: boolean | null;
+            /** Plan Dpv */
+            plan_dpv?: number | null;
+            /** Plan Snr */
+            plan_snr?: number | null;
+            /** Plot H */
+            plot_h?: number | null;
+            /** Proc Type */
+            proc_type?: string | null;
+            /**
+             * Propfac
+             * @default 1
+             */
+            propfac: number | null;
+            /**
+             * Pv Hi
+             * @default 100
+             */
+            pv_hi: number | null;
+            /**
+             * Pv Lo
+             * @default 0
+             */
+            pv_lo: number | null;
+            /** Pv Rng User */
+            pv_rng_user?: boolean | null;
+            /**
+             * Pvfilt
+             * @default 0
+             */
+            pvfilt: number | null;
+            /** Read Manual */
+            read_manual?: boolean | null;
+            /** Rep Author */
+            rep_author?: string | null;
+            /** Rep Comment */
+            rep_comment?: string | null;
+            /** Rep Plant */
+            rep_plant?: string | null;
+            /** Rep Status */
+            rep_status?: string | null;
+            /**
+             * Samp
+             * @default 1
+             */
+            samp: number | null;
+            /** Scen2 */
+            scen2?: string | null;
+            /** Scen D In */
+            scen_d_in?: number | null;
+            /** Scen D Pv */
+            scen_d_pv?: number | null;
+            /** Scen Kind */
+            scen_kind?: string | null;
+            /**
+             * Set1 Gain
+             * @default 1
+             */
+            set1_gain: number | null;
+            /**
+             * Set1 Td
+             * @default 0
+             */
+            set1_td: number | null;
+            /**
+             * Set1 Ti
+             * @default 100
+             */
+            set1_ti: number | null;
+            /**
+             * Set2 Defined
+             * @default false
+             */
+            set2_defined: boolean | null;
+            /**
+             * Set2 Gain
+             * @default 1
+             */
+            set2_gain: number | null;
+            /**
+             * Set2 Td
+             * @default 0
+             */
+            set2_td: number | null;
+            /**
+             * Set2 Ti
+             * @default 100
+             */
+            set2_ti: number | null;
+            /** Sim J */
+            sim_J?: number | null;
+            /**
+             * Sim Len U
+             * @default s
+             */
+            sim_len_u: ("s" | "min" | "h") | null;
+            /** Sim Len U Set */
+            sim_len_u_set?: boolean | null;
+            /** Sim Noise */
+            sim_noise?: number | null;
+            /**
+             * Sprate
+             * @default 0
+             */
+            sprate: number | null;
+            /** Thmax */
+            thmax?: number | null;
+            /** Tri Thr */
+            tri_thr?: string | null;
+            /** Tune Hist */
+            tune_hist?: unknown[] | null;
+            /**
+             * U Mv
+             * @default %
+             */
+            u_mv: string | null;
+            /**
+             * U Pv
+             * @default
+             */
+            u_pv: string | null;
+            /** Val Rng */
+            val_rng?: number[] | null;
+            /** Vchar Last */
+            vchar_last?: unknown[] | null;
+            /** Win Mode */
+            win_mode?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** Loops */
         Loops: {
@@ -13314,9 +13612,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LoopSettings"];
                 };
             };
             /** @description Validation Error */
@@ -13356,9 +13652,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LoopSettings"];
                 };
             };
             /** @description Validation Error */

@@ -5299,6 +5299,1045 @@
     "title": "LoopSet",
     "type": "object"
    },
+   "LoopSettings": {
+    "additionalProperties": true,
+    "description": "Nastavení smyčky: všechny pevné klíče (app.project.STATE_KEYS) s výchozími hodnotami z DEFAULTS (klíč bez výchozí\nhodnoty = None) plus klíče s prefixem (STATE_PREFIX: `method|…`, `fx|…` …), které prostor má (extra=\"allow\").\nTypy odpovídají NUM_KEYS (číslo), BOOL_KEYS (bool), LIST_KEYS (seznam) a ENUMS (výčet); hlídá tests/test_settings_model.py.",
+    "properties": {
+     "audit_loops": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Audit Loops"
+     },
+     "avg_dmv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Avg Dmv"
+     },
+     "avg_dpv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Avg Dpv"
+     },
+     "cas_im": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Im"
+     },
+     "cas_k": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas K"
+     },
+     "cas_oct": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Oct"
+     },
+     "cas_om": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Om"
+     },
+     "cas_samp": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Samp"
+     },
+     "cas_src": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Src"
+     },
+     "cas_t1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas T1"
+     },
+     "cas_t2": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas T2"
+     },
+     "cas_tci": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Tci"
+     },
+     "cas_tco": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Tco"
+     },
+     "cas_th": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Th"
+     },
+     "chart_tunit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chart Tunit"
+     },
+     "chosen": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": [
+       "P0D",
+       "P1D",
+       "P2D",
+       "I0D",
+       "I1D"
+      ],
+      "title": "Chosen"
+     },
+     "ctype": {
+      "anyOf": [
+       {
+        "enum": [
+         "PI",
+         "PID",
+         "PD"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "PI",
+      "title": "Ctype"
+     },
+     "db": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Db"
+     },
+     "db_mode": {
+      "anyOf": [
+       {
+        "enum": [
+         "cont",
+         "step"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "cont",
+      "title": "Db Mode"
+     },
+     "dfb": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": true,
+      "title": "Dfb"
+     },
+     "diag_integ": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Diag Integ"
+     },
+     "diag_theta": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Diag Theta"
+     },
+     "diffgain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 5.0,
+      "title": "Diffgain"
+     },
+     "dist_level": {
+      "anyOf": [
+       {
+        "enum": [
+         "none",
+         "medium",
+         "high"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "none",
+      "title": "Dist Level"
+     },
+     "dist_strength": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 4,
+      "title": "Dist Strength"
+     },
+     "dview": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dview"
+     },
+     "gain_sign": {
+      "anyOf": [
+       {
+        "enum": [
+         "auto",
+         "pos",
+         "neg"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "auto",
+      "title": "Gain Sign"
+     },
+     "id_mode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id Mode"
+     },
+     "id_stic": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": false,
+      "title": "Id Stic"
+     },
+     "lang": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "en",
+      "title": "Lang"
+     },
+     "live_runs": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live Runs"
+     },
+     "loop_tag": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "",
+      "title": "Loop Tag"
+     },
+     "mcode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mcode"
+     },
+     "mtype": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mtype"
+     },
+     "mtype0": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mtype0"
+     },
+     "mv_hi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 100.0,
+      "title": "Mv Hi"
+     },
+     "mv_lo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Mv Lo"
+     },
+     "mv_rng_user": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv Rng User"
+     },
+     "mvl_hi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mvl Hi"
+     },
+     "mvl_lo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mvl Lo"
+     },
+     "mvrate": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Mvrate"
+     },
+     "opt_crit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "OVS",
+      "title": "Opt Crit"
+     },
+     "opt_ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 1.6,
+      "title": "Opt Ms"
+     },
+     "opt_noise": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Opt Noise"
+     },
+     "opt_ovs": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 2,
+      "title": "Opt Ovs"
+     },
+     "opt_robust": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": false,
+      "title": "Opt Robust"
+     },
+     "opt_target": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "both",
+      "title": "Opt Target"
+     },
+     "pfb": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pfb"
+     },
+     "plan_dpv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plan Dpv"
+     },
+     "plan_snr": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plan Snr"
+     },
+     "plot_h": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plot H"
+     },
+     "proc_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proc Type"
+     },
+     "propfac": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 1.0,
+      "title": "Propfac"
+     },
+     "pv_hi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 100.0,
+      "title": "Pv Hi"
+     },
+     "pv_lo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Pv Lo"
+     },
+     "pv_rng_user": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv Rng User"
+     },
+     "pvfilt": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Pvfilt"
+     },
+     "read_manual": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Read Manual"
+     },
+     "rep_author": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Author"
+     },
+     "rep_comment": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Comment"
+     },
+     "rep_plant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Plant"
+     },
+     "rep_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Status"
+     },
+     "samp": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 1.0,
+      "title": "Samp"
+     },
+     "scen2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen2"
+     },
+     "scen_d_in": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen D In"
+     },
+     "scen_d_pv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen D Pv"
+     },
+     "scen_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen Kind"
+     },
+     "set1_gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 1.0,
+      "title": "Set1 Gain"
+     },
+     "set1_td": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Set1 Td"
+     },
+     "set1_ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 100.0,
+      "title": "Set1 Ti"
+     },
+     "set2_defined": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": false,
+      "title": "Set2 Defined"
+     },
+     "set2_gain": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 1.0,
+      "title": "Set2 Gain"
+     },
+     "set2_td": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Set2 Td"
+     },
+     "set2_ti": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 100.0,
+      "title": "Set2 Ti"
+     },
+     "sim_J": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim J"
+     },
+     "sim_len_u": {
+      "anyOf": [
+       {
+        "enum": [
+         "s",
+         "min",
+         "h"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "s",
+      "title": "Sim Len U"
+     },
+     "sim_len_u_set": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Len U Set"
+     },
+     "sim_noise": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Noise"
+     },
+     "sprate": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": 0.0,
+      "title": "Sprate"
+     },
+     "thmax": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Thmax"
+     },
+     "tri_thr": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tri Thr"
+     },
+     "tune_hist": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tune Hist"
+     },
+     "u_mv": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "%",
+      "title": "U Mv"
+     },
+     "u_pv": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": "",
+      "title": "U Pv"
+     },
+     "val_rng": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Val Rng"
+     },
+     "vchar_last": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vchar Last"
+     },
+     "win_mode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Win Mode"
+     }
+    },
+    "title": "LoopSettings",
+    "type": "object"
+   },
    "Loops": {
     "properties": {
      "active": {
@@ -24202,7 +25241,7 @@
   },
   "/api/v1/workspaces/{wid}/settings": {
    "get": {
-    "description": "Nastavení smyčky (klíče jako v projektu).",
+    "description": "Nastavení smyčky (klíče jako v projektu), vždy se všemi pevnými klíči.",
     "operationId": "get_settings_api_v1_workspaces__wid__settings_get",
     "parameters": [
      {
@@ -24252,9 +25291,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Settings Api V1 Workspaces  Wid  Settings Get",
-         "type": "object"
+         "$ref": "#/components/schemas/LoopSettings"
         }
        }
       },
@@ -24339,9 +25376,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": true,
-         "title": "Response Patch Settings Api V1 Workspaces  Wid  Settings Patch",
-         "type": "object"
+         "$ref": "#/components/schemas/LoopSettings"
         }
        }
       },
