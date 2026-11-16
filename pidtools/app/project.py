@@ -52,7 +52,7 @@ STATE_KEYS = [
     "dview",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "idf|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|",
-                "dsign|", "dsel|", "wmode|")
+                "dsign|", "dsel|", "wmode|", "batch_sug|")
 
 
 def is_state_key(k):
@@ -70,6 +70,13 @@ BOOL_KEYS = {"pv_rng_user", "mv_rng_user", "pfb", "dfb", "id_stic", "read_manual
 LIST_KEYS = {"chosen", "tune_hist", "audit_loops", "vchar_last", "live_runs"}
 NUM_PREFIX = ("ed|", "tc|", "tend_r|", "sim_S|")
 BOOL_PREFIX = ("fx|", "idf|")
+SUG_PREFIX = "batch_sug|"        # návrh hromadného ladění (app.batch): [Kc, Ti, Td, metoda] pro model v názvu klíče
+
+
+def sug_ok(v):
+    """Návrh hromadného ladění: [Kc > 0, Ti ≥ 0, Td ≥ 0, metoda] – konečná čísla a neprázdný název metody."""
+    return (isinstance(v, list) and len(v) == 4 and all(_num(x) for x in v[:3]) and v[0] > 0 and v[1] >= 0
+            and v[2] >= 0 and isinstance(v[3], str) and bool(v[3]))
 
 
 def _num(v):
@@ -87,6 +94,8 @@ def _typed_ok(k, v):
         return isinstance(v, bool)
     if k in LIST_KEYS:
         return isinstance(v, list)
+    if k.startswith(SUG_PREFIX):
+        return sug_ok(v)
     return None
 
 
@@ -158,6 +167,8 @@ def validate_settings(patch, current=None):
         elif k in BOOL_KEYS or k in LIST_KEYS:
             if not _typed_ok(k, v):
                 errs.append(f"{k}: must be {'a boolean' if k in BOOL_KEYS else 'a list'}")
+        elif k.startswith(SUG_PREFIX) and not sug_ok(v):
+            errs.append(f"{k}: must be [Kc > 0, Ti >= 0, Td >= 0, method]")
         if k in ENUMS and v not in ENUMS[k]:
             errs.append(f"{k}: must be one of {', '.join(ENUMS[k])}")
     if errs:

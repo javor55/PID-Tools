@@ -2,11 +2,15 @@
 API – Přehled smyček (M20): smyčky v souboru (návrh z tagů, uložené v nastavení `audit_loops`), analýza výkonu
 a společných oscilací (app.audit) a přehled smyček projektu se stavem každé z nich.
 """
+from typing import Literal
+
 import numpy as np
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..app import audit
+from ..app import batch
+from ..app import tuning as tun
 from ..app.signalpack import minmax_idx
 from .data import _plain
 
@@ -92,6 +96,11 @@ class LoopRow(BaseModel):
     set1: LoopSet
     set2: LoopSet
     health: LoopHealth
+    fit: float | None = None            # FIT vybraného modelu [%]
+    ms: float | None = None             # Ms Setu 2 (je-li zadán), jinak Setu 1 (je-li zadán); None = bez modelu / nestabilní
+    set2_defined: bool = False
+    change_pct: float | None = None     # změna Gain Set 1 → Set 2 [%]; jen když je Set 2 zadán a Set 1 není zástupný
+    stage: Literal["no_data", "data", "model", "proposal", "set2"] = "no_data"
 
 
 class LoopsOverview(BaseModel):
@@ -143,6 +152,41 @@ def _set(ls, n):
     return LoopSet(gain=g("gain"), ti=g("ti"), td=g("td"))
 
 
+def _fit(ls):
+    """FIT vybraného modelu z identifikace (None = bez modelu)."""
+    r = ls.fit["res"].get(ls.get("mcode")) if ls.fit and ls.model is not None else None
+    return None if r is None else _fin(r.get("fit"))
+
+
+def _fin(x):
+    try:
+        x = float(x)
+    except (TypeError, ValueError):
+        return None
+    return x if np.isfinite(x) else None
+
+
+def _set1_real(ls):
+    """Set 1 je skutečné nastavení z řídicího systému (ne výchozí zástupné hodnoty)."""
+    return not tun.is_placeholder(*(float(ls.get(f"set1_{k}")) for k in ("gain", "ti", "td")))
+
+
+def _ms(ls):
+    """Ms sady, kterou smyčka používá (Set 2, jinak Set 1); stejný výpočet jako tabulka robustnosti v Ladění."""
+    if ls.model is None:
+        return None
+    n = 2 if ls.get("set2_defined") else 1
+    if n == 1 and not _set1_real(ls):
+        return None
+    m = ls.ctrl_metrics(ls.set_ctrl(n), worst=False)
+    return _fin(m["Ms"]) if m["stable"] else None
+
+
+def _change(ls):
+    g1, g2 = float(ls.get("set1_gain")), float(ls.get("set2_gain"))
+    return 100.0 * (g2 / g1 - 1.0) if ls.get("set2_defined") and _set1_real(ls) and g1 != 0 else None
+
+
 def overview(p):
     names = p.names()
     rows = []
@@ -151,7 +195,8 @@ def overview(p):
             index=i, name=str(names[i]), active=i == p.active, pv=ls.c_pv, mv=ls.c_mv,
             sp=ls.c_sp if ls.c_sp not in ("", "—") else None, pos=ls.c_pos if ls.c_pos not in ("", "—") else None,
             model=ls.model[0] if ls.model else None, params=_plain(list(ls.model[1])) if ls.model else [],
-            set1=_set(ls, 1), set2=_set(ls, 2), health=_health(ls)))
+            set1=_set(ls, 1), set2=_set(ls, 2), health=_health(ls), fit=_fit(ls), ms=_ms(ls),
+            set2_defined=bool(ls.get("set2_defined")), change_pct=_change(ls), stage=batch.stage(ls)))
     return LoopsOverview(active=p.active, loops=rows)
 
 

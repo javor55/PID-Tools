@@ -5356,11 +5356,17 @@ export interface components {
         LoopRow: {
             /** Active */
             active: boolean;
+            /** Change Pct */
+            change_pct?: number | null;
+            /** Fit */
+            fit?: number | null;
             health: components["schemas"]["LoopHealth"];
             /** Index */
             index: number;
             /** Model */
             model?: string | null;
+            /** Ms */
+            ms?: number | null;
             /** Mv */
             mv?: string | null;
             /** Name */
@@ -5376,8 +5382,19 @@ export interface components {
             pv?: string | null;
             set1: components["schemas"]["LoopSet"];
             set2: components["schemas"]["LoopSet"];
+            /**
+             * Set2 Defined
+             * @default false
+             */
+            set2_defined: boolean;
             /** Sp */
             sp?: string | null;
+            /**
+             * Stage
+             * @default no_data
+             * @enum {string}
+             */
+            stage: "no_data" | "data" | "model" | "proposal" | "set2";
         };
         /** LoopSet */
         LoopSet: {

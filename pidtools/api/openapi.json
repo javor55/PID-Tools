@@ -5161,6 +5161,28 @@
       "title": "Active",
       "type": "boolean"
      },
+     "change_pct": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Change Pct"
+     },
+     "fit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit"
+     },
      "health": {
       "$ref": "#/components/schemas/LoopHealth"
      },
@@ -5178,6 +5200,17 @@
        }
       ],
       "title": "Model"
+     },
+     "ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
      },
      "mv": {
       "anyOf": [
@@ -5237,6 +5270,11 @@
      "set2": {
       "$ref": "#/components/schemas/LoopSet"
      },
+     "set2_defined": {
+      "default": false,
+      "title": "Set2 Defined",
+      "type": "boolean"
+     },
      "sp": {
       "anyOf": [
        {
@@ -5247,6 +5285,18 @@
        }
       ],
       "title": "Sp"
+     },
+     "stage": {
+      "default": "no_data",
+      "enum": [
+       "no_data",
+       "data",
+       "model",
+       "proposal",
+       "set2"
+      ],
+      "title": "Stage",
+      "type": "string"
      }
     },
     "required": [
