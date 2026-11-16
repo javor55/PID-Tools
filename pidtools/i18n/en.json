@@ -3446,5 +3446,7 @@
  "qs_retry": "Try again",
  "qs_recalc": "Recalculating…",
  "vw_calc_expr": "Formula",
- "ws_lost": "The working session expired; a new one was started. Restore your work from the recovery copy on the start screen."
+ "ws_lost": "The working session expired; a new one was started. Restore your work from the recovery copy on the start screen.",
+ "err_boundary_save_recovery": "Save recovery copy",
+ "err_boundary_saved": "Recovery copy saved"
 }

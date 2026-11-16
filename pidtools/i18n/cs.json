@@ -3446,5 +3446,7 @@
  "qs_retry": "Zkusit znovu",
  "qs_recalc": "Přepočítávám…",
  "vw_calc_expr": "Vzorec",
- "ws_lost": "Pracovní relace vypršela, byla založena nová. Práci obnovíte ze záchranné kopie na úvodní obrazovce."
+ "ws_lost": "Pracovní relace vypršela, byla založena nová. Práci obnovíte ze záchranné kopie na úvodní obrazovce.",
+ "err_boundary_save_recovery": "Uložit záchrannou kopii",
+ "err_boundary_saved": "Záchranná kopie uložena"
 }

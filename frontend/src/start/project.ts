@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { create } from "zustand";
-import { api, bytes, request } from "../api/client";
+import { api, bytes, postKeepalive, request } from "../api/client";
 import type { components } from "../api/schema";
 import { toastError } from "../components/Toasts";
 import { queryClient } from "../queryClient";
@@ -29,14 +29,27 @@ export function useSaveState() {
 /** Čas posledního uložení (ruční nebo záchranná kopie), epocha v sekundách; null = ještě nikdy. */
 export const lastSaved = (st: SaveState | undefined) => (st ? Math.max(st.saved_at ?? 0, st.autosaved_at ?? 0) || null : null);
 
-/** Záchranná kopie: po změnách a v klidu (nejvýš jednou za zvolený počet minut; 0 = vypnuto) zapíše projekt na server. */
+/** Má se při zavírání okna odeslat záchranná kopie? Zavírání je výjimka z klidové doby i z minutového limitu. */
+export function shouldFlush(
+  st: SaveState | undefined,
+  opts: { public: boolean; minutes: number; lastFlushedRev: number },
+): boolean {
+  if (!st || opts.public || !opts.minutes) return false;
+  if (!st.has_data || !st.autosave_pending) return false;
+  return st.rev !== opts.lastFlushedRev;
+}
+
+/**
+ * Záchranná kopie: po změnách a v klidu (nejvýš jednou za zvolený počet minut; 0 = vypnuto) zapíše projekt na server.
+ * Při zavření okna (`pagehide`, skrytí stránky) se pošle okamžitě; `beforeunload` při neuložených změnách vyvolá dotaz.
+ */
 export function useAutosave() {
   const wid = useUi((s) => s.wid);
   const pub = usePublic();                    // veřejný režim: server nic neukládá, projekt se ukládá do souboru
   const st = useSaveState().data;
   const minutes = useAppSettings().data?.general.autosave_min ?? 1;
-  const ref = useRef({ st, minutes, rev: -1, since: 0, busy: false });
-  useEffect(() => { ref.current.st = st; ref.current.minutes = minutes; });
+  const ref = useRef({ st, minutes, pub, rev: -1, since: 0, busy: false, flushedRev: -1 });
+  useEffect(() => { ref.current.st = st; ref.current.minutes = minutes; ref.current.pub = pub; });
   useEffect(() => {
     if (!wid || pub) return;
     const tick = async () => {
@@ -55,6 +68,33 @@ export function useAutosave() {
     const t = window.setInterval(() => void tick(), 2000);
     return () => window.clearInterval(t);
   }, [wid, pub]);
+  // Zavření okna: okamžitá kopie bez ohledu na klid a minutový limit; pro stejný rev jen jednou.
+  useEffect(() => {
+    if (!wid) return;
+    const flush = () => {
+      const r = ref.current;
+      if (!shouldFlush(r.st, { public: r.pub, minutes: r.minutes, lastFlushedRev: r.flushedRev })) return;
+      r.flushedRev = r.st!.rev;
+      postKeepalive(`/workspaces/${wid}/autosave`);
+    };
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [wid]);
+  // Neuložené změny: prohlížeč se sám zeptá, zda stránku opustit (i ve veřejném režimu, kde se na server nic neukládá).
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!ref.current.st?.dirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
 }
 
 export const useRecovery = () =>

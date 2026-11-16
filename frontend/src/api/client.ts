@@ -92,6 +92,16 @@ export async function request<T>(method: string, path: string, body?: unknown, s
   return (ct.includes("json") ? r.json() : r.arrayBuffer()) as Promise<T>;
 }
 
+/**
+ * POST bez čekání na odpověď, který přežije zavření stránky (`keepalive`). Relaci (`ensureSession`) nečeká – při zavírání
+ * na ni není čas. Chyby se tiše zahazují: stránka se zavírá, není komu je hlásit.
+ */
+export function postKeepalive(path: string): void {
+  try {
+    fetch(base + path, { method: "POST", headers: headers(), keepalive: true }).catch(() => undefined);
+  } catch { /* stránka se zavírá, chybu nemá kdo přijmout */ }
+}
+
 /** Požadavek s binárním tělem (soubor) – odpověď JSON. */
 export async function rawRequest<T>(method: string, path: string, body: ArrayBuffer, signal?: AbortSignal): Promise<T> {
   const r = await call(method, path, { raw: body, signal });
