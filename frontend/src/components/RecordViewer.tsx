@@ -1,13 +1,13 @@
-// Prohlížeč záznamu – sdílený modul dnešního webu (pidtools/ui/static/viewer.js) ve stránce Reactu.
+// Prohlížeč záznamu – sdílený modul dnešního webu (frontend/src/legacy/viewer.js) ve stránce Reactu.
 // Data: binární balík z /signals (vloží se do mezipaměti, kterou viewer.js čte), role a barvy signálů smyčky,
 // texty vw_* z /i18n. Rozložení (panely, kurzory, měřítka) se ukládá do nastavení „dview“ (projekt).
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { binary, request } from "../api/client";
 import { unframe } from "../api/signals";
-import mountViewer from "../../../pidtools/ui/static/viewer.js";
-import PIDViewAn from "../../../pidtools/ui/static/viewer_an.js";
-import "../../../pidtools/ui/static/viewer.css";
+import mountViewer from "../legacy/viewer.js";
+import PIDViewAn from "../legacy/viewer_an.js";
+import "../legacy/viewer.css";
 import { useSettings, useWs } from "../data";
 import { decOf } from "../i18n";
 import { useUi } from "../store";

@@ -1,4 +1,4 @@
-// Sdílené moduly dnešního webu (pidtools/ui/static) – čisté JS, používá je i Streamlit.
+// Moduly čistého JS v src/legacy (připojují je React obaly z components/ a tabs/).
 declare module "*/viewer.js" {
   export interface ViewerComponent {
     data: Record<string, unknown>;

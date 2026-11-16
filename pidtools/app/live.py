@@ -2,7 +2,7 @@
 Živá simulace pro frontend, který ji počítá sám (desktop): jedna nebo dvě smyčky (sada 1 a 2) nad core.LiveLoop,
 ruční / automatický režim, SP, poruchy na vstupu i výstupu procesu, změna procesu, šum PV a ukazatele od poslední
 události. Vše uvnitř v % rozsahů regulátoru; vstupy a výstupy pro uživatele v inženýrských jednotkách přes Scaling.
-(Webová aplikace počítá živou simulaci v prohlížeči – ui/static/live_engine.js; konfigurace pro ni: web_config.)
+(Webová aplikace počítá živou simulaci v prohlížeči – frontend/src/legacy/live_engine.js; konfigurace pro ni: web_config.)
 """
 import json
 

@@ -184,9 +184,8 @@ pidtools/
     workspace/             one loop without UI (data, identification, tuning, diagnostics, project) and loops.py
   i18n/                    texts: cs.json, en.json, T() – the frontend sets the language
   api/                     FastAPI API (/api/v1) serving the built React UI (api/ui); sidecar of the desktop
-  ui/static/               shared browser JS/CSS (record viewer, trend, live simulation, controller engine) –
-                           imported by frontend/
 frontend/                  React + TypeScript web UI (Vite); desktop/ – Tauri window around the API sidecar
+  src/legacy/              plain JS/CSS modules (record viewer, trend, live simulation, controller engine)
 tests/                     pytest: core, app layer, API, frontend (Playwright), data loading, loops, APC
 tools/                     builds (build_sidecar.py), golden cases
 docs/                      user documentation (English; Czech in docs/cs), architecture.md

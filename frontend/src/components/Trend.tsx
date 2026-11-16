@@ -1,7 +1,7 @@
-// Graf průběhů s úseky – sdílený modul dnešního webu (pidtools/ui/static/trend.js) ve stránce Reactu.
+// Graf průběhů s úseky – sdílený modul dnešního webu (frontend/src/legacy/trend.js) ve stránce Reactu.
 import { useEffect, useRef } from "react";
-import mountTrend from "../../../pidtools/ui/static/trend.js";
-import "../../../pidtools/ui/static/trend.css";
+import mountTrend from "../legacy/trend.js";
+import "../legacy/trend.css";
 
 function hash(s: string): string {
   let h = 2166136261;

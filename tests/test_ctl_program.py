@@ -14,7 +14,7 @@ from pidtools.controllers.program import LIMITS, ProgramErrors, compile_program,
 from pidtools.core.controller import Controller, make_profile
 from pidtools.core.program import ProgramController, ProgramProfile
 
-ENGINE = os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "ctrl_engine.js")
+ENGINE = os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "legacy", "ctrl_engine.js")
 NODE = shutil.which("node")
 
 PID_GAP = '''

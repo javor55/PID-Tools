@@ -1,4 +1,4 @@
-"""Výpočty prohlížeče záznamu v prohlížeči (pidtools/ui/static/viewer_an.js) – přes Node.js."""
+"""Výpočty prohlížeče záznamu v prohlížeči (frontend/src/legacy/viewer_an.js) – přes Node.js."""
 import json
 import os
 import shutil
@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-AN = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "viewer_an.js"))
+AN = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "legacy", "viewer_an.js"))
 NODE = shutil.which("node")
 pytestmark = pytest.mark.skipif(NODE is None, reason="Node.js není k dispozici")
 

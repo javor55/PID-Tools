@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NAME = "pidtools-api"
 # Streamlit a vývojové knihovny sidecar nepotřebuje
 EXCLUDE = ["streamlit", "tornado", "altair", "pydeck", "watchdog", "pytest",
-           "IPython", "matplotlib", "tkinter", "pyarrow", "playwright", "pidtools.ui"]
+           "IPython", "matplotlib", "tkinter", "pyarrow", "playwright"]
 
 
 def target_triple():

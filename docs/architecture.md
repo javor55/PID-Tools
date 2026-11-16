@@ -77,10 +77,10 @@ core          pidtools/core – identification, tuning, simulation, APC  (numpy 
 ## Web frontend (`pidtools/api`, `frontend/`)
 
 The React UI (`frontend/`, Vite) talks to the FastAPI API (`pidtools/api`, `/api/v1`); `npm run build` writes it to
-`pidtools/api/ui`, which the API serves. The browser JS shared with the frontend lives in `pidtools/ui/static`
+`pidtools/api/ui`, which the API serves. The plain browser JS of the frontend lives in `frontend/src/legacy`
 (record viewer, trend, live simulation `live_engine.js` = port of `core/simulation.py`, controller engine
 `ctrl_engine.js`; checked by `tests/test_live_js.py`, `test_viewer_js.py`, `test_ctrl_engine_js.py`) and is imported
-by `frontend/` from there (no Python in `pidtools/ui` any more).
+by the React components (`pidtools/ui` no longer exists).
 
 Shared modules of the application layer: `app.frequency` (Bode, Nyquist, sensitivity), `app.closedloop`
 (identification with the loop in AUTO), `app.audit` (loop overview), `app.apc.splitrange`, `app.apc.vpc`,
