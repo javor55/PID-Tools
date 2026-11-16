@@ -1,5 +1,6 @@
 // Dotazy a změny pracovního prostoru (TanStack Query). Po změně dat / sloupců se zneplatní vše o prostoru.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { affected, type Group, invalidateGroups } from "./queryKeys";
 import { rawRequest, request, type WorkspaceInfo } from "./api/client";
 import type { components } from "./api/schema";
 import { toastError } from "./components/Toasts";
@@ -35,13 +36,13 @@ export function useSettings() {
   });
 }
 
-/** Změna prostoru (POST / PUT / PATCH) – po úspěchu znovu načíst vše o prostoru. */
-export function useWsMutation<B = unknown>(method: string, path: string) {
+/** Změna prostoru (POST / PUT / PATCH) – po úspěchu znovu načíst dotazy uvedených skupin (bez `groups` vše o prostoru). */
+export function useWsMutation<B = unknown>(method: string, path: string, groups?: Group[]) {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body?: B) => request<WorkspaceInfo>(method, `/workspaces/${wid}${path}`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ws", wid] }),
+    onSuccess: () => groups ? invalidateGroups(qc, wid, groups) : qc.invalidateQueries({ queryKey: ["ws", wid] }),
   });
 }
 
@@ -51,7 +52,7 @@ export async function uploadFile(wid: string, file: File): Promise<WorkspaceInfo
 }
 
 /**
- * Změna nastavení smyčky: hned v rozhraní (optimisticky), pak PATCH /settings a znovu načíst prostor.
+ * Změna nastavení smyčky: hned v rozhraní (optimisticky), pak PATCH /settings a znovu načíst dotazy dotčené změnou.
  * Při chybě se vrátí předchozí hodnoty měněných klíčů, ukáže se toast a chyba se znovu vyhodí.
  */
 export function usePatchSettings() {
@@ -75,6 +76,7 @@ export function usePatchSettings() {
       toastError(e);
       throw e;
     }
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
+    // jen dotazy, kterých se změna týká (tabulka v queryKeys.ts)
+    await invalidateGroups(qc, wid, affected(Object.keys(patch)));
   };
 }
