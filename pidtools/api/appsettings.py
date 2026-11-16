@@ -41,7 +41,7 @@ class AppAppearance(BaseModel):
 
 
 class AppCharts(BaseModel):
-    height: int = Field(220, ge=120, le=1000)
+    height: int = Field(default=220, ge=120, le=1000)
     time_unit: Literal["auto", "s", "min", "h", "clock"] = "auto"
     decimal: Literal["auto", "comma", "dot"] = "auto"
     ti_unit: Literal["s", "min"] = "s"
@@ -54,8 +54,8 @@ class AppDiagnostics(BaseModel):
 
 class AppSimDefaults(BaseModel):
     ctype: Literal["PI", "PID", "PD"] = "PI"
-    opt_ms: float = Field(1.6, ge=1.1, le=2.5)
-    opt_ovs: int = Field(2, ge=0, le=50)
+    opt_ms: float = Field(default=1.6, ge=1.1, le=2.5)
+    opt_ovs: int = Field(default=2, ge=0, le=50)
     opt_robust: bool = False
 
 
@@ -65,15 +65,15 @@ class AppDefaults(BaseModel):
 
 
 class AppJournal(BaseModel):
-    author: str = Field("", max_length=80)
+    author: str = Field(default="", max_length=80)
     require_note: bool = False
 
 
 class AppReport(BaseModel):
-    company: str = Field("", max_length=120)
+    company: str = Field(default="", max_length=120)
     language: str = "app"                               # "app" = jako rozhraní, jinak kód jazyka
-    header: str = Field("", max_length=300)
-    footer: str = Field("", max_length=300)
+    header: str = Field(default="", max_length=300)
+    footer: str = Field(default="", max_length=300)
     logo: str = ""                                        # název souboru loga (nahrává se zvlášť), prázdné = bez loga
 
 

@@ -92,8 +92,8 @@ CURVES: dict[int, dict[str, Any]] = {200: {"content": {"application/octet-stream
 # ---- split range
 class SplitIn(BaseModel):
     mode: MODE = "opposite"
-    b0: float = Field(50.0, ge=1, le=99)         # současný bod rozdělení [%]
-    gap: float = Field(0.0, ge=-20, le=20)       # mezera (překryv / pásmo) [%]
+    b0: float = Field(default=50.0, ge=1, le=99)         # současný bod rozdělení [%]
+    gap: float = Field(default=0.0, ge=-20, le=20)       # mezera (překryv / pásmo) [%]
     valve_a: list[float] | None = None           # parametry modelu ventilu A; None = výchozí (default_a)
 
 
@@ -188,9 +188,9 @@ def _split_frame(ws, runs):
 # ---- VPC
 class VpcIn(BaseModel):
     mv2: list[float] | None = None               # parametry modelu MV2 (velký člen); None = výchozí
-    sp: float = Field(50.0, ge=5, le=95)         # SP regulátoru VPC = žádaná poloha MV1 [%]
-    factor: float = Field(5.0, ge=1, le=30)      # τc = factor × doba odezvy hlavní smyčky
-    d: float = Field(35.0, ge=-100, le=100)      # skok zatížení [% MV1]
+    sp: float = Field(default=50.0, ge=5, le=95)         # SP regulátoru VPC = žádaná poloha MV1 [%]
+    factor: float = Field(default=5.0, ge=1, le=30)      # τc = factor × doba odezvy hlavní smyčky
+    d: float = Field(default=35.0, ge=-100, le=100)      # skok zatížení [% MV1]
 
 
 class VpcDesign(BaseModel):
@@ -255,10 +255,10 @@ def _vpc_frame(ws, runs):
 
 # ---- poměrová regulace
 class RatioIn(BaseModel):
-    air_loop: int | None = Field(None, ge=0)     # index smyčky vzduchu v projektu; None = zadaný model
+    air_loop: int | None = Field(default=None, ge=0)     # index smyčky vzduchu v projektu; None = zadaný model
     air: list[float] | None = None               # parametry modelu vzduchu (jen při air_loop = None)
-    R: float = Field(1.2, ge=0.01, le=100)       # poměr vzduch / palivo
-    step: float = Field(15.0, ge=-50, le=50)     # skok požadavku výkonu [%]
+    R: float = Field(default=1.2, ge=0.01, le=100)       # poměr vzduch / palivo
+    step: float = Field(default=15.0, ge=-50, le=50)     # skok požadavku výkonu [%]
 
 
 class RatioSource(BaseModel):

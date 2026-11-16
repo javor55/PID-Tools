@@ -142,7 +142,7 @@ def _summary(s):
 def _detail(s):
     d = s.to_dict()
     return SnapshotDetail(**_summary(s).model_dump(), history=d["history"], notes=d["notes"],
-                          attachments=[{k: v for k, v in a.items() if k != "data"} for a in d["attachments"]],
+                          attachments=[AttachmentInfo(**{k: v for k, v in a.items() if k != "data"}) for a in d["attachments"]],
                           content={k: v for k, v in s.content.items() if k != "record"})
 
 

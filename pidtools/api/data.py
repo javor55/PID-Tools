@@ -585,7 +585,7 @@ def _quality_preview(r, need_data):
         """Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky)."""
         from ..app.dataset import stats
         ws = need_data(wid)
-        roles = {"PV": "PV", "MV": "MV", "SP": "SP"}
+        roles: dict[str, Literal["PV", "MV", "SP", "DV"]] = {"PV": "PV", "MV": "MV", "SP": "SP"}
         return [StatRow(name=n, role=roles.get(n, "DV"), min=_num(a), max=_num(b), mean=_num(m), std=_num(sd))
                 for n, a, b, m, sd in stats(ws.grid, ws.c_d)]
 

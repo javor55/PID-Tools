@@ -42,9 +42,9 @@ class FFDesignIn(BaseModel):
     use: bool | None = None
     dyn: bool | None = None
     gain: float | None = None
-    lead: float | None = Field(None, ge=0)
-    lag: float | None = Field(None, ge=0)
-    delay: float | None = Field(None, ge=0)
+    lead: float | None = Field(default=None, ge=0)
+    lag: float | None = Field(default=None, ge=0)
+    delay: float | None = Field(default=None, ge=0)
 
 
 class FFDefaults(BaseModel):
@@ -216,9 +216,9 @@ class SmithInfo(BaseModel):
 
 
 class SmithSimReq(BaseModel):
-    ek: float | None = Field(None, ge=-90, le=200)
-    et: float | None = Field(None, ge=-90, le=200)
-    eth: float | None = Field(None, ge=-90, le=200)
+    ek: float | None = Field(default=None, ge=-90, le=200)
+    et: float | None = Field(default=None, ge=-90, le=200)
+    eth: float | None = Field(default=None, ge=-90, le=200)
 
 
 class SmithIae(BaseModel):

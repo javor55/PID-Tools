@@ -685,8 +685,8 @@ class DecInfo(LoopHead):
 
 class DecSimReq(BaseModel):
     dtype: Literal["static", "dyn"] = "dyn"
-    amp_a: float = Field(5.0, ge=-100, le=100)
-    amp_b: float = Field(5.0, ge=-100, le=100)
+    amp_a: float = Field(default=5.0, ge=-100, le=100)
+    amp_b: float = Field(default=5.0, ge=-100, le=100)
     way: Literal["both", "ab", "ba"] = "both"   # oba decouplery / jen B → A (ab) / jen A → B (ba)
 
 

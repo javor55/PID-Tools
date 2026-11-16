@@ -35,8 +35,8 @@ class LoopMapping(BaseModel):
     tag: str = ""
     description: str = ""
     roles: RolesBody = RolesBody()
-    norm_pv: list[float] | None = Field(None, min_length=2, max_length=2)
-    norm_mv: list[float] | None = Field(None, min_length=2, max_length=2)
+    norm_pv: list[float] | None = Field(default=None, min_length=2, max_length=2)
+    norm_mv: list[float] | None = Field(default=None, min_length=2, max_length=2)
     cascade_to: int | None = None
     index: int | None = None                  # jen v odpovědi: pořadí smyčky
     sources: list[str] = []                   # jen v odpovědi: zdroje, ze kterých jsou data smyčky
