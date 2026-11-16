@@ -1611,6 +1611,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Start
+         * @description Hromadná akce nad vybranými smyčkami jako jedna úloha (průběh „3 / 12 · název“, zrušení zachová hotové smyčky):
+         *     `identify` (výchozí nastavení smyčky), `tune` (návrh uložený u smyčky, Set 2 se nemění), `accept` (návrhy →
+         *     Set 2). Smyčka bez použitelných dat se přeskočí s důvodem. Výsledek po smyčkách: GET /batch/{jid}.
+         */
+        post: operations["batch_start_api_v1_workspaces__wid__batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/batch/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Batch Export
+         * @description Export sady `n` vybraných smyček (indexy oddělené čárkou) do jednoho souboru; formát řádků jako `/tuning/export`.
+         */
+        get: operations["batch_export_api_v1_workspaces__wid__batch_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/batch/{jid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Batch Get
+         * @description Stav hromadné úlohy a řádky výsledku hotových smyček (průběžně; po zrušení zůstanou).
+         */
+        get: operations["batch_get_api_v1_workspaces__wid__batch__jid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/columns": {
         parameters: {
             query?: never;
@@ -3800,6 +3862,72 @@ export interface components {
             a: number;
             /** B */
             b: number;
+        };
+        /** BatchOut */
+        BatchOut: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "identify" | "tune" | "accept";
+            job: components["schemas"]["JobInfo"];
+            /** Rows */
+            rows: components["schemas"]["BatchRow"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * BatchParams
+         * @description Parametry akce `tune` (stejné hodnoty jako Ladění: metoda, τc, typ regulátoru, kritérium a cíl optimalizace).
+         */
+        BatchParams: {
+            /** Crit */
+            crit?: ("MIGO" | "IAE" | "ISE" | "ITAE" | "OVS") | null;
+            /** Ctype */
+            ctype?: ("PI" | "PID") | null;
+            /** Method */
+            method?: string | null;
+            /** Target */
+            target?: ("dist" | "sp" | "both" | "scen") | null;
+            /** Tc */
+            tc?: number | null;
+        };
+        /** BatchReason */
+        BatchReason: {
+            /**
+             * Args
+             * @default {}
+             */
+            args: {
+                [key: string]: string | number | null;
+            };
+            /** Key */
+            key: string;
+        };
+        /** BatchReq */
+        BatchReq: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "identify" | "tune" | "accept";
+            /** Loops */
+            loops: number[];
+            /** @default {} */
+            params: components["schemas"]["BatchParams"];
+        };
+        /** BatchRow */
+        BatchRow: {
+            /** Loop */
+            loop: number;
+            /** Name */
+            name: string;
+            reason?: components["schemas"]["BatchReason"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "skipped" | "error";
         };
         /** BlockParam */
         BlockParam: {
@@ -11093,6 +11221,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_start_api_v1_workspaces__wid__batch_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_export_api_v1_workspaces__wid__batch_export_get: {
+        parameters: {
+            query: {
+                loops: string;
+                fmt?: string;
+                n?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description one file with the set of every selected loop (fmt: csv, pcs7, tia, deltav); header X-Skipped-Loops lists loops without data or model */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                    "text/plain": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_get_api_v1_workspaces__wid__batch__jid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                jid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchOut"];
                 };
             };
             /** @description Validation Error */

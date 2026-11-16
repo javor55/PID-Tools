@@ -2,16 +2,21 @@
 API – Přehled smyček (M20): smyčky v souboru (návrh z tagů, uložené v nastavení `audit_loops`), analýza výkonu
 a společných oscilací (app.audit) a přehled smyček projektu se stavem každé z nich.
 """
-from typing import Literal
+from collections import OrderedDict
+from typing import Any, Literal
 
 import numpy as np
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Response
+from pydantic import BaseModel, Field
 
+from .. import i18n
 from ..app import audit
 from ..app import batch
 from ..app import tuning as tun
+from ..app import tuning_export as tex
 from ..app.signalpack import minmax_idx
+from . import tasks
+from .common import JobInfo, job_info
 from .data import _plain
 
 MAX_PTS = 1500          # bodů průběhu smyčky v odpovědi (min / max po skupinách)
@@ -108,6 +113,40 @@ class LoopsOverview(BaseModel):
     loops: list[LoopRow]
 
 
+class BatchParams(BaseModel):
+    """Parametry akce `tune` (stejné hodnoty jako Ladění: metoda, τc, typ regulátoru, kritérium a cíl optimalizace)."""
+    method: str | None = None                                   # None = metoda uložená u modelu smyčky
+    tc: float | None = Field(None, gt=0)
+    ctype: Literal["PI", "PID"] | None = None
+    crit: Literal["MIGO", "IAE", "ISE", "ITAE", "OVS"] | None = None
+    target: Literal["dist", "sp", "both", "scen"] | None = None
+
+
+class BatchReq(BaseModel):
+    loops: list[int] = Field(min_length=1)
+    action: Literal["identify", "tune", "accept"]
+    params: BatchParams = BatchParams()
+
+
+class BatchReason(BaseModel):
+    key: str                                                    # klíč textu (i18n) – kontrola kvality dat nebo batch_*
+    args: dict[str, str | float | int | None] = {}
+
+
+class BatchRow(BaseModel):
+    loop: int
+    name: str
+    status: Literal["ok", "skipped", "error"]
+    reason: BatchReason | None = None
+
+
+class BatchOut(BaseModel):
+    job: JobInfo
+    action: Literal["identify", "tune", "accept"]
+    total: int
+    rows: list[BatchRow]                                        # hotové smyčky (i u zrušené úlohy)
+
+
 def _defs(ws):
     """Smyčky přehledu: uložené v projektu (jen s platnými sloupci), jinak návrh z názvů tagů."""
     saved = audit.from_records(ws.get("audit_loops"), list(ws.sig.sigs))
@@ -200,8 +239,12 @@ def overview(p):
     return LoopsOverview(active=p.active, loops=rows)
 
 
-def router(get_proj):
+KEEP_BATCH = 50          # kolik posledních hromadných úloh si API pamatuje (řádky výsledků)
+
+
+def router(get_proj, jobs):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["audit"])
+    runs: OrderedDict[str, dict] = OrderedDict()      # ID úlohy → {wid, action, total, rows}
 
     def need_data(wid):
         ws = get_proj(wid).state
@@ -245,6 +288,84 @@ def router(get_proj):
         res = audit.analyse(ws.sig, defs, ws.ts_user, win)
         return Audit(results=[_result(x) for x in res],
                      common=[AuditCommon(**g) for g in _plain(audit.common_oscillations(res))])
+
+    def _indices(p, loops):
+        """Smyčky v daném pořadí bez opakování; neexistující index = 404."""
+        bad = [i for i in loops if not 0 <= i < len(p.loops)]
+        if bad:
+            raise HTTPException(404, f"loop not found: {bad[0]}")
+        return list(dict.fromkeys(loops))
+
+    @r.post("/batch", response_model=JobInfo)
+    def batch_start(wid: str, body: BatchReq):
+        """
+        Hromadná akce nad vybranými smyčkami jako jedna úloha (průběh „3 / 12 · název“, zrušení zachová hotové smyčky):
+        `identify` (výchozí nastavení smyčky), `tune` (návrh uložený u smyčky, Set 2 se nemění), `accept` (návrhy →
+        Set 2). Smyčka bez použitelných dat se přeskočí s důvodem. Výsledek po smyčkách: GET /batch/{jid}.
+        """
+        p = get_proj(wid)
+        loops = _indices(p, body.loops)
+        params = body.params.model_dump()
+        items = batch.plan(p, loops, body.action, params)
+        orig = {it["loop"]: p.loops[it["loop"]] for it in items}
+        run: dict[str, Any] = dict(wid=wid, action=body.action, total=len(items), rows=[])
+
+        def partial(d):
+            """Výsledek jedné smyčky se zapíše do smyčky v hlavním procesu (smyčka mezitím smazaná / přesunutá = nic)."""
+            delta = d.pop("delta", None)
+            run["rows"].append(d)
+            try:
+                cur = get_proj(wid)
+            except HTTPException:
+                return
+            ls = orig[d["loop"]]
+            if delta is None or ls not in cur.loops:
+                return
+            if "out" in delta:                                    # identifikace: stav a nastavení jako u /identify
+                tasks.apply(ls, delta["out"])
+                batch.apply_delta(ls, dict(drop=batch.sug_keys(ls)))    # starý návrh platil pro starý model
+            else:
+                batch.apply_delta(ls, delta)
+            cur.touch()
+
+        jid = jobs.submit(batch.run, items, body.action, params, tasks.run, timeout=1800 + 900 * len(items),
+                          on_partial=partial)
+        runs[jid] = run
+        while len(runs) > KEEP_BATCH:
+            runs.popitem(last=False)
+        return job_info(jobs, jid)
+
+    @r.get("/batch/export", response_class=Response,
+           responses={200: {"content": {"text/plain": {}, "text/csv": {}},
+                            "description": "one file with the set of every selected loop (fmt: csv, pcs7, tia, deltav); "
+                                           "header X-Skipped-Loops lists loops without data or model"}})
+    def batch_export(wid: str, loops: str, fmt: str = "csv", n: int = 2):
+        """Export sady `n` vybraných smyček (indexy oddělené čárkou) do jednoho souboru; formát řádků jako `/tuning/export`."""
+        p = get_proj(wid)
+        try:
+            idx = _indices(p, [int(x) for x in loops.split(",") if x.strip() != ""])
+        except ValueError as ex:
+            raise HTTPException(422, "loops: comma-separated loop indexes") from ex
+        if not idx:
+            raise HTTPException(422, "no loops selected")
+        if fmt not in tex.FORMATS or n not in (1, 2):
+            raise HTTPException(422, f"unknown export format: {fmt}")
+        text, skipped = batch.export(p, idx, fmt, n, i18n.decimal())
+        if len(skipped) == len(idx):
+            raise HTTPException(409, "no model")
+        f = tex.FORMATS[fmt]
+        return Response(text, media_type=f"{f['mime']}; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="tuning_set{n}_{fmt}_loops.{f["ext"]}"',
+                                 "X-Skipped-Loops": ",".join(map(str, skipped))})
+
+    @r.get("/batch/{jid}", response_model=BatchOut)
+    def batch_get(wid: str, jid: str):
+        """Stav hromadné úlohy a řádky výsledku hotových smyček (průběžně; po zrušení zůstanou)."""
+        run = runs.get(jid)
+        if run is None or run["wid"] != wid:
+            raise HTTPException(404, "batch not found")
+        return BatchOut(job=job_info(jobs, jid), action=run["action"], total=run["total"],
+                        rows=[BatchRow(**x) for x in run["rows"]])
 
     @r.get("/loops/overview", response_model=LoopsOverview)
     def loops_overview(wid: str):

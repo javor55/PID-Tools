@@ -138,8 +138,8 @@ def run(items, action, params, runner, progress=None, partial=None):
         if partial:
             partial(dict(row, delta=delta))
         rows.append(row)
-    if progress:
-        progress(1.0, f"{n} / {n}")
+    if progress and items:
+        progress(1.0, f"{n} / {n} · {items[-1]['name']}")
     return rows
 
 

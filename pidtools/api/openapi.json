@@ -856,6 +856,224 @@
     "title": "AxisRange",
     "type": "object"
    },
+   "BatchOut": {
+    "properties": {
+     "action": {
+      "enum": [
+       "identify",
+       "tune",
+       "accept"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "job": {
+      "$ref": "#/components/schemas/JobInfo"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/BatchRow"
+      },
+      "title": "Rows",
+      "type": "array"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "job",
+     "action",
+     "total",
+     "rows"
+    ],
+    "title": "BatchOut",
+    "type": "object"
+   },
+   "BatchParams": {
+    "description": "Parametry akce `tune` (stejné hodnoty jako Ladění: metoda, τc, typ regulátoru, kritérium a cíl optimalizace).",
+    "properties": {
+     "crit": {
+      "anyOf": [
+       {
+        "enum": [
+         "MIGO",
+         "IAE",
+         "ISE",
+         "ITAE",
+         "OVS"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Crit"
+     },
+     "ctype": {
+      "anyOf": [
+       {
+        "enum": [
+         "PI",
+         "PID"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ctype"
+     },
+     "method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Method"
+     },
+     "target": {
+      "anyOf": [
+       {
+        "enum": [
+         "dist",
+         "sp",
+         "both",
+         "scen"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target"
+     },
+     "tc": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tc"
+     }
+    },
+    "title": "BatchParams",
+    "type": "object"
+   },
+   "BatchReason": {
+    "properties": {
+     "args": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        },
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key"
+    ],
+    "title": "BatchReason",
+    "type": "object"
+   },
+   "BatchReq": {
+    "properties": {
+     "action": {
+      "enum": [
+       "identify",
+       "tune",
+       "accept"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "loops": {
+      "items": {
+       "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Loops",
+      "type": "array"
+     },
+     "params": {
+      "$ref": "#/components/schemas/BatchParams",
+      "default": {}
+     }
+    },
+    "required": [
+     "loops",
+     "action"
+    ],
+    "title": "BatchReq",
+    "type": "object"
+   },
+   "BatchRow": {
+    "properties": {
+     "loop": {
+      "title": "Loop",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BatchReason"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "status": {
+      "enum": [
+       "ok",
+       "skipped",
+       "error"
+      ],
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loop",
+     "name",
+     "status"
+    ],
+    "title": "BatchRow",
+    "type": "object"
+   },
    "BlockParam": {
     "properties": {
      "default": {
@@ -19278,6 +19496,276 @@
     "tags": [
      "app-settings",
      "app-settings"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/batch": {
+   "post": {
+    "description": "Hromadná akce nad vybranými smyčkami jako jedna úloha (průběh „3 / 12 · název“, zrušení zachová hotové smyčky):\n`identify` (výchozí nastavení smyčky), `tune` (návrh uložený u smyčky, Set 2 se nemění), `accept` (návrhy →\nSet 2). Smyčka bez použitelných dat se přeskočí s důvodem. Výsledek po smyčkách: GET /batch/{jid}.",
+    "operationId": "batch_start_api_v1_workspaces__wid__batch_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BatchReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Batch Start",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/batch/export": {
+   "get": {
+    "description": "Export sady `n` vybraných smyček (indexy oddělené čárkou) do jednoho souboru; formát řádků jako `/tuning/export`.",
+    "operationId": "batch_export_api_v1_workspaces__wid__batch_export_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "loops",
+      "required": true,
+      "schema": {
+       "title": "Loops",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "fmt",
+      "required": false,
+      "schema": {
+       "default": "csv",
+       "title": "Fmt",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "n",
+      "required": false,
+      "schema": {
+       "default": 2,
+       "title": "N",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "text/csv": {},
+       "text/plain": {}
+      },
+      "description": "one file with the set of every selected loop (fmt: csv, pcs7, tia, deltav); header X-Skipped-Loops lists loops without data or model"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Batch Export",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/batch/{jid}": {
+   "get": {
+    "description": "Stav hromadné úlohy a řádky výsledku hotových smyček (průběžně; po zrušení zůstanou).",
+    "operationId": "batch_get_api_v1_workspaces__wid__batch__jid__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "jid",
+      "required": true,
+      "schema": {
+       "title": "Jid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BatchOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Batch Get",
+    "tags": [
+     "audit"
     ]
    }
   },

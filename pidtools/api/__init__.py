@@ -129,7 +129,7 @@ def _routers(project, jobs, team, library, settings, userdata, store):
             projects.router(project, appsettings.remember(userdata), max_upload[0] if public else projects.MAX_PROJECT),
             projects.pending_router(team is None), appsettings.router(project, settings, userdata, library, public, store),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
-            tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
+            tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project, jobs), apc.router(project, jobs),
             apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs, not public), guide.router(project),
             triage.router(project, jobs), controllers.router(library, team is None),
             controllers.loop_router(project, library), journal.router(project, settings, public)]
