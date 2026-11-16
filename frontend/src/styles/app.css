@@ -33,7 +33,8 @@ button { font: inherit; color: inherit; }
 .ctx b { color: var(--pid-text); font-weight: 600; }
 .ctx .sep { opacity: .5; }
 .ctx .link { margin-left: auto; }
-.ctx .next { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; max-width: 55%; }
+.ctx .next { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; min-width: 0;
+  flex: 1 1 180px; }                                   /* zbylé místo řádku; dlouhý text se zkrátí, než se řádek zalomí */
 .ctx .next ~ .link { margin-left: 0; }
 .ctx .next-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--pid-text); }
 .tab-mark { margin-left: 6px; font-weight: 700; }
