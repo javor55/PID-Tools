@@ -235,7 +235,7 @@ def _sets(ws):
             except Exception:
                 m = None
         vals, warns = _view(ws, g, ti, td)
-        out.append(SetInfo(n=n, gain=g, ti=ti, td=td, placeholder=tun.is_placeholder(g, ti, td), metrics=m, values=vals,
+        out.append(SetInfo(n=n, gain=g, ti=ti, td=td, placeholder=ws.set2_empty() if n == 2 else tun.is_placeholder(g, ti, td), metrics=m, values=vals,
                            warnings=warns))
     return out
 

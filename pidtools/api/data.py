@@ -378,7 +378,7 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         errs = prj.validate_settings(body, ws.settings)      # před zápisem: špatná hodnota stav nezmění
         if errs:
             raise HTTPException(422, errs[0])
-        ws.set(**body)
+        ws.set(**prj.mark_set2_defined(body))
         return get_settings(wid)
 
     @r.get("/signals", response_class=Response,

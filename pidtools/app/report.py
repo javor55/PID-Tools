@@ -418,7 +418,10 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
         for r in recs:
             d = data[r["id"]]
             c1, c2 = r["ctrl1"], r["ctrl"]
-            empty2 = is_placeholder(float(c2["Gain"]), float(_ti(c2)), float(c2.get("TD", 0)))   # Set 2 ještě nezadaný
+            if "set2_defined" in r:                 # výslovný příznak; staré snímky deníku ho nemají → porovnání s výchozími
+                empty2 = not r["set2_defined"]
+            else:
+                empty2 = is_placeholder(float(c2["Gain"]), float(_ti(c2)), float(c2.get("TD", 0)))   # Set 2 ještě nezadaný
             empty_any |= empty2
             def chg(a, b, better_low=None, fmt=_f, empty2=empty2):
                 if empty2:

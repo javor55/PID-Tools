@@ -48,12 +48,16 @@ class TuningMixin:
                         float(self.get(f"set{n}_td")), ff, ffll)
 
     def set2_empty(self):
-        """Set 2 má ještě výchozí hodnoty (Gain 1, TI 100, TD 0) – nebyl zadán ani převzat z návrhu."""
-        return tun.is_placeholder(float(self.get("set2_gain")), float(self.get("set2_ti")), float(self.get("set2_td")))
+        """Set 2 nebyl zadán ani převzat z návrhu (výslovný příznak `set2_defined`, ne porovnání s výchozími čísly)."""
+        return not self.get("set2_defined")
 
     def work_ctrl(self):
         """Pracovní sada pro APC a simulace: Set 2; dokud je Set 2 výchozí, Set 1 (hodnoty z PLC)."""
-        return self.set_ctrl(1 if self.set2_empty() else 2)
+        return self.set_ctrl(self.work_set())
+
+    def work_set(self):
+        """Číslo pracovní sady (1 nebo 2) – tu, kterou vrací `work_ctrl`; API ho posílá do textů APC."""
+        return 1 if self.set2_empty() else 2
 
     # ---- regulátor smyčky (profil): sady se ukládají kanonicky (Kc, Ti, Td), v jednotkách bloku se zobrazují / zadávají
     def ranges(self):
@@ -177,6 +181,8 @@ class TuningMixin:
     def write_set(self, n, s, log=None):
         """Parametry do sady n; log = popis pro historii ladění (metoda, scénář, IAE…), None = nezaznamenávat."""
         self.set(**{f"set{n}_gain": float(s["Kc"]), f"set{n}_ti": float(s["Ti"]), f"set{n}_td": float(s["Td"])})
+        if n == 2:
+            self.set(set2_defined=True)             # zápis Setu 2 (ruční i z návrhu) = Set 2 je zadán
         if log is not None:
             import datetime as _dt
             m = self.set_metrics(n) if self.model is not None else {}

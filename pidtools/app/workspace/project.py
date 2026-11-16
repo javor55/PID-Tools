@@ -76,7 +76,8 @@ class ProjectMixin:
                     ctrl=self.set_ctrl(2), ctrl1=self.set_ctrl(1), rng=tuple(self.rng),
                     fit=self.fit["res"][self.model[0]]["fit"] if self.model else None,
                     c_pv=self.c_pv, c_mv=self.c_mv, c_sp=self.c_sp, c_d=list(self.c_d), pv_rng=(self.pv_lo, self.pv_hi),
-                    mv_rng=(self.mv_lo, self.mv_hi), u_pv=self.get("u_pv", ""), u_mv=self.get("u_mv", ""))
+                    mv_rng=(self.mv_lo, self.mv_hi), u_pv=self.get("u_pv", ""), u_mv=self.get("u_mv", ""),
+                    set2_defined=bool(self.get("set2_defined")))
 
     def apc_record(self):
         """Záznam smyčky pro APC: jako report_record, regulátor = pracovní sada (Set 1, dokud je Set 2 výchozí)."""

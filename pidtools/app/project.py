@@ -35,7 +35,7 @@ STATE_KEYS = [
     "lang", "loop_tag", "u_pv", "u_mv", "pv_lo", "pv_hi", "mv_lo", "mv_hi", "pv_rng_user", "mv_rng_user", "plot_h", "chart_tunit",
     # blok PIDConL a sady parametrů
     "samp", "diffgain", "pfb", "propfac", "dfb", "db", "db_mode", "mvl_lo", "mvl_hi", "pvfilt", "mvrate", "sprate",
-    "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td",
+    "set1_gain", "set1_ti", "set1_td", "set2_gain", "set2_ti", "set2_td", "set2_defined",
     # identifikace
     "thmax", "chosen", "mcode", "mtype", "mtype0", "proc_type", "dist_level", "dist_strength", "gain_sign", "id_stic", "win_mode",
     "read_manual",
@@ -66,7 +66,7 @@ NUM_KEYS = {"pv_lo", "pv_hi", "mv_lo", "mv_hi", "plot_h", "samp", "diffgain", "p
             "scen_d_pv", "sim_J", "sim_noise", "plan_dpv", "plan_snr", "cas_k", "cas_t1", "cas_t2", "cas_th",
             "cas_samp", "cas_tci", "cas_tco", "diag_theta"}
 BOOL_KEYS = {"pv_rng_user", "mv_rng_user", "pfb", "dfb", "id_stic", "read_manual", "opt_robust", "sim_len_u_set",
-             "diag_integ"}
+             "diag_integ", "set2_defined"}
 LIST_KEYS = {"chosen", "tune_hist", "audit_loops", "vchar_last", "live_runs"}
 NUM_PREFIX = ("ed|", "tc|", "tend_r|", "sim_S|")
 BOOL_PREFIX = ("fx|", "idf|")
@@ -211,7 +211,21 @@ def migrate_state(state):
         state.setdefault("fx|" + k[4:], not bool(state[k]))
     if "propfac" not in state and "pfb" in state:
         state["propfac"] = 0.0 if state["pfb"] else 1.0
+    if "set2_defined" not in state:                  # projekty do beta 4: „Set 2 zadán“ = hodnoty jiné než výchozí 1 / 100 / 0
+        from . import tuning as tun
+        g, ti, td = (state.get(f"set2_{k}", d) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0)))
+        try:
+            state["set2_defined"] = not tun.is_placeholder(float(g), float(ti), float(td))
+        except (TypeError, ValueError):             # poškozená hodnota: clean_state ji stejně vynechá → Set 2 nezadán
+            state["set2_defined"] = False
     return state
+
+
+def mark_set2_defined(patch):
+    """Změna nastavení s hodnotou Setu 2 (a bez výslovného `set2_defined`) → doplní `set2_defined = True`."""
+    if "set2_defined" not in patch and any(k in patch for k in ("set2_gain", "set2_ti", "set2_td")):
+        return dict(patch, set2_defined=True)
+    return patch
 
 
 def loop_records(proj):

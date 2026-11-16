@@ -215,14 +215,19 @@ def test_smith_optimize_job(ws):
 
 
 def test_apc_uses_set1_while_set2_is_default(ws):
-    """Set 2 s výchozími hodnotami (Gain 1, TI 100) → APC počítá se Setem 1 (hodnoty z PLC); po zápisu Setu 2 s ním."""
+    """Set 2 nezadán (`set2_defined` False) → APC počítá se Setem 1 (hodnoty z PLC); po zápisu Setu 2 s ním."""
     c, wid, s = ws
-    old = {k: s.get(k) for k in ("set2_gain", "set2_ti", "set2_td")}
+    old = {k: s.get(k) for k in ("set2_gain", "set2_ti", "set2_td", "set2_defined")}
     try:
-        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": 1.0, "set2_ti": 100.0, "set2_td": 0.0})
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": 1.0, "set2_ti": 100.0, "set2_td": 0.0, "set2_defined": False})
         assert s.set2_empty() and s.work_ctrl() == s.set_ctrl(1) and s.apc_record()["ctrl"] == s.set_ctrl(1)
         c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": -1.5, "set2_ti": 150.0, "set2_td": 0.0})
         assert not s.set2_empty() and s.work_ctrl() == s.set_ctrl(2)
         assert s.report_record()["ctrl"] == s.set_ctrl(2)          # protokol dál ukazuje Set 2 tak, jak je
+        # ručně zadané výchozí hodnoty 1 / 100 / 0 jsou skutečný Set 2: APC s ním počítá
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_defined": False})
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"set2_gain": 1.0, "set2_ti": 100.0, "set2_td": 0.0})
+        assert s.get("set2_defined") is True and not s.set2_empty()
+        assert s.work_ctrl() == s.set_ctrl(2) and s.apc_record()["ctrl"] == s.set_ctrl(2)
     finally:
         c.patch(f"/api/v1/workspaces/{wid}/settings", json=old)

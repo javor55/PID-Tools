@@ -13,7 +13,6 @@ from .. import i18n
 from ..i18n import T
 from .apc.common import tchar
 from .colors import C_MV, C_PV, C_SET1, C_SET2, C_SP, FONT
-from .tuning import is_placeholder
 
 
 def step_h(code, p, samp):
@@ -292,7 +291,7 @@ def web_config_ws(ws, cascade=None):
     if cascade:
         apc["cascade"] = dict(ok=True, inner=cascade["inner"], source=cascade.get("source", ""),
                               octrl=profile_ctrl_js(prof, ws.prof_ctrl(cascade["octrl"])))
-    empty2 = is_placeholder(float(g("set2_gain")), float(g("set2_ti")), float(g("set2_td")))
+    empty2 = ws.set2_empty()
     cfg = web_config(model=ws.model, samp=float(g("samp")), pv0=pv0, mv0=float(mv_id[0]), set1=ws.set_ctrl(1),
                       set2=ws.set_ctrl(2), plant=ws.plant(), pv_rng=(ws.pv_lo, ws.pv_hi), mv_rng=(ws.mv_lo, ws.mv_hi),
                       u_pv=g("u_pv", ""), u_mv=g("u_mv", ""), pvfilt=float(g("pvfilt", 0.0)),
