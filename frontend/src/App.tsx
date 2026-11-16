@@ -58,20 +58,20 @@ export default function App() {
   const cur = TABS.find((t) => t.id === tab) ?? TABS[0];
   const showStart = !!ws.data && !ws.data.has_data && (cur.id === "model" || cur.id === "tuning" || cur.id === "apc" || (cur.id === "data" && sub === "sources"));
   // Data má podzáložky; Diagnostika zůstává ve starých pohledech (E5 je přepracuje).
-  const dataView = sub === "sources" ? [<SourcesMain />, <SourcesSide />] : sub === "trends" ? [<Lazy><TrendsMain /></Lazy>, <Lazy><TrendsSide /></Lazy>]
-    : sub === "diag-all" ? [<Lazy><TriageMain /></Lazy>, <Lazy><TriageSide /></Lazy>] : sub === "diag-detail" ? [<Lazy><DiagMain /></Lazy>, <Lazy><DiagSide /></Lazy>]
+  const dataView = sub === "sources" ? [<SourcesMain />, <SourcesSide />] : sub === "trends" ? [<Lazy key={tab + sub}><TrendsMain /></Lazy>, <Lazy key={tab + sub}><TrendsSide /></Lazy>]
+    : sub === "diag-all" ? [<Lazy key={tab + sub}><TriageMain /></Lazy>, <Lazy key={tab + sub}><TriageSide /></Lazy>] : sub === "diag-detail" ? [<Lazy key={tab + sub}><DiagMain /></Lazy>, <Lazy key={tab + sub}><DiagSide /></Lazy>]
     : [<DataMain />, <DataSide />];
   return (
     <div className="shell">
       <Header />
-      {settingsOpen ? <ErrorBoundary resetKey="settings"><Lazy><SettingsPage /></Lazy></ErrorBoundary> : showStart ? <StartScreen compact={cur.id === "data"} /> : <>
+      {settingsOpen ? <ErrorBoundary resetKey="settings"><Lazy key={tab + sub}><SettingsPage /></Lazy></ErrorBoundary> : showStart ? <StartScreen compact={cur.id === "data"} /> : <>
       {CONTEXT_TABS.includes(cur.id) && <ContextRow />}
       <div className={cur.id === "live" ? "body body-wide" : "body"}>
         <ErrorBoundary resetKey={tab + sub}>
         <main className="main" data-testid={`tab-${cur.id}`} data-dsub={cur.id === "data" ? sub : undefined}>
-          {cur.id === "data" ? dataView[0] : cur.id === "model" ? <Lazy><ModelMain /></Lazy> : cur.id === "tuning" ? <Lazy><TuningMain /></Lazy>
-            : cur.id === "live" ? <Lazy><LiveMain /></Lazy> : cur.id === "apc" ? <Lazy><ApcMain /></Lazy>
-            : <Lazy><ProjectMain /></Lazy>}
+          {cur.id === "data" ? dataView[0] : cur.id === "model" ? <Lazy key={tab + sub}><ModelMain /></Lazy> : cur.id === "tuning" ? <Lazy key={tab + sub}><TuningMain /></Lazy>
+            : cur.id === "live" ? <Lazy key={tab + sub}><LiveMain /></Lazy> : cur.id === "apc" ? <Lazy key={tab + sub}><ApcMain /></Lazy>
+            : <Lazy key={tab + sub}><ProjectMain /></Lazy>}
         </main>
         </ErrorBoundary>
         {cur.id !== "live" && <aside className="side" aria-label={T("ui_settings")}>
@@ -80,9 +80,9 @@ export default function App() {
             <button type="button" className="link" onClick={() => sideAll(true)} data-testid="side-expand">{T("side_expand_all")}</button>
             <button type="button" className="link" onClick={() => sideAll(false)} data-testid="side-collapse">{T("side_collapse_all")}</button>
           </div>
-          {cur.id === "data" ? dataView[1] : cur.id === "model" ? <Lazy><ModelSide /></Lazy> : cur.id === "tuning" ? <Lazy><TuningSide /></Lazy>
-            : cur.id === "apc" ? <Lazy><ApcSide /></Lazy>
-            : <Lazy><ProjectSide /></Lazy>}
+          {cur.id === "data" ? dataView[1] : cur.id === "model" ? <Lazy key={tab + sub}><ModelSide /></Lazy> : cur.id === "tuning" ? <Lazy key={tab + sub}><TuningSide /></Lazy>
+            : cur.id === "apc" ? <Lazy key={tab + sub}><ApcSide /></Lazy>
+            : <Lazy key={tab + sub}><ProjectSide /></Lazy>}
           </ErrorBoundary>
         </aside>}
       </div>

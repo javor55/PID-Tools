@@ -47,6 +47,10 @@ export function LoadingSkeleton() {
       <span className="qs-vh">{T("qs_loading")}</span><i /><i /><i /></div>);
 }
 
+/**
+ * Hranice `Suspense` s kostrou. Každé místo použití má v App vlastní `key` (záložka + podzáložka): při přepnutí se
+ * stará záložka odmontuje hned, React ji jinak jen skryje (`display: none`) a ponechá v DOM do načtení chunku.
+ */
 export function Lazy({ children }: { children: ReactNode }) {
   return <Suspense fallback={<LoadingSkeleton />}>{children}</Suspense>;
 }
