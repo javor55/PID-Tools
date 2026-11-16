@@ -10,11 +10,8 @@ import PIDViewAn from "../legacy/viewer_an.js";
 import "../legacy/viewer.css";
 import { useSettings, useWs } from "../data";
 import { decOf } from "../i18n";
+import { usePalette } from "../lib/palette";
 import { useUi } from "../store";
-
-const OTHER = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#9333ea",
-  "#ea580c", "#0f766e", "#b91c1c", "#4f46e5", "#a16207"];
-const DIST = ["#0d9488", "#8b5cf6", "#ca8a04", "#64748b"];
 
 // analýza je prostý skript (UMD): při sestavení se z něj stane modul, viewer.js ho čte z window.PIDViewAn
 (window as unknown as { PIDViewAn?: unknown }).PIDViewAn ??= PIDViewAn;
@@ -28,6 +25,7 @@ export function RecordViewer({ texts, simple }: { texts: Record<string, string>;
   const wid = useUi((s) => s.wid);
   const lang = useUi((s) => s.lang);
   const dark = useUi((s) => s.theme) === "dark" || document.documentElement.dataset.theme === "dark";
+  const pal = usePalette();                             // barvy z proměnných CSS; mění se s data-theme
   const ws = useWs().data;
   const settings = useSettings();
   const pack = useQuery({
@@ -42,14 +40,14 @@ export function RecordViewer({ texts, simple }: { texts: Record<string, string>;
     const { meta, blob } = pack.data;
     const roles: Record<string, [string, string, string]> = {};
     const st = settings.data ?? {};
-    if (ws.pv) roles[ws.pv] = ["PV", "#1f5fa8", String(st.u_pv ?? "")];
-    if (ws.sp) roles[ws.sp] = ["SP", "#9aa5b1", String(st.u_pv ?? "")];
-    if (ws.mv) roles[ws.mv] = ["MV", "#c2410c", String(st.u_mv ?? "")];
-    (ws.dists ?? []).forEach((d, j) => { roles[d] ??= ["DV", DIST[j % DIST.length], ""]; });
-    if (ws.pos) roles[ws.pos] ??= ["POS", "#7c3aed", "%"];
+    if (ws.pv) roles[ws.pv] = ["PV", pal.pv, String(st.u_pv ?? "")];
+    if (ws.sp) roles[ws.sp] = ["SP", pal.sp, String(st.u_pv ?? "")];
+    if (ws.mv) roles[ws.mv] = ["MV", pal.mv, String(st.u_mv ?? "")];
+    (ws.dists ?? []).forEach((d, j) => { roles[d] ??= ["DV", pal.dist[j % pal.dist.length], ""]; });
+    if (ws.pos) roles[ws.pos] ??= ["POS", pal.pos, "%"];
     let k = 0;
     const sigs = meta.sigs.map((s) => {
-      const [role, color, unit] = roles[s.name] ?? ["", OTHER[k++ % OTHER.length], ""];
+      const [role, color, unit] = roles[s.name] ?? ["", pal.series[k++ % pal.series.length], ""];
       return { ...s, role, color, unit, axis: role === "PV" || role === "SP" ? "pv" : role === "MV" || role === "POS" ? "mv" : null };
     });
     window.__pidViewData = { [meta.hash]: { buf: blob, sigs: {} } };
@@ -74,7 +72,7 @@ export function RecordViewer({ texts, simple }: { texts: Record<string, string>;
         }
       },
     });
-  }, [pack.data, ws, settings.data, texts, lang, dark, wid, simple]);
+  }, [pack.data, ws, settings.data, texts, lang, dark, pal, wid, simple]);
 
   // ne v úklidu efektu výše (ten běží při každé změně dat a modul by ztratil zoom): odpojit až s komponentou
   useEffect(() => () => { destroy.current?.(); destroy.current = null; }, []);
