@@ -30,6 +30,7 @@ from ..app import appsettings as aps
 from ..app.autosave import NullUserData, UserData
 from ..app.jobs import FINAL
 from ..controllers import Library
+from ..app import undo
 from . import (analysis, apc, apc_loops, apc_more, appsettings, audit, controllers, data, deploy, guide, journal,
                mapping, model, opcua, projects, sources, triage, tuning, tuning_profile)
 from .common import JobInfo
@@ -110,7 +111,10 @@ def _serialize_workspaces(app):
                 locks.pop(wid, None)
         if request.method not in ("GET", "HEAD", "OPTIONS") and resp.status_code < 400 and not request.url.path.endswith("/autosave"):
             try:
-                app.state.store.get(m.group(1)).touch()      # počítadlo změn (neuloženo, záchranná kopie)
+                proj = app.state.store.get(m.group(1))
+                proj.touch()                                 # počítadlo změn (neuloženo, záchranná kopie)
+                if undo.CLEARING.match(request.url.path[m.end():]):
+                    proj.undo_clear()                        # změna, kterou zpět / znovu nevrací (data, sloupce, model, …)
             except KeyError:
                 pass
         return resp

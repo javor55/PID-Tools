@@ -11420,6 +11420,35 @@
     "title": "Uncertainty",
     "type": "object"
    },
+   "UndoState": {
+    "description": "Co by vrátil `POST /undo` a `POST /redo`: krátký popisek kroku, nebo None (není co vracet).",
+    "properties": {
+     "redo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Redo"
+     },
+     "undo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Undo"
+     }
+    },
+    "title": "UndoState",
+    "type": "object"
+   },
    "ValRow": {
     "properties": {
      "FIT": {
@@ -25145,6 +25174,81 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/redo": {
+   "post": {
+    "description": "Znovu provede poslední vrácenou změnu; 409, když není co provést.",
+    "operationId": "post_redo_api_v1_workspaces__wid__redo_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Post Redo",
+    "tags": [
+     "data"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/report": {
    "post": {
     "description": "Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.",
@@ -28263,6 +28367,154 @@
     "summary": "Warnings",
     "tags": [
      "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/undo": {
+   "get": {
+    "description": "Popisky kroků, které by vrátil `POST /undo` a `POST /redo` (None = není co vracet).",
+    "operationId": "get_undo_api_v1_workspaces__wid__undo_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UndoState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Undo",
+    "tags": [
+     "data"
+    ]
+   },
+   "post": {
+    "description": "Vrátí poslední změnu nastavení / sady / úseku / scénáře; 409, když není co vracet nebo krok už neplatí.",
+    "operationId": "post_undo_api_v1_workspaces__wid__undo_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Post Undo",
+    "tags": [
+     "data"
     ]
    }
   },

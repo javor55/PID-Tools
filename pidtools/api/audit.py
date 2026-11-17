@@ -322,6 +322,7 @@ def router(get_proj, jobs):
             ls = orig[d["loop"]]
             if delta is None or ls not in cur.loops:
                 return
+            cur.undo_clear()                                      # hromadná akce mění smyčky mimo kroky zpět / znovu
             if "out" in delta:                                    # identifikace: stav a nastavení jako u /identify
                 tasks.apply(ls, delta["out"])
                 batch.apply_delta(ls, dict(drop=batch.sug_keys(ls)))    # starý návrh platil pro starý model

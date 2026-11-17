@@ -3545,5 +3545,14 @@
  "batch_skip_no_proposal": "The loop has no tuning proposal for its current model.",
  "batch_skip_method": "Method {method} is not available for model {model}.",
  "batch_error": "{text}",
- "batch_bad_proposal": "Method {method} returned an unusable proposal (Gain {kc:.4g}, TI {ti:.4g} s)."
+ "batch_bad_proposal": "Method {method} returned an unusable proposal (Gain {kc:.4g}, TI {ti:.4g} s).",
+ "undo_segment": "Segment {a}–{b} s → {c}–{d} s",
+ "undo_scen_sp": "Scenario SP",
+ "undo_scen_rows": "Scenario events",
+ "undo_title": "Undo: {label} (Ctrl+Z)",
+ "redo_title": "Redo: {label} (Ctrl+Y)",
+ "undo_empty": "Nothing to undo",
+ "redo_empty": "Nothing to redo",
+ "undo_done": "Undone: {label}",
+ "redo_done": "Redone: {label}"
 }

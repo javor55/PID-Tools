@@ -3545,5 +3545,14 @@
  "batch_skip_no_proposal": "Smyčka nemá návrh ladění pro svůj současný model.",
  "batch_skip_method": "Metoda {method} není pro model {model} k dispozici.",
  "batch_error": "{text}",
- "batch_bad_proposal": "Metoda {method} vrátila nepoužitelný návrh (Gain {kc:.4g}, TI {ti:.4g} s)."
+ "batch_bad_proposal": "Metoda {method} vrátila nepoužitelný návrh (Gain {kc:.4g}, TI {ti:.4g} s).",
+ "undo_segment": "Úsek {a}–{b} s → {c}–{d} s",
+ "undo_scen_sp": "SP scénáře",
+ "undo_scen_rows": "Události scénáře",
+ "undo_title": "Zpět: {label} (Ctrl+Z)",
+ "redo_title": "Znovu: {label} (Ctrl+Y)",
+ "undo_empty": "Není co vracet",
+ "redo_empty": "Není co provést znovu",
+ "undo_done": "Vráceno: {label}",
+ "redo_done": "Provedeno znovu: {label}"
 }

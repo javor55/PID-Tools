@@ -14,6 +14,7 @@ from ..domain import Snapshot, migrate_project
 from ..domain.model import FORMAT, VERSION, TimeGrid
 from ..domain.model import Project as DomainProject
 from ..guess import guess_roles
+from ..undo import History
 from . import Workspace
 from .sources import SourceRT, SourcesMixin, embedded_frame
 
@@ -29,6 +30,7 @@ class Project(SourcesMixin):
         self.rev = self.saved_rev = self.autosaved_rev = 0      # počet změn, stav při uložení a při záchranné kopii
         self.saved_at = self.autosaved_at = None                # čas posledního ručního uložení / záchranné kopie (epocha)
         self.keep_rev = False             # příští změnu nepočítat (načtení / uložení projektu)
+        self.history = History()          # zpět / znovu (app.undo): jen v paměti, do projektu se neukládá
         self._apply_defaults(self.loops[0], first=True)
 
     # ---- sledování změn (pro „uloženo“, autosave a potvrzení u Nový)
@@ -37,6 +39,10 @@ class Project(SourcesMixin):
             self.keep_rev = False
         else:
             self.rev += 1
+
+    def undo_clear(self):
+        """Vyprázdní zpět / znovu (změna, kterou krok neumí vrátit: data, projekt, sloupce, identifikace, smyčky)."""
+        self.history.clear()
 
     def mark_saved(self, manual=True, at=None):
         at = at or time.time()
@@ -69,6 +75,7 @@ class Project(SourcesMixin):
     def _reset_to(self, ls, kind=None):
         self._apply_defaults(ls, first=True)
         self.loops, self.active, self.sources, self.journal = [ls], 0, [], []
+        self.undo_clear()
         self.sync()                       # tabulka smyčky se stane jediným zdrojem
         if kind and self.sources:
             self.sources[0].src.kind = kind
@@ -124,6 +131,7 @@ class Project(SourcesMixin):
 
     def remove_loop(self, i):
         if len(self.loops) > 1:
+            self.undo_clear()                 # indexy smyček v krocích by přestaly platit
             del self.loops[i]
             self.active = min(self.active, len(self.loops) - 1)
 
@@ -208,6 +216,7 @@ class Project(SourcesMixin):
                             cascade_to=spec.cascade_to)
             loops.append(ls)
         self.loops, self.active = loops, act
+        self.undo_clear()
         self.journal = [Snapshot.from_dict(d) for d in proj.get("journal") or []]
         jr.migrate_live_runs(self)           # starší souhrny živé simulace (live_runs) → záznamy deníku
 

@@ -2792,6 +2792,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/redo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Redo
+         * @description Znovu provede poslední vrácenou změnu; 409, když není co provést.
+         */
+        post: operations["post_redo_api_v1_workspaces__wid__redo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/report": {
         parameters: {
             query?: never;
@@ -3308,6 +3328,30 @@ export interface paths {
         get: operations["warnings_api_v1_workspaces__wid__tuning_warnings_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Undo
+         * @description Popisky kroků, které by vrátil `POST /undo` a `POST /redo` (None = není co vracet).
+         */
+        get: operations["get_undo_api_v1_workspaces__wid__undo_get"];
+        put?: never;
+        /**
+         * Post Undo
+         * @description Vrátí poslední změnu nastavení / sady / úseku / scénáře; 409, když není co vracet nebo krok už neplatí.
+         */
+        post: operations["post_undo_api_v1_workspaces__wid__undo_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7644,6 +7688,16 @@ export interface components {
              * @default 15
              */
             n: number;
+        };
+        /**
+         * UndoState
+         * @description Co by vrátil `POST /undo` a `POST /redo`: krátký popisek kroku, nebo None (není co vracet).
+         */
+        UndoState: {
+            /** Redo */
+            redo?: string | null;
+            /** Undo */
+            undo?: string | null;
         };
         /** ValRow */
         ValRow: {
@@ -13641,6 +13695,40 @@ export interface operations {
             };
         };
     };
+    post_redo_api_v1_workspaces__wid__redo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     report_api_v1_workspaces__wid__report_post: {
         parameters: {
             query?: never;
@@ -14915,6 +15003,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Warn"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_undo_api_v1_workspaces__wid__undo_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UndoState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_undo_api_v1_workspaces__wid__undo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
                 };
             };
             /** @description Validation Error */

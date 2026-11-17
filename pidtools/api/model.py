@@ -315,10 +315,11 @@ def router(get_proj, jobs):
         """Úloha nad kopií prostoru; výsledek se po dokončení zapíše do prostoru (pokud mezitím nezmizel)."""
         def done(out):
             try:
-                cur = get_proj(wid).state
+                proj = get_proj(wid)
             except HTTPException:
                 return
-            tasks.apply(cur, out)
+            proj.undo_clear()                       # výsledek úlohy mění model a nastavení: zpět / znovu by neplatilo
+            tasks.apply(proj.state, out)
         jid = jobs.submit(tasks.run, ws.lean(), method, args, kwargs, steps, key=key, timeout=timeout,
                           on_done=done)
         return job_info(jobs, jid)

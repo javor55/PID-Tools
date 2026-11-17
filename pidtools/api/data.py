@@ -7,9 +7,10 @@ from typing import Annotated, Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..app import project as prj
+from ..app import undo
 from ..app import signalpack
 from ..app.dataio import ROWS, TIME_FORMATS, read_table
 from ..app.dataset import UNITS, guess_col
@@ -176,6 +177,12 @@ class Columns(BaseModel):
 class Range(BaseModel):
     a: float
     b: float
+
+
+class UndoState(BaseModel):
+    """Co by vrátil `POST /undo` a `POST /redo`: krátký popisek kroku, nebo None (není co vracet)."""
+    undo: str | None = Field(default=None)
+    redo: str | None = Field(default=None)
 
 
 class Check(BaseModel):
@@ -478,7 +485,9 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         a, b = sorted((float(body.a), float(body.b)))
         if not (0 <= a < b <= float(ws.t[-1]) + 1e-9):
             raise HTTPException(422, "range outside the record")
+        p, snap = get_proj(wid), undo.take(ws)
         ws.rng = (a, b)
+        p.history.record(p, snap, ws)                         # krok zpět (změna úseku)
         return info(wid, ws)
 
     @r.get("/settings", response_model=LoopSettings)
@@ -496,7 +505,9 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         errs = prj.validate_settings(body, ws.settings)      # před zápisem: špatná hodnota stav nezmění
         if errs:
             raise HTTPException(422, errs[0])
+        p, snap = get_proj(wid), undo.take(ws)
         ws.set(**prj.mark_set2_defined(body))
+        p.history.record(p, snap, ws, skip=undo.is_ui_key)     # krok zpět (stav rozhraní krok nevytváří)
         return settings_out(ws)
 
     @r.get("/signals", response_class=Response,
@@ -552,7 +563,36 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         return [str(x) for x in (need_data(wid).compression() or [])]
 
     _quality_preview(r, need_data)
+    _undo_routes(r, get_proj)
     return r
+
+
+def _undo_routes(r, get_proj):
+    """Zpět / znovu změn nastavení smyčky (FEATURE-006); kroky zapisují PATCH /settings, PUT /range a v tuning.py sady a scénář."""
+    @r.get("/undo", response_model=UndoState)
+    def get_undo(wid: str):
+        """Popisky kroků, které by vrátil `POST /undo` a `POST /redo` (None = není co vracet)."""
+        p = get_proj(wid)
+        u, d = p.history.labels(p)
+        return UndoState(undo=u, redo=d)
+
+    def step_back(wid, redo):
+        p = get_proj(wid)
+        try:
+            p.history.pop(p, redo)
+        except undo.UndoError as ex:
+            raise HTTPException(ex.status, ex.text) from ex
+        return info(wid, p.state)
+
+    @r.post("/undo", response_model=WorkspaceInfo)
+    def post_undo(wid: str):
+        """Vrátí poslední změnu nastavení / sady / úseku / scénáře; 409, když není co vracet nebo krok už neplatí."""
+        return step_back(wid, False)
+
+    @r.post("/redo", response_model=WorkspaceInfo)
+    def post_redo(wid: str):
+        """Znovu provede poslední vrácenou změnu; 409, když není co provést."""
+        return step_back(wid, True)
 
 
 def _quality_preview(r, need_data):
