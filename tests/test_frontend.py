@@ -1081,6 +1081,11 @@ def _api_raw(server, path, page):
     return urllib.request.urlopen(req, timeout=60).read()
 
 
+
+def _side_cards(page, n):
+    """Počká, až má pravý panel aspoň n karet – panely záložek se načítají líně (TICKET-019)."""
+    page.wait_for_function(f"() => document.querySelectorAll('aside.side details.scard').length >= {n}", timeout=30000)
+
 def _open_project(page, raw, name="projekt.pidproj"):
     """Otevře projekt (soubor) v záložce Projekt a počká na potvrzení."""
     page.locator('[data-tab="project"]').click()
@@ -1287,14 +1292,14 @@ def test_diag_loops_project_card_structure(page, server):
     assert page.locator('[data-testid="diag-perf"].dcard h2 .qm').count() == 1
     assert page.locator('[data-testid="diag-valve"].dcard h2').count() == 1
     assert page.locator('[data-testid="diag-nl"].dcard h2').count() == 1
-    assert page.locator("aside.side details.scard").count() >= 2
+    _side_cards(page, 2)
     assert page.locator('aside.side [data-testid="diag-cmp"]').count() == 1
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="diag"]').click()
     page.locator('[data-testid="diag-sub"] [data-value="diag-all"]').click()
     page.wait_for_selector('[data-testid="loops-table"]', timeout=60000)
     assert page.locator('[data-testid="loops-card"].dcard h2').count() == 1
-    assert page.locator("aside.side details.scard").count() >= 3
+    _side_cards(page, 3)
     first = page.locator("aside.side > *:not(.side-all)").first
     assert first.get_attribute("data-testid") == "tri-run"            # E5: triáž nahoře, pod ní prahy a analýza smyček
     assert page.locator('aside.side [data-testid="audit-side-loops"]').count() == 0      # smyčky se upravují jen ve Zdrojích
@@ -1305,7 +1310,7 @@ def test_diag_loops_project_card_structure(page, server):
     assert page.locator('[data-testid="audit-score-0"]').count() == 1
     page.locator('[data-tab="project"]').click()
     page.wait_for_selector('[data-testid="proj-card"]')
-    assert page.locator("aside.side details.scard").count() >= 3
+    _side_cards(page, 3)
     assert page.locator("aside.side > *:not(.side-all)").first.get_attribute("data-testid") == "report-build"
     assert page.locator('[data-testid="set-rep_status"] button').count() == 4
     assert page.locator('[data-testid="report-card"].dcard h2').count() == 1
