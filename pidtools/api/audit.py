@@ -117,7 +117,7 @@ class LoopsOverview(BaseModel):
 class BatchParams(BaseModel):
     """Parametry akce `tune` (stejné hodnoty jako Ladění: metoda, τc, typ regulátoru, kritérium a cíl optimalizace)."""
     method: str | None = None                                   # None = metoda uložená u modelu smyčky
-    tc: float | None = Field(None, gt=0)
+    tc: float | None = Field(default=None, gt=0)
     ctype: Literal["PI", "PID"] | None = None
     crit: Literal["MIGO", "IAE", "ISE", "ITAE", "OVS"] | None = None
     target: Literal["dist", "sp", "both", "scen"] | None = None

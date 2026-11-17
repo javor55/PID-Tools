@@ -5,7 +5,7 @@ Zadání: `docs/cs/audit-2026-11.md` (TICKET), `docs/cs/navrh-vylepseni-2026-11.
 ## Architektura
 1. Vrstvy `pidtools/core` (numerika bez I/O) → `pidtools/app` (Workspace, bez FastAPI a UI) → `pidtools/api` (tenké routery) → `frontend/src`. Import jen směrem dolů (hlídá `tests/test_app_layer.py`).
 2. API jen pod `/api/v1`. Tělo i odpověď endpointu = model Pydantic, ne `dict`. Špatný vstup = 4xx s textem, nikdy 500.
-3. `pidtools/api/openapi.json` a `frontend/src/api/schema.d.ts` jsou generované: po změně API `python -m pidtools.api --openapi pidtools/api/openapi.json && (cd frontend && npm run api-types)`. Ručně je neupravuj a při konfliktu je vygeneruj znovu.
+3. Výchozí hodnota pole Pydantic jen jako `Field(default=…)`, nikdy pozičně `Field(1.6, …)` (mypy v CI s novějším pydanticem ji jinak nepozná; hlídá `tests/test_code_rules.py`). `pidtools/api/openapi.json` a `frontend/src/api/schema.d.ts` jsou generované: po změně API `python -m pidtools.api --openapi pidtools/api/openapi.json && (cd frontend && npm run api-types)`. Ručně je neupravuj a při konfliktu je vygeneruj znovu.
 4. Nový klíč nastavení smyčky = `STATE_KEYS` + typ a meze v `app/project.py` + výchozí hodnota ve `workspace/__init__.py: DEFAULTS`. Hodnoty se kontrolují před zápisem.
 5. Výpočet delší než 1 s běží jako úloha (`app/jobs.py`), ne uvnitř požadavku.
 6. Zlaté případy (`tools/golden.py`) se nesmí změnit bez výslovného zadání. Logika regulátoru a živé simulace je v Pythonu i v JS (`ctrl_engine.js`, `live_engine.js`): měň obojí, hlídají testy shody.
