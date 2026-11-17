@@ -1495,7 +1495,7 @@
  "h_ms_cmp": "FIT: how much of PV the model explains (100 % = exactly). Cross-validation: the model fitted without one segment is tested on it – reveals overfitting. With similar fit prefer the simpler type.",
  "ms_cmp_tab": "Transfer {k} · {n}",
  "ms_cmp_type": "Type",
- "ms_cmp_dv_note": "Each row fits only this disturbance's parameters with the MV model and the other disturbances kept fixed, so FIT and NRMSE compare the disturbance structures among themselves, not with the MV table above. Choose the structure in the disturbance card (Type); Refit then tunes the whole model with it.",
+ "ms_cmp_dv_note": "Each row fits only this disturbance's parameters with the MV model and the other disturbances kept fixed, so FIT and NRMSE compare the disturbance structures among themselves, not with the MV table above. Click a row (or Type in the disturbance card) to use that structure; Refit then tunes the whole model with it.",
  "ms_card1": "Transfer {k} · {n}",
  "ms_cmp_cv": "Cross-validation [%]",
  "ms_cmp_pick": "Click a row to use that type for MV.",

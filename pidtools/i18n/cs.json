@@ -1495,7 +1495,7 @@
  "h_ms_cmp": "FIT: kolik % průběhu PV model vysvětlí (100 % = přesně). Křížové ověření: model naučený bez jednoho úseku se otestuje na něm – odhalí přeučení. Při podobné shodě je lepší jednodušší typ.",
  "ms_cmp_tab": "Přenos {k} · {n}",
  "ms_cmp_type": "Typ",
- "ms_cmp_dv_note": "Každý řádek fituje jen parametry této poruchy při pevném modelu MV a ostatních poruchách, takže FIT a NRMSE porovnávají struktury poruchy mezi sebou, ne s tabulkou MV nahoře. Strukturu zvolíte v kartě poruchy (Typ); Dofitovat pak doladí celý model s ní.",
+ "ms_cmp_dv_note": "Každý řádek fituje jen parametry této poruchy při pevném modelu MV a ostatních poruchách, takže FIT a NRMSE porovnávají struktury poruchy mezi sebou, ne s tabulkou MV nahoře. Klikem na řádek (nebo Typem v kartě poruchy) strukturu použijete; Dofitovat pak doladí celý model s ní.",
  "ms_card1": "Přenos {k} · {n}",
  "ms_cmp_cv": "Křížové ověření [%]",
  "ms_cmp_pick": "Klepnutím na řádek typ použijete pro MV.",
