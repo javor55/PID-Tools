@@ -44,7 +44,10 @@ Pravidla pro agenty: `AGENTS.md`.
 | FEATURE-005 podzáložky Modelu, souhrnný pruh | hotovo | f957eaa … f5a5196 |
 | TICKET-019 líné načítání záložek (822 → 410 kB) | hotovo | 42f6250 … 415ded9 |
 | FEATURE-007 přehled smyček, hromadné identify / tune / accept / export | hotovo | dc8429c … 440e910 |
-| **Vlna 3 dokončena** | lokálně 984 testů zelených; CI viz poslední běh | |
+| **Vlna 3 dokončena** | lokálně 984 testů zelených; CI zelené nad e67108b | |
+| FEATURE-006 zpět / znovu (nastavení, sady, úsek, scénář) | hotovo | d4138b8 … cad39cf |
+| TICKET-016 úklid textů (3554 → 2993 klíčů), kontrola klíčů, test surových klíčů | hotovo | 50791fb … 03af7df |
+| **Vlna 4 dokončena – celý plán hotový** | lokálně 1015 testů zelených | |
 
 **TICKET-021 (nový, z kontroly TICKET-014, priorita HIGH pro desktop):** obal Tauri při zavření okna sidecar
 natvrdo ukončí (`desktop/src/lib.rs`, `RunEvent::Exit` → `sc.kill()`), takže záchranná kopie odeslaná stránkou
