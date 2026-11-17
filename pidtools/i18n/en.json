@@ -2990,5 +2990,6 @@
  "undo_title": "Undo: {label} (Ctrl+Z)",
  "redo_title": "Redo: {label} (Ctrl+Y)",
  "undo_empty": "Nothing to undo",
- "redo_empty": "Nothing to redo"
+ "redo_empty": "Nothing to redo",
+ "vw_hc_sig": "Signal measured by value cursors Y₁ / Y₂"
 }

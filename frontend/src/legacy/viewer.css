@@ -15,6 +15,8 @@
 .pidv-seg button + button { border-left: 1px solid var(--pv-axis); }
 .pidv-seg button.on, .pidv-btn.on { background: var(--pv-acc); color: #fff; }
 .pidv-btn:disabled, .pidv-seg button:disabled { opacity: .45; cursor: default; }
+.pidv-hcsig { font: inherit; font-size: 12px; padding: 3px 4px; max-width: 180px; border: 1px solid var(--pv-axis); border-radius: 8px;
+  background: var(--pv-btn); color: var(--pv-text); margin-left: 4px; }
 .pidv-help { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; color: var(--pv-muted);
   font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
 .pidv-body { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 10px; align-items: start; }

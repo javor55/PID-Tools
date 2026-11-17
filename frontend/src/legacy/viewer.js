@@ -8,7 +8,10 @@
  *   tažení = posun času (Shift = posun Y), tažení osy Y = posun té osy; režimy Zoom ⬚ / X / Y = výběr obdélníkem;
  *   dvojklik = celý čas a automatické Y panelu (na ose jen ta osa); Backspace = zpět; ←/→ = posun kurzoru o vzorek.
  * Kurzory jako na osciloskopu, časové A / B (čas, hodnoty, Δ, Δ/Δt, min / max / průměr / σ mezi nimi) a hodnotové
- * Y₁ / Y₂ pro zvolený signál; zapínají se nezávisle. Klik = A, Shift+klik = B; jsou-li zapnuté i hodnotové, Alt+klik = Y₁,
+ * Y₁ / Y₂; zapínají se nezávisle. Hodnotové kurzory měří vždy jen JEDEN signál (S.hc.sig): ten, který je aktivní
+ * (klik na štítek signálu v panelu nebo na jeho řádek v tabulce odečtu; výchozí je první PV). Volí se také výběrem
+ * v panelu nástrojů (select vedle tlačítka Y₁ / Y₂, data-testid="hc-sig"); štítky u čar Y₁ / Y₂ nesou jméno
+ * signálu a jeho osa Y je zvýrazněna barvou signálu se značkami Y₁ / Y₂. Klik = A, Shift+klik = B; jsou-li zapnuté i hodnotové, Alt+klik = Y₁,
  * Alt+Shift+klik = Y₂ (jen hodnotové: klik / Shift+klik); tažení kurzor posune, Esc kurzory skryje. Tabulka hodnot
  * zobrazeného úseku (klik = kurzor A), export CSV výřezu nebo úseku mezi kurzory a obrázek PNG.
  * Volitelně: D.groups = [{label, names}] (seznam signálů ve skupinách, např. podle smyček) a component.listHost
@@ -543,6 +546,19 @@ export default function (component) {
       if (!events) setTimeout(() => { if (dead) return; evList(); renderAn(); redraw(); }, 30);
     }
 
+    // výběr signálu hodnotových kurzorů (jen při zapnutých kurzorech): zobrazené signály, vybraný je S.hc.sig
+    const hcOpts = () => visible().map((n) => `<option value="${esc(n)}" ${n === S.hc.sig ? "selected" : ""}>${esc(n)}</option>`).join("");
+    const hcSelHtml = () => `<select class="pidv-hcsig" data-testid="hc-sig" aria-label="${esc(X.hc_sig)}" title="${esc(X.hc_sig)}">${hcOpts()}</select>`;
+    function syncHcSig() {
+      if (!bar) return;
+      if (S.hc.on && (!S.hc.sig || panelOf(S.hc.sig) < 0)) initH();     // signál zmizel z grafu → nový výchozí
+      const sel = bar.querySelector(".pidv-hcsig");
+      if (!!sel !== S.hc.on) { rebar(); return; }
+      if (!sel) return;
+      const html = hcOpts();
+      if (sel.innerHTML !== html) sel.innerHTML = html;
+      if (sel.value !== S.hc.sig) sel.value = S.hc.sig;
+    }
     function buildBar() {
       bar = el("div", "pidv-card pidv-bar");
       const seg = (g, items, cur) => `<div class="pidv-seg" data-g="${g}">` + items.map(([v, t, h]) =>
@@ -555,7 +571,7 @@ export default function (component) {
         `<div class="pidv-grp"><button class="pidv-btn" data-a="evp" title="${esc(X.ev_prev)}">◀ ⚑</button>` +
         `<button class="pidv-btn" data-a="evn" title="${esc(X.ev_next)}">⚑ ▶</button></div>` +
         `<div class="pidv-grp"><button class="pidv-btn ${S.cur.on ? "on" : ""}" data-a="cur" title="${esc(X.c_hint)}">${esc(X.cur)}</button>` +
-        `<button class="pidv-btn ${S.hc.on ? "on" : ""}" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button></div>` +
+        `<button class="pidv-btn ${S.hc.on ? "on" : ""}" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button>${S.hc.on ? hcSelHtml() : ""}</div>` +
         `<div class="pidv-grp"><span class="pidv-lab">${esc(X.yauto)}</span>${seg("ya", [["view", X.ya_view], ["all", X.ya_all]], S.ya)}</div>` +
         `<div class="pidv-grp"><span class="pidv-lab">${esc(X.interp)}</span>${seg("step", [["0", X.line], ["1", X.step]], S.step ? "1" : "0")}</div>` +
         `<div class="pidv-grp">` + (component.listHost ? "" : `<button class="pidv-btn ${S.list ? "on" : ""}" data-a="list">${esc(X.list)}</button>`) +
@@ -569,6 +585,8 @@ export default function (component) {
       bar.querySelectorAll('[data-g="mode"] button').forEach((b) => b.onclick = () => { S.mode = b.dataset.v; rebar(); save(); });
       bar.querySelectorAll('[data-g="ya"] button').forEach((b) => b.onclick = () => { S.ya = b.dataset.v; rebar(); redraw(); save(); });
       bar.querySelectorAll('[data-g="step"] button').forEach((b) => b.onclick = () => { S.step = b.dataset.v === "1"; rebar(); redraw(); save(); });
+      const hs = bar.querySelector(".pidv-hcsig");
+      if (hs) hs.onchange = () => setAct(hs.value);
       const act = {
         back, fwd,
         evp: () => evNav(-1),
@@ -1059,14 +1077,28 @@ export default function (component) {
       }
       if (S.hc.on && S.hc.sig && P.p.sigs.includes(S.hc.sig)) {
         const a = P.axes.find((q) => q.names.includes(S.hc.sig));
-        if (a) for (const [v, c, lab] of [[S.hc.a, "#0891b2", "Y₁"], [S.hc.b, "#db2777", "Y₂"]]) {
-          const y = ty(v, a, P);
-          if (y < TOP || y > h - BOT) continue;
-          g.strokeStyle = c; g.lineWidth = 1.3; g.setLineDash([6, 3]);
-          g.beginPath(); g.moveTo(L, Math.round(y) + 0.5); g.lineTo(w - R, Math.round(y) + 0.5); g.stroke();
-          g.setLineDash([]);
-          g.fillStyle = c; g.font = "bold 10px sans-serif"; g.textAlign = "right"; g.textBaseline = "bottom";
-          g.fillText(`${lab} ${fmtV(v, SG[S.hc.sig])}`, w - R - 3, y - 2);
+        if (a) {
+          const xr = L - 4 - P.axes.indexOf(a) * AXW, sc = colorOf(S.hc.sig);
+          g.fillStyle = sc; g.globalAlpha = 0.16;                 // zvýrazněná osa měřeného signálu
+          g.fillRect(xr - AXW + 4, TOP, AXW - 3, h - TOP - BOT);
+          g.globalAlpha = 1;
+          const nm = S.hc.sig.length > 22 ? S.hc.sig.slice(0, 21) + "…" : S.hc.sig;
+          for (const [v, c, lab] of [[S.hc.a, "#0891b2", "Y₁"], [S.hc.b, "#db2777", "Y₂"]]) {
+            const y = ty(v, a, P);
+            if (y < TOP || y > h - BOT) continue;
+            g.strokeStyle = c; g.lineWidth = 1.3; g.setLineDash([6, 3]);
+            g.beginPath(); g.moveTo(L, Math.round(y) + 0.5); g.lineTo(w - R, Math.round(y) + 0.5); g.stroke();
+            g.setLineDash([]);
+            g.fillStyle = c;                                      // značka na ose: trojúhelník u osy v barvě kurzoru
+            g.beginPath(); g.moveTo(xr + 1, y); g.lineTo(xr - 7, y - 4); g.lineTo(xr - 7, y + 4); g.closePath(); g.fill();
+            // štítek: text barvou textu na podkladu karty (kontrast), barevný proužek = barva kurzoru
+            g.font = "bold 10px sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
+            const tx0 = `${lab} ${nm} ${fmtV(v, SG[S.hc.sig])}`, tw = g.measureText(tx0).width;
+            const ly = y - 8 < TOP + 7 ? y + 8 : y - 8, xe = w - R - 3;
+            g.fillStyle = col("--pv-card"); g.globalAlpha = 0.9; g.fillRect(xe - tw - 8, ly - 7, tw + 8, 14); g.globalAlpha = 1;
+            g.fillStyle = c; g.fillRect(xe - tw - 8, ly - 7, 3, 14);
+            g.fillStyle = col("--pv-text"); g.fillText(tx0, xe - 2, ly);
+          }
         }
       }
       if (S.an === "step" && stepRes && stepRes.ok && P.p.sigs.includes(S.stp.y)) {
@@ -1165,6 +1197,7 @@ export default function (component) {
       raf = requestAnimationFrame(() => {
         raf = 0;
         for (const P of panelsUI) { sizePanel(P); drawPanel(P); drawOverlay(P); }
+        syncHcSig();
         drawX(); drawNav(); readout(); table();
         if (S.an === "xy" && !S.cur.on) renderAn();
       });
