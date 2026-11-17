@@ -52,6 +52,8 @@ STATE_KEYS = [
     "dview",
     # graf Modelu (Identifikace): vlastní rozložení panelů smyčky, nezávislé na Trendech – text JSON
     "mview",
+    # graf Diagnostiky (provozní data): vlastní rozložení panelů smyčky – text JSON
+    "diagview",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "idf|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|",
                 "dsign|", "dsel|", "wmode|", "batch_sug|")

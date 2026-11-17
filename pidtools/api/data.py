@@ -125,6 +125,8 @@ class LoopSettings(BaseModel):
     dview: str | None = None
     # rozložení grafu záložky Model (Identifikace), samostatné pro smyčku – text JSON
     mview: str | None = None
+    # rozložení grafu Diagnostiky (provozní data), samostatné pro smyčku – text JSON
+    diagview: str | None = None
 
 
 class WorkspaceInfo(BaseModel):

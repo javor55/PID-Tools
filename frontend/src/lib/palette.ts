@@ -1,11 +1,11 @@
 // Barvy rolí a řad prohlížeče záznamu z proměnných CSS (styles/tokens.css) – jeden zdroj pro světlý i tmavý vzhled.
 import { useEffect, useState } from "react";
 
-export interface Palette { pv: string; sp: string; mv: string; pos: string; model: string; series: string[]; dist: string[]; card: string }
+export interface Palette { pv: string; sp: string; mv: string; pos: string; model: string; segA: string; segB: string; series: string[]; dist: string[]; card: string }
 
 /** Náhradní (světlé) hodnoty, když proměnná CSS chybí (např. test bez stylů). Jediné místo s literály barev v TS. */
 export const FALLBACK: Palette = {
-  pv: "#1f5fa8", sp: "#7b8794", mv: "#c2410c", pos: "#7c3aed", model: "#5b3fa8",
+  pv: "#1f5fa8", sp: "#7b8794", mv: "#c2410c", pos: "#7c3aed", model: "#5b3fa8", segA: "#1f5fa8", segB: "#7c3aed",
   series: ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#9333ea",
     "#ea580c", "#0f766e", "#b91c1c", "#4f46e5", "#a16207"],
   dist: ["#0d9488", "#8b5cf6", "#b07a05", "#64748b"],
@@ -19,6 +19,7 @@ export function readPalette(): Palette {
   return {
     pv: v("--pid-pv", FALLBACK.pv), sp: v("--pid-sp", FALLBACK.sp), mv: v("--pid-mv", FALLBACK.mv),
     pos: v("--pid-pos", FALLBACK.pos), model: v("--pid-model", FALLBACK.model),
+    segA: v("--pid-seg-a", FALLBACK.segA), segB: v("--pid-seg-b", FALLBACK.segB),
     series: FALLBACK.series.map((d, i) => v(`--pid-series-${i + 1}`, d)),
     dist: FALLBACK.dist.map((d, i) => v(`--pid-dist-${i + 1}`, d)),
     card: v("--pid-card", FALLBACK.card),

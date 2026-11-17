@@ -5840,6 +5840,17 @@
       ],
       "title": "Diag Theta"
      },
+     "diagview": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Diagview"
+     },
      "diffgain": {
       "default": 5.0,
       "title": "Diffgain",
@@ -6490,7 +6501,8 @@
      "rep_comment",
      "live_runs",
      "dview",
-     "mview"
+     "mview",
+     "diagview"
     ],
     "title": "LoopSettings",
     "type": "object"

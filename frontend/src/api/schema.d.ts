@@ -5664,6 +5664,8 @@ export interface components {
             diag_integ: boolean | null;
             /** Diag Theta */
             diag_theta: number | null;
+            /** Diagview */
+            diagview: string | null;
             /**
              * Diffgain
              * @default 5
