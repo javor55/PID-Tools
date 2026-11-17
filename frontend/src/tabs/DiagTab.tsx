@@ -9,6 +9,7 @@ import { LineChart, type Series } from "../components/LineChart";
 import { Card } from "../components/Card";
 import { CheckSetting, NumSetting } from "../components/Fields";
 import { Trend } from "../components/Trend";
+import type { TrendData, TrendRow } from "../legacy/trend.js";
 import { SideCard, Seg } from "../components/Ui";
 import { useSettings, useWs } from "../data";
 import { decOf, useT } from "../i18n";
@@ -59,7 +60,7 @@ function RecordTrend({ win }: { win: DiagWin }) {
     queryKey: ["ws", wid, "grid", ws?.pv, ws?.mv, ws?.sp, ws?.dists, ws?.n], enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals?source=grid`)),
   });
-  const data = useMemo(() => {
+  const data = useMemo<TrendData | null>(() => {
     if (!ws || !grid.data) return null;
     const { meta, blob } = grid.data;
     const pv = series(meta, blob, "pv"), mv = series(meta, blob, "mv"), sp = series(meta, blob, "sp");
@@ -68,7 +69,7 @@ function RecordTrend({ win }: { win: DiagWin }) {
     const [lo, hi] = range(pv.v, sp?.v);
     const u = (x: unknown) => (x ? ` [${String(x)}]` : "");
     const [ml, mh] = range(mv.v);
-    const rows = [
+    const rows: TrendRow[] = [
       { id: "PV", kind: "pv", title: `PV · ${ws.pv}${u(st.u_pv)}`, color: "#1f5fa8", y: pick(pv.v, idx), lo, hi, h: 170,
         lines: sp ? [[pick(sp.v, idx), "#9aa5b1", "5 4", 1.3, "SP"]] : [] },
       { id: "MV", kind: "sig", title: `MV · ${ws.mv}${u(st.u_mv)}`, color: "#c2410c", y: pick(mv.v, idx), lo: ml, hi: mh, h: 100, lines: [] }];

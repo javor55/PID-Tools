@@ -10,6 +10,7 @@ import { useUi } from "../../store";
 import { reportFromSnapshot, useCompare, useJournal, useSnapshot } from "./api";
 import { usePublic } from "../../deploy";
 import { type Snapshot, type SnapshotDetail, STATUSES, useProjSub, useReport } from "./state";
+import { rowPick } from "../../lib/a11y";
 
 const num = (v: unknown, n = 4) => (typeof v === "number" && Number.isFinite(v) ? String(+v.toPrecision(n)) : v == null ? "–" : String(v));
 const when = (s: string) => s.slice(0, 16).replace("T", " ");
@@ -66,7 +67,7 @@ function History() {
           <tbody>
             {rows.map((s) => (
               <tr key={s.id} className={"pick" + (s.id === sel ? " sel" : "")} data-testid="jr-row" data-sid={s.id}
-                title={T("jr_open_row").replace("{name}", `${s.loop} v${s.v}`)} onClick={() => select(s.id)}>
+                title={T("jr_open_row").replace("{name}", `${s.loop} v${s.v}`)} {...rowPick(() => select(s.id), s.id === sel)}>
                 <td><b>{s.loop}</b> v{s.v}</td>
                 <td className="muted">{when(s.created)} · {s.author}</td>
                 <td><StatusPill status={s.status} /></td>

@@ -131,6 +131,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/autosave/flush": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Flush
+         * @description Zapíše záchranné kopie prostorů s neuloženými změnami (volá obal desktopu před ukončením; veřejný režim: 403).
+         *     V týmovém režimu jen prostory přihlášeného uživatele. Záchranná kopie je jedna na uživatele, takže vyhrává
+         *     naposledy zapsaný prostor. Pozor: zápis běží mimo zámek prostoru (`_serialize_workspaces` zamyká jen cesty
+         *     `/workspaces/{wid}/…`); souběh se zápisem téhož prostoru je přijatelný – okno se zavírá.
+         */
+        post: operations["flush_api_v1_autosave_flush_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/autosave/latest": {
         parameters: {
             query?: never;
@@ -1588,6 +1611,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Start
+         * @description Hromadná akce nad vybranými smyčkami jako jedna úloha (průběh „3 / 12 · název“, zrušení zachová hotové smyčky):
+         *     `identify` (výchozí nastavení smyčky), `tune` (návrh uložený u smyčky, Set 2 se nemění), `accept` (návrhy →
+         *     Set 2). Smyčka bez použitelných dat se přeskočí s důvodem. Výsledek po smyčkách: GET /batch/{jid}.
+         */
+        post: operations["batch_start_api_v1_workspaces__wid__batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/batch/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Batch Export
+         * @description Export sady `n` vybraných smyček (indexy oddělené čárkou) do jednoho souboru; formát řádků jako `/tuning/export`.
+         */
+        get: operations["batch_export_api_v1_workspaces__wid__batch_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/batch/{jid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Batch Get
+         * @description Stav hromadné úlohy a řádky výsledku hotových smyček (průběžně; po zrušení zůstanou).
+         */
+        get: operations["batch_get_api_v1_workspaces__wid__batch__jid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/columns": {
         parameters: {
             query?: never;
@@ -1802,6 +1887,26 @@ export interface paths {
          * @description Frekvenční charakteristiky (otevřená smyčka L, citlivost S a T) pro sadu 1, 2 a návrh.
          */
         post: operations["frequency_api_v1_workspaces__wid__frequency_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/guide/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Guide Status
+         * @description Souhrn kontrolních seznamů hlavních záložek a „další krok“ (stejné kontroly jako průvodci).
+         */
+        get: operations["guide_status_api_v1_workspaces__wid__guide_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2687,6 +2792,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{wid}/redo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Redo
+         * @description Znovu provede poslední vrácenou změnu; 409, když není co provést.
+         */
+        post: operations["post_redo_api_v1_workspaces__wid__redo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{wid}/report": {
         parameters: {
             query?: never;
@@ -2794,7 +2919,7 @@ export interface paths {
         };
         /**
          * Get Settings
-         * @description Nastavení smyčky (klíče jako v projektu).
+         * @description Nastavení smyčky (klíče jako v projektu), vždy se všemi pevnými klíči.
          */
         get: operations["get_settings_api_v1_workspaces__wid__settings_get"];
         put?: never;
@@ -3203,6 +3328,30 @@ export interface paths {
         get: operations["warnings_api_v1_workspaces__wid__tuning_warnings_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{wid}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Undo
+         * @description Popisky kroků, které by vrátil `POST /undo` a `POST /redo` (None = není co vracet).
+         */
+        get: operations["get_undo_api_v1_workspaces__wid__undo_get"];
+        put?: never;
+        /**
+         * Post Undo
+         * @description Vrátí poslední změnu nastavení / sady / úseku / scénáře; 409, když není co vracet nebo krok už neplatí.
+         */
+        post: operations["post_undo_api_v1_workspaces__wid__undo_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3757,6 +3906,72 @@ export interface components {
             a: number;
             /** B */
             b: number;
+        };
+        /** BatchOut */
+        BatchOut: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "identify" | "tune" | "accept";
+            job: components["schemas"]["JobInfo"];
+            /** Rows */
+            rows: components["schemas"]["BatchRow"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * BatchParams
+         * @description Parametry akce `tune` (stejné hodnoty jako Ladění: metoda, τc, typ regulátoru, kritérium a cíl optimalizace).
+         */
+        BatchParams: {
+            /** Crit */
+            crit?: ("MIGO" | "IAE" | "ISE" | "ITAE" | "OVS") | null;
+            /** Ctype */
+            ctype?: ("PI" | "PID") | null;
+            /** Method */
+            method?: string | null;
+            /** Target */
+            target?: ("dist" | "sp" | "both" | "scen") | null;
+            /** Tc */
+            tc?: number | null;
+        };
+        /** BatchReason */
+        BatchReason: {
+            /**
+             * Args
+             * @default {}
+             */
+            args: {
+                [key: string]: string | number | null;
+            };
+            /** Key */
+            key: string;
+        };
+        /** BatchReq */
+        BatchReq: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "identify" | "tune" | "accept";
+            /** Loops */
+            loops: number[];
+            /** @default {} */
+            params: components["schemas"]["BatchParams"];
+        };
+        /** BatchRow */
+        BatchRow: {
+            /** Loop */
+            loop: number;
+            /** Name */
+            name: string;
+            reason?: components["schemas"]["BatchReason"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "skipped" | "error";
         };
         /** BlockParam */
         BlockParam: {
@@ -4520,6 +4735,11 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["pidtools__api__apc_more__Check"][];
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** Dists */
             dists: components["schemas"]["FFDist"][];
             /** Impl Text */
@@ -4552,6 +4772,11 @@ export interface components {
         FFSim: {
             /** T End */
             T_end: number;
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** Dist */
             dist: number;
             /** Kpis */
@@ -4588,6 +4813,11 @@ export interface components {
             url: string;
             /** User */
             user?: string | null;
+        };
+        /** FlushResult */
+        FlushResult: {
+            /** Saved */
+            saved: number;
         };
         /** FreqSet */
         FreqSet: {
@@ -4646,6 +4876,11 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["LoopCheck"][];
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** Impl Text */
             impl_text?: string | null;
             inputs: components["schemas"]["GsErInputs"];
@@ -4729,6 +4964,11 @@ export interface components {
              * @default []
              */
             checks: components["schemas"]["LoopCheck"][];
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /**
              * Filled
              * @default false
@@ -4871,6 +5111,14 @@ export interface components {
             ok: "ok" | "warn" | "todo";
             /** Text */
             text: string;
+        };
+        /** GuideStatus */
+        GuideStatus: {
+            next?: components["schemas"]["NextStep"] | null;
+            /** Tabs */
+            tabs: {
+                [key: string]: components["schemas"]["TabStatus"];
+            };
         };
         /** GuideStep */
         GuideStep: {
@@ -5280,11 +5528,17 @@ export interface components {
         LoopRow: {
             /** Active */
             active: boolean;
+            /** Change Pct */
+            change_pct?: number | null;
+            /** Fit */
+            fit?: number | null;
             health: components["schemas"]["LoopHealth"];
             /** Index */
             index: number;
             /** Model */
             model?: string | null;
+            /** Ms */
+            ms?: number | null;
             /** Mv */
             mv?: string | null;
             /** Name */
@@ -5299,9 +5553,25 @@ export interface components {
             /** Pv */
             pv?: string | null;
             set1: components["schemas"]["LoopSet"];
+            /**
+             * Set1 Defined
+             * @default false
+             */
+            set1_defined: boolean;
             set2: components["schemas"]["LoopSet"];
+            /**
+             * Set2 Defined
+             * @default false
+             */
+            set2_defined: boolean;
             /** Sp */
             sp?: string | null;
+            /**
+             * Stage
+             * @default no_data
+             * @enum {string}
+             */
+            stage: "no_data" | "data" | "model" | "proposal" | "set2";
         };
         /** LoopSet */
         LoopSet: {
@@ -5311,6 +5581,307 @@ export interface components {
             td?: number | null;
             /** Ti */
             ti?: number | null;
+        };
+        /**
+         * LoopSettings
+         * @description Nastavení smyčky: všechny pevné klíče (app.project.STATE_KEYS) s výchozími hodnotami z DEFAULTS (klíč bez výchozí
+         *     hodnoty = None) plus klíče s prefixem (STATE_PREFIX: `method|…`, `fx|…` …), které prostor má (extra="allow").
+         *     Typy odpovídají NUM_KEYS (číslo), BOOL_KEYS (bool), LIST_KEYS (seznam) a ENUMS (výčet); hlídá tests/test_settings_model.py.
+         */
+        LoopSettings: {
+            /** Audit Loops */
+            audit_loops: unknown[] | null;
+            /** Avg Dmv */
+            avg_dmv: number | null;
+            /** Avg Dpv */
+            avg_dpv: number | null;
+            /** Cas Im */
+            cas_im: string | null;
+            /** Cas K */
+            cas_k: number | null;
+            /** Cas Oct */
+            cas_oct: string | null;
+            /** Cas Om */
+            cas_om: string | null;
+            /** Cas Samp */
+            cas_samp: number | null;
+            /** Cas Src */
+            cas_src: string | null;
+            /** Cas T1 */
+            cas_t1: number | null;
+            /** Cas T2 */
+            cas_t2: number | null;
+            /** Cas Tci */
+            cas_tci: number | null;
+            /** Cas Tco */
+            cas_tco: number | null;
+            /** Cas Th */
+            cas_th: number | null;
+            /** Chart Tunit */
+            chart_tunit: string | null;
+            /**
+             * Chosen
+             * @default [
+             *       "P0D",
+             *       "P1D",
+             *       "P2D",
+             *       "I0D",
+             *       "I1D"
+             *     ]
+             */
+            chosen: unknown[];
+            /**
+             * Ctype
+             * @default PI
+             * @enum {string}
+             */
+            ctype: "PI" | "PID" | "PD";
+            /**
+             * Db
+             * @default 0
+             */
+            db: number;
+            /**
+             * Db Mode
+             * @default cont
+             * @enum {string}
+             */
+            db_mode: "cont" | "step";
+            /**
+             * Dfb
+             * @default true
+             */
+            dfb: boolean;
+            /** Diag Integ */
+            diag_integ: boolean | null;
+            /** Diag Theta */
+            diag_theta: number | null;
+            /**
+             * Diffgain
+             * @default 5
+             */
+            diffgain: number;
+            /**
+             * Dist Level
+             * @default none
+             * @enum {string}
+             */
+            dist_level: "none" | "medium" | "high";
+            /**
+             * Dist Strength
+             * @default 4
+             */
+            dist_strength: number;
+            /** Dview */
+            dview: string | null;
+            /**
+             * Gain Sign
+             * @default auto
+             * @enum {string}
+             */
+            gain_sign: "auto" | "pos" | "neg";
+            /** Id Mode */
+            id_mode: string | null;
+            /**
+             * Id Stic
+             * @default false
+             */
+            id_stic: boolean;
+            /**
+             * Lang
+             * @default en
+             */
+            lang: string;
+            /** Live Runs */
+            live_runs: unknown[] | null;
+            /**
+             * Loop Tag
+             * @default
+             */
+            loop_tag: string;
+            /** Mcode */
+            mcode: string | null;
+            /** Mtype */
+            mtype: string | null;
+            /** Mtype0 */
+            mtype0: string | null;
+            /**
+             * Mv Hi
+             * @default 100
+             */
+            mv_hi: number;
+            /**
+             * Mv Lo
+             * @default 0
+             */
+            mv_lo: number;
+            /** Mv Rng User */
+            mv_rng_user: boolean | null;
+            /** Mvl Hi */
+            mvl_hi: number | null;
+            /** Mvl Lo */
+            mvl_lo: number | null;
+            /**
+             * Mvrate
+             * @default 0
+             */
+            mvrate: number;
+            /**
+             * Opt Crit
+             * @default OVS
+             */
+            opt_crit: string;
+            /**
+             * Opt Ms
+             * @default 1.6
+             */
+            opt_ms: number;
+            /** Opt Noise */
+            opt_noise: number | null;
+            /**
+             * Opt Ovs
+             * @default 2
+             */
+            opt_ovs: number;
+            /**
+             * Opt Robust
+             * @default false
+             */
+            opt_robust: boolean;
+            /**
+             * Opt Target
+             * @default both
+             */
+            opt_target: string;
+            /** Pfb */
+            pfb: boolean | null;
+            /** Plan Dpv */
+            plan_dpv: number | null;
+            /** Plan Snr */
+            plan_snr: number | null;
+            /** Plot H */
+            plot_h: number | null;
+            /** Proc Type */
+            proc_type: string | null;
+            /**
+             * Propfac
+             * @default 1
+             */
+            propfac: number;
+            /**
+             * Pv Hi
+             * @default 100
+             */
+            pv_hi: number;
+            /**
+             * Pv Lo
+             * @default 0
+             */
+            pv_lo: number;
+            /** Pv Rng User */
+            pv_rng_user: boolean | null;
+            /**
+             * Pvfilt
+             * @default 0
+             */
+            pvfilt: number;
+            /** Read Manual */
+            read_manual: boolean | null;
+            /** Rep Author */
+            rep_author: string | null;
+            /** Rep Comment */
+            rep_comment: string | null;
+            /** Rep Plant */
+            rep_plant: string | null;
+            /** Rep Status */
+            rep_status: string | null;
+            /**
+             * Samp
+             * @default 1
+             */
+            samp: number;
+            /** Scen2 */
+            scen2: string | null;
+            /** Scen D In */
+            scen_d_in: number | null;
+            /** Scen D Pv */
+            scen_d_pv: number | null;
+            /** Scen Kind */
+            scen_kind: string | null;
+            /**
+             * Set1 Gain
+             * @default 1
+             */
+            set1_gain: number;
+            /**
+             * Set1 Td
+             * @default 0
+             */
+            set1_td: number;
+            /**
+             * Set1 Ti
+             * @default 100
+             */
+            set1_ti: number;
+            /**
+             * Set2 Defined
+             * @default false
+             */
+            set2_defined: boolean;
+            /**
+             * Set2 Gain
+             * @default 1
+             */
+            set2_gain: number;
+            /**
+             * Set2 Td
+             * @default 0
+             */
+            set2_td: number;
+            /**
+             * Set2 Ti
+             * @default 100
+             */
+            set2_ti: number;
+            /** Sim J */
+            sim_J: number | null;
+            /**
+             * Sim Len U
+             * @default s
+             * @enum {string}
+             */
+            sim_len_u: "s" | "min" | "h";
+            /** Sim Len U Set */
+            sim_len_u_set: boolean | null;
+            /** Sim Noise */
+            sim_noise: number | null;
+            /**
+             * Sprate
+             * @default 0
+             */
+            sprate: number;
+            /** Thmax */
+            thmax: number | null;
+            /** Tri Thr */
+            tri_thr: string | null;
+            /** Tune Hist */
+            tune_hist: unknown[] | null;
+            /**
+             * U Mv
+             * @default %
+             */
+            u_mv: string;
+            /**
+             * U Pv
+             * @default
+             */
+            u_pv: string;
+            /** Val Rng */
+            val_rng: number[] | null;
+            /** Vchar Last */
+            vchar_last: unknown[] | null;
+            /** Win Mode */
+            win_mode: string | null;
         };
         /** Loops */
         Loops: {
@@ -5525,6 +6096,14 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** NextStep */
+        NextStep: {
+            action?: components["schemas"]["GuideAction"] | null;
+            /** Tab */
+            tab: string;
+            /** Text */
+            text: string;
         };
         /** Node */
         Node: {
@@ -5820,6 +6399,11 @@ export interface components {
         };
         /** RatioInfo */
         RatioInfo: {
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             defaults: components["schemas"]["RatioIn"];
             design: components["schemas"]["RatioDesign"];
             /** Model */
@@ -6295,6 +6879,11 @@ export interface components {
              */
             checks: components["schemas"]["pidtools__api__apc_more__Check"][];
             controller?: components["schemas"]["SmithController"] | null;
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             /** General Rows */
             general_rows?: components["schemas"]["GeneralRow"][] | null;
             /** Impl Text */
@@ -6682,6 +7271,11 @@ export interface components {
         };
         /** SplitInfo */
         SplitInfo: {
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             defaults: components["schemas"]["SplitIn"];
             design: components["schemas"]["SplitDesign"];
             /** Model */
@@ -6859,6 +7453,15 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             };
+        };
+        /** TabStatus */
+        TabStatus: {
+            /** Ok */
+            ok: number;
+            /** Todo */
+            todo: number;
+            /** Warn */
+            warn: number;
         };
         /** ThresholdInfo */
         ThresholdInfo: {
@@ -7086,6 +7689,16 @@ export interface components {
              */
             n: number;
         };
+        /**
+         * UndoState
+         * @description Co by vrátil `POST /undo` a `POST /redo`: krátký popisek kroku, nebo None (není co vracet).
+         */
+        UndoState: {
+            /** Redo */
+            redo?: string | null;
+            /** Undo */
+            undo?: string | null;
+        };
         /** ValRow */
         ValRow: {
             /** Fit */
@@ -7238,6 +7851,11 @@ export interface components {
         };
         /** VpcInfo */
         VpcInfo: {
+            /**
+             * Ctrl Set
+             * @enum {integer}
+             */
+            ctrl_set: 1 | 2;
             defaults: components["schemas"]["VpcIn"];
             design: components["schemas"]["VpcDesign"];
             /** Model */
@@ -7758,6 +8376,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    flush_api_v1_autosave_flush_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlushResult"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -10643,6 +11293,118 @@ export interface operations {
             };
         };
     };
+    batch_start_api_v1_workspaces__wid__batch_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchReq"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_export_api_v1_workspaces__wid__batch_export_get: {
+        parameters: {
+            query: {
+                loops: string;
+                fmt?: string;
+                n?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description one file with the set of every selected loop (fmt: csv, pcs7, tia, deltav); header X-Skipped-Loops lists loops without data or model */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                    "text/plain": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_get_api_v1_workspaces__wid__batch__jid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+                jid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_columns_api_v1_workspaces__wid__columns_put: {
         parameters: {
             query?: never;
@@ -11064,6 +11826,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FreqSet"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guide_status_api_v1_workspaces__wid__guide_status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideStatus"];
                 };
             };
             /** @description Validation Error */
@@ -12899,6 +13695,40 @@ export interface operations {
             };
         };
     };
+    post_redo_api_v1_workspaces__wid__redo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     report_api_v1_workspaces__wid__report_post: {
         parameters: {
             query?: never;
@@ -13135,9 +13965,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LoopSettings"];
                 };
             };
             /** @description Validation Error */
@@ -13177,9 +14005,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LoopSettings"];
                 };
             };
             /** @description Validation Error */
@@ -14177,6 +15003,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Warn"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_undo_api_v1_workspaces__wid__undo_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UndoState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_undo_api_v1_workspaces__wid__undo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "x-pid-token"?: string | null;
+            };
+            path: {
+                wid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
                 };
             };
             /** @description Validation Error */

@@ -12,6 +12,7 @@ from ..app import journal as jr
 from ..app import report as rpt
 from ..app.apc import recommend as reco
 from ..core import MODELS
+from .common import model_params
 from .data import _plain
 
 MAX_SCATTER = 3000          # bodů fázového grafu a grafu polohy (rovnoměrně zředěné)
@@ -67,7 +68,7 @@ def _nonlinearity(ws):
     lg, spread = nl
     gains = [dict(q, from_e=float(ws.EM(q["mv_from"])), to_e=float(ws.EM(q["mv_to"]))) for q in lg]
     code, p, _ = ws.model
-    return _plain(dict(gains=gains, spread=spread, ref=p[0], param=MODELS[code]["params"][0],
+    return _plain(dict(gains=gains, spread=spread, ref=p[0], param=model_params(code)[0],
                        integ=bool(MODELS[code]["integ"])))
 
 
@@ -107,7 +108,7 @@ def router(get_proj):
             raise HTTPException(409, "no model")
         ts, pv, mv, dv = ws.segment()
         spread = reco.nl_spread(ws.model[0], ws.model[1], ws.model[2], ts, pv, mv, dv, ws.grid.Ts)
-        items = reco.assess(ws.report_record(), p.others(), spread, any(d.get("use") for d in ws.ff_state))
+        items = reco.assess(ws.apc_record(), p.others(), spread, any(d.get("use") for d in ws.ff_state))
         return [Recommendation(kind=k, status=st, text=t, other=o) for k, st, t, o in items]
 
     @r.post("/report", response_class=Response,

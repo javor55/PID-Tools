@@ -33,7 +33,7 @@ def _call(server, page, method, path, body=None):
 def _job(server, page, path):
     j = _call(server, page, "POST", path, {})
     for _ in range(600):
-        st = _call(server, page, "GET", f"/jobs/{j['id']}")
+        st = _call(server, page, "GET", f"/api/v1/jobs/{j['id']}")
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             return
@@ -49,14 +49,14 @@ def prepared(page, server):
     page.locator('[data-sub="sources"]').click()
     page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
-    _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
-    _job(server, page, "/workspaces/{wid}/identify")
-    _call(server, page, "PUT", "/workspaces/{wid}/model/select", {"code": "P1D"})        # samoregulační: Smith, gain scheduling
-    _call(server, page, "POST", "/workspaces/{wid}/loops", {})
-    _call(server, page, "PUT", "/workspaces/{wid}/loops/active", {"index": 1})
-    _job(server, page, "/workspaces/{wid}/identify")
-    _call(server, page, "PUT", "/workspaces/{wid}/model/select", {"code": "P1D"})
-    _call(server, page, "PUT", "/workspaces/{wid}/loops/active", {"index": 0})
+    _call(server, page, "PATCH", "/api/v1/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
+    _job(server, page, "/api/v1/workspaces/{wid}/identify")
+    _call(server, page, "PUT", "/api/v1/workspaces/{wid}/model/select", {"code": "P1D"})        # samoregulační: Smith, gain scheduling
+    _call(server, page, "POST", "/api/v1/workspaces/{wid}/loops", {})
+    _call(server, page, "PUT", "/api/v1/workspaces/{wid}/loops/active", {"index": 1})
+    _job(server, page, "/api/v1/workspaces/{wid}/identify")
+    _call(server, page, "PUT", "/api/v1/workspaces/{wid}/model/select", {"code": "P1D"})
+    _call(server, page, "PUT", "/api/v1/workspaces/{wid}/loops/active", {"index": 0})
     page.reload(wait_until="networkidle")
     page.wait_for_selector('[data-testid="api-ok"]', timeout=20000)
     return page
@@ -70,7 +70,7 @@ def test_guide_dialog_tabs_checklist_and_action(prepared):
     dlg = pg.locator('[data-testid="help-dialog"]')
     assert dlg.evaluate("e => e.open")
     assert "Guide" in dlg.locator("h2").inner_text()
-    assert dlg.locator(".g-tabs button").count() == 4
+    assert dlg.locator(".g-tabs button").count() == 5                      # kroky, kontrola, tabulky, pojmy, klávesnice (FEATURE-001)
     pg.wait_for_selector(".g-steps li")
     assert pg.locator(".g-steps li").count() >= 5
     # kontrolní seznam: stavy a tlačítka akcí

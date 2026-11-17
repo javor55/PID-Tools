@@ -15,7 +15,7 @@ interface ReportState { html: string | null; busy: boolean; err: string | null; 
 export const useReport = create<ReportState>((set) => ({ html: null, busy: false, err: null, set: (p) => set(p) }));
 
 interface ProjSub {
-  sub: "report" | "journal"; setSub: (s: "report" | "journal") => void;
+  sub: "report" | "journal" | "loops"; setSub: (s: "report" | "journal" | "loops") => void;
   sel: string | null; select: (id: string | null) => void;       // vybraná verze v deníku
   cmp: string | null; setCmp: (id: string | null) => void;       // verze, se kterou se porovnává
   loop: string; setLoop: (l: string) => void;                    // filtr smyčky ("" = všechny)

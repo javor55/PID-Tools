@@ -74,23 +74,14 @@ In the app choose **Demo** on the Start screen and go through the tabs – each 
 
 ### Windows application and offline PC (USB)
 From Releases / Actions artifacts: **`PID-Tools-<version>-setup.exe`** installs the desktop application for the current
-user (Start menu, no admin rights), **`PID-Tools-<version>-desktop-win64-portable.zip`** runs it without installing
-(`PID Tools.exe`) – no internet needed (the Tauri desktop with the bundled API is built by `desktop.yml`). See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
+user (Start menu, no admin rights); `-setup-offline.exe` embeds WebView2 for closed networks, `-x64.msi` is for administrators
+– no internet needed (the Tauri desktop with the bundled API is built by `desktop.yml` / `release.yml`). See [docs/deployment.md](docs/deployment.md#offline-pc-usb).
 
-### Desktop application (preview)
-
-The same computations as a desktop window without a browser – for engineering stations (Windows 10/11):
-
-```bash
-pip install -r requirements.txt -r requirements-desktop.txt
-python -m pidtools.desktop                 # optionally: python -m pidtools.desktop data.csv | project.pidproj
-```
-
+The desktop application is the Tauri window around the same API (`desktop/`, installer from the section above);
+there is no other desktop frontend (the former Qt application was removed). It offers the same features as the web UI:
 Data, Model (validation, uncertainty), Tuning (method comparison, scenario simulation), live simulation, APC (cascade,
 feedforward, decoupling, override, Smith predictor, gain scheduling by PV and by control error), operating
 diagnostics, several loops in one project, projects (the same project files as the web app) and the tuning protocol.
-For Windows it is available as an installer and as a portable ZIP (`PID Tools.exe`) – see
-[Deployment](docs/deployment.md).
 
 Running on an internal server, the team web and updates: [docs/deployment.md](docs/deployment.md).
 
@@ -162,7 +153,7 @@ without any warranty.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest                                          # everything (~25 min, incl. desktop and browser tests)
+python -m pytest                                          # everything (~25 min, incl. browser tests)
 python -m pytest tests/test_core.py tests/test_basic.py   # computation core only (fast)
 ```
 
@@ -193,16 +184,14 @@ pidtools/
     workspace/             one loop without UI (data, identification, tuning, diagnostics, project) and loops.py
   i18n/                    texts: cs.json, en.json, T() – the frontend sets the language
   api/                     FastAPI API (/api/v1) serving the built React UI (api/ui); sidecar of the desktop
-  ui/static/               shared browser JS/CSS (record viewer, trend, live simulation, controller engine) –
-                           imported by frontend/ and used by the Qt desktop
-  desktop/                 Qt desktop frontend (PySide6, pyqtgraph): main.py, tabs/ (state: app/workspace)
 frontend/                  React + TypeScript web UI (Vite); desktop/ – Tauri window around the API sidecar
+  src/legacy/              plain JS/CSS modules (record viewer, trend, live simulation, controller engine)
 tests/                     pytest: core, app layer, API, frontend (Playwright), data loading, loops, APC
-tools/                     builds (build_desktop.py, build_sidecar.py), golden cases
+tools/                     builds (build_sidecar.py), golden cases
 docs/                      user documentation (English; Czech in docs/cs), architecture.md
 ```
 
-Layers: `core` ← `app` ← frontend (`api` + React `frontend/`, Qt `desktop`). `core`,
+Layers: `core` ← `app` ← frontend (`api` + React `frontend/`). `core`,
 `app` (except the Plotly-based `report.py` and `plots.py`) and `i18n` must not import Qt – a test
 checks it. See [docs/architecture.md](docs/architecture.md).
 

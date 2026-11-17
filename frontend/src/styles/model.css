@@ -36,3 +36,8 @@
 .rec-set-grid { display: grid; gap: 4px; }
 .rec-set-grid .field { grid-template-columns: minmax(0, 1fr) 90px; }
 .rec-set-grid .tn-setin { max-width: none; }
+
+/* Stálý pruh se souhrnem vybraného modelu nad podzáložkami Modelu (FEATURE-005) */
+.msum { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline;
+  padding: 8px 12px; background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 6px; font-size: 13px; }
+.msum-l { color: var(--pid-muted); }

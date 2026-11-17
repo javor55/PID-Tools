@@ -20,7 +20,7 @@ def test_reco_status_pills_and_method_help(prepared, server):
     page = prepared
     page.locator('[data-tab="apc"]').click()
     page.wait_for_selector('[data-testid="apc-reco"] li', timeout=30000)
-    reco = _tf._api(server, "/workspaces/{wid}/apc/recommend", page)
+    reco = _tf._api(server, "/api/v1/workspaces/{wid}/apc/recommend", page)
     assert {r["status"] for r in reco} - {"rec"}, "demo should yield at least one unsuitable / not needed label"
     for st, cls in (("rec", "ok"), ("unsuitable", "bad"), ("skip", "info")):
         want = sum(1 for r in reco if r["status"] == st)
@@ -34,7 +34,7 @@ def test_cascade_inner_range_from_data(prepared, server):
     page.select_option('[data-testid="set-cas_src"]', "data")
     page.wait_for_selector('[data-testid="cas-ilo"]', timeout=30000)
     sig = page.locator('[data-testid="cas-ipv"]').input_value()
-    rng = _tf._api(server, f"/workspaces/{{wid}}/apc/cascade/irange?ipv={sig}", page)
+    rng = _tf._api(server, f"/api/v1/workspaces/{{wid}}/apc/cascade/irange?ipv={sig}", page)
     page.wait_for_function("([lo, hi]) => parseFloat(document.querySelector('[data-testid=\"cas-ilo\"]').value) === lo"
                            " && parseFloat(document.querySelector('[data-testid=\"cas-ihi\"]').value) === hi",
                            arg=[rng["lo"], rng["hi"]], timeout=30000)
@@ -44,7 +44,7 @@ def test_gainsched_segments_and_ms(prepared, server):
     page = prepared
     _tech(page, "gainsched")
     page.wait_for_selector('[data-testid="gs-segments"]', timeout=30000)
-    gs = _tf._api(server, "/workspaces/{wid}/apc/gainsched", page)
+    gs = _tf._api(server, "/api/v1/workspaces/{wid}/apc/gainsched", page)
     page.wait_for_function("() => document.querySelectorAll('[data-testid=\"gs-seg-pv\"] rect').length > 0", timeout=30000)
     assert page.locator('[data-testid="gs-seg-pv"] g[data-testid*="-band-"]').count() == len(gs["inputs"]["ranges"])
     page.locator('[data-testid="gs-fit"]').click()

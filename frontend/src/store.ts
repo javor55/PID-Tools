@@ -22,6 +22,28 @@ export type TabId = (typeof TABS)[number]["id"];
 export const DATA_SUBS = ["sources", "trends", "quality", "diag-all", "diag-detail"] as const;
 export type DataSub = (typeof DATA_SUBS)[number];
 export const isDiagSub = (s: DataSub): s is "diag-all" | "diag-detail" => s === "diag-all" || s === "diag-detail";
+/** Podzáložky Modelu (FEATURE-005): identifikace, validace, rezidua a nejistota. */
+export const MODEL_SUBS = ["ident", "validate", "residuals"] as const;
+export type ModelSub = (typeof MODEL_SUBS)[number];
+
+/**
+ * Které podzáložce Modelu patří prvek hlavní plochy (`data-testid`): akce průvodce a „Další krok“ podle toho před
+ * zvýrazněním přepnou podzáložku. Prvky pravého panelu tu nejsou (panel je vidět v každé podzáložce).
+ */
+const MODEL_SUB_IDS: Record<ModelSub, { exact: string[]; prefix: string[] }> = {
+  ident: { exact: ["model-trend", "model-cmp", "models", "dist-cmp", "no-model", "stale", "mix-set1-bad", "model-check"],
+    prefix: ["dist-cmp-", "dist-fit-", "dist-use-", "fit-cl-", "open-model-"] },
+  validate: { exact: ["val-seg", "model-views", "views-seg", "step-chart", "compare-chart"], prefix: ["val-"] },
+  residuals: { exact: ["validation", "crossval", "crossval-run", "uncertainty", "unc-run", "unc-table", "residuals", "acf-chart", "ccf-chart"],
+    prefix: ["unc-", "resid-"] },
+};
+export function modelSubOf(testid: string): ModelSub | null {
+  for (const sub of MODEL_SUBS) {
+    const m = MODEL_SUB_IDS[sub];
+    if (m.exact.includes(testid) || m.prefix.some((p) => testid.startsWith(p))) return sub;
+  }
+  return null;
+}
 export type Theme = "system" | "light" | "dark";
 
 function load<T>(k: string, d: T): T {
@@ -42,6 +64,7 @@ interface UiState {
   theme: Theme;
   tab: TabId;
   dataSub: DataSub;
+  modelSub: ModelSub;
   apcTech: string;
   wid: string | null;
   /** Výška grafů z nastavení aplikace (výchozí výška LineChart). */
@@ -55,6 +78,7 @@ interface UiState {
   setTheme: (t: Theme) => void;
   setTab: (t: TabId) => void;
   setDataSub: (s: DataSub) => void;
+  setModelSub: (s: ModelSub) => void;
   setApcTech: (t: string) => void;
   setWid: (w: string | null) => void;
   putJob: (j: JobInfo) => void;
@@ -69,6 +93,8 @@ export const useUi = create<UiState>((set) => ({
   theme: load<Theme>("pid.theme", "system"),
   tab: ((t) => (t === "diag" || t === "loops" ? "data" : t))(load<TabId>("pid.tab", "data")),
   dataSub: load<DataSub>("pid.dsub", "sources"),
+  // neplatná hodnota z úložiště (starší verze, ruční úprava) = výchozí podzáložka
+  modelSub: ((v) => (MODEL_SUBS.includes(v) ? v : "ident"))(load<ModelSub>("pid.msub", "ident")),
   apcTech: load("pid.apc", "ff"),
   wid: (() => { try { return sessionStorage.getItem("pid.wid"); } catch { return null; } })(),
   chartH: 220,
@@ -85,6 +111,7 @@ export const useUi = create<UiState>((set) => ({
     save("pid.tab", tab); set({ tab });
   },
   setDataSub: (dataSub) => { save("pid.dsub", dataSub); save("pid.tab", "data"); set({ dataSub, tab: "data" }); },
+  setModelSub: (modelSub) => { save("pid.msub", modelSub); save("pid.tab", "model"); set({ modelSub, tab: "model" }); },
   setApcTech: (apcTech) => { save("pid.apc", apcTech); set({ apcTech }); },
   setWid: (wid) => { try { if (wid) sessionStorage.setItem("pid.wid", wid); else sessionStorage.removeItem("pid.wid"); } catch { /* */ } set({ wid }); },
   putJob: (j) => set((s) => ({ jobs: { ...s.jobs, [j.id]: j } })),

@@ -1,6 +1,6 @@
 """
 Grafy Plotly bez vazby na UI: barvy stop, společné rozvržení, šablona reportu, zředění dlouhých průběhů,
-tvorba obrázků. Používá je webová aplikace (pidtools.ui) i protokol (pidtools.app.report).
+tvorba obrázků. Používá je webová aplikace i protokol (pidtools.app.report).
 """
 import numpy as np
 import plotly.graph_objects as go

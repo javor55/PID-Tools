@@ -26,7 +26,7 @@ REF = golden.load("demo_common")
 def _wait(client, job, t=600):
     t0 = time.time()
     while time.time() - t0 < t:
-        st = client.get(f"/jobs/{job['id']}").json()
+        st = client.get(f"/api/v1/jobs/{job['id']}").json()
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             return
@@ -37,11 +37,11 @@ def _wait(client, job, t=600):
 @pytest.fixture()
 def ws(tmp_path):
     with TestClient(create_app(controllers_dir=str(tmp_path))) as c:
-        wid = c.post("/workspaces").json()["id"]
-        c.post(f"/workspaces/{wid}/data/demo")
-        c.patch(f"/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
-        _wait(c, c.post(f"/workspaces/{wid}/identify").json())
-        yield c, f"/workspaces/{wid}"
+        wid = c.post("/api/v1/workspaces").json()["id"]
+        c.post(f"/api/v1/workspaces/{wid}/data/demo")
+        c.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["P1D", "I1D"]})
+        _wait(c, c.post(f"/api/v1/workspaces/{wid}/identify").json())
+        yield c, f"/api/v1/workspaces/{wid}"
 
 
 def test_pidconl_default_in_block_units(ws):

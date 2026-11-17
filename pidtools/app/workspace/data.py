@@ -2,6 +2,8 @@
 Data smyčky: načtení souboru, výběr sloupců, převzorkování, úsek identifikace (společný i podle vstupů),
 vyřazení dat podle mezí, kvalita dat a náhled (M4a).
 """
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -12,9 +14,10 @@ from .. import windows as wn
 from ..dataio import read_table
 from ..guess import guess_roles
 from ..loop import range_for
+from .base import WsBase
 
 
-class DataMixin:
+class DataMixin(WsBase):
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     # ---- data
@@ -231,7 +234,10 @@ class DataMixin:
         """Náhled: (převzorkovaná tabulka, statistika, typy sloupců původního souboru)."""
         from ..dataio import TIME_FORMATS, detect_time_format, time_columns, to_num
         g = self.grid
-        out = {"t [s]": g.t}
+        df = self.df
+        if df is None:
+            raise ValueError("preview: tabulka není načtena")
+        out: dict[str, Any] = {"t [s]": g.t}
         if self.sig.origin is not None:
             out["datetime"] = self.sig.origin + pd.to_timedelta(g.t + g.T0, unit="s")
         out[f"PV · {self.c_pv}"] = g.pv_e
@@ -243,12 +249,12 @@ class DataMixin:
         res = pd.DataFrame(out)
         num_ = res.drop(columns=["datetime"], errors="ignore")
         stats = pd.DataFrame({"min": num_.min(), "max": num_.max(), "mean": num_.mean(), "NaN": num_.isna().sum()})
-        tcols = time_columns(self.df)
+        tcols = time_columns(df)
         kinds = {}
-        for c in self.df.columns:
+        for c in df.columns:
             if c in tcols:
-                k = detect_time_format(self.df[c])[0]
+                k = detect_time_format(df[c])[0]
                 kinds[c] = ("time", k if k in TIME_FORMATS else str(k))
             else:
-                kinds[c] = ("num" if np.isfinite(to_num(self.df[c])).mean() > 0.5 else "text", "")
+                kinds[c] = ("num" if np.isfinite(to_num(df[c])).mean() > 0.5 else "text", "")
         return res, stats, kinds

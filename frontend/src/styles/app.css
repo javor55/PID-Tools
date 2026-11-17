@@ -4,7 +4,11 @@ body { background: var(--pid-bg); color: var(--pid-text); font: 13px/1.45 var(--
 button { font: inherit; color: inherit; }
 .mono { font-family: var(--pid-mono); font-variant-numeric: tabular-nums; }
 
-.shell { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+.shell { display: flex; flex-direction: column; height: 100%; }
+/* roste jen pracovní plocha (.body, úvodní obrazovka, nastavení); hlavička, kontextový řádek a stavový řádek mají svou výšku */
+.shell > * { flex: none; }
+.shell > .body, .shell > .start, .shell > .settings-page { flex: 1 1 0; min-height: 0; }
+.shell > .start, .shell > .settings-page { overflow: auto; }
 /* ---- hlavička a záložky (návrh: bílý pruh, dva řádky, záložky s podtržením) */
 .header { background: var(--pid-card); border-bottom: 1px solid var(--pid-line); padding: 12px 24px 0; }
 .hrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; justify-content: space-between; }
@@ -29,12 +33,22 @@ button { font: inherit; color: inherit; }
 .ctx b { color: var(--pid-text); font-weight: 600; }
 .ctx .sep { opacity: .5; }
 .ctx .link { margin-left: auto; }
+.ctx .next { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; min-width: 0;
+  flex: 1 1 180px; }                                   /* zbylé místo řádku; dlouhý text se zkrátí, než se řádek zalomí */
+.ctx .next ~ .link { margin-left: 0; }
+.ctx .next-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--pid-text); }
+.tab-mark { margin-left: 6px; font-weight: 700; }
+.tab-mark.ok { color: var(--pid-ok); }
+.tab-mark.warn { color: var(--pid-warn); }
+.hundo { display: inline-flex; gap: 4px; }
 .hsum { font-size: 12px; color: var(--pid-muted); }
 .hbtn { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--pid-ctl); background: var(--pid-card);
   border-radius: var(--pid-radius); color: var(--pid-text); cursor: pointer; list-style: none; white-space: nowrap; }
 .hbtn.small { font-size: 12px; padding: 5px 10px; }
 .hbtn:hover { border-color: var(--pid-accent); color: var(--pid-accent); }
 .hbtn[aria-pressed="true"] { border-color: var(--pid-accent); color: var(--pid-accent); background: var(--pid-accent-bg); }
+.hbtn.primary { background: var(--pid-accent); color: #fff; border-color: var(--pid-accent); }
+.hbtn.primary:hover { color: #fff; filter: brightness(1.08); }
 .hbtn:disabled { opacity: .55; cursor: default; }
 .qbtn { font-weight: 600; }
 .tabs { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
@@ -59,7 +73,7 @@ dialog.help details.sec { margin-top: 8px; }
 .tools select, .tools button { border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius);
   padding: 3px 8px; cursor: pointer; }
 
-.body { display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 340px); min-height: 0; }
 .main { overflow: auto; padding: 16px 16px 32px 24px; min-width: 0; }
 .side { overflow: auto; background: var(--pid-side); border-left: 1px solid var(--pid-line); padding: 12px 24px 32px 16px;
   display: flex; flex-direction: column; gap: 12px; }
@@ -120,6 +134,8 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .field { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; align-items: center; }
 .field > * { min-width: 0; }                  /* ovládací prvek se vejde do sloupce, nepřetéká z karty */
 .field span { color: var(--pid-muted); font-size: 12px; }
+.field > .field-err { grid-column: 2; color: var(--pid-err); }     /* chyba pole pod ovládacím prvkem */
+.field.wide > .field-err { grid-column: 1; }
 .field select { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
 .field select[multiple] { min-height: 64px; }
 .small { font-size: 12px; } .err { color: var(--pid-err); } .warn { color: var(--pid-warn); } .ok { color: var(--pid-ok); }
@@ -131,24 +147,52 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 .btn.primary:hover { color: #fff; filter: brightness(1.08); }
 .btn:disabled { opacity: .55; cursor: default; }
 .field input[type="number"], .field input[type="text"] { width: 100%; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 3px 6px; }
+.field input[type="number"][aria-invalid="true"], .field input[type="text"][aria-invalid="true"] { border-color: var(--pid-err); }
 .checks-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
 .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .tbl th, .tbl td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--pid-line); }
 .tbl th { color: var(--pid-muted); font-weight: 500; }
 .tbl tr.sel td { background: var(--pid-accent-bg); }
 .tbl tr.pick { cursor: pointer; } .tbl tr.pick:hover td { background: var(--pid-line); }
+/* viditelný fokus řádku vybíraného klávesnicí (platí i pro .tn-tbl a .ltbl) */
+tr.pick:focus-visible { outline: 2px solid var(--pid-accent); outline-offset: -2px; }
 .tbl input.num { width: 7em; }
 .trend-host { min-height: 300px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
 .grid2 > .span-all { grid-column: 1 / -1; }          /* karta přes celou šíři mřížky (rezidua) */
 .card h3 { font-size: 13px; margin: 0 0 8px; }
 input.num { width: 110px; border: 1px solid var(--pid-ctl); background: var(--pid-card); border-radius: var(--pid-radius); padding: 2px 6px; font-family: var(--pid-mono); }
-.chart { margin: 0; }
+.chart { margin: 0; position: relative; }
+.chart:focus-visible { outline: 2px solid var(--pid-accent); outline-offset: 1px; }
 .chart svg { width: 100%; height: auto; display: block; }
 .chart .grid { stroke: var(--pid-soft); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .chart text { font: 10px var(--pid-mono); fill: var(--pid-muted); }
 .chart .lab { font-family: var(--pid-font); }
 .chart figcaption { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--pid-muted); }
+.chart figcaption button { all: unset; cursor: pointer; display: inline-flex; align-items: center; border-radius: 3px; padding: 0 2px; }
+.chart figcaption button:hover { background: var(--pid-soft); }
+.chart figcaption button:focus-visible { outline: 2px solid var(--pid-accent); }
+.chart figcaption .off { opacity: 0.55; text-decoration: line-through; }
+.chart .lc-layer { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; overflow: hidden; }
+.chart .lc-line { position: absolute; width: 0; border-left: 1px dashed var(--pid-muted); }
+.chart .lc-line.pinned { border-left: 1px solid var(--pid-accent); }
+.chart .lc-readout { position: absolute; max-width: 62%; overflow: hidden; background: var(--pid-card); color: var(--pid-text);
+  border: 1px solid var(--pid-line); border-radius: var(--pid-radius); padding: 3px 6px; font: 11px var(--pid-mono); transform: translateX(8px); }
+.chart .lc-readout.flip { transform: translateX(calc(-100% - 8px)); }
+.chart .lc-readout table { border-collapse: collapse; }
+.chart .lc-readout th { font-weight: 600; text-align: left; padding: 0 8px 0 0; white-space: nowrap; color: var(--pid-muted); }
+.chart .lc-readout td { text-align: right; padding: 0 0 0 8px; white-space: nowrap; }
+.chart .lc-readout i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 2px; }
+.chart .lc-menu-wrap { position: absolute; right: 0; top: 0; }
+.chart .lc-menu-btn { all: unset; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 22px; height: 18px;
+  border-radius: 3px; color: var(--pid-muted); opacity: 0.7; }
+.chart .lc-menu-btn:hover, .chart .lc-menu-btn:focus-visible, .chart .lc-menu-btn[aria-expanded="true"] { opacity: 1; background: var(--pid-soft); }
+.chart .lc-menu-btn:focus-visible { outline: 2px solid var(--pid-accent); }
+.chart .lc-menu-btn::before { content: "\22EF"; font: 700 16px/1 var(--pid-font); }
+.chart .lc-menu { position: absolute; right: 0; top: 20px; z-index: 5; display: flex; flex-direction: column; min-width: 150px;
+  background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: var(--pid-radius); padding: 3px; font-size: 12px; }
+.chart .lc-menu button { all: unset; cursor: pointer; padding: 4px 8px; border-radius: 3px; color: var(--pid-text); }
+.chart .lc-menu button:hover, .chart .lc-menu button:focus-visible { background: var(--pid-accent-bg); }
 .chart figcaption i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; }
 .apc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .reco { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -186,3 +230,44 @@ dialog.opc::backdrop { background: rgba(0, 0, 0, .4); }
 .md th { text-align: left; font-weight: 500; color: var(--pid-muted); padding: 5px 8px; border-bottom: 1px solid var(--pid-line); }
 .md td { padding: 6px 8px; border-top: 1px solid var(--pid-soft); vertical-align: top; }
 .md td:first-child { font-weight: 600; }
+
+/* ---- hustší pravý panel (aplikace se používá na desktopu): menší písmo a ovládací prvky, menší mezery.
+   Selektory začínají „.body > .side“, aby platily bez ohledu na pořadí načtení stylů záložek. */
+.body > .side { padding: 10px 14px 24px 12px; font-size: 12.5px; }
+.body > .side .side-all { margin-bottom: -2px; }
+
+/* karty */
+.body > .side details.scard { padding: 10px 12px; border-radius: 8px; }
+.body > .side details.scard[open] > summary { margin-bottom: 8px; }
+.body > .side details.scard > summary h2 { font-size: 13.5px; }
+.body > .side .scard-body { gap: 6px; }
+
+/* vstupy, výběry, přepínače, tlačítka */
+.body > .side input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.body > .side select, .body > .side textarea {
+  font-size: 12px; padding: 3px 6px; min-height: 0; line-height: 1.35; }
+.body > .side .seg button { font-size: 11.5px; padding: 3px 8px; }
+.body > .side .btn { font-size: 12px; padding: 3px 9px; }
+.body > .side .btn.big, .body > .side .tn-btn.primary, .body > .side .btn.primary.big { font-size: 13.5px; padding: 7px 12px; }
+.body > .side .tn-btn { font-size: 12px; padding: 5px 8px; }
+
+/* řádky formulářů */
+.body > .side .field { grid-template-columns: 100px minmax(0, 1fr); gap: 6px; }
+.body > .side .field.wide { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.body > .side .trow { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 8px; font-size: 12.5px; }
+.body > .side .tn-side { gap: 10px; }
+.body > .side .tn-grid3 { gap: 6px; font-size: 12.5px; }
+
+/* drobné texty */
+.body > .side .tn-note, .body > .side .small, .body > .side p, .body > .side .dt-p { font-size: 11.5px; }
+.body > .side .tn-info, .body > .side .tn-warn { font-size: 11.5px; padding: 5px 7px; }
+/* Tlačítko „Copy“ / „Copy table“ (FEATURE-002) */
+.copybtn { font-size: 12px; padding: 2px 8px; white-space: nowrap; }
+.copy-right { margin-left: auto; }
+.tn-scroll > .copybtn { float: right; margin: 0 0 4px 8px; }
+.tn-copy { padding: 0 3px; margin-left: 3px; line-height: 1.2; font-size: 11px; border: 0; background: transparent;
+  color: var(--pid-muted); vertical-align: baseline; }
+.tn-copy:not(:disabled):hover { color: var(--pid-accent); }
+.tn-sets thead th { white-space: nowrap; }            /* ikona kopírování u názvu sloupce se nezalamuje pod něj */
+.tn-sets tbody th { white-space: nowrap; }            /* „TD [s]“ v jednom řádku */
+.tn-copy:disabled { opacity: .5; cursor: default; }

@@ -5,6 +5,7 @@ import App from "./App";
 import { queryClient as qc } from "./queryClient";
 import "./styles/tokens.css";
 import "./styles/app.css";
+import "./styles/toasts.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

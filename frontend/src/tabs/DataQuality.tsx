@@ -48,7 +48,7 @@ export function DataQualityCard() {
         <div className="dt-ident">
           {quality && (
             <section data-testid="quality">
-              <h3>{T("q_title")}
+              <h3>{T("dq_seg_title")}
                 <span className={"dt-badge" + (quality.level === 0 ? "" : " bad")}>{T(`q_level${Math.min(quality.level, 2)}`)}</span></h3>
               <ul className="checks">
                 {quality.checks.map((c) => (

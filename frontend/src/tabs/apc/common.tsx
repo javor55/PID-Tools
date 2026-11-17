@@ -40,8 +40,10 @@ export function NumInput({ value, onCommit, testid, min, disabled, title }: { va
 }
 
 /** Text z překladů s **tučným** (stejné označení jako v desktopu a ve Streamlitu). */
+/** **tučně** a `kód` (názvy bloků a vstupů PLC) v textech nápovědy. */
 export function Bold({ text }: { text: string }) {
-  return <>{text.split("**").map((p, i) => <Fragment key={i}>{i % 2 ? <b>{p}</b> : p}</Fragment>)}</>;
+  const code = (s: string, k: number) => s.split("`").map((p, j) => <Fragment key={`${k}.${j}`}>{j % 2 ? <code>{p}</code> : p}</Fragment>);
+  return <>{text.split("**").map((p, i) => <Fragment key={i}>{i % 2 ? <b>{code(p, i)}</b> : code(p, i)}</Fragment>)}</>;
 }
 
 export interface Curves { meta: PackMeta; blob: ArrayBuffer }

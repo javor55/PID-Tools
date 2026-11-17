@@ -1,5 +1,14 @@
 """Sdílené typy API: stav úlohy."""
+from typing import cast
+
 from pydantic import BaseModel
+
+from ..core import MODELS
+
+
+def model_params(code: str) -> list[str]:
+    """Názvy parametrů modelu (hodnoty slovníku MODELS jsou smíšené, mypy je vidí jako object)."""
+    return list(cast(list[str], MODELS[code]["params"]))
 
 
 class JobInfo(BaseModel):

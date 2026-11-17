@@ -12,6 +12,7 @@ import { useT } from "../i18n";
 import { Bold } from "./apc/common";
 import { useUi } from "../store";
 import "../styles/loops.css";
+import { rowPick } from "../lib/a11y";
 
 type Overview = components["schemas"]["LoopsOverview"];
 type Row = components["schemas"]["LoopRow"];
@@ -138,7 +139,7 @@ function AuditResults() {
             <tbody>{order.map(({ r, i }, row) => {
               const k = (r.kpis ?? {}) as Record<string, number | string | null>;
               return (
-                <tr key={i} className={`pick ${i === sel ? "sel" : ""}`} data-testid={`audit-row-${row}`} onClick={() => setSel(i)}
+                <tr key={i} className={`pick ${i === sel ? "sel" : ""}`} data-testid={`audit-row-${row}`} {...rowPick(() => setSel(i), i === sel)}
                   onDoubleClick={() => void open(recOf(r))} title={T("au_open_help")}>
                   <td><b>{r.name}</b></td>
                   <td><ScoreBar ok={r.ok} score={r.score} testid={`audit-score-${row}`} /></td>

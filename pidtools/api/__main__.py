@@ -32,7 +32,7 @@ def main(argv=None):
     token = a.token or secrets.token_urlsafe(24)
     if not a.token:
         print(f"token {token}", flush=True)
-    uvicorn.run(create_app(token=token, cors_origins=a.cors), host=a.host, port=a.port, log_level="warning")
+    uvicorn.run(create_app(token=token, cors_origins=a.cors, workspace_ttl=None), host=a.host, port=a.port, log_level="warning")
     return 0
 
 

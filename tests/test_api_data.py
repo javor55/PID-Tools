@@ -21,45 +21,45 @@ def client():
 
 
 def _ws(client):
-    return client.post("/workspaces").json()["id"]
+    return client.post("/api/v1/workspaces").json()["id"]
 
 
 def test_demo_signals_and_quality(client):
     wid = _ws(client)
-    w = client.post(f"/workspaces/{wid}/data/demo").json()
+    w = client.post(f"/api/v1/workspaces/{wid}/data/demo").json()
     assert w["has_data"] and w["pv"] == "LIC101.PV" and w["sp"] and w["dists"] == ["FI100.Pritok"] and w["n"] == 3600
-    r = client.get(f"/workspaces/{wid}/signals")
+    r = client.get(f"/api/v1/workspaces/{wid}/signals")
     assert r.headers["content-type"] == "application/octet-stream"
     meta, sig = signalpack.unframe(r.content)
     assert set(w["columns"]) <= set(sig) and meta["decim"] == 1
     t, v = sig["LIC101.PV"]
     assert t.dtype == np.float64 and v.dtype == np.float32 and len(t) == len(v) > 1000
-    meta, g = signalpack.unframe(client.get(f"/workspaces/{wid}/signals", params={"source": "grid"}).content)
+    meta, g = signalpack.unframe(client.get(f"/api/v1/workspaces/{wid}/signals", params={"source": "grid"}).content)
     assert {"pv", "mv", "sp", "d0"} <= set(g) and len(g["pv"][0]) == 3600
-    meta, one = signalpack.unframe(client.get(f"/workspaces/{wid}/signals",
+    meta, one = signalpack.unframe(client.get(f"/api/v1/workspaces/{wid}/signals",
                                               params={"names": ["LIC101.MV"]}).content)
     assert list(one) == ["LIC101.MV"]
-    q = client.get(f"/workspaces/{wid}/quality").json()
+    q = client.get(f"/api/v1/workspaces/{wid}/quality").json()
     assert q["level"] == 0 and [c["key"] for c in q["checks"]] == ["q_steps_ok", "q_snr_ok"]
-    lm = client.get(f"/workspaces/{wid}/loopmode").json()
+    lm = client.get(f"/api/v1/workspaces/{wid}/loopmode").json()
     assert lm["effective"] in ("open", "cl") and lm["runs"] and 0 <= lm["frac"] <= 1
 
 
 def test_file_columns_range_settings(client):
     wid = _ws(client)
     raw = open(os.path.join(DATA, "ff_example.csv"), "rb").read()
-    w = client.post(f"/workspaces/{wid}/data/file", params={"name": "ff.csv"}, content=raw,
+    w = client.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "ff.csv"}, content=raw,
                     headers={"Content-Type": "application/octet-stream"}).json()
     assert w["fname"] == "ff.csv" and {"CV", "MV", "SP", "DV"} <= set(w["columns"])
-    assert client.put(f"/workspaces/{wid}/columns", json={"pv": "CV", "mv": "NOPE"}).status_code == 422
-    w = client.put(f"/workspaces/{wid}/columns", json={"pv": "CV", "mv": "MV", "sp": "SP", "dists": ["DV"]}).json()
+    assert client.put(f"/api/v1/workspaces/{wid}/columns", json={"pv": "CV", "mv": "NOPE"}).status_code == 422
+    w = client.put(f"/api/v1/workspaces/{wid}/columns", json={"pv": "CV", "mv": "MV", "sp": "SP", "dists": ["DV"]}).json()
     assert (w["pv"], w["mv"], w["sp"], w["dists"]) == ("CV", "MV", "SP", ["DV"])
-    w = client.put(f"/workspaces/{wid}/range", json={"a": 100, "b": 500}).json()
+    w = client.put(f"/api/v1/workspaces/{wid}/range", json={"a": 100, "b": 500}).json()
     assert w["rng"] == [100.0, 500.0]
-    assert client.put(f"/workspaces/{wid}/range", json={"a": 0, "b": 1e9}).status_code == 422
-    s = client.patch(f"/workspaces/{wid}/settings", json={"set1_gain": 2.5, "set1_ti": 60.0}).json()
+    assert client.put(f"/api/v1/workspaces/{wid}/range", json={"a": 0, "b": 1e9}).status_code == 422
+    s = client.patch(f"/api/v1/workspaces/{wid}/settings", json={"set1_gain": 2.5, "set1_ti": 60.0}).json()
     assert s["set1_gain"] == 2.5 and s["set1_ti"] == 60.0
-    assert client.patch(f"/workspaces/{wid}/settings", json={"hack": 1}).status_code == 422
+    assert client.patch(f"/api/v1/workspaces/{wid}/settings", json={"hack": 1}).status_code == 422
 
 
 def _long_csv(n=60):
@@ -73,38 +73,38 @@ def _long_csv(n=60):
 def test_layout_info_and_change(client):
     """GET /layout ukazuje, jak je tabulka přečtená; PUT /layout ji přečte jinak (dlouhý formát, bez času)."""
     wid = _ws(client)
-    assert client.get(f"/workspaces/{wid}/layout").status_code == 409
-    w = client.post(f"/workspaces/{wid}/data/file", params={"name": "h.csv"}, content=_long_csv()).json()
+    assert client.get(f"/api/v1/workspaces/{wid}/layout").status_code == 409
+    w = client.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "h.csv"}, content=_long_csv()).json()
     assert w["layout"] == "long" and set(w["columns"]) == {"FIC.PV", "FIC.MV"}
-    lay = client.get(f"/workspaces/{wid}/layout").json()
+    lay = client.get(f"/api/v1/workspaces/{wid}/layout").json()
     assert lay["layout"] == lay["default_layout"] == "long" and lay["table_columns"] == ["Time", "Tag", "Value"]
     assert (lay["c_time"], lay["c_tag"], lay["c_val"]) == ("Time", "Tag", "Value") and lay["unit"] == "s"
-    r = client.put(f"/workspaces/{wid}/layout", json={"layout": "wide"})       # dlouhý formát jako společný čas nejde
+    r = client.put(f"/api/v1/workspaces/{wid}/layout", json={"layout": "wide"})       # dlouhý formát jako společný čas nejde
     assert r.status_code == 400
-    assert client.get(f"/workspaces/{wid}/layout").json()["layout"] == "long"
-    assert client.get(f"/workspaces/{wid}").json()["columns"] == w["columns"]
-    w = client.put(f"/workspaces/{wid}/layout", json={"layout": "long", "c_tag": "Tag", "c_val": "Value"}).json()
+    assert client.get(f"/api/v1/workspaces/{wid}/layout").json()["layout"] == "long"
+    assert client.get(f"/api/v1/workspaces/{wid}").json()["columns"] == w["columns"]
+    w = client.put(f"/api/v1/workspaces/{wid}/layout", json={"layout": "long", "c_tag": "Tag", "c_val": "Value"}).json()
     assert set(w["columns"]) == {"FIC.PV", "FIC.MV"}
     # bez času: co řádek, to vzorek s ručně zadanou periodou
     raw = "pv,mv\n" + "\n".join(f"{50 + i % 5},{i % 3}" for i in range(200))
-    w = client.post(f"/workspaces/{wid}/data/file", params={"name": "r.csv"}, content=raw.encode()).json()
-    rows = client.get(f"/workspaces/{wid}/layout").json()["rows_mark"]
-    w = client.put(f"/workspaces/{wid}/layout", json={"layout": "wide", "c_time": rows}).json()
+    w = client.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "r.csv"}, content=raw.encode()).json()
+    rows = client.get(f"/api/v1/workspaces/{wid}/layout").json()["rows_mark"]
+    w = client.put(f"/api/v1/workspaces/{wid}/layout", json={"layout": "wide", "c_time": rows}).json()
     assert set(w["columns"]) == {"pv", "mv"} and w["Ts"] == pytest.approx(1.0)
-    w = client.put(f"/workspaces/{wid}/layout", json={"layout": "wide", "c_time": rows, "row_dt": 0.5,
+    w = client.put(f"/api/v1/workspaces/{wid}/layout", json={"layout": "wide", "c_time": rows, "row_dt": 0.5,
                                                       "unit": "min"}).json()
     assert w["Ts"] == pytest.approx(30.0)
-    lay = client.get(f"/workspaces/{wid}/layout").json()
+    lay = client.get(f"/api/v1/workspaces/{wid}/layout").json()
     assert lay["row_dt"] == 0.5 and lay["unit"] == "min" and lay["c_time"] == rows
 
 
 def test_errors(client):
     wid = _ws(client)
-    assert client.get(f"/workspaces/{wid}/signals").status_code == 409          # bez dat
-    r = client.post(f"/workspaces/{wid}/data/file", params={"name": "x.csv"}, content=b"\x00\x01garbage",
+    assert client.get(f"/api/v1/workspaces/{wid}/signals").status_code == 409          # bez dat
+    r = client.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "x.csv"}, content=b"\x00\x01garbage",
                     headers={"Content-Type": "application/octet-stream"})
     assert r.status_code == 400
-    assert client.get("/workspaces/none/quality").status_code == 404
+    assert client.get("/api/v1/workspaces/none/quality").status_code == 404
 
 
 def test_large_record_speed(client):
@@ -117,10 +117,10 @@ def test_large_record_speed(client):
     csv = "t,PV,MV\n" + "\n".join(f"{a:.1f},{b:.4f},{c:.1f}" for a, b, c in zip(t, pv, mv))
     wid = _ws(client)
     t0 = time.time()
-    w = client.post(f"/workspaces/{wid}/data/file", params={"name": "big.csv"}, content=csv.encode(),
+    w = client.post(f"/api/v1/workspaces/{wid}/data/file", params={"name": "big.csv"}, content=csv.encode(),
                     headers={"Content-Type": "application/octet-stream"}).json()
     t1 = time.time()
-    r = client.get(f"/workspaces/{wid}/signals", params={"names": ["PV", "MV"]})
+    r = client.get(f"/api/v1/workspaces/{wid}/signals", params={"names": ["PV", "MV"]})
     t2 = time.time()
     meta, sig = signalpack.unframe(r.content)
     assert w["has_data"] and len(sig["PV"][0]) == n and meta["decim"] == 1
@@ -131,30 +131,30 @@ def test_large_record_speed(client):
 def test_data_quality_stats_preview(client):
     """Záložka Data: kontroly kvality dat (dq_*), statistika veličin a tabulka Celého náhledu po částech."""
     wid = _ws(client)
-    assert client.get(f"/workspaces/{wid}/dataquality").status_code == 409
-    client.post(f"/workspaces/{wid}/data/demo")
-    dq = client.get(f"/workspaces/{wid}/dataquality").json()
+    assert client.get(f"/api/v1/workspaces/{wid}/dataquality").status_code == 409
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
+    dq = client.get(f"/api/v1/workspaces/{wid}/dataquality").json()
     ids = [c["id"] for c in dq["checks"]]
     assert ids[:2] == ["samp", "gaps"] and "indep" in ids and all(c["status"] in ("ok", "warn", "info") for c in dq["checks"])
     assert sum(dq["counts"].values()) == len(dq["checks"]) and isinstance(dq["usable"], bool)
-    st = client.get(f"/workspaces/{wid}/datastats").json()
+    st = client.get(f"/api/v1/workspaces/{wid}/datastats").json()
     assert [r["role"] for r in st][:3] == ["PV", "MV", "SP"] and st[-1]["role"] == "DV" and st[0]["min"] < st[0]["max"]
-    p = client.get(f"/workspaces/{wid}/preview", params={"limit": 5}).json()
+    p = client.get(f"/api/v1/workspaces/{wid}/preview", params={"limit": 5}).json()
     assert p["n_all"] == p["total"] == 3600 and len(p["rows"]) == 5 and len(p["rows"][0]["v"]) == len(p["columns"])
-    p2 = client.get(f"/workspaces/{wid}/preview", params={"t": 100.0, "limit": 3}).json()
+    p2 = client.get(f"/api/v1/workspaces/{wid}/preview", params={"t": 100.0, "limit": 3}).json()
     assert p2["rows"][0]["t"] >= 100.0
-    mv = client.get(f"/workspaces/{wid}/preview", params={"filter": "mv", "limit": 2000}).json()
+    mv = client.get(f"/api/v1/workspaces/{wid}/preview", params={"filter": "mv", "limit": 2000}).json()
     assert mv["total"] == mv["n_mv"] < 3600
-    csv = client.get(f"/workspaces/{wid}/preview/csv")
+    csv = client.get(f"/api/v1/workspaces/{wid}/preview/csv")
     assert csv.headers["content-type"].startswith("text/csv") and csv.text.count("\n") == 3601
 
 
 def test_dataquality_summary_verdict_events_segments(client):
     """Kvalita dat (Data › Kvalita dat): verdikt celého záznamu, skoky MV ukázky a úsek pro identifikaci."""
-    wid = client.post("/workspaces").json()["id"]
-    assert client.get(f"/workspaces/{wid}/dataquality/summary").status_code == 409
-    client.post(f"/workspaces/{wid}/data/demo")
-    s = client.get(f"/workspaces/{wid}/dataquality/summary").json()
+    wid = client.post("/api/v1/workspaces").json()["id"]
+    assert client.get(f"/api/v1/workspaces/{wid}/dataquality/summary").status_code == 409
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
+    s = client.get(f"/api/v1/workspaces/{wid}/dataquality/summary").json()
     assert s["level"] == 0 and "q_steps_ok" in [c["key"] for c in s["checks"]]
     mv = [e for e in s["events"] if e["kind"] == "mv"]
     assert [e["t"] for e in mv][:2] == [300.0, 600.0] and mv[0]["size"] > 0 > mv[1]["size"]

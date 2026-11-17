@@ -7,8 +7,8 @@ Spuštění: python -m pidtools.api --port 8765 --token TAJNE
 Týmový web (M26): přihlášení za Cloudflare Access, pracovní prostory a úlohy po uživatelích – deploy.py.
 Rozhraní je popsané v openapi.json vedle tohoto souboru (generované; test hlídá, že odpovídá kódu).
 
-Stabilní cesty mají prefix `/api/v1` (plán v2, kap. 7); stejné cesty bez prefixu jsou dočasné aliasy pro starší klienty
-(desktop, skripty) – v OpenAPI nejsou a po vydání verze 4.0 zaniknou. Změna bez zpětné kompatibility = nová verze `/api/v2`.
+Všechny cesty mají prefix `/api/v1` (plán v2, kap. 7); bez prefixu odpovídá jen `/health`. Změna bez zpětné
+kompatibility = nová verze `/api/v2`.
 """
 import asyncio
 import contextvars
@@ -30,6 +30,7 @@ from ..app import appsettings as aps
 from ..app.autosave import NullUserData, UserData
 from ..app.jobs import FINAL
 from ..controllers import Library
+from ..app import undo
 from . import (analysis, apc, apc_loops, apc_more, appsettings, audit, controllers, data, deploy, guide, journal,
                mapping, model, opcua, projects, sources, triage, tuning, tuning_profile)
 from .common import JobInfo
@@ -90,19 +91,30 @@ def _serialize_workspaces(app):
     simulace) a souběžné výpočty se přetahují o GIL – dvojice ukazatele + křivky téže simulace trvala souběžně
     několikanásobně déle než po sobě, kdy druhý požadavek vezme výsledek z mezipaměti. Úlohy běží v procesech.
     """
-    ws_locks = weakref.WeakKeyDictionary()      # {event loop: {prostor: zámek}} – zámek asyncio patří ke smyčce
+    # {event loop: {prostor: zámek}} – zámek asyncio patří ke smyčce
+    ws_locks: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, dict[str, asyncio.Lock]] = weakref.WeakKeyDictionary()
+    app.state.ws_locks = ws_locks
 
     @app.middleware("http")
     async def workspace_mw(request, call_next):
-        m = re.match(rf"(?:{API_PREFIX})?/workspaces/([^/]+)/", request.url.path)
+        m = re.match(rf"{API_PREFIX}/workspaces/([^/]+)/", request.url.path)
         if not m:
             return await call_next(request)
+        wid = m.group(1)
         locks = ws_locks.setdefault(asyncio.get_running_loop(), {})
-        async with locks.setdefault(m.group(1), asyncio.Lock()):
-            resp = await call_next(request)
+        lock = locks.setdefault(wid, asyncio.Lock())
+        try:
+            async with lock:
+                resp = await call_next(request)
+        finally:                                 # zámek zaniklého (smazaného, vypršelého, neznámého) prostoru nedržet
+            if not lock.locked() and not getattr(lock, "_waiters", None) and wid not in app.state.store:
+                locks.pop(wid, None)
         if request.method not in ("GET", "HEAD", "OPTIONS") and resp.status_code < 400 and not request.url.path.endswith("/autosave"):
             try:
-                app.state.store.get(m.group(1)).touch()      # počítadlo změn (neuloženo, záchranná kopie)
+                proj = app.state.store.get(m.group(1))
+                proj.touch()                                 # počítadlo změn (neuloženo, záchranná kopie)
+                if undo.CLEARING.match(request.url.path[m.end():]):
+                    proj.undo_clear()                        # změna, kterou zpět / znovu nevrací (data, sloupce, model, …)
             except KeyError:
                 pass
         return resp
@@ -113,15 +125,15 @@ def _opt(team, names, defaults):
     return tuple(defaults) if team is None else tuple(getattr(team, n) for n in names)
 
 
-def _routers(project, jobs, team, library, settings, userdata):
+def _routers(project, jobs, team, library, settings, userdata, store):
     """Všechny routery API (jeden prostor = jedna cesta `/workspaces/{wid}/…`)."""
     max_upload = _opt(team, ["max_upload"], [data.MAX_UPLOAD])
     public = team is not None and team.public
     return [data.router(project, *max_upload),
             projects.router(project, appsettings.remember(userdata), max_upload[0] if public else projects.MAX_PROJECT),
-            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library, public),
+            projects.pending_router(team is None), appsettings.router(project, settings, userdata, library, public, store),
             sources.router(project, *max_upload), mapping.router(project), model.router(project, jobs),
-            tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project), apc.router(project, jobs),
+            tuning.router(project, jobs), tuning_profile.router(project), analysis.router(project), audit.router(project, jobs), apc.router(project, jobs),
             apc_more.router(project), apc_loops.router(project, jobs), opcua.router(project, jobs, not public), guide.router(project),
             triage.router(project, jobs), controllers.router(library, team is None),
             controllers.loop_router(project, library), journal.router(project, settings, public)]
@@ -172,12 +184,14 @@ def _config_route(system, auth, team):
 
 
 def _include(app, routers, system, auth):
-    """Stabilní cesty `/api/v1` (v OpenAPI) a dočasný alias bez prefixu pro starší klienty (skrytý v OpenAPI)."""
+    """Všechny cesty jen pod `/api/v1`; bez prefixu zůstává jen `/health` (kontrola běhu serveru, obal desktopu)."""
     for r in routers:
         app.include_router(r, prefix=API_PREFIX, dependencies=[Depends(auth)])
-        app.include_router(r, include_in_schema=False, dependencies=[Depends(auth)])
     app.include_router(system, prefix=API_PREFIX)
-    app.include_router(system, include_in_schema=False)
+
+    @app.get("/health", response_model=Health, include_in_schema=False)
+    def health_root():
+        return Health(status="ok", version=__version__)
 
 
 def _i18n_routes(system, auth):
@@ -262,7 +276,7 @@ def create_app(token=None, cors_origins=(), workspace_ttl=3600.0, max_workspaces
     app.state.workspace = workspace          # pro další moduly API (M7–M11)
     library = Library(controllers_dir)
     settings, userdata = _stores(public, config_dir, data_dir)
-    routers = _routers(project, jobs, team, library, settings, userdata)
+    routers = _routers(project, jobs, team, library, settings, userdata, app.state.store)
     system = APIRouter()
 
     @system.get("/health", response_model=Health, tags=["system"])

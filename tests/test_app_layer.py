@@ -9,12 +9,12 @@ from pidtools.app import feedforward, loop, project, scenario
 
 
 def test_app_layer_has_no_ui_dependency():
-    """Jádro, aplikační vrstva a texty se dají použít bez Streamlitu a Qt (desktopový frontend, skripty)."""
+    """Jádro, aplikační vrstva a texty se dají použít bez Streamlitu a Qt (API, skripty)."""
     code = ("import sys, pidtools.core, pidtools.i18n, pidtools.app.dataio, pidtools.app.guess, pidtools.app.loop, "
             "pidtools.app.scenario, pidtools.app.feedforward, pidtools.app.project, pidtools.app.model, "
             "pidtools.app.tuning, pidtools.app.apc.recommend, pidtools.app.apc.smith, pidtools.app.apc.gainsched, "
             "pidtools.app.apc.feedforward, pidtools.app.apc.decouple, pidtools.app.dataset, pidtools.app.workspace, "
-            "pidtools.app.workspace.loops, pidtools.app.jobs, pidtools.desktop.state; "
+            "pidtools.app.workspace.loops, pidtools.app.jobs; "
             "bad = [m for m in ('streamlit', 'plotly', 'PySide6', 'PyQt5') if m in sys.modules]; "
             "print(','.join(bad)); sys.exit(1 if bad else 0)")
     r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)

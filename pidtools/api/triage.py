@@ -97,7 +97,7 @@ def _out(res):
         rows.append(TriageLoop(index=r["index"], tag=r["tag"], verdict=r["verdict"], label=T(triage.BY_ID[r["verdict"]].label),
                                severity=r["severity"], evidence=ev, metrics=_plain(r["metrics"]), err=r.get("err"),
                                slave=r.get("slave")))
-    counts = {}
+    counts: dict[str, int] = {}
     for r in rows:
         counts[r.verdict] = counts.get(r.verdict, 0) + 1
     return TriageResult(ready=True, loops=rows, common=[TriageCommon(**_plain(c)) for c in res["common"]],

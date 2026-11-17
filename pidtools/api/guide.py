@@ -51,8 +51,31 @@ class Guide(BaseModel):
     glossary: list[GlossaryItem]
 
 
+class TabStatus(BaseModel):
+    ok: int
+    warn: int
+    todo: int
+
+
+class NextStep(BaseModel):
+    tab: str                        # záložka, do které položka patří
+    text: str
+    action: GuideAction | None = None
+
+
+class GuideStatus(BaseModel):
+    tabs: dict[str, TabStatus]      # hlavní záložky (data, model, tuning, apc, live, project)
+    next: NextStep | None = None    # první položka `todo`, jinak první `warn`
+
+
 def router(get_proj):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["guide"])
+
+    # musí být před „/guide/{tab}“, jinak by „status“ spadl do průvodce záložky (404)
+    @r.get("/guide/status", response_model=GuideStatus)
+    def guide_status(wid: str):
+        """Souhrn kontrolních seznamů hlavních záložek a „další krok“ (stejné kontroly jako průvodci)."""
+        return guides.status(guides.state_of(get_proj(wid)))
 
     @r.get("/guide/{tab}", response_model=Guide)
     def guide_get(wid: str, tab: str):

@@ -71,20 +71,12 @@ python -m pidtools.api                                           # vypíše adre
 Nebo jako jeden kontejner: `docker build -f Dockerfile.web -t pid-tools-web .` (viz [nasazeni.md](nasazeni.md)).
 V aplikaci zvolte na úvodní obrazovce **Demo** a projděte záložky – každá má vlastního průvodce.
 
-### Desktopová aplikace (náhled)
-
-Stejné výpočty v okně bez prohlížeče – pro inženýrské stanice (Windows 10/11):
-
-```bash
-pip install -r requirements.txt -r requirements-desktop.txt
-python -m pidtools.desktop                 # volitelně: python -m pidtools.desktop data.csv | projekt.pidproj
-```
-
-Data, Model (validace, nejistota), Ladění (srovnání metod, simulace scénáře), živá simulace, APC (kaskáda, dopředná
-vazba, rozvazbení, override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika
-provozu, více smyček v projektu, projekty (soubory `.pidproj` s obsahem JSON, společné s webovou aplikací; starší `.json` se otevřou také) a protokol z ladění.
-Pro Windows je jako instalátor (`PID-Tools-<verze>-setup.exe`, nabídka Start, bez práv správce) i jako přenosný ZIP
-(`PID Tools.exe`) – viz [Nasazení](nasazeni.md).
+Desktopová aplikace je okno Tauri kolem stejného API (`desktop/`, instalátor viz odstavec výše); jiný desktopový
+frontend neexistuje (původní aplikace v Qt byla odstraněna). Nabízí stejné funkce jako webové UI: Data, Model (validace,
+nejistota), Ladění (srovnání metod, simulace scénáře), živá simulace, APC (kaskáda, dopředná vazba, rozvazbení,
+override, Smithův prediktor, gain scheduling podle PV a podle regulační odchylky), diagnostika provozu, více smyček
+v projektu, projekty (soubory `.pidproj` s obsahem JSON, společné s webovou aplikací; starší `.json` se otevřou také)
+a protokol z ladění.
 
 Provoz na interním serveru, web pro tým a aktualizace: [nasazeni.md](nasazeni.md).
 
@@ -153,7 +145,7 @@ jakékoli záruky.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
-python -m pytest                                          # vše (~25 min, včetně desktopu a testů v prohlížeči)
+python -m pytest                                          # vše (~25 min, včetně testů v prohlížeči)
 python -m pytest tests/test_core.py tests/test_basic.py   # jen výpočetní jádro (rychlé)
 ```
 
@@ -187,14 +179,13 @@ pidtools/
   i18n/                    texty: cs.json, en.json, T() – jazyk nastavuje frontend
   api/                     API FastAPI (/api/v1), servíruje sestavené UI v Reactu (api/ui); sidecar desktopu
   ui/static/               sdílené JS/CSS prohlížeče (prohlížeč záznamu, trend, živá simulace, ctrl_engine.js) –
-                           importuje je frontend/ a používá je i desktop v Qt
-  desktop/                 desktopový frontend v Qt (PySide6, pyqtgraph): main.py, tabs/ (stav: app/workspace)
+                           importuje je frontend/
 frontend/                  webové UI v Reactu + TypeScriptu (Vite); desktop/ – okno Tauri kolem sidecaru API
 tests/                     pytest: jádro, aplikační vrstva, API, frontend (Playwright), načítání dat, smyčky, APC
 docs/                      uživatelská dokumentace, architecture.md (architektura, anglicky)
 ```
 
-Vrstvy: `core` ← `app` ← frontend (`api` + React `frontend/`, Qt `desktop`). `core`,
+Vrstvy: `core` ← `app` ← frontend (`api` + React `frontend/`). `core`,
 `app` (kromě `report.py` a `plots.py`, které používají Plotly) a `i18n` nesmí importovat Qt – hlídá to
 test. Podrobnosti v [docs/architecture.md](../architecture.md).
 

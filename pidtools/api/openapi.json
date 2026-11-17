@@ -856,6 +856,224 @@
     "title": "AxisRange",
     "type": "object"
    },
+   "BatchOut": {
+    "properties": {
+     "action": {
+      "enum": [
+       "identify",
+       "tune",
+       "accept"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "job": {
+      "$ref": "#/components/schemas/JobInfo"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/BatchRow"
+      },
+      "title": "Rows",
+      "type": "array"
+     },
+     "total": {
+      "title": "Total",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "job",
+     "action",
+     "total",
+     "rows"
+    ],
+    "title": "BatchOut",
+    "type": "object"
+   },
+   "BatchParams": {
+    "description": "Parametry akce `tune` (stejné hodnoty jako Ladění: metoda, τc, typ regulátoru, kritérium a cíl optimalizace).",
+    "properties": {
+     "crit": {
+      "anyOf": [
+       {
+        "enum": [
+         "MIGO",
+         "IAE",
+         "ISE",
+         "ITAE",
+         "OVS"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Crit"
+     },
+     "ctype": {
+      "anyOf": [
+       {
+        "enum": [
+         "PI",
+         "PID"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ctype"
+     },
+     "method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Method"
+     },
+     "target": {
+      "anyOf": [
+       {
+        "enum": [
+         "dist",
+         "sp",
+         "both",
+         "scen"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target"
+     },
+     "tc": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tc"
+     }
+    },
+    "title": "BatchParams",
+    "type": "object"
+   },
+   "BatchReason": {
+    "properties": {
+     "args": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        },
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "default": {},
+      "title": "Args",
+      "type": "object"
+     },
+     "key": {
+      "title": "Key",
+      "type": "string"
+     }
+    },
+    "required": [
+     "key"
+    ],
+    "title": "BatchReason",
+    "type": "object"
+   },
+   "BatchReq": {
+    "properties": {
+     "action": {
+      "enum": [
+       "identify",
+       "tune",
+       "accept"
+      ],
+      "title": "Action",
+      "type": "string"
+     },
+     "loops": {
+      "items": {
+       "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Loops",
+      "type": "array"
+     },
+     "params": {
+      "$ref": "#/components/schemas/BatchParams",
+      "default": {}
+     }
+    },
+    "required": [
+     "loops",
+     "action"
+    ],
+    "title": "BatchReq",
+    "type": "object"
+   },
+   "BatchRow": {
+    "properties": {
+     "loop": {
+      "title": "Loop",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/BatchReason"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "status": {
+      "enum": [
+       "ok",
+       "skipped",
+       "error"
+      ],
+      "title": "Status",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loop",
+     "name",
+     "status"
+    ],
+    "title": "BatchRow",
+    "type": "object"
+   },
    "BlockParam": {
     "properties": {
      "default": {
@@ -3064,6 +3282,14 @@
       "title": "Checks",
       "type": "array"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "dists": {
       "items": {
        "$ref": "#/components/schemas/FFDist"
@@ -3104,6 +3330,7 @@
      "model",
      "mv_unit",
      "mv_range",
+     "ctrl_set",
      "dists"
     ],
     "title": "FFInfo",
@@ -3150,6 +3377,14 @@
       "title": "T End",
       "type": "number"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "dist": {
       "title": "Dist",
       "type": "integer"
@@ -3170,6 +3405,7 @@
      "dist",
      "step",
      "T_end",
+     "ctrl_set",
      "kpis"
     ],
     "title": "FFSim",
@@ -3251,6 +3487,19 @@
      "text"
     ],
     "title": "Find",
+    "type": "object"
+   },
+   "FlushResult": {
+    "properties": {
+     "saved": {
+      "title": "Saved",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "saved"
+    ],
+    "title": "FlushResult",
     "type": "object"
    },
    "FreqSet": {
@@ -3454,6 +3703,14 @@
       "title": "Checks",
       "type": "array"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "impl_text": {
       "anyOf": [
        {
@@ -3510,6 +3767,7 @@
     "required": [
      "model",
      "integ",
+     "ctrl_set",
      "inputs"
     ],
     "title": "GsErInfo",
@@ -3679,6 +3937,14 @@
       "title": "Checks",
       "type": "array"
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "filled": {
       "default": false,
       "title": "Filled",
@@ -3753,6 +4019,7 @@
     "required": [
      "model",
      "integ",
+     "ctrl_set",
      "inputs",
      "fitted",
      "stale"
@@ -4087,6 +4354,32 @@
      "text"
     ],
     "title": "GuideCheck",
+    "type": "object"
+   },
+   "GuideStatus": {
+    "properties": {
+     "next": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/NextStep"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tabs": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/TabStatus"
+      },
+      "title": "Tabs",
+      "type": "object"
+     }
+    },
+    "required": [
+     "tabs"
+    ],
+    "title": "GuideStatus",
     "type": "object"
    },
    "GuideStep": {
@@ -5086,6 +5379,28 @@
       "title": "Active",
       "type": "boolean"
      },
+     "change_pct": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Change Pct"
+     },
+     "fit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fit"
+     },
      "health": {
       "$ref": "#/components/schemas/LoopHealth"
      },
@@ -5103,6 +5418,17 @@
        }
       ],
       "title": "Model"
+     },
+     "ms": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ms"
      },
      "mv": {
       "anyOf": [
@@ -5159,8 +5485,18 @@
      "set1": {
       "$ref": "#/components/schemas/LoopSet"
      },
+     "set1_defined": {
+      "default": false,
+      "title": "Set1 Defined",
+      "type": "boolean"
+     },
      "set2": {
       "$ref": "#/components/schemas/LoopSet"
+     },
+     "set2_defined": {
+      "default": false,
+      "title": "Set2 Defined",
+      "type": "boolean"
      },
      "sp": {
       "anyOf": [
@@ -5172,6 +5508,18 @@
        }
       ],
       "title": "Sp"
+     },
+     "stage": {
+      "default": "no_data",
+      "enum": [
+       "no_data",
+       "data",
+       "model",
+       "proposal",
+       "set2"
+      ],
+      "title": "Stage",
+      "type": "string"
      }
     },
     "required": [
@@ -5222,6 +5570,881 @@
      }
     },
     "title": "LoopSet",
+    "type": "object"
+   },
+   "LoopSettings": {
+    "description": "Nastavení smyčky: všechny pevné klíče (app.project.STATE_KEYS) s výchozími hodnotami z DEFAULTS (klíč bez výchozí\nhodnoty = None) plus klíče s prefixem (STATE_PREFIX: `method|…`, `fx|…` …), které prostor má (extra=\"allow\").\nTypy odpovídají NUM_KEYS (číslo), BOOL_KEYS (bool), LIST_KEYS (seznam) a ENUMS (výčet); hlídá tests/test_settings_model.py.",
+    "properties": {
+     "audit_loops": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Audit Loops"
+     },
+     "avg_dmv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Avg Dmv"
+     },
+     "avg_dpv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Avg Dpv"
+     },
+     "cas_im": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Im"
+     },
+     "cas_k": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas K"
+     },
+     "cas_oct": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Oct"
+     },
+     "cas_om": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Om"
+     },
+     "cas_samp": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Samp"
+     },
+     "cas_src": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Src"
+     },
+     "cas_t1": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas T1"
+     },
+     "cas_t2": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas T2"
+     },
+     "cas_tci": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Tci"
+     },
+     "cas_tco": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Tco"
+     },
+     "cas_th": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cas Th"
+     },
+     "chart_tunit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chart Tunit"
+     },
+     "chosen": {
+      "default": [
+       "P0D",
+       "P1D",
+       "P2D",
+       "I0D",
+       "I1D"
+      ],
+      "items": {},
+      "title": "Chosen",
+      "type": "array"
+     },
+     "ctype": {
+      "default": "PI",
+      "enum": [
+       "PI",
+       "PID",
+       "PD"
+      ],
+      "title": "Ctype",
+      "type": "string"
+     },
+     "db": {
+      "default": 0.0,
+      "title": "Db",
+      "type": "number"
+     },
+     "db_mode": {
+      "default": "cont",
+      "enum": [
+       "cont",
+       "step"
+      ],
+      "title": "Db Mode",
+      "type": "string"
+     },
+     "dfb": {
+      "default": true,
+      "title": "Dfb",
+      "type": "boolean"
+     },
+     "diag_integ": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Diag Integ"
+     },
+     "diag_theta": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Diag Theta"
+     },
+     "diffgain": {
+      "default": 5.0,
+      "title": "Diffgain",
+      "type": "number"
+     },
+     "dist_level": {
+      "default": "none",
+      "enum": [
+       "none",
+       "medium",
+       "high"
+      ],
+      "title": "Dist Level",
+      "type": "string"
+     },
+     "dist_strength": {
+      "default": 4,
+      "title": "Dist Strength",
+      "type": "number"
+     },
+     "dview": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dview"
+     },
+     "gain_sign": {
+      "default": "auto",
+      "enum": [
+       "auto",
+       "pos",
+       "neg"
+      ],
+      "title": "Gain Sign",
+      "type": "string"
+     },
+     "id_mode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id Mode"
+     },
+     "id_stic": {
+      "default": false,
+      "title": "Id Stic",
+      "type": "boolean"
+     },
+     "lang": {
+      "default": "en",
+      "title": "Lang",
+      "type": "string"
+     },
+     "live_runs": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live Runs"
+     },
+     "loop_tag": {
+      "default": "",
+      "title": "Loop Tag",
+      "type": "string"
+     },
+     "mcode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mcode"
+     },
+     "mtype": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mtype"
+     },
+     "mtype0": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mtype0"
+     },
+     "mv_hi": {
+      "default": 100.0,
+      "title": "Mv Hi",
+      "type": "number"
+     },
+     "mv_lo": {
+      "default": 0.0,
+      "title": "Mv Lo",
+      "type": "number"
+     },
+     "mv_rng_user": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mv Rng User"
+     },
+     "mvl_hi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mvl Hi"
+     },
+     "mvl_lo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mvl Lo"
+     },
+     "mvrate": {
+      "default": 0.0,
+      "title": "Mvrate",
+      "type": "number"
+     },
+     "opt_crit": {
+      "default": "OVS",
+      "title": "Opt Crit",
+      "type": "string"
+     },
+     "opt_ms": {
+      "default": 1.6,
+      "title": "Opt Ms",
+      "type": "number"
+     },
+     "opt_noise": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Opt Noise"
+     },
+     "opt_ovs": {
+      "default": 2,
+      "title": "Opt Ovs",
+      "type": "number"
+     },
+     "opt_robust": {
+      "default": false,
+      "title": "Opt Robust",
+      "type": "boolean"
+     },
+     "opt_target": {
+      "default": "both",
+      "title": "Opt Target",
+      "type": "string"
+     },
+     "pfb": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pfb"
+     },
+     "plan_dpv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plan Dpv"
+     },
+     "plan_snr": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plan Snr"
+     },
+     "plot_h": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Plot H"
+     },
+     "proc_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proc Type"
+     },
+     "propfac": {
+      "default": 1.0,
+      "title": "Propfac",
+      "type": "number"
+     },
+     "pv_hi": {
+      "default": 100.0,
+      "title": "Pv Hi",
+      "type": "number"
+     },
+     "pv_lo": {
+      "default": 0.0,
+      "title": "Pv Lo",
+      "type": "number"
+     },
+     "pv_rng_user": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pv Rng User"
+     },
+     "pvfilt": {
+      "default": 0.0,
+      "title": "Pvfilt",
+      "type": "number"
+     },
+     "read_manual": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Read Manual"
+     },
+     "rep_author": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Author"
+     },
+     "rep_comment": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Comment"
+     },
+     "rep_plant": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Plant"
+     },
+     "rep_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rep Status"
+     },
+     "samp": {
+      "default": 1.0,
+      "title": "Samp",
+      "type": "number"
+     },
+     "scen2": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen2"
+     },
+     "scen_d_in": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen D In"
+     },
+     "scen_d_pv": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen D Pv"
+     },
+     "scen_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scen Kind"
+     },
+     "set1_gain": {
+      "default": 1.0,
+      "title": "Set1 Gain",
+      "type": "number"
+     },
+     "set1_td": {
+      "default": 0.0,
+      "title": "Set1 Td",
+      "type": "number"
+     },
+     "set1_ti": {
+      "default": 100.0,
+      "title": "Set1 Ti",
+      "type": "number"
+     },
+     "set2_defined": {
+      "default": false,
+      "title": "Set2 Defined",
+      "type": "boolean"
+     },
+     "set2_gain": {
+      "default": 1.0,
+      "title": "Set2 Gain",
+      "type": "number"
+     },
+     "set2_td": {
+      "default": 0.0,
+      "title": "Set2 Td",
+      "type": "number"
+     },
+     "set2_ti": {
+      "default": 100.0,
+      "title": "Set2 Ti",
+      "type": "number"
+     },
+     "sim_J": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim J"
+     },
+     "sim_len_u": {
+      "default": "s",
+      "enum": [
+       "s",
+       "min",
+       "h"
+      ],
+      "title": "Sim Len U",
+      "type": "string"
+     },
+     "sim_len_u_set": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Len U Set"
+     },
+     "sim_noise": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Noise"
+     },
+     "sprate": {
+      "default": 0.0,
+      "title": "Sprate",
+      "type": "number"
+     },
+     "thmax": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Thmax"
+     },
+     "tri_thr": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tri Thr"
+     },
+     "tune_hist": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tune Hist"
+     },
+     "u_mv": {
+      "default": "%",
+      "title": "U Mv",
+      "type": "string"
+     },
+     "u_pv": {
+      "default": "",
+      "title": "U Pv",
+      "type": "string"
+     },
+     "val_rng": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Val Rng"
+     },
+     "vchar_last": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vchar Last"
+     },
+     "win_mode": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Win Mode"
+     }
+    },
+    "required": [
+     "lang",
+     "loop_tag",
+     "u_pv",
+     "u_mv",
+     "pv_lo",
+     "pv_hi",
+     "mv_lo",
+     "mv_hi",
+     "pv_rng_user",
+     "mv_rng_user",
+     "plot_h",
+     "chart_tunit",
+     "samp",
+     "diffgain",
+     "pfb",
+     "propfac",
+     "dfb",
+     "db",
+     "db_mode",
+     "mvl_lo",
+     "mvl_hi",
+     "pvfilt",
+     "mvrate",
+     "sprate",
+     "set1_gain",
+     "set1_ti",
+     "set1_td",
+     "set2_gain",
+     "set2_ti",
+     "set2_td",
+     "set2_defined",
+     "thmax",
+     "chosen",
+     "mcode",
+     "mtype",
+     "mtype0",
+     "proc_type",
+     "dist_level",
+     "dist_strength",
+     "gain_sign",
+     "id_stic",
+     "win_mode",
+     "read_manual",
+     "ctype",
+     "opt_ms",
+     "opt_noise",
+     "opt_robust",
+     "opt_crit",
+     "opt_target",
+     "opt_ovs",
+     "avg_dpv",
+     "avg_dmv",
+     "scen_kind",
+     "scen_d_in",
+     "scen_d_pv",
+     "tune_hist",
+     "id_mode",
+     "audit_loops",
+     "tri_thr",
+     "diag_theta",
+     "val_rng",
+     "scen2",
+     "sim_len_u",
+     "sim_len_u_set",
+     "sim_J",
+     "sim_noise",
+     "vchar_last",
+     "plan_dpv",
+     "plan_snr",
+     "cas_src",
+     "cas_k",
+     "cas_t1",
+     "cas_t2",
+     "cas_th",
+     "cas_im",
+     "cas_om",
+     "cas_oct",
+     "cas_samp",
+     "cas_tci",
+     "cas_tco",
+     "diag_integ",
+     "rep_plant",
+     "rep_author",
+     "rep_status",
+     "rep_comment",
+     "live_runs",
+     "dview"
+    ],
+    "title": "LoopSettings",
     "type": "object"
    },
    "Loops": {
@@ -5848,6 +7071,34 @@
      }
     },
     "title": "NewSnapshot",
+    "type": "object"
+   },
+   "NextStep": {
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/GuideAction"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tab": {
+      "title": "Tab",
+      "type": "string"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "tab",
+     "text"
+    ],
+    "title": "NextStep",
     "type": "object"
    },
    "Node": {
@@ -6698,6 +7949,14 @@
    },
    "RatioInfo": {
     "properties": {
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "defaults": {
       "$ref": "#/components/schemas/RatioIn"
      },
@@ -6711,6 +7970,7 @@
     },
     "required": [
      "model",
+     "ctrl_set",
      "defaults",
      "design"
     ],
@@ -7984,6 +9244,14 @@
        }
       ]
      },
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "general_rows": {
       "anyOf": [
        {
@@ -8081,6 +9349,7 @@
      "model",
      "inputs",
      "integ",
+     "ctrl_set",
      "ratio",
      "opt_ready"
     ],
@@ -9137,6 +10406,14 @@
    },
    "SplitInfo": {
     "properties": {
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "defaults": {
       "$ref": "#/components/schemas/SplitIn"
      },
@@ -9150,6 +10427,7 @@
     },
     "required": [
      "model",
+     "ctrl_set",
      "defaults",
      "design"
     ],
@@ -9580,6 +10858,29 @@
      }
     },
     "title": "SummaryReq",
+    "type": "object"
+   },
+   "TabStatus": {
+    "properties": {
+     "ok": {
+      "title": "Ok",
+      "type": "integer"
+     },
+     "todo": {
+      "title": "Todo",
+      "type": "integer"
+     },
+     "warn": {
+      "title": "Warn",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "ok",
+     "warn",
+     "todo"
+    ],
+    "title": "TabStatus",
     "type": "object"
    },
    "ThresholdInfo": {
@@ -10119,6 +11420,35 @@
     "title": "Uncertainty",
     "type": "object"
    },
+   "UndoState": {
+    "description": "Co by vrátil `POST /undo` a `POST /redo`: krátký popisek kroku, nebo None (není co vracet).",
+    "properties": {
+     "redo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Redo"
+     },
+     "undo": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Undo"
+     }
+    },
+    "title": "UndoState",
+    "type": "object"
+   },
    "ValRow": {
     "properties": {
      "FIT": {
@@ -10538,6 +11868,14 @@
    },
    "VpcInfo": {
     "properties": {
+     "ctrl_set": {
+      "enum": [
+       1,
+       2
+      ],
+      "title": "Ctrl Set",
+      "type": "integer"
+     },
      "defaults": {
       "$ref": "#/components/schemas/VpcIn"
      },
@@ -10551,6 +11889,7 @@
     },
     "required": [
      "model",
+     "ctrl_set",
      "defaults",
      "design"
     ],
@@ -11033,7 +12372,7 @@
  "info": {
   "description": "Identification, tuning and simulation of PIDConL loops (PCS 7).",
   "title": "PID Tools API",
-  "version": "4.0.0b3"
+  "version": "4.0.0b5"
  },
  "openapi": "3.1.0",
  "paths": {
@@ -11715,6 +13054,73 @@
      }
     },
     "summary": "Drop Autosave",
+    "tags": [
+     "app-settings",
+     "app-settings"
+    ]
+   }
+  },
+  "/api/v1/autosave/flush": {
+   "post": {
+    "description": "Zapíše záchranné kopie prostorů s neuloženými změnami (volá obal desktopu před ukončením; veřejný režim: 403).\nV týmovém režimu jen prostory přihlášeného uživatele. Záchranná kopie je jedna na uživatele, takže vyhrává\nnaposledy zapsaný prostor. Pozor: zápis běží mimo zámek prostoru (`_serialize_workspaces` zamyká jen cesty\n`/workspaces/{wid}/…`); souběh se zápisem téhož prostoru je přijatelný – okno se zavírá.",
+    "operationId": "flush_api_v1_autosave_flush_post",
+    "parameters": [
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FlushResult"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Flush",
     "tags": [
      "app-settings",
      "app-settings"
@@ -18127,6 +19533,276 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/batch": {
+   "post": {
+    "description": "Hromadná akce nad vybranými smyčkami jako jedna úloha (průběh „3 / 12 · název“, zrušení zachová hotové smyčky):\n`identify` (výchozí nastavení smyčky), `tune` (návrh uložený u smyčky, Set 2 se nemění), `accept` (návrhy →\nSet 2). Smyčka bez použitelných dat se přeskočí s důvodem. Výsledek po smyčkách: GET /batch/{jid}.",
+    "operationId": "batch_start_api_v1_workspaces__wid__batch_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BatchReq"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Batch Start",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/batch/export": {
+   "get": {
+    "description": "Export sady `n` vybraných smyček (indexy oddělené čárkou) do jednoho souboru; formát řádků jako `/tuning/export`.",
+    "operationId": "batch_export_api_v1_workspaces__wid__batch_export_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "loops",
+      "required": true,
+      "schema": {
+       "title": "Loops",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "fmt",
+      "required": false,
+      "schema": {
+       "default": "csv",
+       "title": "Fmt",
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "n",
+      "required": false,
+      "schema": {
+       "default": 2,
+       "title": "N",
+       "type": "integer"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "text/csv": {},
+       "text/plain": {}
+      },
+      "description": "one file with the set of every selected loop (fmt: csv, pcs7, tia, deltav); header X-Skipped-Loops lists loops without data or model"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Batch Export",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/batch/{jid}": {
+   "get": {
+    "description": "Stav hromadné úlohy a řádky výsledku hotových smyček (průběžně; po zrušení zůstanou).",
+    "operationId": "batch_get_api_v1_workspaces__wid__batch__jid__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "jid",
+      "required": true,
+      "schema": {
+       "title": "Jid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BatchOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Batch Get",
+    "tags": [
+     "audit"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/columns": {
    "put": {
     "operationId": "set_columns_api_v1_workspaces__wid__columns_put",
@@ -19152,6 +20828,81 @@
     "summary": "Frequency",
     "tags": [
      "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/guide/status": {
+   "get": {
+    "description": "Souhrn kontrolních seznamů hlavních záložek a „další krok“ (stejné kontroly jako průvodci).",
+    "operationId": "guide_status_api_v1_workspaces__wid__guide_status_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GuideStatus"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Guide Status",
+    "tags": [
+     "guide"
     ]
    }
   },
@@ -23423,6 +25174,81 @@
     ]
    }
   },
+  "/api/v1/workspaces/{wid}/redo": {
+   "post": {
+    "description": "Znovu provede poslední vrácenou změnu; 409, když není co provést.",
+    "operationId": "post_redo_api_v1_workspaces__wid__redo_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Post Redo",
+    "tags": [
+     "data"
+    ]
+   }
+  },
   "/api/v1/workspaces/{wid}/report": {
    "post": {
     "description": "Protokol z ladění (HTML): smyčky s modelem, sady, odezvy, APC, podpisy.",
@@ -23898,7 +25724,7 @@
   },
   "/api/v1/workspaces/{wid}/settings": {
    "get": {
-    "description": "Nastavení smyčky (klíče jako v projektu).",
+    "description": "Nastavení smyčky (klíče jako v projektu), vždy se všemi pevnými klíči.",
     "operationId": "get_settings_api_v1_workspaces__wid__settings_get",
     "parameters": [
      {
@@ -23948,9 +25774,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Settings Api V1 Workspaces  Wid  Settings Get",
-         "type": "object"
+         "$ref": "#/components/schemas/LoopSettings"
         }
        }
       },
@@ -24035,9 +25859,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": true,
-         "title": "Response Patch Settings Api V1 Workspaces  Wid  Settings Patch",
-         "type": "object"
+         "$ref": "#/components/schemas/LoopSettings"
         }
        }
       },
@@ -26545,6 +28367,154 @@
     "summary": "Warnings",
     "tags": [
      "tuning"
+    ]
+   }
+  },
+  "/api/v1/workspaces/{wid}/undo": {
+   "get": {
+    "description": "Popisky kroků, které by vrátil `POST /undo` a `POST /redo` (None = není co vracet).",
+    "operationId": "get_undo_api_v1_workspaces__wid__undo_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UndoState"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Get Undo",
+    "tags": [
+     "data"
+    ]
+   },
+   "post": {
+    "description": "Vrátí poslední změnu nastavení / sady / úseku / scénáře; 409, když není co vracet nebo krok už neplatí.",
+    "operationId": "post_undo_api_v1_workspaces__wid__undo_post",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "wid",
+      "required": true,
+      "schema": {
+       "title": "Wid",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     },
+     {
+      "in": "header",
+      "name": "x-pid-token",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Pid-Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WorkspaceInfo"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Post Undo",
+    "tags": [
+     "data"
     ]
    }
   },

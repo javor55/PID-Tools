@@ -1,4 +1,4 @@
-"""Shoda obecného regulátoru: Python (core.controller) × JS (ui/static/ctrl_engine.js), stejný profil, ~50 signálů."""
+"""Shoda obecného regulátoru: Python (core.controller) × JS (frontend/src/legacy/ctrl_engine.js), stejný profil, ~50 signálů."""
 import copy
 import json
 import os
@@ -15,7 +15,7 @@ from pidtools.core.controller import Controller
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 import golden_controller as gc  # noqa: E402
 
-ENGINE = os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "ctrl_engine.js")
+ENGINE = os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "legacy", "ctrl_engine.js")
 NODE = shutil.which("node")
 TOL = 1e-9
 BASE = dict(Gain=0.9, TI=30.0, TD=4.0, DiffGain=5.0, SampleTime=1.0, MV_Lo=0.0, MV_Hi=100.0)

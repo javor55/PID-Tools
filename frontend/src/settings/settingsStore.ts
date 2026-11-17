@@ -42,7 +42,7 @@ export const useSettingsUi = create<SettingsState>((set) => ({
 }));
 
 // Přepnutí záložky / podzáložky (i z jiného místa, např. průvodce) zavře Nastavení.
-useUi.subscribe((s, p) => { if (s.tab !== p.tab || s.dataSub !== p.dataSub) useSettingsUi.getState().close(); });
+useUi.subscribe((s, p) => { if (s.tab !== p.tab || s.dataSub !== p.dataSub || s.modelSub !== p.modelSub) useSettingsUi.getState().close(); });
 
 // „Otevřít v knihovně“ z karty Regulátor smyčky (Ladění): CustomEvent("pid:open-settings", {detail: {section, id}}).
 if (typeof window !== "undefined") {

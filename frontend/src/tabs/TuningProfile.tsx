@@ -2,12 +2,13 @@
 // bloku generované z parametrů profilu), Proces a ventil v simulaci, tabulka robustnosti, upozornění ladění, τc
 // a Export pro řídicí systém (PCS 7 / TIA / DeltaV / CSV).
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { bytes, request } from "../api/client";
 import type { components } from "../api/schema";
 import { CheckSetting, NumSetting, SelectSetting } from "../components/Fields";
+import { CopyTableButton } from "../components/Card";
 import { LabelHelp } from "../components/Ui";
-import { useSettings, usePatchSettings, useWsQuery } from "../data";
+import { useLoopSettings, useSettings, usePatchSettings, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { useUi } from "../store";
 import { fnum } from "./TuningMore";
@@ -31,10 +32,11 @@ const ROLE_HELP: Record<string, string> = { Ts: "sampletime_help", N: "diffgain_
 const label = (q: { name: string; unit?: string | null }) => (q.unit && q.unit !== "-" ? `${q.name} [${q.unit}]` : q.name);
 
 /** Číselné pole bez popisku navázané na klíč nastavení (rozsahy NormPV / NormMV); uloží se po opuštění pole / Enter. */
-function BareNum({ k, def, label, title }: { k: string; def: number; label: string; title: string }) {
-  const st = useSettings().data ?? {};
+function BareNum({ k, label, title }: { k: "pv_lo" | "pv_hi" | "mv_lo" | "mv_hi"; label: string; title: string }) {
+  const st = useLoopSettings().data;
   const patch = usePatchSettings();
-  const cur = Number(st[k] ?? def);
+  if (!st) return <input type="number" className="tn-in" aria-label={label} title={title} disabled aria-busy="true" data-testid={`set-${k}`} />;
+  const cur = st[k];
   return (
     <input type="number" step="any" className="tn-in" aria-label={label} title={title} key={`${k}-${cur}`} defaultValue={+cur.toPrecision(6)}
       data-testid={`set-${k}`} onBlur={(e) => { const v = e.target.value; if (v !== "" && Number.isFinite(+v) && +v !== cur) void patch({ [k]: +v }); }}
@@ -48,7 +50,7 @@ export function ControllerCard({ info }: { info: TuningInfo }) {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const patch = usePatchSettings();
-  const st = useSettings().data ?? {};
+  const st = useLoopSettings().data;
   const lib = useQuery({ queryKey: ["controllers"], queryFn: () => request<Summary[]>("GET", "/controllers") });
   const c = info.controller;
   if (!c) return null;
@@ -71,13 +73,13 @@ export function ControllerCard({ info }: { info: TuningInfo }) {
       return <SelectSetting key={q.key} k={q.setting} label={lab} help={help} options={["cont", "step"] as const} def="cont"
         fmt={(x) => T("db_" + x)} />;
     return <NumSetting key={q.key} k={q.setting} label={lab} help={help} def={Number(q.value ?? q.default ?? 0)}
-      min={q.role === "mv_lo" || q.role === "mv_hi" ? undefined : 0} />;
+      min={q.role === "mv_lo" || q.role === "mv_hi" ? undefined : 0} minExclusive={q.setting === "samp" || q.setting === "diffgain"} />;
   };
-  const g = (lab: string, a: [string, number], b: [string, number], title: string) => (
+  const g = (lab: string, a: "pv_lo" | "mv_lo", b: "pv_hi" | "mv_hi", title: string) => (
     <>
       <span className="tn-lab" title={title}>{lab}</span>
-      <BareNum k={a[0]} def={a[1]} label={`${lab} Low`} title={title} />
-      <BareNum k={b[0]} def={b[1]} label={`${lab} High`} title={title} />
+      <BareNum k={a} label={`${lab} Low`} title={title} />
+      <BareNum k={b} label={`${lab} High`} title={title} />
     </>
   );
   return (
@@ -95,12 +97,12 @@ export function ControllerCard({ info }: { info: TuningInfo }) {
       </div>
       <h3 className="tn-h3">{T("tun_ui_ctrl_blk")}<LabelHelp text={T("tun_ui_ctrl_help")} /></h3>
       <div className="tn-grid3 blk">
-        {g("NormPV", ["pv_lo", 0], ["pv_hi", 100], T("h_normpv"))}
-        {g("NormMV", ["mv_lo", 0], ["mv_hi", 100], T("h_normmv"))}
+        {g("NormPV", "pv_lo", "pv_hi", T("h_normpv"))}
+        {g("NormMV", "mv_lo", "mv_hi", T("h_normmv"))}
       </div>
       <div data-testid="blk-params">{info.block_params.map(row)}</div>
       <button type="button" className="tn-btn small" data-testid="blk-reset" title={T("h_mvlim")}
-        onClick={() => void patch({ mvl_lo: Number(st.mv_lo ?? 0), mvl_hi: Number(st.mv_hi ?? 100) })}>{T("ui_tuning_reset_block")}</button>
+        disabled={!st} onClick={() => { if (st) void patch({ mvl_lo: st.mv_lo, mvl_hi: st.mv_hi }); }}>{T("ui_tuning_reset_block")}</button>
       <div className="tn-note">{T("tun_ui_ctrl_note")}</div>
     </>
   );
@@ -111,7 +113,7 @@ export function TcRow({ method, ctype, def }: { method: string; ctype: string; d
   const T = useT();
   const st = useSettings().data ?? {};
   const patch = usePatchSettings();
-  const k = `tc|${String(st.mcode ?? "")}|${method}|${ctype}`;
+  const k = `tc|${st.mcode || ""}|${method}|${ctype}`;
   const cur = Number(st[k]);
   return (
     <div className="trow"><span className="lbl">{T("tun_ui_tc")}<LabelHelp text={T("tun_ui_tc_help")} /></span>
@@ -194,16 +196,19 @@ export function useRob(preview: { Kc: number; Ti: number; Td: number } | null) {
     placeholderData: keepPreviousData, queryFn: () => request<RobRow[]>("POST", `/workspaces/${wid}/tuning/robustness`, preview ?? undefined) });
 }
 
-export function RobTable({ rows, dec }: { rows: RobRow[] | undefined; dec: string }) {
+export function RobTable({ rows: all, dec, set2Empty }: { rows: RobRow[] | undefined; dec: string; set2Empty?: boolean }) {
   const T = useT();
-  const st = useSettings().data ?? {};
-  if (!rows?.length) return null;
+  const st = useLoopSettings().data;
+  const robRef = useRef<HTMLTableElement>(null);
+  const rows = set2Empty ? all?.filter((r) => r.name !== "set2") : all;   // Set 2 ještě bez hodnot – neukazovat
+  if (!rows?.length || !st) return null;
   const nm = (n: string) => (n === "sug" ? T("dk_suggest") : n === "set1" ? T("set_1") : T("set_2"));
   const f = (x: number | null | undefined, p = 3) => fnum(x, dec, p);
-  const mvr = Number(st.mv_hi ?? 100) - Number(st.mv_lo ?? 0);
+  const mvr = st.mv_hi - st.mv_lo;
   return (
     <div className="tn-scroll">
-      <table className="tn-tbl" data-testid="rob-table" aria-label={T("tun_ui_rob_title")}>
+      <CopyTableButton target={() => robRef.current} />
+      <table ref={robRef} className="tn-tbl" data-testid="rob-table" aria-label={T("tun_ui_rob_title")}>
         <thead><tr><th scope="col" /><th scope="col" className="r" title={T("ui_tuning_help_rob")}>Ms</th>
           <th scope="col" className="r" title={T("tun_ui_rob_mt")}>Mt</th><th scope="col" className="r">GM</th>
           <th scope="col" className="r">PM [°]</th><th scope="col" className="r" title={T("tun_ui_rob_worst")}>Ms max</th>

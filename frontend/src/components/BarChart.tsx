@@ -1,6 +1,6 @@
 // Sloupcový graf korelací (ACF / CCF reziduí) s mezemi ±bound; sloupce mimo mez jsou červeně (jako na desktopu).
-export function BarChart({ lags, values, bound, xLabel, testid, height = 180 }: {
-  lags: number[]; values: number[]; bound: number; xLabel?: string; testid?: string; height?: number;
+export function BarChart({ lags, values, bound, xLabel, testid, height = 180, title }: {
+  lags: number[]; values: number[]; bound: number; xLabel?: string; testid?: string; height?: number; title?: string;   // title = přístupný název grafu (výchozí: popisek osy x)
 }) {
   const W = 720, H = height, L = 40, R = 10, Tm = 10, B = 28;
   const lim = Math.max(bound * 1.3, ...values.map((v) => Math.abs(v)), 0.05);
@@ -12,7 +12,7 @@ export function BarChart({ lags, values, bound, xLabel, testid, height = 180 }: 
   const xt = [0, 0.25, 0.5, 0.75, 1].map((f) => x0 + f * (x1 - x0));
   return (
     <figure className="chart" data-testid={testid} data-n={values.length} data-bound={bound}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={title ?? xLabel}>
         {[-lim, -lim / 2, 0, lim / 2, lim].map((v) => <g key={v}><line x1={L} x2={W - R} y1={sy(v)} y2={sy(v)} className="grid" />
           <text x={L - 4} y={sy(v) + 3} textAnchor="end">{+v.toPrecision(2)}</text></g>)}
         {xt.map((v) => <text key={v} x={sx(v)} y={H - B + 14} textAnchor="middle">{+v.toPrecision(3)}</text>)}

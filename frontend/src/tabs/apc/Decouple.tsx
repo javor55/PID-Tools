@@ -112,7 +112,7 @@ export function DecoupleMain() {
         <KpiTable d={d} loop={loop} />
       </ACard>
       {d.ok && (
-        <ACard title={T("dec_params")} help={T("ui_apc_pcs_h")} testid="dec-params">
+        <ACard title={T("dec_params")} help={T("ui_apc_pcs_h")} testid="dec-params" copy>
           <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("dec_path")}</th><th className="r">{T("dec_gain_pct")}</th>
             <th className="r">{T("dec_gain_eng")}</th><th className="r">Lead [s]</th><th className="r">Lag [s]</th><th className="r">{T("ff_delay")}</th></tr></thead>
             <tbody>{d.params.filter((p) => way === "both" || p.way === way).map((p, i) => (

@@ -1,7 +1,7 @@
-// Graf průběhů s úseky – sdílený modul dnešního webu (pidtools/ui/static/trend.js) ve stránce Reactu.
+// Graf průběhů s úseky – sdílený modul dnešního webu (frontend/src/legacy/trend.js) ve stránce Reactu.
 import { useEffect, useRef } from "react";
-import mountTrend from "../../../pidtools/ui/static/trend.js";
-import "../../../pidtools/ui/static/trend.css";
+import mountTrend, { type TrendData } from "../legacy/trend.js";
+import "../legacy/trend.css";
 
 function hash(s: string): string {
   let h = 2166136261;
@@ -15,18 +15,21 @@ export interface TrendHandlers {
   onMode?: (mode: string) => void;
 }
 
-export function Trend({ data, onWins, onMode, testid }: TrendHandlers & { data: Record<string, unknown>; testid?: string }) {
+export function Trend({ data, onWins, onMode, testid }: TrendHandlers & { data: TrendData; testid?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const h = useRef<TrendHandlers>({});
+  const destroy = useRef<(() => void) | null>(null);   // odpojení trend.js; volá se jen při odchodu komponenty
   useEffect(() => { h.current = { onWins, onMode }; }, [onWins, onMode]);
   useEffect(() => {
     if (!box.current) return;
     const sig = hash(JSON.stringify(data));          // stejný otisk = trend.js nic nepřekresluje
-    mountTrend({
+    destroy.current = mountTrend({
       data: { ...data, sig }, parentElement: box.current,
       setStateValue: (k, v) => { if (k === "wins") h.current.onWins?.(v as never); },
       setTriggerValue: (k, v) => { if (k === "mode") h.current.onMode?.(String(v)); },
     });
   }, [data]);
+  // ne v úklidu efektu výše (ten běží při každé změně dat): odpojit až s komponentou
+  useEffect(() => () => { destroy.current?.(); destroy.current = null; }, []);
   return <div ref={box} className="trend-host" data-testid={testid} />;
 }

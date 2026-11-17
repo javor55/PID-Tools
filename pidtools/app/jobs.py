@@ -5,7 +5,9 @@ hlásí průběh, dají se zrušit a mají časový limit; výsledek se uloží 
 Každá úloha má vlastní proces (multiprocessing, „spawn“ – stejně na Windows i Linuxu): běžící výpočet v numpy /
 scipy nejde přerušit jinak než ukončením procesu, a to musí být okamžité (zrušení do 1 s). Funkce úlohy musí být
 importovatelná (definovaná na úrovni modulu) a její argumenty i výsledek přenositelné (pickle). Přijímá-li funkce
-argument `progress`, dostane funkci progress(podíl 0–1, text="").
+argument `progress`, dostane funkci progress(podíl 0–1, text=""); přijímá-li `partial`, dostane funkci partial(data) pro
+částečné výsledky (po každé hotové části), které se v procesu správce předají `on_partial(data)` – zrušená úloha
+tak zachová, co už bylo hotové.
 
     jm = JobManager(max_parallel=2)
     jid = jm.submit(mdl.identify_all, ts, pv, mv, Ts, d, s, key=("ident", ...), timeout=600)
@@ -108,22 +110,31 @@ def _wants_progress(fn):
         return False
 
 
+def _wants(fn, name):
+    try:
+        return name in inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+
+
 def _worker(fn, args, kwargs, q):
-    """Tělo procesu úlohy: průběh a výsledek posílá frontou („p“, podíl, text) / („ok“, výsledek) / („err“, text)."""
+    """Tělo procesu úlohy: průběh a výsledek posílá frontou („p“, podíl, text) / („r“, část) / („ok“, výsledek) / („err“, text)."""
     try:
         if _wants_progress(fn):
             def progress(frac, text=""):
                 q.put(("p", float(frac), str(text)))
             kwargs = dict(kwargs, progress=progress)
+        if _wants(fn, "partial"):
+            kwargs = dict(kwargs, partial=lambda data: q.put(("r", data)))
         q.put(("ok", fn(*args, **kwargs)))
     except BaseException as ex:          # noqa: BLE001 – chyba se předá volajícímu, proces končí
         q.put(("err", f"{type(ex).__name__}: {ex}", traceback.format_exc()))
 
 
 class Job:
-    def __init__(self, jid, fn, args, kwargs, key, timeout, on_done=None):
+    def __init__(self, jid, fn, args, kwargs, key, timeout, on_done=None, on_partial=None):
         self.id, self.fn, self.args, self.kwargs, self.key, self.timeout = jid, fn, args, kwargs, key, timeout
-        self.on_done = on_done
+        self.on_done, self.on_partial = on_done, on_partial
         self.state, self.progress, self.text = "queued", 0.0, ""
         self.result = self.error = self.trace = None
         self.cached = False
@@ -155,14 +166,15 @@ class JobManager:
         self._thread.start()
 
     # ---- veřejné rozhraní
-    def submit(self, fn, *args, key=None, timeout=None, on_done=None, **kwargs):
+    def submit(self, fn, *args, key=None, timeout=None, on_done=None, on_partial=None, **kwargs):
         """
         Nová úloha; s klíčem v cache je hotová hned (cached=True). on_done(výsledek) se zavolá v procesu správce
         po úspěšném dokončení (např. uložení výsledku do pracovního prostoru); jeho chyba úlohu označí jako chybnou.
-        Vrací ID úlohy.
+        on_partial(data) dostane každý částečný výsledek, který funkce úlohy pošle přes `partial` (i u úlohy, která
+        se pak zruší). Vrací ID úlohy.
         """
         jid = f"j{next(self._ids)}"
-        job = Job(jid, fn, args, kwargs, key, timeout, on_done)
+        job = Job(jid, fn, args, kwargs, key, timeout, on_done, on_partial)
         if key is not None and key in self.cache:
             job.result, job.cached = self.cache.get(key), True
             self._finish(job, "done", progress=1.0)
@@ -185,6 +197,8 @@ class JobManager:
         """Zrušit čekající nebo běžící úlohu (běžící proces se ukončí). Vrací True, když se úloha zrušila."""
         job = self._get(jid)
         with self._lock:
+            if job.state == "running":
+                self._drain(job)                     # částečné výsledky, které už proces poslal, se nezahodí
             if job.state in FINAL:
                 return False
             self._kill(job)
@@ -240,13 +254,20 @@ class JobManager:
             job.proc.start()
 
     def _drain(self, job):
-        while True:
+        while job.state == "running":
             try:
                 msg = job.q.get_nowait()
             except queue.Empty:
                 return
             if msg[0] == "p":
                 job.progress, job.text = msg[1], msg[2]
+            elif msg[0] == "r":
+                try:
+                    if job.on_partial is not None:
+                        job.on_partial(msg[1])
+                except Exception as ex:             # noqa: BLE001 – částečný výsledek nešel použít: úloha končí chybou
+                    self._kill(job)
+                    self._finish(job, "error", error=f"{type(ex).__name__}: {ex}")
             elif msg[0] == "ok":
                 job.result = msg[1]
                 if job.key is not None:

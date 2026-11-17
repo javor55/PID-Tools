@@ -6,9 +6,10 @@ import pandas as pd
 
 from .. import project as prj
 from . import DEFAULTS  # definované v __init__ před importem částí
+from .base import FitState, WsBase
 
 
-class ProjectMixin:
+class ProjectMixin(WsBase):
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     # ---- projekt
@@ -61,7 +62,7 @@ class ProjectMixin:
         self.excl = {str(k): list(v) for k, v in (win.get("excl") or {}).items()}
         self.excl_tol = float(win.get("tol", 0.5))
         if rec.get("fit"):
-            self.fit = dict(res=rec["fit"]["res"], dnames=list(rec["fit"]["dnames"]), key="__restore__")
+            self.fit = FitState(res=rec["fit"]["res"], dnames=list(rec["fit"]["dnames"]), key="__restore__")
             if self.has_data:
                 self.fit["key"] = self.fit_key()
 
@@ -74,9 +75,14 @@ class ProjectMixin:
         """Záznam smyčky pro app.report."""
         return dict(id=1, name=self.get("loop_tag") or str(self.c_pv), active=True, model=self.model,
                     ctrl=self.set_ctrl(2), ctrl1=self.set_ctrl(1), rng=tuple(self.rng),
-                    fit=self.fit["res"][self.model[0]]["fit"] if self.model else None,
+                    fit=self.fit_res()[self.model[0]]["fit"] if self.model else None,
                     c_pv=self.c_pv, c_mv=self.c_mv, c_sp=self.c_sp, c_d=list(self.c_d), pv_rng=(self.pv_lo, self.pv_hi),
-                    mv_rng=(self.mv_lo, self.mv_hi), u_pv=self.get("u_pv", ""), u_mv=self.get("u_mv", ""))
+                    mv_rng=(self.mv_lo, self.mv_hi), u_pv=self.get("u_pv", ""), u_mv=self.get("u_mv", ""),
+                    set2_defined=bool(self.get("set2_defined")))
+
+    def apc_record(self):
+        """Záznam smyčky pro APC: jako report_record, regulátor = pracovní sada (Set 1, dokud je Set 2 výchozí)."""
+        return dict(self.report_record(), ctrl=self.work_ctrl())
 
     def report_html(self, meta, sections, chart_mode="inline"):
         from .. import report

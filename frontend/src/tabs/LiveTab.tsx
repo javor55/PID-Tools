@@ -4,10 +4,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import { request } from "../api/client";
-import mountLive from "../../../pidtools/ui/static/live_ui.js";
-import PIDLive from "../../../pidtools/ui/static/live_engine.js";
-import CtrlEngine from "../../../pidtools/ui/static/ctrl_engine.js";
-import "../../../pidtools/ui/static/live.css";
+import mountLive from "../legacy/live_ui.js";
+import PIDLive from "../legacy/live_engine.js";
+import CtrlEngine from "../legacy/ctrl_engine.js";
+import "../legacy/live.css";
 import "../styles/live.css";
 import { useWs } from "../data";
 import { useT } from "../i18n";

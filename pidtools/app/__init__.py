@@ -1,7 +1,7 @@
 """
 Aplikační vrstva: stav projektu a pracovní postup (data → model → ladění → scénář → APC → protokol) bez vazby
-na konkrétní UI. Používá ji webový frontend (Streamlit, pidtools.ui) i desktopový frontend (Qt,
-pidtools.desktop); výpočty jsou v pidtools.core. Modul nesmí importovat streamlit ani Qt (hlídá test).
+na konkrétní UI. Používá ji API (pidtools.api) pro webový frontend (React) i desktop (Tauri + sidecar);
+výpočty jsou v pidtools.core. Modul nesmí importovat streamlit ani Qt (hlídá test).
 
 Moduly:
   dataio       – načtení CSV/Excel, čas, převzorkování, kontrola komprese

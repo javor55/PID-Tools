@@ -1,21 +1,23 @@
 // Hlavička podle návrhu: název, aktivní smyčka a „+ Další smyčka“, souhrn dat; vpravo Projekt a report, Nastavení a „?“.
 // Pod ní řádek záložek s podtržením (Projekt a report není záložka, otevírá se tlačítkem).
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import { request } from "../api/client";
+import { useEffect, useRef, useState } from "react";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { dateLocale, useLanguages, useT } from "../i18n";
-import { type DataSub, isDiagSub, NAV_TABS, type Theme, useUi } from "../store";
+import { type DataSub, isDiagSub, MODEL_SUBS, type ModelSub, NAV_TABS, type Theme, useUi } from "../store";
 import { HelpButton } from "./Guide";
 import { useSettingsUi } from "../settings/settingsStore";
-import { lastSaved, newProject, useSaveState } from "../start/project";
+import { lastSaved, newProject, pickLoop, saveProjectToast, useSaveState } from "../start/project";
+import { toastError } from "./Toasts";
 import { Seg } from "./Ui";
+import { navMark } from "../lib/navStatus";
+import { stepUndo } from "../shortcuts";
 
 type LoopsT = components["schemas"]["Loops"];
 type Loop = components["schemas"]["Loop"];
 type Mapping = components["schemas"]["LoopMapping"];
 type Sources = components["schemas"]["Sources"];
+type UndoState = components["schemas"]["UndoState"];
 
 /** Délka záznamu stručně: 45 s, 12 min, 2 h, 1,5 h. */
 export function fmtDuration(s: number | null | undefined, lang: string) {
@@ -48,17 +50,12 @@ const loopLabel = (l: Loop, m: Mapping | undefined, T: ReturnType<typeof useT>) 
 /** Aktivní smyčka (výběr s hlavičkami skupin, stav) a „+ Smyčka“ (otevře Data › Zdroje a smyčky). */
 function Loops() {
   const T = useT();
-  const wid = useUi((s) => s.wid);
   const setDataSub = useUi((s) => s.setDataSub);
   const ws = useWs().data;
-  const qc = useQueryClient();
   const loops = useWsQuery<LoopsT>("loops", "/loops").data;
   const maps = useWsQuery<Mapping[]>("mappings", "/loops/mappings").data;
   const tri = useWsQuery<components["schemas"]["TriageResult"]>("triage", "/triage").data;
-  const pick = async (index: number) => {
-    await request("PUT", `/workspaces/${wid}/loops/active`, { index });
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-  };
+  const pick = pickLoop;                      // stejná cesta jako zkratky Alt+↑ / Alt+↓
   if (!ws?.has_data || !loops) return null;
   const mapOf = (l: Loop) => maps?.find((m) => m.index === l.index);
   const act = loops.loops.find((l) => l.index === loops.active);
@@ -70,7 +67,7 @@ function Loops() {
   return (
     <div className="hloops" role="group" aria-label={T("ui_loops_group")}>
       <select aria-label={T("dk_loop")} title={T("h_loop_sel")} value={loops.active} data-testid="loop-select"
-        onChange={(e) => void pick(+e.target.value)}>
+        onChange={(e) => { pick(+e.target.value).catch(toastError); }}>
         {groups.map((g) => {
           const ls = loops.loops.filter((l) => groupOf(l) === g);
           return ls.length > 0 && (
@@ -108,6 +105,35 @@ function Summary() {
   const t = at ? new Date(at * 1000).toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" }) : "";
   const a = { f: plural(T, "ui_n_files", nf), l: plural(T, "ui_n_loops", loops?.loops.length ?? 1), t };
   return <span className="hsum" data-testid="data-sum" data-dirty={st?.dirty ? "1" : "0"} title={T("app_hsum_h")}>{T(at ? "app_hsum" : "app_hsum_unsaved", a)}{st?.dirty && at ? " •" : ""}</span>;
+}
+
+/** Tlačítko „Uložit“ (Ctrl+S): primární, když jsou neuložené změny; bez dat nedostupné; chyba jde do toastu. */
+function SaveButton() {
+  const T = useT();
+  const st = useSaveState().data;
+  const [busy, setBusy] = useState(false);
+  const onClick = () => { setBusy(true); void saveProjectToast().finally(() => setBusy(false)); };
+  return (
+    <button type="button" className={st?.dirty ? "hbtn small primary" : "hbtn small"} data-testid="head-save" onClick={onClick}
+      disabled={!st?.has_data || busy} aria-busy={busy} title={`${T("app_save_h")} (Ctrl+S)`}>{T("app_save")}</button>
+  );
+}
+
+/** Tlačítka Zpět / Znovu (FEATURE-006, Ctrl+Z / Ctrl+Y): `title` nese popisek kroku ze serveru, bez kroku jsou neaktivní. */
+function UndoButtons() {
+  const T = useT();
+  const q = useWsQuery<UndoState>("undo", "/undo");
+  const [busy, setBusy] = useState(false);
+  const go = (kind: "undo" | "redo") => { setBusy(true); stepUndo(kind).catch(toastError).finally(() => setBusy(false)); };
+  const one = (kind: "undo" | "redo", icon: string) => {
+    const label = q.data?.[kind];
+    const text = label ? T(`${kind}_title`, { label }) : T(`${kind}_empty`);
+    return (
+      <button type="button" className="hbtn small" data-testid={`head-${kind}`} onClick={() => go(kind)} disabled={!label || busy}
+        aria-label={text} title={text}>{icon}</button>
+    );
+  };
+  return <span className="hundo">{one("undo", "\u21b6")}{one("redo", "\u21b7")}</span>;
 }
 
 /** Nastavení (jazyk, vzhled) jako rozbalovací panel pod tlačítkem. */
@@ -159,10 +185,33 @@ function NewButton() {
   );
 }
 
-export function Header() {
+/** Záložky hlavní navigace: za názvem značka stavu postupu (✓ vše splněno, ! varování) a shrnutí v `title` / `aria-label`. */
+function NavTabs() {
   const T = useT();
   const { tab, setTab } = useUi();
   const closeSettings = useSettingsUi((s) => s.close);
+  const st = useWsQuery<components["schemas"]["GuideStatus"]>("guide-status", "/guide/status").data;
+  return (
+    <nav className="tabs" role="tablist" aria-label={T("ui_tabs")}>
+      {NAV_TABS.map((t) => {
+        const s = st?.tabs[t.id];
+        const mark = navMark(s);
+        const n = s ? s.ok + s.warn + s.todo : 0;
+        const sum = s && n > 0 ? T(s.warn > 0 ? "nav_prog_warn" : "nav_prog", { ok: s.ok, n, w: s.warn }) : "";
+        return (
+          <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => { closeSettings(); setTab(t.id); }}
+            data-tab={t.id} aria-label={sum ? `${T(t.label)}: ${sum}` : undefined} title={sum || undefined}>
+            {T(t.label)}
+            {mark && <span className={`tab-mark ${mark}`} aria-hidden="true" data-testid={`tab-mark-${t.id}`}>{mark === "ok" ? "✓" : "!"}</span>}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function Header() {
+  const { tab } = useUi();
   return (
     <header className="header">
       <div className="hrow">
@@ -170,6 +219,8 @@ export function Header() {
           <h1>PID Tools</h1>
           <Loops />
           <Summary />
+          <SaveButton />
+          <UndoButtons />
         </div>
         <div className="hright">
           <NewButton />
@@ -177,16 +228,27 @@ export function Header() {
           <HelpButton />
         </div>
       </div>
-      <nav className="tabs" role="tablist" aria-label={T("ui_tabs")}>
-        {NAV_TABS.map((t) => (
-          <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => { closeSettings(); setTab(t.id); }}
-            data-tab={t.id}>
-            {T(t.label)}
-          </button>
-        ))}
-      </nav>
+      <NavTabs />
       {tab === "data" && <DataSubNav />}
+      {tab === "model" && <ModelSubNav />}
     </header>
+  );
+}
+
+/** Položka lišty podzáložek: `to` = cíl kliknutí, `id` = hodnota `data-sub`, `help` = klíč textu pro `title`. */
+interface SubItem { id: string; label: string; help: string; on: boolean; to: () => void }
+
+/** Společná lišta podzáložek (Data, Model): stejný vzhled a role `tablist`; `children` = doplňkové ovládání vpravo. */
+function SubTabs({ items, label, testid, children }: { items: SubItem[]; label: string; testid: string; children?: React.ReactNode }) {
+  const T = useT();
+  return (
+    <nav className="subtabs" role="tablist" aria-label={label} data-testid={testid}>
+      {items.map((t) => (
+        <button key={t.label} role="tab" className="subtab" aria-selected={t.on} title={T(t.help)} data-sub={t.id}
+          onClick={t.to}>{T(t.label)}</button>
+      ))}
+      {children}
+    </nav>
   );
 }
 
@@ -194,23 +256,30 @@ export function Header() {
 function DataSubNav() {
   const T = useT();
   const { dataSub, setDataSub } = useUi();
-  const items: { id: string; to: DataSub; label: string; help: string; on: boolean }[] = [
-    { id: "sources", to: "sources", label: "ui_dsub_sources", help: "h_dsub_sources", on: dataSub === "sources" },
-    { id: "trends", to: "trends", label: "ui_dsub_trends", help: "h_dsub_trends", on: dataSub === "trends" },
-    { id: "quality", to: "quality", label: "ui_dsub_quality", help: "h_dsub_quality", on: dataSub === "quality" },
-    { id: "diag", to: isDiagSub(dataSub) ? dataSub : "diag-all", label: "ui_dsub_diag", help: "h_dsub_diag", on: isDiagSub(dataSub) },
+  const item = (id: string, to: DataSub, on: boolean): SubItem =>
+    ({ id, label: `ui_dsub_${id}`, help: `h_dsub_${id}`, on, to: () => setDataSub(to) });
+  const items = [
+    item("sources", "sources", dataSub === "sources"),
+    item("trends", "trends", dataSub === "trends"),
+    item("quality", "quality", dataSub === "quality"),
+    item("diag", isDiagSub(dataSub) ? dataSub : "diag-all", isDiagSub(dataSub)),
   ];
   return (
-    <nav className="subtabs" role="tablist" aria-label={T("ui_dsubs")} data-testid="data-subtabs">
-      {items.map((t) => (
-        <button key={t.label} role="tab" className="subtab" aria-selected={t.on} title={T(t.help)} data-sub={t.id}
-          onClick={() => setDataSub(t.to)}>{T(t.label)}</button>
-      ))}
+    <SubTabs items={items} label={T("ui_dsubs")} testid="data-subtabs">
       {isDiagSub(dataSub) && (
         <Seg value={dataSub} options={["diag-all", "diag-detail"] as const} label={T("ui_dsub_diag")} small testid="diag-sub"
           fmt={(v) => T(v === "diag-all" ? "ui_dsub_diag_all" : "ui_dsub_diag_detail")}
           titles={(v) => T(v === "diag-all" ? "h_dsub_diag_all" : "h_dsub_diag_detail")} help="h_dsub_diag" onChange={setDataSub} />
       )}
-    </nav>
+    </SubTabs>
   );
+}
+
+/** Podzáložky Modelu (FEATURE-005): Identifikace · Validace · Rezidua a nejistota. */
+function ModelSubNav() {
+  const T = useT();
+  const { modelSub, setModelSub } = useUi();
+  const items = MODEL_SUBS.map((id: ModelSub): SubItem =>
+    ({ id, label: `ui_msub_${id}`, help: `h_msub_${id}`, on: modelSub === id, to: () => setModelSub(id) }));
+  return <SubTabs items={items} label={T("ui_msubs")} testid="model-subtabs" />;
 }

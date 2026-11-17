@@ -1,5 +1,30 @@
 # Změny
 
+## 4.0.0 beta 5 – opravy z auditu, funkce pro práci, bezpečnost v desktopu
+
+Realizace auditu z listopadu 2026 (docs/cs/audit-2026-11.md) a návrhů vylepšení
+(docs/cs/navrh-vylepseni-2026-11.md); pořadí a stav v docs/cs/plan-exekuce-2026-11.md.
+
+- **Bezpečnější data:** neplatné nastavení smyčky se odmítne s hláškou (422) místo pozdější chyby výpočtu; prázdný soubor
+  dá 400; pracovní prostor desktopu po hodině (uspání) nevyprší a ztracený prostor se založí znovu s nabídkou obnovy;
+  záchranná kopie se uloží při zavření okna (obal desktopu před ukončením API požádá o uložení) i tlačítkem v kartě chyby.
+- **Set 2 výslovně:** „Set 2 zadán“ je příznak místo výchozích hodnot 1 / 100 / 0; APC a Živá simulace počítají se Setem 1,
+  dokud Set 2 není zadán, a texty APC uvádějí skutečně použitou sadu. Projekty z bety 4 se převedou.
+- **Chyby a stavy:** chyba v záložce ukáže kartu s *Zkusit znovu* místo prázdného okna; neúspěšná změna ukáže hlášku a pole
+  se vrátí; číselná pole ukážou důvod pod polem; přepočet je vidět na kartách a ve stavovém řádku.
+- **Práce:** klávesové zkratky (Ctrl+S uložit, F5 spočítat, Ctrl+1…6 záložky, Alt+↑/↓ smyčka, Ctrl+Z / Ctrl+Y zpět / znovu);
+  Uložit, Zpět a Znovu v hlavičce; značky postupu ✓ / ! na záložkách a *Další krok* v kontextovém řádku; kopírování
+  parametrů sad (názvy a jednotky bloku) a tabulek do schránky; odečet, dva kurzory s Δ, export CSV / PNG a skrývání řad
+  v grafech výsledků; Model ve třech podzáložkách (Identifikace / Validace / Rezidua) se souhrnným pruhem; přehled všech
+  smyček projektu s hromadnou identifikací, laděním (jako návrh), převzetím a exportem sad.
+- **Desktop a OPC UA:** odstraněno staré rozhraní v Qt (TICKET-010); desktop je okno Tauri nad API. `asyncua` je přibalené
+  v desktopu, takže čtení dat smyček z OPC UA serveru funguje v instalované aplikaci.
+- **Rozhraní:** užší pravý panel (340 px, na malých obrazovkách 300 px), čitelné barvy v tmavém vzhledu, ovládání řádků
+  tabulek klávesnicí, popisky polí a grafů, zhruba poloviční hlavní soubor (záložky se načítají až při otevření).
+- **Pod kapotou:** API jen pod `/api/v1`; cílené obnovení po změně (9 místo 17 požadavků v Ladění); typované nastavení
+  smyčky; mypy v CI; sdílené moduly grafů přesunuty do frontendu; odstraněny nepoužité texty (3554 → 2993) s kontrolou;
+  položka průvodce „model ověřený na jiném úseku“ nyní funguje.
+
 ## 4.0.0 beta 3 – přestavba záložky Data, anglické rozhraní, rychlejší načítání
 
 - **Přestavba záložky Data** (docs/cs/navrh-data.md): *Zdroje a smyčky* jsou jediné místo pro úpravu smyček (klik na
