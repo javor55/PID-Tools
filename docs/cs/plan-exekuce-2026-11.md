@@ -38,6 +38,13 @@ Pravidla pro agenty: `AGENTS.md`.
 | FEATURE-003 stav postupu na záložkách, „Next“; validace modelu se pamatuje | hotovo | 00d7545 … 80ea391 |
 | TICKET-021 záchranná kopie při zavření okna desktopu | hotovo; sestavení a smoke test obalu v CI zelené | 0e2e3e2 |
 | **Vlna 2 dokončena** | CI Tests + Desktop zelené nad 0e2e3e2 | |
+| TICKET-013 typované nastavení (Ladění), neplatné výčty se vyřadí při načtení | hotovo | b40e492 … 96484b5 |
+| TICKET-018 mypy v CI (api, workspace) | hotovo; Field(default=…) kvůli pydantic 2.14 | c7badbd … 3294696 |
+| FEATURE-004 odečet, export a skrývání řad v grafech | hotovo | da49e9d, 75af140 |
+| FEATURE-005 podzáložky Modelu, souhrnný pruh | hotovo | f957eaa … f5a5196 |
+| TICKET-019 líné načítání záložek (822 → 410 kB) | hotovo | 42f6250 … 415ded9 |
+| FEATURE-007 přehled smyček, hromadné identify / tune / accept / export | hotovo | dc8429c … 440e910 |
+| **Vlna 3 dokončena** | lokálně 984 testů zelených; CI viz poslední běh | |
 
 **TICKET-021 (nový, z kontroly TICKET-014, priorita HIGH pro desktop):** obal Tauri při zavření okna sidecar
 natvrdo ukončí (`desktop/src/lib.rs`, `RunEvent::Exit` → `sc.kill()`), takže záchranná kopie odeslaná stránkou
