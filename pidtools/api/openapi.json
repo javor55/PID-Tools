@@ -2787,6 +2787,42 @@
       ],
       "title": "Fit"
      },
+     "names": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Names",
+      "type": "array"
+     },
+     "nrmse": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nrmse"
+     },
+     "p": {
+      "items": {
+       "type": "number"
+      },
+      "title": "P",
+      "type": "array"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
      "struct": {
       "title": "Struct",
       "type": "string"

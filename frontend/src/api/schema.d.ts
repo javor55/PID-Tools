@@ -4545,6 +4545,14 @@ export interface components {
             error?: string | null;
             /** Fit */
             fit?: number | null;
+            /** Names */
+            names?: string[];
+            /** Nrmse */
+            nrmse?: number | null;
+            /** P */
+            p?: number[];
+            /** Status */
+            status?: number | null;
             /** Struct */
             struct: string;
         };

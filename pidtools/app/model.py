@@ -70,10 +70,11 @@ def dist_structs(code, dkinds, nd):
     return out
 
 
-def compare_dists(fit, r, j, structs):
+def compare_dists(fit, r, j, structs, metrics=None):
     """
     Struktury přenosu poruchy j porovnané fitem jen jejích parametrů (model MV a ostatní poruchy pevné):
-    [(struktura, FIT, parametry poruchy | text chyby)]. fit(struktury, zafixované) → výsledek fitu.
+    [(struktura, FIT, parametry poruchy | text chyby, NRMSE [%], hodnocení 0..4)]. fit(struktury, zafixované) →
+    výsledek fitu; metrics(q) → (NRMSE, hodnocení) celého modelu s touto strukturou (None = bez metrik).
     """
     fixed = {f"p{i}": float(v) for i, v in enumerate(r["p"])}
     for jj, d in enumerate(r["pdl"]):
@@ -85,17 +86,18 @@ def compare_dists(fit, r, j, structs):
         s2[j] = st_
         try:
             q = fit(tuple(s2), fixed)
-            out.append((st_, float(q["fit"]), core.pd_full(q["pdl"][j])))
+            nr, stt = metrics(q) if metrics else (None, None)
+            out.append((st_, float(q["fit"]), core.pd_full(q["pdl"][j]), nr, stt))
         except Exception as ex:
-            out.append((st_, None, str(ex)))
+            out.append((st_, None, str(ex), None, None))
     return out
 
 
-def fit_dists(fit, code, structs):
+def fit_dists(fit, code, structs, metrics=None):
     """
     Fit modelu se strukturami poruch: None = vybrat nejlepší (první fit se strukturou jako MV, porovnání struktur
     každé takové poruchy, pak společný fit s vybranými – ponechá se lepší). Výsledek má „dv_cmp“ {j: porovnání}
-    pro každou poruchu (výběr typu v kartě poruchy).
+    pro každou poruchu (výběr typu v kartě poruchy); metrics viz compare_dists.
     """
     init = tuple(st_ or code for st_ in structs)
     r = dict(fit(init, None))
@@ -104,7 +106,7 @@ def fit_dists(fit, code, structs):
     for j in range(len(structs)):
         if j in flat:
             continue
-        cmp[j] = compare_dists(fit, r, j, chosen)
+        cmp[j] = compare_dists(fit, r, j, chosen, metrics)
         ok = [c for c in cmp[j] if c[1] is not None]
         if structs[j] is None and ok:
             chosen[j] = max(ok, key=lambda c: c[1])[0]
@@ -117,6 +119,16 @@ def fit_dists(fit, code, structs):
             pass
     r["dv_cmp"] = cmp
     return r
+
+
+def _dv_metrics(code, ts, pv, mv, d, Ts):
+    """Hodnocení celého modelu s kandidátní strukturou poruchy (stejně jako summary): q → (NRMSE [%], hodnocení)."""
+    def metrics(q):
+        pf = predict_full(code, q["p"], q["pdl"], ts, pv, mv, d, Ts, q.get("stic") or 0.0, q.get("level", "none"),
+                          q.get("Th"))
+        mm = model_metrics(pf["pv"], pf["yhat"], mv, Ts, dyn_scale(code, q["p"]))
+        return float(mm["NRMSE"]), int(mm["status"])
+    return metrics
 
 
 def identify(code, ts, pv, mv, Ts, d, s, fixed=None, stic_fixed=None, fn=core.identify, d_full=None, dkinds=None):
@@ -133,7 +145,7 @@ def identify(code, ts, pv, mv, Ts, d, s, fixed=None, stic_fixed=None, fn=core.id
         return fn(code, ts, pv, mv, Ts, d, s.th_max, fixed={**base, **(fx2 or {})} or None, stic_fixed=stic_fixed,
                   level=s.dist_level, strength=float(s.dist_strength), sign=SIGN[s.gain_sign], id_stic=s.id_stic,
                   k=decimation(len(ts)), dstruct=structs)
-    r = fit_dists(fit, code, dist_structs(code, dkinds, len(d)))
+    r = fit_dists(fit, code, dist_structs(code, dkinds, len(d)), _dv_metrics(code, ts, pv, mv, d, Ts))
     return dict(r, dv_flat=flat) if flat else r
 
 
@@ -205,7 +217,7 @@ def identify_windows(code, t, pv, mv, Ts, d, wins, valid, s, dkinds, dsigns, fix
     def fit(structs, fx2):
         return fn(code, t, pv, mv, Ts, d, wins_t, valid, s.th_max, {**(fixed or {}), **(fx2 or {})} or None,
                   SIGN[s.gain_sign], tuple(dsigns), None, 12, structs)
-    r = fit_dists(fit, code, dist_structs(code, dkinds, len(d)))
+    r = fit_dists(fit, code, dist_structs(code, dkinds, len(d)), _dv_metrics(code, t, pv, mv, d, Ts))
     return dict(r, method="win", stic=0.0, fit_raw=r["fit"])
 
 

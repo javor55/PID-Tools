@@ -2,6 +2,7 @@
 API – model (M9): identifikace jako úloha, výsledky shodné se zlatými případy, úseky a režim MAN / AUTO,
 výběr modelu, dofitování se zafixovaným parametrem, nejistota, křížové ověření, průběhy modelu.
 """
+import json
 import os
 import sys
 import time
@@ -137,6 +138,9 @@ def test_dist_struct_compare_and_select(client):
     assert [c["struct"] for c in d["cmp"]] == [c[0] for c in ref] == ["P0D", "P1D", "P2D", "I0D", "I1D"]
     assert [c["fit"] for c in d["cmp"]] == pytest.approx([c[1] for c in ref])
     assert d["struct"] == d["ident"] == wn.dist_id("I1D", ws.fit["res"]["I1D"], 0)
+    ok = [c for c in d["cmp"] if c["fit"] is not None]
+    assert ok and all(c["nrmse"] is not None and 0 <= c["status"] <= 4 and len(c["p"]) == len(c["names"]) > 0 for c in ok)
+    assert [c["names"] for c in d["cmp"]] == [[f[0] for f in DIST_FIELDS[c["struct"]]] for c in d["cmp"]]
     other = next(c["struct"] for c in d["cmp"] if c["fit"] is not None and c["struct"] != d["ident"])
     url = f"/api/v1/workspaces/{wid}/model/dist"
     assert client.put(url, json={"code": "I1D", "index": 0, "struct": "XX"}).status_code == 422
@@ -211,3 +215,26 @@ def test_migrate_idf_to_fx():
     from pidtools.app import project as prj
     st = prj.migrate_state({"idf|P1D|1": False, "idf|P1D|2": True, "fx|P1D|3": True, "idf|P1D|3": True})
     assert st["fx|P1D|1"] is True and st["fx|P1D|2"] is False and st["fx|P1D|3"] is True
+
+
+def test_dist_cmp_old_project_triples(client):
+    """Starý projekt (porovnání struktur poruchy jen trojice) se načte; NRMSE a hodnocení jsou None, parametry zůstanou."""
+    wid = _ws(client)
+    client.post(f"/api/v1/workspaces/{wid}/data/demo")
+    client.patch(f"/api/v1/workspaces/{wid}/settings", json={"chosen": ["I1D"]})
+    _wait(client, client.post(f"/api/v1/workspaces/{wid}/identify").json())
+    proj = client.get(f"/api/v1/workspaces/{wid}/project").json()
+    cmp0 = proj["fit"]["res"]["I1D"]["dv_cmp"]["0"]
+    assert all(len(x) == 5 and x[3] is not None for x in cmp0 if x[1] is not None)     # nový formát
+    proj["fit"]["res"]["I1D"]["dv_cmp"] = {"0": [x[:3] for x in cmp0]}                   # starý formát
+    w2 = client.post("/api/v1/workspaces").json()["id"]
+    r = client.put(f"/api/v1/workspaces/{w2}/project", content=json.dumps(proj).encode("utf-8"),
+                   headers={"Content-Type": "application/json"})
+    assert r.status_code == 200
+    _, res = _models(client, w2)
+    cmp = res["I1D"]["dists"][0]["cmp"]
+    assert [c["struct"] for c in cmp] == [x[0] for x in cmp0]
+    assert all(c["nrmse"] is None and c["status"] is None for c in cmp)
+    assert all(c["p"] for c in cmp if c["fit"] is not None)
+    again = client.get(f"/api/v1/workspaces/{w2}/project").json()["fit"]["res"]["I1D"]["dv_cmp"]["0"]
+    assert [len(x) for x in again] == [5] * len(again)                                   # po uložení nový tvar

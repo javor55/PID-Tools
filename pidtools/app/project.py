@@ -204,8 +204,10 @@ def fit_record(fit):
                          fit=float(r["fit"]), level=r.get("level", "none"),
                          Th=None if r.get("Th") is None else float(r["Th"]), stic=float(r.get("stic") or 0.0))
         if r.get("dv_cmp"):                  # porovnání struktur přenosu poruch (výběr typu v kartě poruchy)
-            res[code]["dv_cmp"] = {str(j): [[st_, None if f is None else float(f), list(pd) if f is not None else str(pd)]
-                                            for st_, f, pd in v] for j, v in r["dv_cmp"].items()}
+            res[code]["dv_cmp"] = {str(j): [[st_, None if f is None else float(f), list(pd) if f is not None else str(pd),
+                                              None if nr is None else float(nr), None if stt is None else int(stt)]
+                                             for st_, f, pd, nr, stt in (tuple(x) + (None,) * (5 - len(x)) for x in v)]
+                                            for j, v in r["dv_cmp"].items()}
         if r.get("method") == "win":          # identifikace z úseků podle vstupů
             res[code].update(method="win", fits=[float(x) for x in r.get("fits", [])],
                              wins=[[int(a), int(b)] for a, b in r.get("wins", [])])
