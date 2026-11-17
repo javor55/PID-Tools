@@ -20,7 +20,18 @@
  * Data (component.data, tvar viz frontend/src/legacy.d.ts): key, sig, view_key, sigs [{name, role, color, unit, ti, off, n}], times [{off, n}], T, decim, hash,
  * url + base (binární soubor) nebo b64, clock (ms epochy pro t = 0 nebo null), tunit, dec, dark, txt, fname,
  * layout (JSON text uloženého rozložení nebo null). Ven: stav „layout“ (JSON text) přes component.setStateValue (název funkce je historický).
+ * Volitelná rozšíření (graf záložky Model; Trendy je nepoužívají a zůstávají beze změny):
+ *   buf        – balík signálů přímo v paměti (ArrayBuffer ve tvaru blobu z /signals; sloučení balíků dělá React obal),
+ *                místo url / b64 / mezipaměti window.__pidViewData;
+ *   defaults   – {panels: [{sigs, h}]} výchozí rozložení (jinak podle rolí); signál, který v uloženém rozložení ještě nebyl
+ *                („seen“), se zařadí k signálu ze stejného výchozího panelu (např. průběh modelu po identifikaci);
+ *   sigs[].dash – čárkování čáry ("6 4");
+ *   spans      – vrstva úseků identifikace (viewer_spans.js): režim common / inputs, táhla, výplně, vyloučené části;
+ *   model      – přepínače průběhu modelu (viewer_model.js): celý model / část MV / část DV, v úsecích / celý záznam, rezidua.
  */
+import createSpans from "./viewer_spans.js";
+import createModel from "./viewer_model.js";
+
 export default function (component) {
   "use strict";
   const D = component.data, root = component.parentElement, X = D.txt || {};
@@ -28,6 +39,7 @@ export default function (component) {
   const prev = reg[D.key];
   if (prev && prev.sig === D.sig && prev.box && prev.box.isConnected && root.contains(prev.box)) {
     if (D.layout && D.layout !== prev.lastLay && prev.applyLayout) prev.applyLayout(D.layout);
+    if (D.spans && prev.setSpans) prev.setSpans(D.spans);       // úseky se změnily na serveru (režim, úseky, shoda)
     if ((component.listHost || null) !== (prev.host || null) && prev.setHost) prev.setHost(component.listHost || null);
     return prev.destroy;                     // jen aktualizace existující instance – odpojí ji stejná funkce
   }
@@ -124,6 +136,7 @@ export default function (component) {
   me.destroy = destroy;
 
   async function fetchBuf() {
+    if (D.buf) return { buf: D.buf, sigs: {} };             // data v paměti (graf Modelu): žádná mezipaměť ani síť
     if (DC[D.hash]) return DC[D.hash];
     let buf;
     if (D.b64) {
@@ -188,11 +201,12 @@ export default function (component) {
       const s = entry.sigs[d.name] || (entry.sigs[d.name] = {
         t: new Float64Array(entry.buf, tt.off, tt.n), v: new Float32Array(entry.buf, d.off, d.n), n: d.n,
       });
-      Object.assign(s, { name: d.name, role: d.role, color0: d.color, unit0: d.unit, ti: d.ti, axis: d.axis || null });
+      Object.assign(s, { name: d.name, role: d.role, color0: d.color, unit0: d.unit, ti: d.ti, axis: d.axis || null, dash: d.dash || null });
       SG[d.name] = initSig(s);
       order.push(d.name);
     }
     const nFile = order.length;
+    let SP = null, MO = null;               // vrstvy úseků a modelu (viewer_spans.js, viewer_model.js); jen s D.spans / D.model
     if (!order.length) { box.appendChild(el("div", "pidv-card pidv-err", esc(X.no_sig || "–"))); return; }
     const minDt = Math.min(...order.map((n) => SG[n].dt));
     MIN_DT = minDt;
@@ -251,6 +265,8 @@ export default function (component) {
       if (pv.length) panels.push({ sigs: pv, h: 230 });
       if (mv.length) panels.push({ sigs: mv, h: 150 });
       if (dv.length) panels.push({ sigs: dv, h: 150 });
+      const dp = D.defaults && Array.isArray(D.defaults.panels) ? D.defaults.panels.map((q) => ({ sigs: q.sigs.filter((n) => SG[n]), h: q.h || 150 })).filter((q) => q.sigs.length) : [];
+      if (dp.length) panels.splice(0, panels.length, ...dp);          // výchozí rozložení zvenku (graf Modelu)
       if (!panels.length) order.slice(0, 3).forEach((n, i) => panels.push({ sigs: [n], h: i ? 150 : 220 }));
       return { v: 1, panels: panels.map((p) => Object.assign({ shared: false, lo: null, hi: null }, p)), sig: {},
                view: [0, D.T], cur: { on: false, a: null, b: null }, hc: { on: false, a: null, b: null, sig: null },
@@ -264,6 +280,7 @@ export default function (component) {
       const calc = cleanCalc(L && L.calc);
       computeCalc(calc);
       const d = Object.assign(defaults(), { calc });
+      if (D.defaults) d.seen = order.slice(0, nFile);
       if (!L || typeof L !== "object" || !Array.isArray(L.panels)) return d;
       const used = new Set(), panels = [];
       for (const p of L.panels.slice(0, 30)) {
@@ -303,8 +320,19 @@ export default function (component) {
         sigs: (Array.isArray(L.cmp.sigs) ? L.cmp.sigs : []).filter((n) => sgn(n)).slice(0, 4),
         segs: (Array.isArray(L.cmp.segs) ? L.cmp.segs : []).filter((q) => Array.isArray(q) && num(q[0]) !== null && num(q[1]) !== null && q[1] > q[0]).slice(0, 8),
         rel: L.cmp.rel !== false };
+      if (D.defaults) {                         // signály, které uložené rozložení ještě neznalo, se zařadí podle výchozího rozložení
+        const seen = new Set(Array.isArray(L.seen) ? L.seen : order.slice(0, nFile));
+        for (const n of order.slice(0, nFile)) if (!seen.has(n)) placeNew(out, n);
+        out.seen = order.slice(0, nFile);
+      }
       fixView(out);
       return out;
+    }
+    function placeNew(st, n) {
+      const dp = (D.defaults.panels || []).find((q) => q.sigs.includes(n));
+      const mate = dp ? dp.sigs.find((m) => m !== n && st.panels.some((p) => p.sigs.includes(m))) : null;
+      if (mate) st.panels.find((p) => p.sigs.includes(mate)).sigs.push(n);
+      else st.panels.push({ sigs: [n], h: (dp && dp.h) || 150, shared: false, lo: null, hi: null });
     }
     function fixView(st) {
       let [a, b] = st.view;
@@ -349,6 +377,7 @@ export default function (component) {
       if (S.cur.on) S.cur.a = snapT(clamp(t, 0, D.T));
       redraw(); save();
     };
+    me.setSpans = (d) => { if (SP) SP.update(d); };
     me.state = () => S;                         // stav pro stránku (kurzory pro „Vyznačit úsek“, panely)
     me.setGroups = (g) => { D.groups = g; if (me.rows) me.rows(); };
     me.setPanels = (ps) => {                    // rozvržení panelů zvenku (např. „panel na smyčku“)
@@ -564,6 +593,7 @@ export default function (component) {
       const seg = (g, items, cur) => `<div class="pidv-seg" data-g="${g}">` + items.map(([v, t, h]) =>
         `<button data-v="${v}" class="${v === cur ? "on" : ""}" title="${esc(h || "")}">${esc(t)}</button>`).join("") + `</div>`;
       bar.innerHTML =
+        (SP ? SP.barHtml() : "") + (MO ? MO.barHtml() : "") +
         `<div class="pidv-grp">${seg("mode", [["pan", X.pan], ["box", X.zoom_box], ["x", X.zoom_x], ["y", X.zoom_y]], S.mode)}</div>` +
         `<div class="pidv-grp"><button class="pidv-btn" data-a="back" title="Backspace">◀ ${esc(X.back)}</button>` +
         `<button class="pidv-btn" data-a="fwd">${esc(X.fwd)} ▶</button>` +
@@ -582,6 +612,8 @@ export default function (component) {
         `<span class="pidv-help" title="${esc(X.help)}">?</span></div>` +
         (D.decim > 1 ? `<span class="pidv-note">${esc(String(X.decim || "").replace("{g}", D.decim))}</span>` : "");
       box.appendChild(bar);
+      if (SP) SP.hookBar(bar);
+      if (MO) MO.hookBar(bar);
       bar.querySelectorAll('[data-g="mode"] button').forEach((b) => b.onclick = () => { S.mode = b.dataset.v; rebar(); save(); });
       bar.querySelectorAll('[data-g="ya"] button').forEach((b) => b.onclick = () => { S.ya = b.dataset.v; rebar(); redraw(); save(); });
       bar.querySelectorAll('[data-g="step"] button').forEach((b) => b.onclick = () => { S.step = b.dataset.v === "1"; rebar(); redraw(); save(); });
@@ -852,13 +884,14 @@ export default function (component) {
         const ph = el("div", "pidv-ph");
         const chips = p.sigs.map((n) => {
           const u = unitOf(n);
-          const ch = el("span", "pidv-chip" + (S.act === n ? " act" : ""), `<i style="border-top-color:${colorOf(n)}"></i>` +
+          const ch = el("span", "pidv-chip" + (S.act === n ? " act" : ""), `<i style="border-top-color:${colorOf(n)}${SG[n].dash ? ";border-top-style:dashed" : ""}"></i>` +
             `<span style="color:${colorOf(n)}">${esc(n)}</span>` + (u ? `<span class="pidv-lab">[${esc(u)}]</span>` : ""));
           ch.dataset.n = n;
           ch.onclick = () => setAct(n);
           ph.appendChild(ch);
           return ch;
         });
+        if (SP) SP.header(pi, ph);
         ph.appendChild(el("span", "sp"));
         if (p.sigs.length > 1) {
           const lab = el("label", "pidv-lab", `<input type="checkbox" ${p.shared ? "checked" : ""}> ${esc(X.shared)}`);
@@ -883,6 +916,7 @@ export default function (component) {
         plots.appendChild(c);
         const P = { pi, p, c, cv, ov, chips, axes: [] };
         panelsUI.push(P);
+        if (SP) SP.panelExtra(P, rs);
         hookPanel(P);
         rs.addEventListener("pointerdown", (e) => {
           e.preventDefault();
@@ -1040,10 +1074,13 @@ export default function (component) {
       g.rect(L, TOP, w - L - R, h - TOP - BOT);
       g.clip();
       g.lineJoin = "round";
+      if (SP) SP.bands(g, P);                   // úseky identifikace a vyloučené části pod průběhy
       for (const a of P.axes) for (const n of a.names) {
         g.strokeStyle = colorOf(n);
         g.lineWidth = S.act === n ? 2 : 1.4;
+        g.setLineDash(SG[n].dash ? SG[n].dash.split(" ").map(Number) : []);
         drawSig(g, P, SG[n], a);
+        g.setLineDash([]);
       }
       if (events) {                             // značky událostí signálů panelu
         const x0 = L, x1 = w - R;
@@ -1057,6 +1094,7 @@ export default function (component) {
         }
       }
       g.restore();
+      if (SP) SP.after(P);                      // táhla a štítky úseků pod grafem panelu
     }
 
     let hoverT = null, band = null;
@@ -1948,6 +1986,13 @@ export default function (component) {
       else if (e.key === "Escape" && (S.cur.on || S.hc.on)) { S.cur.on = S.hc.on = false; rebar(); redraw(); renderAn(); save(); }
     });
 
+    const H = { component, D, X, S: () => S, L: () => L, R, TOP, BOT, AXW, panels: () => panelsUI, panelOf, tx, xt, col, el, esc, clamp, dc, fmtG,
+      redraw, push, order: () => order, SG, removeSig, view: () => S.view,
+      setView: (a, b) => { push(true); S.view = [a, b]; fixView(S); push(true); redraw(); save(); },
+      rebuild: () => { buildPanels(); me.rows && me.rows(); rebar(); redraw(); save(); },
+      relayout: () => { rebar(); buildPanels(); redraw(); } };
+    if (D.spans) SP = createSpans(H);
+    if (D.model) MO = createModel(H);
     build();
     push(true);
     let lastW = box.clientWidth;

@@ -119,3 +119,25 @@
 .pidv-ghead { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 2px 2px; margin-top: 4px;
   border-top: 1px solid var(--pv-line); font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; }
 .pidv-ghead:first-of-type { border-top: 0; margin-top: 0; }
+
+/* Vrstva úseků identifikace (viewer_spans.js) a přepínače modelu (viewer_model.js) – graf záložky Model */
+.pidv-spans { margin: 2px 0 6px; }
+.pidv-trk { position: relative; height: 40px; cursor: grab; touch-action: none; }
+.pidv-rail { position: absolute; top: 28px; height: 4px; background: var(--pv-grid); border-radius: 2px; }
+.pidv-fill { position: absolute; top: 26px; height: 8px; border-radius: 4px; cursor: grab; touch-action: none; }
+.pidv-handle { position: absolute; top: 20px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid;
+  background: var(--pv-card); padding: 0; cursor: ew-resize; touch-action: none; }
+.pidv-wlab { position: absolute; top: 1px; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 4px; border: 1px solid;
+  white-space: nowrap; pointer-events: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+.pidv-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 0 4px; align-items: center; }
+.pidv-chip2 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid;
+  display: inline-flex; align-items: center; gap: 6px; }
+.pidv-chip2 input { font: inherit; width: 58px; padding: 1px 4px; border: 1px solid; border-color: inherit; border-radius: 4px;
+  background: var(--pv-btn); color: var(--pv-text); }
+.pidv-smini { font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid; border-color: inherit; background: var(--pv-btn);
+  color: inherit; border-radius: 4px; cursor: pointer; }
+.pidv-sadd { font: inherit; font-size: 11px; padding: 4px 10px; border: 1px dashed var(--pv-axis); background: var(--pv-btn);
+  color: var(--pv-muted); border-radius: 6px; cursor: pointer; }
+.pidv-sbadge { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+.pidv-chk2 { font-size: 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--pv-muted); cursor: pointer; }
+.pidv-chk2 input { width: 15px; height: 15px; }

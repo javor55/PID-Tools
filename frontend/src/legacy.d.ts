@@ -5,6 +5,25 @@ declare module "*/viewer.js" {
     name: string; ti: number; off: number; n: number;     // popis z binárního balíku (api/signals.ts)
     role: string; color: string; unit: string;
     axis: string | null;                                  // společná osa panelu: "pv" / "mv" / veličina, jinak vlastní
+    dash?: string | null;                                 // čárkování čáry, např. "6 4" (průběh modelu)
+  }
+  /** Vrstva úseků identifikace (viewer_spans.js): jen graf záložky Model. */
+  export interface ViewerSpanInput {
+    id: string; sig: string;                              // vstup (MV, D1…) a název jeho signálu v grafu
+    wins: number[][]; fits: (number | null)[];
+    wcol: string; wbg: string; wbd: string; wtx: string;
+    badge: string | null; note: string | null;
+  }
+  export interface ViewerSpans {
+    mode: "common" | "inputs"; common: number[]; step: number; unit: { u: string; f: number };
+    ccol: string; cbd: string; ctx: string; cbg: string;  // barvy společného úseku (pás, mez, text, pozadí štítku)
+    inputs: ViewerSpanInput[]; excl: number[][];
+    txt: Record<string, string>;
+  }
+  /** Přepínače průběhu modelu (viewer_model.js): názvy signálů v grafu. */
+  export interface ViewerModel {
+    pv: string; all: string; win: string | null; mv: string | null; dv: string | null; resid: string | null;
+    txt: Record<string, string>;
   }
   /** Data prohlížeče záznamu: výhradně pole, která viewer.js čte (D.x). */
   export interface ViewerData {
@@ -23,6 +42,9 @@ declare module "*/viewer.js" {
     layout: string | null;                // JSON uloženého rozložení
     b64?: string | null; url?: string | null;   // data jinak než z mezipaměti window.__pidViewData
     groups?: { label: string; names: string[] }[];   // seznam signálů ve skupinách (např. podle smyček)
+    buf?: ArrayBuffer | null;             // blob balíku v paměti (graf Modelu): místo url / b64 / mezipaměti
+    defaults?: { panels: { sigs: string[]; h?: number }[] };   // výchozí rozložení panelů (jinak podle rolí)
+    spans?: ViewerSpans; model?: ViewerModel;
   }
   export interface ViewerComponent {
     data: ViewerData;
