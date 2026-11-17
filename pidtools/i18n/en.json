@@ -1456,7 +1456,6 @@
  "mw_add": "+ add segment for {n}",
  "mw_time": "time [{u}]",
  "mw_badge": "Transfer {k} · segments: {n}",
- "mw_dist": "Disturbance",
  "mw_note_in": "Set the segment with the handles under the chart or type the numbers; hatched parts are not used for identification",
  "ms_struct": "Model structure",
  "ms_val": "Model validation",
