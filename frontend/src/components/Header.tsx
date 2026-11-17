@@ -11,11 +11,13 @@ import { lastSaved, newProject, pickLoop, saveProjectToast, useSaveState } from 
 import { toastError } from "./Toasts";
 import { Seg } from "./Ui";
 import { navMark } from "../lib/navStatus";
+import { stepUndo } from "../shortcuts";
 
 type LoopsT = components["schemas"]["Loops"];
 type Loop = components["schemas"]["Loop"];
 type Mapping = components["schemas"]["LoopMapping"];
 type Sources = components["schemas"]["Sources"];
+type UndoState = components["schemas"]["UndoState"];
 
 /** Délka záznamu stručně: 45 s, 12 min, 2 h, 1,5 h. */
 export function fmtDuration(s: number | null | undefined, lang: string) {
@@ -117,6 +119,23 @@ function SaveButton() {
   );
 }
 
+/** Tlačítka Zpět / Znovu (FEATURE-006, Ctrl+Z / Ctrl+Y): `title` nese popisek kroku ze serveru, bez kroku jsou neaktivní. */
+function UndoButtons() {
+  const T = useT();
+  const q = useWsQuery<UndoState>("undo", "/undo");
+  const [busy, setBusy] = useState(false);
+  const go = (kind: "undo" | "redo") => { setBusy(true); stepUndo(kind).catch(toastError).finally(() => setBusy(false)); };
+  const one = (kind: "undo" | "redo", icon: string) => {
+    const label = q.data?.[kind];
+    const text = label ? T(`${kind}_title`, { label }) : T(`${kind}_empty`);
+    return (
+      <button type="button" className="hbtn small" data-testid={`head-${kind}`} onClick={() => go(kind)} disabled={!label || busy}
+        aria-label={text} title={text}>{icon}</button>
+    );
+  };
+  return <span className="hundo">{one("undo", "\u21b6")}{one("redo", "\u21b7")}</span>;
+}
+
 /** Nastavení (jazyk, vzhled) jako rozbalovací panel pod tlačítkem. */
 function Settings() {
   const T = useT();
@@ -201,6 +220,7 @@ export function Header() {
           <Loops />
           <Summary />
           <SaveButton />
+          <UndoButtons />
         </div>
         <div className="hright">
           <NewButton />

@@ -26,6 +26,8 @@ const PART_GROUPS: Record<string, Group[]> = {
   "guide-status": ["guide"],                     // stav postupu na záložkách (FEATURE-003)
   batch: ["project"],                            // výsledek hromadné úlohy (FEATURE-007)
   journal: ["project"], "report-sections": ["project"], "save-state": ["project"], guide: ["project"],
+  // zpět / znovu (FEATURE-006): popisky kroků se mění po každém zápisu nastavení, sady, úseku i scénáře → ve všech skupinách
+  undo: [...ALL_GROUPS],
   // nastavení se zneplatňuje vždy zvlášť (invalidateGroups)
   settings: ["ws"],
 };

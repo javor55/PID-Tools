@@ -3552,7 +3552,5 @@
  "undo_title": "Zpět: {label} (Ctrl+Z)",
  "redo_title": "Znovu: {label} (Ctrl+Y)",
  "undo_empty": "Není co vracet",
- "redo_empty": "Není co provést znovu",
- "undo_done": "Vráceno: {label}",
- "redo_done": "Provedeno znovu: {label}"
+ "redo_empty": "Není co provést znovu"
 }

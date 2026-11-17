@@ -40,6 +40,7 @@ button { font: inherit; color: inherit; }
 .tab-mark { margin-left: 6px; font-weight: 700; }
 .tab-mark.ok { color: var(--pid-ok); }
 .tab-mark.warn { color: var(--pid-warn); }
+.hundo { display: inline-flex; gap: 4px; }
 .hsum { font-size: 12px; color: var(--pid-muted); }
 .hbtn { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--pid-ctl); background: var(--pid-card);
   border-radius: var(--pid-radius); color: var(--pid-text); cursor: pointer; list-style: none; white-space: nowrap; }

@@ -35,6 +35,21 @@ describe("matchShortcut", () => {
   it("Ctrl+Shift+S není zkratka (patří prohlížeči)", () => {
     expect(matchShortcut(k("S", { ctrlKey: true, shiftKey: true }))).toBeNull();
   });
+  it("Ctrl+Z je zpět, Ctrl+Y a Ctrl+Shift+Z znovu (i Cmd, i velké písmeno)", () => {
+    expect(matchShortcut(k("z", { ctrlKey: true }))).toEqual({ kind: "undo" });
+    expect(matchShortcut(k("z", { metaKey: true }))).toEqual({ kind: "undo" });
+    expect(matchShortcut(k("Z", { ctrlKey: true }))).toEqual({ kind: "undo" });
+    expect(matchShortcut(k("y", { ctrlKey: true }))).toEqual({ kind: "redo" });
+    expect(matchShortcut(k("Z", { ctrlKey: true, shiftKey: true }))).toEqual({ kind: "redo" });
+    expect(matchShortcut(k("z", { metaKey: true, shiftKey: true }))).toEqual({ kind: "redo" });
+  });
+  it("Z a Y bez Ctrl, Ctrl+Alt+Z a Shift+Z nejsou zkratky", () => {
+    expect(matchShortcut(k("z"))).toBeNull();
+    expect(matchShortcut(k("y"))).toBeNull();
+    expect(matchShortcut(k("z", { ctrlKey: true, altKey: true }))).toBeNull();
+    expect(matchShortcut(k("Z", { shiftKey: true }))).toBeNull();
+    expect(matchShortcut(k("Y", { ctrlKey: true, shiftKey: true }))).toBeNull();
+  });
   it("Ctrl+Alt+znak (AltGr) a prosté písmeno nejsou zkratky", () => {
     expect(matchShortcut(k("s", { ctrlKey: true, altKey: true }))).toBeNull();
     expect(matchShortcut(k("s"))).toBeNull();

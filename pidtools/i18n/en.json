@@ -3552,7 +3552,5 @@
  "undo_title": "Undo: {label} (Ctrl+Z)",
  "redo_title": "Redo: {label} (Ctrl+Y)",
  "undo_empty": "Nothing to undo",
- "redo_empty": "Nothing to redo",
- "undo_done": "Undone: {label}",
- "redo_done": "Redone: {label}"
+ "redo_empty": "Nothing to redo"
 }
