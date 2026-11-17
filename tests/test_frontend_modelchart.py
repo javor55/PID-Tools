@@ -78,12 +78,25 @@ def chart(page, server):
     return page
 
 
+def _box(pg, sel, tries=20):
+    """
+    Poloha prvku po posunu na střed okna (mimo přilepený přehled záznamu dole). Vrstva úseků lištu po změně dat ze
+    serveru sestaví znovu, takže prvek může mezi čekáním a čtením polohy zmizet – pak se zkusí znovu.
+    """
+    for _ in range(tries):
+        pg.locator(sel).first.wait_for(timeout=10000)
+        pg.evaluate("s => document.querySelector(s)?.scrollIntoView({block: 'center'})", sel)
+        pg.wait_for_timeout(200)
+        bb = pg.evaluate("""s => { const e = document.querySelector(s); if (!e) return null;
+          const r = e.getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; }""", sel)
+        if bb and bb["width"] > 0:
+            return bb
+    raise AssertionError(f"element not stable: {sel}")
+
+
 def _drag(pg, sel, dx):
     """Táhne prvek o dx pixelů (táhlo úseku); posluchače tažení jsou na okně."""
-    pg.locator(sel).first.wait_for(timeout=10000)
-    pg.evaluate("s => document.querySelector(s).scrollIntoView({block: 'center'})", sel)     # mimo přilepený přehled záznamu dole
-    pg.wait_for_timeout(200)
-    bb = pg.evaluate("""s => { const r = document.querySelector(s).getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; }""", sel)
+    bb = _box(pg, sel)
     x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
     pg.mouse.move(x, y)
     pg.mouse.down()
@@ -184,9 +197,7 @@ def test_drag_handle_inputs_puts_windows(chart, server):
     chart.locator(f'{M} [data-testid="mw-chips"][data-owner="MV"] [data-a="del"]').last.click()
     _until(lambda: len(_call(server, chart, "GET", B + "/windows")["wins"]["MV"]) == n0)
     # dvojklik na liště přitáhne nejbližší mez na místo kliknutí
-    chart.evaluate("s => document.querySelector(s).scrollIntoView({block: 'center'})", f'{M} [data-testid="mw-track"][data-owner="MV"]')
-    chart.wait_for_timeout(200)
-    trk = chart.locator(f'{M} [data-testid="mw-track"][data-owner="MV"]').first.bounding_box()
+    trk = _box(chart, f'{M} [data-testid="mw-track"][data-owner="MV"]')
     w0 = _call(server, chart, "GET", B + "/windows")["wins"]["MV"][0]
     chart.mouse.dblclick(trk["x"] + trk["width"] * 0.9, trk["y"] + 30)
     _until(lambda: _call(server, chart, "GET", B + "/windows")["wins"]["MV"][0] != w0)
@@ -200,7 +211,7 @@ def test_time_cursors_ab(chart):
     bar = chart.locator(f"{M} .pidv-bar")
     bar.locator("[data-a=cur]").click()
     assert _state(chart)["cur"]["on"]
-    chart.evaluate("s => document.querySelector(s).scrollIntoView({block: 'center'})", f"{M} .pidv-panel canvas")
+    chart.evaluate("s => document.querySelector(s)?.scrollIntoView({block: 'center'})", f"{M} .pidv-panel canvas")
     chart.wait_for_timeout(200)
     cv = chart.locator(f"{M} .pidv-panel").first.locator("canvas").nth(1).bounding_box()
     chart.mouse.click(cv["x"] + cv["width"] * 0.35, cv["y"] + cv["height"] / 2)
@@ -216,7 +227,7 @@ def test_time_cursors_ab(chart):
     bar.locator("[data-a=hcur]").click()
     assert _state(chart)["hc"]["on"] and chart.locator(f"{M} [data-testid=hc-sig]").count() == 1
     bar.locator("[data-a=hcur]").click()
-    chart.evaluate("s => document.querySelector(s).scrollIntoView({block: 'center'})", f"{M} .pidv-panel canvas")
+    chart.evaluate("s => document.querySelector(s)?.scrollIntoView({block: 'center'})", f"{M} .pidv-panel canvas")
     chart.wait_for_timeout(200)
     cv = chart.locator(f"{M} .pidv-panel").first.locator("canvas").nth(1).bounding_box()
     ax = {"x": cv["x"] + 40, "y": cv["y"] + cv["height"] / 2}
