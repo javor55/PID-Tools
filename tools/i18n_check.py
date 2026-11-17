@@ -61,6 +61,11 @@ KEEP: dict[str, str] = {
     "undo_empty": "tlačítko Zpět – složený klíč `${kind}_empty`",
     "redo_title": "tlačítko Znovu – složený klíč `${kind}_title`",
     "redo_empty": "tlačítko Znovu – složený klíč `${kind}_empty`",
+    # frontend/src/tabs/ModelTab.tsx a DiagTab.tsx: seznam TXT ("excluded", "time", …) se mapuje `T("mw_" + k)` a
+    # předává trend.js; modul tyto dva texty dnes nečte, ale seznam si je vyžádá (smazání by dalo varování v dev režimu).
+    # Zmizí spolu s položkami seznamu TXT, až bude povoleno měnit ModelTab / DiagTab.
+    "mw_excluded": "položka seznamu TXT v ModelTab.tsx / DiagTab.tsx",
+    "mw_time": "položka seznamu TXT v ModelTab.tsx / DiagTab.tsx",
 }
 
 # ------------------------------------------------------------------ regexy pro skládání klíčů
