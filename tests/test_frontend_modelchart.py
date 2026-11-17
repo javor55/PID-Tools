@@ -196,6 +196,9 @@ def test_drag_handle_inputs_puts_windows(chart, server):
     _until(lambda: len(_call(server, chart, "GET", B + "/windows")["wins"]["MV"]) == n0 + 1)
     chart.locator(f'{M} [data-testid="mw-chips"][data-owner="MV"] [data-a="del"]').last.click()
     _until(lambda: len(_call(server, chart, "GET", B + "/windows")["wins"]["MV"]) == n0)
+    # rozhraní se srovná se serverem (opožděné načtení po přidání může úsek na chvíli vrátit) – teprve pak dvojklik
+    _until(lambda: chart.locator(f'{M} [data-testid="mw-chips"][data-owner="MV"] [data-testid="mw-chip"]').count() == n0)
+    chart.wait_for_timeout(500)
     # dvojklik na liště přitáhne nejbližší mez na místo kliknutí
     trk = _box(chart, f'{M} [data-testid="mw-track"][data-owner="MV"]')
     w0 = _call(server, chart, "GET", B + "/windows")["wins"]["MV"][0]
