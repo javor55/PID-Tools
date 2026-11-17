@@ -3,23 +3,16 @@
 // každou poruchu; uživatel může přidat další signály ze záznamu. Rozložení se ukládá do nastavení smyčky „mview“
 // (odděleně od „dview“ Trendů). Data: mřížka smyčky (/signals?source=grid) + průběhy modelu (/model/curves) sloučené do
 // jednoho balíku v paměti; úseky a režim úseků přicházejí z API (okno /windows, nastavení win_mode) a ven jdou přes onWins.
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import type { components } from "../api/schema";
-import { mergePacks, series, type PackMeta } from "../api/signals";
-import mountViewer, { type ViewerData, type ViewerSig, type ViewerSpans } from "../legacy/viewer.js";
-import PIDViewAn from "../legacy/viewer_an.js";
-import "../legacy/viewer.css";
-import { decOf, useT, useTexts } from "../i18n";
-import { readable, usePalette } from "../lib/palette";
+import { mergePacks, series } from "../api/signals";
+import type { ViewerData, ViewerSig, ViewerSpans } from "../legacy/viewer.js";
 import { runs, timeUnit } from "../lib/series";
-import { useUi } from "../store";
 import { DIST_STYLE, MV_STYLE, windowFits } from "../tabs/modelConst";
-
-(window as unknown as { PIDViewAn?: unknown }).PIDViewAn ??= PIDViewAn;
+import { clockOf, type Pack, uniqueNames, useViewerEnv, useViewerMount, viewerTxt, withRecordSignals } from "./viewerMount";
 
 type ModelState = components["schemas"]["ModelState"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
-type Pack = { meta: PackMeta; blob: ArrayBuffer };
 
 export interface WinsOut { mode: string; wins: Record<string, [number, number][]>; common: [number, number] }
 export interface ModelChartProps {
@@ -37,30 +30,19 @@ export interface ModelChartProps {
 
 const CURVES = ["model", "full", "model_mv", "model_dv", "residual"];
 const RESERVED = new Set(["pv", "mv", "sp", "valid", ...CURVES]);
-const SPAN_TXT = ["mode", "h_mode", "common", "inputs", "zoom_win", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "excluded"];
+const SPAN_TXT = ["mode", "h_mode", "common", "inputs", "zoom_win", "win", "drag_win", "start", "end", "zoom_one", "del", "add"];
 const MODEL_TXT = ["m_all", "m_mv", "m_dv", "r_win", "r_full", "resid"];
 
 export function ModelChart({ ws, grid, curves, raw, windows, model, winMode, units, layout, onWins, onMode, onLayout }: ModelChartProps) {
-  const T = useT();
-  const texts = useTexts();
-  const lang = useUi((s) => s.lang);
-  const dark = useUi((s) => s.theme) === "dark" || document.documentElement.dataset.theme === "dark";
-  const pal = usePalette();
+  const { T, texts, dark, pal, col, dec } = useViewerEnv();
   const box = useRef<HTMLDivElement>(null);
-  const destroy = useRef<(() => void) | null>(null);      // odpojení viewer.js; volá se jen při odchodu komponenty
-  const h = useRef({ onWins, onMode, onLayout });
-  useEffect(() => { h.current = { onWins, onMode, onLayout }; }, [onWins, onMode, onLayout]);
 
   // balík v paměti: mřížka + průběhy modelu (bez duplicit pv / mv); názvy signálů podle smyčky
   const built = useMemo(() => {
     if (!ws?.has_data || !grid) return null;
-    let merged: Pack = curves ? mergePacks(grid, curves, CURVES) : { meta: grid.meta, blob: grid.blob };
-    const loopNames = new Set([ws.pv, ws.mv, ws.sp, ...(ws.dists ?? [])].filter((x): x is string => !!x));
-    const extra = (raw?.meta.sigs ?? []).map((s) => s.name)
-      .filter((n) => !loopNames.has(n) && !RESERVED.has(n) && !/^d\d+$/.test(n));   // názvy balíku mřížky / modelu nesmí kolidovat
-    if (raw && extra.length) merged = mergePacks(merged, raw, extra, raw.meta.tmin - grid.meta.tmin);
-    const used = new Set<string>();
-    const uniq = (n: string) => { let k = n || "?"; while (used.has(k)) k += "·"; used.add(k); return k; };
+    const base: Pack = curves ? mergePacks(grid, curves, CURVES) : { meta: grid.meta, blob: grid.blob };
+    const { merged, extra } = withRecordSignals(base, raw, ws, RESERVED);   // názvy balíku mřížky / modelu nesmí kolidovat
+    const uniq = uniqueNames();
     const disp: Record<string, string> = {};
     disp.pv = uniq(ws.pv ?? "PV"); disp.mv = uniq(ws.mv ?? "MV");
     if (ws.sp) disp.sp = uniq(ws.sp);
@@ -102,12 +84,10 @@ export function ModelChart({ ws, grid, curves, raw, windows, model, winMode, uni
     };
   }, [ws, grid, curves, windows, model, winMode, T]);
 
-  useEffect(() => {
-    if (!box.current || !built || !spans || !ws || !texts) return;
+  const data = useMemo<Omit<ViewerData, "sig"> | null>(() => {
+    if (!built || !spans || !ws || !texts) return null;
     const { merged, disp, all, win } = built;
     const { meta, blob } = merged;
-    const card = pal.card;
-    const col = (c: string) => (dark ? readable(c, card) : c);
     const sigs: ViewerSig[] = meta.sigs.filter((s) => s.name !== "valid" && (disp[s.name] !== undefined)).map((s, k) => {
       const nm = disp[s.name];
       const j = /^d(\d+)$/.exec(s.name)?.[1];
@@ -122,15 +102,13 @@ export function ModelChart({ ws, grid, curves, raw, windows, model, winMode, uni
     });
     const nm = (k: string | null) => (k && disp[k] && meta.sigs.some((s) => s.name === k) ? disp[k] : null);
     const ds = (ws.dists ?? []).map((_, j) => disp[`d${j}`]).filter((x) => sigs.some((s) => s.name === x));
-    const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
-    const txt = Object.fromEntries(Object.entries(texts).filter(([k]) => k.startsWith("vw_")).map(([k, v]) => [k.slice(3), v]));
     const model_ = all ? {
       pv: disp.pv, all: nm(all) as string, win: nm(win), mv: nm("model_mv"), dv: nm("model_dv"), resid: nm("residual"),
       txt: Object.fromEntries(MODEL_TXT.map((k) => [k, T("mw_" + k)])),
     } : undefined;
-    const data: Omit<ViewerData, "sig"> = {
+    return {
       key: "model_view", view_key: `model|${ws.fname}|${meta.hash}`, sigs, times: meta.times, T: meta.T, decim: meta.decim,
-      hash: meta.hash, clock: Number.isFinite(clock) ? clock : null, tunit: "auto", dec: decOf(lang), dark, txt,
+      hash: meta.hash, clock: clockOf(ws, meta.tmin), tunit: "auto", dec, dark, txt: viewerTxt(texts),
       fname: ws.fname, layout, b64: null, url: null, buf: blob, spans, model: model_,
       defaults: { panels: [
         { sigs: [disp.pv, nm("sp"), nm(all)].filter((x): x is string => !!x), h: 230 },
@@ -139,19 +117,9 @@ export function ModelChart({ ws, grid, curves, raw, windows, model, winMode, uni
       ] },
       groups: undefined,
     };
-    const sig = `${meta.hash}|${lang}|${dark}|${JSON.stringify(sigs.map((s) => [s.name, s.role, s.color, s.unit]))}`;
-    destroy.current = mountViewer({
-      data: { ...data, sig }, parentElement: box.current,
-      setStateValue: (key, value) => {
-        if (key === "layout" && typeof value === "string" && value.length <= 65536) h.current.onLayout(value);
-        else if (key === "wins") h.current.onWins(value as WinsOut);
-      },
-      setTriggerValue: (key, value) => { if (key === "mode") h.current.onMode(String(value)); },
-    });
-  }, [built, spans, ws, texts, lang, dark, pal, T, layout, units.pv, units.mv]);
+  }, [built, spans, ws, texts, dec, dark, pal, col, T, layout, units.pv, units.mv]);
 
-  // ne v úklidu efektu výše (ten běží při každé změně dat a modul by ztratil zoom): odpojit až s komponentou
-  useEffect(() => () => { destroy.current?.(); destroy.current = null; }, []);
+  useViewerMount(box, data, { onLayout, onWins: (w) => onWins(w as WinsOut), onMode });
 
   return <div ref={box} className="viewer-host" data-testid="model-trend" aria-busy={!built || !spans} />;
 }

@@ -1,4 +1,4 @@
-// Záložka Model (M14): graf s úseky pro identifikaci (sdílený trend.js), tabulka modelů a výběr modelu;
+// Záložka Model (M14): graf s úseky pro identifikaci (prohlížeč záznamu, components/ModelChart.tsx), tabulka modelů a výběr modelu;
 // panel: data pro identifikaci (MAN / AUTO), režim úseků MV, modely a nastavení identifikace, Identifikovat.
 import { useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
@@ -6,6 +6,7 @@ import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
 import { unframe } from "../api/signals";
 import { ModelChart } from "../components/ModelChart";
+import { useGridPack, useRawPack } from "../components/viewerMount";
 import { CopyTableButton } from "../components/Card";
 import { Help } from "../components/Ui";
 import { DistCompare, ModelDetails } from "./ModelDetails";
@@ -27,17 +28,8 @@ function useModelData() {
   const wid = useUi((s) => s.wid);
   const ws = useWs().data;
   const settings = useSettings().data ?? {};
-  const grid = useQuery({
-    queryKey: ["ws", wid, "grid", ws?.pv, ws?.mv, ws?.sp, ws?.dists, ws?.n],
-    enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
-    queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals?source=grid`)),
-  });
-  // všechny signály záznamu: stejný dotaz jako prohlížeč v Datech (sdílená mezipaměť); ostatní signály lze přidat do grafu
-  const raw = useQuery({
-    queryKey: ["ws", wid, "rawsignals", ws?.fname, ws?.n, ws?.layout],
-    enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
-    queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals`)),
-  });
+  const grid = useGridPack();
+  const raw = useRawPack();                      // ostatní signály záznamu lze přidat do grafu
   const windows = useWsQuery<WindowsInfo>("windows", "/windows");
   const model = useWsQuery<ModelState>("model", "/model");
   const hasModel = !!model.data?.current && !model.data?.stale;
