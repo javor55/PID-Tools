@@ -2991,5 +2991,10 @@
  "redo_title": "Znovu: {label} (Ctrl+Y)",
  "undo_empty": "Není co vracet",
  "redo_empty": "Není co provést znovu",
- "vw_hc_sig": "Signál měřený hodnotovými kurzory Y₁ / Y₂"
+ "vw_hc_sig": "Signál měřený hodnotovými kurzory Y₁ / Y₂",
+ "mw_sig_model": "Model",
+ "mw_sig_model_win": "Model (jen úseky)",
+ "mw_sig_mv": "Model: část od MV",
+ "mw_sig_dv": "Model: část od poruch",
+ "mw_sig_resid": "Rezidua (PV − model)"
 }

@@ -80,7 +80,7 @@ setExact(["rep_plant", "rep_author", "rep_status", "rep_comment"], ["project", "
 setExact(["live_runs"], ["live", "project", "guide", "ws"]);
 // jen rozhraní: výška grafu čte živá simulace, rozložení prohlížeče a jednotka času server nepoužívá
 setExact(["plot_h"], ["live", "ws"]);
-setExact(["chart_tunit", "dview"], ["ws"]);
+setExact(["chart_tunit", "dview", "mview"], ["ws"]);
 
 const PREFIXES: [string, readonly Group[]][] = [
   ["method|", SIM], ["tc|", SIM], ["tend_r|", SIM], ["sim_S|", SIM], ["scen_df|", SIM], ["gs_", SIM],

@@ -2991,5 +2991,10 @@
  "redo_title": "Redo: {label} (Ctrl+Y)",
  "undo_empty": "Nothing to undo",
  "redo_empty": "Nothing to redo",
- "vw_hc_sig": "Signal measured by value cursors Y₁ / Y₂"
+ "vw_hc_sig": "Signal measured by value cursors Y₁ / Y₂",
+ "mw_sig_model": "Model",
+ "mw_sig_model_win": "Model (segments only)",
+ "mw_sig_mv": "Model: MV part",
+ "mw_sig_dv": "Model: disturbance part",
+ "mw_sig_resid": "Residual (PV − model)"
 }

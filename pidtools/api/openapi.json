@@ -5973,6 +5973,17 @@
       ],
       "title": "Mv Rng User"
      },
+     "mview": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mview"
+     },
      "mvl_hi": {
       "anyOf": [
        {
@@ -6478,7 +6489,8 @@
      "rep_status",
      "rep_comment",
      "live_runs",
-     "dview"
+     "dview",
+     "mview"
     ],
     "title": "LoopSettings",
     "type": "object"

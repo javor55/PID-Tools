@@ -19,7 +19,7 @@ DEFAULTS: dict[str, Any] = dict(
     set2_defined=False,
     thmax=None, chosen=list(MODELS), mcode=None, dist_level="none", dist_strength=4, gain_sign="auto", id_stic=False,
     ctype="PI", opt_crit=tun.DEFAULT_CRIT, opt_target=tun.DEFAULT_TARGET, scen_kind=None, opt_ms=1.6, opt_robust=False,
-    opt_ovs=2, sim_len_u="s",
+    opt_ovs=2, sim_len_u="s", mview=None,
 )
 
 

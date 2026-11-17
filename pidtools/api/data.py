@@ -123,6 +123,8 @@ class LoopSettings(BaseModel):
     live_runs: list[Any] | None = None
     # prohlížeč záznamu: rozložení panelů, barvy, měřítka, kurzory – text JSON
     dview: str | None = None
+    # rozložení grafu záložky Model (Identifikace), samostatné pro smyčku – text JSON
+    mview: str | None = None
 
 
 class WorkspaceInfo(BaseModel):

@@ -50,6 +50,8 @@ STATE_KEYS = [
     "rep_plant", "rep_author", "rep_status", "rep_comment", "live_runs",
     # prohlížeč záznamu (záložka Data): rozložení panelů, barvy, měřítka, kurzory – text JSON
     "dview",
+    # graf Modelu (Identifikace): vlastní rozložení panelů smyčky, nezávislé na Trendech – text JSON
+    "mview",
 ]
 STATE_PREFIX = ("ed|", "method|", "tc|", "tend_r|", "fx|", "idf|", "sim_S|", "scen_df|", "gs_", "apc_sm_", "dkind|",
                 "dsign|", "dsel|", "wmode|", "batch_sug|")

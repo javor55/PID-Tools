@@ -5725,6 +5725,8 @@ export interface components {
             mv_lo: number;
             /** Mv Rng User */
             mv_rng_user: boolean | null;
+            /** Mview */
+            mview: string | null;
             /** Mvl Hi */
             mvl_hi: number | null;
             /** Mvl Lo */

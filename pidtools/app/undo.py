@@ -38,7 +38,7 @@ class _Missing:
 MISSING: Any = _Missing()
 
 # klíče, které jsou jen stav rozhraní nebo se zapisují samy (historie, záznamy) – změna přes PATCH krok nevytvoří
-UI_KEYS = frozenset({"dview", "plot_h", "chart_tunit", "lang", "live_runs", "audit_loops", "vchar_last", "tune_hist",
+UI_KEYS = frozenset({"dview", "mview", "plot_h", "chart_tunit", "lang", "live_runs", "audit_loops", "vchar_last", "tune_hist",
                      "sim_len_u_set"})
 UI_PREFIXES = ("method|", "batch_sug|")
 
