@@ -16,20 +16,25 @@ export function series(meta: PackMeta, blob: ArrayBuffer, name: string): { t: Fl
 }
 
 /**
- * Sloučí dva balíky do jednoho (graf Modelu: signály mřížky + průběhy modelu). Z druhého se vezmou jen `names`; jeho časové osy
- * a signály se přeindexují za první balík (blob druhého začíná na násobku 8 B kvůli Float64Array). Čas t = 0 mají oba shodný.
+ * Sloučí dva balíky do jednoho (graf Modelu: signály mřížky + průběhy modelu + ostatní signály záznamu). Z druhého se vezmou
+ * jen `names`; jeho časové osy a signály se přeindexují za první balík (blob druhého začíná na násobku 8 B kvůli
+ * Float64Array). Časy druhého balíku se posunou o `dt` [s] (rozdíl počátků `tmin`, aby ležely na ose prvního).
  */
 export function mergePacks(a: { meta: PackMeta; blob: ArrayBuffer }, b: { meta: PackMeta; blob: ArrayBuffer },
-  names: string[]): { meta: PackMeta; blob: ArrayBuffer } {
+  names: string[], dt = 0): { meta: PackMeta; blob: ArrayBuffer } {
   const shift = Math.ceil(a.blob.byteLength / 8) * 8;
   const blob = new Uint8Array(shift + b.blob.byteLength);
   blob.set(new Uint8Array(a.blob), 0);
   blob.set(new Uint8Array(b.blob), shift);
+  if (dt !== 0) for (const t of b.meta.times) {
+    const f = new Float64Array(blob.buffer, shift + t.off, t.n);
+    for (let i = 0; i < f.length; i++) f[i] += dt;
+  }
   const meta: PackMeta = {
     sigs: [...a.meta.sigs, ...b.meta.sigs.filter((s) => names.includes(s.name))
       .map((s) => ({ ...s, ti: s.ti + a.meta.times.length, off: s.off + shift }))],
     times: [...a.meta.times, ...b.meta.times.map((t) => ({ ...t, off: t.off + shift }))],
-    tmin: a.meta.tmin, T: Math.max(a.meta.T, b.meta.T), decim: Math.max(a.meta.decim, b.meta.decim),
+    tmin: a.meta.tmin, T: Math.max(a.meta.T, b.meta.T + dt), decim: Math.max(a.meta.decim, b.meta.decim),
     hash: `${a.meta.hash}${b.meta.hash}`,
   };
   return { meta, blob: blob.buffer };

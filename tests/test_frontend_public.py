@@ -85,7 +85,7 @@ def test_demo_identify_and_help_notice(page):
     page.locator('[data-testid="start-demo"]').click()
     page.wait_for_selector('[data-testid="start-screen"]', state="detached")
     page.locator('[data-tab="model"]').click()
-    page.wait_for_selector('[data-testid="model-trend"] .pidw', timeout=20000)
+    page.wait_for_selector('[data-testid="model-trend"] .pidv-panel canvas', timeout=20000)
     for c in ("P0D", "P2D", "I0D"):
         box = page.locator(f'[data-testid="chk-{c}"]')
         if box.is_checked():

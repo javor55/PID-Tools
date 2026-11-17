@@ -100,7 +100,7 @@ def test_validation_loop_sets_and_views(page, server, ready):
 def test_model_on_full_record_by_default(page, server, ready):
     """Model se ve výchozím stavu kreslí přes celý záznam; „jen v úsecích“ je volba."""
     page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
-    rng = page.locator('[data-testid="model-trend"] .pidw-range')
+    rng = page.locator('[data-testid="model-trend"] [data-g="mrange"]')
     rng.first.wait_for(timeout=30000)
     assert rng.first.locator("button.on").get_attribute("data-v") == "full"
 

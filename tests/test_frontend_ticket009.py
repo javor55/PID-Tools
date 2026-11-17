@@ -45,20 +45,18 @@ def test_viewer_destroy_on_tab_switch(page, server):
 
 
 def test_trend_destroy_on_tab_switch(page, server):
-    """10× Model ↔ Data: kořenů trend.js (.pidw) nejvýš tolik, kolik je na stránce grafů Trend, a stejně záznamů."""
+    """10× Model ↔ Data: graf Modelu (viewer.js) je na stránce nejvýš jeden a v registru je nejvýš jeden záznam."""
     _demo(page)
     for i in range(10):
         page.locator('[data-tab="model"]').click()
-        page.wait_for_selector('[data-testid="model-trend"] .pidw', timeout=20000)
-        n = page.locator('[data-testid="model-trend"]').count()
-        st = page.evaluate("() => ({pidw: document.querySelectorAll('.pidw').length, "
-                           "reg: Object.keys(window.__pidTrend || {}).length})")
-        assert st["pidw"] <= n and st["reg"] <= n, (i, n, st)
+        page.wait_for_selector('[data-testid="model-trend"] .pidv-panel canvas', timeout=20000)
+        st = _viewer_state(page)
+        assert st["pidv"] <= 1 and st["reg"] <= 1, (i, st)
         page.locator('[data-tab="data"]').click()
         page.wait_for_selector('[data-testid="data-subtabs"]', timeout=10000)
-    st = page.evaluate("() => ({pidw: document.querySelectorAll('.pidw').length, "
-                       "reg: Object.keys(window.__pidTrend || {}).length})")
-    assert st == {"pidw": 0, "reg": 0}, st
+        page.locator('[data-sub="sources"]').click()
+        page.wait_for_selector('[data-testid="src-demo"]', timeout=10000)
+    assert _viewer_state(page) == {"pidv": 0, "reg": 0}
 
 
 def test_trends_fields_have_accessible_names(page, server):

@@ -25,6 +25,7 @@ export interface WinsOut { mode: string; wins: Record<string, [number, number][]
 export interface ModelChartProps {
   ws: components["schemas"]["WorkspaceInfo"] | undefined;
   grid: Pack | undefined; curves: Pack | undefined;
+  raw: Pack | undefined;                                   // všechny signály záznamu (ostatní lze přidat do grafu)
   windows: WindowsInfo | undefined; model: ModelState | undefined;
   winMode: "common" | "inputs";
   units: { pv: string; mv: string };                       // jednotky PV a MV z nastavení smyčky
@@ -35,10 +36,11 @@ export interface ModelChartProps {
 }
 
 const CURVES = ["model", "full", "model_mv", "model_dv", "residual"];
+const RESERVED = new Set(["pv", "mv", "sp", "valid", ...CURVES]);
 const SPAN_TXT = ["mode", "h_mode", "common", "inputs", "zoom_win", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "excluded"];
 const MODEL_TXT = ["m_all", "m_mv", "m_dv", "r_win", "r_full", "resid"];
 
-export function ModelChart({ ws, grid, curves, windows, model, winMode, units, layout, onWins, onMode, onLayout }: ModelChartProps) {
+export function ModelChart({ ws, grid, curves, raw, windows, model, winMode, units, layout, onWins, onMode, onLayout }: ModelChartProps) {
   const T = useT();
   const texts = useTexts();
   const lang = useUi((s) => s.lang);
@@ -52,7 +54,11 @@ export function ModelChart({ ws, grid, curves, windows, model, winMode, units, l
   // balík v paměti: mřížka + průběhy modelu (bez duplicit pv / mv); názvy signálů podle smyčky
   const built = useMemo(() => {
     if (!ws?.has_data || !grid) return null;
-    const merged = curves ? mergePacks(grid, curves, CURVES) : { meta: grid.meta, blob: grid.blob };
+    let merged: Pack = curves ? mergePacks(grid, curves, CURVES) : { meta: grid.meta, blob: grid.blob };
+    const loopNames = new Set([ws.pv, ws.mv, ws.sp, ...(ws.dists ?? [])].filter((x): x is string => !!x));
+    const extra = (raw?.meta.sigs ?? []).map((s) => s.name)
+      .filter((n) => !loopNames.has(n) && !RESERVED.has(n) && !/^d\d+$/.test(n));   // názvy balíku mřížky / modelu nesmí kolidovat
+    if (raw && extra.length) merged = mergePacks(merged, raw, extra, raw.meta.tmin - grid.meta.tmin);
     const used = new Set<string>();
     const uniq = (n: string) => { let k = n || "?"; while (used.has(k)) k += "·"; used.add(k); return k; };
     const disp: Record<string, string> = {};
@@ -61,12 +67,13 @@ export function ModelChart({ ws, grid, curves, windows, model, winMode, units, l
     (ws.dists ?? []).forEach((d, j) => { disp[`d${j}`] = uniq(d); });
     disp.full = uniq(T("mw_sig_model")); disp.model = uniq(T("mw_sig_model_win"));
     disp.model_mv = uniq(T("mw_sig_mv")); disp.model_dv = uniq(T("mw_sig_dv")); disp.residual = uniq(T("mw_sig_resid"));
+    for (const n of extra) disp[n] = uniq(n);
     const has = (k: string) => merged.meta.sigs.some((s) => s.name === k);
     // „celý model“ je průběh na celém záznamu (full); jen v úsecích (model) je druhá volba; bez full je celým modelem model
     const all = has("full") ? "full" : has("model") ? "model" : null;
     const win = all === "full" && has("model") ? "model" : null;
     return { merged, disp, all, win, has };
-  }, [ws, grid, curves, T]);
+  }, [ws, grid, curves, raw, T]);
 
   const spans = useMemo<ViewerSpans | null>(() => {
     if (!ws?.has_data || !grid || !windows) return null;
@@ -89,7 +96,7 @@ export function ModelChart({ ws, grid, curves, windows, model, winMode, units, l
     const excl = winMode === "inputs" && valid ? runs(Array.from(valid.v, (x) => (x > 0.5 ? 0 : 1)), t) : [];
     return {
       mode: winMode, common: ws.rng ?? [0, Tend], step: Ts, unit: timeUnit(Tend),
-      ccol: MV_STYLE[0], cbd: MV_STYLE[1], ctx: "#7a4b00", cbg: MV_STYLE[2],
+      ccol: MV_STYLE[0], cbd: MV_STYLE[1], ctx: MV_STYLE[1], cbg: MV_STYLE[2],
       inputs: inputs.map(({ nm, ...r }) => ({ ...r, sig: nm })), excl: excl as number[][],
       txt: Object.fromEntries(SPAN_TXT.map((k) => [k, T("mw_" + k)])),
     };
@@ -101,7 +108,7 @@ export function ModelChart({ ws, grid, curves, windows, model, winMode, units, l
     const { meta, blob } = merged;
     const card = pal.card;
     const col = (c: string) => (dark ? readable(c, card) : c);
-    const sigs: ViewerSig[] = meta.sigs.filter((s) => s.name !== "valid" && (disp[s.name] !== undefined)).map((s) => {
+    const sigs: ViewerSig[] = meta.sigs.filter((s) => s.name !== "valid" && (disp[s.name] !== undefined)).map((s, k) => {
       const nm = disp[s.name];
       const j = /^d(\d+)$/.exec(s.name)?.[1];
       const base = { ...s, name: nm };
@@ -109,6 +116,7 @@ export function ModelChart({ ws, grid, curves, windows, model, winMode, units, l
       if (s.name === "sp") return { ...base, role: "SP", color: pal.sp, unit: units.pv, axis: "pv" };
       if (s.name === "mv") return { ...base, role: "MV", color: pal.mv, unit: units.mv, axis: "mv" };
       if (j !== undefined) return { ...base, role: "DV", color: col(DIST_STYLE[+j % 4][0]), unit: "", axis: null };
+      if (!CURVES.includes(s.name)) return { ...base, role: "", color: col(pal.series[k % pal.series.length]), unit: "", axis: null };   // ostatní signál záznamu
       if (s.name === "residual") return { ...base, role: "", color: pal.model, unit: units.pv, axis: null };
       return { ...base, role: "", color: pal.model, unit: units.pv, axis: "pv", dash: "6 4" };
     });

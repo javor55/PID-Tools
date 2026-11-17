@@ -253,14 +253,14 @@ def test_data_file_upload(page, server):
 
 
 def test_model_tab_identify(page, server):
-    """Model: graf s úseky (sdílený trend.js), identifikace jako úloha, tabulka modelů, výběr, průběh modelu."""
+    """Model: graf s úseky (prohlížeč záznamu viewer.js s vrstvou úseků), identifikace jako úloha, tabulka modelů, výběr, průběh modelu."""
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="quality"]').click()
     page.locator('[data-sub="sources"]').click()
     page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
     page.locator('[data-tab="model"]').click()
-    page.wait_for_selector('[data-testid="model-trend"] .pidw', timeout=20000)
+    page.wait_for_selector('[data-testid="model-trend"] .pidv-panel canvas', timeout=20000)
     assert page.locator('[data-testid="no-model"]').count() == 1
     for c in ("P0D", "P2D", "I0D"):                         # rychlejší: jen P1D a I1D
         box = page.locator(f'[data-testid="chk-{c}"]')
@@ -278,14 +278,14 @@ def test_model_tab_identify(page, server):
     page.wait_for_timeout(800)
     assert _api(server, "/api/v1/workspaces/{wid}/model", page)["selected"] == "P1D"
     page.wait_for_timeout(1000)
-    assert page.locator('[data-testid="model-trend"] svg').count() >= 2              # karty grafu (SVG)
-    paths = page.evaluate("() => document.querySelectorAll('[data-testid=\"model-trend\"] svg path').length")
-    assert paths >= 4                                                                 # PV, model, MV, porucha
+    assert page.locator('[data-testid="model-trend"] .pidv-panel').count() >= 3      # panely: PV + SP + model, MV, porucha
+    st = page.evaluate("() => window.__pidView.model_view.state().panels.map(p => p.sigs.length)")
+    assert st[0] >= 3 and sum(st) >= 5                                                # PV, SP, model | MV | porucha
     # úseky podle vstupů: přepínač v grafu → nastavení win_mode
-    page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="inputs"]').click()
+    page.locator('[data-testid="model-trend"] .pidv-seg[data-g="wmode"] button[data-v="inputs"]').click()
     page.wait_for_timeout(800)
     assert _api(server, "/api/v1/workspaces/{wid}/settings", page)["win_mode"] == "inputs"
-    page.locator('[data-testid="model-trend"] .pidw-seg[data-g="mode"] button[data-v="common"]').click()
+    page.locator('[data-testid="model-trend"] .pidv-seg[data-g="wmode"] button[data-v="common"]').click()
     page.wait_for_timeout(500)
 
 

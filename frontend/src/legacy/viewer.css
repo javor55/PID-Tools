@@ -134,7 +134,7 @@
   display: inline-flex; align-items: center; gap: 6px; }
 .pidv-chip2 input { font: inherit; width: 58px; padding: 1px 4px; border: 1px solid; border-color: inherit; border-radius: 4px;
   background: var(--pv-btn); color: var(--pv-text); }
-.pidv-smini { font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid; border-color: inherit; background: var(--pv-btn);
+.pidv-smini { font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid; border-color: inherit; background: rgba(255, 255, 255, 0.75);
   color: inherit; border-radius: 4px; cursor: pointer; }
 .pidv-sadd { font: inherit; font-size: 11px; padding: 4px 10px; border: 1px dashed var(--pv-axis); background: var(--pv-btn);
   color: var(--pv-muted); border-radius: 6px; cursor: pointer; }

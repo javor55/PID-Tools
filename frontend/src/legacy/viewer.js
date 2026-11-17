@@ -330,9 +330,10 @@ export default function (component) {
     }
     function placeNew(st, n) {
       const dp = (D.defaults.panels || []).find((q) => q.sigs.includes(n));
+      if (!dp) return;                          // signál mimo výchozí rozložení (ostatní signály záznamu) zůstane skrytý, dokud ho uživatel nepřidá
       const mate = dp ? dp.sigs.find((m) => m !== n && st.panels.some((p) => p.sigs.includes(m))) : null;
       if (mate) st.panels.find((p) => p.sigs.includes(mate)).sigs.push(n);
-      else st.panels.push({ sigs: [n], h: (dp && dp.h) || 150, shared: false, lo: null, hi: null });
+      else st.panels.push({ sigs: [n], h: dp.h || 150, shared: false, lo: null, hi: null });
     }
     function fixView(st) {
       let [a, b] = st.view;
@@ -877,7 +878,8 @@ export default function (component) {
     function buildPanels() {
       plots.innerHTML = "";
       panelsUI = [];
-      L = Math.max(1, ...S.panels.map((p) => (p.shared ? 1 : p.sigs.length))) * AXW + 4;
+      // šířka os vlevo: podle počtu signálů panelu; s D.defaults (graf Modelu) podle skutečného počtu os (PV, SP a model sdílejí jednu)
+      L = Math.max(1, ...S.panels.map((p, pi) => (p.shared ? 1 : D.defaults ? axesOf(pi).length : p.sigs.length))) * AXW + 4;
       if (!S.panels.length) plots.appendChild(el("div", "pidv-card pidv-err", esc(X.no_sig || "–")));
       S.panels.forEach((p, pi) => {
         const c = el("section", "pidv-card pidv-panel");

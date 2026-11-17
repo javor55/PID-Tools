@@ -32,6 +32,12 @@ function useModelData() {
     enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals?source=grid`)),
   });
+  // všechny signály záznamu: stejný dotaz jako prohlížeč v Datech (sdílená mezipaměť); ostatní signály lze přidat do grafu
+  const raw = useQuery({
+    queryKey: ["ws", wid, "rawsignals", ws?.fname, ws?.n, ws?.layout],
+    enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
+    queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals`)),
+  });
   const windows = useWsQuery<WindowsInfo>("windows", "/windows");
   const model = useWsQuery<ModelState>("model", "/model");
   const hasModel = !!model.data?.current && !model.data?.stale;
@@ -40,7 +46,7 @@ function useModelData() {
     enabled: !!wid && hasModel,
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/model/curves`)),
   });
-  return { ws, settings, grid: grid.data, windows: windows.data, model: model.data, curves: curves.data };
+  return { ws, settings, grid: grid.data, raw: raw.data, windows: windows.data, model: model.data, curves: curves.data };
 }
 
 export function ModelMain() {
@@ -48,7 +54,7 @@ export function ModelMain() {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const patch = usePatchSettings();
-  const { ws, settings, grid, windows, model, curves } = useModelData();
+  const { ws, settings, grid, raw, windows, model, curves } = useModelData();
   const sub: ModelSub = useUi((s) => s.modelSub);
   const winMode = settings.win_mode === "inputs" ? "inputs" : "common";
 
@@ -65,7 +71,7 @@ export function ModelMain() {
     <div className="stack" data-msub={sub}>
       <ModelSummary model={model} />
       {sub === "ident" && <>
-        <ModelChart ws={ws} grid={grid} curves={curves} windows={windows} model={model} winMode={winMode}
+        <ModelChart ws={ws} grid={grid} curves={curves} raw={raw} windows={windows} model={model} winMode={winMode}
           units={{ pv: String(settings.u_pv ?? ""), mv: String(settings.u_mv ?? "") }}
           layout={typeof settings.mview === "string" ? settings.mview : null}
           onWins={(w) => { onWins(w).catch(toastError); }}
