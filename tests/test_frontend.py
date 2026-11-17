@@ -1274,8 +1274,8 @@ def _ensure_model(server, page):
 
 
 def _win_chip(page, i, value):
-    """Políčko úseku A v grafu (trend.js): i = 0 začátek, 1 konec; hodnota v jednotce osy."""
-    inp = page.locator(".pidw-chip input").nth(i)
+    """Políčko úseku A v grafu Diagnostiky (prohlížeč záznamu, vrstva úseků): i = 0 začátek, 1 konec; hodnota v jednotce osy."""
+    inp = page.locator('[data-testid="diag-trend"] [data-testid="mw-chip"] input').nth(i)
     inp.fill(str(value))
     inp.press("Enter")
     inp.blur()
@@ -1325,7 +1325,7 @@ def test_diagnostics_tab(page, server):
     page.locator('[data-tab="data"]').click()
     page.locator('[data-sub="diag"]').click()
     page.locator('[data-testid="diag-sub"] [data-value="diag-detail"]').click()
-    page.wait_for_selector('[data-testid="diag-trend"] .pidw-card', timeout=60000)
+    page.wait_for_selector('[data-testid="diag-trend"] .pidv-panel', timeout=60000)
     ws = _api(server, base, page)
     T = ws["duration"]
     d = _api(server, f"{base}/diagnostics?a=0&b={T}", page)
@@ -1375,8 +1375,8 @@ def test_diagnostics_tab(page, server):
     _wait_sel(page, '[data-testid="diag-kpi-std-b"]', db["kpis"]["std_e"], 1e-3, 60000)
     _wait_sel(page, '[data-testid="diag-kpi-iae-b"]', db["kpis"]["iae_h"], 1e-3)
     assert db["kpis"]["std_e"] != k["std_e"]
-    # úsek A posunutý v grafu (políčka trend.js, jednotka osy min) → ukazatele z API pro nový úsek
-    unit = page.evaluate("/\\bmin\\b/.test(document.querySelector('.pidw-chip').innerText) ? 60 : 1")
+    # úsek A posunutý v grafu (políčka vrstvy úseků, jednotka osy min) → ukazatele z API pro nový úsek
+    unit = page.evaluate("/\\bmin\\b/.test(document.querySelector('[data-testid=diag-trend] [data-testid=mw-chip]').innerText) ? 60 : 1")
     a0 = 10 * unit
     _win_chip(page, 0, 10)
     da = _api(server, f"{base}/diagnostics?a={a0}&b={T}", page)

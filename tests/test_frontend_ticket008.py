@@ -16,9 +16,9 @@ server, page = _tf.server, _tf.page                      # fixtury serveru a pro
 B = "/api/v1/workspaces/{wid}"
 
 # Pole bez přístupného názvu: bez aria-label / aria-labelledby, mimo <label> a bez label[for];
-# pole ve sdílených modulech JS (.pidv, .viewer-host, .trend-host) se vynechávají (TICKET-009).
+# pole ve sdílených modulech JS (.pidv, .viewer-host) se vynechávají (TICKET-009).
 PROBE = """() => [...document.querySelectorAll('input:not([type=hidden]), select, textarea')].filter(e => {
-  if (e.closest('.pidv, .viewer-host, .trend-host')) return false;
+  if (e.closest('.pidv, .viewer-host')) return false;
   if ((e.getAttribute('aria-label') || '').trim() || e.getAttribute('aria-labelledby')) return false;
   if (e.closest('label')) return false;
   if (e.id && document.querySelector('label[for="' + CSS.escape(e.id) + '"]')) return false;

@@ -1,6 +1,6 @@
 """
 Model › Identifikace: graf je prohlížeč záznamu (viewer.js) s vrstvou úseků identifikace (viewer_spans.js) a přepínači
-průběhu modelu (viewer_model.js) – ne dřívější trend.js. Výchozí panely (PV + SP + model | MV | každá porucha), přepínač
+průběhu modelu (viewer_model.js) – ne dřívější samostatný graf úseků. Výchozí panely (PV + SP + model | MV | každá porucha), přepínač
 úseků společný / podle vstupů (PATCH win_mode), tažení táhel (PUT /range, PUT /windows), časové kurzory A / B, přidání
 dalšího signálu ze záznamu, rozložení uložené po smyčce (nastavení mview) nezávisle na Trendech (dview), průběh modelu a
 rezidua, kontrast štítků úseků. Potřebuje sestavené UI (cd frontend && npm run build).

@@ -165,7 +165,7 @@ FIND_GAPS = """() => {
   const gaps = [];
   let n = 0;
   for (const c of document.querySelectorAll('main input, main select, main textarea, aside input, aside select, aside textarea, .settings-page input, .settings-page select, .settings-page textarea')) {
-    if (!vis(c) || c.type === 'hidden' || c.type === 'file' || c.closest('.pidv, .pidw, .pidv-root')) continue;
+    if (!vis(c) || c.type === 'hidden' || c.type === 'file' || c.closest('.pidv, .pidv-root')) continue;
     n++;
     const labs = [...(c.labels || [])];
     const lab = c.closest('label');
@@ -176,7 +176,7 @@ FIND_GAPS = """() => {
     if (!ok) gaps.push(name(c));
   }
   for (const g of document.querySelectorAll('main div.seg, aside div.seg, main .segs, aside .segs, .settings-page div.seg')) {
-    if (!vis(g) || g.closest('.pidv, .pidw, .pidv-root')) continue;
+    if (!vis(g) || g.closest('.pidv, .pidv-root')) continue;
     n++;
     const bts = [...g.querySelectorAll('button')];
     const ok = filled(g) || bts.length > 0 && bts.every(filled) || qm(g.parentElement) || g.parentElement.classList.contains('seg-help')

@@ -7,17 +7,23 @@ declare module "*/viewer.js" {
     axis: string | null;                                  // společná osa panelu: "pv" / "mv" / veličina, jinak vlastní
     dash?: string | null;                                 // čárkování čáry, např. "6 4" (průběh modelu)
   }
-  /** Vrstva úseků identifikace (viewer_spans.js): jen graf záložky Model. */
+  /** Vrstva úseků (viewer_spans.js): graf záložky Model (common / inputs) a Diagnostiky (ab). */
   export interface ViewerSpanInput {
     id: string; sig: string;                              // vstup (MV, D1…) a název jeho signálu v grafu
     wins: number[][]; fits: (number | null)[];
     wcol: string; wbg: string; wbd: string; wtx: string;
     badge: string | null; note: string | null;
   }
+  /** Úsek A a volitelně B (Diagnostika): barvy pásu / meze (ca, cb), textu štítku (ta, tb), pozadí štítku (bg) a názvy. */
+  export interface ViewerSpanAB {
+    a: number[]; b: number[] | null; ca: string; cb: string; ta: string; tb: string; bg: string; la: string; lb: string;
+  }
   export interface ViewerSpans {
-    mode: "common" | "inputs"; common: number[]; step: number; unit: { u: string; f: number };
-    ccol: string; cbd: string; ctx: string; cbg: string;  // barvy společného úseku (pás, mez, text, pozadí štítku)
+    mode: "common" | "inputs" | "ab"; step: number; unit: { u: string; f: number };
+    common?: number[];
+    ccol?: string; cbd?: string; ctx?: string; cbg?: string;  // barvy společného úseku (pás, mez, text, pozadí štítku)
     inputs: ViewerSpanInput[]; excl: number[][];
+    ab?: ViewerSpanAB;
     txt: Record<string, string>;
   }
   /** Přepínače průběhu modelu (viewer_model.js): názvy signálů v grafu. */
@@ -42,7 +48,7 @@ declare module "*/viewer.js" {
     layout: string | null;                // JSON uloženého rozložení
     b64?: string | null; url?: string | null;   // data jinak než z mezipaměti window.__pidViewData
     groups?: { label: string; names: string[] }[];   // seznam signálů ve skupinách (např. podle smyček)
-    buf?: ArrayBuffer | null;             // blob balíku v paměti (graf Modelu): místo url / b64 / mezipaměti
+    buf?: ArrayBuffer | null;             // blob balíku v paměti (grafy Modelu a Diagnostiky): místo url / b64 / mezipaměti
     defaults?: { panels: { sigs: string[]; h?: number }[] };   // výchozí rozložení panelů (jinak podle rolí)
     spans?: ViewerSpans; model?: ViewerModel;
   }
@@ -61,41 +67,6 @@ declare module "*/viewer.js" {
 declare module "*/viewer_an.js" {
   const an: unknown;
   export default an;
-}
-declare module "*/trend.js" {
-  type Num = number | null;
-  /** Karta grafu (řádek): průběh y na společné časové ose t, rozsah osy, případně úseky a průběh modelu. */
-  export interface TrendRow {
-    id: string; kind: "pv" | "in" | "sig"; title: string; badge?: string | null; note?: string | null;
-    color: string; y: Num[] | null; lo: number; hi: number; h: number;
-    lines?: [Num[] | null, string, string, number, string][];    // [y, barva, čárkování, tloušťka, název]
-    wins?: number[][]; fits?: Num[];                              // úseky vstupu a jejich shoda s modelem
-    wcol?: string; wbg?: string; wbd?: string; wtx?: string;
-    model?: { all: Num[] | null; mv: Num[] | null; dv: Num[] | null; full_all?: Num[] | null; full?: Num[] | null };
-    resid?: Num[] | null;
-  }
-  /** Data grafu průběhů s úseky: pole, která předávají Model a Diagnostika přes components/Trend.tsx. */
-  export interface TrendData {
-    key: string; view_key: string;
-    mode: "view" | "common" | "inputs" | "ab";
-    T: number; step?: number | null; unit: { u: string; f: number };
-    clock: number | null; dec: string; dark: boolean;
-    txt: Record<string, string>;
-    t: Num[] | null;
-    rows: TrendRow[]; excl: number[][];
-    common?: number[];
-    ab?: { a: number[]; b: number[] | null; ca: string; cb: string; la: string; lb: string };
-    bar: { mode_switch?: boolean; zoom?: boolean; title?: string; note?: string; legend?: [string, string, string][] };
-  }
-  export interface TrendComponent {
-    data: TrendData & { sig: string };    // sig = otisk dat (stejný otisk = nic se nepřekresluje)
-    parentElement: HTMLElement;
-    setStateValue: (key: string, value: unknown) => void;
-    setTriggerValue: (key: string, value: unknown) => void;
-  }
-  /** Vrací funkci pro odpojení (ResizeObserver, prvek, záznam v registru). */
-  const mount: (component: TrendComponent) => () => void;
-  export default mount;
 }
 declare module "*/live_engine.js" {
   const engine: unknown;

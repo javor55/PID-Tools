@@ -1,27 +1,31 @@
 /*
- * Vrstva úseků identifikace pro prohlížeč záznamu (viewer.js) – graf záložky Model. Zapíná se jen s D.spans; Trendy
- * ji nepoužívají. Přebírá chování dřívějšího trend.js:
+ * Vrstva úseků pro prohlížeč záznamu (viewer.js) – grafy záložek Model a Diagnostika. Zapíná se jen s D.spans; Trendy
+ * ji nepoužívají. Přebírá chování dřívějšího samostatného grafu úseků (odstraněn):
  *   režim "common" – jeden společný úsek (táhla pod panelem s PV, tj. prvním panelem),
+ *   režim "ab"     – Diagnostika: úsek A a volitelně B pro srovnání (jako "common": táhla pod prvním panelem, pásy ve všech
+ *                    panelech); přidání a odebrání B řeší stránka (políčko Porovnat), sem B přichází jako ab.b nebo null,
  *   režim "inputs" – každý vstup (MV, poruchy) má vlastní úseky; táhla a čipy jsou pod panelem, ve kterém je jeho signál,
  *   tažení táhla = mez, tažení výplně nebo kdekoli na liště = posun nejbližšího úseku, dvojklik na liště = nejbližší
  *   mez se přitáhne na místo kliknutí, čip: čísla začátku a konce, shoda modelu (FIT), přiblížení, odebrání, přidání úseku.
  * Vyloučené části záznamu (excl) jsou šrafované, úseky jsou pásy pod průběhy (vlastní panel vstupu sytěji a s mezemi).
  *
- * D.spans = { mode "common" | "inputs", common [a, b], step (perioda mřížky), unit {u, f}, ccol, cbd, ctx, cbg (barvy společného úseku),
+ * D.spans = { mode "common" | "inputs" | "ab", common [a, b], step (perioda mřížky), unit {u, f}, ccol, cbd, ctx, cbg (barvy společného úseku),
  *   inputs [{id, sig (název signálu v grafu), wins [[a, b]], fits [číslo | null], wcol, wbg, wbd, wtx, badge, note}],
- *   excl [[a, b]], txt {mode, h_mode, common, inputs, zoom_win, win, drag_win, start, end, zoom_one, del, add, excluded} }
- * Ven: component.setStateValue("wins", {mode, wins, common}) po puštění táhla / změně čísla / přidání / odebrání úseku,
+ *   excl [[a, b]], txt {mode, h_mode, common, inputs, zoom_win, win, drag_win, start, end, zoom_one, del, add, excluded},
+ *   ab {a [a, b], b [a, b] | null, ca, cb (barvy pásu a meze), ta, tb (barva textu štítku), bg (pozadí štítku), la, lb (názvy)} }
+ * Ven: component.setStateValue("wins", {mode, wins, common, ab (jen v režimu "ab": {a, b | null})}) po puštění táhla / změně čísla / přidání / odebrání úseku,
  * component.setTriggerValue("mode", "common" | "inputs") při přepnutí režimu (nastavení ukládá React obal).
  */
 export default function createSpans(H) {
   "use strict";
   const { el, esc, clamp } = H;
   let Dd = H.D.spans, X = {}, rows = [], last = "";
-  const W = { mode: "common", common: [0, 1], wins: {} };
+  const W = { mode: "common", common: [0, 1], wins: {}, ab: null };
 
   function load(d) {
     Dd = d; X = d.txt || {}; rows = d.inputs || [];
-    W.mode = d.mode === "inputs" ? "inputs" : "common";
+    W.ab = d.ab ? { a: d.ab.a.slice(), b: d.ab.b ? d.ab.b.slice() : null } : null;
+    W.mode = d.mode === "inputs" ? "inputs" : d.mode === "ab" && W.ab ? "ab" : "common";
     W.common = (d.common || [0, H.D.T]).slice();
     W.wins = {};
     for (const r of rows) W.wins[r.id] = (r.wins || []).map((w) => w.slice());
@@ -38,23 +42,33 @@ export default function createSpans(H) {
   const parseS = (txt) => parseFloat(String(txt).replace(",", ".")) * unit().f;
 
   function send() {
-    H.component.setStateValue("wins", JSON.parse(JSON.stringify({ mode: W.mode, wins: W.wins, common: W.common })));
+    const o = { mode: W.mode, wins: W.wins, common: W.common };
+    if (W.mode === "ab") o.ab = W.ab;
+    H.component.setStateValue("wins", JSON.parse(JSON.stringify(o)));
   }
 
   // ---- komu patří které úseky: společný úsek prvnímu panelu, vstupy panelu s jejich signálem
   function owners(pi) {                                   // [{r | null}] vlastníci lišty v panelu pi
-    if (W.mode === "common") return pi === 0 ? [{ r: null }] : [];
+    if (W.mode !== "inputs") return pi === 0 ? [{ r: null }] : [];
     return rows.filter((r) => H.panelOf(r.sig) === pi).map((r) => ({ r }));
   }
-  function winsOf(o) {                                    // úseky vlastníka jako {w, col, bd, tx, bg, r, i}
+  function winsOf(o) {                                    // úseky vlastníka jako {w, col, bd, tx, bg, r, i, lab}
+    if (W.mode === "ab") {
+      const q = Dd.ab, out = [{ w: W.ab.a, col: q.ca, bd: q.ca, tx: q.ta, bg: q.bg, r: null, i: 0, lab: q.la }];
+      if (W.ab.b) out.push({ w: W.ab.b, col: q.cb, bd: q.cb, tx: q.tb, bg: q.bg, r: null, i: 1, lab: q.lb });
+      return out;
+    }
     if (!o.r) return [{ w: W.common, col: Dd.ccol, bd: Dd.cbd, tx: Dd.ctx, bg: Dd.cbg, r: null, i: 0 }];
     return (W.wins[o.r.id] || []).map((w, i) => ({ w, col: o.r.wcol, bd: o.r.wtx, tx: o.r.wtx, bg: o.r.wbg, r: o.r, i }));
   }
-  const allWins = () => (W.mode === "common" ? [W.common] : rows.flatMap((r) => W.wins[r.id] || []));
-  const label = (x) => (x.r ? `${x.r.id} ${X.win || ""} ${x.i + 1}` : X.common || "");
+  const allWins = () => (W.mode === "common" ? [W.common] : W.mode === "ab" ? winsOf({ r: null }).map((x) => x.w)
+    : rows.flatMap((r) => W.wins[r.id] || []));
+  const label = (x) => x.lab || (x.r ? `${x.r.id} ${X.win || ""} ${x.i + 1}` : X.common || "");
 
   // ---- lišta nástrojů: přepínač režimu a přiblížení na úseky
   function barHtml() {
+    if (W.mode === "ab")                                   // Diagnostika: jen přiblížení na úseky A / B
+      return `<div class="pidv-grp"><button class="pidv-btn" data-a="zwin" data-testid="ab-zoom-win">${esc(X.zoom_win || "")}</button></div>`;
     return `<div class="pidv-grp" data-testid="mw-mode-grp"><span class="pidv-lab">${esc(X.mode || "")}</span>` +
       `<span class="pidv-help" title="${esc(X.h_mode || "")}">?</span>` +
       `<div class="pidv-seg" data-g="wmode" data-testid="mw-mode">` +
@@ -147,7 +161,8 @@ export default function createSpans(H) {
       if (stroke) { g.fillStyle = stroke; for (const x of [xa, xb]) if (x >= L && x <= x1) g.fillRect(x - 0.8, TOP, 1.6, h - TOP - BOT); }
     };
     const own = owners(P.pi);
-    if (W.mode === "common") band(W.common[0], W.common[1], Dd.ccol, 0.12, own.length ? Dd.cbd : null);
+    if (W.mode === "ab") for (const x of winsOf({ r: null })) band(x.w[0], x.w[1], x.col, 0.12, own.length ? x.bd : null);
+    else if (W.mode === "common") band(W.common[0], W.common[1], Dd.ccol, 0.12, own.length ? Dd.cbd : null);
     else for (const r of rows) {
       const mine = own.some((o) => o.r === r);
       if (own.length && !mine) continue;                    // panel vstupu: jen jeho úseky (sytěji, s mezemi)
@@ -196,14 +211,14 @@ export default function createSpans(H) {
         hd.style.cssText = `left:${xx}px;border-color:${x.bd}`;
         hd.dataset.i = i; hd.dataset.k = String(k);
         hd.setAttribute("data-testid", "mw-handle");
-        hd.setAttribute("aria-label", `${k ? X.end : X.start} ${i + 1}: ${fmtS(x.w[k])} ${unit().u}`);
+        hd.setAttribute("aria-label", `${k ? X.end : X.start} ${x.lab || i + 1}: ${fmtS(x.w[k])} ${unit().u}`);
         tr.appendChild(hd);
       }
     });
   }
   function drawChips(P, part) {
     const r = part.o.r, list = winsOf(part.o);
-    const key = JSON.stringify([W.mode, list.map((x) => x.w), r && r.fits, H.D.dec]);
+    const key = JSON.stringify([W.mode, list.map((x) => [x.w, x.lab]), r && r.fits, H.D.dec]);
     if (key === part.key && part.chips.firstChild) return;   // čísla se nemění: nepřestavovat (zachová se zaostření políček)
     part.key = key;
     const ch = part.chips;
@@ -214,8 +229,9 @@ export default function createSpans(H) {
       c.setAttribute("data-testid", "mw-chip");
       const fv = r && r.fits ? r.fits[x.i] : null;
       const fit = W.mode === "inputs" && fv !== undefined && fv !== null ? ` · FIT ${H.fmtG(fv, 3)} %` : "";
-      c.innerHTML = `${esc(x.r ? String(x.i + 1) : X.common || "")} · <input aria-label="${esc(X.start)} ${x.i + 1}" value="${fmtS(wn[0])}">–` +
-        `<input aria-label="${esc(X.end)} ${x.i + 1}" value="${fmtS(wn[1])}"> ${esc(unit().u)}${fit} ` +
+      const nm = x.lab || x.i + 1;                        // štítek: A / B, číslo úseku vstupu
+      c.innerHTML = `${esc(x.lab || (x.r ? String(x.i + 1) : X.common || ""))} · <input aria-label="${esc(X.start)} ${esc(nm)}" value="${fmtS(wn[0])}">–` +
+        `<input aria-label="${esc(X.end)} ${esc(nm)}" value="${fmtS(wn[1])}"> ${esc(unit().u)}${fit} ` +
         `<button type="button" class="pidv-smini" data-a="zoom">${esc(X.zoom_one)}</button>` +
         (W.mode === "inputs" ? `<button type="button" class="pidv-smini" data-a="del" title="${esc(X.del)}" aria-label="${esc(X.del)} ${x.i + 1}">×</button>` : "");
       const [ia, ib] = c.querySelectorAll("input");

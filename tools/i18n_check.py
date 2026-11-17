@@ -39,11 +39,11 @@ SKIP_NAMES = {"openapi.json", "schema.d.ts", "i18n_check.py"}      # generované
 
 # ------------------------------------------------------------------ legacy moduly: prefix klíče → soubory, které z něj čtou X.zbytek
 # Rozhraní předá modulu texty s prefixem a modul ho odřízne (RecordViewer.tsx / TrendsView.tsx: `vw_*` → `X.*`;
-# DiagTab.tsx / ModelTab.tsx: seznam TXT → `T("mw_" + k)` → `X.*` v trend.js).
+# ModelChart.tsx / DiagChart.tsx: seznamy SPAN_TXT / MODEL_TXT → `T("mw_" + k)` → `X.*` ve viewer_spans.js / viewer_model.js).
 LEGACY = {
     "vw_": ["frontend/src/legacy/viewer.js", "frontend/src/legacy/viewer_an.js", "frontend/src/legacy/chart_tools.js",
             "frontend/src/legacy/table.js"],
-    "mw_": ["frontend/src/legacy/trend.js", "frontend/src/legacy/chart_tools.js"],
+    "mw_": ["frontend/src/legacy/viewer_spans.js", "frontend/src/legacy/viewer_model.js", "frontend/src/legacy/chart_tools.js"],
 }
 
 # ------------------------------------------------------------------ ruční prefixy skládaných klíčů (co regex nepozná)
@@ -61,11 +61,6 @@ KEEP: dict[str, str] = {
     "undo_empty": "tlačítko Zpět – složený klíč `${kind}_empty`",
     "redo_title": "tlačítko Znovu – složený klíč `${kind}_title`",
     "redo_empty": "tlačítko Znovu – složený klíč `${kind}_empty`",
-    # frontend/src/tabs/ModelTab.tsx a DiagTab.tsx: seznam TXT ("excluded", "time", …) se mapuje `T("mw_" + k)` a
-    # předává trend.js; modul tyto dva texty dnes nečte, ale seznam si je vyžádá (smazání by dalo varování v dev režimu).
-    # Zmizí spolu s položkami seznamu TXT, až bude povoleno měnit ModelTab / DiagTab.
-    "mw_excluded": "položka seznamu TXT v ModelTab.tsx / DiagTab.tsx",
-    "mw_time": "položka seznamu TXT v ModelTab.tsx / DiagTab.tsx",
 }
 
 # ------------------------------------------------------------------ regexy pro skládání klíčů

@@ -157,7 +157,6 @@ details.scard:not([open]) > summary .chev { transform: rotate(-90deg); }
 /* viditelný fokus řádku vybíraného klávesnicí (platí i pro .tn-tbl a .ltbl) */
 tr.pick:focus-visible { outline: 2px solid var(--pid-accent); outline-offset: -2px; }
 .tbl input.num { width: 7em; }
-.trend-host { min-height: 300px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pid-gap); }
 .grid2 > .span-all { grid-column: 1 / -1; }          /* karta přes celou šíři mřížky (rezidua) */
 .card h3 { font-size: 13px; margin: 0 0 8px; }

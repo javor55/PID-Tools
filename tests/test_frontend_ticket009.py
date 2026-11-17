@@ -1,5 +1,5 @@
 """
-TICKET-009: sdílené moduly JS (frontend/src/legacy) se při odchodu ze stránky odpojí (viewer.js, trend.js vracejí
+TICKET-009: sdílené moduly JS (frontend/src/legacy) se při odchodu ze stránky odpojí (viewer.js vrací
 destroy()) a pole v Data › Trendy mají přístupný název. Potřebuje sestavené UI (cd frontend && npm run build).
 """
 import pytest
