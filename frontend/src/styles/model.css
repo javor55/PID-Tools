@@ -41,3 +41,9 @@
 .msum { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline;
   padding: 8px 12px; background: var(--pid-card); border: 1px solid var(--pid-line); border-radius: 6px; font-size: 13px; }
 .msum-l { color: var(--pid-muted); }
+/* tabulky porovnání typů přenosu (MV i poruchy) mají stejné šířky prvních sloupců: přepínač, název, FIT, NRMSE, hodnocení */
+.mcmp .tbl { table-layout: fixed; width: 100%; }
+.mcmp .tbl th:nth-child(1) { width: 32px; }
+.mcmp .tbl th:nth-child(2) { width: 300px; }
+.mcmp .tbl th:nth-child(3), .mcmp .tbl th:nth-child(4) { width: 84px; }
+.mcmp .tbl th:nth-child(5) { width: 84px; }

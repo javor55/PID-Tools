@@ -5,6 +5,7 @@ import { useState } from "react";
 import { request } from "../api/client";
 import type { components } from "../api/schema";
 import { Help } from "../components/Ui";
+import { toastError } from "../components/Toasts";
 import { useSettings, useWsQuery } from "../data";
 import { useT } from "../i18n";
 import { useJobRunner } from "../jobs";
@@ -15,26 +16,44 @@ type ModelState = components["schemas"]["ModelState"];
 type ModelRes = components["schemas"]["ModelRes"];
 type Validation = components["schemas"]["Validation"];
 
-// Porovnání struktur přenosu měřené poruchy (FIT jen jejích parametrů) a výběr jiné struktury
+// Porovnání struktur přenosu měřené poruchy (jako tabulka modelů MV): FIT jen jejích parametrů, NRMSE a hodnocení celého
+// modelu s danou strukturou; výběr struktury přepínačem v řádku
 export function DistCompare({ code, j, d }: { code: string; j: number; d: ModelRes["dists"][number] }) {
   const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const use = async (struct: string) => {
-    await request("PUT", `/workspaces/${wid}/model/dist`, { code, index: j, struct });
+    const key = ["ws", wid, "model"];
+    const prev = qc.getQueriesData<ModelState>({ queryKey: key });
+    // hned v rozhraní (optimisticky); při chybě se vrátí a ohlásí
+    qc.setQueriesData<ModelState>({ queryKey: key }, (old) => old && {
+      ...old, results: old.results.map((r) => r.code !== code ? r : {
+        ...r, dists: r.dists.map((x, k) => k === j ? { ...x, struct } : x) }) });
+    try {
+      await request("PUT", `/workspaces/${wid}/model/dist`, { code, index: j, struct });
+    } catch (e) {
+      for (const [k, v] of prev) qc.setQueryData(k, v);
+      toastError(e);
+      return;
+    }
     await qc.invalidateQueries({ queryKey: ["ws", wid] });
   };
   return (
     <div data-testid={`dist-cmp-${j}`}>
       {d.flat && <div className="muted small">{T("ms_dv_flat")}</div>}
-      <table className="tbl"><thead><tr><th>{T("ms_cmp_type")}</th><th>FIT [%]</th><th /><th /></tr></thead><tbody>
+      <table className="tbl"><thead><tr><th /><th>{T("ms_cmp_type")}</th><th>FIT [%]</th><th>NRMSE [%]</th>
+        <th>{T("col_status")}</th><th>{T("ui_model_params")}</th></tr></thead><tbody>
         {d.cmp.map((c) => (
-          <tr key={c.struct} data-struct={c.struct} data-current={c.struct === d.struct ? 1 : 0}>
+          <tr key={c.struct} className={c.struct === d.struct ? "sel" : ""} data-struct={c.struct}
+            data-current={c.struct === d.struct ? 1 : 0} title={c.fit == null ? c.error ?? undefined : undefined}>
+            <td><input type="radio" name={`dist-${code}-${j}`} checked={c.struct === d.struct} disabled={c.fit == null}
+              onChange={() => void use(c.struct).catch(toastError)} aria-label={T("model_" + c.struct)}
+              title={c.fit == null ? c.error ?? undefined : T("ui_dist_use")} data-testid={`dist-use-${j}-${c.struct}`} /></td>
             <td>{T("model_" + c.struct)}{c.struct === d.ident ? ` · ${T("ms_dist_ident")}` : ""}</td>
             <td className="mono" data-testid={`dist-fit-${j}-${c.struct}`}>{c.fit == null ? "–" : c.fit.toFixed(1)}</td>
-            <td>{c.struct === d.struct ? `✓ ${T("ms_cmp_use")}` : ""}</td>
-            <td>{c.fit != null && c.struct !== d.struct && (
-              <button className="btn" data-testid={`dist-use-${j}-${c.struct}`} onClick={() => void use(c.struct)}>{T("ui_dist_use")}</button>)}</td>
+            <td className="mono">{c.nrmse == null ? "–" : c.nrmse.toFixed(2)}</td>
+            <td>{c.status == null ? "–" : T("st_" + c.status)}</td>
+            <td className="mono small">{(c.p ?? []).map((x, i) => `${c.names?.[i] ?? "p" + (i + 1)} = ${+x.toPrecision(4)}`).join(" · ")}</td>
           </tr>))}
       </tbody></table>
     </div>
