@@ -1,6 +1,6 @@
 """
 TICKET-006: změna nastavení v Ladění zneplatní jen dotčené dotazy. Sonda: přepnutí „Robustness Ms“ (opt_ms) vyvolá
-nejvýš 9 požadavků na API a žádný na nesouvisející části (zdroje, třídění, mapování); graf se přesto přepočítá.
+nejvýš 10 požadavků na API a žádný na nesouvisející části (zdroje, třídění, mapování); graf se přesto přepočítá.
 Potřebuje sestavené UI (cd frontend && npm run build).
 """
 import json
@@ -15,7 +15,7 @@ import test_frontend as _tf  # noqa: E402
 TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
 B = "/api/v1/workspaces/{wid}"
-MAX_REQ = 9
+MAX_REQ = 10                       # 9 + GET /undo (FEATURE-006: popisky tlačítek Zpět / Znovu v hlavičce)
 FORBIDDEN = ("/sources", "/triage", "/loops/mappings")
 
 
