@@ -1275,10 +1275,20 @@ def _ensure_model(server, page):
 
 def _win_chip(page, i, value):
     """Políčko úseku A v grafu Diagnostiky (prohlížeč záznamu, vrstva úseků): i = 0 začátek, 1 konec; hodnota v jednotce osy."""
-    inp = page.locator('[data-testid="diag-trend"] [data-testid="mw-chip"] input').nth(i)
-    inp.fill(str(value))
-    inp.press("Enter")
-    inp.blur()
+    sel = '[data-testid="diag-trend"] [data-testid="mw-chip"] input'
+    for _ in range(5):                    # lišta se po změně ze serveru (např. vypnutý úsek B) může přestavět – zkusit znovu
+        inp = page.locator(sel).nth(i)
+        inp.fill(str(value))
+        inp.press("Enter")
+        inp.blur()
+        page.wait_for_timeout(300)
+        got = page.locator(sel).nth(i).input_value().replace(",", ".")
+        try:
+            if abs(float(got) - float(value)) <= max(1e-3, 1e-3 * abs(float(value))):
+                return
+        except ValueError:
+            pass
+    raise AssertionError(f"chip {i} did not take {value}")
 
 
 def test_diag_loops_project_card_structure(page, server):
@@ -1383,6 +1393,8 @@ def test_diagnostics_tab(page, server):
     _wait_sel(page, '[data-testid="diag-kpi-std-a"]', da["kpis"]["std_e"], 1e-3, 60000)
     page.locator('[data-testid="diag-cmp"]').uncheck()
     page.wait_for_function("() => !document.querySelector('[data-testid=\"diag-kpi-std-b\"]')", timeout=30000)
+    page.wait_for_function("() => document.querySelectorAll('[data-testid=\"diag-trend\"] [data-testid=\"mw-chip\"]').length === 1",
+                           timeout=30000)                             # čip úseku B zmizel (lišta přestavěná)
     # příliš krátký úsek: hlášení místo výsledků
     _win_chip(page, 1, round((a0 + 50) / unit, 4))
     page.wait_for_selector('[data-testid="diag-short"]', timeout=60000)
