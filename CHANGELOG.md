@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.0.0 beta 6 – one time-series chart, consistent model tables
+
+- **One chart for time series:** Model › Identification and Diagnostics now use the same chart as Data › Trends
+  (the old segment chart was removed). Everything known from Trends works there: time cursors A / B (e.g. dead time),
+  value cursors Y₁ / Y₂, axis zoom and pan, table, CSV / PNG, adding other signals of the record. The layout is saved
+  per loop and per chart (Trends, Model, Diagnostics separately).
+- **Model chart:** by default PV + SP + model in the first panel, MV below and one panel per disturbance; identification
+  segments (common or per input) are edited on tracks with handles under the panels, with number fields and FIT per segment;
+  model parts (whole / MV / disturbances, in segments / whole record) and residuals are switched in the chart bar.
+- **Diagnostics chart:** PV + SP and MV, segments A and B on a track with handles; loading and error states with *Try again*.
+- **Transfer type comparison:** the disturbance tables have the same columns and selection as the MV table – radio in the
+  row, FIT, NRMSE, rating and model parameters (computed during identification; older projects show “–” until
+  re-identified).
+- **Value cursors Y₁ / Y₂:** the measured signal is named on the cursor labels, its axis is highlighted and it can be chosen
+  in a selector next to the button.
+- Better contrast of MV segment labels (light theme) and of the chip buttons (dark theme).
+
 ## 4.0.0 beta 5 – audit fixes, workflow features, desktop safety
 
 Implementation of the November 2026 audit (docs/cs/audit-2026-11.md) and feature proposals

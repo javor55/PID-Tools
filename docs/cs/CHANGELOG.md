@@ -1,5 +1,21 @@
 # Změny
 
+## 4.0.0 beta 6 – jeden graf průběhů, jednotné tabulky modelů
+
+- **Jeden graf průběhů:** Model › Identifikace a Diagnostika používají stejný graf jako Data › Trendy (starý graf úseků
+  je odstraněn). Funguje v nich vše z Trendů: časové kurzory A / B (např. dopravní zpoždění), hodnotové kurzory Y₁ / Y₂,
+  zoom a posun os, tabulka, CSV / PNG, přidání dalších signálů záznamu. Rozložení se ukládá pro každou smyčku a každý
+  graf zvlášť (Trendy, Model, Diagnostika).
+- **Graf Modelu:** výchozí rozložení PV + SP + model v prvním panelu, pod ním MV a panel pro každou poruchu; úseky
+  identifikace (společný nebo pro každý vstup) se upravují na lištách s táhly pod panely, s políčky a FIT každého úseku;
+  části modelu (celý / MV / poruchy, v úsecích / na celém záznamu) a rezidua se přepínají v liště grafu.
+- **Graf Diagnostiky:** PV + SP a MV, úseky A a B na liště s táhly; stav načítání a chyba s *Zkusit znovu*.
+- **Porovnání typů přenosu:** tabulky poruch mají stejné sloupce a výběr jako tabulka MV – přepínač v řádku, FIT, NRMSE,
+  hodnocení a parametry modelu (počítá se při identifikaci; starší projekty mají „–“ do nové identifikace).
+- **Hodnotové kurzory Y₁ / Y₂:** měřený signál je uveden ve štítcích kurzorů, jeho osa je zvýrazněná a lze ho zvolit
+  výběrem vedle tlačítka.
+- Lepší kontrast štítků úseků MV (světlý motiv) a tlačítek v čipech (tmavý motiv).
+
 ## 4.0.0 beta 5 – opravy z auditu, funkce pro práci, bezpečnost v desktopu
 
 Realizace auditu z listopadu 2026 (docs/cs/audit-2026-11.md) a návrhů vylepšení
