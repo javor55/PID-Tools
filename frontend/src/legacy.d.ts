@@ -51,6 +51,8 @@ declare module "*/viewer.js" {
     buf?: ArrayBuffer | null;             // blob balíku v paměti (grafy Modelu a Diagnostiky): místo url / b64 / mezipaměti
     defaults?: { panels: { sigs: string[]; h?: number }[] };   // výchozí rozložení panelů (jinak podle rolí)
     spans?: ViewerSpans; model?: ViewerModel;
+    /** Kompaktní vložený graf (Model, Diagnostika): jeden řádek nástrojů + sbalitelný panel, seznam signálů výchozí skrytý. */
+    compact?: boolean;
   }
   export interface ViewerComponent {
     data: ViewerData;

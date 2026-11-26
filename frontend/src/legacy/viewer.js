@@ -270,7 +270,7 @@ export default function (component) {
       if (!panels.length) order.slice(0, 3).forEach((n, i) => panels.push({ sigs: [n], h: i ? 150 : 220 }));
       return { v: 1, panels: panels.map((p) => Object.assign({ shared: false, lo: null, hi: null }, p)), sig: {},
                view: [0, D.T], cur: { on: false, a: null, b: null }, hc: { on: false, a: null, b: null, sig: null },
-               tab: false, list: true, mode: "pan", ya: "view", step: false, act: null, calc: [],
+               tab: false, list: !D.compact, tools: false, mode: "pan", ya: "view", step: false, act: null, calc: [],
                an: null, evk: { mv: true, sp: true, dv: true, state: true, sat: true, flat: true, gap: true },
                stp: { u: null, y: null }, cor: { y: null, mode: "auto", lag: null }, xy: { x: null, y: null, line: false },
                cmp: { sigs: [], segs: [], rel: true } };
@@ -306,7 +306,9 @@ export default function (component) {
       if (Array.isArray(L.view) && num(L.view[0]) !== null && num(L.view[1]) !== null && L.view[1] > L.view[0]) out.view = [L.view[0], L.view[1]];
       if (L.cur && typeof L.cur === "object") out.cur = { on: !!L.cur.on, a: num(L.cur.a), b: num(L.cur.b) };
       if (L.hc && typeof L.hc === "object") out.hc = { on: !!L.hc.on, a: num(L.hc.a), b: num(L.hc.b), sig: SG[L.hc.sig] ? L.hc.sig : null };
-      for (const k of ["tab", "list", "step"]) if (typeof L[k] === "boolean") out[k] = L[k];
+      for (const k of ["tab", "list", "step", "tools"]) if (typeof L[k] === "boolean") out[k] = L[k];
+      // kompaktní graf: rozložení uložené před zavedením skrytých nástrojů (bez „tools“) mělo seznam zapnutý jen výchozím stavem, ne volbou
+      if (D.compact && typeof L.tools !== "boolean") out.list = false;
       if (["pan", "box", "x", "y"].includes(L.mode)) out.mode = L.mode;
       if (["view", "all"].includes(L.ya)) out.ya = L.ya;
       if (typeof L.act === "string" && SG[L.act]) out.act = L.act;
@@ -583,18 +585,19 @@ export default function (component) {
       if (!bar) return;
       if (S.hc.on && (!S.hc.sig || panelOf(S.hc.sig) < 0)) initH();     // signál zmizel z grafu → nový výchozí
       const sel = bar.querySelector(".pidv-hcsig");
-      if (!!sel !== S.hc.on) { rebar(); return; }
+      if (!!sel !== (S.hc.on && toolsOpen())) { rebar(); return; }
       if (!sel) return;
       const html = hcOpts();
       if (sel.innerHTML !== html) sel.innerHTML = html;
       if (sel.value !== S.hc.sig) sel.value = S.hc.sig;
     }
+    // kompaktní graf (D.compact): jeden řádek s podstatným + tlačítko „Nástroje grafu“, zbytek v rozbalovacím panelu (S.tools)
+    const toolsOpen = () => !D.compact || !!S.tools;
     function buildBar() {
-      bar = el("div", "pidv-card pidv-bar");
+      bar = el("div", "pidv-card pidv-bar" + (D.compact ? " pidv-compact" : ""));
       const seg = (g, items, cur) => `<div class="pidv-seg" data-g="${g}">` + items.map(([v, t, h]) =>
         `<button data-v="${v}" class="${v === cur ? "on" : ""}" title="${esc(h || "")}">${esc(t)}</button>`).join("") + `</div>`;
-      bar.innerHTML =
-        (SP ? SP.barHtml() : "") + (MO ? MO.barHtml() : "") +
+      const tools =
         `<div class="pidv-grp">${seg("mode", [["pan", X.pan], ["box", X.zoom_box], ["x", X.zoom_x], ["y", X.zoom_y]], S.mode)}</div>` +
         `<div class="pidv-grp"><button class="pidv-btn" data-a="back" title="Backspace">◀ ${esc(X.back)}</button>` +
         `<button class="pidv-btn" data-a="fwd">${esc(X.fwd)} ▶</button>` +
@@ -612,6 +615,18 @@ export default function (component) {
         `<button class="pidv-btn" data-a="png">${esc(X.png || "PNG")}</button>` +
         `<span class="pidv-help" title="${esc(X.help)}">?</span></div>` +
         (D.decim > 1 ? `<span class="pidv-note">${esc(String(X.decim || "").replace("{g}", D.decim))}</span>` : "");
+      if (!D.compact) bar.innerHTML = (SP ? SP.barHtml() : "") + (MO ? MO.barHtml("all") : "") + tools;
+      else {
+        const open = toolsOpen();
+        // zapnuté kurzory zůstanou vidět i při sbaleném panelu (tlačítko svítí a vypne je)
+        const act = open ? "" : `<div class="pidv-grp" data-testid="vw-active">` +
+          (S.cur.on ? `<button class="pidv-btn on" data-a="cur" title="${esc(X.c_hint)}">${esc(X.cur)}</button>` : "") +
+          (S.hc.on ? `<button class="pidv-btn on" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button>` : "") + `</div>`;
+        bar.innerHTML = (SP ? SP.barHtml() : "") + (MO ? MO.barHtml("main") : "") + (S.cur.on || S.hc.on ? act : "") +
+          `<span class="pidv-sp"></span>` +
+          `<button class="pidv-btn pidv-tools-btn" data-a="tools" data-testid="vw-tools" aria-expanded="${open}" title="${esc(X.tools)}">${esc(X.tools)} ${open ? "▴" : "▾"}</button>` +
+          (open ? `<div class="pidv-tools" data-testid="vw-tools-panel">` + (MO ? MO.barHtml("tools") : "") + tools + `</div>` : "");
+      }
       box.appendChild(bar);
       if (SP) SP.hookBar(bar);
       if (MO) MO.hookBar(bar);
@@ -628,6 +643,7 @@ export default function (component) {
         cur: () => { S.cur.on = !S.cur.on; if (S.cur.on) initCursors(); rebar(); redraw(); renderAn(); save(); },
         hcur: () => { S.hc.on = !S.hc.on; if (S.hc.on) initH(); rebar(); redraw(); save(); },
         list: () => { S.list = !S.list; build(); save(); },
+        tools: () => { S.tools = !S.tools; rebar(); save(); const t = bar.querySelector('[data-testid="vw-tools"]'); if (t) t.focus(); },
         tab: () => { S.tab = !S.tab; rebar(); redraw(); save(); },
         csv_view: () => exportCsv(S.view[0], S.view[1]),
         csv_cur: () => { if (S.cur.on) exportCsv(Math.min(S.cur.a, S.cur.b), Math.max(S.cur.a, S.cur.b)); },

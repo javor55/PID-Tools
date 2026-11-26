@@ -62,7 +62,7 @@ function Chart({ ws, win, grid, raw, units, layout, onWins, onLayout }: DiagChar
     return {
       key: "diag_view", view_key: `diag|${ws.fname}|${meta.hash}`, sigs, times: meta.times, T: meta.T, decim: meta.decim,
       hash: meta.hash, clock: clockOf(ws, meta.tmin), tunit: "auto", dec, dark, txt: viewerTxt(texts),
-      fname: ws.fname, layout, b64: null, url: null, buf: blob, spans,
+      fname: ws.fname, layout, b64: null, url: null, buf: blob, spans, compact: true,
       defaults: { panels: [
         { sigs: [disp.pv, ws.sp ? disp.sp : null].filter((x): x is string => !!x), h: 230 },
         { sigs: [disp.mv], h: 150 },

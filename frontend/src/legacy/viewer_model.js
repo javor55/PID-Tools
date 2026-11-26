@@ -20,13 +20,17 @@ export default function createModel(H) {
     if (inPv(M.win)) range = "win"; else if (inPv(M.all)) range = "full";
     return { part, range, resid: H.panelOf(M.resid) >= 0 };
   }
-  function barHtml() {
+  // part: "all" = vše v jedné skupině (Trendy / nekompaktní graf), "main" = jen reziduum (řádek kompaktního grafu),
+  // "tools" = části a rozsah modelu (sbalitelný panel)
+  function barHtml(part) {
     const st = state();
     const seg = (g, items, cur) => `<div class="pidv-seg" data-g="${g}">` + items.map(([v, t]) =>
       `<button data-v="${v}" class="${v === cur ? "on" : ""}">${esc(t || "")}</button>`).join("") + `</div>`;
-    return `<div class="pidv-grp" data-testid="mw-model">${seg("mpart", parts().map(([v, t]) => [v, t]), st.part)}` +
-      (has(M.win) ? seg("mrange", [["win", X.r_win], ["full", X.r_full]], st.range) : "") +
-      (has(M.resid) ? `<label class="pidv-chk2"><input type="checkbox" data-a="resid" data-testid="mw-resid" ${st.resid ? "checked" : ""}> ${esc(X.resid || "")}</label>` : "") + `</div>`;
+    const segs = seg("mpart", parts().map(([v, t]) => [v, t]), st.part) + (has(M.win) ? seg("mrange", [["win", X.r_win], ["full", X.r_full]], st.range) : "");
+    const res = has(M.resid) ? `<label class="pidv-chk2"><input type="checkbox" data-a="resid" data-testid="mw-resid" ${st.resid ? "checked" : ""}> ${esc(X.resid || "")}</label>` : "";
+    if (part === "main") return res ? `<div class="pidv-grp">${res}</div>` : "";
+    if (part === "tools") return `<div class="pidv-grp" data-testid="mw-model">${segs}</div>`;
+    return `<div class="pidv-grp" data-testid="mw-model">${segs}${res}</div>`;
   }
   // přepíše členství modelových signálů v panelu s PV a (ne)zobrazí panel reziduí
   function apply(part, rng, resid) {
@@ -44,8 +48,7 @@ export default function createModel(H) {
     H.rebuild();
   }
   function hookBar(bar) {
-    const g = bar.querySelector('[data-testid="mw-model"]');
-    if (!g) return;
+    const g = bar;                                         // skupiny modelu mohou být v řádku i ve sbalitelném panelu
     g.querySelectorAll('[data-g="mpart"] button').forEach((b) => { b.onclick = () => { const s = state(); apply(b.dataset.v, s.range, s.resid); }; });
     g.querySelectorAll('[data-g="mrange"] button').forEach((b) => { b.onclick = () => { const s = state(); apply(s.part, b.dataset.v, s.resid); }; });
     const c = g.querySelector('[data-a="resid"]');

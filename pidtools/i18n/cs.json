@@ -2982,5 +2982,6 @@
  "mw_sig_model_win": "Model (jen úseky)",
  "mw_sig_mv": "Model: část od MV",
  "mw_sig_dv": "Model: část od poruch",
- "mw_sig_resid": "Rezidua (PV − model)"
+ "mw_sig_resid": "Rezidua (PV − model)",
+ "vw_tools": "Nástroje grafu"
 }

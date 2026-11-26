@@ -116,6 +116,7 @@ export function ModelChart({ ws, grid, curves, raw, windows, model, winMode, uni
         ...ds.map((d) => ({ sigs: [d], h: 130 })),
       ] },
       groups: undefined,
+      compact: true,
     };
   }, [built, spans, ws, texts, dec, dark, pal, col, T, layout, units.pv, units.mv]);
 
