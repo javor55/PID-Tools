@@ -94,6 +94,22 @@ def _box(pg, sel, tries=20):
     raise AssertionError(f"element not stable: {sel}")
 
 
+def _tools(pg, root, open_=True):
+    """Panel „Nástroje grafu“ (kompaktní graf) otevře / zavře; ostatní ovládací prvky grafu jsou jinak skryté."""
+    b = pg.locator(f'{root} [data-testid="vw-tools"]')
+    if (b.get_attribute("aria-expanded") == "true") != open_:
+        b.click()
+    pg.wait_for_selector(f'{root} [data-testid="vw-tools-panel"]', state="attached" if open_ else "detached")
+
+
+def _list(pg, root):
+    """Seznam signálů (ve výchozím stavu skrytý) zobrazí tlačítkem Signály v panelu nástrojů."""
+    _tools(pg, root)
+    if not pg.locator(f"{root} .pidv-list").count():
+        pg.locator(f'{root} [data-a="list"]').click()
+        pg.wait_for_selector(f"{root} .pidv-list")
+
+
 def _drag(pg, sel, dx):
     """Táhne prvek o dx pixelů (táhlo úseku); posluchače tažení jsou na okně."""
     bb = _box(pg, sel)
@@ -117,15 +133,17 @@ def test_default_panels(chart, server):
     # model je vykreslen čárkovaně a jeho štítek je v hlavičce panelu 1
     assert chart.locator(f"{M} .pidv-panel").first.locator(".pidv-chip").count() == 3
     # přepínače modelu: celý / MV / poruchy, v úsecích / celý záznam, rezidua
+    _tools(chart, M)
     grp = chart.locator(f'{M} [data-testid="mw-model"]')
     assert grp.locator('[data-g="mpart"] button').count() == 3
     assert grp.locator('[data-g="mrange"] button.on').get_attribute("data-v") == "full"
-    assert grp.locator('[data-testid="mw-resid"]').is_checked() is False
+    assert chart.locator(f'{M} [data-testid="mw-resid"]').is_checked() is False
     assert SHOT is None or chart.locator(M).screenshot(path=os.path.join(SHOT, "modelchart-common.png")) is not None
 
 
 def test_model_parts_and_residuals(chart, server):
     ws = _call(server, chart, "GET", B)
+    _tools(chart, M)
     grp = chart.locator(f'{M} [data-testid="mw-model"]')
     grp.locator('[data-g="mpart"] button[data-v="mv"]').click()
     chart.wait_for_function("() => window.__pidView.model_view.state().panels[0].sigs.some(n => /MV part|část od MV/.test(n))")
@@ -138,9 +156,9 @@ def test_model_parts_and_residuals(chart, server):
     grp.locator('[data-g="mrange"] button[data-v="full"]').click()
     chart.wait_for_function("() => window.__pidView.model_view.state().panels[0].sigs.some(n => /^Model$/.test(n))")
     n0 = chart.locator(f"{M} .pidv-panel").count()
-    grp.locator('[data-testid="mw-resid"]').check()
+    chart.locator(f'{M} [data-testid="mw-resid"]').check()
     chart.wait_for_function("n => document.querySelectorAll('%s .pidv-panel').length === n + 1" % M, arg=n0)
-    grp.locator('[data-testid="mw-resid"]').uncheck()
+    chart.locator(f'{M} [data-testid="mw-resid"]').uncheck()
     chart.wait_for_function("n => document.querySelectorAll('%s .pidv-panel').length === n" % M, arg=n0)
     assert _state(chart)["panels"][0]["sigs"][:2] == [ws["pv"], ws["sp"]]
 
@@ -211,6 +229,7 @@ def test_drag_handle_inputs_puts_windows(chart, server):
 
 
 def test_time_cursors_ab(chart):
+    _tools(chart, M)
     bar = chart.locator(f"{M} .pidv-bar")
     bar.locator("[data-a=cur]").click()
     assert _state(chart)["cur"]["on"]
@@ -242,6 +261,7 @@ def test_time_cursors_ab(chart):
 
 
 def test_exports_png_csv(chart):
+    _tools(chart, M)
     with chart.expect_download() as d:
         chart.locator(f'{M} .pidv-bar [data-a="png"]').click()
     assert d.value.suggested_filename.endswith(".png")
@@ -275,6 +295,7 @@ def test_add_signal_and_layout_per_loop(chart, server):
     _call(server, chart, "POST", f"/api/v1/workspaces/{new['id']}/sources?name=x.csv&timezone=UTC", raw=_csv_extra())
     _call(server, chart, "POST", f"/api/v1/workspaces/{new['id']}/loops/suggest", {"apply": True})
     _reload(chart)
+    _list(chart, M)
     names = chart.locator(f"{M} .pidv-list .pidv-sig .nm").all_inner_texts()
     assert any("XTRA.TEMP" in n for n in names), names                          # ostatní signály záznamu jsou v seznamu
     before = [p["sigs"] for p in _state(chart)["panels"]]

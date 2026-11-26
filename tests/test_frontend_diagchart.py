@@ -13,7 +13,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
-from test_frontend_modelchart import _contrast, _call, _csv_extra, _drag, _rgb, _until  # noqa: E402
+from test_frontend_modelchart import _contrast, _call, _csv_extra, _drag, _list, _rgb, _tools, _until  # noqa: E402
 
 TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
@@ -70,6 +70,7 @@ def test_default_panels(chart, server):
     assert chart.locator(f'{D} [data-testid="mw-mode-grp"]').count() == 0      # bez přepínače režimu úseků (to je jen Model)
     assert chart.locator(f'{D} [data-testid="ab-zoom-win"]').count() == 1
     # ostatní signály záznamu (poruchy) jsou v seznamu, ale ne ve výchozích panelech
+    _list(chart, D)
     names = chart.locator(f"{D} .pidv-list .pidv-sig .nm").all_inner_texts()
     assert all(any(d in n for n in names) for d in ws["dists"]), names
     assert SHOT is None or chart.locator(D).screenshot(path=os.path.join(SHOT, "diagchart-a.png")) is not None
@@ -141,13 +142,15 @@ def test_layout_saved_per_loop(chart, server):
     """Přidání signálu do grafu → nastavení diagview (po smyčce); dview a mview se nemění; po znovunačtení platí."""
     ws = _call(server, chart, "GET", B)
     s0 = _call(server, chart, "GET", B + "/settings")
-    assert s0.get("diagview") in (None, "")
+    # diagview už může být uložen (zapnutí seznamu signálů v předchozím testu je volba uložená v rozložení)
     dv = ws["dists"][0]
+    _list(chart, D)
     row = chart.locator(f"{D} .pidv-list .pidv-sig", has_text=dv).first
     row.locator("input[type=checkbox]").check()
     chart.wait_for_function("d => window.__pidView.diag_view.state().panels.some(p => p.sigs.some(n => n.includes(d)))", arg=dv)
-    saved = _until(lambda: _call(server, chart, "GET", B + "/settings").get("diagview"), 15)
-    assert dv in saved
+    # signál je i v „seen“ dřívějšího uložení: čeká se na rozložení, kde je v panelu
+    _until(lambda: any(dv in n for p in json.loads(_call(server, chart, "GET", B + "/settings").get("diagview") or '{"panels": []}')["panels"]
+                       for n in p["sigs"]), 15)
     s1 = _call(server, chart, "GET", B + "/settings")
     assert s1.get("dview") == s0.get("dview") and s1.get("mview") == s0.get("mview")
     _reload(chart)
@@ -177,6 +180,7 @@ def test_layout_saved_per_loop(chart, server):
 
 def test_cursors_and_export(chart, server):
     ws_pv = _call(server, chart, "GET", B)["pv"]
+    _tools(chart, D)
     bar = chart.locator(f"{D} .pidv-bar")
     bar.locator("[data-a=cur]").click()
     assert _state(chart)["cur"]["on"]

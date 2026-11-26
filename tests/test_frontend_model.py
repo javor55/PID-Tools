@@ -100,6 +100,10 @@ def test_validation_loop_sets_and_views(page, server, ready):
 def test_model_on_full_record_by_default(page, server, ready):
     """Model se ve výchozím stavu kreslí přes celý záznam; „jen v úsecích“ je volba."""
     page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
+    tools = page.locator('[data-testid="model-trend"] [data-testid="vw-tools"]')
+    tools.wait_for(timeout=30000)
+    if tools.get_attribute("aria-expanded") != "true":                      # přepínače modelu jsou v panelu „Nástroje grafu“
+        tools.click()
     rng = page.locator('[data-testid="model-trend"] [data-g="mrange"]')
     rng.first.wait_for(timeout=30000)
     assert rng.first.locator("button.on").get_attribute("data-v") == "full"
