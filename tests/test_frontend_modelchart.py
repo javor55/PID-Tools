@@ -201,11 +201,18 @@ def test_drag_handle_inputs_puts_windows(chart, server):
     chart.locator(f'{M} .pidv-seg[data-g="wmode"] button[data-v="inputs"]').click()
     _until(lambda: _call(server, chart, "GET", B + "/settings")["win_mode"] == "inputs")
     chart.wait_for_selector(f'{M} [data-testid="mw-track"][data-owner="MV"]')
+    chart.wait_for_selector(f'{M} [data-testid="mw-badge"]')                 # režim „podle vstupů“ je vykreslen (štítky počtu úseků)
     before = _call(server, chart, "GET", B + "/windows")["wins"]
     puts = []
     chart.on("request", lambda r: puts.append((r.method, r.url)) if r.method == "PUT" else None)
-    _drag(chart, f'{M} [data-testid="mw-track"][data-owner="MV"] [data-testid="mw-handle"][data-k="1"]', -120)
-    after = _until(lambda: (lambda w: w if w != before else None)(_call(server, chart, "GET", B + "/windows")["wins"]))
+
+    def _dragged():                                                         # vrstva úseků se po přepnutí režimu ještě sestavuje: tažení se v tom případě zopakuje
+        _drag(chart, f'{M} [data-testid="mw-track"][data-owner="MV"] [data-testid="mw-handle"][data-k="1"]', -120)
+        try:
+            return _until(lambda: (lambda w: w if w != before else None)(_call(server, chart, "GET", B + "/windows")["wins"]), 8)
+        except AssertionError:
+            return None
+    after = _until(_dragged, 40)
     assert after["MV"][0][1] < before["MV"][0][1]
     assert any(u.endswith("/windows") for _, u in puts), puts
     # přidání a odebrání úseku vstupu
