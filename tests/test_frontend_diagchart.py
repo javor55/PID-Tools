@@ -13,7 +13,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
-from test_frontend_modelchart import _contrast, _call, _csv_extra, _drag, _list, _rgb, _tools, _until  # noqa: E402
+from test_frontend_modelchart import _contrast, _call, _csv_extra, _drag, _list, _menu, _rgb, _until  # noqa: E402
 
 TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
@@ -180,10 +180,11 @@ def test_layout_saved_per_loop(chart, server):
 
 def test_cursors_and_export(chart, server):
     ws_pv = _call(server, chart, "GET", B)["pv"]
-    _tools(chart, D)
     bar = chart.locator(f"{D} .pidv-bar")
+    _menu(chart, D, "cur")
     bar.locator("[data-a=cur]").click()
     assert _state(chart)["cur"]["on"]
+    _menu(chart, D, "cur", False)
     chart.evaluate("s => document.querySelector(s).scrollIntoView({block: 'center'})", f"{D} .pidv-panel canvas")
     chart.wait_for_timeout(200)
     cv = chart.locator(f"{D} .pidv-panel").first.locator("canvas").nth(1).bounding_box()
@@ -194,15 +195,19 @@ def test_cursors_and_export(chart, server):
     st = _state(chart)["cur"]
     assert st["a"] is not None and st["b"] is not None and st["a"] < st["b"]
     assert "Δt" in chart.locator(f"{D} .pidv-read").first.inner_text()
+    _menu(chart, D, "cur")
     bar.locator("[data-a=cur]").click()
     bar.locator("[data-a=hcur]").click()                                       # hodnotové kurzory Y₁ / Y₂
     assert _state(chart)["hc"]["on"] and chart.locator(f"{D} [data-testid=hc-sig]").count() == 1
     bar.locator("[data-a=hcur]").click()
+    _menu(chart, D, "cur", False)
     # přiblížení na úseky a zpět
     bar.locator('[data-testid="ab-zoom-win"]').click()
+    _menu(chart, D, "exp")
     with chart.expect_download() as d:
         bar.locator('[data-a="png"]').click()
     assert d.value.suggested_filename.endswith(".png")
+    _menu(chart, D, "exp")
     with chart.expect_download() as d:
         bar.locator('[data-a="csv_view"]').click()
     assert ws_pv in open(d.value.path(), encoding="utf-8-sig").readline()

@@ -14,6 +14,7 @@ import pytest
 
 pw = pytest.importorskip("playwright.sync_api")
 pytest.importorskip("fastapi")
+from chartmenu import menu  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UI = os.path.join(ROOT, "pidtools", "api", "ui", "index.html")
@@ -174,10 +175,13 @@ def test_data_tab_viewer_columns_layout(page, server):
     page.wait_for_selector('[data-testid="quality"] li')
     assert page.locator('[data-testid="quality"] li').count() == 2
     assert "AUTO" in page.locator('[data-testid="loopmode"]').inner_text()
+    menu(page, ".pidv", "cur")
     page.locator(".pidv-bar [data-a=cur]").click()
     page.wait_for_timeout(300)
     assert page.locator(".pidv-read tbody tr").count() >= 4
+    menu(page, ".pidv", "view")
     page.locator(".pidv-bar [data-a=tab]").click()
+    menu(page, ".pidv", "view", False)
     page.wait_for_timeout(300)
 
     def rows():

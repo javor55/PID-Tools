@@ -11,6 +11,7 @@ import pytest
 pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
 import test_frontend_trends as _tt  # noqa: E402
+from chartmenu import menu  # noqa: E402
 
 server, page = _tf.server, _tf.page
 trends = _tt.trends                                      # fixtura: dva zdroje, otevřené Trendy
@@ -55,6 +56,7 @@ def test_hc_signal_selector(trends):
     # panel s více signály: jeden panel pro všechno
     trends.locator('[data-testid="trd-layout"] button').nth(0).click()
     trends.wait_for_function("() => window.__pidView.trends_view.state().panels.length === 1")
+    menu(trends, V, "cur")                                                    # výběr signálu je v nabídce Kurzory
     bar.locator("[data-a=hcur]").click()
     sel = trends.locator(f"{V} [data-testid=hc-sig]")
     assert sel.count() == 1
@@ -73,6 +75,7 @@ def test_hc_signal_selector(trends):
     # změna aktivního signálu jinak (štítek v panelu) se promítne do výběru
     chip = trends.locator(f"{V} .pidv-chip[data-n='{first}']")
     chip.click()
+    menu(trends, V, "cur")                                                    # klik mimo nabídku ji zavřel
     trends.wait_for_function("n => document.querySelector('%s [data-testid=hc-sig]').value === n" % V, arg=first)
     assert _state(trends)["hc"]["sig"] == first
     # signál zmizel z grafu → výběr se přepne na zobrazený signál
@@ -80,16 +83,19 @@ def test_hc_signal_selector(trends):
     trends.locator('[data-testid="trd-tree"] .pidv-sig', has_text=other).first.locator("input[type=checkbox]").uncheck()
     trends.wait_for_function(
         "n => !window.__pidView.trends_view.state().panels.flatMap(p => p.sigs).includes(n)", arg=other)
+    menu(trends, V, "cur")
     trends.wait_for_function("() => document.querySelector('%s [data-testid=hc-sig]') !== null" % V)
     now = _state(trends)["hc"]["sig"]
     assert now != other and trends.locator(f"{V} [data-testid=hc-sig]").input_value() == now
     # kurzory vypnuté → výběr zmizí
     bar.locator("[data-a=hcur]").click()
     assert trends.locator(f"{V} [data-testid=hc-sig]").count() == 0
+    menu(trends, V, "cur", False)
 
 
 def test_hc_label_contrast_and_screenshot(trends):
     bar = trends.locator(f"{V} .pidv-bar")
+    menu(trends, V, "cur")
     if not _state(trends)["hc"]["on"]:
         bar.locator("[data-a=hcur]").click()
     trends.wait_for_selector(f"{V} [data-testid=hc-sig]")

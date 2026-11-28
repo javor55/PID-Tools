@@ -18,6 +18,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
+from chartmenu import menu as _menu  # noqa: E402
 
 TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
@@ -94,20 +95,13 @@ def _box(pg, sel, tries=20):
     raise AssertionError(f"element not stable: {sel}")
 
 
-def _tools(pg, root, open_=True):
-    """Panel „Nástroje grafu“ (kompaktní graf) otevře / zavře; ostatní ovládací prvky grafu jsou jinak skryté."""
-    b = pg.locator(f'{root} [data-testid="vw-tools"]')
-    if (b.get_attribute("aria-expanded") == "true") != open_:
-        b.click()
-    pg.wait_for_selector(f'{root} [data-testid="vw-tools-panel"]', state="attached" if open_ else "detached")
-
-
 def _list(pg, root):
-    """Seznam signálů (ve výchozím stavu skrytý) zobrazí tlačítkem Signály v panelu nástrojů."""
-    _tools(pg, root)
+    """Seznam signálů (ve výchozím stavu skrytý) zobrazí položkou Seznam signálů v nabídce Zobrazení."""
+    _menu(pg, root, "view")
     if not pg.locator(f"{root} .pidv-list").count():
         pg.locator(f'{root} [data-a="list"]').click()
         pg.wait_for_selector(f"{root} .pidv-list")
+    _menu(pg, root, "view", False)
 
 
 def _drag(pg, sel, dx):
@@ -133,17 +127,17 @@ def test_default_panels(chart, server):
     # model je vykreslen čárkovaně a jeho štítek je v hlavičce panelu 1
     assert chart.locator(f"{M} .pidv-panel").first.locator(".pidv-chip").count() == 3
     # přepínače modelu: celý / MV / poruchy, v úsecích / celý záznam, rezidua
-    _tools(chart, M)
+    _menu(chart, M, "view")
     grp = chart.locator(f'{M} [data-testid="mw-model"]')
     assert grp.locator('[data-g="mpart"] button').count() == 3
-    assert grp.locator('[data-g="mrange"] button.on').get_attribute("data-v") == "full"
+    assert grp.locator('[data-g="mrange"] [aria-checked="true"]').get_attribute("data-v") == "full"
     assert chart.locator(f'{M} [data-testid="mw-resid"]').is_checked() is False
     assert SHOT is None or chart.locator(M).screenshot(path=os.path.join(SHOT, "modelchart-common.png")) is not None
 
 
 def test_model_parts_and_residuals(chart, server):
     ws = _call(server, chart, "GET", B)
-    _tools(chart, M)
+    _menu(chart, M, "view")                                                   # nabídka zůstává otevřená i po přepnutí
     grp = chart.locator(f'{M} [data-testid="mw-model"]')
     grp.locator('[data-g="mpart"] button[data-v="mv"]').click()
     chart.wait_for_function("() => window.__pidView.model_view.state().panels[0].sigs.some(n => /MV part|část od MV/.test(n))")
@@ -161,6 +155,7 @@ def test_model_parts_and_residuals(chart, server):
     chart.locator(f'{M} [data-testid="mw-resid"]').uncheck()
     chart.wait_for_function("n => document.querySelectorAll('%s .pidv-panel').length === n" % M, arg=n0)
     assert _state(chart)["panels"][0]["sigs"][:2] == [ws["pv"], ws["sp"]]
+    _menu(chart, M, "view", False)
 
 
 def test_mode_switch_patches_win_mode(chart, server):
@@ -236,10 +231,11 @@ def test_drag_handle_inputs_puts_windows(chart, server):
 
 
 def test_time_cursors_ab(chart):
-    _tools(chart, M)
     bar = chart.locator(f"{M} .pidv-bar")
+    _menu(chart, M, "cur")
     bar.locator("[data-a=cur]").click()
     assert _state(chart)["cur"]["on"]
+    _menu(chart, M, "cur", False)
     chart.evaluate("s => document.querySelector(s)?.scrollIntoView({block: 'center'})", f"{M} .pidv-panel canvas")
     chart.wait_for_timeout(200)
     cv = chart.locator(f"{M} .pidv-panel").first.locator("canvas").nth(1).bounding_box()
@@ -253,9 +249,11 @@ def test_time_cursors_ab(chart):
     assert "Δt" in txt and "A" in txt and "B" in txt
     assert re.search(r"Model", txt)                                         # odečet zahrnuje i průběh modelu
     # hodnotové kurzory, osa Y: zoom kolečkem nad osou mění rozsah
+    _menu(chart, M, "cur")
     bar.locator("[data-a=hcur]").click()
     assert _state(chart)["hc"]["on"] and chart.locator(f"{M} [data-testid=hc-sig]").count() == 1
     bar.locator("[data-a=hcur]").click()
+    _menu(chart, M, "cur", False)
     chart.evaluate("s => document.querySelector(s)?.scrollIntoView({block: 'center'})", f"{M} .pidv-panel canvas")
     chart.wait_for_timeout(200)
     cv = chart.locator(f"{M} .pidv-panel").first.locator("canvas").nth(1).bounding_box()
@@ -263,15 +261,19 @@ def test_time_cursors_ab(chart):
     chart.mouse.move(ax["x"], ax["y"])
     chart.mouse.wheel(0, -200)
     chart.wait_for_function("() => Object.values(window.__pidView.model_view.state().sig).some(c => c.lo !== undefined)")   # osa Y přiblížena
+    _menu(chart, M, "cur")
     bar.locator("[data-a=cur]").click()
     assert not _state(chart)["cur"]["on"]
+    _menu(chart, M, "cur", False)
 
 
 def test_exports_png_csv(chart):
-    _tools(chart, M)
+    _menu(chart, M, "exp")
     with chart.expect_download() as d:
         chart.locator(f'{M} .pidv-bar [data-a="png"]').click()
     assert d.value.suggested_filename.endswith(".png")
+    assert chart.locator(f'{M} [data-testid="vw-menu"]').count() == 0                # akce nabídku zavře
+    _menu(chart, M, "exp")
     with chart.expect_download() as d:
         chart.locator(f'{M} .pidv-bar [data-a="csv_view"]').click()
     path = d.value.path()
