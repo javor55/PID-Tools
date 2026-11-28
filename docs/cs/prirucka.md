@@ -75,7 +75,7 @@ Oddělovač, desetinná čárka i kódování (UTF-8, UTF-16, windows-1250) se r
    - **Analýza** pod grafem:
      - **Události** – nalezené automaticky a označené v grafu: skoky MV, SP a poruch, změny stavových signálů (pár
        hodnot, např. režim), MV na 0 / 100 %, živý signál, který se přestal měnit, výpadky dat; klik na řádek nebo
-       ◀ ⚑ / ⚑ ▶ v liště přejde na událost;
+       *Předchozí / Další událost* v nabídce tažení myší v liště přejde na událost;
      - **Odezva na skok** mezi kurzory (*Najít další skok* je umístí): zesílení K, dopravní zpoždění θ a časová
        konstanta T (dvoubodová metoda), doba náběhu, překmit, doba ustálení; u integračního procesu integrační zesílení;
      - **Korelace** cíle (PV) se všemi ostatními signály ve výřezu nebo mezi kurzory: nejsilnější korelace a její

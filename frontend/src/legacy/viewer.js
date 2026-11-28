@@ -120,7 +120,7 @@ export default function (component) {
 
   // Odpojení instance (volá ho React obal při odchodu ze stránky): ResizeObserver, naplánovaná překreslení,
   // kořenový prvek, seznam signálů v cizím hostiteli a záznam v registru. Posluchače pointermove / pointerup na
-  // window se přidávají jen během tažení a odebírají se při puštění, trvalé globální posluchače modul nemá.
+  // window se přidávají jen během tažení a odebírají se při puštění, trvalé globální posluchače má jen zavírání a umístění nabídek (pointerdown, scroll, resize) a odebírá je me.stop.
   let dead = false;
   function destroy() {
     if (dead) return;
@@ -306,8 +306,9 @@ export default function (component) {
       if (Array.isArray(L.view) && num(L.view[0]) !== null && num(L.view[1]) !== null && L.view[1] > L.view[0]) out.view = [L.view[0], L.view[1]];
       if (L.cur && typeof L.cur === "object") out.cur = { on: !!L.cur.on, a: num(L.cur.a), b: num(L.cur.b) };
       if (L.hc && typeof L.hc === "object") out.hc = { on: !!L.hc.on, a: num(L.hc.a), b: num(L.hc.b), sig: SG[L.hc.sig] ? L.hc.sig : null };
-      for (const k of ["tab", "list", "step", "tools"]) if (typeof L[k] === "boolean") out[k] = L[k];
-      // kompaktní graf: rozložení uložené před zavedením skrytých nástrojů (bez „tools“) mělo seznam zapnutý jen výchozím stavem, ne volbou
+      for (const k of ["tab", "list", "step"]) if (typeof L[k] === "boolean") out[k] = L[k];
+      // kompaktní graf: rozložení uložené před zavedením skrytého seznamu (bez „tools“) mělo seznam zapnutý jen výchozím stavem, ne volbou;
+      // „tools“ se už nepoužívá k ničemu jinému (přepínač nástrojů zanikl), jen se dál ukládá jako značka novějšího rozložení
       if (D.compact && typeof L.tools !== "boolean") out.list = false;
       if (["pan", "box", "x", "y"].includes(L.mode)) out.mode = L.mode;
       if (["view", "all"].includes(L.ya)) out.ya = L.ya;
@@ -552,6 +553,7 @@ export default function (component) {
     let bar, body, listBox, plots, xcv, nav, readBox, anBox, tabBox, tip, panelsUI = [], L = AXW;
 
     function build() {
+      keepMenuFocus();
       box.innerHTML = "";
       box.classList.toggle("dark", !!D.dark);
       buildBar();
@@ -580,62 +582,75 @@ export default function (component) {
 
     // výběr signálu hodnotových kurzorů (jen při zapnutých kurzorech): zobrazené signály, vybraný je S.hc.sig
     const hcOpts = () => visible().map((n) => `<option value="${esc(n)}" ${n === S.hc.sig ? "selected" : ""}>${esc(n)}</option>`).join("");
-    const hcSelHtml = () => `<select class="pidv-hcsig" data-testid="hc-sig" aria-label="${esc(X.hc_sig)}" title="${esc(X.hc_sig)}">${hcOpts()}</select>`;
+    const hcSelHtml = () => `<select class="pidv-hcsig" data-testid="hc-sig" data-mk="hcsig" aria-label="${esc(X.hc_sig)}" title="${esc(X.hc_sig)}">${hcOpts()}</select>`;
     function syncHcSig() {
       if (!bar) return;
       if (S.hc.on && (!S.hc.sig || panelOf(S.hc.sig) < 0)) initH();     // signál zmizel z grafu → nový výchozí
       const sel = bar.querySelector(".pidv-hcsig");
-      if (!!sel !== (S.hc.on && toolsOpen())) { rebar(); return; }
+      if (!!sel !== (S.hc.on && openMenu === "cur")) { rebar(); return; }     // výběr signálu je jen v otevřené nabídce Kurzory
       if (!sel) return;
       const html = hcOpts();
       if (sel.innerHTML !== html) sel.innerHTML = html;
       if (sel.value !== S.hc.sig) sel.value = S.hc.sig;
     }
-    // kompaktní graf (D.compact): jeden řádek s podstatným + tlačítko „Nástroje grafu“, zbytek v rozbalovacím panelu (S.tools)
-    const toolsOpen = () => !D.compact || !!S.tools;
-    function buildBar() {
-      bar = el("div", "pidv-card pidv-bar" + (D.compact ? " pidv-compact" : ""));
-      const seg = (g, items, cur) => `<div class="pidv-seg" data-g="${g}">` + items.map(([v, t, h]) =>
-        `<button data-v="${v}" class="${v === cur ? "on" : ""}" title="${esc(h || "")}">${esc(t)}</button>`).join("") + `</div>`;
-      const tools =
-        `<div class="pidv-grp">${seg("mode", [["pan", X.pan], ["box", X.zoom_box], ["x", X.zoom_x], ["y", X.zoom_y]], S.mode)}</div>` +
-        `<div class="pidv-grp"><button class="pidv-btn" data-a="back" title="Backspace">◀ ${esc(X.back)}</button>` +
-        `<button class="pidv-btn" data-a="fwd">${esc(X.fwd)} ▶</button>` +
-        `<button class="pidv-btn" data-a="full">${esc(X.full)}</button></div>` +
-        `<div class="pidv-grp"><button class="pidv-btn" data-a="evp" title="${esc(X.ev_prev)}">◀ ⚑</button>` +
-        `<button class="pidv-btn" data-a="evn" title="${esc(X.ev_next)}">⚑ ▶</button></div>` +
-        `<div class="pidv-grp"><button class="pidv-btn ${S.cur.on ? "on" : ""}" data-a="cur" title="${esc(X.c_hint)}">${esc(X.cur)}</button>` +
-        `<button class="pidv-btn ${S.hc.on ? "on" : ""}" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button>${S.hc.on ? hcSelHtml() : ""}</div>` +
-        `<div class="pidv-grp"><span class="pidv-lab">${esc(X.yauto)}</span>${seg("ya", [["view", X.ya_view], ["all", X.ya_all]], S.ya)}</div>` +
-        `<div class="pidv-grp"><span class="pidv-lab">${esc(X.interp)}</span>${seg("step", [["0", X.line], ["1", X.step]], S.step ? "1" : "0")}</div>` +
-        `<div class="pidv-grp">` + (component.listHost ? "" : `<button class="pidv-btn ${S.list ? "on" : ""}" data-a="list">${esc(X.list)}</button>`) +
-        `<button class="pidv-btn ${S.tab ? "on" : ""}" data-a="tab">${esc(X.table)}</button>` +
-        `<button class="pidv-btn" data-a="csv_view">${esc(X.csv_view)}</button>` +
-        `<button class="pidv-btn" data-a="csv_cur" ${S.cur.on ? "" : "disabled"}>${esc(X.csv_cur)}</button>` +
-        `<button class="pidv-btn" data-a="png">${esc(X.png || "PNG")}</button>` +
-        `<span class="pidv-help" title="${esc(X.help)}">?</span></div>` +
-        (D.decim > 1 ? `<span class="pidv-note">${esc(String(X.decim || "").replace("{g}", D.decim))}</span>` : "");
-      if (!D.compact) bar.innerHTML = (SP ? SP.barHtml() : "") + (MO ? MO.barHtml("all") : "") + tools;
-      else {
-        const open = toolsOpen();
-        // zapnuté kurzory zůstanou vidět i při sbaleném panelu (tlačítko svítí a vypne je)
-        const act = open ? "" : `<div class="pidv-grp" data-testid="vw-active">` +
-          (S.cur.on ? `<button class="pidv-btn on" data-a="cur" title="${esc(X.c_hint)}">${esc(X.cur)}</button>` : "") +
-          (S.hc.on ? `<button class="pidv-btn on" data-a="hcur" title="${esc(X.h_hint)}">${esc(X.hcur)}</button>` : "") + `</div>`;
-        bar.innerHTML = (SP ? SP.barHtml() : "") + (MO ? MO.barHtml("main") : "") + (S.cur.on || S.hc.on ? act : "") +
-          `<span class="pidv-sp"></span>` +
-          `<button class="pidv-btn pidv-tools-btn" data-a="tools" data-testid="vw-tools" aria-expanded="${open}" title="${esc(X.tools)}">${esc(X.tools)} ${open ? "▴" : "▾"}</button>` +
-          (open ? `<div class="pidv-tools" data-testid="vw-tools-panel">` + (MO ? MO.barHtml("tools") : "") + tools + `</div>` : "");
+
+    // ---- rozbalovací nabídky lišty a hlavičky panelu. Otevřená nabídka a položka s fokusem žijí jen v těchto proměnných
+    // (neukládají se do rozložení); lištu i panely přestavují rebar() / buildPanels() a nabídku po přestavbě obnoví syncMenus().
+    let openMenu = null;                     // "mode" | "view" | "cur" | "exp" | "p<i>" (nabídka panelu i) | null
+    let menuKey = null;                      // data-mk položky, na kterou se po přestavbě vrátí fokus ("first" = první položka)
+    // položka nabídky: role menuitem | menuitemradio | menuitemcheckbox (aria-checked jen u posledních dvou)
+    function mi(role, key, label, o = {}) {
+      const plain = role === "menuitem";
+      return `<button type="button" role="${role}"${plain ? "" : ` aria-checked="${!!o.on}"`} class="pidv-mi" data-mk="${esc(key)}" tabindex="-1"` +
+        `${o.attrs ? " " + o.attrs : ""}${o.dis ? " disabled" : ""}${o.title ? ` title="${esc(o.title)}"` : ""}>` +
+        `${plain ? "" : `<i class="pidv-mk" aria-hidden="true"></i>`}<span>${esc(label)}</span>` +
+        `${o.hint ? `<span class="pidv-mh">${esc(o.hint)}</span>` : ""}</button>`;
+    }
+    // skupina s nadpisem; g = data-g (existující přepínače se v nabídce hledají stejně jako dřív)
+    const mgrp = (g, head, inner, tid) => `<div role="group" class="pidv-mg" aria-label="${esc(head)}"${g ? ` data-g="${g}"` : ""}` +
+      `${tid ? ` data-testid="${tid}"` : ""}><div class="pidv-mt" aria-hidden="true">${esc(head)}</div>${inner}</div>`;
+    const mradio = (g, head, items, cur) => mgrp(g, head, items.map(([v, t]) =>
+      mi("menuitemradio", g + ":" + v, t, { on: v === cur, attrs: `data-v="${esc(v)}"` })).join(""));
+    const msep = () => `<div class="pidv-ms" role="separator"></div>`;
+    // tlačítko nabídky; samotná nabídka se do obalu vloží v syncMenus()
+    const mbtn = (id, label, o = {}) => `<span class="pidv-mw" data-mw="${id}"><button type="button" class="${o.cls || "pidv-btn"} pidv-mb${o.on ? " on" : ""}" data-m="${id}" ` +
+      `data-testid="${o.tid}" aria-haspopup="menu" aria-expanded="false"${o.attrs || ""}${o.title ? ` title="${esc(o.title)}"` : ""}>${o.html || `${esc(label)} <span aria-hidden="true">▾</span>`}</button></span>`;
+    const modeName = () => ({ pan: X.pan, box: X.zoom_box, x: X.zoom_x, y: X.zoom_y })[S.mode];
+    function menuBody(id) {
+      if (id === "mode") {
+        return mradio("mode", X.m_drag, [["pan", X.pan], ["box", X.zoom_box], ["x", X.zoom_x], ["y", X.zoom_y]], S.mode) +
+          (D.compact ? "" : msep() + mgrp("", X.m_events,
+            mi("menuitem", "evp", X.ev_prev, { attrs: 'data-a="evp"' }) + mi("menuitem", "evn", X.ev_next, { attrs: 'data-a="evn"' })));
       }
-      box.appendChild(bar);
-      if (SP) SP.hookBar(bar);
-      if (MO) MO.hookBar(bar);
-      bar.querySelectorAll('[data-g="mode"] button').forEach((b) => b.onclick = () => { S.mode = b.dataset.v; rebar(); save(); });
-      bar.querySelectorAll('[data-g="ya"] button').forEach((b) => b.onclick = () => { S.ya = b.dataset.v; rebar(); redraw(); save(); });
-      bar.querySelectorAll('[data-g="step"] button').forEach((b) => b.onclick = () => { S.step = b.dataset.v === "1"; rebar(); redraw(); save(); });
-      const hs = bar.querySelector(".pidv-hcsig");
-      if (hs) hs.onchange = () => setAct(hs.value);
-      const act = {
+      if (id === "view") {
+        return (MO ? MO.barHtml({ part: X.m_model, range: X.m_range }) + msep() : "") +
+          mradio("ya", X.m_ay, [["view", X.ya_view], ["all", X.ya_all]], S.ya) +
+          mradio("step", X.m_trace, [["0", X.line], ["1", X.step]], S.step ? "1" : "0") + msep() +
+          (component.listHost ? "" : mi("menuitemcheckbox", "list", X.list, { on: S.list, attrs: 'data-a="list"' })) +
+          mi("menuitemcheckbox", "tab", X.table, { on: S.tab, attrs: 'data-a="tab"' });
+      }
+      if (id === "cur") {
+        return mi("menuitemcheckbox", "cur", X.cur, { on: S.cur.on, hint: X.m_c_hint, title: X.c_hint, attrs: 'data-a="cur"' }) +
+          mi("menuitemcheckbox", "hcur", X.hcur, { on: S.hc.on, hint: X.m_h_hint, title: X.h_hint, attrs: 'data-a="hcur"' }) +
+          (S.hc.on ? `<div class="pidv-msel">${hcSelHtml()}</div>` : "");
+      }
+      if (id === "exp") {
+        return mi("menuitem", "csv_view", X.csv_view, { attrs: 'data-a="csv_view"' }) +
+          mi("menuitem", "csv_cur", X.csv_cur, { attrs: 'data-a="csv_cur"', dis: !S.cur.on }) +
+          mi("menuitem", "png", X.png || "PNG", { attrs: 'data-a="png"' });
+      }
+      const pi = +id.slice(1), p = S.panels[pi];                   // nabídka panelu
+      if (!p) return "";
+      return (p.sigs.length > 1 ? mi("menuitemcheckbox", "pshared", X.shared, { on: p.shared, attrs: 'data-a="pshared"' }) : "") +
+        mi("menuitem", "pup", X.up, { attrs: 'data-a="pup"', dis: pi === 0 }) +
+        mi("menuitem", "pdown", X.down, { attrs: 'data-a="pdown"', dis: pi === S.panels.length - 1 }) +
+        mi("menuitem", "prem", X.remove, { attrs: 'data-a="prem"' });
+    }
+    // akce položek a ikon; položky, které nabídku zavírají, jsou ve closing
+    const closing = new Set(["evp", "evn", "csv_view", "csv_cur", "png", "pup", "pdown", "prem"]);
+    function actions() {
+      const pidx = openMenu && openMenu[0] === "p" ? +openMenu.slice(1) : -1;      // panel, jehož nabídka akci vyvolala
+      return {
         back, fwd,
         evp: () => evNav(-1),
         evn: () => evNav(1),
@@ -643,19 +658,134 @@ export default function (component) {
         cur: () => { S.cur.on = !S.cur.on; if (S.cur.on) initCursors(); rebar(); redraw(); renderAn(); save(); },
         hcur: () => { S.hc.on = !S.hc.on; if (S.hc.on) initH(); rebar(); redraw(); save(); },
         list: () => { S.list = !S.list; build(); save(); },
-        tools: () => { S.tools = !S.tools; rebar(); save(); const t = bar.querySelector('[data-testid="vw-tools"]'); if (t) t.focus(); },
         tab: () => { S.tab = !S.tab; rebar(); redraw(); save(); },
         csv_view: () => exportCsv(S.view[0], S.view[1]),
         csv_cur: () => { if (S.cur.on) exportCsv(Math.min(S.cur.a, S.cur.b), Math.max(S.cur.a, S.cur.b)); },
         png: exportPng,
+        pshared: () => { const p = S.panels[pidx]; p.shared = !p.shared; p.lo = p.hi = null; buildPanels(); redraw(); save(); },
+        pup: () => { S.panels.splice(pidx - 1, 0, S.panels.splice(pidx, 1)[0]); buildPanels(); me.rows && me.rows(); redraw(); save(); },
+        pdown: () => { S.panels.splice(pidx + 1, 0, S.panels.splice(pidx, 1)[0]); buildPanels(); me.rows && me.rows(); redraw(); save(); },
+        prem: () => { S.panels.splice(pidx, 1); buildPanels(); me.rows && me.rows(); redraw(); save(); },
       };
-      bar.querySelectorAll("[data-a]").forEach((b) => b.onclick = act[b.dataset.a]);
+    }
+    function bindActs(root) {
+      const act = actions();
+      root.querySelectorAll("[data-a]").forEach((b) => {
+        const f = act[b.dataset.a];
+        if (!f) return;                                           // ostatní akce (úseky, rezidua) si napojují moduly
+        b.onclick = () => {
+          const id = openMenu;
+          if (closing.has(b.dataset.a)) { openMenu = null; menuKey = null; if (b.closest(".pidv-menu")) syncMenus(); }
+          f();
+          if (!closing.has(b.dataset.a) || !id) return;
+          const pi = id[0] === "p" ? +id.slice(1) : -1;                  // po přesunu panelu fokus na tlačítko panelu na novém místě
+          focusBtn(pi < 0 ? id : b.dataset.a === "pup" ? "p" + (pi - 1) : b.dataset.a === "pdown" ? "p" + (pi + 1) : "");
+        };
+      });
+    }
+    // napojení položek otevřené nabídky
+    function hookMenu(m) {
+      m.querySelectorAll('[data-g="mode"] button').forEach((b) => b.onclick = () => { S.mode = b.dataset.v; rebar(); save(); });
+      m.querySelectorAll('[data-g="ya"] button').forEach((b) => b.onclick = () => { S.ya = b.dataset.v; rebar(); redraw(); save(); });
+      m.querySelectorAll('[data-g="step"] button').forEach((b) => b.onclick = () => { S.step = b.dataset.v === "1"; rebar(); redraw(); save(); });
+      bindActs(m);
+      if (MO) MO.hookBar(m);
+      const hs = m.querySelector(".pidv-hcsig");
+      if (hs) hs.onchange = () => setAct(hs.value);
+    }
+    function focusBtn(id) {
+      const b = id && box.querySelector(`[data-m="${id}"]`);
+      if (b) b.focus({ preventScroll: true });
+    }
+    // fixní poloha pod tlačítkem (nepřeruší ji overflow předků), pravý okraj u tlačítka, uvnitř okna; nevejde-li se dolů, nad tlačítko,
+    // a nevejde-li se ani tam, na straně s větším místem a s posuvníkem
+    function placeMenu(m, b) {
+      const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight, br = b.getBoundingClientRect();
+      m.style.maxHeight = Math.max(120, vh - 16) + "px";
+      m.style.left = "0px"; m.style.top = "0px";
+      const w = m.offsetWidth, h = m.offsetHeight;
+      const below = vh - 8 - (br.bottom + 4), above = br.top - 4 - 8;
+      const down = h <= below || (h > above && below >= above);
+      const room = Math.max(80, down ? below : above);
+      if (h > room) m.style.maxHeight = Math.round(room) + "px";
+      const hh = Math.min(h, room);
+      const left = clamp(br.right - w, 8, Math.max(8, vw - w - 8));
+      m.style.left = Math.round(left) + "px";
+      m.style.top = Math.round(down ? br.bottom + 4 : br.top - 4 - hh) + "px";
+    }
+    const placeMenus = () => box.querySelectorAll(".pidv-menu").forEach((m) => placeMenu(m, m.parentNode.querySelector("[data-m]")));
+    // před přestavbou: položka nabídky s fokusem se zapamatuje, aby se fokus po přestavbě vrátil na stejné místo
+    function keepMenuFocus() {
+      const a = document.activeElement;
+      if (a && a.dataset && a.dataset.mk && box.contains(a) && a.closest(".pidv-menu")) menuKey = a.dataset.mk;
+    }
+    // po přestavbě lišty / panelů: otevřená nabídka se vykreslí znovu, ostatní zmizí
+    function syncMenus() {
+      box.querySelectorAll(".pidv-mw").forEach((w) => {
+        const id = w.dataset.mw, b = w.querySelector("[data-m]"), open = openMenu === id;
+        b.setAttribute("aria-expanded", String(open));
+        const old = w.querySelector(".pidv-menu");
+        if (old) old.remove();
+        if (!open) return;
+        const body = menuBody(id);
+        if (!body) { openMenu = null; b.setAttribute("aria-expanded", "false"); return; }
+        const m = el("div", "pidv-menu", body);
+        m.setAttribute("role", "menu");
+        m.setAttribute("data-testid", "vw-menu");
+        m.setAttribute("aria-label", b.getAttribute("aria-label") || b.textContent.replace("▾", "").trim());
+        w.appendChild(m);
+        hookMenu(m);
+        placeMenu(m, b);
+        if (menuKey !== null) {
+          const its = [...m.querySelectorAll("[data-mk]")];
+          const it = its.find((x) => x.dataset.mk === menuKey) || m.querySelector(".pidv-mi:not(:disabled)");
+          menuKey = null;
+          if (it) it.focus({ preventScroll: true });
+        }
+      });
+    }
+    function toggleMenu(id) {
+      openMenu = openMenu === id ? null : id;
+      menuKey = openMenu ? "first" : null;
+      syncMenus();
+      if (!openMenu) focusBtn(id);
+    }
+    function closeMenu(focus) {
+      const id = openMenu;
+      if (!id) return;
+      openMenu = null; menuKey = null;
+      syncMenus();
+      if (focus) focusBtn(id);
+    }
+    function hookMenuBtns(root) {
+      root.querySelectorAll("[data-m]").forEach((b) => {
+        b.onclick = () => toggleMenu(b.dataset.m);
+        b.onkeydown = (e) => { if (e.key === "ArrowDown" && openMenu !== b.dataset.m) { e.preventDefault(); toggleMenu(b.dataset.m); } };
+      });
+    }
+    function buildBar() {
+      bar = el("div", "pidv-card pidv-bar" + (D.compact ? " pidv-compact" : ""));
+      const ic = (a, glyph, label, title) => `<button type="button" class="pidv-btn pidv-ic" data-a="${a}" title="${esc(title || label)}" aria-label="${esc(label)}">${glyph}</button>`;
+      const curTag = S.cur.on || S.hc.on ? " · " + [S.cur.on ? "A/B" : "", S.hc.on ? "Y₁/Y₂" : ""].filter(Boolean).join(" · ") : "";
+      bar.innerHTML = (SP ? SP.barHtml() : "") +
+        (D.decim > 1 ? `<span class="pidv-note">${esc(String(X.decim || "").replace("{g}", D.decim))}</span>` : "") +
+        `<span class="pidv-sp"></span>` +
+        `<div class="pidv-grp">` + ic("back", "↶", X.back, `${X.back} (Backspace)`) + ic("fwd", "↷", X.fwd) + ic("full", "⤢", X.full) + `</div>` +
+        `<div class="pidv-grp">` + mbtn("mode", modeName(), { tid: "vw-m-mode" }) + mbtn("view", X.m_view, { tid: "vw-m-view" }) +
+        mbtn("cur", X.m_cursors + curTag, { tid: "vw-m-cur", on: S.cur.on || S.hc.on }) + mbtn("exp", X.m_export, { tid: "vw-m-exp" }) + `</div>` +
+        `<span class="pidv-help" data-testid="vw-help" title="${esc(X.help)}">?</span>`;
+      box.appendChild(bar);
+      bindActs(bar);
+      if (SP) SP.hookBar(bar);
+      hookMenuBtns(bar);
     }
     function rebar() {
+      keepMenuFocus();
       const old = bar;
       buildBar();
       box.insertBefore(bar, old);
       old.remove();
+      syncMenus();
     }
 
     // ---- seznam signálů
@@ -892,6 +1022,7 @@ export default function (component) {
 
     // ---- panely
     function buildPanels() {
+      keepMenuFocus();
       plots.innerHTML = "";
       panelsUI = [];
       // šířka os vlevo: podle počtu signálů panelu; s D.defaults (graf Modelu) podle skutečného počtu os (PV, SP a model sdílejí jednu)
@@ -911,16 +1042,9 @@ export default function (component) {
         });
         if (SP) SP.header(pi, ph);
         ph.appendChild(el("span", "sp"));
-        if (p.sigs.length > 1) {
-          const lab = el("label", "pidv-lab", `<input type="checkbox" ${p.shared ? "checked" : ""}> ${esc(X.shared)}`);
-          lab.style.cssText = "display:inline-flex;gap:4px;align-items:center;cursor:pointer";
-          lab.querySelector("input").onchange = (e) => { p.shared = e.target.checked; p.lo = p.hi = null; buildPanels(); redraw(); save(); };
-          ph.appendChild(lab);
-        }
-        const mk = (t, h, f, dis) => { const b = el("button", "pidv-x", t); b.title = h; b.disabled = !!dis; b.onclick = f; ph.appendChild(b); };
-        mk("↑", X.up, () => { S.panels.splice(pi - 1, 0, S.panels.splice(pi, 1)[0]); buildPanels(); me.rows && me.rows(); redraw(); save(); }, pi === 0);
-        mk("↓", X.down, () => { S.panels.splice(pi + 1, 0, S.panels.splice(pi, 1)[0]); buildPanels(); me.rows && me.rows(); redraw(); save(); }, pi === S.panels.length - 1);
-        mk("×", X.remove, () => { S.panels.splice(pi, 1); buildPanels(); me.rows && me.rows(); redraw(); save(); });
+        ph.insertAdjacentHTML("beforeend", mbtn("p" + pi, "", { cls: "pidv-btn pidv-dots", tid: "vw-m-panel", html: "⋯", title: X.m_panel,
+          attrs: ` data-pi="${pi}" aria-label="${esc(X.m_panel)}"` }));
+        hookMenuBtns(ph);
         c.appendChild(ph);
         const wrap = el("div");
         wrap.style.position = "relative";
@@ -952,6 +1076,7 @@ export default function (component) {
       plots.appendChild(xc);
       hookXAxis();
       hookNav();
+      syncMenus();                                              // otevřená nabídka (lišty nebo panelu) se po přestavbě vykreslí znovu
     }
     function cssW(node) { return Math.max(200, node.clientWidth || node.parentElement.clientWidth || 600); }
     function sizeCanvas(cv, w, h) {
@@ -2004,11 +2129,34 @@ export default function (component) {
       else if (e.key === "Escape" && (S.cur.on || S.hc.on)) { S.cur.on = S.hc.on = false; rebar(); redraw(); renderAn(); save(); }
     });
 
-    const H = { component, D, X, S: () => S, L: () => L, R, TOP, BOT, AXW, panels: () => panelsUI, panelOf, tx, xt, col, el, esc, clamp, dc, fmtG,
+    const H = { mi, mgrp, mradio, msep, component, D, X, S: () => S, L: () => L, R, TOP, BOT, AXW, panels: () => panelsUI, panelOf, tx, xt, col, el, esc, clamp, dc, fmtG,
       redraw, push, order: () => order, SG, removeSig, view: () => S.view,
       setView: (a, b) => { push(true); S.view = [a, b]; fixView(S); push(true); redraw(); save(); },
       rebuild: () => { buildPanels(); me.rows && me.rows(); rebar(); redraw(); save(); },
       relayout: () => { rebar(); buildPanels(); redraw(); } };
+    // klik mimo otevřenou nabídku ji zavře; při posunu a změně velikosti okna se nabídky znovu umístí (jsou position: fixed)
+    const onDocDown = (e) => { if (openMenu && !(e.target.closest && e.target.closest(".pidv-mw") && box.contains(e.target))) closeMenu(false); };
+    document.addEventListener("pointerdown", onDocDown, true);
+    window.addEventListener("scroll", placeMenus, true);
+    window.addEventListener("resize", placeMenus);
+    box.addEventListener("keydown", (e) => {
+      if (!openMenu) return;
+      const m = box.querySelector(".pidv-menu");
+      const onBtn = !!e.target.dataset && e.target.dataset.m === openMenu;
+      if (!m || !(m.contains(e.target) || onBtn)) return;
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeMenu(true); return; }
+      if (e.key === "Tab") { closeMenu(true); return; }
+      if (e.target.tagName === "SELECT") return;                 // šipky patří výběru signálu
+      const its = [...m.querySelectorAll(".pidv-mi:not(:disabled)")];
+      if (!its.length) return;
+      const i = its.indexOf(document.activeElement);
+      let j = -1;
+      if (e.key === "ArrowDown") j = i < 0 ? 0 : (i + 1) % its.length;
+      else if (e.key === "ArrowUp") j = i < 0 ? its.length - 1 : (i - 1 + its.length) % its.length;
+      else if (e.key === "Home") j = 0;
+      else if (e.key === "End") j = its.length - 1;
+      if (j >= 0) { e.preventDefault(); its[j].focus({ preventScroll: true }); }
+    });
     if (D.spans) SP = createSpans(H);
     if (D.model) MO = createModel(H);
     build();
@@ -2017,7 +2165,12 @@ export default function (component) {
     const ro = new ResizeObserver(() => { if (box.clientWidth !== lastW) { lastW = box.clientWidth; redraw(); } });
     ro.observe(box);
     me.ro = ro;
-    me.stop = () => { cancelAnimationFrame(raf); cancelAnimationFrame(raf2); clearTimeout(saveT); };
+    me.stop = () => {
+      cancelAnimationFrame(raf); cancelAnimationFrame(raf2); clearTimeout(saveT);
+      document.removeEventListener("pointerdown", onDocDown, true);
+      window.removeEventListener("scroll", placeMenus, true);
+      window.removeEventListener("resize", placeMenus);
+    };
   }
   return destroy;
 }

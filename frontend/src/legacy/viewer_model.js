@@ -4,6 +4,8 @@
  * přepínače jen mění, které z nich jsou v panelu s PV – stav se tedy čte z rozložení panelů (a ukládá s ním), takže signál
  * přidaný nebo odebraný ručně v seznamu signálů přepínače správně odráží.
  *
+ * Přepínače jsou položky nabídky „Zobrazení“ lišty grafu (barHtml je vyrobí s nadpisy skupin z viewer.js, hookBar je napojí na otevřenou nabídku).
+ *
  * D.model = { pv (signál PV), all (celý model na celém záznamu), win (celý model jen v úsecích), mv, dv (části modelu),
  *   resid (rezidua), txt {m_all, m_mv, m_dv, r_win, r_full, resid} }
  *   část: all = celý model (MV + poruchy) · mv = jen MV · dv = jen poruchy; rozsah: full = celý záznam · win = jen úseky.
@@ -20,17 +22,13 @@ export default function createModel(H) {
     if (inPv(M.win)) range = "win"; else if (inPv(M.all)) range = "full";
     return { part, range, resid: H.panelOf(M.resid) >= 0 };
   }
-  // part: "all" = vše v jedné skupině (Trendy / nekompaktní graf), "main" = jen reziduum (řádek kompaktního grafu),
-  // "tools" = části a rozsah modelu (sbalitelný panel)
-  function barHtml(part) {
+  // položky nabídky Zobrazení: části modelu, rozsah modelu a rezidua (položky a skupiny vyrábí viewer.js)
+  function barHtml(heads) {
     const st = state();
-    const seg = (g, items, cur) => `<div class="pidv-seg" data-g="${g}">` + items.map(([v, t]) =>
-      `<button data-v="${v}" class="${v === cur ? "on" : ""}">${esc(t || "")}</button>`).join("") + `</div>`;
-    const segs = seg("mpart", parts().map(([v, t]) => [v, t]), st.part) + (has(M.win) ? seg("mrange", [["win", X.r_win], ["full", X.r_full]], st.range) : "");
-    const res = has(M.resid) ? `<label class="pidv-chk2"><input type="checkbox" data-a="resid" data-testid="mw-resid" ${st.resid ? "checked" : ""}> ${esc(X.resid || "")}</label>` : "";
-    if (part === "main") return res ? `<div class="pidv-grp">${res}</div>` : "";
-    if (part === "tools") return `<div class="pidv-grp" data-testid="mw-model">${segs}</div>`;
-    return `<div class="pidv-grp" data-testid="mw-model">${segs}${res}</div>`;
+    const segs = H.mradio("mpart", heads.part, parts().map(([v, t]) => [v, t || ""]), st.part) +
+      (has(M.win) ? H.mradio("mrange", heads.range, [["win", X.r_win], ["full", X.r_full]], st.range) : "");
+    const res = has(M.resid) ? H.mi("menuitemcheckbox", "resid", X.resid || "", { on: st.resid, attrs: 'data-a="resid" data-testid="mw-resid"' }) : "";
+    return `<div data-testid="mw-model">${segs}${res}</div>`;
   }
   // přepíše členství modelových signálů v panelu s PV a (ne)zobrazí panel reziduí
   function apply(part, rng, resid) {
@@ -47,12 +45,11 @@ export default function createModel(H) {
     }
     H.rebuild();
   }
-  function hookBar(bar) {
-    const g = bar;                                         // skupiny modelu mohou být v řádku i ve sbalitelném panelu
-    g.querySelectorAll('[data-g="mpart"] button').forEach((b) => { b.onclick = () => { const s = state(); apply(b.dataset.v, s.range, s.resid); }; });
-    g.querySelectorAll('[data-g="mrange"] button').forEach((b) => { b.onclick = () => { const s = state(); apply(s.part, b.dataset.v, s.resid); }; });
-    const c = g.querySelector('[data-a="resid"]');
-    if (c) c.onchange = () => { const s = state(); apply(s.part, s.range, c.checked); };
+  function hookBar(bar) {                                  // bar = otevřená nabídka Zobrazení
+    bar.querySelectorAll('[data-g="mpart"] button').forEach((b) => { b.onclick = () => { const s = state(); apply(b.dataset.v, s.range, s.resid); }; });
+    bar.querySelectorAll('[data-g="mrange"] button').forEach((b) => { b.onclick = () => { const s = state(); apply(s.part, b.dataset.v, s.resid); }; });
+    const c = bar.querySelector('[data-a="resid"]');
+    if (c) c.onclick = () => { const s = state(); apply(s.part, s.range, !s.resid); };
   }
   return { barHtml, hookBar };
 }

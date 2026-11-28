@@ -6,11 +6,7 @@
   --pv-axis: #334155; --pv-btn: #0f172a; --pv-hl: #16223a; --pv-acc: #60a5fa; --pv-sel: #1e3a5f; }
 .pidv-card { background: var(--pv-card); border: 1px solid var(--pv-line); border-radius: 10px; }
 .pidv-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; }
-/* kompaktní graf (D.compact): jeden řádek + sbalitelný panel nástrojů */
 .pidv-bar .pidv-sp { flex: 1; }
-.pidv-tools-btn[aria-expanded="true"] { border-color: var(--pv-acc); color: var(--pv-acc); }
-.pidv-tools { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding-top: 8px;
-  border-top: 1px solid var(--pv-line); }
 .pidv-grp { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .pidv-lab { font-size: 12px; color: var(--pv-muted); }
 .pidv-seg { display: inline-flex; border: 1px solid var(--pv-axis); border-radius: 8px; overflow: hidden; }
@@ -25,6 +21,30 @@
   background: var(--pv-btn); color: var(--pv-text); margin-left: 4px; }
 .pidv-help { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #9aa5b1; color: var(--pv-muted);
   font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+/* ikonová tlačítka lišty (zpět, vpřed, celý rozsah) */
+.pidv-ic { min-width: 30px; padding: 4px 8px; font-size: 14px; line-height: 1.2; }
+/* rozbalovací nabídky lišty a hlavičky panelu: position: fixed (polohu a umístění v okně počítá viewer.js), takže je neořízne overflow předků */
+.pidv-mw { position: relative; display: inline-flex; }
+.pidv-mb[aria-expanded="true"] { border-color: var(--pv-acc); }
+.pidv-dots { padding: 0 8px; line-height: 18px; font-size: 14px; }
+.pidv-menu { position: fixed; z-index: 30; box-sizing: border-box; min-width: 230px; max-width: min(380px, calc(100vw - 16px)); overflow-y: auto;
+  display: flex; flex-direction: column; padding: 4px; background: var(--pv-card); border: 1px solid var(--pv-line); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); color: var(--pv-text); font-size: 12px; }
+.pidv-mg { display: flex; flex-direction: column; }
+.pidv-mt { padding: 6px 8px 2px; font-size: 11px; font-weight: 600; color: var(--pv-muted); }
+.pidv-ms { height: 1px; margin: 4px 2px; background: var(--pv-line); }
+.pidv-mi { display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; text-align: left; font: inherit; font-size: 12px;
+  padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--pv-text); cursor: pointer; }
+.pidv-mi:hover, .pidv-mi:focus { background: var(--pv-hl); }
+.pidv-mi:focus-visible { outline: 2px solid var(--pv-acc); outline-offset: -2px; }
+.pidv-mi:disabled { opacity: .45; cursor: default; background: transparent; }
+.pidv-mk { flex: none; width: 14px; text-align: center; font-style: normal; color: var(--pv-acc); }
+.pidv-mi[role="menuitemradio"][aria-checked="true"] .pidv-mk::before { content: "●"; font-size: 9px; }
+.pidv-mi[role="menuitemcheckbox"][aria-checked="true"] .pidv-mk::before { content: "✓"; }
+.pidv-mi[aria-checked="true"] { font-weight: 600; }
+.pidv-mh { margin-left: auto; padding-left: 14px; font-size: 11px; font-weight: 400; color: var(--pv-muted); white-space: nowrap; }
+.pidv-msel { padding: 2px 8px 6px 30px; }
+.pidv-msel .pidv-hcsig { width: 100%; max-width: none; margin-left: 0; box-sizing: border-box; }
 .pidv-body { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 10px; align-items: start; }
 .pidv-body.nolist { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 760px) { .pidv-body { grid-template-columns: minmax(0, 1fr); } }
