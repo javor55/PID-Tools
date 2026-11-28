@@ -77,7 +77,7 @@ Separator, decimal comma and encoding (UTF-8, UTF-16, windows-1250) are detected
    - **Analysis** under the chart:
      - **Events** – found automatically and marked in the chart: MV, SP and disturbance steps, state changes (signals
        with a few values, e.g. mode), MV at 0 / 100 %, a live signal that stops changing, data gaps; a click on a row
-       or ◀ ⚑ / ⚑ ▶ in the toolbar jumps to the event;
+       or *Previous / Next event* in the mouse-drag menu of the toolbar jumps to the event;
      - **Step response** between the cursors (*Find next step* places them): gain K, dead time θ and time constant T
        (two-point method), rise time, overshoot, settling time; for an integrating process the integrating gain;
      - **Correlation** of a target (PV) with every other signal over the view or between the cursors: the strongest

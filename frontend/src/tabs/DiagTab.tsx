@@ -1,26 +1,22 @@
-// Záložka Diagnostika (M20): záznam s úseky A / B (sdílený trend.js, režim „ab“), výkon smyčky (A, volitelně B),
+// Záložka Diagnostika (M20): záznam s úseky A / B (prohlížeč záznamu, components/DiagChart.tsx, režim „ab“), výkon smyčky (A, volitelně B),
 // oscilace a ventil (stikce, hystereze), grafy korelace, MV–PV, MV–poloha a nelinearita; panel: úseky a možnosti.
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ApiError, binary, request } from "../api/client";
+import { ApiError, request } from "../api/client";
 import type { components } from "../api/schema";
-import { series, unframe } from "../api/signals";
 import { LineChart, type Series } from "../components/LineChart";
 import { Card } from "../components/Card";
 import { CheckSetting, NumSetting } from "../components/Fields";
-import { Trend } from "../components/Trend";
+import { DiagChart } from "../components/DiagChart";
 import { SideCard, Seg } from "../components/Ui";
-import { useSettings, useWs } from "../data";
-import { decOf, useT } from "../i18n";
-import { decimate, pick, range, timeUnit } from "../lib/series";
+import { usePatchSettings, useSettings, useWs } from "../data";
+import { useT } from "../i18n";
+import { timeUnit } from "../lib/series";
 import { type DiagWin, useUi } from "../store";
 import "../styles/diag.css";
 
 type Diagnostics = components["schemas"]["Diagnostics"];
 type Win = [number, number];
-const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint", "cur", "cur_hint"];
-const C_A = "#1f5fa8", C_B = "#7c3aed";
 const g = (x: unknown, n: number) => (typeof x === "number" && Number.isFinite(x) ? String(+x.toPrecision(n)) : "—");
 const f = (x: unknown, n: number) => (typeof x === "number" && Number.isFinite(x) ? x.toFixed(n) : "—");
 
@@ -49,43 +45,14 @@ export function useDiag(w: Win | null, enabled = true) {
 }
 
 function RecordTrend({ win }: { win: DiagWin }) {
-  const T = useT();
-  const wid = useUi((s) => s.wid);
-  const lang = useUi((s) => s.lang);
-  const setDiag = useUi((s) => s.setDiag);
   const ws = useWs().data;
   const st = useSettings().data ?? {};
-  const grid = useQuery({
-    queryKey: ["ws", wid, "grid", ws?.pv, ws?.mv, ws?.sp, ws?.dists, ws?.n], enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
-    queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals?source=grid`)),
-  });
-  const data = useMemo(() => {
-    if (!ws || !grid.data) return null;
-    const { meta, blob } = grid.data;
-    const pv = series(meta, blob, "pv"), mv = series(meta, blob, "mv"), sp = series(meta, blob, "sp");
-    if (!pv || !mv) return null;
-    const t = pv.t, n = t.length, idx = decimate(n, pv.v);
-    const [lo, hi] = range(pv.v, sp?.v);
-    const u = (x: unknown) => (x ? ` [${String(x)}]` : "");
-    const [ml, mh] = range(mv.v);
-    const rows = [
-      { id: "PV", kind: "pv", title: `PV · ${ws.pv}${u(st.u_pv)}`, color: "#1f5fa8", y: pick(pv.v, idx), lo, hi, h: 170,
-        lines: sp ? [[pick(sp.v, idx), "#9aa5b1", "5 4", 1.3, "SP"]] : [] },
-      { id: "MV", kind: "sig", title: `MV · ${ws.mv}${u(st.u_mv)}`, color: "#c2410c", y: pick(mv.v, idx), lo: ml, hi: mh, h: 100, lines: [] }];
-    const T_end = t[n - 1];
-    const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
-    return {
-      key: "diag_trend", view_key: `diag|${ws.fname}|${n}`, T: T_end, unit: timeUnit(T_end), clock: Number.isFinite(clock) ? clock : null,
-      dec: decOf(lang), dark: document.documentElement.dataset.theme === "dark",
-      txt: Object.fromEntries(TXT.map((k) => [k, T("mw_" + k)])), mode: "ab", t: pick(t, idx), step: ws.Ts, rows, excl: [],
-      bar: { title: T("diag_rec_title"), note: T("diag_rec_help"), zoom: true },
-      ab: { a: win.a, b: win.cmp ? win.b : null, ca: C_A, cb: C_B, la: T("seg_a"), lb: T("seg_b") },
-    };
-  }, [ws, grid.data, st.u_pv, st.u_mv, win, T, lang]);
-  if (!data) return <div className="card muted">…</div>;
-  return <Trend data={data} testid="diag-trend" onWins={(w) => {
-    if (w.ab) setDiag({ ...win, a: w.ab.a, b: w.ab.b ?? win.b });
-  }} />;
+  const setDiag = useUi((s) => s.setDiag);
+  const patch = usePatchSettings();
+  return <DiagChart ws={ws} win={win} units={{ pv: String(st.u_pv ?? ""), mv: String(st.u_mv ?? "") }}
+    layout={typeof st.diagview === "string" ? st.diagview : null}
+    onWins={(a, b) => setDiag({ ...win, a, b: b ?? win.b })}
+    onLayout={(l) => { patch({ diagview: l }).catch(() => undefined); }} />;
 }
 
 const KPI_ROWS = ["std", "iae", "travel", "rev", "lim", "harris", "osc"] as const;

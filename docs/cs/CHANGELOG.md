@@ -1,5 +1,46 @@
 # Změny
 
+## 4.0.0 beta 6 – jeden graf průběhů, jednotné tabulky modelů
+
+- **Jeden graf průběhů:** Model › Identifikace a Diagnostika používají stejný graf jako Data › Trendy (starý graf úseků
+  je odstraněn). Funguje v nich vše z Trendů: časové kurzory A / B (např. dopravní zpoždění), hodnotové kurzory Y₁ / Y₂,
+  zoom a posun os, tabulka, CSV / PNG, přidání dalších signálů záznamu. Rozložení se ukládá pro každou smyčku a každý
+  graf zvlášť (Trendy, Model, Diagnostika).
+- **Graf Modelu:** výchozí rozložení PV + SP + model v prvním panelu, pod ním MV a panel pro každou poruchu; úseky
+  identifikace (společný nebo pro každý vstup) se upravují na lištách s táhly pod panely, s políčky a FIT každého úseku;
+  části modelu (celý / MV / poruchy, v úsecích / na celém záznamu) a rezidua se přepínají v liště grafu.
+- **Graf Diagnostiky:** PV + SP a MV, úseky A a B na liště s táhly; stav načítání a chyba s *Zkusit znovu*.
+- **Porovnání typů přenosu:** tabulky poruch mají stejné sloupce a výběr jako tabulka MV – přepínač v řádku, FIT, NRMSE,
+  hodnocení a parametry modelu (počítá se při identifikaci; starší projekty mají „–“ do nové identifikace).
+- **Hodnotové kurzory Y₁ / Y₂:** měřený signál je uveden ve štítcích kurzorů, jeho osa je zvýrazněná a lze ho zvolit
+  výběrem vedle tlačítka.
+- Lepší kontrast štítků úseků MV (světlý motiv) a tlačítek v čipech (tmavý motiv).
+
+## 4.0.0 beta 5 – opravy z auditu, funkce pro práci, bezpečnost v desktopu
+
+Realizace auditu z listopadu 2026 (docs/cs/audit-2026-11.md) a návrhů vylepšení
+(docs/cs/navrh-vylepseni-2026-11.md); pořadí a stav v docs/cs/plan-exekuce-2026-11.md.
+
+- **Bezpečnější data:** neplatné nastavení smyčky se odmítne s hláškou (422) místo pozdější chyby výpočtu; prázdný soubor
+  dá 400; pracovní prostor desktopu po hodině (uspání) nevyprší a ztracený prostor se založí znovu s nabídkou obnovy;
+  záchranná kopie se uloží při zavření okna (obal desktopu před ukončením API požádá o uložení) i tlačítkem v kartě chyby.
+- **Set 2 výslovně:** „Set 2 zadán“ je příznak místo výchozích hodnot 1 / 100 / 0; APC a Živá simulace počítají se Setem 1,
+  dokud Set 2 není zadán, a texty APC uvádějí skutečně použitou sadu. Projekty z bety 4 se převedou.
+- **Chyby a stavy:** chyba v záložce ukáže kartu s *Zkusit znovu* místo prázdného okna; neúspěšná změna ukáže hlášku a pole
+  se vrátí; číselná pole ukážou důvod pod polem; přepočet je vidět na kartách a ve stavovém řádku.
+- **Práce:** klávesové zkratky (Ctrl+S uložit, F5 spočítat, Ctrl+1…6 záložky, Alt+↑/↓ smyčka, Ctrl+Z / Ctrl+Y zpět / znovu);
+  Uložit, Zpět a Znovu v hlavičce; značky postupu ✓ / ! na záložkách a *Další krok* v kontextovém řádku; kopírování
+  parametrů sad (názvy a jednotky bloku) a tabulek do schránky; odečet, dva kurzory s Δ, export CSV / PNG a skrývání řad
+  v grafech výsledků; Model ve třech podzáložkách (Identifikace / Validace / Rezidua) se souhrnným pruhem; přehled všech
+  smyček projektu s hromadnou identifikací, laděním (jako návrh), převzetím a exportem sad.
+- **Desktop a OPC UA:** odstraněno staré rozhraní v Qt (TICKET-010); desktop je okno Tauri nad API. `asyncua` je přibalené
+  v desktopu, takže čtení dat smyček z OPC UA serveru funguje v instalované aplikaci.
+- **Rozhraní:** užší pravý panel (340 px, na malých obrazovkách 300 px), čitelné barvy v tmavém vzhledu, ovládání řádků
+  tabulek klávesnicí, popisky polí a grafů, zhruba poloviční hlavní soubor (záložky se načítají až při otevření).
+- **Pod kapotou:** API jen pod `/api/v1`; cílené obnovení po změně (9 místo 17 požadavků v Ladění); typované nastavení
+  smyčky; mypy v CI; sdílené moduly grafů přesunuty do frontendu; odstraněny nepoužité texty (3554 → 2993) s kontrolou;
+  položka průvodce „model ověřený na jiném úseku“ nyní funguje.
+
 ## 4.0.0 beta 3 – přestavba záložky Data, anglické rozhraní, rychlejší načítání
 
 - **Přestavba záložky Data** (docs/cs/navrh-data.md): *Zdroje a smyčky* jsou jediné místo pro úpravu smyček (klik na

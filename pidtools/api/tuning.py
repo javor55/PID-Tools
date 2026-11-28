@@ -21,6 +21,7 @@ from ..app import scenario as scn
 from ..app import signalpack
 from ..app import tuning as tun
 from ..app import tuning_export as tex
+from ..app import undo
 from .common import JobInfo, job_info
 from .data import _plain
 
@@ -235,7 +236,7 @@ def _sets(ws):
             except Exception:
                 m = None
         vals, warns = _view(ws, g, ti, td)
-        out.append(SetInfo(n=n, gain=g, ti=ti, td=td, placeholder=tun.is_placeholder(g, ti, td), metrics=m, values=vals,
+        out.append(SetInfo(n=n, gain=g, ti=ti, td=td, placeholder=ws.set2_empty() if n == 2 else tun.is_placeholder(g, ti, td), metrics=m, values=vals,
                            warnings=warns))
     return out
 
@@ -335,7 +336,9 @@ def router(get_proj, jobs):
     def put_record_set(wid: str, body: WriteSet):
         """Zápis Sady 1 bez modelu (identifikace v uzavřené smyčce potřebuje regulátor ze záznamu dřív než model)."""
         ws = need_data(wid)
+        p, snap = get_proj(wid), undo.take(ws)
         ws.write_set(1, _set_of(ws, body), body.log)
+        p.history.record(p, snap, ws)
         return record_set(ws)
 
     @r.get("/tuning", response_model=TuningInfo)
@@ -362,7 +365,7 @@ def router(get_proj, jobs):
         except (ValueError, RuntimeError) as ex:
             raise HTTPException(400, str(ex)) from ex
         code, p, _ = ws.model
-        g1 = float(ws.get("set1_gain"))
+        g1: float | None = float(ws.get("set1_gain"))
         g1 = None if tun.is_placeholder(g1, float(ws.get("set1_ti")), float(ws.get("set1_td"))) else g1
         checks = lm.tuning_checks(code, p, float(s["Kc"]), float(ws.grid.Ts), g1)
         vals, warns = _view(ws, float(s["Kc"]), float(s["Ti"]), float(s["Td"]))
@@ -383,7 +386,9 @@ def router(get_proj, jobs):
         ws = need_model(wid)
         if n not in (1, 2):
             raise HTTPException(404, "set not found")
+        p, snap = get_proj(wid), undo.take(ws)
         ws.write_set(n, _set_of(ws, body), body.log)
+        p.history.record(p, snap, ws)                         # krok zpět (rozdíl nastavení, i set2_defined a historie ladění)
         return info(wid)
 
     @r.post("/tuning/compare", response_model=JobInfo)
@@ -405,15 +410,17 @@ def router(get_proj, jobs):
     def set_scenario(wid: str, body: ScenarioSet):
         """Druh scénáře (předvolba), vlastní události [[čas, vstup, …]], SP z → na, délka simulace."""
         ws = need_model(wid)
+        if body.kind is not None and body.kind not in scn.PRESETS:
+            raise HTTPException(422, f"unknown scenario: {body.kind}")
+        p, snap = get_proj(wid), undo.take(ws)
         if body.kind is not None:
-            if body.kind not in scn.PRESETS:
-                raise HTTPException(422, f"unknown scenario: {body.kind}")
             ws.set_scen_kind(body.kind)
         if body.sp_from_to is not None:
             ws.sim_sp = tuple(float(x) for x in body.sp_from_to[:2])
         if body.rows is not None:
             ws.set_scen_kind("custom")
             ws.set_scen_rows(body.rows, float(body.T_end or ws._scenario_inputs(None)["T_end"]))
+        p.history.record(p, snap, ws)                         # krok zpět (druh scénáře, události, SP z → na)
         return get_scenario(wid)
 
     @r.post("/simulate", response_model=SimInfo)

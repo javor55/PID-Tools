@@ -1,5 +1,49 @@
 # Changelog
 
+## 4.0.0 beta 6 – one time-series chart, consistent model tables
+
+- **One chart for time series:** Model › Identification and Diagnostics now use the same chart as Data › Trends
+  (the old segment chart was removed). Everything known from Trends works there: time cursors A / B (e.g. dead time),
+  value cursors Y₁ / Y₂, axis zoom and pan, table, CSV / PNG, adding other signals of the record. The layout is saved
+  per loop and per chart (Trends, Model, Diagnostics separately).
+- **Model chart:** by default PV + SP + model in the first panel, MV below and one panel per disturbance; identification
+  segments (common or per input) are edited on tracks with handles under the panels, with number fields and FIT per segment;
+  model parts (whole / MV / disturbances, in segments / whole record) and residuals are switched in the chart bar.
+- **Diagnostics chart:** PV + SP and MV, segments A and B on a track with handles; loading and error states with *Try again*.
+- **Transfer type comparison:** the disturbance tables have the same columns and selection as the MV table – radio in the
+  row, FIT, NRMSE, rating and model parameters (computed during identification; older projects show “–” until
+  re-identified).
+- **Value cursors Y₁ / Y₂:** the measured signal is named on the cursor labels, its axis is highlighted and it can be chosen
+  in a selector next to the button.
+- Better contrast of MV segment labels (light theme) and of the chip buttons (dark theme).
+
+## 4.0.0 beta 5 – audit fixes, workflow features, desktop safety
+
+Implementation of the November 2026 audit (docs/cs/audit-2026-11.md) and feature proposals
+(docs/cs/navrh-vylepseni-2026-11.md); order and status in docs/cs/plan-exekuce-2026-11.md.
+
+- **Safer data:** invalid loop settings are rejected with a message (422) instead of breaking calculations later;
+  an empty upload gives 400; the desktop workspace no longer expires after an hour (sleep) and a lost workspace is
+  recreated with the recovery offer; a recovery copy is written when the window closes (the desktop wrapper asks the API
+  to save before stopping it) and from a new button on the error card.
+- **Set 2 is explicit:** "Set 2 entered" is a flag instead of the default values 1 / 100 / 0; APC and Live use Set 1 while
+  Set 2 is not entered and the APC texts name the set actually used. Projects from beta 4 are migrated.
+- **Errors and states:** an error in a tab shows an error card with *Try again* instead of a blank window; failed changes
+  show a toast and the field returns to its value; numeric fields show the reason under the field; recalculation is shown
+  on cards and in the status bar.
+- **Workflow:** keyboard shortcuts (Ctrl+S save, F5 calculate, Ctrl+1…6 tabs, Alt+↑/↓ loop, Ctrl+Z / Ctrl+Y undo / redo);
+  Save, Undo and Redo in the header; progress marks ✓ / ! on the tabs and a *Next* step in the context row; copy set
+  parameters (block names and units) and tables to the clipboard; readout, two cursors with Δ, CSV / PNG export and
+  hiding series in result charts; Model split into Identification / Validation / Residuals with a model summary bar;
+  project overview of all loops with batch identify, tune (as proposals), accept and export of sets.
+- **Desktop and OPC UA:** the old Qt interface was removed (TICKET-010); the desktop is the Tauri window over the API.
+  `asyncua` is packaged with the desktop, so reading loop data from an OPC UA server works in the installed application.
+- **UI:** narrower side panel (340 px, 300 px on small screens), readable colours in the dark theme, keyboard access
+  to table rows, labels for fields and charts, about 2× smaller main bundle (tabs load on demand).
+- **Under the hood:** API only under `/api/v1`; targeted refresh after a change (9 instead of 17 requests in Tuning);
+  typed loop settings; mypy in CI; shared chart modules moved into the frontend; unused texts removed (3554 → 2993)
+  with a check; the guide item "model verified on another segment" now works.
+
 ## 4.0.0 beta 3 – Data tab redesign, English UI, faster loading
 
 - **Data tab redesign** (docs/cs/navrh-data.md): *Sources & loops* is the only place to edit loops (click a column → assign it

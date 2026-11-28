@@ -12,6 +12,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
+from chartmenu import menu  # noqa: E402
 
 TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
@@ -34,15 +35,16 @@ def ready(page, server):
     page.locator('[data-sub="sources"]').click()
     page.locator('[data-testid="src-demo"]').click()
     page.wait_for_function("() => (document.querySelector('[data-testid=\"data-info\"]')||{}).innerText?.includes('demo')")
-    _call(server, page, "PATCH", "/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
-    j = _call(server, page, "POST", "/workspaces/{wid}/identify", {})
+    _call(server, page, "PATCH", "/api/v1/workspaces/{wid}/settings", {"chosen": ["P1D", "I1D"]})
+    j = _call(server, page, "POST", "/api/v1/workspaces/{wid}/identify", {})
     for _ in range(600):
-        st = _call(server, page, "GET", f"/jobs/{j['id']}")
+        st = _call(server, page, "GET", f"/api/v1/jobs/{j['id']}")
         if st["state"] not in ("queued", "running"):
             assert st["state"] == "done", st
             break
         time.sleep(0.2)
     page.locator('[data-tab="model"]').click()
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
     page.wait_for_selector('[data-testid="models"] tbody tr', timeout=60000)
     return True
 
@@ -52,6 +54,7 @@ def _fit(page, which):
 
 
 def test_validation_range_and_rating(page, server, ready):
+    page.locator('[data-testid="model-subtabs"] [data-sub="validate"]').click()
     page.wait_for_selector('[data-testid="val-rating"]', timeout=60000)
     assert page.locator('[data-testid="val-rating"] tbody tr').count() == 2
     assert page.locator('[data-testid="val-verdict"]').get_attribute("data-verdict") == "same"   # celý záznam = úsek id
@@ -60,9 +63,9 @@ def test_validation_range_and_rating(page, server, ready):
     a.press("Enter")
     page.wait_for_function("() => document.querySelector('[data-testid=\"val-a\"]').value === '1800'")
     page.wait_for_timeout(1500)
-    st = _call(server, page, "GET", "/workspaces/{wid}/settings")
+    st = _call(server, page, "GET", "/api/v1/workspaces/{wid}/settings")
     assert st["val_rng"][0] == 1800
-    v = _call(server, page, "GET", "/workspaces/{wid}/model/validate")
+    v = _call(server, page, "GET", "/api/v1/workspaces/{wid}/model/validate")
     assert v["rng"][0] == 1800
     assert abs(_fit(page, "val") - v["val"]["FIT"]) < 0.06
     assert abs(_fit(page, "id") - v["id"]["FIT"]) < 0.06
@@ -76,6 +79,7 @@ def test_validation_range_and_rating(page, server, ready):
 
 
 def test_validation_loop_sets_and_views(page, server, ready):
+    page.locator('[data-testid="model-subtabs"] [data-sub="validate"]').click()
     page.locator('[data-testid="val-mode"] [data-value="cl"]').click()
     page.wait_for_selector('[data-testid="val-which"]', timeout=20000)
     page.wait_for_function("() => (document.querySelector('[data-testid=\"val-fits\"]')||{}).innerText?.includes('MV')", timeout=60000)
@@ -85,7 +89,7 @@ def test_validation_loop_sets_and_views(page, server, ready):
     assert page.locator('[data-testid="val-fit-pv"]').inner_text().strip().endswith("%")
     page.locator('[data-testid="val-reset"]').click()
     page.wait_for_timeout(1200)
-    assert _call(server, page, "GET", "/workspaces/{wid}/settings").get("val_rng") in (None, [])
+    assert _call(server, page, "GET", "/api/v1/workspaces/{wid}/settings").get("val_rng") in (None, [])
     # pohledy na model
     page.wait_for_selector('[data-testid="step-chart"]')
     assert int(page.locator('[data-testid="step-chart"]').get_attribute("data-n")) >= 1
@@ -96,12 +100,16 @@ def test_validation_loop_sets_and_views(page, server, ready):
 
 def test_model_on_full_record_by_default(page, server, ready):
     """Model se ve výchozím stavu kreslí přes celý záznam; „jen v úsecích“ je volba."""
-    rng = page.locator('[data-testid="model-trend"] .pidw-range')
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
+    page.locator('[data-testid="model-trend"] [data-testid="vw-m-view"]').wait_for(timeout=30000)
+    menu(page, '[data-testid="model-trend"]', "view")                       # přepínače modelu jsou v nabídce Zobrazení
+    rng = page.locator('[data-testid="model-trend"] [data-g="mrange"]')
     rng.first.wait_for(timeout=30000)
-    assert rng.first.locator("button.on").get_attribute("data-v") == "full"
+    assert rng.first.locator('[aria-checked="true"]').get_attribute("data-v") == "full"
 
 
 def test_closed_loop_panel(page, server, ready):
+    page.locator('[data-testid="model-subtabs"] [data-sub="ident"]').click()
     page.locator('[data-testid="id-mode"]').select_option("cl")
     page.wait_for_selector('[data-testid="cl-note"]', timeout=20000)
     # regulátor v záznamu (Sada 1) se zadává přímo v Modelu, v jednotkách bloku; je to táž Sada 1 jako v Ladění
@@ -111,7 +119,7 @@ def test_closed_loop_panel(page, server, ready):
     g.fill("1.25")
     g.press("Enter")
     page.wait_for_function("() => Math.abs(+document.querySelector('[data-testid=\"rec-Gain\"]').value - 1.25) < 1e-9")
-    assert _call(server, page, "GET", "/workspaces/{wid}/settings")["set1_gain"] == 1.25
+    assert _call(server, page, "GET", "/api/v1/workspaces/{wid}/settings")["set1_gain"] == 1.25
     page.locator('[data-testid="set1-estimate"]').click()
     page.wait_for_selector('[data-testid="set1-msg"]', timeout=30000)
     # odhad ze záznamu přepíše Sadu 1 a karta se obnoví

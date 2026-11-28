@@ -19,6 +19,7 @@ from ..core import MODELS, iae, pidconl_sim_full, predict, propfac, robustness
 from ..i18n import T, lang
 from .colors import C_DIST
 from .plots import C_MV, C_PV, C_SET1, C_SET2, C_SP, mkfig, report_template, tr
+from .tuning import is_placeholder
 
 SECTIONS = ["model", "tuning", "response", "apc", "signoff"]       # výchozí sekce (původní protokol)
 STATUSES = ["draft", "deployed", "verified", "rejected"]
@@ -413,18 +414,27 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
         parts.append(f"<h2>{E(T('rp_summary'))}</h2><p class='muted'>{E(T('rp_summary_help'))}</p>")
         head = "".join(f"<th>{E(h)}</th>" for h in (T("rp_loop"), T("rp_model"), "FIT", "Gain", "TI [s]", "TD [s]", "Ms",
                                                      T("rp_iae_sp"), T("rp_iae_d"), "APC"))
-        rows = []
+        rows, empty_any = [], False
         for r in recs:
             d = data[r["id"]]
-            def chg(a, b, better_low=None, fmt=_f):
+            c1, c2 = r["ctrl1"], r["ctrl"]
+            if "set2_defined" in r:                 # výslovný příznak; staré snímky deníku ho nemají → porovnání s výchozími
+                empty2 = not r["set2_defined"]
+            else:
+                empty2 = is_placeholder(float(c2["Gain"]), float(_ti(c2)), float(c2.get("TD", 0)))   # Set 2 ještě nezadaný
+            empty_any |= empty2
+            def chg(a, b, better_low=None, fmt=_f, empty2=empty2):
+                if empty2:
+                    return f"<td class='num'>{fmt(a)} → —</td>"
                 cls = ""
                 if better_low is not None and np.isfinite(a) and np.isfinite(b) and a != b:
                     cls = "better" if (b < a) == better_low else "worse"
                 return f"<td class='num'>{fmt(a)} → <span class='chg {cls}'>{fmt(b)}</span></td>"
-            def ms_cell(a, b):   # Ms je v pořádku do ≈ 2; červeně jen nad tím (vyšší Ms = rychlejší, ale méně robustní)
+            def ms_cell(a, b, empty2=empty2):   # Ms je v pořádku do ≈ 2; červeně jen nad tím (vyšší Ms = rychlejší, ale méně robustní)
+                if empty2:
+                    return f"<td class='num'>{_f(a, 3)} → —</td>"
                 cls = "worse" if np.isfinite(b) and b > 2.0 else ("better" if np.isfinite(a) and a > 2.0 >= b else "")
                 return f"<td class='num'>{_f(a, 3)} → <span class='chg {cls}'>{_f(b, 3)}</span></td>"
-            c1, c2 = r["ctrl1"], r["ctrl"]
             rows.append("<tr>" + f"<td><b>{E(r['name'])}</b></td><td>{E(T('model_' + r['model'][0]))}</td>"
                         f"<td class='num'>{_f(r.get('fit'), 3)} %</td>"
                         + chg(c1["Gain"], c2["Gain"]) + chg(_ti(c1), _ti(c2)) + chg(c1.get("TD", 0), c2.get("TD", 0))
@@ -433,6 +443,8 @@ def build_report(recs, meta, sections, chart_mode="inline", model_data=None, apc
                         + chg(d["resp"]["1"]["iae_d"], d["resp"]["2"]["iae_d"], True, lambda v: _f(v, 3))
                         + f"<td>{E(', '.join('FF ' + dn for dn, _, _ in ff_used(r)) or '—')}</td></tr>")
         parts.append(f"<table><tr>{head}</tr>{''.join(rows)}</table>")
+        if empty_any:
+            parts.append(f"<p class='muted'>{E(T('rp_set2_empty'))}</p>")
 
     first_fig = True
     for r in recs:

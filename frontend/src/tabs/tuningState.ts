@@ -30,6 +30,7 @@ interface TunState {
   lenUnit: Unit;
   cmp: CmpRow[] | null;
   cmpBusy: boolean;
+  calc: (() => void) | null;        // akce „Vypočítat“ (nastaví ji karta s tlačítkem, volá ji zkratka F5)
   set: (p: Partial<TunState>) => void;
 }
 
@@ -37,7 +38,7 @@ const fresh = (wid: string | null) => ({ wid, method: null, sug: null, err: null
   cmp: null, cmpBusy: false });
 
 export const useTun = create<TunState>((set) => ({
-  ...fresh(null), view: "time", unit: "auto", measure: false, spread: false, robust: false, ffcmp: false, lenUnit: "auto",
+  ...fresh(null), view: "time", unit: "auto", measure: false, spread: false, robust: false, ffcmp: false, lenUnit: "auto", calc: null,
   set: (p) => set(p),
 }));
 

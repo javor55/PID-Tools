@@ -8,7 +8,7 @@ import { api, request } from "../api/client";
 import type { components } from "../api/schema";
 import { useWs, useWsQuery } from "../data";
 import { useT, useTexts } from "../i18n";
-import { type TabId, useUi } from "../store";
+import { modelSubOf, type TabId, useUi } from "../store";
 import { PublicNotice } from "../deploy";
 import { LabelHelp, Md } from "./Ui";
 
@@ -19,17 +19,27 @@ type Loops = components["schemas"]["Loops"];
 const TAB_KEY: Record<TabId, string> = {
   data: "data", model: "model", tuning: "tuning", live: "live", apc: "apc", diag: "diag", loops: "audit", project: "project",
 };
-const CARDS = ["steps", "checklist", "tables", "glossary"] as const;
+const CARDS = ["steps", "checklist", "tables", "glossary", "keys"] as const;
 type Card = (typeof CARDS)[number];
 const MARK = { ok: "✓", warn: "!", todo: "–" } as const;
 
 /** Text bez diakritiky a velkých písmen (hledání „ladeni“ najde „Ladění“). */
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+/** Akce kontrolního seznamu: přepne záložku a zvýrazní cílový prvek (sdílí průvodce i řádek „Další krok“). */
+export function runGuideAction(a: { tab: string; target?: string | null }) {
+  useUi.getState().setTab(a.tab as TabId);
+  focusTarget(a.target);
+}
+
 /** Přepnutí na prvek záložky (data-testid): rozbalí nadřazené karty, posune, zaostří a krátce zvýrazní. */
 export function focusTarget(target: string | null | undefined) {
   if (!target) return;
   const id = target === "add-loop" ? "loop-add-head" : target;
+  // prvek hlavní plochy Modelu leží v jedné z podzáložek: přepne se před hledáním prvku
+  const ui = useUi.getState();
+  const msub = ui.tab === "model" ? modelSubOf(id) : null;
+  if (msub && msub !== ui.modelSub) ui.setModelSub(msub);
   let tries = 0;
   const tick = () => {
     const el = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
@@ -90,6 +100,16 @@ function Tables({ g }: { g: Guide }) {
   );
 }
 
+/** Přehled klávesových zkratek (stejný text jako v dk_keys_body, tabulku vykreslí Md). */
+function Keys() {
+  const T = useT();
+  return (
+    <section aria-label={T("ui_guide_keys")} className="g-col" data-testid="guide-keys">
+      <Md text={T("dk_keys_body")} />
+    </section>
+  );
+}
+
 function Glossary({ g, extra }: { g: Guide; extra?: boolean }) {
   const T = useT();
   const health = useQuery({ queryKey: ["health"], queryFn: api.health, retry: false });
@@ -140,7 +160,6 @@ export function HelpButton() {
   const tab: TabId = tab0 === "data" ? (sub === "diag-all" ? "loops" : sub === "diag-detail" ? "diag" : "data") : tab0;      // průvodce Diagnostiky
   const wid = useUi((s) => s.wid);
   const lang = useUi((s) => s.lang);
-  const setTab = useUi((s) => s.setTab);
   const ws = useWs().data;
   const loops = useWsQuery<Loops>("loops", "/loops").data;
   const ref = useRef<HTMLDialogElement>(null);
@@ -164,8 +183,7 @@ export function HelpButton() {
   const loopName = loop ? (loop.name || T("loop_n", { n: loop.index + 1 })) : "";
   const go = (a: Action) => {
     hide();
-    setTab(a.tab as TabId);
-    focusTarget(a.target);
+    runGuideAction(a);
   };
   const data = g.data;
   return (
@@ -195,6 +213,7 @@ export function HelpButton() {
             : card === "steps" ? <Steps g={data} />
             : card === "checklist" ? <Checklist g={data} go={go} />
             : card === "tables" ? <Tables g={data} />
+            : card === "keys" ? <Keys />
             : <Glossary g={data} extra />}
         </div>
         <div className="g-foot">

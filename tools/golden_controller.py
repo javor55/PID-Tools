@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 GOLDEN = os.path.join(ROOT, "tests", "golden", "controller_golden.npz")
-ENGINE = os.path.join(ROOT, "pidtools", "ui", "static", "live_engine.js")
+ENGINE = os.path.join(ROOT, "frontend", "src", "legacy", "live_engine.js")
 NODE = shutil.which("node")
 
 PROCS = {                          # kód, parametry, Gain, TI, TD, nový krok h

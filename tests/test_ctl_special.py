@@ -13,7 +13,7 @@ from pidtools.controllers import load_preset
 from pidtools.controllers.parts import PARTS
 from pidtools.core.controller import REGISTRIES, Controller, Profile, nonlinear_parts
 
-ENGINE = os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "ctrl_engine.js")
+ENGINE = os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "legacy", "ctrl_engine.js")
 NODE = shutil.which("node")
 BASE = dict(Gain=0.9, TI=30.0, TD=3.0, DiffGain=5.0, SampleTime=1.0, MV_Lo=0.0, MV_Hi=100.0)
 

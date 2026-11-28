@@ -29,10 +29,10 @@ class LoopDef:
     name: str
     pv: str
     mv: str
-    sp: str = None
-    pos: str = None
-    pv_rng: tuple = None
-    mv_rng: tuple = None
+    sp: str | None = None
+    pos: str | None = None
+    pv_rng: tuple | None = None
+    mv_rng: tuple | None = None
     integ: bool = False
     extra: dict = field(default_factory=dict)
 

@@ -1,4 +1,4 @@
-# Tests and lint on every push and pull request (web, application layer, desktop without a display).
+# Tests and lint on every push and pull request (API, application layer, web UI).
 name: Tests
 
 on:
@@ -22,17 +22,17 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: System libraries for Qt (offscreen)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
-
       - name: Install
-        run: pip install -r requirements.txt -r requirements-desktop.txt -r requirements-api.txt -r requirements-dev.txt
+        run: pip install -r requirements.txt -r requirements-api.txt -r requirements-dev.txt
 
       - name: Browser for the UI test (Chromium)
         run: python -m playwright install --with-deps chromium
 
       - name: Lint
         run: ruff check .
+
+      - name: Types (mypy)
+        run: mypy pidtools/api pidtools/app/workspace
 
       # nové rozhraní (frontend/, React + TS): typy z openapi.json, lint, typy, testy, sestavení → pidtools/api/ui
       - uses: actions/setup-node@v5
@@ -54,6 +54,4 @@ jobs:
         run: npm run lint && npm run typecheck && npm test && npm run build
 
       - name: Tests
-        env:
-          QT_QPA_PLATFORM: offscreen
         run: python -m pytest -q

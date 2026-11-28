@@ -121,7 +121,7 @@ const ROW_LABEL: Record<string, string> = { inner: "cas_inner", outer: "ui_cas_o
 function ValuesCard({ d }: { d: CascadeInfo }) {
   const T = useT();
   return (
-    <ACard title={T("ui_cas_values")} help={T("ui_apc_pcs_h")} testid="cas-values">
+    <ACard title={T("ui_cas_values")} help={T("ui_apc_pcs_h")} testid="cas-values" copy>
       <div className="apc-tblwrap"><table className="apc-vt"><thead><tr><th>{T("sm_apl_block")}</th><th>{T("sm_gen_par")}</th><th>{T("sm_apl_value")}</th>
         <th>{T("sm_apl_unit")}</th></tr></thead>
         <tbody>{d.rows.map((r) => {

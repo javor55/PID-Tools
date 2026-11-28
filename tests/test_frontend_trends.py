@@ -14,9 +14,11 @@ import pytest
 
 pytest.importorskip("playwright.sync_api")
 import test_frontend as _tf  # noqa: E402
+from chartmenu import menu  # noqa: E402
 
 TOKEN = _tf.TOKEN
 server, page = _tf.server, _tf.page                      # fixtury serveru a prohlížeče
+TV = '[data-testid="trd-viewer"]'
 
 
 def _call(server, page, method, path, body=None, raw=None):
@@ -106,6 +108,7 @@ def test_layout_presets(trends):
 
 def test_independent_cursors_and_readout(trends):
     bar = trends.locator('[data-testid="trd-viewer"] .pidv-bar')
+    menu(trends, TV, "cur")
     bar.locator("[data-a=cur]").click()
     trends.wait_for_selector('[data-testid="trd-viewer"] .pidv-read table')
     st = trends.evaluate("() => window.__pidView.trends_view.state()")
@@ -126,18 +129,22 @@ def test_independent_cursors_and_readout(trends):
     st = trends.evaluate("() => window.__pidView.trends_view.state()")
     assert st["cur"]["a"] < st["cur"]["b"]
     # vypnutí časových: hodnotové zůstanou
+    menu(trends, TV, "cur")
     bar.locator("[data-a=cur]").click()
     st = trends.evaluate("() => window.__pidView.trends_view.state()")
     assert not st["cur"]["on"] and st["hc"]["on"]
     bar.locator("[data-a=hcur]").click()
+    menu(trends, TV, "cur", False)
 
 
 def test_exports_csv_and_png(trends):
     bar = trends.locator('[data-testid="trd-viewer"] .pidv-bar')
+    menu(trends, TV, "exp")
     with trends.expect_download() as dl:
         bar.locator("[data-a=csv_view]").click()
     text = open(dl.value.path(), encoding="utf-8-sig").read()
     assert "TIC102.PV" in text.split("\n")[0] and len(text.split("\n")) > 100
+    menu(trends, TV, "exp")
     with trends.expect_download() as dl:
         bar.locator("[data-a=png]").click()
     assert open(dl.value.path(), "rb").read(8) == b"\x89PNG\r\n\x1a\n"
@@ -145,10 +152,14 @@ def test_exports_csv_and_png(trends):
 
 def test_mark_range_for_model(trends, server):
     if trends.evaluate("() => window.__pidView.trends_view.state().cur.on"):          # kurzory z předchozího testu vypnout
+        menu(trends, TV, "cur")
         trends.locator('[data-testid="trd-viewer"] .pidv-bar [data-a=cur]').click()
+        menu(trends, TV, "cur", False)
     trends.locator('[data-testid="trd-mark-model"]').click()                      # bez kurzorů: hláška
     trends.wait_for_selector('[data-testid="trd-mark-msg"].trd-err')
+    menu(trends, TV, "cur")
     trends.locator('[data-testid="trd-viewer"] .pidv-bar [data-a=cur]').click()
+    menu(trends, TV, "cur", False)
     before = _call(server, trends, "GET", "/workspaces/{wid}")["rng"]
     st = trends.evaluate("() => window.__pidView.trends_view.state().cur")
     trends.locator('[data-testid="trd-mark-model"]').click()

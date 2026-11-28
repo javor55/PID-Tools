@@ -26,7 +26,7 @@ pub fn deliver(port: u16, token: &str, path: &Path) -> Result<(), String> {
         return Err(format!("{}: file too large", path.display()));
     }
     let raw = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let r = http::request_body(port, "PUT", "/pending-open", Some(token), &raw)?;
+    let r = http::request_body(port, "PUT", "/api/v1/pending-open", Some(token), &raw)?;
     if r.status == 204 { Ok(()) } else { Err(format!("PUT /pending-open -> {}", r.status)) }
 }
 
@@ -77,7 +77,7 @@ mod tests {
         });
         deliver(port, "tok", &f).unwrap();
         let req = h.join().unwrap();
-        assert!(req.starts_with("PUT /pending-open HTTP/1.1") && req.contains("X-PID-Token: tok"));
+        assert!(req.starts_with("PUT /api/v1/pending-open HTTP/1.1") && req.contains("X-PID-Token: tok"));
         assert!(req.ends_with("{\"version\":2}"));
         assert!(deliver(port, "tok", &dir.join("missing.pidproj")).is_err());
         std::fs::remove_dir_all(&dir).ok();

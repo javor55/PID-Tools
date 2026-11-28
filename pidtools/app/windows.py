@@ -192,9 +192,12 @@ def window_checks(code, r, t, pv, mv, Ts, dists, wins_s, valid, dsigns, c_d, fw=
 
 # ---- struktura přenosu poruchy po identifikaci (výběr podle FIT, ruční úpravy)
 def cmp_of(r, j):
-    """Porovnání struktur přenosu poruchy j z identifikace [(struktura, FIT, parametry | chyba)] (i z projektu)."""
+    """
+    Porovnání struktur přenosu poruchy j z identifikace [(struktura, FIT, parametry | chyba, NRMSE, hodnocení)];
+    starší projekty mají jen trojice – chybějící NRMSE a hodnocení jsou None.
+    """
     c = r.get("dv_cmp") or {}
-    return c.get(j, c.get(str(j))) or []
+    return [tuple(x) + (None,) * (5 - len(x)) for x in (c.get(j, c.get(str(j))) or [])]
 
 
 def dist_id(code, r, j):
@@ -210,7 +213,7 @@ def dsel(get, code, r, j):
 
 def dsel_options(code, r, j):
     """Struktury k výběru (identifikovaná a ty z porovnání s FIT) a jejich FIT."""
-    fits = {st_: f_ for st_, f_, _ in cmp_of(r, j) if f_ is not None}
+    fits = {st_: f_ for st_, f_, *_ in cmp_of(r, j) if f_ is not None}
     opts = list(fits) or [dist_id(code, r, j)]
     if dist_id(code, r, j) not in opts:
         opts = [dist_id(code, r, j)] + opts
@@ -221,7 +224,7 @@ def dsel_pd(get, code, r, j):
     """Parametry poruchy j pro zvolenou strukturu: identifikované, nebo z porovnání struktur."""
     sel = dsel(get, code, r, j)
     if sel != dist_id(code, r, j):
-        for st_, f_, pd_ in cmp_of(r, j):
+        for st_, f_, pd_, *_ in cmp_of(r, j):
             if st_ == sel and f_ is not None:
                 return pd_full(pd_)
     return pd_full(r["pdl"][j])

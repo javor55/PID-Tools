@@ -10,16 +10,16 @@ from typing import Annotated, Literal
 
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..app import loopmode as lm
-from ..core import DIST_FIELDS, MODELS, step_response
+from ..core import DIST_FIELDS, pd_z, step_response
 from ..app import model as mdl
 from ..app import signalpack
 from ..app import windows as wn
 from . import tasks
 from .data import _plain
-from .common import JobInfo, job_info
+from .common import JobInfo, job_info, model_params
 
 
 class Windows(BaseModel):
@@ -50,6 +50,10 @@ class DistCmp(BaseModel):
     struct: str                     # kandidátní struktura (P0D … I1D)
     fit: float | None = None        # FIT fitu jen parametrů poruchy (None = fit selhal)
     error: str | None = None
+    nrmse: float | None = Field(default=None)     # NRMSE [%] celého modelu s touto strukturou (None = starý projekt)
+    status: int | None = Field(default=None)      # hodnocení 0..4 jako u modelů MV
+    p: list[float] = Field(default_factory=list)  # parametry poruchy v pořadí polí karty (fields struktury)
+    names: list[str] = Field(default_factory=list)  # jejich názvy (DIST_FIELDS struktury, jako pole karty poruchy)
 
 
 class DistInfo(BaseModel):
@@ -227,8 +231,11 @@ def _f(x):
 def _dist_info(ws, c, r, j, nm):
     """Porucha j výsledku r: zvolená a identifikovaná struktura, porovnání struktur s FIT."""
     sel = wn.dsel(ws.get, c, r, j)
-    cmp_ = [DistCmp(struct=st_, fit=_f(f_), error=None if f_ is not None else str(pd_))
-            for st_, f_, pd_ in wn.cmp_of(r, j)]
+    cmp_ = [DistCmp(struct=st_, fit=_f(f_), error=None if f_ is not None else str(pd_), nrmse=_f(nr),
+                    status=None if stt is None else int(stt),
+                    p=[] if f_ is None else [float(pd_z(pd_)[i]) for _, i in DIST_FIELDS[st_]],
+                    names=[str(n) for n, _ in DIST_FIELDS[st_]])
+            for st_, f_, pd_, nr, stt in wn.cmp_of(r, j)]
     return DistInfo(name=str(nm), struct=sel, ident=wn.dist_id(c, r, j), fields=[list(f) for f in DIST_FIELDS[sel]],
                     cmp=cmp_, flat=j in set(r.get("dv_flat") or ()))
 
@@ -248,7 +255,7 @@ def model_state(ws):
         q = summ.get(c, {})
         wf = ws.window_fits(c) if r.get("method") == "win" and ws.inputs_mode else []
         out.append(ModelRes(
-            code=c, names=list(MODELS[c]["params"]),
+            code=c, names=model_params(c),
             dists=[_dist_info(ws, c, r, j, nm) for j, nm in enumerate(ws.c_d)],
             p=[float(x) for x in r["p"]], pdl=[[float(x) for x in d_] for d_ in r.get("pdl", [])],
             fit=_f(r.get("fit")), fit_live=_f(live.get(c)), nrmse=_f(q.get("NRMSE")), status=q.get("status"),
@@ -315,10 +322,11 @@ def router(get_proj, jobs):
         """Úloha nad kopií prostoru; výsledek se po dokončení zapíše do prostoru (pokud mezitím nezmizel)."""
         def done(out):
             try:
-                cur = get_proj(wid).state
+                proj = get_proj(wid)
             except HTTPException:
                 return
-            tasks.apply(cur, out)
+            proj.undo_clear()                       # výsledek úlohy mění model a nastavení: zpět / znovu by neplatilo
+            tasks.apply(proj.state, out)
         jid = jobs.submit(tasks.run, ws.lean(), method, args, kwargs, steps, key=key, timeout=timeout,
                           on_done=done)
         return job_info(jobs, jid)

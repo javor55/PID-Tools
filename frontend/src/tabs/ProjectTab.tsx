@@ -1,82 +1,34 @@
 // Záložka Projekt a report (M21): uložení / otevření projektu (soubor), údaje a volby protokolu, náhled protokolu
 // (HTML v izolovaném iframe) a jeho stažení.
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { create } from "zustand";
-import { ApiError, bytes, rawRequest } from "../api/client";
+import { ApiError, bytes } from "../api/client";
 import { Card } from "../components/Card";
 import { TextSetting } from "../components/Fields";
 import { PrimaryAction, SideCard, Seg } from "../components/Ui";
 import { usePatchSettings, useSettings } from "../data";
 import { useLanguages, useT } from "../i18n";
 import { useUi } from "../store";
+import { PROJECT_EXT, projectBaseName, saveAs, saveProject, useSaveOpts } from "../start/project";
 import { useSections } from "./project/api";
 import { JournalMain } from "./project/JournalMain";
 import { JournalSide } from "./project/JournalSide";
+import { LoopsMain } from "./project/LoopsMain";
+import { openProject, useProjMsg } from "./project/pendingOpen";
 import { STATUSES, useProjSub, useReport } from "./project/state";
 import "../styles/project.css";
 
-/** Přípona souborů projektu: výchozí `.pidproj`, otevřít jde i starší `.json` (obsah je stejný JSON). */
-export const PROJECT_EXT = ".pidproj";
+/** Výběr souboru při otevření projektu: vedle `.pidproj` (PROJECT_EXT ve start/project.ts) jde i starší `.json`. */
 export const PROJECT_ACCEPT = `${PROJECT_EXT},.json,application/json`;
-const PENDING_EVENT = "pidtools:pending-open";      // okno desktopu ho vyvolá po uložení souboru k otevření
-
-interface ProjMsg { err: boolean; text: string }
-const useProjMsg = create<{ msg: ProjMsg | null; set: (m: ProjMsg | null) => void }>((set) => ({ msg: null, set: (msg) => set({ msg }) }));
-
-/** Nahraje projekt (bajty souboru) do prostoru a zneplatní jeho dotazy. */
-async function openProject(wid: string, raw: ArrayBuffer, qc: QueryClient, T: (k: string) => string) {
-  useProjMsg.getState().set(null);
-  try {
-    await rawRequest("PUT", `/workspaces/${wid}/project`, raw);
-    await qc.invalidateQueries({ queryKey: ["ws", wid] });
-    useReport.getState().set({ html: null, err: null });
-    useProjMsg.getState().set({ err: false, text: T("ui_proj_opened") });
-  } catch (e) {
-    useProjMsg.getState().set({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) });
-  }
-}
-
-/** Projekt otevřený poklepem na soubor v okně desktopu: při startu a po události od okna se vyzvedne z `/pending-open`. */
-export function usePendingOpen() {
-  const T = useT();
-  const wid = useUi((s) => s.wid);
-  const qc = useQueryClient();
-  useEffect(() => {
-    if (!wid) return;
-    let busy = false;
-    const check = async () => {
-      if (busy) return;
-      busy = true;
-      try {
-        const raw = await bytes("GET", "/pending-open");
-        if (raw.byteLength > 0) { useUi.getState().setTab("project"); await openProject(wid, raw, qc, T); }
-      } catch { /* bez čekajícího souboru / nedostupné (týmový režim) */ } finally { busy = false; }
-    };
-    void check();
-    window.addEventListener(PENDING_EVENT, check);
-    return () => window.removeEventListener(PENDING_EVENT, check);
-  }, [wid, qc, T]);
-}
-
 function hashOf(s: string): string {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return `${s.length}:${h}`;
 }
 
-function saveAs(name: string, data: BlobPart, type: string) {
-  const a = document.createElement("a");
-  const url = URL.createObjectURL(new Blob([data], { type }));
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
-
 function useBaseName() {
   const tag = String(useSettings().data?.loop_tag ?? "");
-  const base = (tag || "pidtools").replace(/[^\w.-]+/gu, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "pidtools";
-  return `${base}_${new Date().toISOString().slice(0, 10)}`;
+  return projectBaseName(tag);
 }
 
 export function ProjectMain() {
@@ -85,9 +37,9 @@ export function ProjectMain() {
   const T = useT();
   return (
     <div className="stack">
-      <Seg value={sub} options={["report", "journal"] as const} label={T("jr_tab_report")} testid="proj-sub" help="h_jr_tabs"
+      <Seg value={sub} options={["report", "journal", "loops"] as const} label={T("jr_tab_report")} testid="proj-sub" help="h_jr_tabs"
         fmt={(v) => T("jr_tab_" + v)} onChange={setSub} />
-      {sub === "journal" ? <JournalMain /> : <ReportMain />}
+      {sub === "journal" ? <JournalMain /> : sub === "loops" ? <LoopsMain /> : <ReportMain />}
     </div>
   );
 }
@@ -101,9 +53,12 @@ function ReportMain() {
   const htmlKey = useMemo(() => (html ? hashOf(html) : ""), [html]);
   useEffect(() => {
     if (!html) return;
+    // v náhledu je „Tisk / PDF“ nad rámečkem – tlačítko uvnitř protokolu (pro samostatný soubor) se skryje
+    const hide = "<style>button.print{display:none}</style>";
+    const shown = html.includes("</head>") ? html.replace("</head>", hide + "</head>") : hide + html;
     const on = (e: MessageEvent) => {
       if (e.source === frame.current?.contentWindow && (e.data as { pidReportReady?: boolean } | null)?.pidReportReady)
-        frame.current?.contentWindow?.postMessage({ pidReport: html }, "*");
+        frame.current?.contentWindow?.postMessage({ pidReport: shown }, "*");
     };
     window.addEventListener("message", on);
     return () => window.removeEventListener("message", on);
@@ -133,13 +88,14 @@ function ProjectBox() {
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
   const base = useBaseName();
-  const [withData, setWithData] = useState(true);
+  const withData = useSaveOpts((s) => s.withData);
+  const setWithData = useSaveOpts((s) => s.setWithData);
   const { msg, set: setMsg } = useProjMsg();
 
   async function save() {
     if (!wid) return;
     setMsg(null);
-    try { saveAs(`${base}_projekt${PROJECT_EXT}`, await bytes("GET", `/workspaces/${wid}/project?data=${withData}`), "application/json"); }
+    try { await saveProject({ wid, withData, base }); }
     catch (e) { setMsg({ err: true, text: e instanceof ApiError ? T(e.message) : String(e) }); }
   }
   async function open(f: File | undefined) {
@@ -238,5 +194,6 @@ function ReportBox({ pre }: { pre?: ReactNode }) {
 export function ProjectSide() {
   const sub = useProjSub((s) => s.sub);
   if (sub === "journal") return <><JournalSide /><ProjectBox /></>;
+  if (sub === "loops") return <ProjectBox />;
   return <ReportBox pre={<ProjectBox />} />;
 }

@@ -82,20 +82,20 @@ export function GainSchedSide() {
   );
 }
 
-const SERIES = (T: (k: string) => string, p: string): CurveDef[] => [
-  { name: T("gs_fixed"), key: `${p}_fixed`, color: "#9aa5b1", dash: "5 4" }, { name: T("gs_sched"), key: `${p}_sched`, color: "#15803d" }];
+const SERIES = (T: (k: string, a?: Record<string, unknown>) => string, p: string, set: number): CurveDef[] => [
+  { name: T("gs_fixed", { set }), key: `${p}_fixed`, color: "#9aa5b1", dash: "5 4" }, { name: T("gs_sched"), key: `${p}_sched`, color: "#15803d" }];
 
 function SimCard({ d }: { d: GsInfo }) {
   const T = useT();
   const st = useSettings().data ?? {};
   const { cv } = useSim<GsSim>(["gs-sim", d.inputs, d.points], "/apc/gainsched/simulate", "", {}, d.fitted);
   if (!d.fitted) return null;
-  const pv = [{ name: "SP", key: "sp", color: "#64748b", dash: "2 3" }, ...SERIES(T, "pv")];
+  const pv = [{ name: "SP", key: "sp", color: "#64748b", dash: "2 3" }, ...SERIES(T, "pv", d.ctrl_set)];
   return (
     <ACard title={T("gs_sim_title")} testid="gs-sim">
       <LineChart series={curveSeries(cv.data, pv)} height={220} yLabel={`PV ${String(st.u_pv ?? "")}`} xLabel={T("time_s")} testid="gs-pv" />
-      <LineChart series={curveSeries(cv.data, SERIES(T, "mv"))} height={140} yLabel={`MV ${String(st.u_mv ?? "")}`} xLabel={T("time_s")} testid="gs-mv" />
-      <LineChart series={curveSeries(cv.data, SERIES(T, "gain"))} height={120} yLabel="Gain" xLabel={T("time_s")} testid="gs-gain" />
+      <LineChart series={curveSeries(cv.data, SERIES(T, "mv", d.ctrl_set))} height={140} yLabel={`MV ${String(st.u_mv ?? "")}`} xLabel={T("time_s")} testid="gs-mv" />
+      <LineChart series={curveSeries(cv.data, SERIES(T, "gain", d.ctrl_set))} height={120} yLabel="Gain" xLabel={T("time_s")} testid="gs-gain" />
       <p className="small muted">{T("gs_sim_help")}</p>
     </ACard>
   );
@@ -140,7 +140,7 @@ function PointsCard({ d }: { d: GsInfo }) {
       <div className="apc-sub">{T("gs_s2")}</div>
       <div className="apc-tblwrap"><table className="apc-vt">
         <thead><tr><th>{T("gs_pt")}</th><th>PV</th><th>MV</th><th>{T("ui_gs_fit_pct")}</th><th>Gain</th><th>TI [s]</th><th>TD [s]</th>
-          <th title={T("apc_ui_gs_ms_h")}>{T("apc_ui_gs_ms_sched")}</th><th title={T("apc_ui_gs_ms_h")}>{T("apc_ui_gs_ms_fixed")}</th></tr></thead>
+          <th title={T("apc_ui_gs_ms_h", { set: d.ctrl_set })}>{T("apc_ui_gs_ms_sched")}</th><th title={T("apc_ui_gs_ms_h", { set: d.ctrl_set })}>{T("apc_ui_gs_ms_fixed")}</th></tr></thead>
         <tbody>{d.points.map((p) => (
           <tr key={p.index} data-testid={`gs-point-${p.index}`}><td>{p.index + 1}</td><td className="mono">{num(p.x)}</td>
             <td className="mono">{num(p.u)}</td><td className="mono">{num(p.fit)}</td>
@@ -151,7 +151,7 @@ function PointsCard({ d }: { d: GsInfo }) {
       </table></div>
       <div className="small" data-testid="gs-fits">{T("dk_gs_fits", { f: d.points.map((p) => `${p.fit.toFixed(0)} %`).join(", ") })}
         {d.filled && <> · {T("dk_gs_filled")}</>}</div>
-      <div className="small muted">{T("gs_pts_help")}</div>
+      <div className="small muted">{T("gs_pts_help", { set: d.ctrl_set })}</div>
     </div>
   );
 }
@@ -179,7 +179,7 @@ export function GainSchedMain() {
         <KpiTable d={d} />
       </ACard>
       {d.fitted && (
-        <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="gs-table-card">
+        <ACard title={T("gs_tab_title")} help={T("ui_apc_pcs_h")} testid="gs-table-card" copy>
           <PointTable rows={d.table} testid="gs-table" />
         </ACard>
       )}

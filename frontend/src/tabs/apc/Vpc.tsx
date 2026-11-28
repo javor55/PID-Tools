@@ -78,7 +78,7 @@ export function VpcMain() {
             { key: "reserve", label: T("vpc_reserve"), best: "max", values: V.map((v) => sim.kpis[v]?.reserve) }]} />
         )}
       </ACard>
-      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="vpc-template">
+      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="vpc-template" copy>
         <ValueTable testid="vpc-val" rows={[
           { key: "sp", name: T("vpc_sp"), value: body.sp, unit: "%" },
           { key: "kc", name: "Gain", value: d.controller.Kc, unit: "–" },

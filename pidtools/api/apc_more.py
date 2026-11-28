@@ -7,7 +7,7 @@ neukládají (jen stav widgetů), proto jsou vstupy tělem požadavku; GET vrac�
 hodnoty“) a výsledky pro ně. RGA nemá vstupy: počítá z modelů všech smyček projektu (aktivní + ostatní s modelem).
 Výpočty jsou na demu pod 0,1–0,3 s, proto bez úloh.
 """
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Response
@@ -18,7 +18,7 @@ from ..app.apc import ratio as aratio
 from ..app.apc import rgan
 from ..app.apc import splitrange as asr
 from ..app.apc import vpc as avpc
-from ..core import MODELS
+from .common import model_params
 from ..i18n import T
 from .data import _plain
 from .tuning import Note, Pid
@@ -52,7 +52,7 @@ def _checks(items):
 
 
 def _model_info(g):
-    return ModelInfo(code=g[0], params=list(MODELS[g[0]]["params"]), values=[float(v) for v in g[1]])
+    return ModelInfo(code=g[0], params=model_params(g[0]), values=[float(v) for v in g[1]])
 
 
 def _own_model(ws, p, what):
@@ -60,8 +60,8 @@ def _own_model(ws, p, what):
     code = ws.model[0]
     if p is None:
         return None
-    if len(p) != len(MODELS[code]["params"]):
-        raise HTTPException(422, f"{what}: expected {len(MODELS[code]['params'])} parameters for {code}")
+    if len(p) != len(model_params(code)):
+        raise HTTPException(422, f"{what}: expected {len(model_params(code))} parameters for {code}")
     if not all(np.isfinite(p)):
         raise HTTPException(422, f"{what}: parameters must be finite")
     return code, [float(p[0])] + [max(float(v), 0.0) for v in p[1:]]
@@ -86,14 +86,14 @@ def _same_grid(*ts):
         raise HTTPException(500, "inconsistent simulation grids")
 
 
-CURVES = {200: {"content": {"application/octet-stream": {}}}}
+CURVES: dict[int, dict[str, Any]] = {200: {"content": {"application/octet-stream": {}}}}
 
 
 # ---- split range
 class SplitIn(BaseModel):
     mode: MODE = "opposite"
-    b0: float = Field(50.0, ge=1, le=99)         # současný bod rozdělení [%]
-    gap: float = Field(0.0, ge=-20, le=20)       # mezera (překryv / pásmo) [%]
+    b0: float = Field(default=50.0, ge=1, le=99)         # současný bod rozdělení [%]
+    gap: float = Field(default=0.0, ge=-20, le=20)       # mezera (překryv / pásmo) [%]
     valve_a: list[float] | None = None           # parametry modelu ventilu A; None = výchozí (default_a)
 
 
@@ -125,6 +125,7 @@ class SplitDesign(BaseModel):
 
 class SplitInfo(BaseModel):
     model: str
+    ctrl_set: Literal[1, 2]      # pracovní sada regulátoru
     defaults: SplitIn            # včetně výchozího modelu ventilu A (valve_a vyplněno)
     design: SplitDesign
 
@@ -158,7 +159,7 @@ def _split_design(proj, body):
     ws = proj.state
     ga, gb = _split_models(ws, body)
     bstar = asr.balanced(ga[1][0], gb[1][0])
-    ctrl = ws.set_ctrl(2)
+    ctrl = ws.work_ctrl()
     up1 = asr.eff_gains(ga[1][0], gb[1][0], bstar, body.mode)[1]
     return SplitDesign(mode=body.mode, b0=body.b0, gap=body.gap, valve_a=_model_info(ga), valve_b=_model_info(gb),
                        bstar=bstar, corr=float(ws.model[1][0] / up1 if up1 else 1.0),
@@ -171,7 +172,7 @@ def _split_design(proj, body):
 def _split_run(ws, body):
     ga, gb = _split_models(ws, body)
     bstar = asr.balanced(ga[1][0], gb[1][0])
-    runs, amp = asr.simulate(ga, gb, ws.set_ctrl(2), body.b0, bstar, body.mode, body.gap, float(ws.get("samp")))
+    runs, amp = asr.simulate(ga, gb, ws.work_ctrl(), body.b0, bstar, body.mode, body.gap, float(ws.get("samp")))
     return runs, amp, bstar
 
 
@@ -187,9 +188,9 @@ def _split_frame(ws, runs):
 # ---- VPC
 class VpcIn(BaseModel):
     mv2: list[float] | None = None               # parametry modelu MV2 (velký člen); None = výchozí
-    sp: float = Field(50.0, ge=5, le=95)         # SP regulátoru VPC = žádaná poloha MV1 [%]
-    factor: float = Field(5.0, ge=1, le=30)      # τc = factor × doba odezvy hlavní smyčky
-    d: float = Field(35.0, ge=-100, le=100)      # skok zatížení [% MV1]
+    sp: float = Field(default=50.0, ge=5, le=95)         # SP regulátoru VPC = žádaná poloha MV1 [%]
+    factor: float = Field(default=5.0, ge=1, le=30)      # τc = factor × doba odezvy hlavní smyčky
+    d: float = Field(default=35.0, ge=-100, le=100)      # skok zatížení [% MV1]
 
 
 class VpcDesign(BaseModel):
@@ -204,6 +205,7 @@ class VpcDesign(BaseModel):
 
 class VpcInfo(BaseModel):
     model: str
+    ctrl_set: Literal[1, 2]      # pracovní sada regulátoru
     defaults: VpcIn
     design: VpcDesign
 
@@ -223,7 +225,7 @@ class VpcSim(BaseModel):
 def _vpc_tune(ws, body):
     g1 = (ws.model[0], list(ws.model[1]))
     g2 = _own_model(ws, body.mv2, "mv2") or avpc.default_mv2(g1)
-    cv, p, tc = avpc.tune_vpc(g1, g2, ws.set_ctrl(2), ws.base_ctrl(), body.factor)
+    cv, p, tc = avpc.tune_vpc(g1, g2, ws.work_ctrl(), ws.base_ctrl(), body.factor)
     return g1, g2, cv, p, tc
 
 
@@ -231,15 +233,15 @@ def _vpc_design(proj, body):
     ws = proj.state
     g1, g2, cv, p, tc = _vpc_tune(ws, body)
     return VpcDesign(mv2=_model_info(g2), controller=Pid(Kc=float(cv["Gain"]), Ti=float(cv["TI"]), Td=float(cv["TD"])),
-                     surrogate=ModelInfo(code="P1D", params=list(MODELS["P1D"]["params"]), values=[float(x) for x in p]),
-                     tc=float(tc), loop_time=float(avpc.loop_time(g1, ws.set_ctrl(2))),
+                     surrogate=ModelInfo(code="P1D", params=model_params("P1D"), values=[float(x) for x in p]),
+                     tc=float(tc), loop_time=float(avpc.loop_time(g1, ws.work_ctrl())),
                      impl_text=T("g_impl_vpc", sp=f"{body.sp:.3g}", g=f"{cv['Gain']:.4g}", ti=f"{cv['TI']:.4g}"),
                      checks=_checks(guides.apc_actuators(_rec_a(proj), "vpc")))
 
 
 def _vpc_run(ws, body):
     g1, g2, cv, _, _ = _vpc_tune(ws, body)
-    return cv, avpc.simulate(g1, g2, ws.set_ctrl(2), cv, body.d, body.sp, float(ws.get("samp")))
+    return cv, avpc.simulate(g1, g2, ws.work_ctrl(), cv, body.d, body.sp, float(ws.get("samp")))
 
 
 def _vpc_frame(ws, runs):
@@ -253,10 +255,10 @@ def _vpc_frame(ws, runs):
 
 # ---- poměrová regulace
 class RatioIn(BaseModel):
-    air_loop: int | None = Field(None, ge=0)     # index smyčky vzduchu v projektu; None = zadaný model
+    air_loop: int | None = Field(default=None, ge=0)     # index smyčky vzduchu v projektu; None = zadaný model
     air: list[float] | None = None               # parametry modelu vzduchu (jen při air_loop = None)
-    R: float = Field(1.2, ge=0.01, le=100)       # poměr vzduch / palivo
-    step: float = Field(15.0, ge=-50, le=50)     # skok požadavku výkonu [%]
+    R: float = Field(default=1.2, ge=0.01, le=100)       # poměr vzduch / palivo
+    step: float = Field(default=15.0, ge=-50, le=50)     # skok požadavku výkonu [%]
 
 
 class RatioSource(BaseModel):
@@ -274,6 +276,7 @@ class RatioDesign(BaseModel):
 
 class RatioInfo(BaseModel):
     model: str
+    ctrl_set: Literal[1, 2]      # pracovní sada regulátoru
     defaults: RatioIn
     design: RatioDesign
 
@@ -295,13 +298,13 @@ def _ratio_air(proj, body):
     ws = proj.state
     gf = (ws.model[0], list(ws.model[1]))
     if body.air_loop is None:
-        return (_own_model(ws, body.air, "air") or aratio.default_air(gf)), ws.set_ctrl(2)
+        return (_own_model(ws, body.air, "air") or aratio.default_air(gf)), ws.work_ctrl()
     if body.air is not None:
         raise HTTPException(422, "air and air_loop are mutually exclusive")
     rec = dict(proj.others()).get(body.air_loop)
     if rec is None:
         raise HTTPException(404, "loop not found or without model")
-    return (rec["model"][0], list(rec["model"][1])), proj.loops[body.air_loop].set_ctrl(2)
+    return (rec["model"][0], list(rec["model"][1])), proj.loops[body.air_loop].work_ctrl()
 
 
 def _ratio_design(proj, body):
@@ -317,7 +320,7 @@ def _ratio_run(proj, body):
     ws = proj.state
     ga, ctrl_a = _ratio_air(proj, body)
     gf = (ws.model[0], list(ws.model[1]))
-    return aratio.simulate(gf, ga, ws.set_ctrl(2), ctrl_a, body.R, body.step, float(ws.get("samp")))
+    return aratio.simulate(gf, ga, ws.work_ctrl(), ctrl_a, body.R, body.step, float(ws.get("samp")))
 
 
 def _ratio_frame(runs, R):
@@ -346,7 +349,7 @@ class RgaInfo(BaseModel):
 
 def _rga_records(proj):
     pr = proj.state
-    return [dict(pr.report_record(), name=_loop_name(proj))] + [rec for _, rec in proj.others()]
+    return [dict(pr.apc_record(), name=_loop_name(proj))] + [rec for _, rec in proj.others()]
 
 
 def _rga_info(proj):
@@ -381,7 +384,7 @@ def router(get_proj):
         proj = need_model(wid)
         ga, _ = _split_models(proj.state, SplitIn(mode=mode, b0=b0, gap=gap))
         body = SplitIn(mode=mode, b0=b0, gap=gap, valve_a=list(ga[1]))
-        return SplitInfo(model=proj.state.model[0], defaults=body, design=_split_design(proj, body))
+        return SplitInfo(model=proj.state.model[0], ctrl_set=proj.state.work_set(), defaults=body, design=_split_design(proj, body))
 
     @r.post("/apc/split/design", response_model=SplitDesign)
     def split_design(wid: str, body: SplitIn):
@@ -411,7 +414,7 @@ def router(get_proj):
         proj = need_model(wid)
         ws = proj.state
         body = VpcIn(mv2=list(avpc.default_mv2((ws.model[0], list(ws.model[1])))[1]))
-        return VpcInfo(model=ws.model[0], defaults=body, design=_vpc_design(proj, body))
+        return VpcInfo(model=ws.model[0], ctrl_set=ws.work_set(), defaults=body, design=_vpc_design(proj, body))
 
     @r.post("/apc/vpc/design", response_model=VpcDesign)
     def vpc_design(wid: str, body: VpcIn):
@@ -443,7 +446,7 @@ def router(get_proj):
         ga, _ = _ratio_air(proj, body)
         if air_loop is None:
             body.air = list(ga[1])
-        return RatioInfo(model=proj.state.model[0], defaults=body, design=_ratio_design(proj, body))
+        return RatioInfo(model=proj.state.model[0], ctrl_set=proj.state.work_set(), defaults=body, design=_ratio_design(proj, body))
 
     @r.post("/apc/ratio/design", response_model=RatioDesign)
     def ratio_design(wid: str, body: RatioIn):

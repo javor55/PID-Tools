@@ -1,37 +1,35 @@
-// Záložka Model (M14): graf s úseky pro identifikaci (sdílený trend.js), tabulka modelů a výběr modelu;
+// Záložka Model (M14): graf s úseky pro identifikaci (prohlížeč záznamu, components/ModelChart.tsx), tabulka modelů a výběr modelu;
 // panel: data pro identifikaci (MAN / AUTO), režim úseků MV, modely a nastavení identifikace, Identifikovat.
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useRef } from "react";
 import { binary, request } from "../api/client";
 import type { components } from "../api/schema";
-import { unframe, series } from "../api/signals";
-import { Trend } from "../components/Trend";
+import { unframe } from "../api/signals";
+import { ModelChart } from "../components/ModelChart";
+import { useGridPack, useRawPack } from "../components/viewerMount";
+import { CopyTableButton } from "../components/Card";
 import { Help } from "../components/Ui";
 import { DistCompare, ModelDetails } from "./ModelDetails";
-import { DIST_STYLE, MV_STYLE, windowFits } from "./modelConst";
+import { DIST_STYLE, MV_STYLE } from "./modelConst";
 import { ModelViews, ValidationCard } from "./ModelValidation";
 import "../styles/model.css";
 import { usePatchSettings, useSettings, useWs, useWsQuery } from "../data";
-import { decOf, useDec, useT } from "../i18n";
+import { useDec, useT } from "../i18n";
 import { dur } from "../lib/format";
-import { decimate, pick, range, runs, timeUnit } from "../lib/series";
-import { useUi } from "../store";
+import { toastError } from "../components/Toasts";
+import { type ModelSub, useUi } from "../store";
 import { useQueryClient } from "@tanstack/react-query";
 
 type ModelState = components["schemas"]["ModelState"];
 type WindowsInfo = components["schemas"]["WindowsInfo"];
+type Validation = components["schemas"]["Validation"];
 
-const TXT = ["mode", "h_mode", "common", "inputs", "zoom", "zoom_all", "zoom_win", "zoom_note", "excluded", "m_all",
-  "m_mv", "m_dv", "resid", "r_win", "r_full", "model", "win", "drag_win", "start", "end", "zoom_one", "del", "add", "time", "back", "fwd", "overview", "ov_hint", "y_hint", "cur", "cur_hint"];
 function useModelData() {
   const wid = useUi((s) => s.wid);
   const ws = useWs().data;
   const settings = useSettings().data ?? {};
-  const grid = useQuery({
-    queryKey: ["ws", wid, "grid", ws?.pv, ws?.mv, ws?.sp, ws?.dists, ws?.n],
-    enabled: !!wid && !!ws?.has_data, staleTime: Infinity,
-    queryFn: async () => unframe(await binary(`/workspaces/${wid}/signals?source=grid`)),
-  });
+  const grid = useGridPack();
+  const raw = useRawPack();                      // ostatní signály záznamu lze přidat do grafu
   const windows = useWsQuery<WindowsInfo>("windows", "/windows");
   const model = useWsQuery<ModelState>("model", "/model");
   const hasModel = !!model.data?.current && !model.data?.stale;
@@ -40,65 +38,17 @@ function useModelData() {
     enabled: !!wid && hasModel,
     queryFn: async () => unframe(await binary(`/workspaces/${wid}/model/curves`)),
   });
-  return { ws, settings, grid: grid.data, windows: windows.data, model: model.data, curves: curves.data };
+  return { ws, settings, grid: grid.data, raw: raw.data, windows: windows.data, model: model.data, curves: curves.data };
 }
 
 export function ModelMain() {
   const T = useT();
   const wid = useUi((s) => s.wid);
-  const lang = useUi((s) => s.lang);
   const qc = useQueryClient();
   const patch = usePatchSettings();
-  const { ws, settings, grid, windows, model, curves } = useModelData();
+  const { ws, settings, grid, raw, windows, model, curves } = useModelData();
+  const sub: ModelSub = useUi((s) => s.modelSub);
   const winMode = settings.win_mode === "inputs" ? "inputs" : "common";
-
-  const data = useMemo(() => {
-    if (!ws?.has_data || !grid) return null;
-    const { meta, blob } = grid;
-    const get = (n: string) => series(meta, blob, n);
-    const pv = get("pv"), mv = get("mv");
-    if (!pv || !mv) return null;
-    const t = pv.t, n = t.length;
-    const idx = decimate(n, pv.v);
-    const [lo, hi] = range(pv.v);
-    const pvRow: Record<string, unknown> = { id: "PV", kind: "pv", title: `PV · ${ws.pv}`, color: "#1f5fa8",
-      y: pick(pv.v, idx), lo, hi, h: 220 };
-    if (curves) {
-      const c = (k: string) => series(curves.meta, curves.blob, k)?.v;
-      pvRow.model = { all: pick(c("model"), idx), mv: pick(c("model_mv"), idx), dv: pick(c("model_dv"), idx),
-        full_all: pick(c("full"), idx) };
-      pvRow.resid = pick(c("residual"), idx);
-    }
-    const rows = [pvRow];
-    const sel = model?.results.find((x) => x.code === model.selected);
-    const wf = winMode === "inputs" && sel?.method === "win" && windows && curves
-      ? windowFits(windows.wins, sel.window_fits, ws.Ts ?? 1) : {};
-    const legend: unknown[] = [];
-    const inputs: [string, ArrayLike<number>, string, string[]][] = [["MV", mv.v, ws.mv ?? "MV", MV_STYLE]];
-    (ws.dists ?? []).forEach((d, j) => { const s = get(`d${j}`); if (s) inputs.push([d, s.v, d, DIST_STYLE[j % 4]]); });
-    inputs.forEach(([rid, y, name, sty], k) => {
-      const w = windows?.wins?.[rid] ?? [];
-      const [l, h] = range(y);
-      rows.push({ id: rid, kind: "in", title: `${rid === "MV" ? "MV" : T("mw_dist")} · ${name}`,
-        color: rid === "MV" ? "#c2410c" : sty[0], y: pick(y, idx), lo: l, hi: h, h: 110, wins: w, fits: wf[rid] ?? [],
-        wcol: sty[0], wtx: sty[1], wbg: sty[2], wbd: sty[3],
-        badge: winMode === "inputs" ? T("mw_badge", { k: k + 1, n: w.length }) : null,
-        note: winMode === "inputs" ? T("mw_note_in") : null });
-      legend.push([sty[1], rid, sty[2]]);
-    });
-    const valid = get("valid");
-    const excl = winMode === "inputs" && valid ? runs(Array.from(valid.v, (x) => (x > 0.5 ? 0 : 1)), t) : [];
-    const T_end = t[n - 1];
-    const clock = ws.origin ? Date.parse(ws.origin.replace(" ", "T") + "Z") + meta.tmin * 1000 : null;
-    return {
-      key: "model_wins", view_key: `model|${ws.fname}|${n}`, T: T_end, unit: timeUnit(T_end),
-      clock: Number.isFinite(clock) ? clock : null, dec: decOf(lang),
-      dark: document.documentElement.dataset.theme === "dark",
-      txt: Object.fromEntries(TXT.map((k) => [k, T("mw_" + k)])), mode: winMode, t: pick(t, idx), step: ws.Ts,
-      rows, excl, common: ws.rng ?? [0, T_end],
-      bar: { mode_switch: true, zoom: true, legend: winMode === "inputs" ? legend : [] },
-    };
-  }, [ws, grid, windows, curves, model, winMode, T, lang]);
 
   const onWins = async (w: { mode: string; wins: Record<string, [number, number][]>; common: [number, number] }) => {
     if (w.mode === "inputs") await request("PUT", `/workspaces/${wid}/windows`, { wins: w.wins });
@@ -107,14 +57,51 @@ export function ModelMain() {
   };
 
   if (!ws?.has_data) return <div className="card muted">{T("ui_no_data")}</div>;
+  // Každá podzáložka vykreslí jen své karty; zvolený model, úseky i data jsou v dotazech (cache) a na serveru, takže
+  // se přepnutím neztratí. Karta „Fit summary“ + nejistota + rezidua tvoří společně ModelDetails (nedělí se).
   return (
-    <div className="stack">
-      {data && <Trend data={data} onWins={(w) => void onWins(w)} onMode={(m) => void patch({ win_mode: m })}
-        testid="model-trend" />}
-      <ModelTable model={model} />
-      {model?.has_fit && <ValidationCard model={model} />}
-      {model?.has_fit && <ModelViews model={model} />}
-      {model?.has_fit && <ModelDetails model={model} />}
+    <div className="stack" data-msub={sub}>
+      <ModelSummary model={model} />
+      {sub === "ident" && <>
+        <ModelChart ws={ws} grid={grid} curves={curves} raw={raw} windows={windows} model={model} winMode={winMode}
+          units={{ pv: String(settings.u_pv ?? ""), mv: String(settings.u_mv ?? "") }}
+          layout={typeof settings.mview === "string" ? settings.mview : null}
+          onWins={(w) => { onWins(w).catch(toastError); }}
+          onMode={(m) => { patch({ win_mode: m }).catch(() => undefined); }}
+          onLayout={(l) => { patch({ mview: l }).catch(() => undefined); }} />
+        <ModelTable model={model} />
+      </>}
+      {sub === "validate" && (model?.has_fit
+        ? <><ValidationCard model={model} /><ModelViews model={model} /></>
+        : <div className="card muted" data-testid="no-model">{T("info_fit")}</div>)}
+      {sub === "residuals" && (model?.has_fit
+        ? <ModelDetails model={model} />
+        : <div className="card muted" data-testid="no-model">{T("info_fit")}</div>)}
+    </div>
+  );
+}
+
+/** Stálý pruh nad podzáložkami: typ vybraného modelu, FIT, hodnocení a stav validace (shoda a rezidua). */
+function ModelSummary({ model }: { model?: ModelState }) {
+  const T = useT();
+  const ok = !!model?.current && !model.stale;
+  const val = useWsQuery<Validation>("validation", "/model/validation", ok);
+  const r = model?.results.find((x) => x.code === model.selected);
+  if (!model?.has_fit || !r) return null;
+  const num = (k: string) => { const v = val.data?.metrics[k]; return typeof v === "number" ? v : undefined; };
+  const fit = ok ? (num("FIT") ?? r.fit_live ?? r.fit) : r.fit_live ?? r.fit;
+  const status = ok ? (num("status") ?? r.status) : r.status;
+  const ccf = num("frac_ccf"), acf = num("frac_acf");
+  const verdict = !ok ? T("msum_stale") : ccf === undefined || acf === undefined ? "–"
+    : T(ccf > 0.2 ? "msum_val_ccf" : acf > 0.5 ? "msum_val_acf" : "msum_val_ok");
+  const item = (k: string, label: string, v: string, id: string) => (
+    <span key={k} className="msum-i"><span className="msum-l">{label}</span> <b data-testid={id}>{v}</b></span>);
+  return (
+    <div className="msum" data-testid="model-summary" role="status" aria-busy={ok && val.isFetching} data-stale={ok ? "0" : "1"}>
+      {item("m", T("msum_model"), T("model_" + r.code) + (r.mixed ? " · AUTO" : ""), "msum-model")}
+      {item("f", "FIT", fit == null ? "–" : `${fit.toFixed(1)} %`, "msum-fit")}
+      {item("r", T("col_status"), status == null ? "–" : T("st_" + status), "msum-rating")}
+      {item("v", T("msum_val"), verdict, "msum-val")}
     </div>
   );
 }
@@ -124,6 +111,7 @@ function ModelTable({ model }: { model?: ModelState }) {
   const dec = useDec();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
+  const tblRef = useRef<HTMLTableElement>(null);
   const sel = model?.results.find((r) => r.code === model.selected);
   const anyCl = !!model?.results.some((r) => r.method === "cl" || r.mixed);
   if (!model?.has_fit) return <div className="card muted" data-testid="no-model">{T("info_fit")}</div>;
@@ -134,13 +122,13 @@ function ModelTable({ model }: { model?: ModelState }) {
   };
   return (
     <div className="card mcmp" data-testid="model-cmp">
-      <h3>{T("ms_cmp")} <Help text={T("h_ms_cmp")} /></h3>
+      <h3>{T("ms_cmp")} <Help text={T("h_ms_cmp")} /> <CopyTableButton target={() => tblRef.current} /></h3>
       {model.stale && <div className="warn small" data-testid="stale">{T("warn_stale")}</div>}
       <div className="mcmp-head" style={{ "--mc": MV_STYLE[0] } as React.CSSProperties}>
         {T("ms_cmp_tab", { k: 1, n: "MV" })}</div>
-      <table className="tbl" data-testid="models">
+      <table ref={tblRef} className="tbl" data-testid="models">
         <thead><tr><th /><th>{T("col_model")}</th><th>FIT [%]</th><th>NRMSE [%]</th><th>{T("col_status")}</th>
-          {anyCl && <th title={T("idm_table_note")}>{T("idm_fit_cl")}</th>}<th>{T("dk_params")}</th></tr></thead>
+          {anyCl && <th title={T("idm_table_note")}>{T("idm_fit_cl")}</th>}<th>{T("ui_model_params")}</th></tr></thead>
         <tbody>
           {model.results.map((r) => (
             <tr key={r.code} className={r.code === model.selected ? "sel" : ""}>

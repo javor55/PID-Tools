@@ -1,4 +1,4 @@
-"""Živá simulace v prohlížeči (pidtools/ui/static/live_engine.js) se musí chovat stejně jako Python LiveLoop."""
+"""Živá simulace v prohlížeči (frontend/src/legacy/live_engine.js) se musí chovat stejně jako Python LiveLoop."""
 import json
 import os
 import shutil
@@ -9,7 +9,7 @@ import pytest
 
 from pidtools.core import LiveLoop
 
-ENGINE = os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "live_engine.js")
+ENGINE = os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "legacy", "live_engine.js")
 NODE = shutil.which("node")
 
 CASES = {
@@ -109,7 +109,7 @@ console.log(JSON.stringify([before, after, out]));
 
 
 # ---------------------------------------------------------------- E9-B: regulátor z profilu, DV, FF, kaskáda
-CTRL_ENGINE = os.path.join(os.path.dirname(__file__), "..", "pidtools", "ui", "static", "ctrl_engine.js")
+CTRL_ENGINE = os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "legacy", "ctrl_engine.js")
 PRESET = os.path.join(os.path.dirname(__file__), "..", "pidtools", "controllers", "presets", "pcs7_pidconl.json")
 
 

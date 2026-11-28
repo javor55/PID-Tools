@@ -30,10 +30,28 @@ export function useDec(): string {
 /** Locale pro datum a čas: angličtina s 24h časem (en-GB), jinak kód jazyka. */
 export const dateLocale = (lang: string) => (lang === "en" ? "en-GB" : lang);
 
+/** Klíče, pro které už vývojový režim varoval (jedno varování na klíč za běh stránky). */
+const warned = new Set<string>();
+
+/**
+ * Vývojový režim (`import.meta.env.DEV`): chybějící klíč se ohlásí jednou `console.warn`. Ve vitestu
+ * (`MODE === "test"`) se nevaruje, aby výstup testů nebyl zahlcen; v produkčním sestavení se nevaruje vůbec.
+ * Dokud se texty načítají (`data` je `undefined`), nejde o chybějící klíč.
+ */
+function warnMissing(key: string) {
+  if (!import.meta.env.DEV || import.meta.env.MODE === "test" || warned.has(key)) return;
+  warned.add(key);
+  console.warn(`i18n: chybí text pro klíč "${key}"`);
+}
+
 export function useT() {
   const data = useTexts();
   return useCallback(
-    (key: string, args?: Record<string, unknown>) => format(data?.[key] ?? key, args),
+    (key: string, args?: Record<string, unknown>) => {
+      const text = data?.[key];
+      if (text === undefined && data) warnMissing(key);
+      return format(text ?? key, args);
+    },
     [data],
   );
 }

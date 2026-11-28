@@ -55,7 +55,7 @@ def parse_ready(line):
 
 def parent_alive(pid):
     """Žije proces pid? Windows: OpenProcess + WaitForSingleObject; POSIX: kill(pid, 0) a změna rodiče."""
-    if os.name == "nt":
+    if sys.platform == "win32":
         import ctypes
         k32 = ctypes.windll.kernel32
         k32.OpenProcess.restype = ctypes.c_void_p
@@ -100,13 +100,18 @@ def make_server(app, sock):
     return uvicorn.Server(uvicorn.Config(app, log_level="warning", lifespan="on")), [sock]
 
 
+def build_app(token, cors=()):
+    """Aplikace sidecaru desktopu: pracovní prostor nevyprší (po uspání počítače by jinak zmizela rozdělaná práce)."""
+    from . import create_app
+    return create_app(token=token, cors_origins=list(cors), workspace_ttl=None)
+
+
 def serve(token=None, port=0, parent_pid=None, out=None, cors=()):
     """Spustí server (blokuje do ukončení). out(řádek) dostane READY řádek; vrací kód ukončení."""
     from .. import __version__
-    from . import create_app
     token = token or secrets.token_urlsafe(24)
     sock = free_socket(port)
-    server, socks = make_server(create_app(token=token, cors_origins=list(cors)), sock)
+    server, socks = make_server(build_app(token, cors), sock)
     real_port = sock.getsockname()[1]
 
     def announce():
@@ -145,8 +150,8 @@ def smoke_steps(base, token, log=print):
     """Cesta přes API: health, workspace, demo, identifikace (úloha v samostatném procesu), protokol."""
     h = _call(base, token, "GET", "/health")
     assert h["status"] == "ok", h
-    wid = _call(base, token, "POST", "/workspaces")["id"]
-    w = f"/workspaces/{wid}"
+    wid = _call(base, token, "POST", "/api/v1/workspaces")["id"]
+    w = f"/api/v1/workspaces/{wid}"
     _call(base, token, "POST", w + "/data/demo")
     _call(base, token, "PATCH", w + "/settings", {"chosen": ["P1D"]})
     job = _call(base, token, "POST", w + "/identify")
@@ -155,7 +160,7 @@ def smoke_steps(base, token, log=print):
         if time.time() - t0 > 240:
             raise TimeoutError("identification job did not finish")
         time.sleep(0.2)
-        job = _call(base, token, "GET", f"/jobs/{job['id']}")
+        job = _call(base, token, "GET", f"/api/v1/jobs/{job['id']}")
     assert job["state"] == "done", job
     log(f"identification job: done in {time.time() - t0:.1f} s")
     m = _call(base, token, "GET", w + "/model")
@@ -163,6 +168,10 @@ def smoke_steps(base, token, log=print):
     html = _call(base, token, "POST", w + "/report", {"meta": {}})
     assert b"<html" in html.lower() and len(html) > 10_000, "report too short"
     log(f"report: {len(html) // 1024} kB")
+    opc = _call(base, token, "GET", "/api/v1/opc/available")
+    log(f"OPC UA client available: {opc}")
+    if getattr(sys, "frozen", False):                # zabalený program musí umět čtení z OPC UA (asyncua přibalené)
+        assert opc is True, "asyncua is missing in the packaged program"
     ui = _call(base, token, "GET", "/") if os.environ.get("PIDTOOLS_SMOKE_UI") else None
     return {"version": h["version"], "ui": ui is not None}
 

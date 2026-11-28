@@ -2,6 +2,8 @@
 Ladění a simulace: blok PIDConL a sady parametrů, dopředná vazba, metody a návrh ladění, porovnání metod,
 robustnost sad a scénář (M4c).
 """
+from typing import Any
+
 import numpy as np
 
 from ...core import pidconl_sim_full
@@ -10,9 +12,10 @@ from .. import feedforward as ffm
 from .. import scenario as scn
 from .. import tuning as tun
 from ..loop import block_ctrl, set_ctrl
+from .base import WsBase
 
 
-class TuningMixin:
+class TuningMixin(WsBase):
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     def compare_methods(self):
@@ -46,6 +49,18 @@ class TuningMixin:
         ff, ffll = self.ff() if self.model else ([], [])
         return set_ctrl(self.base_ctrl(), float(self.get(f"set{n}_gain")), float(self.get(f"set{n}_ti")),
                         float(self.get(f"set{n}_td")), ff, ffll)
+
+    def set2_empty(self):
+        """Set 2 nebyl zadán ani převzat z návrhu (výslovný příznak `set2_defined`, ne porovnání s výchozími čísly)."""
+        return not self.get("set2_defined")
+
+    def work_ctrl(self):
+        """Pracovní sada pro APC a simulace: Set 2; dokud je Set 2 výchozí, Set 1 (hodnoty z PLC)."""
+        return self.set_ctrl(self.work_set())
+
+    def work_set(self):
+        """Číslo pracovní sady (1 nebo 2) – tu, kterou vrací `work_ctrl`; API ho posílá do textů APC."""
+        return 1 if self.set2_empty() else 2
 
     # ---- regulátor smyčky (profil): sady se ukládají kanonicky (Kc, Ti, Td), v jednotkách bloku se zobrazují / zadávají
     def ranges(self):
@@ -108,14 +123,14 @@ class TuningMixin:
                 out.append(("sim_mv0_out", dict(m=f"{self.EM(mv0):.4g}", lo=f"{float(self.get('mvl_lo', self.mv_lo)):g}",
                                                 hi=f"{float(self.get('mvl_hi', self.mv_hi)):g}", u=self.get("u_mv") or "MV")))
             code = self.get("mcode")
-            if self.fit and code in self.fit["res"] and self.fit["res"][code].get("fit", 100) < 70:
+            if self.fit is not None and code in self.fit["res"] and self.fit["res"][code].get("fit", 100) < 70:
                 out.append(("warn_low_fit", {}))
         return out
 
     def plant_view(self):
         """Proces a ventil v simulaci: stikce, skluz, šum PV a charakteristika ventilu (se základem z identifikace)."""
         code = self.get("mcode")
-        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit and code in self.fit["res"] else 0.0
+        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit is not None and code in self.fit["res"] else 0.0
         gains = [float(v) for v in (self.get("vchar_last") or [1.0] * 10)]
         x, y = scn.valve_curve(gains)
         return dict(stic=float(self.get(self.stic_key, st0)), stic_default=float(st0), slip=float(self.get("sim_J", 100.0)),
@@ -169,6 +184,8 @@ class TuningMixin:
     def write_set(self, n, s, log=None):
         """Parametry do sady n; log = popis pro historii ladění (metoda, scénář, IAE…), None = nezaznamenávat."""
         self.set(**{f"set{n}_gain": float(s["Kc"]), f"set{n}_ti": float(s["Ti"]), f"set{n}_td": float(s["Td"])})
+        if n == 2:
+            self.set(set2_defined=True)             # zápis Setu 2 (ruční i z návrhu) = Set 2 je zadán
         if log is not None:
             import datetime as _dt
             m = self.set_metrics(n) if self.model is not None else {}
@@ -272,7 +289,7 @@ class TuningMixin:
     def plant(self):
         """Proces a ventil v simulaci: stikce [MV] (výchozí z identifikace), skluz [%], šum PV [PV], charakteristika."""
         code = self.get("mcode")
-        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit and code in self.fit["res"] else 0.0
+        st0 = (self.fit["res"][code].get("stic") or 0.0) * self.MR / 100 if self.fit is not None and code in self.fit["res"] else 0.0
         return scn.plant(float(self.get(self.stic_key, st0)), float(self.get("sim_J", 100.0)),
                          float(self.get("sim_noise", 0.0)), self.get("vchar_last") or [1.0] * 10, self.PR, self.MR)
 
@@ -324,7 +341,8 @@ class TuningMixin:
             c = dict(ctrl, **plant)
             return pidconl_sim_full(code, pp, pdl, h, sig["sp"], x["pv0"], x["mv0"], c if prof is None else self.prof_ctrl(c),
                                     sig["dmeas"], sig["dmv"], sig["dpv"], profile=prof)
-        runs, kp = {}, {}
+        runs: dict[int | str, Any] = {}
+        kp: dict[int | str, Any] = {}
         for n in (1, 2):
             runs[n] = run(self.set_ctrl(n))
             kp[n] = scn.kpis(runs[n], self.PR, self.MR) if scn.stable(runs[n]) else None

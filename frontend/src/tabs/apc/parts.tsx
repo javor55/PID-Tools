@@ -1,13 +1,14 @@
 // Společné díly technik APC s více výsledky (kaskáda, gain scheduling, rozvazbení, override): kontrolní seznam struktury,
 // postup pro PCS 7, tabulka bodů, výběr druhé smyčky projektu (předává se jako ?loop=) a tlačítko původních hodnot.
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { createPortal } from "react-dom";
 import { create } from "zustand";
 import { ApiError, binary, request } from "../../api/client";
 import type { components } from "../../api/schema";
 import { unframe } from "../../api/signals";
 import { useT } from "../../i18n";
+import { CopyTableButton, firstTable } from "../../components/Card";
 import { Help } from "../../components/Ui";
 import { TABS, useUi } from "../../store";
 import { Bold, num, useApc } from "./common";
@@ -76,7 +77,7 @@ export function PairError({ err, loop }: { err: unknown; loop?: number }) {
   if (!loops.length) return <div className="card muted" data-testid="apc-need-loop">{T("apc_need_loop")}</div>;
   const sel = loops.find((l) => l.index === (loop ?? loops[0].index));
   if (sel && !sel.has_model) {
-    return <div className="card warn" data-testid="apc-loop-nomodel">⚠ {T("g_chk_model", { n: sel.name })}</div>;
+    return <div className="card warn" data-testid="apc-loop-nomodel">⚠ {T("apc_loop_nomodel", { n: sel.name })}</div>;
   }
   if (err instanceof ApiError && err.status === 409) return <div className="card muted">{T("need_model")}</div>;
   return <div className="card err">{String((err as Error)?.message ?? err)}</div>;
@@ -94,11 +95,13 @@ export function InGuide({ children }: { children: ReactNode }) {
 }
 
 /** Karta plochy podle návrhu: nadpis 15 px, volitelně „?“ a pravá část hlavičky. */
-export function ACard({ title, help, aside, testid, children }: { title: ReactNode; help?: string; aside?: ReactNode;
-  testid?: string; children: ReactNode }) {
+export function ACard({ title, help, aside, testid, children, copy }: { title: ReactNode; help?: string; aside?: ReactNode;
+  testid?: string; children: ReactNode; copy?: boolean }) {
+  const ref = useRef<HTMLElement>(null);
   return (
-    <section className="card apc-card" data-testid={testid}>
-      <div className="apc-card-h"><h2>{title}{help && <Help text={help} />}</h2>{aside}</div>
+    <section ref={ref} className="card apc-card" data-testid={testid}>
+      <div className="apc-card-h"><h2>{title}{help && <Help text={help} />}</h2>{aside}
+        {copy && <CopyTableButton className="copy-right" target={() => firstTable(ref.current)} />}</div>
       {children}
     </section>
   );

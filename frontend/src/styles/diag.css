@@ -12,6 +12,7 @@
 .vtag.ok { color: var(--pid-ok); border-color: var(--pid-ok); background: color-mix(in srgb, var(--pid-ok) 12%, transparent); }
 .vtag.err { color: var(--pid-err); border-color: var(--pid-err); background: color-mix(in srgb, var(--pid-err) 12%, transparent); }
 .vtag.info { color: var(--pid-accent); border-color: var(--pid-accent); background: var(--pid-accent-bg); }
+.diag-rec-head h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .diag-seg { display: grid; grid-template-columns: 56px 1fr 1fr; gap: 8px; align-items: center; }
 .diag-seg span { color: var(--pid-muted); font-size: 12px; }
 .diag-seg input[type="number"] { width: 100%; min-width: 0; border: 1px solid var(--pid-ctl); background: var(--pid-card); color: inherit;

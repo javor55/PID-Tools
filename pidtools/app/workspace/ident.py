@@ -8,9 +8,10 @@ from ...core import pd_z, predict, predict_windows
 from .. import model as mdl
 from .. import tuning as tun
 from .. import windows as wn
+from .base import FitState, WsBase
 
 
-class IdentMixin:
+class IdentMixin(WsBase):
     """Část pracovního prostoru – metody pracují se stavem Workspace (self)."""
 
     # ---- identifikace
@@ -134,7 +135,7 @@ class IdentMixin:
                                           progress=(lambda i, c: progress(n + i, c)) if progress else None)
             errs = errs + e2
         if res:
-            self.fit = dict(res=res, dnames=list(self.c_d), key=self.fit_key())
+            self.fit = FitState(res=res, dnames=list(self.c_d), key=self.fit_key())
             self.settings["mcode"] = mdl.best(res)
             for c in res:
                 self.reset_edits(c)
@@ -150,7 +151,7 @@ class IdentMixin:
         for c in res:
             res[c]["dv_chk"] = self.window_checks(c, res[c])
         if res:
-            self.fit = dict(res=res, dnames=list(self.c_d), key=self.fit_key())
+            self.fit = FitState(res=res, dnames=list(self.c_d), key=self.fit_key())
             self.settings["mcode"] = mdl.best(res)
             for c in res:
                 self.reset_edits(c)
@@ -164,7 +165,7 @@ class IdentMixin:
 
     def refit(self, code, fixed, stic_fixed=None):
         """Dofitování modelu se zafixovanými parametry ({"p<i>": v, "d<j>_<i>": v}) a zvolenými strukturami poruch."""
-        r0 = self.fit["res"][code]
+        r0 = self.fit_res()[code]
         dk = [wn.dsel(self.get, code, r0, j) for j in range(len(r0["pdl"]))]
         g = self.grid
         mix = self.mixed()
@@ -180,7 +181,7 @@ class IdentMixin:
             ts, pv, mv, d = self.segment()
             r = mdl.identify(code, ts, pv, mv, g.Ts, d, self.id_settings(), fixed, stic_fixed, d_full=list(g.dists),
                              dkinds=dk)
-        self.fit["res"][code] = r
+        self.fit_res()[code] = r
         self.reset_edits(code)
 
     def cross_validate(self, progress=None):
@@ -189,7 +190,7 @@ class IdentMixin:
         g = self.grid
         out = {}
         sets = self.id_settings()
-        items = [(c, r) for c, r in self.fit["res"].items() if r.get("method") == "win"]
+        items = [(c, r) for c, r in self.fit_res().items() if r.get("method") == "win"]
         for i, (c, r) in enumerate(items):
             if progress:
                 progress(i, c)
@@ -209,7 +210,7 @@ class IdentMixin:
                                 [[bool(self.get(f"fx|{code}|d{j}|{i}")) for i in range(4)] for j in range(n_d)])
 
     def reset_edits(self, code):
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         for i, v in enumerate(r["p"]):
             self.settings[f"ed|{code}|{i}"] = float(v)
         self.settings[f"ed|{code}|stic"] = float(r.get("stic", 0.0) or 0.0)
@@ -234,12 +235,12 @@ class IdentMixin:
     def choose_dist(self, code, j, struct):
         """Jiná struktura přenosu poruchy j (z porovnání při identifikaci) → její parametry do polí."""
         self.settings[f"dsel|{code}|{j}"] = struct
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         self.set_dist_ed(code, j, wn.dsel_pd(self.get, code, r, j))
 
     def rescale_if_needed(self):
         """Změnily se jen rozsahy regulátoru → přepočet modelů (jako ve webu). Vrací True při přepočtu."""
-        if not self.fit:
+        if self.fit is None:
             return False
         new = self.fit_key()
         old = self.fit.get("key")
@@ -257,22 +258,22 @@ class IdentMixin:
 
     @property
     def stale(self):
-        return bool(self.fit) and self.fit.get("key") != self.fit_key()
+        return self.fit is not None and self.fit.get("key") != self.fit_key()
 
     @property
     def signals_changed(self):
         """Patří identifikace k jiným signálům (jiná PV nebo MV)? Pak se model nepoužije."""
-        return bool(self.fit) and not wn.fit_signals_ok(self.fit.get("key"), self.fname, self.c_pv, self.c_mv)
+        return self.fit is not None and not wn.fit_signals_ok(self.fit.get("key"), self.fname, self.c_pv, self.c_mv)
 
     @property
     def model(self):
         """Model pro ladění (kód, parametry, parametry poruch) – nafitovaný s ručními úpravami, nebo None."""
-        if not self.fit or self.fit.get("dnames") != list(self.c_d) or self.signals_changed:
+        if self.fit is None or self.fit.get("dnames") != list(self.c_d) or self.signals_changed:
             return None
         code = self.get("mcode")
         if code not in self.fit["res"]:
             return None
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         p = [self.get(f"ed|{code}|{i}", v) for i, v in enumerate(r["p"])]
         pdl = [wn.dist_from_ed(self.get, code, r, j) for j in range(len(r["pdl"]))]
         p, pdl = mdl.clamp(p, pdl)
@@ -298,7 +299,7 @@ class IdentMixin:
 
     def evaluate(self):
         code, p, pdl = self.model
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         ts, pv, mv, d = self.segment()
         ev = mdl.evaluate(code, p, pdl, self.model_stic(code, r), r.get("level", "none"), r.get("Th"),
                           ts, pv, mv, d, self.grid.Ts)
@@ -317,7 +318,7 @@ class IdentMixin:
     def model_curves(self):
         """Průběhy modelu na celém záznamu: v úsecích a přes celý záznam (viz app.windows.model_curves)."""
         code, p, pdl = self.model
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         g = self.grid
         win = r.get("method") == "win" and self.inputs_mode
         seg = None
@@ -331,7 +332,7 @@ class IdentMixin:
     def window_fits(self, code):
         """Shody nafitovaného modelu v jednotlivých (sloučených) úsecích podle vstupů [%]."""
         from ...core import predict_windows
-        r, g = self.fit["res"][code], self.grid
+        r, g = self.fit_res()[code], self.grid
         return predict_windows(code, r["p"], r["pdl"], self.t, self.pv, self.mv, g.Ts, list(g.dists), self.win_idx,
                                self.valid)[1]
 
@@ -340,7 +341,7 @@ class IdentMixin:
         from ...core import predict_windows
         g = self.grid
         out = {}
-        for c, r in self.fit["res"].items():
+        for c, r in self.fit_res().items():
             if r.get("method") == "win" and self.inputs_mode:
                 out[c] = predict_windows(c, r["p"], r["pdl"], self.t, self.pv, self.mv, g.Ts, list(g.dists),
                                          self.win_idx, self.valid)[2]
@@ -364,7 +365,7 @@ class IdentMixin:
         jednotkách. Vrací dict(rng, overlap, id, val, verdict, t, sp, pv, mv, sim_pv, sim_mv, fit_pv, fit_mv, stable).
         """
         code, p, pdl = self.model
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         g = self.grid
         stic = self.model_stic(code, r)
         sv, tv = mdl.segment(self.t, rv)
@@ -379,6 +380,7 @@ class IdentMixin:
             yv, fv = predict(code, p, pdl, tv, pv, mv, d, g.Ts, stic)
             out.update(sim_pv=self.EP(yv), fit_pv=float(fv))
             out["verdict"] = "same" if out["overlap"] > 0.5 else ("ok" if fv >= 70 else "weak")
+            self._remember_validation(out["verdict"])
             return out
         if not g.has_sp:
             raise ValueError("no sp")
@@ -390,7 +392,24 @@ class IdentMixin:
             out.update(sim_pv=self.EP(vr["PV"]), sim_mv=self.EM(vr["MV"]), sim_t=self.t[sv][0] + vr["t"])
         out["verdict"] = ("same" if out["overlap"] > 0.5 else "ok" if (vr["fit_pv"] or 0) >= 60 else "weak") \
             if vr["stable"] else "unstable"
+        self._remember_validation(out["verdict"])
         return out
+
+    # ---- výsledek validace pro průvodce (platí jen pro model, který byl ověřen)
+    def _model_sig(self):
+        m = self.model
+        return None if m is None else (m[0], tuple(round(float(x), 9) for x in m[1]))
+
+    def _remember_validation(self, verdict):
+        """0 dobrá, 1 stejný úsek jako identifikace, 2 slabá / nestabilní – spolu s otiskem ověřeného modelu."""
+        self.val_status = (self._model_sig(), {"ok": 0, "same": 1}.get(verdict, 2))
+
+    def validation_status(self):
+        """Výsledek poslední validace, pokud patří k aktuálnímu modelu; jinak None (neprovedena)."""
+        v = self.val_status
+        if not isinstance(v, tuple) or v[0] is None or v[0] != self._model_sig():
+            return None
+        return v[1]
 
     # ---- uzavřená smyčka (M2): Set 1 ze záznamu, jeho kontrola, buzení
     def excitation(self):
@@ -415,9 +434,9 @@ class IdentMixin:
         """Odpovídá Set 1 regulátoru v záznamu? Simulace smyčky s vybraným modelem; None bez modelu nebo SP."""
         from .. import closedloop as cl
         code = self.get("mcode")
-        if not self.fit or code not in self.fit["res"] or not self.grid.has_sp:
+        if self.fit is None or code not in self.fit["res"] or not self.grid.has_sp:
             return None
-        r = self.fit["res"][code]
+        r = self.fit_res()[code]
         ts, pv, mv, d = self.segment()
         return cl.check_set1(code, r["p"], r["pdl"], ts, self.sp[self.sel_mask], pv, mv, d, self.grid.Ts,
                              self.set_ctrl_plain(1))
@@ -429,7 +448,7 @@ class IdentMixin:
         ts, pv, mv, d = self.segment()
         g = self.grid
         out = {}
-        for c, r in self.fit["res"].items():
+        for c, r in self.fit_res().items():
             if r.get("method") == "win" and self.inputs_mode:
                 ye, _fits, f = predict_windows(c, r["p"], r["pdl"], self.t, self.pv, self.mv, g.Ts, list(g.dists),
                                                self.win_idx, self.valid)

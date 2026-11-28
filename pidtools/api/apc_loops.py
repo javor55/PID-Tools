@@ -9,7 +9,7 @@ výchozí je první jiná smyčka), projekt s jedinou smyčkou odpoví 409. Poma
 model vnitřní smyčky z dat) běží jako úlohy a výsledek se uloží do pracovního prostoru.
 """
 import re
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Response
@@ -27,7 +27,7 @@ from ..core import MODELS, default_tc, gs_issues, iae, robustness
 from ..core.apc import rga_advice
 from ..i18n import T
 from .apc import ValueRow
-from .common import JobInfo, job_info
+from .common import JobInfo, job_info, model_params
 from .data import _plain
 from .tuning import Note, Pid
 
@@ -94,7 +94,7 @@ def _store(ws):
 
 
 def _a_record(proj):
-    return dict(proj.state.report_record(), name=proj.names()[proj.active])
+    return dict(proj.state.apc_record(), name=proj.names()[proj.active])
 
 
 def _ep(rng):
@@ -188,7 +188,7 @@ class CascadeSim(BaseModel):
 
 
 def _model_out(code, p):
-    return ModelOut(code=code, params=[ParamRow(name=n, value=float(v)) for n, v in zip(MODELS[code]["params"], p)])
+    return ModelOut(code=code, params=[ParamRow(name=n, value=float(v)) for n, v in zip(model_params(code), p)])
 
 
 def _cas_others(proj):
@@ -259,7 +259,7 @@ def _cas_calc(ws, inp, inner):
 
 def _cas_state(ws, proj, loop):
     """(vstupy, vnitřní model, poznámka, výpočet nebo None); výchozí τc se doplní po výpočtu."""
-    inp = _cas_inputs(ws, proj, loop, (default_tc(*ws.model[:2], float(ws.get("samp"))), None))
+    inp = _cas_inputs(ws, proj, loop, (default_tc(ws.model[0], ws.model[1], float(ws.get("samp"))), None))
     inner, note = _cas_inner(ws, proj, inp)
     if inner is None:
         return inp, None, note, None
@@ -359,12 +359,13 @@ class GsPoint(BaseModel):
     ti: float | None             # None = bez integrační složky
     td: float
     ms_sched: float | None = None   # Ms regulátoru naladěného v bodě (na modelu bodu); None = nestabilní / nelze určit
-    ms_fixed: float | None = None   # Ms jedné sady (Set 2) na modelu bodu
+    ms_fixed: float | None = None   # Ms jedné sady (pracovní sada, GsInfo.ctrl_set) na modelu bodu
 
 
 class GsInfo(BaseModel):
     model: str
     integ: bool                  # proces s integrací: scheduling se nenavrhuje
+    ctrl_set: Literal[1, 2]      # pracovní sada („jedna sada“ ve srovnání)
     inputs: GsInputs
     fitted: bool                 # jsou identifikované body (aspoň 2)
     stale: bool                  # body jsou z jiných úseků / rozsahů než zadání
@@ -469,19 +470,19 @@ def _gs_info(ws, proj):
     inp = _gs_inputs(ws)
     a = _a_record(proj)
     if integ:
-        return GsInfo(model=code, integ=True, inputs=inp, fitted=False, stale=False,
+        return GsInfo(model=code, integ=True, ctrl_set=ws.work_set(), inputs=inp, fitted=False, stale=False,
                       checks=_checks(guides.apc_gainsched(a, True)))
     pts, stale = _gs_points(ws, inp.ranges)
     spread = _gs_spread(ws)
     fitted = len(pts) >= 2
     issues = gs_issues(pts) if fitted else []
-    out = dict(model=code, integ=False, inputs=inp, fitted=fitted, stale=stale, spread=spread, issues=list(issues),
+    out = dict(model=code, integ=False, ctrl_set=ws.work_set(), inputs=inp, fitted=fitted, stale=stale, spread=spread, issues=list(issues),
                checks=_checks(guides.apc_gainsched(a, False, spread, pts, stale, issues)))
     if fitted:
         pts = _gs_tune(ws, inp, pts)
-        set2 = clean(ws.set_ctrl(2))
+        set2 = clean(ws.work_ctrl())
         tab, filled = ags.table(pts, ws.EP, ws.get("u_pv") or "PV")
-        names = MODELS[code]["params"]
+        names = model_params(code)
         out.update(points=[GsPoint(index=i, x=float(ws.EP(q["x"])), u=float(ws.EM(q["u"])), fit=float(q["fit"]),
                                    params=[ParamRow(name=n, value=float(v)) for n, v in zip(names, q["p"])],
                                    gain=q["gain"], ti=_fin(q["ti"]), td=q["td"],
@@ -505,7 +506,7 @@ def _gs_run(ws):
     if len(pts) < 2:
         raise HTTPException(409, "points not identified")
     pts = _gs_tune(ws, inp, pts)
-    return ags.simulate_pv(ws.model[0], pts, ws.base_ctrl(), ws.set_ctrl(2), float(ws.get("samp")))
+    return ags.simulate_pv(ws.model[0], pts, ws.base_ctrl(), ws.work_ctrl(), float(ws.get("samp")))
 
 
 def _gs_frame(ws, sim):
@@ -542,6 +543,7 @@ class GsErInputs(BaseModel):
 class GsErInfo(BaseModel):
     model: str
     integ: bool
+    ctrl_set: Literal[1, 2]      # pracovní sada, ze které scheduling vychází
     inputs: GsErInputs
     k_max: float | None = None   # největší bezpečný násobek (0 = nevyhoví ani sada sama)
     ms_k: float | None = None    # Ms při zesílení k·Gain (None = nestabilní)
@@ -582,19 +584,19 @@ def _er_inputs(ws):
 
 
 def _er_set2(ws):
-    return clean(ws.set_ctrl(2))
+    return clean(ws.work_ctrl())
 
 
 def _er_info(ws, proj):
     code, p, _ = ws.model
     inp = _er_inputs(ws)
     if MODELS[code]["integ"]:
-        return GsErInfo(model=code, integ=True, inputs=inp, checks=_checks(guides.apc_gs_er(_a_record(proj), np.inf)))
+        return GsErInfo(model=code, integ=True, ctrl_set=ws.work_set(), inputs=inp, checks=_checks(guides.apc_gs_er(_a_record(proj), np.inf)))
     set2 = _er_set2(ws)
     rb = robustness(code, list(p), dict(set2, Gain=inp.k * set2["Gain"]))
     ms_k = rb["Ms"] if rb["stable"] and np.isfinite(rb["Ms"]) else np.inf
     u_pv = ws.get("u_pv") or "PV"
-    return GsErInfo(model=code, integ=False, inputs=inp, k_max=ags.k_max(code, p, ws.set_ctrl(2)), ms_k=_fin(ms_k),
+    return GsErInfo(model=code, integ=False, ctrl_set=ws.work_set(), inputs=inp, k_max=ags.k_max(code, p, ws.work_ctrl()), ms_k=_fin(ms_k),
                     base=Tuned(Kc=float(set2["Gain"]), Ti=float(set2["TI"]), Td=float(set2.get("TD", 0.0))),
                     table=[PointRow(input=nm, values=[_fin(v) for v in vals], unit=u)
                            for nm, vals, u in ags.er_table(inp.E, inp.k, set2, u_pv)],
@@ -626,7 +628,7 @@ def _er_curves(r):
 
 
 # ---- rozvazbení a override: druhá smyčka projektu
-def _pair(proj, loop):
+def _pair(proj, loop) -> tuple[int, dict[str, Any], dict[str, Any]]:
     """(index druhé smyčky, záznam A, záznam B); 409 u projektu s jedinou smyčkou nebo smyčky bez modelu."""
     others = dict(_cas_others(proj))
     if not others:
@@ -683,8 +685,8 @@ class DecInfo(LoopHead):
 
 class DecSimReq(BaseModel):
     dtype: Literal["static", "dyn"] = "dyn"
-    amp_a: float = Field(5.0, ge=-100, le=100)
-    amp_b: float = Field(5.0, ge=-100, le=100)
+    amp_a: float = Field(default=5.0, ge=-100, le=100)
+    amp_b: float = Field(default=5.0, ge=-100, le=100)
     way: Literal["both", "ab", "ba"] = "both"   # oba decouplery / jen B → A (ab) / jen A → B (ba)
 
 
@@ -799,7 +801,7 @@ def _ov_frame(a, b, tt, o, o0):
 
 
 _LOOP_Q = Query(None, ge=0, description="index of the second loop of the project (as in GET /loops)")
-_CURVES = {200: {"content": {"application/octet-stream": {}}}}
+_CURVES: dict[int, dict[str, Any]] = {200: {"content": {"application/octet-stream": {}}}}
 
 
 class _Deps:

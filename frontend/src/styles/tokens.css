@@ -22,7 +22,14 @@
 :root {
   --pid-bg: #eef1f5; --pid-card: #ffffff; --pid-side: #f6f8fa; --pid-line: #d7dde5; --pid-soft: #e5e9ef;
   --pid-text: #1f2933; --pid-muted: #52606d; --pid-accent: #1f5fa8; --pid-accent-bg: #eaf2fb; --pid-ctl: #c3ccd6;
-  --pid-pv: #1f5fa8; --pid-sp: #9aa5b1; --pid-mv: #c2410c; --pid-set1: #64748b; --pid-set2: #15803d;
+  --pid-pv: #1f5fa8; --pid-sp: #7b8794; --pid-mv: #c2410c; --pid-set1: #64748b; --pid-set2: #15803d;
+  /* barvy řad prohlížeče záznamu (lib/palette.ts); kontrast ≥ 3 : 1 proti pozadí grafu */
+  --pid-pos: #7c3aed; --pid-model: #5b3fa8;       /* průběh modelu v grafu Modelu */
+  --pid-seg-a: #1f5fa8; --pid-seg-b: #7c3aed;       /* úseky A a B v grafu Diagnostiky (text štítků ≥ 4,5 : 1) */
+  --pid-series-1: #2563eb; --pid-series-2: #dc2626; --pid-series-3: #059669; --pid-series-4: #d97706; --pid-series-5: #7c3aed;
+  --pid-series-6: #db2777; --pid-series-7: #0891b2; --pid-series-8: #65a30d; --pid-series-9: #9333ea; --pid-series-10: #ea580c;
+  --pid-series-11: #0f766e; --pid-series-12: #b91c1c; --pid-series-13: #4f46e5; --pid-series-14: #a16207;
+  --pid-dist-1: #0d9488; --pid-dist-2: #8b5cf6; --pid-dist-3: #b07a05; --pid-dist-4: #64748b;
   --pid-ok: #15803d; --pid-warn: #b45309; --pid-err: #b91c1c;
   --pid-font: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
   --pid-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
@@ -32,6 +39,11 @@
 :root[data-theme="dark"] {
   --pid-bg: #0b1220; --pid-card: #111a2e; --pid-side: #0f172a; --pid-line: #26324a; --pid-soft: #1c2740;
   --pid-text: #e2e8f0; --pid-muted: #94a3b8; --pid-accent: #60a5fa; --pid-accent-bg: rgba(96, 165, 250, 0.12);
-  --pid-ctl: #3b4a63; --pid-pv: #60a5fa; --pid-mv: #fb923c;
+  --pid-ctl: #3b4a63; --pid-pv: #60a5fa; --pid-mv: #fb923c; --pid-sp: #9aa5b1;
+  --pid-pos: #a78bfa; --pid-model: #a78bfa; --pid-seg-a: #60a5fa; --pid-seg-b: #a78bfa;
+  --pid-series-1: #60a5fa; --pid-series-2: #f87171; --pid-series-3: #34d399; --pid-series-4: #fbbf24; --pid-series-5: #a78bfa;
+  --pid-series-6: #f472b6; --pid-series-7: #22d3ee; --pid-series-8: #a3e635; --pid-series-9: #c084fc; --pid-series-10: #fb923c;
+  --pid-series-11: #2dd4bf; --pid-series-12: #fca5a5; --pid-series-13: #818cf8; --pid-series-14: #facc15;
+  --pid-dist-1: #2dd4bf; --pid-dist-2: #a78bfa; --pid-dist-3: #eab308; --pid-dist-4: #94a3b8;
   color-scheme: dark;
 }

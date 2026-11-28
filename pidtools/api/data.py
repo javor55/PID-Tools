@@ -2,18 +2,131 @@
 API – data smyčky (M7): načtení souboru / ukázky, rozložení tabulky, sloupce, úsek, nastavení, signály binárně,
 kvalita dat a režim smyčky (MAN / AUTO).
 """
-from typing import Annotated, Literal
+import csv
+from typing import Annotated, Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..app import project as prj
+from ..app import undo
 from ..app import signalpack
 from ..app.dataio import ROWS, TIME_FORMATS, read_table
 from ..app.dataset import UNITS, guess_col
+from ..app.workspace import DEFAULTS
 
 MAX_UPLOAD = 200 * 2 ** 20          # největší nahraný soubor [B]
+
+
+
+class LoopSettings(BaseModel):
+    """
+    Nastavení smyčky: všechny pevné klíče (app.project.STATE_KEYS) s výchozími hodnotami z DEFAULTS (klíč bez výchozí
+    hodnoty = None) plus klíče s prefixem (STATE_PREFIX: `method|…`, `fx|…` …), které prostor má (extra="allow").
+    Typy odpovídají NUM_KEYS (číslo), BOOL_KEYS (bool), LIST_KEYS (seznam) a ENUMS (výčet); hlídá tests/test_settings_model.py.
+    """
+    # v OpenAPI jsou pevné klíče povinné a bez `additionalProperties` (klíče s prefixem si typ doplní frontend sám)
+    model_config = ConfigDict(extra="allow", json_schema_serialization_defaults_required=True,
+                              json_schema_extra=lambda schema: schema.pop("additionalProperties", None))
+
+    lang: str = DEFAULTS["lang"]
+    loop_tag: str = DEFAULTS["loop_tag"]
+    u_pv: str = DEFAULTS["u_pv"]
+    u_mv: str = DEFAULTS["u_mv"]
+    pv_lo: float = DEFAULTS["pv_lo"]
+    pv_hi: float = DEFAULTS["pv_hi"]
+    mv_lo: float = DEFAULTS["mv_lo"]
+    mv_hi: float = DEFAULTS["mv_hi"]
+    pv_rng_user: bool | None = None
+    mv_rng_user: bool | None = None
+    plot_h: float | None = None
+    chart_tunit: str | None = None
+    # blok PIDConL a sady parametrů
+    samp: float = DEFAULTS["samp"]
+    diffgain: float = DEFAULTS["diffgain"]
+    pfb: bool | None = None
+    propfac: float = DEFAULTS["propfac"]
+    dfb: bool = DEFAULTS["dfb"]
+    db: float = DEFAULTS["db"]
+    db_mode: Literal["cont", "step"] = DEFAULTS["db_mode"]
+    mvl_lo: float | None = DEFAULTS["mvl_lo"]          # None = bez omezení bloku (prázdné pole)
+    mvl_hi: float | None = DEFAULTS["mvl_hi"]
+    pvfilt: float = DEFAULTS["pvfilt"]
+    mvrate: float = DEFAULTS["mvrate"]
+    sprate: float = DEFAULTS["sprate"]
+    set1_gain: float = DEFAULTS["set1_gain"]
+    set1_ti: float = DEFAULTS["set1_ti"]
+    set1_td: float = DEFAULTS["set1_td"]
+    set2_gain: float = DEFAULTS["set2_gain"]
+    set2_ti: float = DEFAULTS["set2_ti"]
+    set2_td: float = DEFAULTS["set2_td"]
+    set2_defined: bool = DEFAULTS["set2_defined"]
+    # identifikace
+    thmax: float | None = DEFAULTS["thmax"]
+    chosen: list[Any] = DEFAULTS["chosen"]
+    mcode: str | None = DEFAULTS["mcode"]
+    mtype: str | None = None
+    mtype0: str | None = None
+    proc_type: str | None = None
+    dist_level: Literal["none", "medium", "high"] = DEFAULTS["dist_level"]
+    dist_strength: float = DEFAULTS["dist_strength"]
+    gain_sign: Literal["auto", "pos", "neg"] = DEFAULTS["gain_sign"]
+    id_stic: bool = DEFAULTS["id_stic"]
+    win_mode: str | None = None
+    read_manual: bool | None = None
+    # ladění a simulace
+    ctype: Literal["PI", "PID", "PD"] = DEFAULTS["ctype"]
+    opt_ms: float = DEFAULTS["opt_ms"]
+    opt_noise: float | None = None
+    opt_robust: bool = DEFAULTS["opt_robust"]
+    opt_crit: str = DEFAULTS["opt_crit"]
+    opt_target: str = DEFAULTS["opt_target"]
+    opt_ovs: float = DEFAULTS["opt_ovs"]
+    avg_dpv: float | None = None
+    avg_dmv: float | None = None
+    scen_kind: str | None = DEFAULTS["scen_kind"]
+    scen_d_in: float | None = None
+    scen_d_pv: float | None = None
+    tune_hist: list[Any] | None = None                 # záznamy historie návrhů (slovníky)
+    id_mode: str | None = None
+    audit_loops: list[Any] | None = None
+    tri_thr: str | None = None                         # prahy diagnostiky: text JSON
+    diag_theta: float | None = None
+    val_rng: list[float] | None = None                 # úsek validace [od, do]; None = výchozí
+    scen2: str | None = None
+    sim_len_u: Literal["s", "min", "h"] = DEFAULTS["sim_len_u"]
+    sim_len_u_set: bool | None = None
+    sim_J: float | None = None
+    sim_noise: float | None = None
+    vchar_last: list[Any] | None = None
+    # plán testu, kaskáda, diagnostika
+    plan_dpv: float | None = None
+    plan_snr: float | None = None
+    cas_src: str | None = None
+    cas_k: float | None = None
+    cas_t1: float | None = None
+    cas_t2: float | None = None
+    cas_th: float | None = None
+    cas_im: str | None = None
+    cas_om: str | None = None
+    cas_oct: str | None = None
+    cas_samp: float | None = None
+    cas_tci: float | None = None
+    cas_tco: float | None = None
+    diag_integ: bool | None = None
+    # hlavička reportu
+    rep_plant: str | None = None
+    rep_author: str | None = None
+    rep_status: str | None = None
+    rep_comment: str | None = None
+    live_runs: list[Any] | None = None
+    # prohlížeč záznamu: rozložení panelů, barvy, měřítka, kurzory – text JSON
+    dview: str | None = None
+    # rozložení grafu záložky Model (Identifikace), samostatné pro smyčku – text JSON
+    mview: str | None = None
+    # rozložení grafu Diagnostiky (provozní data), samostatné pro smyčku – text JSON
+    diagview: str | None = None
 
 
 class WorkspaceInfo(BaseModel):
@@ -68,6 +181,12 @@ class Columns(BaseModel):
 class Range(BaseModel):
     a: float
     b: float
+
+
+class UndoState(BaseModel):
+    """Co by vrátil `POST /undo` a `POST /redo`: krátký popisek kroku, nebo None (není co vracet)."""
+    undo: str | None = Field(default=None)
+    redo: str | None = Field(default=None)
 
 
 class Check(BaseModel):
@@ -284,6 +403,18 @@ def _dq_summary(ws):
                      events=ev[:200], segments=segs, auto_frac=_plain(ws.auto_frac()))
 
 
+def settings_out(ws) -> LoopSettings:
+    """
+    Všechny pevné klíče (chybějící z DEFAULTS) a klíče s prefixem, které prostor má. Klíč s výchozí hodnotou, který
+    je None, a hodnota výčtu mimo povolené (stará nebo ručně upravená záloha projektu) se vynechají a platí výchozí
+    hodnota – odpověď nesmí skončit chybou 500.
+    """
+    vals = {k: prj.jsonable(v) for k, v in ws.settings.items() if prj.is_state_key(k)}
+    ok = {k: v for k, v in vals.items()
+          if not (v is None and DEFAULTS.get(k) is not None) and (k not in prj.ENUMS or v in prj.ENUMS[k])}
+    return LoopSettings(**ok)
+
+
 def router(get_proj, max_upload=MAX_UPLOAD):
     r = APIRouter(prefix="/workspaces/{wid}", tags=["data"])
 
@@ -314,9 +445,11 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         raw = await request.body()
         if len(raw) > max_upload:
             raise HTTPException(413, "file too large")
+        if not raw.strip():
+            raise HTTPException(400, "empty file")
         try:
             p.load_frame(read_table(name, raw), name)
-        except (ValueError, KeyError, IndexError) as ex:
+        except (ValueError, KeyError, IndexError, csv.Error) as ex:      # csv.Error: nelze určit oddělovač
             _err(ex)
         return info(wid, p.state)
 
@@ -356,24 +489,30 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         a, b = sorted((float(body.a), float(body.b)))
         if not (0 <= a < b <= float(ws.t[-1]) + 1e-9):
             raise HTTPException(422, "range outside the record")
+        p, snap = get_proj(wid), undo.take(ws)
         ws.rng = (a, b)
+        p.history.record(p, snap, ws)                         # krok zpět (změna úseku)
         return info(wid, ws)
 
-    @r.get("/settings", response_model=dict)
+    @r.get("/settings", response_model=LoopSettings)
     def get_settings(wid: str):
-        """Nastavení smyčky (klíče jako v projektu)."""
-        ws = get_ws(wid)
-        return {k: prj.jsonable(v) for k, v in ws.settings.items() if prj.is_state_key(k)}
+        """Nastavení smyčky (klíče jako v projektu), vždy se všemi pevnými klíči."""
+        return settings_out(get_ws(wid))
 
-    @r.patch("/settings", response_model=dict)
+    @r.patch("/settings", response_model=LoopSettings)
     def patch_settings(wid: str, body: Annotated[dict, Body()]):
         """Změna nastavení – jen klíče, které patří do projektu (app.project.is_state_key)."""
         ws = get_ws(wid)
         bad = [k for k in body if not prj.is_state_key(k)]
         if bad:
             raise HTTPException(422, f"unknown setting: {', '.join(map(str, bad))}")
-        ws.set(**body)
-        return get_settings(wid)
+        errs = prj.validate_settings(body, ws.settings)      # před zápisem: špatná hodnota stav nezmění
+        if errs:
+            raise HTTPException(422, errs[0])
+        p, snap = get_proj(wid), undo.take(ws)
+        ws.set(**prj.mark_set2_defined(body))
+        p.history.record(p, snap, ws, skip=undo.is_ui_key)     # krok zpět (stav rozhraní krok nevytváří)
+        return settings_out(ws)
 
     @r.get("/signals", response_class=Response,
            responses={200: {"content": {"application/octet-stream": {}},
@@ -428,7 +567,36 @@ def router(get_proj, max_upload=MAX_UPLOAD):
         return [str(x) for x in (need_data(wid).compression() or [])]
 
     _quality_preview(r, need_data)
+    _undo_routes(r, get_proj)
     return r
+
+
+def _undo_routes(r, get_proj):
+    """Zpět / znovu změn nastavení smyčky (FEATURE-006); kroky zapisují PATCH /settings, PUT /range a v tuning.py sady a scénář."""
+    @r.get("/undo", response_model=UndoState)
+    def get_undo(wid: str):
+        """Popisky kroků, které by vrátil `POST /undo` a `POST /redo` (None = není co vracet)."""
+        p = get_proj(wid)
+        u, d = p.history.labels(p)
+        return UndoState(undo=u, redo=d)
+
+    def step_back(wid, redo):
+        p = get_proj(wid)
+        try:
+            p.history.pop(p, redo)
+        except undo.UndoError as ex:
+            raise HTTPException(ex.status, ex.text) from ex
+        return info(wid, p.state)
+
+    @r.post("/undo", response_model=WorkspaceInfo)
+    def post_undo(wid: str):
+        """Vrátí poslední změnu nastavení / sady / úseku / scénáře; 409, když není co vracet nebo krok už neplatí."""
+        return step_back(wid, False)
+
+    @r.post("/redo", response_model=WorkspaceInfo)
+    def post_redo(wid: str):
+        """Znovu provede poslední vrácenou změnu; 409, když není co provést."""
+        return step_back(wid, True)
 
 
 def _quality_preview(r, need_data):
@@ -461,7 +629,7 @@ def _quality_preview(r, need_data):
         """Min / max / průměr / σ veličin smyčky na mřížce po převzorkování (inženýrské jednotky)."""
         from ..app.dataset import stats
         ws = need_data(wid)
-        roles = {"PV": "PV", "MV": "MV", "SP": "SP"}
+        roles: dict[str, Literal["PV", "MV", "SP", "DV"]] = {"PV": "PV", "MV": "MV", "SP": "SP"}
         return [StatRow(name=n, role=roles.get(n, "DV"), min=_num(a), max=_num(b), mean=_num(m), std=_num(sd))
                 for n, a, b, m, sd in stats(ws.grid, ws.c_d)]
 
@@ -489,7 +657,7 @@ def _quality_preview(r, need_data):
             offset = int(np.searchsorted(ws.t[sel], t))
         offset = max(0, min(offset, max(len(sel) - 1, 0)))
         part = sel[offset:offset + limit]
-        notes = {i: [] for i in part.tolist()}
+        notes: dict[int, list[str]] = {i: [] for i in part.tolist()}
         for c in checks:
             if c.mask is not None and len(c.mask) == len(ws.t):
                 for i in part[np.asarray(c.mask, bool)[part]].tolist():

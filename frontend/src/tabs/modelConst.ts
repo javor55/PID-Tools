@@ -7,7 +7,7 @@ export const DIST_CHOICES = ["pv", "auto", ...MODELS] as const;
 /** Barvy úseků a karet: [čára, text, pozadí, ohraničení] – MV jantarová, poruchy podle pořadí (jako v grafech). */
 export const DIST_STYLE = [["#0d9488", "#0b7a70", "#e3f5f2", "#8fd3ca"], ["#7c3aed", "#5b21b6", "#f3effc", "#c9b8f0"],
   ["#db2777", "#9d174d", "#fdf0f6", "#f5b8d3"], ["#0891b2", "#0e7490", "#e6f6fa", "#9fdcec"]];
-export const MV_STYLE = ["#f59e0b", "#c77d00", "#fff4dc", "#f2c46d"];
+export const MV_STYLE = ["#f59e0b", "#7a4b00", "#fff4dc", "#f2c46d"];     // text 6,8 : 1 na pozadí štítku (dřívější #c77d00 měl 3 : 1)
 
 /**
  * Shoda modelu v každém úseku vstupu: `fits` z API jsou po sloučených úsecích (úseky všech vstupů se překrývají →

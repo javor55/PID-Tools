@@ -80,7 +80,7 @@ export function RatioMain() {
             { key: "iae", label: T("ra_iae"), best: "min", values: V.map((k) => sim.kpis[k]?.iae) }]} />
         )}
       </ACard>
-      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="ratio-template">
+      <ACard title={T("ff_tab_title")} help={T("ui_apc_pcs_h")} testid="ratio-template" copy>
         <ValueTable testid="ratio-val" rows={[{ key: "R", name: "R", value: body.R, unit: "%/%" }]} />
         <div className="small"><Bold text={d.impl_text} /></div>
         <div className="small muted">{T("model_" + d.air.code)}: {d.air.params.map((n, i) => `${n} = ${g(d.air.values[i], 4)}`).join(", ")}</div>

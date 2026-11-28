@@ -72,6 +72,7 @@ function ParamRow({ label, edKey, fxKey, value, unit, help, signed }: { label: s
 const unitOf = (T: (k: string) => string, n: string) => n === "K" ? "%/%" : n === "Ki" ? "%/(%·s)" : n === "Kd" ? T("ms_unit_kd") : "s";
 
 interface CardProps {
+  open: boolean;                 // počáteční stav karty (v podzáložkách Validace a Rezidua sbalená)
   k: number;                     // pořadí přenosu (1 = MV)
   name: string;                  // MV / název poruchy
   col: string;                   // sloupec v datech
@@ -85,7 +86,7 @@ interface CardProps {
   modelFits: Record<string, number>;
 }
 
-function TransferCard({ k, name, col, j, model, r, win, fit, src, color, modelFits }: CardProps) {
+function TransferCard({ open, k, name, col, j, model, r, win, fit, src, color, modelFits }: CardProps) {
   const T = useT();
   const wid = useUi((s) => s.wid);
   const qc = useQueryClient();
@@ -181,7 +182,7 @@ function TransferCard({ k, name, col, j, model, r, win, fit, src, color, modelFi
   const suffix = first ? "" : `-d${j}`;
   return (
     <div className={"mcard " + (isMv ? "mcard-mv" : "mcard-dv")} style={{ "--mc": color } as React.CSSProperties}>
-      <SideCard testid={isMv ? "params" : `params-d${j}`} title={title}
+      <SideCard testid={isMv ? "params" : `params-d${j}`} title={title} defaultOpen={open}
         aside={fit !== null ? <span className="mfit mono" data-testid={`fit-${j}`}>FIT {fit.toFixed(0)} %</span> : null}>
         <div className="msrc">{src}</div>
         {r?.dists[j]?.flat && <div className="warn small">{T("ms_dv_flat")}</div>}
@@ -407,6 +408,9 @@ export function ModelSide() {
   const lp = useWsQuery<LoopInfo>("modelloop", "/model/loop");
   const windows = useWsQuery<WindowsInfo>("windows", "/windows");
   const model = useWsQuery<ModelState>("model", "/model").data;
+  // Identifikační karty se v podzáložkách Validace a Rezidua sbalí (key vynutí nový počáteční stav bez znovunačtení)
+  const ident = useUi((s) => s.modelSub) === "ident";
+  const idKey = ident ? "-open" : "-closed";
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   if (!ws?.has_data) return null;
@@ -455,7 +459,7 @@ export function ModelSide() {
         {err && <div className="err small" role="alert">{err}</div>}
       </div>
 
-      <SideCard title={T("idm")} help={T("h_idm")} testid="side-idm">
+      <SideCard key={"side-idm" + idKey} title={T("idm")} help={T("h_idm")} testid="side-idm" defaultOpen={ident}>
         <select value={idMode} onChange={(e) => void patch({ id_mode: e.target.value })} data-testid="id-mode" aria-label={T("idm")} title={T("h_idm")}>
           {["auto", "open", "cl"].map((m) => <option key={m} value={m}>{T("idm_" + m)}</option>)}
         </select>
@@ -482,7 +486,7 @@ export function ModelSide() {
         )}
       </SideCard>
 
-      <SideCard title={T("ms_struct")} testid="side-struct">
+      <SideCard key={"side-struct" + idKey} title={T("ms_struct")} testid="side-struct" defaultOpen={ident}>
         <p className="mformula">PV = G₁(s)·MV{dists.map((d, j) => ` + G${"₂₃₄₅₆₇₈₉"[j]}(s)·${d}`).join("")}</p>
         <div className="mlabel"><span>{T("ms_proc")}</span><Help text={T("h_ms_proc")} /></div>
         <Seg value={procType} options={["auto", "self", "integ"] as const} label={T("ms_proc")} stretch testid="proc-type"
@@ -492,12 +496,12 @@ export function ModelSide() {
       </SideCard>
 
       {transfers.map((x, i) => (
-        <TransferCard key={x.name} k={i + 1} name={x.name} col={x.col} j={x.j} model={model}
+        <TransferCard key={x.name + idKey} open={ident} k={i + 1} name={x.name} col={x.col} j={x.j} model={model}
           r={sel} win={win} fit={fitOfInput(x.name)} src={srcOf(x.name)} modelFits={modelFits}
           color={x.j < 0 ? MV_STYLE[0] : DIST_STYLE[x.j % 4][0]} />
       ))}
 
-      <SideCard title={T("models")} help={T("h_models")} testid="side-models">
+      <SideCard key={"side-models" + idKey} title={T("models")} help={T("h_models")} testid="side-models" defaultOpen={ident}>
         <div className="checks-grid">
           {MODELS.map((c) => (
             <label key={c} className="small" title={T("h_models")}>

@@ -3,6 +3,8 @@ API – ladění podle profilu regulátoru smyčky (E8-B): tabulka robustnosti s
 v simulaci (T2) a export sady v názvech a jednotkách bloku (PCS 7 / TIA / DeltaV / CSV). Návrh a sady v jednotkách
 bloku jsou součástí `/tuning` (`api.tuning`).
 """
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Response
 
 from .. import i18n
@@ -52,7 +54,7 @@ def router(get_proj):
         ws = need_model(wid)
         if body.vchar is not None and (len(body.vchar) != 10 or min(body.vchar) < 0):
             raise HTTPException(422, "vchar: 10 non-negative gains")
-        ch = {}
+        ch: dict[str, Any] = {}
         if body.stic is not None:
             ch[ws.stic_key] = max(0.0, body.stic)
         if body.slip is not None:

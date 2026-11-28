@@ -2,7 +2,7 @@
 Živá simulace pro frontend, který ji počítá sám (desktop): jedna nebo dvě smyčky (sada 1 a 2) nad core.LiveLoop,
 ruční / automatický režim, SP, poruchy na vstupu i výstupu procesu, změna procesu, šum PV a ukazatele od poslední
 události. Vše uvnitř v % rozsahů regulátoru; vstupy a výstupy pro uživatele v inženýrských jednotkách přes Scaling.
-(Webová aplikace počítá živou simulaci v prohlížeči – ui/static/live_engine.js; konfigurace pro ni: web_config.)
+(Webová aplikace počítá živou simulaci v prohlížeči – frontend/src/legacy/live_engine.js; konfigurace pro ni: web_config.)
 """
 import json
 
@@ -291,8 +291,11 @@ def web_config_ws(ws, cascade=None):
     if cascade:
         apc["cascade"] = dict(ok=True, inner=cascade["inner"], source=cascade.get("source", ""),
                               octrl=profile_ctrl_js(prof, ws.prof_ctrl(cascade["octrl"])))
-    return web_config(model=ws.model, samp=float(g("samp")), pv0=pv0, mv0=float(mv_id[0]), set1=ws.set_ctrl(1),
+    empty2 = ws.set2_empty()
+    cfg = web_config(model=ws.model, samp=float(g("samp")), pv0=pv0, mv0=float(mv_id[0]), set1=ws.set_ctrl(1),
                       set2=ws.set_ctrl(2), plant=ws.plant(), pv_rng=(ws.pv_lo, ws.pv_hi), mv_rng=(ws.mv_lo, ws.mv_hi),
                       u_pv=g("u_pv", ""), u_mv=g("u_mv", ""), pvfilt=float(g("pvfilt", 0.0)),
                       height=g("plot_h", 460), scope=f"{ws.fname}|0", summary=summary, lang=i18n.lang(),
                       engine=dict(profile=prof, sets=sets), dvs=dvs, apc=apc, journal=True)
+    cfg["set0"] = "1" if empty2 else "2"            # Set 2 ještě bez hodnot → spustit se Setem 1
+    return cfg

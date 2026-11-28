@@ -7,28 +7,31 @@ Nastavení se drží ve slovníku `settings` se stejnými klíči jako webová a
 projekt uložený v jednom rozhraní otevře druhé. Metody jsou rozdělené podle oblastí do modulů data, ident, tuning
 a project; Workspace je skládá dohromady.
 """
+from typing import Any
+
 from ...core import MODELS
 from .. import tuning as tun
-from ..loop import Scaling
 
-DEFAULTS = dict(
+DEFAULTS: dict[str, Any] = dict(
     lang="en", loop_tag="", u_pv="", u_mv="%", pv_lo=0.0, pv_hi=100.0, mv_lo=0.0, mv_hi=100.0,
     samp=1.0, diffgain=5.0, propfac=1.0, dfb=True, db=0.0, db_mode="cont", mvl_lo=None, mvl_hi=None, pvfilt=0.0,
     mvrate=0.0, sprate=0.0, set1_gain=1.0, set1_ti=100.0, set1_td=0.0, set2_gain=1.0, set2_ti=100.0, set2_td=0.0,
+    set2_defined=False,
     thmax=None, chosen=list(MODELS), mcode=None, dist_level="none", dist_strength=4, gain_sign="auto", id_stic=False,
     ctype="PI", opt_crit=tun.DEFAULT_CRIT, opt_target=tun.DEFAULT_TARGET, scen_kind=None, opt_ms=1.6, opt_robust=False,
-    opt_ovs=2, sim_len_u="s",
+    opt_ovs=2, sim_len_u="s", mview=None, diagview=None,
 )
 
 
 from .analysis import AnalysisMixin  # noqa: E402
+from .base import WsBase  # noqa: E402
 from .data import DataMixin  # noqa: E402
 from .ident import IdentMixin  # noqa: E402
 from .project import ProjectMixin  # noqa: E402
 from .tuning import TuningMixin  # noqa: E402
 
 
-class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin, Scaling):
+class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin, WsBase):
     """Jedna smyčka. Rozsahy (pv_lo …) čte Scaling z nastavení."""
 
     def __init__(self):
@@ -39,13 +42,13 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
         self.c_time = self.c_tag = self.c_val = None    # sloupec času (wide) / tag, čas, hodnota (long); None = odhad
         self.ts_user = None                             # ruční perioda převzorkování [s]; None = automaticky
         self.row_dt = 1.0                               # bez času (co řádek, to vzorek): perioda v jednotkách unit
-        self.sig = None
+        self.sig = None  # type: ignore[assignment]  # bez dat None; kód k signálům sahá až po has_data
         self.origin_hint = None      # pd.Timestamp času 0 dat (zdroj v sekundách, ale s hodinami – složená data)
         self.src_ids = []            # zdroje, ze kterých jsou data smyčky (app.workspace.sources); prázdné = nezařazeno
         self.name_refs = {}          # {signál: domain.SourceRef} – odkud signál je
         self.merged_df = None        # tabulka složená ze zdrojů na společné mřížce (None = přímo tabulka zdroje)
         self.extra = {}              # popis smyčky, signál režimu a kaskáda (domain.LoopSpec): description, mode, cascade_to
-        self.grid = None
+        self.grid = None  # type: ignore[assignment]  # bez dat None; has_data hlídá všechny přístupy
         self.c_pv = self.c_mv = None
         self.c_sp, self.c_d, self.c_pos = "—", [], "—"
         self.rng = (0.0, 0.0)
@@ -86,7 +89,8 @@ class Workspace(DataMixin, IdentMixin, TuningMixin, AnalysisMixin, ProjectMixin,
         """
         import copy
         c = copy.copy(self)
-        c.df = c.sig = c.merged_df = None
+        c.df = c.merged_df = None
+        c.sig = None  # type: ignore[assignment]  # kopie bez dat (viz Workspace.__init__); počítá se jen z převzorkovaných dat
         c.settings = dict(self.settings)
         c.wins = {k: [list(w) for w in v] for k, v in self.wins.items()}
         c.excl = {k: list(v) for k, v in self.excl.items()}

@@ -391,7 +391,7 @@ def state_of(proj):
             set2_ctrl = None
     return GuideState(
         loop_name=name, n_samples=len(s.t), Ts=float(s.grid.Ts), c_pv=str(s.c_pv), c_mv=str(s.c_mv), norm=s.norm,
-        dq=q, model=m, fit=fit, stale=bool(s.stale), t_seg=float(ts[-1]) if len(ts) else 0.0, val_status=s.val_status,
+        dq=q, model=m, fit=fit, stale=bool(s.stale), t_seg=float(ts[-1]) if len(ts) else 0.0, val_status=s.validation_status(),
         set1=tuple(float(s.get(f"set1_{k}", d)) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
         set2=tuple(float(s.get(f"set2_{k}", d)) for k, d in (("gain", 1.0), ("ti", 100.0), ("td", 0.0))),
         set2_ctrl=set2_ctrl, n_loops=n_loops, report=None, plant_meta=bool(s.get("rep_plant")))
@@ -415,3 +415,26 @@ def guide(tab, g):
         "tables": parse_sections(choose, T("tg_tab_choose")) if choose else [], "tips": tips,
         "glossary": parse_glossary(T("gloss_body")),
     }
+
+
+# ================================================================ souhrn stavu postupu (FEATURE-003)
+NAV_STATUS_TABS = ("data", "model", "tuning", "apc", "live", "project")      # hlavní záložky v pořadí navigace
+
+
+def status(g):
+    """
+    Souhrn stavu postupu pro hlavní záložky ze STEJNÝCH kontrol jako průvodci (`checks`, `check_status`, `action_info`):
+    {"tabs": {tab: {"ok", "warn", "todo"}}, "next": {"tab", "text", "action"} | None}.
+    `next` = první položka `todo`, jinak první `warn` (v pořadí záložek a položek).
+    """
+    tabs, items = {}, []
+    for tab in NAV_STATUS_TABS:
+        key = tab_key(tab)
+        chk = checks(key, g) if g.n_samples else []
+        if not g.n_samples and key != "project":
+            chk = [(False, T("ui_no_data"), Act("tab:data"))]
+        rows = [(check_status(ok), text, action_info(act)) for ok, text, act in chk]
+        tabs[tab] = {s: sum(1 for r in rows if r[0] == s) for s in ("ok", "warn", "todo")}
+        items += [(tab, *r) for r in rows]
+    pick = next((i for want in ("todo", "warn") for i in items if i[1] == want), None)
+    return {"tabs": tabs, "next": {"tab": pick[0], "text": pick[2], "action": pick[3]} if pick else None}

@@ -4,7 +4,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["node_modules", "src/api/schema.d.ts"] },
+  { ignores: ["node_modules", "src/api/schema.d.ts", "src/legacy"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

@@ -144,10 +144,11 @@ def test_session_expiry_frees_everything():
         assert c.get(f"{V1}/app-settings").json()["journal"]["author"] == ""
 
 
-def test_unprefixed_alias_needs_session_too():
+def test_unprefixed_paths_are_gone():
     app = create_app(team=cfg())
     with TestClient(app) as c:
-        assert c.post("/workspaces").status_code == 200              # alias také dostane relaci
+        assert c.post("/workspaces").status_code in (404, 405)       # alias bez prefixu zrušen (TICKET-012)
+        assert c.post("/api/v1/workspaces").status_code == 200
         assert COOKIE in c.cookies
 
 
